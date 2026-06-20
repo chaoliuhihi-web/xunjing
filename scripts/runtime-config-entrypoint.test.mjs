@@ -38,6 +38,21 @@ describe('runtime config Docker entrypoint', () => {
     expect(config).toContain('https://crm.example.com/api/xinghe/leads');
   });
 
+  test('allows same-origin lead capture paths for compose deployments', async () => {
+    const outputPath = path.join(makeTempDir(), 'runtime-config.js');
+
+    await execFile('sh', [entrypointPath], {
+      env: {
+        ...process.env,
+        XINGHE_RUNTIME_CONFIG_FILE: outputPath,
+        XINGHE_LEAD_WEBHOOK_URL: '/api/leads'
+      }
+    });
+
+    const config = fs.readFileSync(outputPath, 'utf8');
+    expect(config).toContain('leadWebhookUrl: "/api/leads"');
+  });
+
   test('rejects non-HTTPS lead webhooks to avoid mixed-content production setups', async () => {
     const outputPath = path.join(makeTempDir(), 'runtime-config.js');
 
@@ -48,7 +63,7 @@ describe('runtime config Docker entrypoint', () => {
         XINGHE_LEAD_WEBHOOK_URL: 'http://crm.example.com/api/xinghe/leads'
       }
     })).rejects.toMatchObject({
-      stderr: expect.stringContaining('must be empty or start with https://')
+      stderr: expect.stringContaining('must be empty, start with https://, or use a same-origin / path')
     });
     expect(fs.existsSync(outputPath)).toBe(false);
   });

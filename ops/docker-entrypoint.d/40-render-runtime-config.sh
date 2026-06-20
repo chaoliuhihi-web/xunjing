@@ -6,9 +6,9 @@ LEAD_WEBHOOK_URL="${XINGHE_LEAD_WEBHOOK_URL:-}"
 
 if [ -n "$LEAD_WEBHOOK_URL" ]; then
     case "$LEAD_WEBHOOK_URL" in
-        https://*) ;;
+        https://*|/*) ;;
         *)
-            echo "XINGHE_LEAD_WEBHOOK_URL must be empty or start with https://" >&2
+            echo "XINGHE_LEAD_WEBHOOK_URL must be empty, start with https://, or use a same-origin / path" >&2
             exit 1
             ;;
     esac

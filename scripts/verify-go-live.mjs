@@ -46,6 +46,13 @@ function assertProductionLeadWebhook(leadWebhookUrl) {
     throw new Error('runtime-config.js must configure a production HTTPS leadWebhookUrl');
   }
 
+  if (leadWebhookUrl.startsWith('/') && !leadWebhookUrl.startsWith('//')) {
+    return {
+      type: 'same-origin',
+      path: leadWebhookUrl
+    };
+  }
+
   let parsed;
   try {
     parsed = new URL(leadWebhookUrl);
@@ -60,6 +67,11 @@ function assertProductionLeadWebhook(leadWebhookUrl) {
   if (parsed.hostname === 'example.com' || parsed.hostname.endsWith('.example.com') || parsed.hostname.includes('your-crm')) {
     throw new Error('runtime-config.js leadWebhookUrl must not use an example domain');
   }
+
+  return {
+    type: 'external',
+    parsed
+  };
 }
 
 async function checkHttps(baseUrl) {
@@ -93,10 +105,25 @@ async function checkLeadWebhook(baseUrl, fetchImpl) {
   const { response, body } = await fetchText(baseUrl, '/runtime-config.js', fetchImpl);
   assertOk(response, 'runtime-config.js');
   const leadWebhookUrl = parseLeadWebhookUrl(body);
-  assertProductionLeadWebhook(leadWebhookUrl);
+  const leadWebhook = assertProductionLeadWebhook(leadWebhookUrl);
 
-  const parsed = new URL(leadWebhookUrl);
-  return pass('lead-webhook', `configured ${parsed.origin}`);
+  if (leadWebhook.type === 'same-origin') {
+    const normalizedPath = leadWebhook.path.split(/[?#]/)[0].replace(/\/+$/, '');
+    const healthPath = `${normalizedPath}/healthz`;
+    const { response: healthResponse, body: healthBody } = await fetchText(baseUrl, healthPath, fetchImpl);
+    if (!healthResponse.ok) {
+      throw new Error(`same-origin lead capture health check returned HTTP ${healthResponse.status}`);
+    }
+
+    const health = JSON.parse(healthBody);
+    if (health.status !== 'ok' || health.service !== 'xinghexunjing-leads') {
+      throw new Error('same-origin lead capture health check did not report xinghexunjing-leads ok');
+    }
+
+    return pass('lead-webhook', `same-origin ${normalizedPath}`);
+  }
+
+  return pass('lead-webhook', `configured ${leadWebhook.parsed.origin}`);
 }
 
 export async function verifyGoLive({ baseUrl, fetchImpl = fetch }) {

@@ -16,4 +16,11 @@ describe('docker build context', () => {
     expect(dockerignore).toContain('!backend/yudao/yudao-ui/yudao-ui-admin-vue3/src/api/xunjing/console/index.ts');
     expect(dockerignore).toContain('!backend/yudao/yudao-ui/yudao-ui-admin-vue3/src/views/xunjing/console/index.vue');
   });
+
+  test('keeps Yudao SQL contract fixtures required by release checks', () => {
+    const dockerignore = fs.readFileSync(path.join(root, '.dockerignore'), 'utf8');
+
+    expect(dockerignore).toContain('!backend/yudao/sql/mysql/xunjing-module.sql');
+    expect(dockerignore).toContain('!backend/yudao/sql/mysql/xunjing-seed-kashgar-p0.sql');
+  });
 });

@@ -21,7 +21,8 @@ function response(body, { status = 200, headers = {} } = {}) {
 
 function makeFetch({
   leadWebhookUrl = 'https://crm.xinghe.example.cn/api/xinghe/leads',
-  hsts = 'max-age=15552000; includeSubDomains'
+  hsts = 'max-age=15552000; includeSubDomains',
+  leadHealthStatus = 200
 } = {}) {
   return async (url) => {
     const { pathname } = new URL(url);
@@ -51,6 +52,16 @@ function makeFetch({
           'Content-Type': 'application/javascript',
           'Cache-Control': 'no-store'
         }
+      });
+    }
+
+    if (pathname === '/api/leads/healthz') {
+      return response(JSON.stringify({
+        status: leadHealthStatus === 200 ? 'ok' : 'down',
+        service: 'xinghexunjing-leads'
+      }), {
+        status: leadHealthStatus,
+        headers: { 'Content-Type': 'application/json' }
       });
     }
 
@@ -116,5 +127,25 @@ describe('go-live verifier', () => {
       baseUrl: 'https://travel.example.cn/',
       fetchImpl: makeFetch({ leadWebhookUrl: 'https://your-crm.example.com/api/xinghe/leads' })
     })).rejects.toThrow('runtime-config.js leadWebhookUrl must not use an example domain');
+  });
+
+  test('accepts a healthy same-origin lead capture endpoint', async () => {
+    const result = await verifyGoLive({
+      baseUrl: 'https://travel.example.cn/',
+      fetchImpl: makeFetch({ leadWebhookUrl: '/api/leads' })
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.checks.find((check) => check.name === 'lead-webhook')).toMatchObject({
+      ok: true,
+      detail: 'same-origin /api/leads'
+    });
+  });
+
+  test('rejects same-origin lead capture when its health check fails', async () => {
+    await expect(verifyGoLive({
+      baseUrl: 'https://travel.example.cn/',
+      fetchImpl: makeFetch({ leadWebhookUrl: '/api/leads', leadHealthStatus: 503 })
+    })).rejects.toThrow('same-origin lead capture health check returned HTTP 503');
   });
 });

@@ -49,10 +49,12 @@ describe('release package builder', () => {
         'site/sitemap.xml',
         'site/assets/index.js',
         'ops/nginx.conf',
+        'ops/nginx.compose.conf',
         'ops/nginx.https.conf.template',
         'ops/compose.prod.yml',
         'ops/deploy-static-release.sh',
         'ops/docker-entrypoint.d/40-render-runtime-config.sh',
+        'services/lead-capture-server.mjs',
         'docs/官网运营配置说明.md'
       ])
     );

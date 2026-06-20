@@ -9,11 +9,36 @@ services:
     restart: unless-stopped
     ports:
       - "${XINGHE_WEB_PORT:-8080}:80"
+    depends_on:
+      xinghexunjing-leads:
+        condition: service_healthy
     environment:
-      - XINGHE_LEAD_WEBHOOK_URL=${XINGHE_LEAD_WEBHOOK_URL:-}
+      - XINGHE_LEAD_WEBHOOK_URL=${XINGHE_LEAD_WEBHOOK_URL:-/api/leads}
+    volumes:
+      - ./nginx.compose.conf:/etc/nginx/conf.d/default.conf:ro
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz.json | grep -q '\"status\":\"ok\"' || wget -qO- http://127.0.0.1/healthz.json | grep -q '\"status\": \"ok\"'"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  xinghexunjing-leads:
+    image: node:20-alpine
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sh", "-c", "node /app/services/lead-capture-server.mjs"]
+    environment:
+      - XINGHE_LEADS_FILE=/data/leads.jsonl
+    volumes:
+      - ../services/lead-capture-server.mjs:/app/services/lead-capture-server.mjs:ro
+      - xinghexunjing-leads-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/healthz | grep -q '\"status\":\"ok\"'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  xinghexunjing-leads-data:
