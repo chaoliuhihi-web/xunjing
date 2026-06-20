@@ -9,4 +9,11 @@ describe('docker build context', () => {
 
     expect(dockerignore).toContain('!docs/02_开发规划/官网运营配置说明.md');
   });
+
+  test('keeps tracked Yudao console contract files required by release checks', () => {
+    const dockerignore = fs.readFileSync(path.join(root, '.dockerignore'), 'utf8');
+
+    expect(dockerignore).toContain('!backend/yudao/yudao-ui/yudao-ui-admin-vue3/src/api/xunjing/console/index.ts');
+    expect(dockerignore).toContain('!backend/yudao/yudao-ui/yudao-ui-admin-vue3/src/views/xunjing/console/index.vue');
+  });
 });
