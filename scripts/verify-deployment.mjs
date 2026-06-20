@@ -2,6 +2,13 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const requiredAnchors = ['#home', '#capabilities'];
+const requiredSecurityHeaders = [
+  { name: 'Content-Security-Policy', value: "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; img-src 'self' data: https:; script-src 'self'; style-src 'self'; connect-src 'self' https:" },
+  { name: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { name: 'X-Content-Type-Options', value: 'nosniff' },
+  { name: 'X-Frame-Options', value: 'SAMEORIGIN' },
+  { name: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()' }
+];
 
 function normalizeBaseUrl(baseUrl) {
   if (!baseUrl) {
@@ -42,6 +49,23 @@ async function checkHome(baseUrl) {
     throw new Error('home page does not contain 星河寻境');
   }
   return pass('home', 'homepage returned 200 and contains brand text');
+}
+
+async function checkSecurityHeaders(baseUrl) {
+  const { response } = await fetchText(baseUrl, '/');
+  assertOk(response, 'home');
+
+  for (const { name, value } of requiredSecurityHeaders) {
+    const actualValue = response.headers.get(name);
+    if (!actualValue) {
+      throw new Error(`home missing required security header ${name}`);
+    }
+    if (actualValue !== value) {
+      throw new Error(`home security header ${name} expected "${value}" but received "${actualValue}"`);
+    }
+  }
+
+  return pass('security-headers', 'homepage includes production security headers');
 }
 
 async function checkHealthz(baseUrl) {
@@ -100,6 +124,7 @@ export async function verifyDeployment({ baseUrl }) {
   const checks = [];
 
   checks.push(await checkHome(normalizedBaseUrl));
+  checks.push(await checkSecurityHeaders(normalizedBaseUrl));
   checks.push(await checkHealthz(normalizedBaseUrl));
   checks.push(await checkRuntimeConfig(normalizedBaseUrl));
   checks.push(await checkSitemap(normalizedBaseUrl));

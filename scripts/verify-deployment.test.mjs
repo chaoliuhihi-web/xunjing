@@ -5,9 +5,27 @@ import { verifyDeployment } from './verify-deployment.mjs';
 
 const servers = [];
 
-async function startFixtureServer({ runtimeCacheControl = 'no-store', basePath = '/' } = {}) {
+const requiredSecurityHeaders = {
+  'Content-Security-Policy': "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; img-src 'self' data: https:; script-src 'self'; style-src 'self'; connect-src 'self' https:",
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'SAMEORIGIN',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()'
+};
+
+async function startFixtureServer({
+  runtimeCacheControl = 'no-store',
+  basePath = '/',
+  includeSecurityHeaders = true
+} = {}) {
   const normalizedBasePath = basePath.endsWith('/') ? basePath : `${basePath}/`;
   const server = http.createServer((req, res) => {
+    if (includeSecurityHeaders) {
+      for (const [header, value] of Object.entries(requiredSecurityHeaders)) {
+        res.setHeader(header, value);
+      }
+    }
+
     if (!req.url.startsWith(normalizedBasePath)) {
       res.statusCode = 404;
       res.end('not found');
@@ -77,6 +95,7 @@ describe('deployment verifier', () => {
     expect(result.baseUrl).toMatch(/^http:\/\/127\.0\.0\.1:/);
     expect(result.checks.map((check) => check.name)).toEqual([
       'home',
+      'security-headers',
       'healthz',
       'runtime-config',
       'sitemap',
@@ -90,6 +109,14 @@ describe('deployment verifier', () => {
 
     await expect(verifyDeployment({ baseUrl })).rejects.toThrow(
       'runtime-config.js must be served with Cache-Control: no-store'
+    );
+  });
+
+  test('fails when the homepage omits production security headers', async () => {
+    const baseUrl = await startFixtureServer({ includeSecurityHeaders: false });
+
+    await expect(verifyDeployment({ baseUrl })).rejects.toThrow(
+      'home missing required security header Content-Security-Policy'
     );
   });
 
