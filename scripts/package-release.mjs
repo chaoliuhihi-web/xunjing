@@ -47,12 +47,18 @@ export function collectReleaseEntries({ rootDir = process.cwd(), distDir = path.
   }));
 
   const nginxConfig = path.join(rootDir, 'ops', 'nginx.conf');
+  const runtimeConfigEntrypoint = path.join(rootDir, 'ops', 'docker-entrypoint.d', '40-render-runtime-config.sh');
   const operationDoc = path.join(rootDir, 'docs', '02_开发规划', '官网运营配置说明.md');
   assertFile(nginxConfig, 'nginx config');
+  assertFile(runtimeConfigEntrypoint, 'runtime config entrypoint');
   assertFile(operationDoc, 'operation guide');
 
   entries.push(
     { sourcePath: nginxConfig, archivePath: 'ops/nginx.conf' },
+    {
+      sourcePath: runtimeConfigEntrypoint,
+      archivePath: 'ops/docker-entrypoint.d/40-render-runtime-config.sh'
+    },
     { sourcePath: operationDoc, archivePath: 'docs/官网运营配置说明.md' }
   );
 

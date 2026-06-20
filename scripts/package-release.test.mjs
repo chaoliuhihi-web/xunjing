@@ -49,6 +49,7 @@ describe('release package builder', () => {
         'site/sitemap.xml',
         'site/assets/index.js',
         'ops/nginx.conf',
+        'ops/docker-entrypoint.d/40-render-runtime-config.sh',
         'docs/官网运营配置说明.md'
       ])
     );
