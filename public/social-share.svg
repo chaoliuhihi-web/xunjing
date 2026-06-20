@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">星河寻境 social share card</title>
+  <desc id="desc">地方 AI 文旅内容运营平台分享图</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F3FBFF"/>
+      <stop offset="0.48" stop-color="#EAF6F1"/>
+      <stop offset="1" stop-color="#FFF7EA"/>
+    </linearGradient>
+    <linearGradient id="route" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1668FF"/>
+      <stop offset="1" stop-color="#00A870"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#sky)"/>
+  <path d="M0 458 C170 410 265 470 410 423 C570 370 710 270 884 318 C1025 357 1105 436 1200 386 L1200 630 L0 630 Z" fill="#D9EDE4"/>
+  <path d="M0 505 C178 462 300 538 450 487 C608 434 730 365 890 410 C1010 444 1082 515 1200 470 L1200 630 L0 630 Z" fill="#CDE3F3"/>
+  <path d="M150 436 C310 315 488 496 654 360 C775 260 908 288 1037 178" fill="none" stroke="url(#route)" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="150" cy="436" r="18" fill="#1668FF"/>
+  <circle cx="654" cy="360" r="18" fill="#00A870"/>
+  <circle cx="1037" cy="178" r="18" fill="#FFB020"/>
+  <rect x="88" y="78" width="640" height="286" rx="28" fill="#FFFFFF" fill-opacity="0.86"/>
+  <text x="130" y="156" fill="#123047" font-family="PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="34" font-weight="700">星河寻境</text>
+  <text x="130" y="226" fill="#102033" font-family="PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="58" font-weight="800">地方 AI 文旅内容运营平台</text>
+  <text x="130" y="292" fill="#36566F" font-family="PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="30">把景区、城市、展馆与研学资源</text>
+  <text x="130" y="338" fill="#36566F" font-family="PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="30">转化为可参与、可传播、可运营的内容资产</text>
+  <g transform="translate(812 92)">
+    <rect width="268" height="268" rx="34" fill="#FFFFFF" fill-opacity="0.9"/>
+    <path d="M54 178 C92 98 166 62 228 76 C188 92 166 126 158 168 C178 160 204 162 230 178 C166 174 116 194 78 238 C98 232 126 232 164 242 C112 262 78 242 54 178 Z" fill="#1668FF"/>
+    <path d="M80 157 C122 162 156 150 192 118" fill="none" stroke="#00A870" stroke-width="14" stroke-linecap="round"/>
+  </g>
+</svg>

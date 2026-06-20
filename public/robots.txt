@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://xinghetech.gitee.io/xinghexunjing/sitemap.xml

@@ -45,6 +45,12 @@ async function startFixtureServer({ runtimeCacheControl = 'no-store', basePath =
       return;
     }
 
+    if (pathname === '/social-share.svg') {
+      res.setHeader('Content-Type', 'image/svg+xml');
+      res.end('<svg viewBox="0 0 1200 630"></svg>');
+      return;
+    }
+
     res.statusCode = 404;
     res.end('not found');
   });
@@ -73,7 +79,8 @@ describe('deployment verifier', () => {
       'home',
       'healthz',
       'runtime-config',
-      'sitemap'
+      'sitemap',
+      'social-image'
     ]);
     expect(result.checks.every((check) => check.ok)).toBe(true);
   });

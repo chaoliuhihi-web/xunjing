@@ -80,6 +80,21 @@ async function checkSitemap(baseUrl) {
   return pass('sitemap', `contains ${requiredAnchors.join(', ')}`);
 }
 
+async function checkSocialImage(baseUrl) {
+  const { response, body } = await fetchText(baseUrl, '/social-share.svg');
+  assertOk(response, 'social-share.svg');
+
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.toLowerCase().includes('image/svg+xml')) {
+    throw new Error('social-share.svg must be served as image/svg+xml');
+  }
+  if (!body.includes('viewBox="0 0 1200 630"')) {
+    throw new Error('social-share.svg must be a 1200x630 share image');
+  }
+
+  return pass('social-image', 'social share image is reachable');
+}
+
 export async function verifyDeployment({ baseUrl }) {
   const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
   const checks = [];
@@ -88,6 +103,7 @@ export async function verifyDeployment({ baseUrl }) {
   checks.push(await checkHealthz(normalizedBaseUrl));
   checks.push(await checkRuntimeConfig(normalizedBaseUrl));
   checks.push(await checkSitemap(normalizedBaseUrl));
+  checks.push(await checkSocialImage(normalizedBaseUrl));
 
   return {
     ok: checks.every((check) => check.ok),
