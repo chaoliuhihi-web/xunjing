@@ -7,7 +7,7 @@ export default defineConfig({
     css: true,
     environment: 'jsdom',
     globals: true,
-    include: ['src/**/*.{test,spec}.{js,jsx}'],
+    include: ['src/**/*.{test,spec}.{js,jsx}', 'scripts/**/*.{test,spec}.mjs'],
     exclude: ['assets/**', 'archive/**', 'deliverables/**', 'workbench/**'],
     setupFiles: './src/test/setup.js'
   }

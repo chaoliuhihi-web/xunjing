@@ -10,7 +10,8 @@
     "test": "vitest",
     "test:run": "vitest --run",
     "qa:smoke": "node scripts/smoke-site.mjs",
-    "release:check": "npm run test:run && npm audit --audit-level=moderate && npm run build"
+    "release:check": "npm run test:run && npm audit --audit-level=moderate && npm run build",
+    "release:package": "npm run release:check && node scripts/package-release.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

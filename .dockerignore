@@ -11,7 +11,10 @@ tmp
 .playwright-mcp
 playwright-report
 test-results
-docs
+docs/*
+!docs/02_开发规划
+docs/02_开发规划/*
+!docs/02_开发规划/官网运营配置说明.md
 qa
 tools
 kashgar-home-mobile-after.png
