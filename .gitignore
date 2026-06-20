@@ -1,0 +1,37 @@
+.DS_Store
+**/.DS_Store
+**/~$*
+
+# Local archives and temporary files
+archive/
+tmp/
+downloads/
+node_modules/
+.playwright-mcp/
+
+# Large generated packages and media
+*.zip
+*.mp4
+*.gif
+
+# Frontend build and test outputs
+dist/
+playwright-report/
+test-results/
+
+# Keep only the website reference assets required by src/data/siteContent.js
+assets/references/*
+!assets/references/Web_V3/
+!assets/references/Web_V3/*.png
+!assets/references/product_effects/
+!assets/references/product_effects/*.png
+
+# Local production workbenches and heavy handoff artifacts
+workbench/
+deliverables/
+
+# PPT generation scratch files
+workbench/**/.live_preview.lock
+workbench/**/backup/
+workbench/**/tmp_review/
+workbench/**/exports/~$*
