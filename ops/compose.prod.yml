@@ -1,0 +1,19 @@
+name: xinghexunjing
+
+services:
+  xinghexunjing-web:
+    image: ${XINGHE_WEB_IMAGE:-xinghexunjing-web:latest}
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${XINGHE_WEB_PORT:-8080}:80"
+    environment:
+      - XINGHE_LEAD_WEBHOOK_URL=${XINGHE_LEAD_WEBHOOK_URL:-}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz.json | grep -q '\"status\":\"ok\"' || wget -qO- http://127.0.0.1/healthz.json | grep -q '\"status\": \"ok\"'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
