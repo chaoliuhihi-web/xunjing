@@ -47,17 +47,23 @@ export function collectReleaseEntries({ rootDir = process.cwd(), distDir = path.
   }));
 
   const nginxConfig = path.join(rootDir, 'ops', 'nginx.conf');
+  const httpsNginxTemplate = path.join(rootDir, 'ops', 'nginx.https.conf.template');
   const composeConfig = path.join(rootDir, 'ops', 'compose.prod.yml');
+  const staticDeployScript = path.join(rootDir, 'ops', 'deploy-static-release.sh');
   const runtimeConfigEntrypoint = path.join(rootDir, 'ops', 'docker-entrypoint.d', '40-render-runtime-config.sh');
   const operationDoc = path.join(rootDir, 'docs', '02_开发规划', '官网运营配置说明.md');
   assertFile(nginxConfig, 'nginx config');
+  assertFile(httpsNginxTemplate, 'https nginx template');
   assertFile(composeConfig, 'production compose config');
+  assertFile(staticDeployScript, 'static release deployment script');
   assertFile(runtimeConfigEntrypoint, 'runtime config entrypoint');
   assertFile(operationDoc, 'operation guide');
 
   entries.push(
     { sourcePath: nginxConfig, archivePath: 'ops/nginx.conf' },
+    { sourcePath: httpsNginxTemplate, archivePath: 'ops/nginx.https.conf.template' },
     { sourcePath: composeConfig, archivePath: 'ops/compose.prod.yml' },
+    { sourcePath: staticDeployScript, archivePath: 'ops/deploy-static-release.sh' },
     {
       sourcePath: runtimeConfigEntrypoint,
       archivePath: 'ops/docker-entrypoint.d/40-render-runtime-config.sh'
