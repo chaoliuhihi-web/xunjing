@@ -24,10 +24,10 @@ function normalizeBaseUrl(baseUrl) {
   return url.toString();
 }
 
-async function fetchText(baseUrl, pathname) {
+async function fetchText(baseUrl, pathname, fetchImpl = fetch) {
   const relativePath = pathname.replace(/^\/+/, '');
   const url = new URL(relativePath, baseUrl);
-  const response = await fetch(url);
+  const response = await fetchImpl(url);
   const body = await response.text();
   return { url: url.toString(), response, body };
 }
@@ -42,8 +42,8 @@ function pass(name, detail) {
   return { name, ok: true, detail };
 }
 
-async function checkHome(baseUrl) {
-  const { response, body } = await fetchText(baseUrl, '/');
+async function checkHome(baseUrl, fetchImpl) {
+  const { response, body } = await fetchText(baseUrl, '/', fetchImpl);
   assertOk(response, 'home');
   if (!body.includes('星河寻境')) {
     throw new Error('home page does not contain 星河寻境');
@@ -51,8 +51,8 @@ async function checkHome(baseUrl) {
   return pass('home', 'homepage returned 200 and contains brand text');
 }
 
-async function checkSecurityHeaders(baseUrl) {
-  const { response } = await fetchText(baseUrl, '/');
+async function checkSecurityHeaders(baseUrl, fetchImpl) {
+  const { response } = await fetchText(baseUrl, '/', fetchImpl);
   assertOk(response, 'home');
 
   for (const { name, value } of requiredSecurityHeaders) {
@@ -68,8 +68,8 @@ async function checkSecurityHeaders(baseUrl) {
   return pass('security-headers', 'homepage includes production security headers');
 }
 
-async function checkHealthz(baseUrl) {
-  const { response, body } = await fetchText(baseUrl, '/healthz.json');
+async function checkHealthz(baseUrl, fetchImpl) {
+  const { response, body } = await fetchText(baseUrl, '/healthz.json', fetchImpl);
   assertOk(response, 'healthz.json');
   const health = JSON.parse(body);
   if (health.status !== 'ok' || health.service !== 'xinghexunjing-web') {
@@ -78,8 +78,8 @@ async function checkHealthz(baseUrl) {
   return pass('healthz', `${health.service} ${health.version || ''}`.trim());
 }
 
-async function checkRuntimeConfig(baseUrl) {
-  const { response, body } = await fetchText(baseUrl, '/runtime-config.js');
+async function checkRuntimeConfig(baseUrl, fetchImpl) {
+  const { response, body } = await fetchText(baseUrl, '/runtime-config.js', fetchImpl);
   assertOk(response, 'runtime-config.js');
 
   const cacheControl = response.headers.get('cache-control') || '';
@@ -93,8 +93,8 @@ async function checkRuntimeConfig(baseUrl) {
   return pass('runtime-config', 'runtime config is reachable and no-store');
 }
 
-async function checkSitemap(baseUrl) {
-  const { response, body } = await fetchText(baseUrl, '/sitemap.xml');
+async function checkSitemap(baseUrl, fetchImpl) {
+  const { response, body } = await fetchText(baseUrl, '/sitemap.xml', fetchImpl);
   assertOk(response, 'sitemap.xml');
   for (const anchor of requiredAnchors) {
     if (!body.includes(anchor)) {
@@ -104,8 +104,8 @@ async function checkSitemap(baseUrl) {
   return pass('sitemap', `contains ${requiredAnchors.join(', ')}`);
 }
 
-async function checkSocialImage(baseUrl) {
-  const { response, body } = await fetchText(baseUrl, '/social-share.svg');
+async function checkSocialImage(baseUrl, fetchImpl) {
+  const { response, body } = await fetchText(baseUrl, '/social-share.svg', fetchImpl);
   assertOk(response, 'social-share.svg');
 
   const contentType = response.headers.get('content-type') || '';
@@ -119,16 +119,16 @@ async function checkSocialImage(baseUrl) {
   return pass('social-image', 'social share image is reachable');
 }
 
-export async function verifyDeployment({ baseUrl }) {
+export async function verifyDeployment({ baseUrl, fetchImpl = fetch }) {
   const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
   const checks = [];
 
-  checks.push(await checkHome(normalizedBaseUrl));
-  checks.push(await checkSecurityHeaders(normalizedBaseUrl));
-  checks.push(await checkHealthz(normalizedBaseUrl));
-  checks.push(await checkRuntimeConfig(normalizedBaseUrl));
-  checks.push(await checkSitemap(normalizedBaseUrl));
-  checks.push(await checkSocialImage(normalizedBaseUrl));
+  checks.push(await checkHome(normalizedBaseUrl, fetchImpl));
+  checks.push(await checkSecurityHeaders(normalizedBaseUrl, fetchImpl));
+  checks.push(await checkHealthz(normalizedBaseUrl, fetchImpl));
+  checks.push(await checkRuntimeConfig(normalizedBaseUrl, fetchImpl));
+  checks.push(await checkSitemap(normalizedBaseUrl, fetchImpl));
+  checks.push(await checkSocialImage(normalizedBaseUrl, fetchImpl));
 
   return {
     ok: checks.every((check) => check.ok),
