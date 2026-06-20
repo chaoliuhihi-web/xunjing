@@ -1,0 +1,16 @@
+{
+  "name": "星河寻境",
+  "short_name": "星河寻境",
+  "description": "地方 AI 文旅内容运营平台",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1668ff",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml"
+    }
+  ]
+}

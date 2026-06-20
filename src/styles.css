@@ -203,6 +203,12 @@ img {
   transform: translateY(-1px);
 }
 
+.primary-button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+  transform: none;
+}
+
 .hero {
   position: relative;
   display: grid;
@@ -941,6 +947,18 @@ img {
 .lead-form textarea:focus {
   border-color: var(--blue);
   box-shadow: 0 0 0 4px rgba(22, 104, 255, 0.1);
+}
+
+.form-error {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #ffd4d4;
+  border-radius: 12px;
+  background: #fff5f5;
+  color: #a43131;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.6;
 }
 
 .form-wide {

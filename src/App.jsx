@@ -57,6 +57,7 @@ import {
   travelogueSteps,
   visualReferences
 } from './data/siteContent';
+import { submitLead } from './utils/leadSubmission';
 
 const iconMap = {
   book: BookOpen,
@@ -633,11 +634,32 @@ function ContactSection({ onDemo }) {
 
 function InlineLeadForm({ compact = false, onSuccess }) {
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    setSubmitted(true);
-    onSuccess?.();
+    setSubmitting(true);
+    setError('');
+
+    const formData = new FormData(event.currentTarget);
+    const lead = {
+      name: String(formData.get('name') || ''),
+      phone: String(formData.get('phone') || ''),
+      company: String(formData.get('company') || ''),
+      type: String(formData.get('type') || ''),
+      message: String(formData.get('message') || '')
+    };
+
+    try {
+      await submitLead(lead, { source: compact ? 'demo-modal' : 'contact-section' });
+      setSubmitted(true);
+      onSuccess?.();
+    } catch {
+      setError('提交暂时失败，请拨打 400-1010-123 或稍后重试。');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -680,8 +702,13 @@ function InlineLeadForm({ compact = false, onSuccess }) {
         项目描述
         <textarea name="message" maxLength="500" placeholder="请简要描述您的需求或项目情况（选填）" />
       </label>
-      <button className="primary-button form-wide" type="submit">
-        提交需求
+      {error ? (
+        <p className="form-error form-wide" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <button className="primary-button form-wide" type="submit" disabled={submitting}>
+        {submitting ? '提交中...' : '提交需求'}
       </button>
     </form>
   );
