@@ -46,9 +46,9 @@ describe('static base path build', () => {
 
     expect(output).not.toContain('can\'t be bundled without type="module"');
     expect(html).toContain('src="/xinghexunjing/runtime-config.js"');
-    expect(html).toContain('href="/xinghexunjing/favicon.svg"');
+    expect(html).toContain('href="/xinghexunjing/logo-square.png"');
     expect(html).toContain('href="/xinghexunjing/site.webmanifest"');
     expect(html).toMatch(/src="\/xinghexunjing\/assets\/index-[^"]+\.js"/);
-    expect(html).not.toMatch(/(?:src|href)="\/(?:runtime-config\.js|favicon\.svg|site\.webmanifest|assets\/)/);
+    expect(html).not.toMatch(/(?:src|href)="\/(?:runtime-config\.js|logo-square\.png|site\.webmanifest|assets\/)/);
   });
 });

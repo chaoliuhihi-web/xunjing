@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
   <title id="title">星河寻境 social share card</title>
-  <desc id="desc">地方 AI 文旅内容运营平台分享图</desc>
+  <desc id="desc">目的地 AI 叙事与内容运营系统分享图</desc>
   <defs>
     <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#F3FBFF"/>
@@ -21,9 +21,9 @@
   <circle cx="1037" cy="178" r="18" fill="#FFB020"/>
   <rect x="88" y="78" width="640" height="286" rx="28" fill="#FFFFFF" fill-opacity="0.86"/>
   <text x="130" y="156" fill="#123047" font-family="PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="34" font-weight="700">星河寻境</text>
-  <text x="130" y="226" fill="#102033" font-family="PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="58" font-weight="800">地方 AI 文旅内容运营平台</text>
-  <text x="130" y="292" fill="#36566F" font-family="PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="30">把景区、城市、展馆与研学资源</text>
-  <text x="130" y="338" fill="#36566F" font-family="PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="30">转化为可参与、可传播、可运营的内容资产</text>
+  <text x="130" y="226" fill="#102033" font-family="PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="50" font-weight="800">目的地 AI 叙事与内容运营系统</text>
+  <text x="130" y="292" fill="#36566F" font-family="PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="30">让城市会讲述，让景区会陪伴</text>
+  <text x="130" y="338" fill="#36566F" font-family="PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="30">让旅行成为可传播、可复盘的内容资产</text>
   <g transform="translate(812 92)">
     <rect width="268" height="268" rx="34" fill="#FFFFFF" fill-opacity="0.9"/>
     <path d="M54 178 C92 98 166 62 228 76 C188 92 166 126 158 168 C178 160 204 162 230 178 C166 174 116 194 78 238 C98 232 126 232 164 242 C112 262 78 242 54 178 Z" fill="#1668FF"/>

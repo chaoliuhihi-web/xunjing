@@ -36,7 +36,7 @@ async function startFixtureServer({
 
     if (pathname === '/') {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.end('<!doctype html><title>星河寻境｜地方 AI 文旅内容运营平台</title><main>把地方文旅资源转化为运营资产</main>');
+      res.end('<!doctype html><title>星河寻境｜目的地 AI 叙事与内容运营系统</title><main>让目的地被讲述、被体验、被传播、被持续运营</main>');
       return;
     }
 

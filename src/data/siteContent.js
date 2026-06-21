@@ -1,33 +1,59 @@
-import brandLogo from '../../assets/brand/LOGO/星河寻境.png';
-import homeReference from '../../assets/references/Web_V3/ChatGPT Image 2026年6月21日 01_10_54 (1).png';
-import capabilityReference from '../../assets/references/Web_V3/ChatGPT Image 2026年6月21日 01_10_55 (2).png';
-import scenarioReference from '../../assets/references/Web_V3/ChatGPT Image 2026年6月21日 01_10_55 (3).png';
-import solutionReference from '../../assets/references/Web_V3/ChatGPT Image 2026年6月21日 01_10_56 (4).png';
-import pilotReference from '../../assets/references/Web_V3/ChatGPT Image 2026年6月21日 01_10_56 (5).png';
-import travelogueReference from '../../assets/references/Web_V3/ChatGPT Image 2026年6月21日 01_10_57 (6).png';
-import aiPlatformImage from '../../assets/references/product_effects/AI中台.png';
-import productWideImage from '../../assets/references/product_effects/3.png';
-import productBoardImage from '../../assets/references/product_effects/4.png';
-import mobileProductImage from '../../assets/references/product_effects/2.png';
+import brandScene from '../../assets/brand/LOGO/newdesign/normalized/xinghe-brand-scene-primary.png';
+import brandLogo from '../../assets/brand/LOGO/透明横版1.png';
+import brandLogoAlt from '../../assets/brand/LOGO/newdesign/normalized/xinghe-logo-horizontal-alt.png';
+import brandLogoSquare from '../../assets/brand/LOGO/newdesign/normalized/xinghe-logo-square-primary.png';
+import brandLogoSquareAlt from '../../assets/brand/LOGO/newdesign/normalized/xinghe-logo-square-alt.png';
+import capabilityAiCompanionVisual from '../../assets/generated/web-v4/capability-ai-companion.png';
+import capabilityDataAnalyticsVisual from '../../assets/generated/web-v4/capability-data-analytics.png';
+import capabilityKnowledgeBaseVisual from '../../assets/generated/web-v4/capability-knowledge-base.png';
+import capabilityMediaLibraryVisual from '../../assets/generated/web-v4/capability-media-library.png';
+import capabilityQrGuideVisual from '../../assets/generated/web-v4/capability-qr-guide.png';
+import capabilityTravelogueVisual from '../../assets/generated/web-v4/capability-travelogue.png';
+import chineseRiverHeroVideo from '../../assets/generated/web-v4/chinese-heritage-river-hero.mp4';
+import chineseRiverHeroPoster from '../../assets/generated/web-v4/chinese-heritage-river-poster.jpg';
+import contentOperationVisual from '../../assets/generated/web-v4/content-operation-visual.png';
+import generatedHeroVisual from '../../assets/generated/web-v4/hero-launch-ai-cultural-tourism.png';
+import museumStudyVisual from '../../assets/generated/web-v4/museum-study-visual.png';
+import pilotSampleVisual from '../../assets/generated/web-v4/pilot-sample-projects-visual.png';
+import generatedPlatformVisual from '../../assets/generated/web-v4/platform-capability-visual.png';
+import productUiShowcaseVisual from '../../assets/generated/web-v4/product-ui-showcase-visual.png';
+import qrAiGuideVisual from '../../assets/generated/web-v4/qr-ai-guide-visual.png';
+import generatedScenarioVisual from '../../assets/generated/web-v4/scenario-operation-visual.png';
+import solutionEcosystemVisual from '../../assets/generated/web-v4/solution-ecosystem-visual.png';
+import travelogueMemoryVisual from '../../assets/generated/web-v4/travelogue-memory-visual.png';
 
 export const brand = {
   name: '星河寻境',
-  subtitle: '地方 AI 文旅内容运营平台',
-  slogan: '智联山河 · 寻境未来',
-  logo: brandLogo
+  subtitle: '目的地 AI 叙事与内容运营系统',
+  slogan: '让城市会讲述 · 让旅行会留下',
+  logo: brandLogo,
+  logoAlt: brandLogoAlt,
+  logoSquare: brandLogoSquare,
+  logoSquareAlt: brandLogoSquareAlt,
+  brandScene
 };
 
 export const visualReferences = {
-  home: homeReference,
-  capabilities: capabilityReference,
-  scenarios: scenarioReference,
-  solutions: solutionReference,
-  pilots: pilotReference,
-  travelogue: travelogueReference,
-  aiPlatform: aiPlatformImage,
-  productWide: productWideImage,
-  productBoard: productBoardImage,
-  mobileProduct: mobileProductImage
+  home: generatedHeroVisual,
+  capabilities: generatedPlatformVisual,
+  scenarios: generatedScenarioVisual,
+  solutions: solutionEcosystemVisual,
+  pilots: pilotSampleVisual,
+  travelogue: travelogueMemoryVisual,
+  generatedHero: generatedHeroVisual,
+  generatedPlatform: generatedPlatformVisual,
+  generatedScenario: generatedScenarioVisual,
+  generatedSolution: solutionEcosystemVisual,
+  generatedPilot: pilotSampleVisual,
+  generatedTravelogue: travelogueMemoryVisual,
+  generatedProductUi: productUiShowcaseVisual,
+  generatedMuseumStudy: museumStudyVisual,
+  generatedContentOperation: contentOperationVisual,
+  generatedQrGuide: qrAiGuideVisual,
+  heroRiverVideo: chineseRiverHeroVideo,
+  heroRiverPoster: chineseRiverHeroPoster,
+  aiPlatform: generatedPlatformVisual,
+  productWide: productUiShowcaseVisual
 };
 
 export const navItems = [
@@ -41,238 +67,244 @@ export const navItems = [
 ];
 
 export const homeMetrics = [
-  { value: '128+', label: '合作城市/景区', note: '覆盖文旅局、景区、展馆' },
-  { value: '560万+', label: '累计服务游客', note: '小程序、扫码、导览触达' },
-  { value: '210%', label: '游客停留提升', note: '内容互动与二次传播拉动' },
-  { value: '98.6%', label: '用户满意度', note: '从体验到分享的闭环反馈' }
+  { value: '1套', label: '目的地叙事系统', note: '知识、导览、互动、传播闭环' },
+  { value: '6类', label: '核心落地场景', note: '城市、景区、展馆、研学、出版、公益' },
+  { value: '可复盘', label: '传播数据报告', note: '访问、问答、生成、分享全链路沉淀' },
+  { value: '可复制', label: 'AI 文旅样板', note: '从一个高价值样板到多场景推广' }
 ];
 
 export const capabilityCards = [
   {
     icon: 'book',
     title: '地方知识库',
-    desc: '沉淀景区、非遗、人物、路线与研学知识，形成可检索、可复用的内容底座。'
+    desc: '把城市故事、景区讲解、展品资料、图书内容和研学素材整理成可审校、可维护、可调用的知识资产。',
+    image: capabilityKnowledgeBaseVisual
   },
   {
     icon: 'image',
     title: '图片视频库',
-    desc: '统一管理图文、视频、VR 与授权素材，支撑内容生产和多端分发。'
+    desc: '统一沉淀图片、视频、地图、展陈和活动素材，让每一份视觉资料都能被持续调用和传播。',
+    image: capabilityMediaLibraryVisual
   },
   {
     icon: 'bot',
     title: 'AI旅伴',
-    desc: '面向游客提供问答、讲解、推荐与个性化行程陪伴。'
+    desc: '为目的地配置可问、可听、可互动的 AI 旅伴，让游客在现场获得陪伴式讲解和路线建议。',
+    image: capabilityAiCompanionVisual
   },
   {
     icon: 'pen',
     title: '跟着游记',
-    desc: '将一次旅行自动生成游记、纪念册、知识卡片和分享海报。'
+    desc: '游客上传照片、路线或素材后，自动生成游记、知识卡片、纪念册和分享海报。',
+    image: capabilityTravelogueVisual
   },
   {
     icon: 'qr',
     title: '扫码伴读',
-    desc: '一物一码连接纸书、展牌、文创与数字内容，延展线下体验。'
+    desc: '让图书、地图、展板、研学手册和公益读物通过二维码获得 AI 讲解、问答和延展内容。',
+    image: capabilityQrGuideVisual
   },
   {
     icon: 'chart',
     title: '数据运营',
-    desc: '跟踪内容曝光、互动、转化和满意度，为运营复盘提供依据。'
+    desc: '沉淀访问、问答、生成、分享和活动参与数据，形成可汇报、可复盘、可复制的项目成果。',
+    image: capabilityDataAnalyticsVisual
   }
 ];
 
 export const painPoints = [
-  { title: '资源分散', desc: '图片、讲解、线路和活动分散在不同渠道，难以统一运营。' },
-  { title: '内容生产慢', desc: '优质图文、短视频、研学材料依赖人工，更新频率不足。' },
-  { title: '体验同质化', desc: '游客只能被动观看，缺少个性化导览和参与机制。' },
-  { title: '传播效果弱', desc: '游后分享内容不成体系，无法沉淀为城市和景区资产。' },
-  { title: '价值转化难', desc: '内容、票务、文创、研学和会员数据没有形成闭环。' }
+  { title: '资源很多，真正被记住的不多', desc: '地方故事、景点资料、图片视频和活动素材长期分散，游客到访后很难形成清晰记忆。' },
+  { title: '游客来了，内容没有留下', desc: '一次游览结束后，照片散落在手机里，讲解和路线没有变成可收藏、可分享的内容。' },
+  { title: '活动做了，复盘难以沉淀', desc: '活动访问、问答、生成、分享等数据没有被整理成可汇报、可复盘的成果材料。' },
+  { title: '文化被展示，却没有被体验', desc: '展板、图书、展品和路线只是静态呈现，缺少即时问答、伴读讲解和互动表达。' },
+  { title: '项目上线，却缺少可复制样板', desc: '很多数字化项目停留在一次性展示，难以复制到更多目的地、展馆、研学和出版场景。' }
 ];
 
 export const productMatrix = [
-  { title: '内容中台', desc: 'AI 内容生产与审核中枢，支撑全域内容管理。' },
-  { title: '知识中台', desc: '地方文旅知识资产沉淀、标签化、关联化和检索。' },
-  { title: '数据中台', desc: '多源数据接入、指标分析、游客行为洞察。' },
-  { title: '运营中台', desc: '活动、营销、会员、渠道和私域运营协同。' },
-  { title: '开放中台', desc: 'API/SDK 与第三方系统集成，支持多端落地。' }
+  { title: '目的地叙事系统', desc: '把城市、景区、展馆和图书的核心故事整理成可讲述、可互动、可传播的系统。' },
+  { title: '地方知识资产', desc: '将讲解词、展品资料、路线信息、图文视频和研学材料沉淀为可维护的知识库。' },
+  { title: 'AI 互动体验', desc: '通过 AI 旅伴、智能问答、路线推荐和扫码伴读，让游客在现场获得陪伴式服务。' },
+  { title: '游客内容沉淀', desc: '把照片、路线、心得和活动记录生成游记、纪念册、知识卡片和分享海报。' },
+  { title: '传播数据报告', desc: '沉淀访问、互动、生成、分享和反馈数据，形成客户可汇报、可复盘的运营成果。' }
 ];
 
 export const dataCapabilities = [
-  '多源数据接入',
-  '实时数据处理',
-  '智能分析洞察',
-  '可视化看板',
-  '数据安全合规'
+  '访问与互动数据',
+  '热门问题洞察',
+  '游记生成统计',
+  '分享传播追踪',
+  '项目汇报报告'
 ];
 
 export const architectureRows = [
   {
-    layer: '应用层',
-    desc: '多端触达',
-    items: ['游客小程序', '微信公众号', '景区大屏', '自助导览机', '管理后台', '开放 API']
+    layer: '体验入口',
+    desc: '游客可用',
+    items: ['游客小程序', 'H5 专题', '二维码入口', '活动页面', '分享海报', '管理后台']
   },
   {
-    layer: '能力层',
-    desc: 'AI 与业务能力',
-    items: ['AI 内容生成', '知识图谱', '智能推荐', '自然语言处理', '计算机视觉', '数据分析']
+    layer: '内容资产',
+    desc: '地方可管',
+    items: ['地方知识库', '图片视频库', '路线素材', '展品资料', '图书内容', '活动素材']
   },
   {
-    layer: '平台层',
-    desc: '中台能力',
-    items: ['内容中心', '用户中心', '数据中心', '运营中心', '权限中心', '开放中心']
+    layer: 'AI 能力',
+    desc: '内容可讲',
+    items: ['AI 讲解', '互动问答', '路线推荐', '游记生成', '知识卡片', '纪念册生成']
   },
   {
-    layer: '基础层',
-    desc: '基础设施',
-    items: ['公有云/私有云', '大数据存储', 'AI 模型服务', '安全与合规体系']
+    layer: '运营沉淀',
+    desc: '项目可复盘',
+    items: ['访问统计', '问答记录', '生成数据', '分享传播', '用户反馈', '汇报报告']
   }
 ];
 
 export const capabilityMatrix = [
-  'AI 文旅知识库',
-  '内容管理',
-  '二维码导览',
-  'AI 语音讲解',
-  '互动问答',
+  '目的地知识库',
+  '图片视频资产',
+  'AI旅伴',
+  '扫码伴读',
+  '智能导览',
+  '游客问答',
+  '路线推荐',
   '游记生成',
   '纪念册生成',
-  '活动运营',
-  '数据报告',
-  '多角色权限',
-  '内容审核',
-  '来源追溯'
+  '活动专题',
+  '传播数据',
+  '项目报告'
 ];
 
-export const productionFlow = ['需求分析', '内容生成', '审核发布', '分发触达', '用户互动', '数据分析'];
+export const productionFlow = ['资源梳理', '知识入库', '体验设计', '上线触达', '内容生成', '数据复盘'];
 
 export const scenarioCards = [
   {
     title: '城市文旅运营',
-    desc: '把城市文旅数字化中枢、资源库和游客服务整合起来，提升城市文旅品牌影响力。',
-    image: solutionReference
+    desc: '把城市故事、线路、非遗、活动和公共文化资源整理成可讲述、可搜索、可传播的 AI 文旅样板。',
+    image: generatedScenarioVisual
   },
   {
     title: '景区 AI 旅伴',
-    desc: '围绕导览、问答、推荐和行程生成，让游客获得陪伴式深度体验。',
-    image: scenarioReference
+    desc: '让游客在现场扫码即可听讲解、问问题、看路线、生成游记，把一次到访变成一段可带走的内容。',
+    image: generatedHeroVisual
   },
   {
     title: '展馆讲解与参观记录',
-    desc: 'AI 讲解展品故事，自动记录参观轨迹与心得，形成可回看的学习档案。',
-    image: homeReference
+    desc: '把展品资料和策展叙事转化为 AI 问答、伴读讲解和参观记录，服务展陈、研学与复盘。',
+    image: generatedPlatformVisual
   },
   {
     title: '跟着游记去旅行',
-    desc: '基于真实游览轨迹生成个性化游记，让旅行更有温度、更可传播。',
-    image: travelogueReference
+    desc: '基于照片、路线和知识点生成个性化游记、纪念册和分享海报，让游客成为目的地传播者。',
+    image: travelogueMemoryVisual
   },
   {
     title: '图书扫码伴读',
-    desc: '扫码获取图书延展内容、作者介绍、知识拓展和互动体验。',
-    image: pilotReference
+    desc: '让图书、地图册和研学读物拥有二维码 AI 讲解、知识拓展、互动问答和学习成果生成。',
+    image: qrAiGuideVisual
   },
   {
-    title: '文旅内容运营',
-    desc: 'AI 高效生成优质文旅内容，多渠道分发，提升内容影响力和转化效率。',
-    image: productBoardImage
+    title: '公益与研学行动',
+    desc: '围绕地方文化、国家版图、自然科普和城市记忆，沉淀可参与、可展示、可汇报的活动成果。',
+    image: contentOperationVisual
   }
 ];
 
-export const cooperationSteps = ['需求沟通', '方案规划', '原型设计', '内容整理', '平台开发', '上线运营', '数据报告'];
+export const cooperationSteps = ['场景确认', '资源梳理', '样板设计', '平台配置', '上线运营', '传播沉淀', '报告复盘'];
 
 export const faqs = [
   {
-    question: '你们支持哪些地区的合作？',
-    answer: '可服务城市文旅局、景区、展馆、研学机构和出版单位，按资源成熟度设计落地路径。'
+    question: '没有完整数字化基础，也能做样板吗？',
+    answer: '可以。我们会先选择一个高价值场景，把现有图文、讲解、路线或图书内容整理成小样板，再逐步扩展。'
   },
   {
-    question: '是否支持私有化部署？',
-    answer: '支持。可按客户安全要求选择公有云、专有云或私有化部署，并配置权限与内容审核。'
+    question: '样板项目一般多久能上线？',
+    answer: '轻量样板通常 2-8 周上线，具体取决于资料完整度、交互范围、二维码入口和数据报告要求。'
   },
   {
-    question: '项目周期一般需要多久？',
-    answer: 'MVP 样板通常 2-8 周完成，完整平台按资源整理、系统集成和上线范围评估。'
+    question: '内容准确性和安全性如何控制？',
+    answer: '支持来源标注、人工审校、知识库权限、发布审核和敏感内容控制，确保 AI 讲解和伴读内容可管理。'
   },
   {
-    question: '合作后是否有运营支持？',
-    answer: '提供上线培训、内容更新、数据分析和持续优化建议，帮助样板变成长期运营资产。'
+    question: '上线后能提供哪些成果材料？',
+    answer: '可输出访问、问答、生成、分享、活动参与等传播数据报告，也能整理游记、纪念册和活动成果素材。'
   }
 ];
 
 export const solutionTracks = [
   {
-    title: '面向文旅局',
+    title: '文旅局解决方案',
     accent: 'blue',
-    problem: ['资源内容分散', '城市品牌表达不统一', '缺少运营工具与数据能力'],
-    deliverables: ['区域文旅知识库', '内容资产中台', '城市文旅数据看板', '一体化传播矩阵']
+    problem: ['地方资源很多，但缺少统一叙事入口', '活动成果难以沉淀为长期资产', '对外汇报缺少可视化数据和传播证据'],
+    deliverables: ['城市 AI 文旅样板', '区域知识库与素材库', '游客互动与游记生成入口', '传播数据报告']
   },
   {
-    title: '面向景区',
+    title: '景区解决方案',
     accent: 'cyan',
-    problem: ['讲解成本高', '游客体验单一', '二次传播少'],
-    deliverables: ['智能导览与 AI 讲解', '个性化游览路线推荐', '跟着游记与打卡互动', '游客数据看板与运营']
+    problem: ['讲解体验单一，游客停留不深', '游客拍了照片却没有形成传播内容', '导览、问答、路线和活动数据分散'],
+    deliverables: ['AI 旅伴与智能导览', '扫码伴读与路线推荐', '跟着游记与纪念册生成', '游客互动数据报告']
   },
   {
-    title: '面向展馆/博物馆',
+    title: '展馆/博物馆解决方案',
     accent: 'violet',
-    problem: ['展陈内容静态', '预约与参观数据分散', '研学成果难沉淀'],
-    deliverables: ['数字展陈与多媒体内容', 'AI 讲解与虚拟导览', '教育研学内容包', '扫码伴读与互动体验']
+    problem: ['展陈内容静态，观众互动不足', '展品资料不易转化为研学成果', '参观后的学习与分享缺少承接'],
+    deliverables: ['展品 AI 讲解与问答', '参观记录与知识卡片', '研学成果册生成', '展馆运营数据沉淀']
   },
   {
-    title: '面向出版社/研学',
+    title: '研学/出版/公益解决方案',
     accent: 'orange',
-    problem: ['内容生产周期长', '纸书延展弱', '用户触达与运营能力不足'],
-    deliverables: ['数字化内容生产平台', '研学课程与知识卡片', '互动阅读与扫码伴读', '内容分发与营销工具']
+    problem: ['纸质内容延展弱，互动体验不足', '研学过程有参与但成果不成体系', '公益行动需要可展示、可复盘的传播材料'],
+    deliverables: ['图书扫码伴读', 'AI 知识问答与拓展', '研学任务与成果生成', '活动传播与汇报报告']
   }
 ];
 
 export const pilotCases = [
-  { title: '新疆喀什 AI 文旅样板', tag: '文化名城', image: pilotReference, metrics: ['230+ 知识条目', '86% 游客满意度', '42% 复游提升'] },
-  { title: '北京中轴线数字导览', tag: '世界遗产', image: solutionReference, metrics: ['180+ 内容资产', '128万+ 访问量', '65% 互动参与率'] },
-  { title: '四川熊猫研学路线', tag: '自然IP', image: scenarioReference, metrics: ['95+ 课程资源', '62万+ 研学参与', '58% 转化提升'] },
-  { title: '敦煌文化数字展陈', tag: '世界文化遗产', image: homeReference, metrics: ['160+ 数字文物', '93万+ 浏览量', '70% 分享率'] },
-  { title: '云南非遗内容计划', tag: '民族文化', image: productWideImage, metrics: ['120+ 传承项目', '71万+ 体验人次', '55% 传播增长'] }
+  { title: '喀什 AI 文旅样板', tag: '城市样板', image: pilotSampleVisual, metrics: ['城市导览', '亲子研学', '传播报告'] },
+  { title: '图秀中华公益行动 · 新疆首站', tag: '公益教育', image: solutionEcosystemVisual, metrics: ['版图知识', '扫码伴读', '研学成果'] },
+  { title: '国家公园 AI 科普样板', tag: '自然教育', image: generatedScenarioVisual, metrics: ['AI科普旅伴', '自然观察任务', '亲子纪念册'] },
+  { title: '城市文化导览样板', tag: '城市更新', image: contentOperationVisual, metrics: ['历史街区', '非遗故事', '传播专题'] },
+  { title: '博物馆 AI 讲解样板', tag: '展馆研学', image: museumStudyVisual, metrics: ['展品问答', '参观记录', '研学报告'] }
 ];
 
 export const pilotStats = [
-  { value: '32%', label: '游客停留时长提升' },
-  { value: '28%', label: '游客满意度提升' },
-  { value: '41%', label: '内容分享率提升' },
-  { value: '25%', label: '客诉率下降' },
-  { value: '38%', label: '运营效率提升' },
-  { value: '23%', label: '人力成本降低' }
+  { value: '2-8周', label: '样板上线周期' },
+  { value: '6类', label: '可复用模块' },
+  { value: '100+', label: '内容资产沉淀' },
+  { value: '多端', label: '游客互动入口' },
+  { value: '多格式', label: '传播素材输出' },
+  { value: '1份', label: '数据报告交付' }
 ];
 
-export const methodology = ['需求洞察', '方案共创', '小步快跑', '规模复制', '持续运营'];
+export const methodology = ['找准场景', '整理资源', '设计入口', '形成传播', '输出报告', '复制场景'];
 
 export const reusableModules = [
-  'AI 导览引擎',
-  '内容生成引擎',
-  '数据分析看板',
-  '活动运营模块',
-  '知识与资源库',
-  '集成开放能力'
+  '地方知识库',
+  'AI旅伴',
+  '扫码伴读',
+  '跟着游记',
+  '活动专题',
+  '传播数据报告'
 ];
 
 export const testimonials = [
-  { name: '喀什文旅局', text: 'AI 导览让游客更愿意停留，也让我们更精准地看见景区体验问题。' },
-  { name: '南疆亲子路研学方', text: '亲子内容记录和研学成果沉淀，让项目有了可持续复用的内容资产。' },
-  { name: '某 5A 景区', text: 'AI 导览提升了讲解体验，也减少了现场人力压力。' },
-  { name: '某省博物馆', text: 'AI 问答让文物讲述更鲜活，参观后的分享内容明显变多。' }
+  { name: '喀什样板共创方', text: '以前资源散在材料里，现在可以通过 AI 导览、游记和报告变成可展示的样板成果。' },
+  { name: '研学项目负责人', text: '孩子们不只是完成一次参观，而是留下了知识卡片、游记和成果册，后续汇报也更清楚。' },
+  { name: '景区运营负责人', text: '扫码讲解、游客问答和分享数据被串起来后，运营复盘不再只靠现场感受。' },
+  { name: '出版合作方', text: '纸书通过扫码伴读连接了 AI 问答和延展内容，读者互动明显更自然。' }
 ];
 
 export const travelogueSteps = [
-  { title: '上传旅行素材', desc: '上传图片、视频、票根或导入行程记录。' },
-  { title: 'AI 识别理解', desc: '识别时间、地点、人物和场景，提炼旅程信息。' },
-  { title: '生成游记内容', desc: '生成图文并茂的游记故事与知识卡片。' },
-  { title: '个性化编辑', desc: '调整语气、封面、风格和重点段落。' },
-  { title: '导出与分享', desc: '一键生成多种格式，分发给亲友或社交平台。' }
+  { title: '上传旅行照片', desc: '上传照片、视频、票根或导入路线，让系统识别旅途中的时间、地点和人物。' },
+  { title: '匹配地方知识', desc: '结合目的地知识库，自动补充景点故事、历史文化、自然科普和研学知识。' },
+  { title: '生成旅行故事', desc: 'AI 将素材整理成有情绪、有结构、有知识点的图文游记。' },
+  { title: '编辑纪念风格', desc: '选择亲子、研学、城市漫游、自然观察等风格，调整封面、语气和重点段落。' },
+  { title: '导出分享成果', desc: '一键生成电子纪念册、纸质纪念书、知识卡片、分享海报或研学成果册。' }
 ];
 
 export const audienceCards = [
-  { title: '亲子家庭', desc: '记录家庭旅行的温暖时光，沉淀孩子成长的美好记忆。' },
-  { title: '学生群体', desc: '记录研学、旅行与成长体验，丰富个人作品集和实践材料。' },
-  { title: '教育机构', desc: '助力研学课程成果沉淀，提升教学效果与品牌价值。' },
-  { title: '旅行达人', desc: '高效创作优质内容，分享见闻，沉淀影响力。' }
+  { title: '亲子家庭', desc: '把一次家庭出行整理成孩子看得懂、家长愿意收藏的旅行故事。' },
+  { title: '学生研学', desc: '把参观、观察和任务记录生成知识卡片、研学报告和成果册。' },
+  { title: '教育机构', desc: '让研学课程从现场体验延伸到学习成果、家校反馈和品牌传播。' },
+  { title: '景区活动运营方', desc: '把活动打卡、游客照片和互动数据沉淀成二次传播素材。' }
 ];
 
 export const travelogueOutputs = [
@@ -281,46 +313,53 @@ export const travelogueOutputs = [
   { title: '知识卡片', desc: '把景点、历史和文化提炼为可收藏的知识卡。' },
   { title: '家庭旅行档案', desc: '自动沉淀家庭旅行轨迹，记录成员与情绪。' },
   { title: '分享海报', desc: '生成适合朋友圈、小红书和社群转发的海报。' },
-  { title: '纸质纪念书', desc: '支持印刷输出，把数字旅程变成可收藏的实体纪念。' }
+  { title: '纸质纪念书', desc: '支持印刷输出，把数字旅程变成可收藏的实体纪念。' },
+  { title: '研学成果册', desc: '把路线、任务、照片和知识点整理成可提交、可展示的学习成果。' }
 ];
 
 export const pages = {
   home: {
     hero: {
-      title: '把地方文旅资源转化为游客可参与、可分享、可传播的数据化内容资产',
-      desc: '整合 AI 能力与文旅行业知识，实现内容智能生产、管理、分发与运营，助力目的地与景区构建可持续的数字化文旅生态。',
-      primaryCta: '免费体验',
-      secondaryCta: '预约演示'
+      title: '让目的地拥有自己的 AI 叙事与内容运营系统',
+      titleLines: ['让目的地拥有', '自己的 AI 叙事', '与内容运营系统'],
+      desc: '为城市、景区、展馆、研学与出版项目，构建从地方知识库、AI 导览、游客互动、游记纪念册到传播数据报告的完整闭环。',
+      primaryCta: '预约样板演示',
+      secondaryCta: '查看解决方案'
     }
   },
   capabilities: {
     hero: {
-      title: '一套平台，连接文旅资源、游客体验与运营数据。',
-      desc: '整合 AI 能力与文旅行业知识，实现内容智能生产、管理、分发与运营，助力目的地与景区构建可持续的数字化文旅生态。'
+      title: '从地方资源到游客传播，一套完整的 AI 文旅运营能力。',
+      titleLines: ['从地方资源到游客传播，', '一套完整的', 'AI 文旅运营能力。'],
+      desc: '把内容资产、AI 互动、游客生成内容和传播报告放进同一套工作流，帮助目的地把文化资源转化为长期运营价值。'
     }
   },
   scenarios: {
     hero: {
-      title: '用 AI 重新讲述一座城市、一处景区、一次旅行。',
-      desc: '星河寻境帮助文旅行业激活内容价值，提升服务体验，驱动业务增长。'
+      title: '让城市、景区、展馆和图书，都拥有 AI 表达能力。',
+      titleLines: ['让城市、景区、', '展馆和图书，', '都拥有 AI 表达能力。'],
+      desc: '让每一处风景被讲述，让每一次旅行被记录，让每一个目的地被传播。'
     }
   },
   solutions: {
     hero: {
-      title: '地方文旅 AI 内容资产运营平台解决方案',
-      desc: '以内容资产为核心，以 AI 为驱动，帮助地方文旅行业实现内容生产、资产沉淀、智能分发与运营增长的全链路数字化升级。'
+      title: '为不同文旅客户，交付可上线、可汇报、可复制的 AI 样板。',
+      titleLines: ['为不同文旅客户，', '交付可上线、可汇报、', '可复制的 AI 样板。'],
+      desc: '围绕文旅局、景区、展馆、研学和出版客户，按场景组合地方知识库、AI 旅伴、扫码伴读、跟着游记和传播报告。'
     }
   },
   pilots: {
     hero: {
-      title: '从一个目的地开始，沉淀可复制的 AI 文旅样板。',
-      desc: '我们与文旅局、景区、博物馆及运营机构深度共创，用 AI 能力解决真实问题，形成可落地、可复制、可规模化的文旅样板。'
+      title: '先做一个样板，再复制一套模式。',
+      titleLines: ['先做一个样板，', '再复制一套模式。'],
+      desc: '从一个目的地、一本图书、一个展馆或一次活动切入，快速上线可体验、可传播、可汇报的 AI 文旅样板。'
     }
   },
   travelogue: {
     hero: {
-      title: '把每一次旅行，生成一本有照片、有故事、有知识的纪念书。',
-      desc: '星河寻境 AI 陪伴你记录旅途中的美好瞬间，智能生成内容、整理知识、沉淀回忆，让记忆更有温度、让分享更有价值。'
+      title: '让游客带走的不只是一张照片，而是会被记住的旅行故事。',
+      titleLines: ['让游客带走的', '不只是一张照片，', '而是会被记住的旅行故事。'],
+      desc: '把照片、路线、知识点和现场体验生成游记、纪念册、知识卡片和分享海报，让游客内容成为目的地的二次传播资产。'
     }
   }
 };

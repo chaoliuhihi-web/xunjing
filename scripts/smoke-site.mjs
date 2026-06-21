@@ -34,19 +34,19 @@ const desktopOverflow = await page.evaluate(() => document.documentElement.scrol
 await page.screenshot({ path: path.join(qaDir, 'desktop-1440.png'), fullPage: false });
 
 await page.getByRole('navigation', { name: '主导航' }).getByRole('link', { name: '产品能力' }).click();
-await page.getByRole('heading', { name: /一套平台，连接文旅资源/ }).waitFor();
-await page.getByText('平台架构').waitFor();
+await page.getByRole('heading', { name: /从地方资源到游客传播/ }).waitFor();
+await page.getByText('从资源到传播的闭环架构').waitFor();
 await page.getByRole('navigation', { name: '主导航' }).getByRole('link', { name: '跟着游记' }).click();
-await page.getByRole('heading', { name: /把每一次旅行/ }).waitFor();
-await page.getByText('轻松 5 步，生成你的专属游记').waitFor();
+await page.getByRole('heading', { name: /让游客带走的/ }).waitFor();
+await page.getByText('5 步生成一段会被记住的旅行故事').waitFor();
 
-await page.getByRole('button', { name: '预约演示' }).first().click();
+await page.getByRole('button', { name: '预约样板' }).first().click();
 await page.getByLabel('联系人姓名').fill('王女士');
 await page.getByLabel('联系电话').fill('13800138000');
 await page.getByLabel('单位名称').fill('新疆文旅示范中心');
 await page.getByLabel('合作类型').selectOption('景区 AI 导览样板');
-await page.getByRole('button', { name: '提交需求' }).click();
-await page.getByText('需求已记录').waitFor();
+await page.getByRole('button', { name: '提交样板需求' }).click();
+await page.getByText('已收到样板沟通需求').waitFor();
 await page.screenshot({ path: path.join(qaDir, 'desktop-form-success.png'), fullPage: false });
 await desktop.close();
 
@@ -63,7 +63,7 @@ const mobileOverflow = await mobilePage.evaluate(() => document.documentElement.
 await mobilePage.screenshot({ path: path.join(qaDir, 'mobile-390.png'), fullPage: false });
 await mobilePage.getByRole('button', { name: '打开导航' }).click();
 await mobilePage.getByRole('navigation', { name: '主导航' }).getByRole('link', { name: '产品能力' }).click();
-await mobilePage.getByRole('heading', { name: /一套平台，连接文旅资源/ }).waitFor();
+await mobilePage.getByRole('heading', { name: /从地方资源到游客传播/ }).waitFor();
 await mobilePage.screenshot({ path: path.join(qaDir, 'mobile-nav-product.png'), fullPage: false });
 await mobile.close();
 await browser.close();
@@ -72,7 +72,7 @@ const result = {
   url,
   title,
   bodyLength: bodyText.length,
-  hasHero: bodyText.includes('把地方文旅资源转化为'),
+  hasHero: bodyText.includes('让目的地拥有') && bodyText.includes('与内容运营系统'),
   desktopOverflow,
   mobileOverflow,
   errors,

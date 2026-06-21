@@ -19,7 +19,6 @@ import {
   MapPin,
   MapPinned,
   Menu,
-  MessageCircle,
   PenLine,
   Phone,
   PlayCircle,
@@ -69,13 +68,13 @@ const iconMap = {
 };
 
 const pageHeroBadges = {
-  home: ['文旅内容中台', 'AI 智能运营', '一体化生态'],
-  capabilities: ['平台能力网格', 'AI 生成效率', '持续增长看板'],
+  home: ['目的地叙事', 'AI旅伴', '传播报告'],
+  capabilities: ['地方知识库', '游客内容沉淀', '数据复盘'],
   scenarios: ['景区导览', '扫码伴读', '研学传播'],
-  solutions: ['文旅局方案', '景区方案', '博物馆方案'],
-  pilots: ['样板交付', '方法论复用', '多地复制'],
-  travelogue: ['智能拍摄', '内容复用', '分享闭环'],
-  about: ['品牌资产', '产品交付', '长期运营']
+  solutions: ['文旅局样板', '景区样板', '展馆样板'],
+  pilots: ['样板上线', '报告汇报', '多地复制'],
+  travelogue: ['照片成册', '知识入文', '分享传播'],
+  about: ['内容资产', '样板交付', '长期运营']
 };
 
 const validPages = new Set(navItems.map((item) => item.page));
@@ -116,11 +115,7 @@ function Header({ activePage, onNavigate, onDemo }) {
   return (
     <header className="site-header">
       <a className="brand-link" href="#home" onClick={(event) => handleNavigate(event, navItems[0])}>
-        <img src={brand.logo} alt="" />
-        <span>
-          <strong>{brand.name}</strong>
-          <small>{brand.subtitle}</small>
-        </span>
+        <img src={brand.logo} alt={brand.name} />
       </a>
 
       <nav className={`main-nav ${open ? 'is-open' : ''}`} aria-label="主导航">
@@ -141,7 +136,7 @@ function Header({ activePage, onNavigate, onDemo }) {
           登录
         </button>
         <button className="primary-button header-demo" type="button" onClick={onDemo}>
-          预约演示
+          预约样板
         </button>
         <button
           aria-expanded={open}
@@ -157,7 +152,7 @@ function Header({ activePage, onNavigate, onDemo }) {
   );
 }
 
-function Hero({ pageKey, eyebrow, title, desc, primary = '预约演示', secondary = '观看平台介绍', onDemo }) {
+function Hero({ pageKey, eyebrow, title, titleLines, desc, primary = '预约样板演示', secondary = '查看样板路径', onDemo }) {
   const refMap = {
     home: visualReferences.home,
     capabilities: visualReferences.capabilities,
@@ -168,9 +163,24 @@ function Hero({ pageKey, eyebrow, title, desc, primary = '预约演示', seconda
     about: visualReferences.home
   };
   const badges = pageHeroBadges[pageKey] || [];
+  const useRiverVideo = pageKey === 'home';
+  const headingLines = Array.isArray(titleLines) && titleLines.length > 0 ? titleLines : [title];
 
   return (
     <section className={`hero hero--${pageKey}`}>
+      {useRiverVideo ? (
+        <video
+          aria-hidden="true"
+          className="hero-video"
+          poster={visualReferences.heroRiverPoster}
+          autoPlay
+          muted
+          loop
+          playsInline
+        >
+          <source src={visualReferences.heroRiverVideo} type="video/mp4" />
+        </video>
+      ) : null}
       <div className="hero-motion-layer" aria-hidden="true">
         <span className="speed-line speed-line--a" />
         <span className="speed-line speed-line--b" />
@@ -180,7 +190,11 @@ function Hero({ pageKey, eyebrow, title, desc, primary = '预约演示', seconda
       <span className="hero-glow-ring" aria-hidden="true" />
       <div className="hero-copy">
         {eyebrow ? <p className="hero-eyebrow">{eyebrow}</p> : null}
-        <h1>{title}</h1>
+        <h1 aria-label={title}>
+          {headingLines.map((line) => (
+            <span key={line}>{line}</span>
+          ))}
+        </h1>
         <p>{desc}</p>
         <div className="hero-badges" aria-label="核心能力">
           {badges.map((badge) => (
@@ -202,17 +216,16 @@ function Hero({ pageKey, eyebrow, title, desc, primary = '预约演示', seconda
       </div>
       <div className="hero-art" aria-hidden="true">
         <img src={refMap[pageKey]} alt="" />
-        <div className="hero-glass hero-glass--one">
-          <IconBubble icon={Bot} />
-          <span>AI 旅伴</span>
-        </div>
-        <div className="hero-glass hero-glass--two">
-          <IconBubble icon={Database} tone="cyan" />
-          <span>数据运营</span>
-        </div>
-        <div className="hero-glass hero-glass--three">
-          <IconBubble icon={MapPinned} tone="violet" />
-          <span>扫码伴读</span>
+        <div className="hero-proof-panel">
+          <div>
+            <strong>目的地 AI 叙事系统</strong>
+            <span>地方知识 · AI旅伴 · 游记传播</span>
+          </div>
+          <div className="hero-proof-bars">
+            <span />
+            <span />
+            <span />
+          </div>
         </div>
       </div>
     </section>
@@ -238,9 +251,14 @@ function CapabilityGrid({ compact = false }) {
     <div className={compact ? 'capability-grid capability-grid--compact' : 'capability-grid'}>
       {capabilityCards.map((card) => (
         <article className="glass-card capability-card" key={card.title}>
-          <IconBubble icon={card.icon} />
-          <h3>{card.title}</h3>
-          <p>{card.desc}</p>
+          <div className="capability-media">
+            <img src={card.image} alt="" />
+          </div>
+          <div className="capability-copy">
+            <IconBubble icon={card.icon} />
+            <h3>{card.title}</h3>
+            <p>{card.desc}</p>
+          </div>
         </article>
       ))}
     </div>
@@ -253,6 +271,7 @@ function HomePage({ onDemo }) {
       <Hero
         pageKey="home"
         title={pages.home.hero.title}
+        titleLines={pages.home.hero.titleLines}
         desc={pages.home.hero.desc}
         primary={pages.home.hero.primaryCta}
         secondary={pages.home.hero.secondaryCta}
@@ -263,7 +282,7 @@ function HomePage({ onDemo }) {
         <CapabilityGrid />
       </section>
       <section className="section panel-section">
-        <SectionHeader align="left" title="行业痛点" desc="从资源、内容、体验、传播到转化，文旅运营需要一个能持续沉淀资产的系统。" />
+        <SectionHeader align="left" title="为什么目的地需要自己的 AI 叙事系统" desc="文旅客户不缺资源，缺的是让资源被讲述、被体验、被带走、被复盘的方式。" />
         <div className="pain-grid">
           {painPoints.map((item, index) => (
             <article className="soft-card" key={item.title}>
@@ -276,9 +295,9 @@ function HomePage({ onDemo }) {
       </section>
       <section className="section matrix-section">
         <div className="section-topline">
-          <SectionHeader align="left" title="核心产品矩阵" desc="围绕内容、知识、数据、运营和开放集成形成可复制的平台能力。" />
+          <SectionHeader align="left" title="星河寻境如何让目的地“活起来”" desc="从资源入库、AI 互动到游客内容沉淀和传播报告，形成可运营的完整闭环。" />
           <a className="text-link" href="#capabilities">
-            了解产品能力 <ArrowRight size={16} />
+            查看完整能力 <ArrowRight size={16} />
           </a>
         </div>
         <div className="matrix-grid">
@@ -293,7 +312,7 @@ function HomePage({ onDemo }) {
       </section>
       <ProductShowcase />
       <section className="section data-section">
-        <SectionHeader align="left" title="数据能力" desc="把内容生产、游客触达和运营效果连成闭环。" />
+        <SectionHeader align="left" title="传播数据报告" desc="把访问、问答、生成、分享和活动参与沉淀成可汇报、可复盘、可复制的项目成果。" />
         <div className="data-grid">
           {dataCapabilities.map((item) => (
             <div className="soft-card data-card" key={item}>
@@ -304,8 +323,8 @@ function HomePage({ onDemo }) {
         </div>
       </section>
       <CtaBand
-        title="携手星河寻境，让每一处风景被看见，让每一次旅行更美好"
-        desc="开启文旅数字化新篇章，共建智慧文旅新生态。"
+        title="让城市会讲述，让景区会陪伴，让展馆会回应，让旅行会留下。"
+        desc="从一个高价值样板开始，沉淀属于目的地自己的 AI 内容资产。"
         onDemo={onDemo}
       />
     </>
@@ -313,13 +332,13 @@ function HomePage({ onDemo }) {
 }
 
 function ProductShowcase() {
-  const [active, setActive] = useState('总览大屏');
-  const tabs = ['总览大屏', '内容管理', '数据分析', '游记管理', '知识库', '活动运营'];
+  const [active, setActive] = useState('样板总览');
+  const tabs = ['样板总览', '内容资产', '传播数据', '游记成果', '地方知识库', '活动专题'];
 
   return (
     <section className="section product-showcase">
-      <SectionHeader title="产品界面展示" desc="用真实平台界面承载内容、运营、数据和 AI 能力，而不是停留在概念图。" />
-      <div className="tabs" role="tablist" aria-label="产品界面类型">
+      <SectionHeader title="样板项目运营界面" desc="用可演示、可管理、可汇报的平台界面承载内容资产、AI 体验和传播数据。" />
+      <div className="tabs" role="tablist" aria-label="样板界面类型">
         {tabs.map((tab) => (
           <button
             aria-selected={active === tab}
@@ -336,11 +355,11 @@ function ProductShowcase() {
       <div className="showcase-stage">
         <img src={visualReferences.productWide} alt="星河寻境产品总览界面" />
         <div className="showcase-phone">
-          <img src={visualReferences.mobileProduct} alt="星河寻境移动端产品界面" />
+          <img src={visualReferences.generatedQrGuide} alt="星河寻境扫码导览能力视觉" />
         </div>
         <div className="showcase-caption">
           <strong>{active}</strong>
-          <span>多端协同、内容资产化、运营数据可视化</span>
+          <span>内容资产、游客互动、传播报告一体化沉淀</span>
         </div>
       </div>
     </section>
@@ -353,22 +372,23 @@ function CapabilitiesPage({ onDemo }) {
       <Hero
         pageKey="capabilities"
         title={pages.capabilities.hero.title}
+        titleLines={pages.capabilities.hero.titleLines}
         desc={pages.capabilities.hero.desc}
-        primary="预约产品演示"
-        secondary="下载产品白皮书"
+        primary="预约能力演示"
+        secondary="查看样板路径"
         onDemo={onDemo}
       />
       <MetricsStrip
         items={[
-          { value: '283+', label: '合作城市/景区' },
-          { value: '5,908+', label: '接入景区/场馆' },
-          { value: '128万+', label: '注册用户' },
-          { value: '4,200万+', label: '内容生成量' },
-          { value: '98.6%', label: '用户满意度' }
+          { value: '1套', label: '目的地叙事闭环' },
+          { value: '6类', label: '样板落地场景' },
+          { value: '多端', label: '游客互动入口' },
+          { value: '多格式', label: '内容成果输出' },
+          { value: '1份', label: '传播数据报告' }
         ]}
       />
       <section className="section architecture-section">
-        <SectionHeader align="left" title="平台架构" desc="从基础设施到应用触达，形成可治理、可扩展的文旅内容运营平台。" />
+        <SectionHeader align="left" title="从资源到传播的闭环架构" desc="每一层都服务于客户最关心的结果：能上线、能使用、能传播、能汇报。" />
         <div className="architecture-table">
           {architectureRows.map((row) => (
             <div className="architecture-row" key={row.layer}>
@@ -386,7 +406,7 @@ function CapabilitiesPage({ onDemo }) {
         </div>
       </section>
       <section className="section">
-        <SectionHeader title="产品能力矩阵" desc="能力不是零散工具，而是可组合的业务组件。" />
+        <SectionHeader title="可组合的 AI 文旅样板能力" desc="按城市、景区、展馆、研学和出版项目灵活组合，避免做成一次性展示。" />
         <div className="capability-matrix">
           {capabilityMatrix.map((item, index) => (
             <article className="glass-card module-card" key={item}>
@@ -397,7 +417,7 @@ function CapabilitiesPage({ onDemo }) {
           ))}
         </div>
       </section>
-      <FlowSection title="AI 内容生产与运营流程" steps={productionFlow} />
+      <FlowSection title="从资源梳理到传播复盘" steps={productionFlow} />
       <SupportBand />
     </>
   );
@@ -406,9 +426,9 @@ function CapabilitiesPage({ onDemo }) {
 function ScenariosPage({ onDemo }) {
   return (
     <>
-      <Hero pageKey="scenarios" title={pages.scenarios.hero.title} desc={pages.scenarios.hero.desc} primary="预约合作咨询" onDemo={onDemo} />
+      <Hero pageKey="scenarios" title={pages.scenarios.hero.title} titleLines={pages.scenarios.hero.titleLines} desc={pages.scenarios.hero.desc} primary="预约场景沟通" onDemo={onDemo} />
       <section className="section">
-        <SectionHeader title="多元应用场景" desc="围绕城市、景区、展馆、研学和出版，把 AI 能力放进真实服务场景。" />
+        <SectionHeader title="AI 叙事进入真实文旅场景" desc="让城市、景区、展馆、研学、出版和公益项目，都有可体验、可传播、可沉淀的数字入口。" />
         <div className="scenario-grid">
           {scenarioCards.map((card) => (
             <article className="scenario-card" key={card.title}>
@@ -417,13 +437,13 @@ function ScenariosPage({ onDemo }) {
                 <IconBubble icon={MapPinned} />
                 <h3>{card.title}</h3>
                 <p>{card.desc}</p>
-                <a href="#solutions">了解更多 <ArrowRight size={14} /></a>
+                <a href="#solutions">查看方案 <ArrowRight size={14} /></a>
               </div>
             </article>
           ))}
         </div>
       </section>
-      <FlowSection title="合作流程" steps={cooperationSteps} />
+      <FlowSection title="样板共创流程" steps={cooperationSteps} />
       <ContactSection onDemo={onDemo} />
       <FaqSection />
       <AboutPanel />
@@ -434,7 +454,7 @@ function ScenariosPage({ onDemo }) {
 function SolutionsPage({ onDemo }) {
   return (
     <>
-      <Hero pageKey="solutions" title={pages.solutions.hero.title} desc={pages.solutions.hero.desc} primary="预约方案演示" secondary="下载解决方案" onDemo={onDemo} />
+      <Hero pageKey="solutions" title={pages.solutions.hero.title} titleLines={pages.solutions.hero.titleLines} desc={pages.solutions.hero.desc} primary="预约方案沟通" secondary="查看样板案例" onDemo={onDemo} />
       <section className="section solution-section">
         <div className="solution-grid">
           {solutionTracks.map((track) => (
@@ -442,7 +462,7 @@ function SolutionsPage({ onDemo }) {
               <IconBubble icon={Building2} tone={track.accent} />
               <h3>{track.title}</h3>
               <div className="solution-block">
-                <strong>核心问题</strong>
+                <strong>客户关注</strong>
                 <ul>
                   {track.problem.map((item) => (
                     <li key={item}>{item}</li>
@@ -450,7 +470,7 @@ function SolutionsPage({ onDemo }) {
                 </ul>
               </div>
               <div className="solution-block">
-                <strong>交付模块</strong>
+                <strong>典型交付</strong>
                 <ul>
                   {track.deliverables.map((item) => (
                     <li key={item}>{item}</li>
@@ -462,7 +482,7 @@ function SolutionsPage({ onDemo }) {
         </div>
       </section>
       <section className="section">
-        <SectionHeader title="平台能力组件" desc="按项目组合，快速从样板复制到多地运营。" />
+        <SectionHeader title="可复用能力组件" desc="以模块化方式组合交付，让一个样板可以复制到更多场景。" />
         <div className="module-strip">
           {capabilityCards.map((card) => (
             <div className="module-item" key={card.title}>
@@ -474,7 +494,7 @@ function SolutionsPage({ onDemo }) {
         </div>
       </section>
       <PilotPreview />
-      <CtaBand title="让每一座城市的文化被看见，让每一次旅行更有温度。" desc="星河寻境，与你共建文旅内容新未来。" onDemo={onDemo} />
+      <CtaBand title="把分散的地方资源，做成客户看得见的 AI 文旅样板。" desc="先上线一个可体验、可汇报的小样板，再复制到更多目的地和内容项目。" onDemo={onDemo} />
     </>
   );
 }
@@ -482,9 +502,9 @@ function SolutionsPage({ onDemo }) {
 function PilotsPage({ onDemo }) {
   return (
     <>
-      <Hero pageKey="pilots" title={pages.pilots.hero.title} desc={pages.pilots.hero.desc} primary="预约演示" secondary="咨询专家" onDemo={onDemo} />
+      <Hero pageKey="pilots" title={pages.pilots.hero.title} titleLines={pages.pilots.hero.titleLines} desc={pages.pilots.hero.desc} primary="预约样板演示" secondary="查看方法论" onDemo={onDemo} />
       <section className="section">
-        <SectionHeader title="精选 AI 文旅样板" desc="从项目中沉淀方法，从实践中验证价值。" />
+        <SectionHeader title="精选 AI 文旅样板" desc="从一个高价值场景切入，快速形成可演示、可传播、可复盘的成果。" />
         <div className="pilot-grid">
           {pilotCases.map((item, index) => (
             <article className="pilot-card" key={item.title}>
@@ -499,25 +519,25 @@ function PilotsPage({ onDemo }) {
                   <li key={metric}>{metric}</li>
                 ))}
               </ul>
-              <a href="#scenarios">查看详情 <ArrowRight size={14} /></a>
+              <a href="#scenarios">查看场景 <ArrowRight size={14} /></a>
             </article>
           ))}
         </div>
       </section>
       <section className="section stats-section">
-        <SectionHeader title="样板成效总览" desc="已落地项目平均数据，持续用于方案迭代。" />
+        <SectionHeader title="样板交付价值" desc="我们更关注客户能否上线、汇报、传播和复制，而不是只做概念展示。" />
         <div className="pilot-stat-grid">
           {pilotStats.map((item) => (
             <div className="stat-card" key={item.label}>
-              <strong>↑ {item.value}</strong>
+              <strong>{item.value}</strong>
               <span>{item.label}</span>
             </div>
           ))}
         </div>
       </section>
-      <FlowSection title="我们的方法论：从验证到复制的五步路线" steps={methodology} />
+      <FlowSection title="样板方法论：从验证到复制" steps={methodology} />
       <section className="section">
-        <SectionHeader title="可复用资产与模块" desc="沉淀开箱即用的能力，让复制更高效。" />
+        <SectionHeader title="可复制的样板资产" desc="把一次项目沉淀为后续项目可复用的内容、工具和报告。" />
         <div className="reusable-grid">
           {reusableModules.map((item) => (
             <div className="soft-card reusable-card" key={item}>
@@ -528,7 +548,7 @@ function PilotsPage({ onDemo }) {
         </div>
       </section>
       <Testimonials />
-      <CtaBand title="从您的目的地开始，打造专属 AI 文旅样板" desc="立即联系我们，获取定制化方案与落地支持。" onDemo={onDemo} />
+      <CtaBand title="从一个目的地开始，沉淀可复制的 AI 文旅样板" desc="用真实场景验证价值，用数据报告支撑汇报，用内容资产延续传播。" onDemo={onDemo} />
     </>
   );
 }
@@ -536,10 +556,10 @@ function PilotsPage({ onDemo }) {
 function TraveloguePage({ onDemo }) {
   return (
     <>
-      <Hero pageKey="travelogue" title={pages.travelogue.hero.title} desc={pages.travelogue.hero.desc} primary="立即体验" secondary="了解更多" onDemo={onDemo} />
-      <FlowSection title="轻松 5 步，生成你的专属游记" steps={travelogueSteps.map((step) => step.title)} detailedSteps={travelogueSteps} />
+      <Hero pageKey="travelogue" title={pages.travelogue.hero.title} titleLines={pages.travelogue.hero.titleLines} desc={pages.travelogue.hero.desc} primary="体验游记生成" secondary="查看样板" onDemo={onDemo} />
+      <FlowSection title="5 步生成一段会被记住的旅行故事" steps={travelogueSteps.map((step) => step.title)} detailedSteps={travelogueSteps} />
       <section className="section">
-        <SectionHeader title="适合谁用" desc="从家庭旅行到研学实践，把每一次行走都变成可收藏的内容资产。" />
+        <SectionHeader title="适合谁用" desc="从家庭旅行、学生研学到景区活动，让参与者留下可保存、可分享的成果。" />
         <div className="audience-grid">
           {audienceCards.map((card, index) => (
             <article className="audience-card" key={card.title}>
@@ -552,18 +572,26 @@ function TraveloguePage({ onDemo }) {
         </div>
       </section>
       <section className="section">
-        <SectionHeader title="真实生成效果" desc="同一次旅程可以生成不同载体，覆盖记录、收藏、传播和研学成果。" />
+        <SectionHeader title="真实生成效果" desc="同一次旅程可以沉淀为纪念、学习、传播和汇报多种内容载体。" />
         <div className="output-grid">
           {travelogueOutputs.map((item, index) => (
             <article className="output-card" key={item.title}>
-              <img src={[visualReferences.productBoard, visualReferences.travelogue, visualReferences.mobileProduct][index % 3]} alt="" />
+              <img
+                src={[
+                  visualReferences.generatedTravelogue,
+                  visualReferences.generatedContentOperation,
+                  visualReferences.generatedQrGuide,
+                  visualReferences.generatedProductUi
+                ][index % 4]}
+                alt=""
+              />
               <h3>{item.title}</h3>
               <p>{item.desc}</p>
             </article>
           ))}
         </div>
       </section>
-      <CtaBand title="让每一次旅行都值得被记录和珍藏" desc="AI 帮你记录当下、留住回忆、分享美好、传递价值。" onDemo={onDemo} />
+      <CtaBand title="让一次旅行，从到访变成可以带走的故事。" desc="照片会散落，故事会留下；星河寻境让游客内容成为目的地的二次传播资产。" onDemo={onDemo} />
     </>
   );
 }
@@ -571,7 +599,7 @@ function TraveloguePage({ onDemo }) {
 function AboutPage({ onDemo }) {
   return (
     <>
-      <Hero pageKey="about" title="关于星河寻境" desc="我们专注于 AI 文旅内容资产化、数字体验和运营增长，帮助目的地把文化资源转化为长期价值。" primary="预约沟通" secondary="查看案例" onDemo={onDemo} />
+      <Hero pageKey="about" title="关于星河寻境" desc="我们专注于 AI 文旅内容资产化、数字体验和运营增长，帮助地方文化资源从“被保存”走向“被讲述、被体验、被传播、被持续运营”。" primary="预约样板沟通" secondary="查看样板案例" onDemo={onDemo} />
       <AboutPanel expanded />
       <ContactSection onDemo={onDemo} />
       <FaqSection />
@@ -602,11 +630,11 @@ function SupportBand() {
     <section className="section support-band">
       <div className="support-items">
         {[
-          ['数据安全', '多层数据与隐私保护'],
-          ['合规认证', '等保/ISO/隐私认证适配'],
-          ['高可用架构', '支持专有云与私有化'],
-          ['开放生态', 'API/SDK/插件市场'],
-          ['专业服务', '7x24 小时技术支持']
+          ['内容安全', '知识来源与发布审核'],
+          ['合规部署', '按客户要求配置权限与环境'],
+          ['稳定上线', '小样板到多场景持续扩展'],
+          ['开放集成', '对接现有小程序、官网和活动入口'],
+          ['运营支持', '内容更新、数据复盘和报告输出']
         ].map(([title, desc]) => (
           <div className="support-item" key={title}>
             <IconBubble icon={ShieldCheck} />
@@ -616,8 +644,8 @@ function SupportBand() {
         ))}
       </div>
       <div className="support-cta">
-        <h2>携手领先文旅企业，共建智慧文旅新生态</h2>
-        <p>已助力 283+ 城市/景区实现数字化升级。</p>
+        <h2>从样板上线到长期运营，我们一起把成果做实。</h2>
+        <p>围绕内容、体验、传播和报告，持续服务项目复制与复盘。</p>
       </div>
     </section>
   );
@@ -627,19 +655,19 @@ function ContactSection({ onDemo }) {
   return (
     <section className="section contact-section" id="contact">
       <div className="contact-form-card">
-        <SectionHeader align="left" title="预约演示 / 合作咨询" desc="请留下信息，我们将在 1 个工作日内与你沟通。" />
+        <SectionHeader align="left" title="预约样板沟通" desc="留下你的目的地或项目场景，我们会准备对应的演示路径。" />
         <InlineLeadForm />
       </div>
       <div className="contact-info-card">
-        <SectionHeader align="left" title="联系我们" desc="面向城市、景区、展馆、研学和出版单位提供样板共创。" />
+        <SectionHeader align="left" title="联系我们" desc="面向文旅局、景区、展馆、研学、出版与公益项目提供样板共创。" />
         <ul className="contact-list">
-          <li><Phone size={20} /> 商务合作：010-8888-8801</li>
+          <li><Phone size={20} /> 商务合作：4001108776</li>
           <li><Mail size={20} /> bd@xingheseek.com</li>
-          <li><MapPin size={20} /> 北京市海淀区中关村大街 1 号</li>
+          <li><MapPin size={20} /> 北京市海淀区中关村软件园2号楼</li>
           <li><Clock3 size={20} /> 周一至周五 9:00 - 18:00</li>
         </ul>
         <button className="primary-button" type="button" onClick={onDemo}>
-          快速预约
+          预约沟通
           <ArrowRight size={18} />
         </button>
       </div>
@@ -671,7 +699,7 @@ function InlineLeadForm({ compact = false, onSuccess }) {
       setSubmitted(true);
       onSuccess?.();
     } catch {
-      setError('提交暂时失败，请拨打 400-1010-123 或稍后重试。');
+      setError('提交暂时失败，请拨打 4001108776 或稍后重试。');
     } finally {
       setSubmitting(false);
     }
@@ -681,8 +709,8 @@ function InlineLeadForm({ compact = false, onSuccess }) {
     return (
       <div className="success-state" role="status">
         <CheckCircle2 size={34} />
-        <strong>需求已记录</strong>
-        <p>我们会在 1 个工作日内联系，确认场景、资料和演示时间。</p>
+        <strong>已收到样板沟通需求</strong>
+        <p>我们会在 1 个工作日内联系，确认场景资源、演示路径和样板切入点。</p>
       </div>
     );
   }
@@ -707,15 +735,15 @@ function InlineLeadForm({ compact = false, onSuccess }) {
           <option value="" disabled>
             请选择合作类型
           </option>
+          <option value="城市 AI 文旅样板">城市 AI 文旅样板</option>
           <option value="景区 AI 导览样板">景区 AI 导览样板</option>
-          <option value="城市文旅内容运营">城市文旅内容运营</option>
-          <option value="展馆/博物馆数字讲解">展馆/博物馆数字讲解</option>
+          <option value="展馆/博物馆讲解样板">展馆/博物馆讲解样板</option>
           <option value="研学/出版扫码伴读">研学/出版扫码伴读</option>
         </select>
       </label>
       <label className="form-wide">
         项目描述
-        <textarea name="message" maxLength="500" placeholder="请简要描述您的需求或项目情况（选填）" />
+        <textarea name="message" maxLength="500" placeholder="请简要描述目的地、资源基础或想先验证的样板场景（选填）" />
       </label>
       {error ? (
         <p className="form-error form-wide" role="alert">
@@ -723,7 +751,7 @@ function InlineLeadForm({ compact = false, onSuccess }) {
         </p>
       ) : null}
       <button className="primary-button form-wide" type="submit" disabled={submitting}>
-        {submitting ? '提交中...' : '提交需求'}
+        {submitting ? '提交中...' : '提交样板需求'}
       </button>
     </form>
   );
@@ -732,7 +760,7 @@ function InlineLeadForm({ compact = false, onSuccess }) {
 function FaqSection() {
   return (
     <section className="section faq-section">
-      <SectionHeader title="常见问题" desc="为您解答合作过程中常见的问题。" />
+      <SectionHeader title="常见问题" desc="围绕样板共创、上线周期和运营支持的常见问题。" />
       <div className="faq-grid">
         {faqs.map((faq) => (
           <article className="faq-item" key={faq.question}>
@@ -752,18 +780,18 @@ function AboutPanel({ expanded = false }) {
   return (
     <section className="section about-panel">
       <div className="about-image">
-        <img src={visualReferences.aiPlatform} alt="星河寻境 AI 中台能力示意" />
+        <img src={visualReferences.aiPlatform} alt="星河寻境目的地 AI 叙事系统示意" />
       </div>
       <div className="about-copy">
         <SectionHeader align="left" title="关于北京星河卓越科技有限公司" />
         <p>
-          星河寻境面向地方文旅、景区、展馆、研学和出版场景，提供 AI 内容生产、知识库建设、
-          多端导览、扫码伴读和数据运营能力，帮助客户从一次项目沉淀为长期可复用的内容资产。
+          星河寻境面向地方文旅、景区、展馆、研学、出版和公益场景，提供目的地 AI 叙事与内容运营系统。
+          我们把地方知识库、图片视频库、AI 旅伴、扫码伴读、跟着游记和传播数据报告组合成可上线的样板。
         </p>
         {expanded ? (
           <p>
-            第一阶段官网聚焦对外运营和客户转化，后续可继续接入真实 CRM、案例库、内容管理后台、
-            数据看板和在线试用账号体系。
+            我们更关注客户能否把资源讲清楚、让游客参与进来、把体验带走，并形成可汇报、可复盘、可复制的成果。
+            因此每个项目都会从一个明确场景开始，逐步沉淀为长期可运营的内容资产。
           </p>
         ) : null}
         <div className="about-stats">
@@ -782,7 +810,7 @@ function AboutPanel({ expanded = false }) {
 function PilotPreview() {
   return (
     <section className="section pilot-preview">
-      <SectionHeader title="从试点样板到多地复制" desc="每个项目都沉淀为可复用的方法、资产和数据指标。" />
+      <SectionHeader title="从一个样板到多场景复制" desc="每个项目都沉淀为可复用的知识、入口、内容和传播报告。" />
       <div className="preview-cards">
         {pilotCases.slice(0, 5).map((item) => (
           <article key={item.title}>
@@ -796,10 +824,45 @@ function PilotPreview() {
   );
 }
 
+function DouyinLogo() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 32 32">
+      <path d="M17.2 7.1v12.2a5.5 5.5 0 1 1-4.9-5.5" fill="none" stroke="#00f2ea" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.2" />
+      <path d="M20.2 7.1c.6 3.7 2.8 6 6.2 6.7" fill="none" stroke="#ff0050" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.2" />
+      <path d="M18.8 7.1v12.2a5.5 5.5 0 1 1-4.9-5.5" fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.4" />
+      <path d="M20.2 7.1c.6 3.7 2.8 6 6.2 6.7" fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.4" />
+    </svg>
+  );
+}
+
+function ChannelsLogo() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 32 32">
+      <path d="M10.5 11.1c2.1-2 5.5-2 7.6 0l3.4 3.2a5 5 0 0 1 0 7.3c-2.1 2-5.5 2-7.6 0l-3.4-3.2a5 5 0 0 1 0-7.3Z" fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.3" />
+      <path d="M21.5 20.9c-2.1 2-5.5 2-7.6 0l-3.4-3.2a5 5 0 0 1 0-7.3c2.1-2 5.5-2 7.6 0l3.4 3.2a5 5 0 0 1 0 7.3Z" fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.3" opacity=".82" />
+      <path d="m15.2 12.6 5.6 3.4-5.6 3.4v-6.8Z" fill="#fff" />
+    </svg>
+  );
+}
+
+function WeiboLogo() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 32 32">
+      <path d="M24.3 13.8c1.8 1.3 2.7 3 2.4 4.9-.5 4.2-5.4 7.1-11.2 6.4-5.7-.7-9.9-4.6-9.4-8.8.4-3.6 4.1-5.7 8.1-6 .7-2 2.2-4.2 4.5-4 2 .2 2 2.1 1.5 3.8 1.4-.2 3-.1 4.1 3.7Z" fill="#fff" />
+      <path d="M25.5 7.4c1.9.6 3.4 2.2 3.8 4.2" fill="none" stroke="#fff" strokeLinecap="round" strokeWidth="1.9" />
+      <path d="M23.7 10.4c.9.3 1.7 1 1.9 2" fill="none" stroke="#fff" strokeLinecap="round" strokeWidth="1.7" />
+      <ellipse cx="15.5" cy="17.6" fill="#e93b32" rx="6.1" ry="4.5" transform="rotate(-7 15.5 17.6)" />
+      <circle cx="13.5" cy="17.4" r="1.1" fill="#fff" />
+      <circle cx="17.1" cy="16.8" r=".8" fill="#fff" />
+      <path d="M12.7 20c1.7 1 4.3.8 5.7-.5" fill="none" stroke="#fff" strokeLinecap="round" strokeWidth="1.1" />
+    </svg>
+  );
+}
+
 function Testimonials() {
   return (
     <section className="section testimonials">
-      <SectionHeader title="客户评价" desc="来自合作伙伴的真实反馈。" />
+      <SectionHeader title="合作反馈" desc="客户更关心样板是否能上线、能汇报、能继续运营。" />
       <div className="testimonial-grid">
         {testimonials.map((item) => (
           <article className="testimonial-card" key={item.name}>
@@ -823,7 +886,7 @@ function CtaBand({ title, desc, onDemo }) {
       </div>
       <div className="cta-actions">
         <button className="primary-button" type="button" onClick={onDemo}>
-          预约演示
+          预约样板
           <ArrowRight size={18} />
         </button>
         <button className="secondary-button" type="button">
@@ -845,9 +908,9 @@ function DemoModal({ open, onClose }) {
           <X size={20} />
         </button>
         <div className="modal-copy">
-          <p className="section-eyebrow">预约演示</p>
-          <h2 id="demo-title">告诉我们你的文旅场景</h2>
-          <p>我们将基于城市、景区、展馆、研学或出版需求，准备对应演示路径。</p>
+          <p className="section-eyebrow">预约样板演示</p>
+          <h2 id="demo-title">告诉我们你的目的地场景</h2>
+          <p>我们会基于城市、景区、展馆、研学或出版需求，准备对应样板演示路径。</p>
         </div>
         <InlineLeadForm compact onSuccess={() => {}} />
       </section>
@@ -863,18 +926,13 @@ function Footer({ onNavigate }) {
           event.preventDefault();
           onNavigate('home');
         }}>
-          <img src={brand.logo} alt="" />
-          <span>
-            <strong>{brand.name}</strong>
-            <small>{brand.subtitle}</small>
-          </span>
+          <img src={brand.logo} alt={brand.name} />
         </a>
-        <p>AI 让地方文旅资源更有价值，让每一次旅行更有温度。</p>
+        <p>让目的地被讲述、被体验、被传播、被持续运营。</p>
         <div className="socials" aria-label="关注我们">
-          <span><MessageCircle size={18} /></span>
-          <span>抖</span>
-          <span>视</span>
-          <span>博</span>
+          <span className="social-icon social-icon--douyin" aria-label="抖音" role="img"><DouyinLogo /></span>
+          <span className="social-icon social-icon--channels" aria-label="视频号" role="img"><ChannelsLogo /></span>
+          <span className="social-icon social-icon--weibo" aria-label="微博" role="img"><WeiboLogo /></span>
         </div>
       </div>
       <div className="footer-columns">
@@ -887,7 +945,7 @@ function Footer({ onNavigate }) {
         <div>
           <strong>解决方案</strong>
           <a href="#solutions">文旅局解决方案</a>
-          <a href="#solutions">景区数字化方案</a>
+          <a href="#solutions">景区 AI 旅伴方案</a>
           <a href="#solutions">研学出版方案</a>
         </div>
         <div>
@@ -899,11 +957,11 @@ function Footer({ onNavigate }) {
       </div>
       <div className="footer-contact">
         <Phone size={24} />
-        <strong>400-1010-123</strong>
+        <strong>4001108776</strong>
         <span>工作日 9:00-18:00</span>
       </div>
       <div className="footer-bottom">
-        <span>© 2024 星河寻境（北京）科技有限公司</span>
+        <span>© 2024 北京星河卓越科技有限公司</span>
         <span>京ICP备2024012345号-1</span>
         <span>隐私政策</span>
         <span>服务条款</span>

@@ -23,15 +23,28 @@ describe('site content contract', () => {
   });
 
   test('contains the operating proof and module depth needed for an external launch site', () => {
-    expect(pages.home.hero.title).toContain('地方文旅资源');
+    expect(pages.home.hero.title).toContain('AI 叙事与内容运营系统');
+    expect(pages.home.hero.desc).toContain('地方知识库');
     expect(homeMetrics.map((metric) => metric.label)).toEqual([
-      '合作城市/景区',
-      '累计服务游客',
-      '游客停留提升',
-      '用户满意度'
+      '目的地叙事系统',
+      '核心落地场景',
+      '传播数据报告',
+      'AI 文旅样板'
     ]);
     expect(capabilityCards).toHaveLength(6);
     expect(solutionTracks).toHaveLength(4);
     expect(travelogueOutputs.map((item) => item.title)).toContain('纸质纪念书');
+  });
+
+  test('defines deliberate hero title line breaks for launch-screen typography', () => {
+    for (const [pageKey, page] of Object.entries(pages)) {
+      expect(page.hero.titleLines, `${pageKey} hero needs controlled line breaks`).toBeDefined();
+      expect(page.hero.titleLines.join('').replace(/\s/g, '')).toBe(page.hero.title.replace(/\s/g, ''));
+      expect(page.hero.titleLines.length, `${pageKey} hero should stay concise`).toBeLessThanOrEqual(3);
+      expect(
+        page.hero.titleLines.every((line) => line.length <= 14),
+        `${pageKey} hero lines should avoid awkward browser wrapping`
+      ).toBe(true);
+    }
   });
 });
