@@ -176,6 +176,11 @@ async function checkLiveAdmin(baseUrl, fetchImpl) {
 }
 
 async function checkLiveResourcePackage(baseUrl, fetchImpl, tenantId) {
+  await fetchLiveResourcePackageData(baseUrl, fetchImpl, tenantId)
+  return pass('live-resource-package', 'Kashgar resource package endpoint is reachable')
+}
+
+async function fetchLiveResourcePackageData(baseUrl, fetchImpl, tenantId) {
   const json = await fetchJson(
     new URL('/app-api/xunjing/resource/package?packageCode=KASHGAR-MAP-001', baseUrl),
     { headers: tenantHeaders(tenantId) },
@@ -184,7 +189,7 @@ async function checkLiveResourcePackage(baseUrl, fetchImpl, tenantId) {
   if (json.code !== 0 || json.data?.packageCode !== 'KASHGAR-MAP-001') {
     throw new Error('resource package endpoint did not return KASHGAR-MAP-001')
   }
-  return pass('live-resource-package', 'Kashgar resource package endpoint is reachable')
+  return json.data
 }
 
 async function checkLivePublicReport(baseUrl, fetchImpl, tenantId) {
@@ -220,6 +225,38 @@ async function checkLiveResourceEvent(baseUrl, fetchImpl, tenantId) {
     throw new Error('resource event endpoint did not create an event')
   }
   return pass('live-resource-event', 'resource event endpoint accepts packageCode or sceneCode attribution')
+}
+
+async function checkLiveMediaUsage(baseUrl, fetchImpl, tenantId) {
+  const resourcePackage = await fetchLiveResourcePackageData(baseUrl, fetchImpl, tenantId)
+  const mediaId = resourcePackage.mediaAssets?.[0]?.id
+  if (!mediaId) {
+    throw new Error('resource package endpoint did not return a public media asset for MEDIA_USE check')
+  }
+  const json = await fetchJson(
+    new URL('/app-api/xunjing/resource/events', baseUrl),
+    {
+      method: 'POST',
+      headers: tenantHeaders(tenantId, { 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        packageCode: 'KASHGAR-MAP-001',
+        sceneCode: 'QR-KASHGAR-MAP-001',
+        eventType: 'MEDIA_USE',
+        sourceChannel: 'platform-readiness',
+        userTraceId: 'platform-readiness-media-check',
+        payloadJson: JSON.stringify({
+          mediaId,
+          usageType: 'READINESS_CHECK',
+          placement: 'platform-readiness'
+        })
+      })
+    },
+    fetchImpl
+  )
+  if (json.code !== 0 || !json.data) {
+    throw new Error('resource media usage event did not create a usage log')
+  }
+  return pass('live-media-usage', 'MEDIA_USE event accepts a public media asset and records usage')
 }
 
 async function checkLiveAiChat(baseUrl, fetchImpl, tenantId) {
@@ -360,6 +397,7 @@ export async function verifyXunjingPlatformReadiness({
     checks.push(await checkLivePublicReport(baseUrl, fetchImpl, liveTenantId))
     if (includeWriteCheck) {
       checks.push(await checkLiveResourceEvent(baseUrl, fetchImpl, liveTenantId))
+      checks.push(await checkLiveMediaUsage(baseUrl, fetchImpl, liveTenantId))
     }
     if (includeAiCheck) {
       checks.push(await checkLiveAiChat(baseUrl, fetchImpl, liveTenantId))

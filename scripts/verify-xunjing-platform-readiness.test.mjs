@@ -66,6 +66,7 @@ async function startPlatformFixture() {
         data: {
           packageCode: 'KASHGAR-MAP-001',
           title: '喀什古城研学地图',
+          mediaAssets: [{ id: 3101, title: '图影中华喀什古城图片' }],
           sources: [{ title: '喀什古城权威资料' }]
         }
       }))
@@ -87,8 +88,21 @@ async function startPlatformFixture() {
 
     if (req.url === '/app-api/xunjing/resource/events' && req.method === 'POST') {
       if (!requireTenant()) return
-      req.resume()
+      let body = ''
+      req.on('data', (chunk) => {
+        body += chunk
+      })
       await once(req, 'end')
+      const payload = JSON.parse(body)
+      if (payload.eventType === 'MEDIA_USE') {
+        const clientPayload = JSON.parse(payload.payloadJson)
+        if (clientPayload.mediaId !== 3101 || clientPayload.usageType !== 'READINESS_CHECK') {
+          res.statusCode = 400
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ code: 400, msg: 'invalid media usage payload' }))
+          return
+        }
+      }
       res.setHeader('Content-Type', 'application/json')
       res.end(JSON.stringify({
         code: 0,
@@ -173,6 +187,7 @@ describe('xunjing platform readiness verifier', () => {
       'live-resource-package',
       'live-public-report',
       'live-resource-event',
+      'live-media-usage',
       'live-ai-chat',
       'live-reading-ask',
       'live-map-explain',
@@ -214,7 +229,8 @@ describe('xunjing platform readiness verifier', () => {
       'environment',
       'live-resource-package',
       'live-public-report',
-      'live-resource-event'
+      'live-resource-event',
+      'live-media-usage'
     ])
   })
 
