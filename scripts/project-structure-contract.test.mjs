@@ -50,7 +50,9 @@ describe('project structure contract', () => {
       '禁止在仓库根目录写入截图、控制台快照、临时 Markdown、PPT 中间产物或发布包',
       '喀什 APP 视觉验证证据只能放在 `qa/app-kashgar/`',
       '临时构建、发布包、浏览器调试日志只能放在 `tmp/`、`workbench/` 或 `.playwright-mcp/`',
-      '不得移动或重置用户未提交改动'
+      '不得移动或重置用户未提交改动',
+      '禁止把 APP 名称、全局标题、包名或描述恢复成 `xinxiake`、`uni-app` 等脚手架/旧项目默认值',
+      '禁止给 APP 增加读取日志、读取账号、读取设备号、写系统设置、修改网络或 Wi-Fi、挂载文件系统等高风险 Android 权限'
     ]) {
       expect(agents).toContain(required)
     }
