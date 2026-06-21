@@ -35,6 +35,20 @@ async function resolveBranchHead({ branch, branchHead, remote, cwd, gitImpl }) {
   return head || '';
 }
 
+async function resolveCurrentHead({ currentHead, cwd, gitImpl }) {
+  if (currentHead !== undefined) {
+    return currentHead;
+  }
+
+  return await gitImpl(['rev-parse', '--short', 'HEAD'], { cwd });
+}
+
+async function readArtifactCommit({ branchRef, cwd, gitImpl }) {
+  const readme = await gitImpl(['show', `${branchRef}:README.md`], { cwd });
+  const match = readme.match(/^commit:\s*(\S+)/m);
+  return match?.[1] || '';
+}
+
 async function fetchPage(url, fetchImpl) {
   const response = await fetchImpl(url, {
     method: 'GET',
@@ -52,6 +66,8 @@ async function fetchPage(url, fetchImpl) {
 export async function verifyGiteePagesPublication({
   branch = defaultBranch,
   branchHead,
+  currentHead,
+  expectedArtifactCommit,
   remote = 'origin',
   repoUrl = defaultRepoUrl,
   pageUrl = defaultPageUrl,
@@ -68,9 +84,34 @@ export async function verifyGiteePagesPublication({
     cwd,
     gitImpl
   });
+  const resolvedExpectedArtifactCommit = expectedArtifactCommit
+    ?? await resolveCurrentHead({ currentHead, cwd, gitImpl });
 
   if (resolvedBranchHead) {
     checks.push(pass('deploy-branch', `${branch} exists at ${resolvedBranchHead.slice(0, 7)}`));
+    try {
+      const artifactRef = branchHead === undefined
+        ? `${remote}/${branch}`
+        : resolvedBranchHead;
+      if (branchHead === undefined) {
+        await gitImpl(['fetch', remote, `refs/heads/${branch}:refs/remotes/${remote}/${branch}`], { cwd });
+      }
+      const artifactCommit = await readArtifactCommit({ branchRef: artifactRef, cwd, gitImpl });
+      if (artifactCommit === resolvedExpectedArtifactCommit) {
+        checks.push(pass('artifact-commit', `${branch} artifact was generated from ${artifactCommit}`));
+      } else {
+        checks.push(fail(
+          'artifact-commit',
+          `${branch} artifact was generated from ${artifactCommit || 'unknown'}, expected ${resolvedExpectedArtifactCommit}`
+        ));
+        actionItems.push(
+          `Regenerate and publish the Gitee Pages artifact from commit ${resolvedExpectedArtifactCommit}.`
+        );
+      }
+    } catch {
+      checks.push(fail('artifact-commit', `${branch} artifact README.md is missing or unreadable`));
+      actionItems.push(`Regenerate and publish the Gitee Pages artifact from commit ${resolvedExpectedArtifactCommit}.`);
+    }
   } else {
     checks.push(fail('deploy-branch', `${branch} does not exist on ${remote}`));
     actionItems.push(`Publish the generated Gitee Pages artifact to the ${branch} branch.`);

@@ -17,6 +17,83 @@ function makeFetch(routes) {
 }
 
 describe('Gitee Pages publication verifier', () => {
+  test('fetches the deploy branch before reading the artifact commit', async () => {
+    const calls = [];
+    const result = await verifyGiteePagesPublication({
+      branch: 'gh-pages',
+      currentHead: '94a96f43',
+      repoUrl: 'https://gitee.com/xinghetech/xinghexunjing',
+      pageUrl: 'https://xinghetech.gitee.io/xinghexunjing/',
+      gitImpl: async (args) => {
+        calls.push(args);
+        if (args[0] === 'ls-remote') {
+          return 'deploysha\trefs/heads/gh-pages';
+        }
+        if (args[0] === 'fetch' && args[2] === 'refs/heads/gh-pages:refs/remotes/origin/gh-pages') {
+          return '';
+        }
+        if (args[0] === 'show' && args[1] === 'origin/gh-pages:README.md') {
+          return '# Xinghe Xunjing Gitee Pages Artifact\n\ncommit: 94a96f43\n';
+        }
+        throw new Error(`unexpected git args: ${args.join(' ')}`);
+      },
+      fetchImpl: makeFetch({
+        'https://gitee.com/xinghetech/xinghexunjing': {
+          status: 200,
+          body: '<title>xinghexunjing</title>'
+        },
+        'https://xinghetech.gitee.io/xinghexunjing/': {
+          status: 200,
+          body: '<title>星河寻境</title>'
+        }
+      })
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.checks).toContainEqual({
+      name: 'artifact-commit',
+      ok: true,
+      detail: 'gh-pages artifact was generated from 94a96f43'
+    });
+    expect(calls.map((args) => args[0])).toEqual(['ls-remote', 'fetch', 'show']);
+  });
+
+  test('fails when the deployed artifact was generated from a stale commit', async () => {
+    const result = await verifyGiteePagesPublication({
+      branch: 'gh-pages',
+      branchHead: 'deploysha',
+      expectedArtifactCommit: '94a96f43',
+      repoUrl: 'https://gitee.com/xinghetech/xinghexunjing',
+      pageUrl: 'https://xinghetech.gitee.io/xinghexunjing/',
+      gitImpl: async (args) => {
+        if (args[0] === 'show' && args[1] === 'deploysha:README.md') {
+          return '# Xinghe Xunjing Gitee Pages Artifact\n\ncommit: 60d443a0\n';
+        }
+        throw new Error(`unexpected git args: ${args.join(' ')}`);
+      },
+      fetchImpl: makeFetch({
+        'https://gitee.com/xinghetech/xinghexunjing': {
+          status: 200,
+          body: '<title>xinghexunjing</title>'
+        },
+        'https://xinghetech.gitee.io/xinghexunjing/': {
+          status: 200,
+          body: '<title>星河寻境</title>'
+        }
+      })
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.checks).toContainEqual({
+      name: 'artifact-commit',
+      ok: false,
+      detail: 'gh-pages artifact was generated from 60d443a0, expected 94a96f43'
+    });
+    expect(result.actionItems).toContain(
+      'Regenerate and publish the Gitee Pages artifact from commit 94a96f43.'
+    );
+  });
+
   test('reports the exact Pages activation action when the deploy branch exists but the public URL is still 404', async () => {
     const result = await verifyGiteePagesPublication({
       branch: 'gh-pages',
