@@ -94,7 +94,7 @@ export async function verifyGiteePagesPublication({
         ? `${remote}/${branch}`
         : resolvedBranchHead;
       if (branchHead === undefined) {
-        await gitImpl(['fetch', remote, `refs/heads/${branch}:refs/remotes/${remote}/${branch}`], { cwd });
+        await gitImpl(['fetch', remote, `+refs/heads/${branch}:refs/remotes/${remote}/${branch}`], { cwd });
       }
       const artifactCommit = await readArtifactCommit({ branchRef: artifactRef, cwd, gitImpl });
       if (artifactCommit === resolvedExpectedArtifactCommit) {

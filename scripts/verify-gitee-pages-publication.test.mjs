@@ -29,7 +29,7 @@ describe('Gitee Pages publication verifier', () => {
         if (args[0] === 'ls-remote') {
           return 'deploysha\trefs/heads/gh-pages';
         }
-        if (args[0] === 'fetch' && args[2] === 'refs/heads/gh-pages:refs/remotes/origin/gh-pages') {
+        if (args[0] === 'fetch' && args[2] === '+refs/heads/gh-pages:refs/remotes/origin/gh-pages') {
           return '';
         }
         if (args[0] === 'show' && args[1] === 'origin/gh-pages:README.md') {
