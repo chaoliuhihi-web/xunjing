@@ -1,5 +1,6 @@
 import {
   ArrowRight,
+  Share2,
   BarChart3,
   BookOpen,
   Bot,
@@ -23,7 +24,6 @@ import {
   Phone,
   PlayCircle,
   QrCode,
-  Route,
   ShieldCheck,
   Sparkles,
   UploadCloud,
@@ -567,7 +567,7 @@ function FlowSection({ title, steps, detailedSteps }) {
       <div className="flow-row">
         {steps.map((step, index) => (
           <div className="flow-step" key={step}>
-            <IconBubble icon={[UploadCloud, Bot, FileText, PenLine, Share2Fallback, BarChart3, Database][index % 7]} />
+            <IconBubble icon={[UploadCloud, Bot, FileText, PenLine, Share2, BarChart3, Database][index % 7]} />
             <h3>{typeof step === 'string' ? step : step.title}</h3>
             {detailedSteps ? <p>{detailedSteps[index].desc}</p> : <p>{['洞察需求', '形成内容', '触达游客', '沉淀资产'][index % 4]}</p>}
             {index < steps.length - 1 ? <ChevronRight className="flow-arrow" size={18} aria-hidden="true" /> : null}
@@ -576,10 +576,6 @@ function FlowSection({ title, steps, detailedSteps }) {
       </div>
     </section>
   );
-}
-
-function Share2Fallback(props) {
-  return <Route {...props} />;
 }
 
 function SupportBand() {
@@ -878,7 +874,7 @@ function Footer({ onNavigate }) {
         <div>
           <strong>关于我们</strong>
           <a href="#about">公司介绍</a>
-          <a href="#scenarios">联系我们</a>
+          <a href="#contact">联系我们</a>
           <a href="#pilots">案例中心</a>
         </div>
       </div>
