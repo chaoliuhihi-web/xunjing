@@ -41,7 +41,9 @@
       <el-descriptions-item label="已审素材">
         {{ readiness?.reviewedMediaCount || 0 }}
       </el-descriptions-item>
-      <el-descriptions-item label="地图点位">{{ readiness?.mapPointCount || 0 }}</el-descriptions-item>
+      <el-descriptions-item label="地图点位">{{
+        readiness?.mapPointCount || 0
+      }}</el-descriptions-item>
       <el-descriptions-item label="地球仪模型">
         {{ readiness?.globeModelCount || 0 }}
       </el-descriptions-item>
@@ -134,7 +136,9 @@
           <el-table-column label="资源包编码" align="center" prop="packageCode" min-width="170" />
           <el-table-column label="标题" align="center" prop="title" min-width="180" />
           <el-table-column label="类型" align="center" prop="resourceType" width="110">
-            <template #default="{ row }">{{ getOptionLabel(resourceTypeOptions, row.resourceType) }}</template>
+            <template #default="{ row }">{{
+              getOptionLabel(resourceTypeOptions, row.resourceType)
+            }}</template>
           </el-table-column>
           <el-table-column label="版本" align="center" prop="versionNo" width="110" />
           <el-table-column label="Yudao 知识库" align="center" prop="aiKnowledgeId" width="140" />
@@ -241,7 +245,9 @@
           <el-table-column label="编号" align="center" prop="id" width="90" />
           <el-table-column label="标题" align="center" prop="title" min-width="180" />
           <el-table-column label="来源" align="center" prop="sourceType" width="110">
-            <template #default="{ row }">{{ getOptionLabel(sourceTypeOptions, row.sourceType) }}</template>
+            <template #default="{ row }">{{
+              getOptionLabel(sourceTypeOptions, row.sourceType)
+            }}</template>
           </el-table-column>
           <el-table-column label="权威等级" align="center" prop="authorityLevel" width="120">
             <template #default="{ row }">
@@ -383,7 +389,9 @@
           </el-table-column>
           <el-table-column label="标题" align="center" prop="title" min-width="180" />
           <el-table-column label="类型" align="center" prop="mediaType" width="110">
-            <template #default="{ row }">{{ getOptionLabel(mediaTypeOptions, row.mediaType) }}</template>
+            <template #default="{ row }">{{
+              getOptionLabel(mediaTypeOptions, row.mediaType)
+            }}</template>
           </el-table-column>
           <el-table-column label="来源方" align="center" prop="sourceProvider" min-width="120" />
           <el-table-column label="版权" align="center" prop="copyrightStatus" width="120">
@@ -398,6 +406,21 @@
               <el-tag :type="getReviewStatusTag(row.reviewStatus)">
                 {{ getOptionLabel(reviewStatusOptions, row.reviewStatus) }}
               </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="可用场景" align="center" width="210">
+            <template #default="{ row }">
+              <el-space wrap>
+                <el-tag :type="row.canPublic === false ? 'info' : 'success'">
+                  {{ row.canPublic === false ? '不公开' : '公开' }}
+                </el-tag>
+                <el-tag :type="row.canAiUse === false ? 'info' : 'success'">
+                  {{ row.canAiUse === false ? 'AI 禁用' : 'AI 可用' }}
+                </el-tag>
+                <el-tag :type="row.canPromotionUse ? 'success' : 'info'">
+                  {{ row.canPromotionUse ? '可宣传' : '不宣传' }}
+                </el-tag>
+              </el-space>
             </template>
           </el-table-column>
           <el-table-column label="标签" align="center" prop="imageTags" min-width="150" />
@@ -465,12 +488,7 @@
             />
           </el-form-item>
           <el-form-item label="状态" prop="status">
-            <el-select
-              v-model="qrCodeQuery.status"
-              placeholder="状态"
-              clearable
-              class="!w-160px"
-            >
+            <el-select v-model="qrCodeQuery.status" placeholder="状态" clearable class="!w-160px">
               <el-option
                 v-for="item in qrCodeStatusOptions"
                 :key="item.value"
@@ -501,7 +519,9 @@
           <el-table-column label="场景码" align="center" prop="sceneCode" min-width="170" />
           <el-table-column label="路径" align="center" prop="path" min-width="180" />
           <el-table-column label="目标" align="center" min-width="150">
-            <template #default="{ row }">{{ row.targetType || '-' }} / {{ row.targetId || '-' }}</template>
+            <template #default="{ row }"
+              >{{ row.targetType || '-' }} / {{ row.targetId || '-' }}</template
+            >
           </el-table-column>
           <el-table-column label="扫码数" align="center" prop="scanCount" width="100" />
           <el-table-column label="状态" align="center" prop="status" width="120">
@@ -652,7 +672,9 @@
             </template>
           </el-table-column>
           <el-table-column label="目标" align="center" min-width="150">
-            <template #default="{ row }">{{ row.targetType || '-' }} / {{ row.targetId || '-' }}</template>
+            <template #default="{ row }"
+              >{{ row.targetType || '-' }} / {{ row.targetId || '-' }}</template
+            >
           </el-table-column>
           <el-table-column label="操作" align="center" width="150">
             <template #default="{ row }">
@@ -716,7 +738,10 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button :disabled="resourcePackageSubmitLoading" @click="resourcePackageDialogVisible = false">
+      <el-button
+        :disabled="resourcePackageSubmitLoading"
+        @click="resourcePackageDialogVisible = false"
+      >
         取 消
       </el-button>
       <el-button
@@ -771,7 +796,21 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item v-if="reviewTarget === 'import' && reviewForm.reviewStatus === 'REJECTED'" label="拒绝原因">
+      <template v-if="reviewTarget === 'media'">
+        <el-form-item label="公开展示">
+          <el-switch v-model="reviewForm.canPublic" />
+        </el-form-item>
+        <el-form-item label="AI 使用">
+          <el-switch v-model="reviewForm.canAiUse" />
+        </el-form-item>
+        <el-form-item label="宣传使用">
+          <el-switch v-model="reviewForm.canPromotionUse" />
+        </el-form-item>
+      </template>
+      <el-form-item
+        v-if="reviewTarget === 'import' && reviewForm.reviewStatus === 'REJECTED'"
+        label="拒绝原因"
+      >
         <el-input
           v-model="reviewForm.rejectReason"
           type="textarea"
@@ -781,8 +820,12 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button :disabled="reviewSubmitLoading" @click="reviewDialogVisible = false">取 消</el-button>
-      <el-button type="primary" :loading="reviewSubmitLoading" @click="submitReview">确 定</el-button>
+      <el-button :disabled="reviewSubmitLoading" @click="reviewDialogVisible = false"
+        >取 消</el-button
+      >
+      <el-button type="primary" :loading="reviewSubmitLoading" @click="submitReview"
+        >确 定</el-button
+      >
     </template>
   </Dialog>
 
@@ -812,7 +855,9 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button :disabled="reportSubmitLoading" @click="reportDialogVisible = false">取 消</el-button>
+      <el-button :disabled="reportSubmitLoading" @click="reportDialogVisible = false"
+        >取 消</el-button
+      >
       <el-button type="primary" :loading="reportSubmitLoading" @click="submitPublicReport">
         确 定
       </el-button>
@@ -988,6 +1033,9 @@ const reviewForm = reactive({
   authorityLevel: 'OFFICIAL',
   vectorStatus: 'INDEXED',
   copyrightStatus: 'AUTHORIZED',
+  canPublic: true,
+  canAiUse: true,
+  canPromotionUse: false,
   rejectReason: ''
 })
 const reviewDialogTitle = computed(() => {
@@ -1282,6 +1330,9 @@ const resetReviewForm = (status: string) => {
     authorityLevel: 'OFFICIAL',
     vectorStatus: status === 'APPROVED' ? 'INDEXED' : 'PENDING',
     copyrightStatus: status === 'APPROVED' ? 'AUTHORIZED' : 'RESTRICTED',
+    canPublic: status === 'APPROVED',
+    canAiUse: status === 'APPROVED',
+    canPromotionUse: false,
     rejectReason: ''
   })
 }
@@ -1304,13 +1355,13 @@ const openMediaReviewDialog = (row: XunjingConsoleApi.MediaAssetRespVO, status: 
   reviewForm.id = row.id
   reviewForm.copyrightStatus =
     status === 'APPROVED' ? 'AUTHORIZED' : row.copyrightStatus || 'RESTRICTED'
+  reviewForm.canPublic = status === 'APPROVED' ? row.canPublic !== false : false
+  reviewForm.canAiUse = status === 'APPROVED' ? row.canAiUse !== false : false
+  reviewForm.canPromotionUse = status === 'APPROVED' ? row.canPromotionUse === true : false
   reviewDialogVisible.value = true
 }
 
-const openImportReviewDialog = (
-  status: string,
-  row?: XunjingConsoleApi.ImportItemRespVO
-) => {
+const openImportReviewDialog = (status: string, row?: XunjingConsoleApi.ImportItemRespVO) => {
   const ids = row ? [row.id] : checkedImportItemIds.value
   if (ids.length === 0) {
     message.warning('请选择需要审核的资料')
@@ -1337,7 +1388,10 @@ const submitReview = async () => {
       await XunjingConsoleApi.reviewMediaAsset({
         id: reviewForm.id,
         reviewStatus: reviewForm.reviewStatus,
-        copyrightStatus: reviewForm.copyrightStatus
+        copyrightStatus: reviewForm.copyrightStatus,
+        canPublic: reviewForm.canPublic,
+        canAiUse: reviewForm.canAiUse,
+        canPromotionUse: reviewForm.canPromotionUse
       })
       await getMediaAssets()
     } else {

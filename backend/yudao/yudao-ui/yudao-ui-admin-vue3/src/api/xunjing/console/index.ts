@@ -6,15 +6,20 @@ export interface ConsolePageReqVO extends PageParam {
   projectId?: number
   schoolId?: number
   packageId?: number
+  evalSetId?: number
+  qrCodeId?: number
   keyword?: string
   resourceType?: string
   mediaType?: string
   sourceType?: string
+  scopeType?: string
   status?: string
   reviewStatus?: string
   vectorStatus?: string
   copyrightStatus?: string
   sceneCode?: string
+  userTraceId?: string
+  safetyStatus?: string
 }
 
 export interface ResourcePackageRespVO {
@@ -66,12 +71,53 @@ export interface MediaAssetRespVO {
   copyrightStatus: string
   reviewStatus: string
   imageTags?: string
+  canPublic?: boolean
+  canAiUse?: boolean
+  canPromotionUse?: boolean
+}
+
+export interface MediaAssetCreateReqVO {
+  packageId: number
+  title: string
+  mediaType: string
+  fileUrl?: string
+  objectKey?: string
+  sourceProvider?: string
+  sourceUrl?: string
+  copyrightStatus?: string
+  reviewStatus?: string
+  imageTags?: string
+  canPublic?: boolean
+  canAiUse?: boolean
+  canPromotionUse?: boolean
 }
 
 export interface MediaAssetReviewReqVO {
   id: number
   copyrightStatus?: string
   reviewStatus?: string
+  canPublic?: boolean
+  canAiUse?: boolean
+  canPromotionUse?: boolean
+}
+
+export interface MapPointRespVO {
+  id: number
+  title: string
+  latitude?: number
+  longitude?: number
+  summary?: string
+  sortOrder?: number
+  status: string
+}
+
+export interface GlobeModelRespVO {
+  id: number
+  title: string
+  modelUrl?: string
+  coverUrl?: string
+  dataVersion?: string
+  status: string
 }
 
 export interface QrCodeRespVO {
@@ -114,6 +160,137 @@ export interface BatchReviewImportItemReqVO {
   authorityLevel?: string
   vectorStatus?: string
   rejectReason?: string
+}
+
+export interface CrawlerSourceRespVO {
+  id: number
+  projectId?: number
+  packageId?: number
+  sourceUrl: string
+  host?: string
+  sourceKind?: string
+  connector?: string
+  sourceLane?: string
+  captureProfile?: string
+  factSourcePolicy?: string
+  captureAssets?: boolean
+  metadataOnly?: boolean
+  status: string
+  blockedReasonHint?: string
+  notes?: string
+}
+
+export interface CrawlerRunItemReqVO {
+  itemType?: string
+  itemTitle?: string
+  originalUrl?: string
+  fileUrl?: string
+  sourceProvider?: string
+  evidenceText?: string
+  targetType?: string
+}
+
+export interface CrawlerRunReqVO {
+  sourceId: number
+  items?: CrawlerRunItemReqVO[]
+}
+
+export interface CrawlerRunRespVO {
+  sourceId: number
+  status: string
+  createdCount: number
+  knowledgeItemCount: number
+  mediaItemCount: number
+  importItemIds: number[]
+}
+
+export interface MediaUsageRespVO {
+  id: number
+  mediaId?: number
+  packageId?: number
+  sceneCode?: string
+  usageType?: string
+  caller?: string
+  payloadJson?: string
+}
+
+export interface AiEvalSetRespVO {
+  id: number
+  projectId?: number
+  name: string
+  sceneCode?: string
+  status: string
+}
+
+export interface AiEvalCaseRespVO {
+  id: number
+  evalSetId?: number
+  question: string
+  expectedPolicy?: string
+  riskTags?: string
+  sourceRequired?: boolean
+  status: string
+}
+
+export interface AiEvalRunReqVO {
+  evalSetId: number
+  packageCode: string
+  qrSceneCode?: string
+  userTraceId?: string
+}
+
+export interface AiEvalRunCaseRespVO {
+  caseId: number
+  question: string
+  passed: boolean
+  safetyStatus: string
+  sourceCount: number
+  logId?: number
+  answer?: string
+  failureReason?: string
+}
+
+export interface AiEvalRunRespVO {
+  evalSetId: number
+  projectId: number
+  sceneCode: string
+  totalCount: number
+  passedCount: number
+  failedCount: number
+  passed: boolean
+  results: AiEvalRunCaseRespVO[]
+}
+
+export interface AiQuotaRuleRespVO {
+  id: number
+  projectId?: number
+  scopeType?: string
+  scopeId?: number
+  sceneCode?: string
+  dailyLimit?: number
+  monthlyBudget?: number
+  cacheEnabled?: boolean
+  fallbackModelCode?: string
+  status: string
+}
+
+export interface AiGenerationLogRespVO {
+  id: number
+  projectId?: number
+  schoolId?: number
+  packageId?: number
+  qrCodeId?: number
+  sceneCode?: string
+  userTraceId?: string
+  modelCode?: string
+  promptVersion?: string
+  inputSummary?: string
+  outputSummary?: string
+  sourceJson?: string
+  tokenCount?: number
+  costAmount?: number
+  safetyStatus?: string
+  cacheHit?: boolean
 }
 
 export interface ReadinessRespVO {
@@ -187,8 +364,26 @@ export const getMediaAssetPage = (params: ConsolePageReqVO) => {
   })
 }
 
+export const createMediaAsset = (data: MediaAssetCreateReqVO) => {
+  return request.post<number>({ url: `${baseUrl}/media-assets`, data })
+}
+
 export const reviewMediaAsset = (data: MediaAssetReviewReqVO) => {
   return request.post<boolean>({ url: `${baseUrl}/media-assets/review`, data })
+}
+
+export const getMapPointPage = (params: ConsolePageReqVO) => {
+  return request.get<{ list: MapPointRespVO[]; total: number }>({
+    url: `${baseUrl}/map-points/page`,
+    params
+  })
+}
+
+export const getGlobeModelPage = (params: ConsolePageReqVO) => {
+  return request.get<{ list: GlobeModelRespVO[]; total: number }>({
+    url: `${baseUrl}/globe-models/page`,
+    params
+  })
 }
 
 export const getQrCodePage = (params: ConsolePageReqVO) => {
@@ -211,6 +406,56 @@ export const getImportItemPage = (params: ConsolePageReqVO) => {
 
 export const batchReviewImportItems = (data: BatchReviewImportItemReqVO) => {
   return request.post<number[]>({ url: `${baseUrl}/import-items/batch-review`, data })
+}
+
+export const getCrawlerSourcePage = (params: ConsolePageReqVO) => {
+  return request.get<{ list: CrawlerSourceRespVO[]; total: number }>({
+    url: `${baseUrl}/crawler-sources/page`,
+    params
+  })
+}
+
+export const runCrawlerSourceImport = (data: CrawlerRunReqVO) => {
+  return request.post<CrawlerRunRespVO>({ url: `${baseUrl}/crawler-sources/run`, data })
+}
+
+export const getMediaUsagePage = (params: ConsolePageReqVO) => {
+  return request.get<{ list: MediaUsageRespVO[]; total: number }>({
+    url: `${baseUrl}/media-usages/page`,
+    params
+  })
+}
+
+export const getAiEvalSetPage = (params: ConsolePageReqVO) => {
+  return request.get<{ list: AiEvalSetRespVO[]; total: number }>({
+    url: `${baseUrl}/ai-eval-sets/page`,
+    params
+  })
+}
+
+export const getAiEvalCasePage = (params: ConsolePageReqVO) => {
+  return request.get<{ list: AiEvalCaseRespVO[]; total: number }>({
+    url: `${baseUrl}/ai-eval-cases/page`,
+    params
+  })
+}
+
+export const runAiEvalSet = (data: AiEvalRunReqVO) => {
+  return request.post<AiEvalRunRespVO>({ url: `${baseUrl}/ai-eval-sets/run`, data })
+}
+
+export const getAiQuotaRulePage = (params: ConsolePageReqVO) => {
+  return request.get<{ list: AiQuotaRuleRespVO[]; total: number }>({
+    url: `${baseUrl}/ai-quota-rules/page`,
+    params
+  })
+}
+
+export const getAiGenerationLogPage = (params: ConsolePageReqVO) => {
+  return request.get<{ list: AiGenerationLogRespVO[]; total: number }>({
+    url: `${baseUrl}/ai-generation-logs/page`,
+    params
+  })
 }
 
 export const getReadiness = (projectId: number) => {
