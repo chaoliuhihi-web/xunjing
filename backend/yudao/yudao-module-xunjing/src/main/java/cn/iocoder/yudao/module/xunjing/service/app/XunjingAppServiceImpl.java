@@ -28,6 +28,8 @@ import cn.iocoder.yudao.module.xunjing.dal.dataobject.ai.XunjingAiGenerationLogD
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.ai.XunjingAiQuotaRuleDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.event.XunjingInteractionEventDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.knowledge.XunjingKnowledgeDocumentDO;
+import cn.iocoder.yudao.module.xunjing.dal.dataobject.media.XunjingMediaAssetDO;
+import cn.iocoder.yudao.module.xunjing.dal.dataobject.media.XunjingMediaUsageLogDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.packagepkg.XunjingResourcePackageDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.qrcode.XunjingQrCodeDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.report.XunjingPublicReportDO;
@@ -38,6 +40,7 @@ import cn.iocoder.yudao.module.xunjing.dal.mysql.globe.XunjingGlobeModelMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.knowledge.XunjingKnowledgeDocumentMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.map.XunjingMapPointMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.media.XunjingMediaAssetMapper;
+import cn.iocoder.yudao.module.xunjing.dal.mysql.media.XunjingMediaUsageLogMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.packagepkg.XunjingResourcePackageMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.qrcode.XunjingQrCodeMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.report.XunjingPublicReportMapper;
@@ -104,6 +107,8 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     private XunjingPublicReportMapper publicReportMapper;
     @Resource
     private XunjingMediaAssetMapper mediaAssetMapper;
+    @Resource
+    private XunjingMediaUsageLogMapper mediaUsageLogMapper;
     @Resource
     private XunjingMapPointMapper mapPointMapper;
     @Resource
@@ -214,6 +219,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
 
         if (EventType.SCAN.getType().equals(event.getEventType()) && qrCode != null) {
             incrementScanCount(qrCode);
+        }
+        if (EventType.MEDIA_USE.getType().equals(event.getEventType())) {
+            recordAppMediaUsage(resourcePackage, qrCode, event, reqVO);
         }
         return event.getId();
     }
@@ -760,6 +768,73 @@ public class XunjingAppServiceImpl implements XunjingAppService {
                 clientPayload, new TypeReference<Map<String, Object>>() {});
         payload.put("clientPayload", clientPayloadObject == null ? clientPayload : clientPayloadObject);
         return JsonUtils.toJsonString(payload);
+    }
+
+    private void recordAppMediaUsage(
+            XunjingResourcePackageDO resourcePackage, XunjingQrCodeDO qrCode,
+            XunjingInteractionEventDO event, AppInteractionEventReqVO reqVO) {
+        Map<String, Object> clientPayload = parseClientPayloadObject(reqVO.getPayloadJson());
+        Long mediaId = mediaIdFromPayload(clientPayload);
+        XunjingMediaAssetDO mediaAsset = mediaAssetMapper.selectById(mediaId);
+        if (mediaAsset == null || !resourcePackage.getId().equals(mediaAsset.getPackageId())) {
+            throw new IllegalArgumentException("xunjing public media asset not exists: " + mediaId);
+        }
+        if (!ReviewStatus.APPROVED.getStatus().equals(mediaAsset.getReviewStatus())
+                || !CopyrightStatus.AUTHORIZED.getStatus().equals(mediaAsset.getCopyrightStatus())
+                || !Boolean.TRUE.equals(mediaAsset.getCanPublic())) {
+            throw new IllegalArgumentException("xunjing media asset is not public usable: " + mediaId);
+        }
+
+        XunjingMediaUsageLogDO usageLog = new XunjingMediaUsageLogDO();
+        usageLog.setMediaId(mediaId);
+        usageLog.setPackageId(resourcePackage.getId());
+        usageLog.setSceneCode(defaultIfBlank(reqVO.getSceneCode(), "app-media-use"));
+        usageLog.setUsageType(defaultIfBlank(stringValue(clientPayload.get("usageType")), "APP_MEDIA_USE"));
+        usageLog.setCaller(defaultIfBlank(reqVO.getSourceChannel(), "mini-program"));
+        usageLog.setPayloadJson(buildAppMediaUsagePayload(resourcePackage, qrCode, event, reqVO, clientPayload));
+        usageLog.setTenantId(TenantContextHolder.getRequiredTenantId());
+        mediaUsageLogMapper.insert(usageLog);
+    }
+
+    private Map<String, Object> parseClientPayloadObject(String payloadJson) {
+        Map<String, Object> clientPayload = JsonUtils.parseObjectQuietly(
+                defaultIfBlank(payloadJson, "{}").trim(), new TypeReference<Map<String, Object>>() {});
+        return clientPayload == null ? Map.of() : clientPayload;
+    }
+
+    private Long mediaIdFromPayload(Map<String, Object> clientPayload) {
+        Object mediaIdValue = clientPayload.get("mediaId");
+        if (mediaIdValue == null) {
+            throw new IllegalArgumentException("xunjing mediaId is required for MEDIA_USE event");
+        }
+        if (mediaIdValue instanceof Number number) {
+            return number.longValue();
+        }
+        if (mediaIdValue instanceof String value && hasText(value)) {
+            try {
+                return Long.valueOf(value.trim());
+            } catch (NumberFormatException ex) {
+                throw new IllegalArgumentException("xunjing mediaId is invalid for MEDIA_USE event: " + value, ex);
+            }
+        }
+        throw new IllegalArgumentException("xunjing mediaId is invalid for MEDIA_USE event: " + mediaIdValue);
+    }
+
+    private String buildAppMediaUsagePayload(
+            XunjingResourcePackageDO resourcePackage, XunjingQrCodeDO qrCode, XunjingInteractionEventDO event,
+            AppInteractionEventReqVO reqVO, Map<String, Object> clientPayload) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("eventId", event.getId());
+        payload.put("packageCode", resourcePackage.getPackageCode());
+        payload.put("sceneCode", defaultIfBlank(reqVO.getSceneCode(), ""));
+        payload.put("qrCodeId", qrCode == null ? null : qrCode.getId());
+        payload.put("userTraceId", reqVO.getUserTraceId());
+        payload.put("clientPayload", clientPayload);
+        return JsonUtils.toJsonString(payload);
+    }
+
+    private String stringValue(Object value) {
+        return value == null ? null : String.valueOf(value);
     }
 
     private String buildSourceJson(List<SourceRespVO> sources) {

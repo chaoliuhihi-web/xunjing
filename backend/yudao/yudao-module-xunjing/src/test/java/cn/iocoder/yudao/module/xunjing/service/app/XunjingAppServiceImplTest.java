@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.xunjing.service.app;
 
 import cn.iocoder.yudao.framework.test.core.ut.BaseDbUnitTest;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.ai.dal.dataobject.model.AiModelDO;
 import cn.iocoder.yudao.module.ai.enums.model.AiModelTypeEnum;
@@ -12,6 +13,7 @@ import cn.iocoder.yudao.module.ai.service.knowledge.bo.AiKnowledgeSegmentSearchR
 import cn.iocoder.yudao.module.ai.service.model.AiModelService;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AiGenerationLogRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AiQuotaRuleCreateReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.ConsolePageReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.GlobeModelCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.KnowledgeDocumentCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MapPointCreateReqVO;
@@ -29,8 +31,10 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatReq
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
+import cn.iocoder.yudao.module.xunjing.dal.dataobject.media.XunjingMediaUsageLogDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.event.XunjingInteractionEventDO;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.event.XunjingInteractionEventMapper;
+import cn.iocoder.yudao.module.xunjing.dal.mysql.media.XunjingMediaUsageLogMapper;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums;
 import cn.iocoder.yudao.module.xunjing.service.console.XunjingConsoleService;
 import cn.iocoder.yudao.module.xunjing.service.console.XunjingConsoleServiceImpl;
@@ -71,6 +75,8 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     private XunjingAppService appService;
     @Resource
     private XunjingInteractionEventMapper interactionEventMapper;
+    @Resource
+    private XunjingMediaUsageLogMapper mediaUsageLogMapper;
     @MockBean
     private AiKnowledgeSegmentService aiKnowledgeSegmentService;
     @MockBean
@@ -225,6 +231,38 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
                 () -> appService.recordEvent(invalidReqVO));
         assertTrue(ex.getMessage().contains("event type invalid"));
         assertEquals(1, interactionEventMapper.selectCountByPackageIds(List.of(packageId)));
+    }
+
+    @Test
+    public void testRecordMediaUseEventCreatesPublicMediaUsageLog() {
+        Long projectId = consoleService.createProject(projectReq());
+        Long schoolId = consoleService.createSchool(schoolReq());
+        Long packageId = consoleService.createResourcePackage(packageReq(projectId, schoolId));
+        Long mediaId = consoleService.addMediaAsset(mediaReq(packageId));
+        consoleService.createQrCode(qrCodeReq(packageId));
+
+        AppInteractionEventReqVO reqVO = new AppInteractionEventReqVO();
+        reqVO.setPackageCode("KASHGAR-MAP-001");
+        reqVO.setSceneCode("QR-KASHGAR-MAP-001");
+        reqVO.setEventType(XunjingEnums.EventType.MEDIA_USE.getType());
+        reqVO.setSourceChannel("mini-program");
+        reqVO.setUserTraceId("trace-media-001");
+        reqVO.setPayloadJson("{\"mediaId\":" + mediaId
+                + ",\"usageType\":\"DETAIL_CARD\",\"placement\":\"story-hero\"}");
+        appService.recordEvent(reqVO);
+
+        ConsolePageReqVO pageReqVO = new ConsolePageReqVO();
+        pageReqVO.setPackageId(packageId);
+        PageResult<XunjingMediaUsageLogDO> usagePage = mediaUsageLogMapper.selectPage(pageReqVO);
+        assertEquals(1, usagePage.getTotal());
+        XunjingMediaUsageLogDO usageLog = usagePage.getList().get(0);
+        assertEquals(mediaId, usageLog.getMediaId());
+        assertEquals(packageId, usageLog.getPackageId());
+        assertEquals("QR-KASHGAR-MAP-001", usageLog.getSceneCode());
+        assertEquals("DETAIL_CARD", usageLog.getUsageType());
+        assertEquals("mini-program", usageLog.getCaller());
+        assertTrue(usageLog.getPayloadJson().contains("\"userTraceId\":\"trace-media-001\""));
+        assertEquals(1, consoleService.getReadiness(projectId).getMediaUsageCount());
     }
 
     @Test
