@@ -13,12 +13,15 @@ const requiredEnvKeys = [
   'REDIS_HOST',
   'REDIS_PORT',
   'REDIS_DATABASE',
+  'REDIS_PASSWORD',
   'OSS_ENDPOINT',
   'OSS_BUCKET',
   'OSS_PREFIX',
   'OSS_ACCESS_KEY',
   'OSS_SECRET_KEY',
   'QDRANT_URL',
+  'QDRANT_HOST',
+  'QDRANT_GRPC_PORT',
   'QDRANT_TEXT_COLLECTION',
   'QDRANT_IMAGE_COLLECTION',
   'QWEN_API_KEY',
@@ -76,7 +79,9 @@ async function checkStaticFiles(rootDir) {
     'backend/yudao/pom.xml',
     'backend/yudao/yudao-module-xunjing/pom.xml',
     'backend/yudao/yudao-ui/yudao-ui-admin-vue3/src/api/xunjing/console/index.ts',
-    'backend/yudao/yudao-ui/yudao-ui-admin-vue3/src/views/xunjing/console/index.vue'
+    'backend/yudao/yudao-ui/yudao-ui-admin-vue3/src/views/xunjing/console/index.vue',
+    'ops/xunjing-platform.compose.yml',
+    'ops/xunjing-platform.env.example'
   ], 'platform file')
   return pass('static-files', 'Yudao backend module and admin console files exist')
 }

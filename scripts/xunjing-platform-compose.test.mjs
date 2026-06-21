@@ -29,6 +29,14 @@ describe('xunjing platform dependency compose configuration', () => {
     expect(compose).not.toContain('MYSQL_DATABASE: ruoyi-vue-pro');
   });
 
+  test('runs Redis with an explicit project-local password', () => {
+    const compose = fs.readFileSync(composePath, 'utf8');
+
+    expect(compose).toContain('--requirepass');
+    expect(compose).toContain('${REDIS_PASSWORD:-xunjing_local_redis_password}');
+    expect(compose).toContain('redis-cli -a $${REDIS_PASSWORD:-xunjing_local_redis_password} ping | grep PONG');
+  });
+
   test('uses a guarded MySQL init script because the upstream Yudao snapshot is not dependency ordered', () => {
     const initScriptPath = path.join(root, 'ops', 'mysql-init', 'xunjing-init.sh');
     const initScript = fs.readFileSync(initScriptPath, 'utf8');
@@ -49,6 +57,7 @@ describe('xunjing platform dependency compose configuration', () => {
     const envExample = fs.readFileSync(envExamplePath, 'utf8');
 
     expect(envExample).toContain('MYSQL_DATABASE=yudao_xinghe_xunjing');
+    expect(envExample).toContain('REDIS_PASSWORD=xunjing_local_redis_password');
     expect(envExample).toContain('QDRANT_TEXT_COLLECTION=xinghe_xunjing_text_local');
     expect(envExample).toContain('QDRANT_IMAGE_COLLECTION=xinghe_xunjing_image_local');
     expect(envExample).toContain('MINIO_BUCKET=xinghe-xunjing');

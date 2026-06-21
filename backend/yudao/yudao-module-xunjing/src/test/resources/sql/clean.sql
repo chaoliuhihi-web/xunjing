@@ -1,0 +1,17 @@
+DELETE FROM "xunjing_public_report";
+DELETE FROM "xunjing_ai_generation_log";
+DELETE FROM "xunjing_ai_quota_rule";
+DELETE FROM "xunjing_ai_eval_case";
+DELETE FROM "xunjing_ai_eval_set";
+DELETE FROM "xunjing_import_item";
+DELETE FROM "xunjing_crawler_source";
+DELETE FROM "xunjing_qrcode";
+DELETE FROM "xunjing_interaction_event";
+DELETE FROM "xunjing_globe_model";
+DELETE FROM "xunjing_map_point";
+DELETE FROM "xunjing_media_usage_log";
+DELETE FROM "xunjing_media_asset";
+DELETE FROM "xunjing_knowledge_document";
+DELETE FROM "xunjing_resource_package";
+DELETE FROM "xunjing_school";
+DELETE FROM "xunjing_project";

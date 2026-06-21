@@ -12,7 +12,12 @@
     "qa:smoke": "node scripts/smoke-site.mjs",
     "release:check": "npm run test:run && npm audit --audit-level=moderate && npm run build",
     "release:package": "npm run release:check && node scripts/package-release.mjs",
-    "deploy:verify": "node scripts/verify-deployment.mjs"
+    "deploy:verify": "node scripts/verify-deployment.mjs",
+    "xunjing:platform:verify": "node scripts/verify-xunjing-platform-readiness.mjs",
+    "xunjing:platform:verify:static": "node scripts/verify-xunjing-platform-readiness.mjs --static",
+    "xunjing:platform:deps:config": "docker compose -f ops/xunjing-platform.compose.yml --env-file ops/xunjing-platform.env.example config",
+    "xunjing:platform:deps:up": "docker compose -f ops/xunjing-platform.compose.yml --env-file ops/xunjing-platform.env up -d",
+    "xunjing:platform:deps:down": "docker compose -f ops/xunjing-platform.compose.yml --env-file ops/xunjing-platform.env down"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
