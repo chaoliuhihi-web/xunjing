@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatReq
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
+import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.ResourceType;
 import cn.iocoder.yudao.module.xunjing.service.app.XunjingAppService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -49,21 +50,21 @@ public class AppXunjingController {
     @Operation(summary = "图书伴读问答")
     @PermitAll
     public CommonResult<RagChatRespVO> readingAsk(@Valid @RequestBody RagChatReqVO reqVO) {
-        return success(answerWithScene(reqVO, "reading-ask"));
+        return success(answerWithScene(reqVO, "reading-ask", ResourceType.BOOK.getType()));
     }
 
     @PostMapping("/map/explain")
     @Operation(summary = "地图扫码讲解")
     @PermitAll
     public CommonResult<RagChatRespVO> mapExplain(@Valid @RequestBody RagChatReqVO reqVO) {
-        return success(answerWithScene(reqVO, "map-explain"));
+        return success(answerWithScene(reqVO, "map-explain", ResourceType.MAP.getType()));
     }
 
     @PostMapping("/globe/explain")
     @Operation(summary = "地球仪扫码讲解")
     @PermitAll
     public CommonResult<RagChatRespVO> globeExplain(@Valid @RequestBody RagChatReqVO reqVO) {
-        return success(answerWithScene(reqVO, "globe-explain"));
+        return success(answerWithScene(reqVO, "globe-explain", ResourceType.GLOBE.getType()));
     }
 
     @GetMapping("/public-report/summary")
@@ -74,11 +75,11 @@ public class AppXunjingController {
         return success(appService.getPublicReportSummary(packageCode));
     }
 
-    private RagChatRespVO answerWithScene(RagChatReqVO reqVO, String sceneCode) {
+    private RagChatRespVO answerWithScene(RagChatReqVO reqVO, String sceneCode, String expectedResourceType) {
         if (reqVO.getSceneCode() == null || reqVO.getSceneCode().isBlank()) {
             reqVO.setSceneCode(sceneCode);
         }
-        return appService.answer(reqVO);
+        return appService.answerForResourceType(reqVO, expectedResourceType);
     }
 
 }

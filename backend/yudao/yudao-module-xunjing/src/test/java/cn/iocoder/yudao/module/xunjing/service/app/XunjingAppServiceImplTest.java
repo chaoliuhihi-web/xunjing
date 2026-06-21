@@ -143,6 +143,23 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveScanKeepsExistingQrPathQueryParameters() {
+        Long projectId = consoleService.createProject(projectReq());
+        Long schoolId = consoleService.createSchool(schoolReq());
+        Long packageId = consoleService.createResourcePackage(packageReq(projectId, schoolId));
+        QrCodeCreateReqVO qrReqVO = qrCodeReq(packageId);
+        qrReqVO.setPath("/pages/map/detail?source=offline-card");
+        consoleService.createQrCode(qrReqVO);
+
+        ScanResolveReqVO reqVO = new ScanResolveReqVO();
+        reqVO.setSceneCode("QR-KASHGAR-MAP-001");
+        ScanResolveRespVO scan = appService.resolveScan(reqVO);
+
+        assertEquals("/pages/map/detail?source=offline-card&packageCode=KASHGAR-MAP-001&sceneCode=QR-KASHGAR-MAP-001",
+                scan.getTargetPath());
+    }
+
+    @Test
     public void testRecordAppEventResolvesQrSceneAndKeepsPayload() {
         Long projectId = consoleService.createProject(projectReq());
         Long schoolId = consoleService.createSchool(schoolReq());
@@ -305,6 +322,27 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertEquals("PASSED", first.getSafetyStatus());
         assertEquals("BLOCKED", second.getSafetyStatus());
         assertTrue(second.getAnswer().contains("今日 AI 问答次数已达上限"));
+    }
+
+    @Test
+    public void testAnswerForResourceTypeRejectsDedicatedEndpointMismatch() {
+        Long projectId = consoleService.createProject(projectReq());
+        Long schoolId = consoleService.createSchool(schoolReq());
+        Long mapPackageId = consoleService.createResourcePackage(packageReq(projectId, schoolId));
+        Long bookPackageId = consoleService.createResourcePackage(packageReq(
+                projectId, schoolId, "KASHGAR-BOOK-001", "喀什古城伴读图书", XunjingEnums.ResourceType.BOOK.getType()));
+        consoleService.addKnowledgeDocument(approvedKnowledgeReq(mapPackageId));
+        consoleService.addKnowledgeDocument(approvedKnowledgeReq(bookPackageId));
+
+        RagChatRespVO bookAnswer = appService.answerForResourceType(
+                ragReq("KASHGAR-BOOK-001", "trace-book-001"), XunjingEnums.ResourceType.BOOK.getType());
+        assertEquals("PASSED", bookAnswer.getSafetyStatus());
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> appService.answerForResourceType(
+                        ragReq("KASHGAR-MAP-001", "trace-map-001"), XunjingEnums.ResourceType.BOOK.getType()));
+        assertTrue(ex.getMessage().contains("resource type mismatch"));
+        assertEquals(1, consoleService.getReadiness(projectId).getAiGenerationCount());
     }
 
     @Test

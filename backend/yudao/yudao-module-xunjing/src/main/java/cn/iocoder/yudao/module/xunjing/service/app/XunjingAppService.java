@@ -16,6 +16,8 @@ public interface XunjingAppService {
 
     RagChatRespVO answer(RagChatReqVO reqVO);
 
+    RagChatRespVO answerForResourceType(RagChatReqVO reqVO, String expectedResourceType);
+
     Long recordEvent(AppInteractionEventReqVO reqVO);
 
     PublicReportSummaryRespVO getPublicReportSummary(String packageCode);

@@ -152,7 +152,18 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public RagChatRespVO answer(RagChatReqVO reqVO) {
+        return answer(reqVO, null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public RagChatRespVO answerForResourceType(RagChatReqVO reqVO, String expectedResourceType) {
+        return answer(reqVO, expectedResourceType);
+    }
+
+    private RagChatRespVO answer(RagChatReqVO reqVO, String expectedResourceType) {
         XunjingResourcePackageDO resourcePackage = validatePublicPackage(reqVO.getPackageCode());
+        validateExpectedResourceType(resourcePackage, expectedResourceType);
         XunjingQrCodeDO qrCode = resolveAnswerQrCode(reqVO, resourcePackage);
         recordAskEvent(resourcePackage, reqVO);
 
@@ -273,6 +284,16 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             }
         }
         throw new IllegalArgumentException("xunjing app event type invalid: " + eventType);
+    }
+
+    private void validateExpectedResourceType(XunjingResourcePackageDO resourcePackage, String expectedResourceType) {
+        if (!hasText(expectedResourceType)) {
+            return;
+        }
+        if (!expectedResourceType.equals(resourcePackage.getResourceType())) {
+            throw new IllegalArgumentException("xunjing resource type mismatch: expected "
+                    + expectedResourceType + ", actual " + resourcePackage.getResourceType());
+        }
     }
 
     private XunjingQrCodeDO resolveQrCode(ScanResolveReqVO reqVO) {
