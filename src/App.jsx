@@ -69,7 +69,7 @@ const iconMap = {
 
 const pageHeroBadges = {
   home: ['风景讲述', '旅行记录', '目的地传播'],
-  capabilities: ['地方知识库', '游客内容沉淀', '数据复盘'],
+  capabilities: ['文旅知识库', '游客内容沉淀', '数据复盘'],
   scenarios: ['景区导览', '扫码伴读', '研学传播'],
   solutions: ['文旅局样板', '景区样板', '展馆样板'],
   pilots: ['样板上线', '报告汇报', '多地复制'],
@@ -320,7 +320,7 @@ function HomePage({ onDemo }) {
 
 function ProductShowcase() {
   const [active, setActive] = useState('样板总览');
-  const tabs = ['样板总览', '内容资产', '传播数据', '游记成果', '地方知识库', '活动专题'];
+  const tabs = ['样板总览', '内容资产', '传播数据', '游记成果', '文旅知识库', '活动专题'];
 
   return (
     <section className="section product-showcase">
@@ -773,7 +773,7 @@ function AboutPanel({ expanded = false }) {
         <SectionHeader align="left" title="关于北京星河卓越科技有限公司" />
         <p>
           星河寻境面向地方文旅、景区、展馆、研学、出版和公益场景，提供目的地 AI 叙事与内容运营系统。
-          我们把地方知识库、图片视频库、AI 旅伴、扫码伴读、跟着游记和传播数据报告组合成可上线的样板。
+          我们把文旅知识库、图片视频库、AI 旅伴、扫码伴读、多媒体游记和传播数据报告组合成可上线的样板。
         </p>
         {expanded ? (
           <p>
@@ -926,7 +926,7 @@ function Footer({ onNavigate }) {
         <div>
           <strong>产品</strong>
           <a href="#capabilities">产品能力</a>
-          <a href="#travelogue">跟着游记</a>
+          <a href="#travelogue">多媒体游记</a>
           <a href="#scenarios">应用场景</a>
         </div>
         <div>

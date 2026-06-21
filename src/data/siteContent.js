@@ -62,7 +62,7 @@ export const navItems = [
   { label: '应用场景', href: '#scenarios', page: 'scenarios' },
   { label: '解决方案', href: '#solutions', page: 'solutions' },
   { label: '试点样板', href: '#pilots', page: 'pilots' },
-  { label: '跟着游记', href: '#travelogue', page: 'travelogue' },
+  { label: 'AI旅伴', href: '#travelogue', page: 'travelogue' },
   { label: '关于我们', href: '#about', page: 'about' }
 ];
 
@@ -76,7 +76,7 @@ export const homeMetrics = [
 export const capabilityCards = [
   {
     icon: 'book',
-    title: '地方知识库',
+    title: '文旅知识库',
     desc: '把城市故事、景区讲解、展品资料、图书内容和研学素材整理成可审校、可维护、可调用的知识资产。',
     image: capabilityKnowledgeBaseVisual
   },
@@ -94,7 +94,7 @@ export const capabilityCards = [
   },
   {
     icon: 'pen',
-    title: '跟着游记',
+    title: '多媒体游记',
     desc: '游客上传照片、路线或素材后，自动生成游记、知识卡片、纪念册和分享海报。',
     image: capabilityTravelogueVisual
   },
@@ -145,7 +145,7 @@ export const architectureRows = [
   {
     layer: '内容资产',
     desc: '地方可管',
-    items: ['地方知识库', '图片视频库', '路线素材', '展品资料', '图书内容', '活动素材']
+    items: ['文旅知识库', '图片视频库', '路线素材', '展品资料', '图书内容', '活动素材']
   },
   {
     layer: 'AI 能力',
@@ -193,7 +193,7 @@ export const scenarioCards = [
     image: generatedPlatformVisual
   },
   {
-    title: '跟着游记去旅行',
+    title: '多媒体游记去旅行',
     desc: '基于照片、路线和知识点生成个性化游记、纪念册和分享海报，让游客成为目的地传播者。',
     image: travelogueMemoryVisual
   },
@@ -241,7 +241,7 @@ export const solutionTracks = [
     title: '景区解决方案',
     accent: 'cyan',
     problem: ['讲解体验单一，游客停留不深', '游客拍了照片却没有形成传播内容', '导览、问答、路线和活动数据分散'],
-    deliverables: ['AI 旅伴与智能导览', '扫码伴读与路线推荐', '跟着游记与纪念册生成', '游客互动数据报告']
+    deliverables: ['AI 旅伴与智能导览', '扫码伴读与路线推荐', '多媒体游记与纪念册生成', '游客互动数据报告']
   },
   {
     title: '展馆/博物馆解决方案',
@@ -277,10 +277,10 @@ export const pilotStats = [
 export const methodology = ['找准场景', '整理资源', '设计入口', '形成传播', '输出报告', '复制场景'];
 
 export const reusableModules = [
-  '地方知识库',
+  '文旅知识库',
   'AI旅伴',
   '扫码伴读',
-  '跟着游记',
+  '多媒体游记',
   '活动专题',
   '传播数据报告'
 ];
@@ -345,7 +345,7 @@ export const pages = {
     hero: {
       title: '为不同文旅客户，交付可上线、可汇报、可复制的 AI 样板。',
       titleLines: ['为不同文旅客户，', '交付可上线、可汇报、', '可复制的 AI 样板。'],
-      desc: '围绕文旅局、景区、展馆、研学和出版客户，按场景组合地方知识库、AI 旅伴、扫码伴读、跟着游记和传播报告。'
+      desc: '围绕文旅局、景区、展馆、研学和出版客户，按场景组合文旅知识库、AI 旅伴、扫码伴读、多媒体游记和传播报告。'
     }
   },
   pilots: {

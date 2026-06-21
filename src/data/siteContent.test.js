@@ -15,7 +15,7 @@ describe('site content contract', () => {
       '应用场景',
       '解决方案',
       '试点样板',
-      '跟着游记',
+      'AI旅伴',
       '关于我们'
     ]);
     expect(new Set(navItems.map((item) => item.href)).size).toBe(navItems.length);
@@ -32,8 +32,18 @@ describe('site content contract', () => {
       'AI 文旅样板'
     ]);
     expect(capabilityCards).toHaveLength(6);
+    expect(capabilityCards.map((card) => card.title)).toContain('文旅知识库');
     expect(solutionTracks).toHaveLength(4);
     expect(travelogueOutputs.map((item) => item.title)).toContain('纸质纪念书');
+  });
+
+  test('uses current product naming for knowledge base and travelogue surfaces', () => {
+    const serialized = JSON.stringify({ navItems, pages, capabilityCards });
+
+    expect(serialized).toContain('文旅知识库');
+    expect(serialized).toContain('多媒体游记');
+    expect(serialized).not.toContain('地方知识库');
+    expect(serialized).not.toContain('跟着游记');
   });
 
   test('defines deliberate hero title line breaks for launch-screen typography', () => {

@@ -36,7 +36,7 @@ await page.screenshot({ path: path.join(qaDir, 'desktop-1440.png'), fullPage: fa
 await page.getByRole('navigation', { name: '主导航' }).getByRole('link', { name: '产品能力' }).click();
 await page.getByRole('heading', { name: /从地方资源到游客传播/ }).waitFor();
 await page.getByText('从资源到传播的闭环架构').waitFor();
-await page.getByRole('navigation', { name: '主导航' }).getByRole('link', { name: '跟着游记' }).click();
+await page.getByRole('navigation', { name: '主导航' }).getByRole('link', { name: 'AI旅伴' }).click();
 await page.getByRole('heading', { name: /让游客带走的/ }).waitFor();
 await page.getByText('5 步生成一段会被记住的旅行故事').waitFor();
 

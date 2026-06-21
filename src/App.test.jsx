@@ -30,7 +30,7 @@ describe('Xinghe Xunjing public site', () => {
     expect(screen.getByRole('heading', { name: /从地方资源到游客传播/ })).toBeInTheDocument();
     expect(screen.getByText('从资源到传播的闭环架构')).toBeInTheDocument();
 
-    await user.click(within(nav).getByRole('link', { name: '跟着游记' }));
+    await user.click(within(nav).getByRole('link', { name: 'AI旅伴' }));
     expect(screen.getByRole('heading', { name: /让游客带走的/ })).toBeInTheDocument();
     expect(screen.getByText('5 步生成一段会被记住的旅行故事')).toBeInTheDocument();
   });
