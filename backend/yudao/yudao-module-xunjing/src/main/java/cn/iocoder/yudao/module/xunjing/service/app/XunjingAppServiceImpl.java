@@ -722,7 +722,8 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     private String buildTargetPath(XunjingResourcePackageDO resourcePackage, XunjingQrCodeDO qrCode) {
         String packageCode = resourcePackage.getPackageCode();
         if (qrCode != null && hasText(qrCode.getPath())) {
-            return qrCode.getPath() + "?packageCode=" + packageCode + "&sceneCode=" + qrCode.getSceneCode();
+            String separator = qrCode.getPath().contains("?") ? "&" : "?";
+            return qrCode.getPath() + separator + "packageCode=" + packageCode + "&sceneCode=" + qrCode.getSceneCode();
         }
         if (ResourceType.BOOK.getType().equals(resourcePackage.getResourceType())) {
             return "/pages/reading/index?packageCode=" + packageCode;
