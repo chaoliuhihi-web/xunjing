@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.xunjing.service.app;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import cn.iocoder.yudao.module.ai.dal.dataobject.model.AiModelDO;
 import cn.iocoder.yudao.module.ai.enums.model.AiModelTypeEnum;
@@ -14,6 +15,11 @@ import cn.iocoder.yudao.module.ai.util.AiUtils;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppInteractionEventReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppGlobeModelRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppKnowledgeDocumentRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppMapPointRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppMediaAssetRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppPackageDetailRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PublicReportSummaryRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
@@ -28,12 +34,16 @@ import cn.iocoder.yudao.module.xunjing.dal.dataobject.report.XunjingPublicReport
 import cn.iocoder.yudao.module.xunjing.dal.mysql.ai.XunjingAiGenerationLogMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.ai.XunjingAiQuotaRuleMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.event.XunjingInteractionEventMapper;
+import cn.iocoder.yudao.module.xunjing.dal.mysql.globe.XunjingGlobeModelMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.knowledge.XunjingKnowledgeDocumentMapper;
+import cn.iocoder.yudao.module.xunjing.dal.mysql.map.XunjingMapPointMapper;
+import cn.iocoder.yudao.module.xunjing.dal.mysql.media.XunjingMediaAssetMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.packagepkg.XunjingResourcePackageMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.qrcode.XunjingQrCodeMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.report.XunjingPublicReportMapper;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.AiSafetyStatus;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.AiQuotaStatus;
+import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.CopyrightStatus;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.EventType;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.PackageStatus;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.QrCodeStatus;
@@ -58,6 +68,7 @@ import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -91,6 +102,12 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     private XunjingAiQuotaRuleMapper aiQuotaRuleMapper;
     @Resource
     private XunjingPublicReportMapper publicReportMapper;
+    @Resource
+    private XunjingMediaAssetMapper mediaAssetMapper;
+    @Resource
+    private XunjingMapPointMapper mapPointMapper;
+    @Resource
+    private XunjingGlobeModelMapper globeModelMapper;
     @Autowired(required = false)
     private AiKnowledgeSegmentService aiKnowledgeSegmentService;
     @Autowired(required = false)
@@ -110,6 +127,25 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         respVO.setTitle(resourcePackage.getTitle());
         respVO.setResourceType(resourcePackage.getResourceType());
         respVO.setTargetPath(buildTargetPath(resourcePackage, qrCode));
+        return respVO;
+    }
+
+    @Override
+    public AppPackageDetailRespVO getPublicPackageDetail(String packageCode) {
+        XunjingResourcePackageDO resourcePackage = validatePublicPackage(packageCode);
+        Long packageId = resourcePackage.getId();
+
+        AppPackageDetailRespVO respVO = BeanUtils.toBean(resourcePackage, AppPackageDetailRespVO.class);
+        respVO.setKnowledgeDocuments(BeanUtils.toBean(knowledgeDocumentMapper.selectPublicListByPackageId(
+                packageId, ReviewStatus.APPROVED.getStatus(), VectorStatus.INDEXED.getStatus()),
+                AppKnowledgeDocumentRespVO.class));
+        respVO.setMediaAssets(BeanUtils.toBean(mediaAssetMapper.selectPublicListByPackageId(
+                packageId, ReviewStatus.APPROVED.getStatus(), CopyrightStatus.AUTHORIZED.getStatus()),
+                AppMediaAssetRespVO.class));
+        respVO.setMapPoints(BeanUtils.toBean(mapPointMapper.selectPublicListByPackageId(
+                packageId, PackageStatus.PUBLISHED.getStatus()), AppMapPointRespVO.class));
+        respVO.setGlobeModels(BeanUtils.toBean(globeModelMapper.selectPublicListByPackageId(
+                packageId, PackageStatus.PUBLISHED.getStatus()), AppGlobeModelRespVO.class));
         return respVO;
     }
 
@@ -158,7 +194,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         XunjingInteractionEventDO event = new XunjingInteractionEventDO();
         event.setPackageId(resourcePackage.getId());
         event.setSchoolId(resourcePackage.getSchoolId());
-        event.setEventType(defaultIfBlank(reqVO.getEventType(), EventType.VIEW.getType()));
+        event.setEventType(normalizeAppEventType(reqVO.getEventType()));
         event.setSourceChannel(defaultIfBlank(reqVO.getSourceChannel(), "mini-program"));
         event.setUserTraceId(reqVO.getUserTraceId());
         event.setPayloadJson(buildAppEventPayload(resourcePackage, qrCode, reqVO));
@@ -227,6 +263,16 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             throw new IllegalArgumentException("xunjing public resource package not exists: " + qrCode.getPackageId());
         }
         return resourcePackage;
+    }
+
+    private String normalizeAppEventType(String eventType) {
+        String normalized = defaultIfBlank(eventType, EventType.VIEW.getType()).trim().toUpperCase(Locale.ROOT);
+        for (EventType value : EventType.values()) {
+            if (value.getType().equals(normalized)) {
+                return normalized;
+            }
+        }
+        throw new IllegalArgumentException("xunjing app event type invalid: " + eventType);
     }
 
     private XunjingQrCodeDO resolveQrCode(ScanResolveReqVO reqVO) {

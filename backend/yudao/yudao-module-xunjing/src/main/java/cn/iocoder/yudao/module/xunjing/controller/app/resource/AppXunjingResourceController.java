@@ -1,10 +1,9 @@
 package cn.iocoder.yudao.module.xunjing.controller.app.resource;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppPackageDetailRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppInteractionEventReqVO;
-import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.PackageDetailRespVO;
 import cn.iocoder.yudao.module.xunjing.service.app.XunjingAppService;
-import cn.iocoder.yudao.module.xunjing.service.console.XunjingConsoleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,16 +27,14 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 public class AppXunjingResourceController {
 
     @Resource
-    private XunjingConsoleService consoleService;
-    @Resource
     private XunjingAppService appService;
 
     @GetMapping("/package")
     @Operation(summary = "按资源包编码获取公开资源包")
     @Parameter(name = "packageCode", description = "资源包编码", required = true)
     @PermitAll
-    public CommonResult<PackageDetailRespVO> getPackage(@RequestParam("packageCode") String packageCode) {
-        return success(consoleService.getPublicPackageDetailByCode(packageCode));
+    public CommonResult<AppPackageDetailRespVO> getPackage(@RequestParam("packageCode") String packageCode) {
+        return success(appService.getPublicPackageDetail(packageCode));
     }
 
     @PostMapping("/events")

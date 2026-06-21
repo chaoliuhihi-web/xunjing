@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.xunjing.controller.app.vo;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public class XunjingAppVO {
@@ -40,6 +41,62 @@ public class XunjingAppVO {
         private String sourceChannel;
         private String userTraceId;
         private String payloadJson;
+    }
+
+    @Data
+    public static class AppPackageDetailRespVO {
+        private Long id;
+        private String packageCode;
+        private String title;
+        private String resourceType;
+        private String versionNo;
+        private List<AppKnowledgeDocumentRespVO> knowledgeDocuments;
+        private List<AppMediaAssetRespVO> mediaAssets;
+        private List<AppMapPointRespVO> mapPoints;
+        private List<AppGlobeModelRespVO> globeModels;
+    }
+
+    @Data
+    public static class AppKnowledgeDocumentRespVO {
+        private Long id;
+        private String title;
+        private String sourceType;
+        private String sourceUrl;
+        private String contentDigest;
+        private String authorityLevel;
+    }
+
+    @Data
+    public static class AppMediaAssetRespVO {
+        private Long id;
+        private String title;
+        private String mediaType;
+        private String fileUrl;
+        private String sourceProvider;
+        private String sourceUrl;
+        private String imageTags;
+        private Boolean canPublic;
+        private Boolean canAiUse;
+        private Boolean canPromotionUse;
+    }
+
+    @Data
+    public static class AppMapPointRespVO {
+        private Long id;
+        private String title;
+        private BigDecimal latitude;
+        private BigDecimal longitude;
+        private String summary;
+        private Integer sortOrder;
+    }
+
+    @Data
+    public static class AppGlobeModelRespVO {
+        private Long id;
+        private String title;
+        private String modelUrl;
+        private String coverUrl;
+        private String dataVersion;
     }
 
     @Data

@@ -20,6 +20,6 @@ describe('production nginx configuration', () => {
     expect(config).toContain('proxy_pass http://xinghexunjing-leads:3000/leads;');
     expect(config).toContain('location = /api/leads/healthz');
     expect(config).toContain('proxy_pass http://xinghexunjing-leads:3000/healthz;');
-    expect(config).toContain('client_max_body_size 64k;');
+    expect(config).toContain('client_max_body_size 20m;');
   });
 });

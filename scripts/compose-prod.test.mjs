@@ -39,6 +39,14 @@ describe('production compose configuration', () => {
     expect(compose).toContain('xinghexunjing-leads-data:');
   });
 
+  test('keeps Yudao backend optional so the public website can boot before the backend image exists', () => {
+    const compose = fs.readFileSync(composePath, 'utf8');
+
+    expect(compose).toContain('profiles: ["yudao"]');
+    expect(compose).toContain('XUNJING_YUDAO_IMAGE:-xinghexunjing-yudao:latest');
+    expect(compose).not.toContain('condition: service_healthy\n      xinghexunjing-yudao');
+  });
+
   test('keeps the Docker build context small while including deployment SQL contracts', () => {
     const dockerignore = fs.readFileSync(dockerignorePath, 'utf8');
 

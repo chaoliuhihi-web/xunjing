@@ -23,6 +23,22 @@ services:
       retries: 3
       start_period: 10s
 
+  xinghexunjing-yudao:
+    image: ${XUNJING_YUDAO_IMAGE:-xinghexunjing-yudao:latest}
+    profiles: ["yudao"]
+    restart: unless-stopped
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-dev}
+      - XUNJING_TENANT_ID=${XUNJING_TENANT_ID:-1}
+    expose:
+      - "48080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:48080/app-api/xunjing/resource/package?packageCode=KASHGAR-MAP-001 --header='tenant-id: 1' | grep -q '\"code\":0'"]
+      interval: 30s
+      timeout: 10s
+      retries: 6
+      start_period: 60s
+
   xinghexunjing-leads:
     image: node:20-alpine
     restart: unless-stopped

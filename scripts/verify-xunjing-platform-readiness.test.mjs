@@ -114,6 +114,27 @@ async function startPlatformFixture() {
       return
     }
 
+    if ([
+      '/app-api/xunjing/reading/ask',
+      '/app-api/xunjing/map/explain',
+      '/app-api/xunjing/globe/explain'
+    ].includes(req.url) && req.method === 'POST') {
+      if (!requireTenant()) return
+      req.resume()
+      await once(req, 'end')
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify({
+        code: 0,
+        data: {
+          answer: '基于后台资料，P0 场景可以给出权威讲解。',
+          sources: [{ title: '图秀中华新疆首站权威资料' }],
+          safetyStatus: 'PASSED',
+          logId: 1002
+        }
+      }))
+      return
+    }
+
     res.statusCode = 404
     res.end('not found')
   })
@@ -152,7 +173,10 @@ describe('xunjing platform readiness verifier', () => {
       'live-resource-package',
       'live-public-report',
       'live-resource-event',
-      'live-ai-chat'
+      'live-ai-chat',
+      'live-reading-ask',
+      'live-map-explain',
+      'live-globe-explain'
     ])
   })
 

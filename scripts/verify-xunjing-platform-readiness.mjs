@@ -109,9 +109,13 @@ async function checkSqlSchema(rootDir) {
 async function checkSeedData(rootDir) {
   const seed = await readText(rootDir, 'backend/yudao/sql/mysql/xunjing-seed-kashgar-p0.sql')
   for (const snippet of [
+    'KASHGAR-BOOK-001',
     'KASHGAR-MAP-001',
+    'KASHGAR-GLOBE-001',
+    'QR-KASHGAR-BOOK-001',
     '喀什古城研学地图',
     'QR-KASHGAR-MAP-001',
+    'QR-KASHGAR-GLOBE-001',
     '"p0Ready":true',
     '"quotaRuleCount":5'
   ]) {
@@ -219,26 +223,82 @@ async function checkLiveResourceEvent(baseUrl, fetchImpl, tenantId) {
 }
 
 async function checkLiveAiChat(baseUrl, fetchImpl, tenantId) {
+  return await checkLiveSourcedQuestion(baseUrl, fetchImpl, tenantId, {
+    path: '/app-api/xunjing/ai/chat',
+    packageCode: 'KASHGAR-MAP-001',
+    question: '喀什古城适合如何研学讲解？',
+    name: 'live-ai-chat',
+    detail: 'AI chat endpoint returns a safe sourced answer'
+  })
+}
+
+async function checkLiveReadingAsk(baseUrl, fetchImpl, tenantId) {
+  return await checkLiveSourcedQuestion(baseUrl, fetchImpl, tenantId, {
+    path: '/app-api/xunjing/reading/ask',
+    packageCode: 'KASHGAR-BOOK-001',
+    qrSceneCode: 'QR-KASHGAR-BOOK-001',
+    sceneCode: 'reading-ask',
+    question: '这本喀什古城少年读本适合怎样伴读？',
+    name: 'live-reading-ask',
+    detail: 'reading companion endpoint returns a safe sourced answer'
+  })
+}
+
+async function checkLiveMapExplain(baseUrl, fetchImpl, tenantId) {
+  return await checkLiveSourcedQuestion(baseUrl, fetchImpl, tenantId, {
+    path: '/app-api/xunjing/map/explain',
+    packageCode: 'KASHGAR-MAP-001',
+    qrSceneCode: 'QR-KASHGAR-MAP-001',
+    sceneCode: 'map-explain',
+    question: '请用研学地图讲解喀什古城入口。',
+    name: 'live-map-explain',
+    detail: 'map explanation endpoint returns a safe sourced answer'
+  })
+}
+
+async function checkLiveGlobeExplain(baseUrl, fetchImpl, tenantId) {
+  return await checkLiveSourcedQuestion(baseUrl, fetchImpl, tenantId, {
+    path: '/app-api/xunjing/globe/explain',
+    packageCode: 'KASHGAR-GLOBE-001',
+    qrSceneCode: 'QR-KASHGAR-GLOBE-001',
+    sceneCode: 'globe-explain',
+    question: '请用地球仪节点解释喀什的丝路位置。',
+    name: 'live-globe-explain',
+    detail: 'globe explanation endpoint returns a safe sourced answer'
+  })
+}
+
+async function checkLiveSourcedQuestion(baseUrl, fetchImpl, tenantId, {
+  path: requestPath,
+  packageCode,
+  qrSceneCode,
+  sceneCode,
+  question,
+  name,
+  detail
+}) {
   const json = await fetchJson(
-    new URL('/app-api/xunjing/ai/chat', baseUrl),
+    new URL(requestPath, baseUrl),
     {
       method: 'POST',
       headers: tenantHeaders(tenantId, { 'Content-Type': 'application/json' }),
       body: JSON.stringify({
-        packageCode: 'KASHGAR-MAP-001',
-        question: '喀什古城适合如何研学讲解？'
+        packageCode,
+        qrSceneCode,
+        sceneCode,
+        question
       })
     },
     fetchImpl
   )
   const passedSafetyStatuses = new Set(['PASS', 'PASSED'])
   if (json.code !== 0 || !json.data?.answer || !passedSafetyStatuses.has(json.data?.safetyStatus)) {
-    throw new Error('AI chat endpoint did not return a safe sourced answer')
+    throw new Error(`${requestPath} did not return a safe sourced answer`)
   }
   if (!Array.isArray(json.data.sources) || json.data.sources.length === 0) {
-    throw new Error('AI chat endpoint did not return sources')
+    throw new Error(`${requestPath} did not return sources`)
   }
-  return pass('live-ai-chat', 'AI chat endpoint returns a safe sourced answer')
+  return pass(name, detail)
 }
 
 export async function loadEnvFile(envPath) {
@@ -303,6 +363,9 @@ export async function verifyXunjingPlatformReadiness({
     }
     if (includeAiCheck) {
       checks.push(await checkLiveAiChat(baseUrl, fetchImpl, liveTenantId))
+      checks.push(await checkLiveReadingAsk(baseUrl, fetchImpl, liveTenantId))
+      checks.push(await checkLiveMapExplain(baseUrl, fetchImpl, liveTenantId))
+      checks.push(await checkLiveGlobeExplain(baseUrl, fetchImpl, liveTenantId))
     }
   }
 

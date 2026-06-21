@@ -12,13 +12,17 @@ import cn.iocoder.yudao.module.ai.service.knowledge.bo.AiKnowledgeSegmentSearchR
 import cn.iocoder.yudao.module.ai.service.model.AiModelService;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AiGenerationLogRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AiQuotaRuleCreateReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.GlobeModelCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.KnowledgeDocumentCreateReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MapPointCreateReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MediaAssetCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.ProjectCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.QrCodeCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.QrCodeRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.ReadinessRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.ResourcePackageCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.SchoolCreateReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppPackageDetailRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PublicReportSummaryRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppInteractionEventReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatReqVO;
@@ -48,6 +52,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -180,6 +185,56 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
 
         XunjingInteractionEventDO event = interactionEventMapper.selectById(eventId);
         assertEquals("{\"page\":}", JsonUtils.parseTree(event.getPayloadJson()).get("clientPayload").asText());
+    }
+
+    @Test
+    public void testRecordAppEventDefaultsBlankTypeAndRejectsInvalidType() {
+        Long projectId = consoleService.createProject(projectReq());
+        Long schoolId = consoleService.createSchool(schoolReq());
+        Long packageId = consoleService.createResourcePackage(packageReq(projectId, schoolId));
+
+        AppInteractionEventReqVO defaultReqVO = new AppInteractionEventReqVO();
+        defaultReqVO.setPackageCode("KASHGAR-MAP-001");
+        Long eventId = appService.recordEvent(defaultReqVO);
+
+        XunjingInteractionEventDO event = interactionEventMapper.selectById(eventId);
+        assertEquals(XunjingEnums.EventType.VIEW.getType(), event.getEventType());
+
+        AppInteractionEventReqVO invalidReqVO = new AppInteractionEventReqVO();
+        invalidReqVO.setPackageCode("KASHGAR-MAP-001");
+        invalidReqVO.setEventType("PLAYED");
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> appService.recordEvent(invalidReqVO));
+        assertTrue(ex.getMessage().contains("event type invalid"));
+        assertEquals(1, interactionEventMapper.selectCountByPackageIds(List.of(packageId)));
+    }
+
+    @Test
+    public void testGetPublicPackageDetailUsesAppDtoAndPublicFilters() {
+        Long projectId = consoleService.createProject(projectReq());
+        Long schoolId = consoleService.createSchool(schoolReq());
+        Long packageId = consoleService.createResourcePackage(packageReq(projectId, schoolId));
+        consoleService.addKnowledgeDocument(approvedKnowledgeReq(packageId));
+        consoleService.addKnowledgeDocument(pendingKnowledgeReq(packageId));
+        consoleService.addMediaAsset(mediaReq(packageId));
+        consoleService.addMediaAsset(unapprovedMediaReq(packageId));
+        consoleService.addMapPoint(mapPointReq(packageId));
+        consoleService.addGlobeModel(globeModelReq(packageId));
+
+        AppPackageDetailRespVO detail = appService.getPublicPackageDetail("KASHGAR-MAP-001");
+
+        assertEquals("KASHGAR-MAP-001", detail.getPackageCode());
+        assertEquals("喀什古城研学地图", detail.getTitle());
+        assertEquals(XunjingEnums.ResourceType.MAP.getType(), detail.getResourceType());
+        assertEquals(1, detail.getKnowledgeDocuments().size());
+        assertEquals("喀什古城权威讲解稿", detail.getKnowledgeDocuments().get(0).getTitle());
+        assertEquals(1, detail.getMediaAssets().size());
+        assertEquals("图影中华喀什古城图片", detail.getMediaAssets().get(0).getTitle());
+        assertEquals(1, detail.getMapPoints().size());
+        assertEquals("喀什古城入口", detail.getMapPoints().get(0).getTitle());
+        assertEquals(1, detail.getGlobeModels().size());
+        assertEquals("丝路地球仪喀什节点", detail.getGlobeModels().get(0).getTitle());
     }
 
     @Test
@@ -388,6 +443,50 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         reqVO.setContentDigest("这段内容不应该进入公开问答。");
         reqVO.setReviewStatus(XunjingEnums.ReviewStatus.PENDING.getStatus());
         reqVO.setVectorStatus(XunjingEnums.VectorStatus.PENDING.getStatus());
+        return reqVO;
+    }
+
+    private MediaAssetCreateReqVO mediaReq(Long packageId) {
+        MediaAssetCreateReqVO reqVO = new MediaAssetCreateReqVO();
+        reqVO.setPackageId(packageId);
+        reqVO.setTitle("图影中华喀什古城图片");
+        reqVO.setMediaType(XunjingEnums.MediaType.IMAGE.getType());
+        reqVO.setFileUrl("https://cdn.example.com/kashgar.jpg");
+        reqVO.setObjectKey("assets/kashgar/kashgar.jpg");
+        reqVO.setSourceProvider("图影中华");
+        reqVO.setSourceUrl("https://example.com/image/kashgar");
+        reqVO.setCopyrightStatus(XunjingEnums.CopyrightStatus.AUTHORIZED.getStatus());
+        reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
+        reqVO.setImageTags("[\"喀什古城\",\"研学\"]");
+        return reqVO;
+    }
+
+    private MediaAssetCreateReqVO unapprovedMediaReq(Long packageId) {
+        MediaAssetCreateReqVO reqVO = mediaReq(packageId);
+        reqVO.setTitle("待授权图片");
+        reqVO.setCopyrightStatus(XunjingEnums.CopyrightStatus.PENDING.getStatus());
+        reqVO.setReviewStatus(XunjingEnums.ReviewStatus.PENDING.getStatus());
+        return reqVO;
+    }
+
+    private MapPointCreateReqVO mapPointReq(Long packageId) {
+        MapPointCreateReqVO reqVO = new MapPointCreateReqVO();
+        reqVO.setPackageId(packageId);
+        reqVO.setTitle("喀什古城入口");
+        reqVO.setLatitude(new BigDecimal("39.4709000"));
+        reqVO.setLongitude(new BigDecimal("75.9898000"));
+        reqVO.setSummary("扫码后进入喀什古城权威讲解和 AI 问答。");
+        reqVO.setSortOrder(1);
+        return reqVO;
+    }
+
+    private GlobeModelCreateReqVO globeModelReq(Long packageId) {
+        GlobeModelCreateReqVO reqVO = new GlobeModelCreateReqVO();
+        reqVO.setPackageId(packageId);
+        reqVO.setTitle("丝路地球仪喀什节点");
+        reqVO.setModelUrl("https://cdn.example.com/globe/kashgar.glb");
+        reqVO.setCoverUrl("https://cdn.example.com/globe/kashgar.png");
+        reqVO.setDataVersion("2026.06");
         return reqVO;
     }
 
