@@ -27,6 +27,14 @@ dist/
 playwright-report/
 test-results/
 
+# Local QA evidence belongs under qa/, never repository root
+qa/app-kashgar/
+/kashgar-*
+/*-comparison.png
+/reference-contact-sheet.png
+/*-console.md
+/*-snapshot.md
+
 # Backend build and local dependency outputs
 backend/yudao/**/target/
 backend/yudao/**/node_modules/

@@ -740,6 +740,19 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
     public ReadinessRespVO getReadiness(Long projectId) {
         validateProjectExists(projectId);
         List<XunjingResourcePackageDO> packages = resourcePackageMapper.selectListByProjectId(projectId);
+        return buildReadiness(projectId, packages);
+    }
+
+    private ReadinessRespVO getReadiness(Long projectId, Long schoolId) {
+        validateProjectExists(projectId);
+        if (schoolId == null) {
+            return buildReadiness(projectId, resourcePackageMapper.selectListByProjectId(projectId));
+        }
+        validateSchoolExists(schoolId);
+        return buildReadiness(projectId, resourcePackageMapper.selectListByProjectIdAndSchoolId(projectId, schoolId));
+    }
+
+    private ReadinessRespVO buildReadiness(Long projectId, List<XunjingResourcePackageDO> packages) {
         List<Long> packageIds = packages.stream().map(XunjingResourcePackageDO::getId).toList();
         List<XunjingAiEvalSetDO> evalSets = aiEvalSetMapper.selectListByProjectId(projectId);
         List<Long> evalSetIds = evalSets.stream().map(XunjingAiEvalSetDO::getId).toList();
@@ -756,8 +769,8 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
         Long aiEvalCaseCount = aiEvalCaseMapper.selectCountByEvalSetIds(evalSetIds);
         Long quotaRuleCount = aiQuotaRuleMapper.selectCountByProjectId(projectId);
         Long aiGenerationCount = aiGenerationLogMapper.selectCountByPackageIds(packageIds);
-        Long pendingImportItemCount = importItemMapper.selectCountByProjectIdAndReviewStatus(
-                projectId, ReviewStatus.PENDING.getStatus());
+        Long pendingImportItemCount = importItemMapper.selectCountByPackageIdsAndReviewStatus(
+                packageIds, ReviewStatus.PENDING.getStatus());
 
         ReadinessRespVO respVO = new ReadinessRespVO();
         respVO.setPackageCount(packageCount);
@@ -862,7 +875,7 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
         if (reqVO.getSchoolId() != null) {
             validateSchoolExists(reqVO.getSchoolId());
         }
-        ReadinessRespVO readiness = getReadiness(reqVO.getProjectId());
+        ReadinessRespVO readiness = getReadiness(reqVO.getProjectId(), reqVO.getSchoolId());
         XunjingPublicReportDO publicReport = new XunjingPublicReportDO();
         publicReport.setTenantId(TenantContextHolder.getRequiredTenantId());
         publicReport.setProjectId(reqVO.getProjectId());

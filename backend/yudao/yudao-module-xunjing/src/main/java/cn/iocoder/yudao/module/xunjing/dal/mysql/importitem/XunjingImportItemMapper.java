@@ -7,6 +7,8 @@ import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsol
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.importitem.XunjingImportItemDO;
 import org.apache.ibatis.annotations.Mapper;
 
+import java.util.Collection;
+
 @Mapper
 public interface XunjingImportItemMapper extends BaseMapperX<XunjingImportItemDO> {
 
@@ -23,6 +25,15 @@ public interface XunjingImportItemMapper extends BaseMapperX<XunjingImportItemDO
     default Long selectCountByProjectIdAndReviewStatus(Long projectId, String reviewStatus) {
         return selectCount(new LambdaQueryWrapperX<XunjingImportItemDO>()
                 .eq(XunjingImportItemDO::getProjectId, projectId)
+                .eq(XunjingImportItemDO::getReviewStatus, reviewStatus));
+    }
+
+    default Long selectCountByPackageIdsAndReviewStatus(Collection<Long> packageIds, String reviewStatus) {
+        if (packageIds == null || packageIds.isEmpty()) {
+            return 0L;
+        }
+        return selectCount(new LambdaQueryWrapperX<XunjingImportItemDO>()
+                .in(XunjingImportItemDO::getPackageId, packageIds)
                 .eq(XunjingImportItemDO::getReviewStatus, reviewStatus));
     }
 
