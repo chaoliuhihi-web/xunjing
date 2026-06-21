@@ -86,6 +86,34 @@ async function startPlatformFixture() {
       return
     }
 
+    if (req.url === '/app-api/xunjing/scan/resolve' && req.method === 'POST') {
+      if (!requireTenant()) return
+      let body = ''
+      req.on('data', (chunk) => {
+        body += chunk
+      })
+      await once(req, 'end')
+      const payload = JSON.parse(body)
+      if (payload.sceneCode !== 'QR-KASHGAR-MAP-001') {
+        res.statusCode = 400
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({ code: 400, msg: 'invalid scene code' }))
+        return
+      }
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify({
+        code: 0,
+        data: {
+          packageCode: 'KASHGAR-MAP-001',
+          sceneCode: 'QR-KASHGAR-MAP-001',
+          title: '喀什古城研学地图',
+          resourceType: 'MAP',
+          targetPath: '/pages/map/detail?packageCode=KASHGAR-MAP-001&sceneCode=QR-KASHGAR-MAP-001'
+        }
+      }))
+      return
+    }
+
     if (req.url === '/app-api/xunjing/resource/events' && req.method === 'POST') {
       if (!requireTenant()) return
       let body = ''
@@ -185,6 +213,7 @@ describe('xunjing platform readiness verifier', () => {
       'environment',
       'live-admin',
       'live-resource-package',
+      'live-scan-resolve',
       'live-public-report',
       'live-resource-event',
       'live-media-usage',
@@ -228,6 +257,7 @@ describe('xunjing platform readiness verifier', () => {
       'admin-ui-contract',
       'environment',
       'live-resource-package',
+      'live-scan-resolve',
       'live-public-report',
       'live-resource-event',
       'live-media-usage'

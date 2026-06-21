@@ -180,6 +180,30 @@ async function checkLiveResourcePackage(baseUrl, fetchImpl, tenantId) {
   return pass('live-resource-package', 'Kashgar resource package endpoint is reachable')
 }
 
+async function checkLiveScanResolve(baseUrl, fetchImpl, tenantId) {
+  const json = await fetchJson(
+    new URL('/app-api/xunjing/scan/resolve', baseUrl),
+    {
+      method: 'POST',
+      headers: tenantHeaders(tenantId, { 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        sceneCode: 'QR-KASHGAR-MAP-001',
+        userTraceId: 'platform-readiness-scan-check'
+      })
+    },
+    fetchImpl
+  )
+  if (
+    json.code !== 0 ||
+    json.data?.packageCode !== 'KASHGAR-MAP-001' ||
+    json.data?.sceneCode !== 'QR-KASHGAR-MAP-001' ||
+    !String(json.data?.targetPath || '').includes('packageCode=KASHGAR-MAP-001')
+  ) {
+    throw new Error('scan resolve endpoint did not return the Kashgar map target')
+  }
+  return pass('live-scan-resolve', 'Kashgar QR scene resolves to the APP target path')
+}
+
 async function fetchLiveResourcePackageData(baseUrl, fetchImpl, tenantId) {
   const json = await fetchJson(
     new URL('/app-api/xunjing/resource/package?packageCode=KASHGAR-MAP-001', baseUrl),
@@ -394,6 +418,7 @@ export async function verifyXunjingPlatformReadiness({
       checks.push(await checkLiveAdmin(baseUrl, fetchImpl))
     }
     checks.push(await checkLiveResourcePackage(baseUrl, fetchImpl, liveTenantId))
+    checks.push(await checkLiveScanResolve(baseUrl, fetchImpl, liveTenantId))
     checks.push(await checkLivePublicReport(baseUrl, fetchImpl, liveTenantId))
     if (includeWriteCheck) {
       checks.push(await checkLiveResourceEvent(baseUrl, fetchImpl, liveTenantId))
