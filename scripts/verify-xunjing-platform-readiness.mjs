@@ -232,6 +232,7 @@ export async function verifyXunjingPlatformReadiness({
   env = process.env,
   baseUrl,
   includeAiCheck = false,
+  staticOnly = false,
   rootDir = process.cwd(),
   fetchImpl = fetch
 } = {}) {
@@ -241,9 +242,11 @@ export async function verifyXunjingPlatformReadiness({
   checks.push(await checkSqlSchema(rootDir))
   checks.push(await checkSeedData(rootDir))
   checks.push(await checkAdminUiContract(rootDir))
-  checks.push(checkEnvironment(env))
+  if (!staticOnly) {
+    checks.push(checkEnvironment(env))
+  }
 
-  if (baseUrl) {
+  if (baseUrl && !staticOnly) {
     checks.push(await checkLiveAdmin(baseUrl, fetchImpl))
     checks.push(await checkLiveResourcePackage(baseUrl, fetchImpl))
     checks.push(await checkLivePublicReport(baseUrl, fetchImpl))
@@ -259,15 +262,32 @@ export async function verifyXunjingPlatformReadiness({
   }
 }
 
+function readArgValue(args, name) {
+  const equalPrefix = `${name}=`
+  const equalArg = args.find((arg) => arg.startsWith(equalPrefix))
+  if (equalArg) {
+    return equalArg.slice(equalPrefix.length)
+  }
+  const index = args.indexOf(name)
+  if (index >= 0) {
+    return args[index + 1]
+  }
+  return undefined
+}
+
 async function runCli() {
-  const env = process.env.XUNJING_ENV_FILE
-    ? { ...process.env, ...await loadEnvFile(process.env.XUNJING_ENV_FILE) }
+  const args = process.argv.slice(2)
+  const envFile = readArgValue(args, '--env-file') || process.env.XUNJING_ENV_FILE
+  const env = envFile
+    ? { ...process.env, ...await loadEnvFile(envFile) }
     : process.env
+  const staticOnly = args.includes('--static') || process.env.XUNJING_STATIC_ONLY === '1'
   const result = await verifyXunjingPlatformReadiness({
     env,
-    baseUrl: process.env.XUNJING_BASE_URL || undefined,
-    includeAiCheck: process.env.XUNJING_INCLUDE_AI_CHECK === '1',
-    rootDir: process.cwd()
+    baseUrl: readArgValue(args, '--base-url') || process.env.XUNJING_BASE_URL || undefined,
+    includeAiCheck: args.includes('--include-ai-check') || process.env.XUNJING_INCLUDE_AI_CHECK === '1',
+    staticOnly,
+    rootDir: readArgValue(args, '--root') || process.cwd()
   })
   console.log(JSON.stringify(result, null, 2))
 }

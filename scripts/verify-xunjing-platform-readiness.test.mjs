@@ -125,6 +125,21 @@ describe('xunjing platform readiness verifier', () => {
     ])
   })
 
+  test('static mode checks repository assets without requiring local secrets', async () => {
+    const result = await verifyXunjingPlatformReadiness({
+      env: {},
+      staticOnly: true
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.checks.map((check) => check.name)).toEqual([
+      'static-files',
+      'sql-schema',
+      'seed-data',
+      'admin-ui-contract'
+    ])
+  })
+
   test('rejects environment values that reuse the upstream XingheAI runtime', async () => {
     await expect(verifyXunjingPlatformReadiness({
       env: stagingEnv({
