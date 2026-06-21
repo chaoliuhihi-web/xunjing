@@ -81,6 +81,7 @@ async function checkStaticFiles(rootDir) {
     'backend/yudao/yudao-module-xunjing/pom.xml',
     'backend/yudao/yudao-ui/yudao-ui-admin-vue3/src/api/xunjing/console/index.ts',
     'backend/yudao/yudao-ui/yudao-ui-admin-vue3/src/views/xunjing/console/index.vue',
+    'backend/yudao/sql/mysql/yudao-ai-module.sql',
     'ops/xunjing-platform.compose.yml',
     'ops/xunjing-platform.env.example'
   ], 'platform file')
@@ -89,6 +90,7 @@ async function checkStaticFiles(rootDir) {
 
 async function checkSqlSchema(rootDir) {
   const sql = await readText(rootDir, 'backend/yudao/sql/mysql/xunjing-module.sql')
+  const aiSql = await readText(rootDir, 'backend/yudao/sql/mysql/yudao-ai-module.sql')
   for (const snippet of [
     'xunjing_resource_package',
     'xunjing_knowledge_document',
@@ -97,6 +99,9 @@ async function checkSqlSchema(rootDir) {
     'xunjing:readiness:query'
   ]) {
     assertContains(sql, snippet, 'xunjing-module.sql')
+  }
+  for (const snippet of ['ai_api_key', 'ai_model', 'ai_knowledge', 'ai_knowledge_segment']) {
+    assertContains(aiSql, snippet, 'yudao-ai-module.sql')
   }
   return pass('sql-schema', 'Xunjing MySQL schema includes P0 operating tables and permissions')
 }
@@ -190,6 +195,29 @@ async function checkLivePublicReport(baseUrl, fetchImpl, tenantId) {
   return pass('live-public-report', 'public report summary is P0 ready')
 }
 
+async function checkLiveResourceEvent(baseUrl, fetchImpl, tenantId) {
+  const json = await fetchJson(
+    new URL('/app-api/xunjing/resource/events', baseUrl),
+    {
+      method: 'POST',
+      headers: tenantHeaders(tenantId, { 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        packageCode: 'KASHGAR-MAP-001',
+        sceneCode: 'QR-KASHGAR-MAP-001',
+        eventType: 'VIEW',
+        sourceChannel: 'platform-readiness',
+        userTraceId: 'platform-readiness-check',
+        payloadJson: JSON.stringify({ check: 'resource-event' })
+      })
+    },
+    fetchImpl
+  )
+  if (json.code !== 0 || !json.data) {
+    throw new Error('resource event endpoint did not create an event')
+  }
+  return pass('live-resource-event', 'resource event endpoint accepts packageCode or sceneCode attribution')
+}
+
 async function checkLiveAiChat(baseUrl, fetchImpl, tenantId) {
   const json = await fetchJson(
     new URL('/app-api/xunjing/ai/chat', baseUrl),
@@ -203,7 +231,8 @@ async function checkLiveAiChat(baseUrl, fetchImpl, tenantId) {
     },
     fetchImpl
   )
-  if (json.code !== 0 || !json.data?.answer || json.data?.safetyStatus !== 'PASS') {
+  const passedSafetyStatuses = new Set(['PASS', 'PASSED'])
+  if (json.code !== 0 || !json.data?.answer || !passedSafetyStatuses.has(json.data?.safetyStatus)) {
     throw new Error('AI chat endpoint did not return a safe sourced answer')
   }
   if (!Array.isArray(json.data.sources) || json.data.sources.length === 0) {
@@ -245,6 +274,8 @@ export async function verifyXunjingPlatformReadiness({
   env = process.env,
   baseUrl,
   includeAiCheck = false,
+  includeWriteCheck = false,
+  skipAdminCheck = false,
   staticOnly = false,
   tenantId,
   rootDir = process.cwd(),
@@ -262,9 +293,14 @@ export async function verifyXunjingPlatformReadiness({
 
   if (baseUrl && !staticOnly) {
     const liveTenantId = tenantId || env.XUNJING_TENANT_ID || '1'
-    checks.push(await checkLiveAdmin(baseUrl, fetchImpl))
+    if (!skipAdminCheck) {
+      checks.push(await checkLiveAdmin(baseUrl, fetchImpl))
+    }
     checks.push(await checkLiveResourcePackage(baseUrl, fetchImpl, liveTenantId))
     checks.push(await checkLivePublicReport(baseUrl, fetchImpl, liveTenantId))
+    if (includeWriteCheck) {
+      checks.push(await checkLiveResourceEvent(baseUrl, fetchImpl, liveTenantId))
+    }
     if (includeAiCheck) {
       checks.push(await checkLiveAiChat(baseUrl, fetchImpl, liveTenantId))
     }
@@ -301,6 +337,8 @@ async function runCli() {
     env,
     baseUrl: readArgValue(args, '--base-url') || process.env.XUNJING_BASE_URL || undefined,
     includeAiCheck: args.includes('--include-ai-check') || process.env.XUNJING_INCLUDE_AI_CHECK === '1',
+    includeWriteCheck: args.includes('--include-write-check') || process.env.XUNJING_INCLUDE_WRITE_CHECK === '1',
+    skipAdminCheck: args.includes('--skip-admin-check') || process.env.XUNJING_SKIP_ADMIN_CHECK === '1',
     staticOnly,
     tenantId: readArgValue(args, '--tenant-id') || env.XUNJING_TENANT_ID || undefined,
     rootDir: readArgValue(args, '--root') || process.cwd()

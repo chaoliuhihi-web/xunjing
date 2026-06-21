@@ -21,8 +21,9 @@ services:
       - xunjing-mysql-data:/var/lib/mysql
       - ../ops/mysql-init/xunjing-init.sh:/docker-entrypoint-initdb.d/01-xunjing-init.sh:ro
       - ../backend/yudao/sql/mysql/ruoyi-vue-pro.sql:/opt/xunjing-sql/01-ruoyi-vue-pro.sql:ro
-      - ../backend/yudao/sql/mysql/xunjing-module.sql:/opt/xunjing-sql/02-xunjing-module.sql:ro
-      - ../backend/yudao/sql/mysql/xunjing-seed-kashgar-p0.sql:/opt/xunjing-sql/03-xunjing-seed-kashgar-p0.sql:ro
+      - ../backend/yudao/sql/mysql/yudao-ai-module.sql:/opt/xunjing-sql/02-yudao-ai-module.sql:ro
+      - ../backend/yudao/sql/mysql/xunjing-module.sql:/opt/xunjing-sql/03-xunjing-module.sql:ro
+      - ../backend/yudao/sql/mysql/xunjing-seed-kashgar-p0.sql:/opt/xunjing-sql/04-xunjing-seed-kashgar-p0.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
       interval: 10s

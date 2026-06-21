@@ -24,11 +24,14 @@ if ! mysql --force \
   echo "Yudao baseline import reported non-fatal statement errors; continuing with Xunjing schema."
 fi
 
+echo "Importing Yudao AI management schema..."
+mysql_base < /opt/xunjing-sql/02-yudao-ai-module.sql
+
 echo "Importing Xunjing module schema..."
-mysql_base < /opt/xunjing-sql/02-xunjing-module.sql
+mysql_base < /opt/xunjing-sql/03-xunjing-module.sql
 
 echo "Importing Xunjing Kashgar seed data..."
-mysql_base < /opt/xunjing-sql/03-xunjing-seed-kashgar-p0.sql
+mysql_base < /opt/xunjing-sql/04-xunjing-seed-kashgar-p0.sql
 
 xunjing_table_count="$(mysql_base --batch --skip-column-names --execute "select count(*) from information_schema.tables where table_schema = database() and table_name like 'xunjing_%';")"
 if [ "${xunjing_table_count}" -le 0 ]; then
@@ -42,4 +45,10 @@ if [ "${package_count}" -le 0 ]; then
   exit 1
 fi
 
-echo "Xunjing MySQL initialization completed with ${xunjing_table_count} xunjing tables."
+yudao_ai_table_count="$(mysql_base --batch --skip-column-names --execute "select count(*) from information_schema.tables where table_schema = database() and table_name in ('ai_api_key', 'ai_model', 'ai_knowledge');")"
+if [ "${yudao_ai_table_count}" -ne 3 ]; then
+  echo "Xunjing MySQL initialization failed: Yudao AI management tables are missing." >&2
+  exit 1
+fi
+
+echo "Xunjing MySQL initialization completed with ${xunjing_table_count} xunjing tables and Yudao AI management tables."

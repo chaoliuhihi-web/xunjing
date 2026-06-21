@@ -85,6 +85,18 @@ async function startPlatformFixture() {
       return
     }
 
+    if (req.url === '/app-api/xunjing/resource/events' && req.method === 'POST') {
+      if (!requireTenant()) return
+      req.resume()
+      await once(req, 'end')
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify({
+        code: 0,
+        data: 2001
+      }))
+      return
+    }
+
     if (req.url === '/app-api/xunjing/ai/chat' && req.method === 'POST') {
       if (!requireTenant()) return
       req.resume()
@@ -95,7 +107,7 @@ async function startPlatformFixture() {
         data: {
           answer: '基于后台资料，喀什古城适合研学讲解。',
           sources: [{ title: '喀什古城权威资料' }],
-          safetyStatus: 'PASS',
+          safetyStatus: 'PASSED',
           logId: 1001
         }
       }))
@@ -125,6 +137,7 @@ describe('xunjing platform readiness verifier', () => {
     const result = await verifyXunjingPlatformReadiness({
       env: stagingEnv(),
       baseUrl,
+      includeWriteCheck: true,
       includeAiCheck: true
     })
 
@@ -138,6 +151,7 @@ describe('xunjing platform readiness verifier', () => {
       'live-admin',
       'live-resource-package',
       'live-public-report',
+      'live-resource-event',
       'live-ai-chat'
     ])
   })
@@ -154,6 +168,29 @@ describe('xunjing platform readiness verifier', () => {
       'sql-schema',
       'seed-data',
       'admin-ui-contract'
+    ])
+  })
+
+  test('can run API-only live smoke without requiring admin static hosting', async () => {
+    const baseUrl = await startPlatformFixture()
+
+    const result = await verifyXunjingPlatformReadiness({
+      env: stagingEnv(),
+      baseUrl,
+      includeWriteCheck: true,
+      skipAdminCheck: true
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.checks.map((check) => check.name)).toEqual([
+      'static-files',
+      'sql-schema',
+      'seed-data',
+      'admin-ui-contract',
+      'environment',
+      'live-resource-package',
+      'live-public-report',
+      'live-resource-event'
     ])
   })
 

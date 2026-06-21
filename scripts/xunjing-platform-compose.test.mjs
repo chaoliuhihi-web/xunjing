@@ -24,8 +24,9 @@ describe('xunjing platform dependency compose configuration', () => {
     expect(compose).toContain('MYSQL_DATABASE: ${MYSQL_DATABASE:-yudao_xinghe_xunjing}');
     expect(compose).toContain('../ops/mysql-init/xunjing-init.sh:/docker-entrypoint-initdb.d/01-xunjing-init.sh:ro');
     expect(compose).toContain('../backend/yudao/sql/mysql/ruoyi-vue-pro.sql:/opt/xunjing-sql/01-ruoyi-vue-pro.sql:ro');
-    expect(compose).toContain('../backend/yudao/sql/mysql/xunjing-module.sql:/opt/xunjing-sql/02-xunjing-module.sql:ro');
-    expect(compose).toContain('../backend/yudao/sql/mysql/xunjing-seed-kashgar-p0.sql:/opt/xunjing-sql/03-xunjing-seed-kashgar-p0.sql:ro');
+    expect(compose).toContain('../backend/yudao/sql/mysql/yudao-ai-module.sql:/opt/xunjing-sql/02-yudao-ai-module.sql:ro');
+    expect(compose).toContain('../backend/yudao/sql/mysql/xunjing-module.sql:/opt/xunjing-sql/03-xunjing-module.sql:ro');
+    expect(compose).toContain('../backend/yudao/sql/mysql/xunjing-seed-kashgar-p0.sql:/opt/xunjing-sql/04-xunjing-seed-kashgar-p0.sql:ro');
     expect(compose).not.toContain('MYSQL_DATABASE: ruoyi-vue-pro');
   });
 
@@ -43,11 +44,15 @@ describe('xunjing platform dependency compose configuration', () => {
 
     expect(initScript).toContain('mysql --force');
     expect(initScript).toContain('/opt/xunjing-sql/01-ruoyi-vue-pro.sql');
-    expect(initScript).toContain('/opt/xunjing-sql/02-xunjing-module.sql');
-    expect(initScript).toContain('/opt/xunjing-sql/03-xunjing-seed-kashgar-p0.sql');
+    expect(initScript).toContain('/opt/xunjing-sql/02-yudao-ai-module.sql');
+    expect(initScript).toContain('/opt/xunjing-sql/03-xunjing-module.sql');
+    expect(initScript).toContain('/opt/xunjing-sql/04-xunjing-seed-kashgar-p0.sql');
     expect(initScript).toContain('--default-character-set=utf8mb4');
     expect(initScript).toContain('information_schema.tables');
     expect(initScript).toContain('xunjing_%');
+    expect(initScript).toContain('ai_api_key');
+    expect(initScript).toContain('ai_model');
+    expect(initScript).toContain('ai_knowledge');
     expect(initScript).toContain('xunjing_resource_package');
     expect(initScript).not.toContain('xunjing_product_package');
     expect(fs.statSync(initScriptPath).mode & 0o111).not.toBe(0);
