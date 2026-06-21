@@ -60,6 +60,83 @@ export function buildMysqlArgs(env) {
   ]
 }
 
+function commandAvailable(command) {
+  const result = spawnSync(command, ['--version'], {
+    encoding: 'utf8',
+    stdio: 'ignore'
+  })
+  return result.status === 0
+}
+
+function isLoopbackHost(host) {
+  return ['127.0.0.1', 'localhost', '::1', '0.0.0.0'].includes(String(host || '').trim())
+}
+
+function dockerMysqlHost(env) {
+  if (env.MYSQL_DOCKER_HOST) {
+    return env.MYSQL_DOCKER_HOST
+  }
+  return isLoopbackHost(env.MYSQL_HOST) ? 'host.docker.internal' : env.MYSQL_HOST
+}
+
+export function resolveMysqlInvocation(env, options = {}) {
+  validateBootstrapEnv(env)
+
+  const requestedClient = env.MYSQL_CLIENT || options.mysqlClient || 'auto'
+  if (!['auto', 'local', 'docker'].includes(requestedClient)) {
+    throw new Error('MYSQL_CLIENT must be one of: auto, local, docker')
+  }
+
+  const hasLocalMysql = options.hasLocalMysql ?? commandAvailable('mysql')
+  const hasDocker = options.hasDocker ?? commandAvailable('docker')
+
+  if (requestedClient === 'local' && !hasLocalMysql) {
+    throw new Error('mysql CLI is required because MYSQL_CLIENT=local')
+  }
+
+  if (requestedClient === 'local' || (requestedClient === 'auto' && hasLocalMysql)) {
+    return {
+      client: 'local',
+      command: 'mysql',
+      args: buildMysqlArgs(env),
+      env: {
+        MYSQL_PWD: env.MYSQL_PASSWORD
+      }
+    }
+  }
+
+  if (requestedClient === 'docker' && !hasDocker) {
+    throw new Error('Docker is required because MYSQL_CLIENT=docker')
+  }
+
+  if (requestedClient === 'docker' || (requestedClient === 'auto' && hasDocker)) {
+    const dockerEnv = {
+      ...env,
+      MYSQL_HOST: dockerMysqlHost(env)
+    }
+    return {
+      client: 'docker',
+      command: 'docker',
+      args: [
+        'run',
+        '--rm',
+        '-i',
+        '--add-host=host.docker.internal:host-gateway',
+        '--env',
+        'MYSQL_PWD',
+        env.MYSQL_DOCKER_IMAGE || 'mysql:8.4',
+        'mysql',
+        ...buildMysqlArgs(dockerEnv)
+      ],
+      env: {
+        MYSQL_PWD: env.MYSQL_PASSWORD
+      }
+    }
+  }
+
+  throw new Error('mysql CLI is not installed and Docker is not available for Yudao AI model bootstrap')
+}
+
 export function buildYudaoAiBootstrapSql(env) {
   validateBootstrapEnv(env)
   const tenantId = sqlNumber(env.XUNJING_TENANT_ID, 1)
@@ -71,6 +148,8 @@ export function buildYudaoAiBootstrapSql(env) {
   const maxContexts = sqlNumber(env.YUDAO_AI_MAX_CONTEXTS, 8)
 
   return `
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 START TRANSACTION;
 
 SET @tenant_id := ${tenantId};
@@ -163,23 +242,24 @@ async function runCli() {
   const fileEnv = envFile ? await loadEnvFile(envFile) : {}
   const env = { ...process.env, ...fileEnv }
   const sql = buildYudaoAiBootstrapSql(env)
-  const mysqlArgs = buildMysqlArgs(env)
-  const result = spawnSync('mysql', mysqlArgs, {
+  const invocation = resolveMysqlInvocation(env)
+  const result = spawnSync(invocation.command, invocation.args, {
     input: sql,
     encoding: 'utf8',
     env: {
       ...process.env,
-      MYSQL_PWD: env.MYSQL_PASSWORD
+      ...invocation.env
     }
   })
 
   if (result.status !== 0) {
-    const stderr = redact(result.stderr || result.stdout || 'mysql command failed', env)
+    const stderr = redact(result.error?.message || result.stderr || result.stdout || `${invocation.command} command failed`, env)
     throw new Error(stderr.trim())
   }
 
   console.log(JSON.stringify({
     ok: true,
+    client: invocation.client,
     tenantId: env.XUNJING_TENANT_ID,
     platform: env.YUDAO_AI_PLATFORM || 'TongYi',
     model: env.QWEN_MODEL,

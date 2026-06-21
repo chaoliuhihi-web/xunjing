@@ -4,6 +4,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   buildMysqlArgs,
+  resolveMysqlInvocation,
   buildYudaoAiBootstrapSql,
   validateBootstrapEnv
 } from './bootstrap-yudao-ai-model.mjs'
@@ -26,6 +27,7 @@ describe('Yudao AI model bootstrap', () => {
   test('generates idempotent SQL for TongYi chat model without hardcoded secrets', () => {
     const sql = buildYudaoAiBootstrapSql(env)
 
+    expect(sql).toContain('SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci')
     expect(sql).toContain('START TRANSACTION')
     expect(sql).toContain('ai_api_key')
     expect(sql).toContain('ai_model')
@@ -55,12 +57,32 @@ describe('Yudao AI model bootstrap', () => {
     expect(args.join(' ')).not.toContain('secret')
   })
 
+  test('falls back to Docker mysql client without leaking password in args', () => {
+    const invocation = resolveMysqlInvocation(env, {
+      hasLocalMysql: false,
+      hasDocker: true
+    })
+
+    expect(invocation.command).toBe('docker')
+    expect(invocation.client).toBe('docker')
+    expect(invocation.args).toContain('--env')
+    expect(invocation.args).toContain('MYSQL_PWD')
+    expect(invocation.args).toContain('mysql:8.4')
+    expect(invocation.args.join(' ')).toContain('--host=host.docker.internal')
+    expect(invocation.args.join(' ')).not.toContain('secret')
+  })
+
+  test('rejects unsupported mysql client values', () => {
+    expect(() => resolveMysqlInvocation({ ...env, MYSQL_CLIENT: 'shell' })).toThrow('MYSQL_CLIENT')
+  })
+
   test('is exposed as a documented npm script without storing real keys', async () => {
     const packageJson = JSON.parse(await readFile(resolve(rootDir, 'package.json'), 'utf8'))
     const deployDoc = await readFile(resolve(rootDir, 'docs/02_开发规划/星河寻境业务平台部署说明.md'), 'utf8')
 
     expect(packageJson.scripts['xunjing:ai:bootstrap']).toBe('node scripts/bootstrap-yudao-ai-model.mjs')
     expect(deployDoc).toContain('npm run xunjing:ai:bootstrap')
+    expect(deployDoc).toContain('mysql:8.4')
     expect(deployDoc).toContain('不会把真实 key 写入 SQL、Markdown 或 Git')
   })
 })
