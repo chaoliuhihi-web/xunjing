@@ -1,8 +1,9 @@
 package cn.iocoder.yudao.module.xunjing.controller.app.resource;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
-import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.InteractionEventCreateReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppInteractionEventReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.PackageDetailRespVO;
+import cn.iocoder.yudao.module.xunjing.service.app.XunjingAppService;
 import cn.iocoder.yudao.module.xunjing.service.console.XunjingConsoleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -28,6 +29,8 @@ public class AppXunjingResourceController {
 
     @Resource
     private XunjingConsoleService consoleService;
+    @Resource
+    private XunjingAppService appService;
 
     @GetMapping("/package")
     @Operation(summary = "按资源包编码获取公开资源包")
@@ -40,8 +43,8 @@ public class AppXunjingResourceController {
     @PostMapping("/events")
     @Operation(summary = "公开回传资源访问事件")
     @PermitAll
-    public CommonResult<Long> recordEvent(@Valid @RequestBody InteractionEventCreateReqVO reqVO) {
-        return success(consoleService.recordInteraction(reqVO));
+    public CommonResult<Long> recordEvent(@Valid @RequestBody AppInteractionEventReqVO reqVO) {
+        return success(appService.recordEvent(reqVO));
     }
 
 }

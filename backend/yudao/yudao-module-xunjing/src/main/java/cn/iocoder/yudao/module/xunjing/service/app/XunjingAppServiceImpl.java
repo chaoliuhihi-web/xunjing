@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.xunjing.service.app;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import com.fasterxml.jackson.core.type.TypeReference;
 import cn.iocoder.yudao.module.ai.dal.dataobject.model.AiModelDO;
 import cn.iocoder.yudao.module.ai.enums.model.AiModelTypeEnum;
 import cn.iocoder.yudao.module.ai.enums.model.AiPlatformEnum;
@@ -12,6 +13,7 @@ import cn.iocoder.yudao.module.ai.service.model.AiModelService;
 import cn.iocoder.yudao.module.ai.util.AiUtils;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppInteractionEventReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PublicReportSummaryRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
@@ -54,7 +56,9 @@ import org.springframework.validation.annotation.Validated;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -146,6 +150,28 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long recordEvent(AppInteractionEventReqVO reqVO) {
+        XunjingQrCodeDO qrCode = resolveAppEventQrCode(reqVO);
+        XunjingResourcePackageDO resourcePackage = resolveAppEventPackage(reqVO, qrCode);
+
+        XunjingInteractionEventDO event = new XunjingInteractionEventDO();
+        event.setPackageId(resourcePackage.getId());
+        event.setSchoolId(resourcePackage.getSchoolId());
+        event.setEventType(defaultIfBlank(reqVO.getEventType(), EventType.VIEW.getType()));
+        event.setSourceChannel(defaultIfBlank(reqVO.getSourceChannel(), "mini-program"));
+        event.setUserTraceId(reqVO.getUserTraceId());
+        event.setPayloadJson(buildAppEventPayload(resourcePackage, qrCode, reqVO));
+        event.setTenantId(TenantContextHolder.getRequiredTenantId());
+        interactionEventMapper.insert(event);
+
+        if (EventType.SCAN.getType().equals(event.getEventType()) && qrCode != null) {
+            incrementScanCount(qrCode);
+        }
+        return event.getId();
+    }
+
+    @Override
     public PublicReportSummaryRespVO getPublicReportSummary(String packageCode) {
         XunjingResourcePackageDO resourcePackage = validatePublicPackage(packageCode);
         XunjingPublicReportDO report = publicReportMapper.selectLatestByProjectId(resourcePackage.getProjectId());
@@ -170,6 +196,37 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         respVO.setAiGenerationCount(metricLong(report.getMetricsJson(), "aiGenerationCount"));
         respVO.setP0Ready(metricBoolean(report.getMetricsJson(), "p0Ready"));
         return respVO;
+    }
+
+    private XunjingQrCodeDO resolveAppEventQrCode(AppInteractionEventReqVO reqVO) {
+        if (!hasText(reqVO.getSceneCode())) {
+            return null;
+        }
+        XunjingQrCodeDO qrCode = qrCodeMapper.selectBySceneCodeAndStatus(
+                reqVO.getSceneCode(), QrCodeStatus.ACTIVE.getStatus());
+        if (qrCode == null) {
+            throw new IllegalArgumentException("xunjing qr code not exists: " + reqVO.getSceneCode());
+        }
+        return qrCode;
+    }
+
+    private XunjingResourcePackageDO resolveAppEventPackage(AppInteractionEventReqVO reqVO, XunjingQrCodeDO qrCode) {
+        if (hasText(reqVO.getPackageCode())) {
+            XunjingResourcePackageDO resourcePackage = validatePublicPackage(reqVO.getPackageCode());
+            if (qrCode != null && !resourcePackage.getId().equals(qrCode.getPackageId())) {
+                throw new IllegalArgumentException("xunjing qr code does not match package: " + reqVO.getSceneCode());
+            }
+            return resourcePackage;
+        }
+        if (qrCode == null) {
+            throw new IllegalArgumentException("xunjing app event packageCode or sceneCode is required");
+        }
+        XunjingResourcePackageDO resourcePackage = resourcePackageMapper.selectByIdAndStatus(
+                qrCode.getPackageId(), PackageStatus.PUBLISHED.getStatus());
+        if (resourcePackage == null) {
+            throw new IllegalArgumentException("xunjing public resource package not exists: " + qrCode.getPackageId());
+        }
+        return resourcePackage;
     }
 
     private XunjingQrCodeDO resolveQrCode(ScanResolveReqVO reqVO) {
@@ -622,6 +679,19 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         Matcher matcher = Pattern.compile("\\\"" + Pattern.quote(name) + "\\\"\\s*:\\s*(true|false)").matcher(
                 defaultIfBlank(metricsJson, ""));
         return matcher.find() && Boolean.parseBoolean(matcher.group(1));
+    }
+
+    private String buildAppEventPayload(
+            XunjingResourcePackageDO resourcePackage, XunjingQrCodeDO qrCode, AppInteractionEventReqVO reqVO) {
+        String clientPayload = defaultIfBlank(reqVO.getPayloadJson(), "{}").trim();
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("packageCode", resourcePackage.getPackageCode());
+        payload.put("sceneCode", defaultIfBlank(reqVO.getSceneCode(), ""));
+        payload.put("qrCodeId", qrCode == null ? null : qrCode.getId());
+        Map<String, Object> clientPayloadObject = JsonUtils.parseObjectQuietly(
+                clientPayload, new TypeReference<Map<String, Object>>() {});
+        payload.put("clientPayload", clientPayloadObject == null ? clientPayload : clientPayloadObject);
+        return JsonUtils.toJsonString(payload);
     }
 
     private String buildSourceJson(List<SourceRespVO> sources) {

@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.xunjing.service.app;
 
 import cn.iocoder.yudao.framework.test.core.ut.BaseDbUnitTest;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.ai.dal.dataobject.model.AiModelDO;
 import cn.iocoder.yudao.module.ai.enums.model.AiModelTypeEnum;
 import cn.iocoder.yudao.module.ai.enums.model.AiPlatformEnum;
@@ -19,10 +20,13 @@ import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsol
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.ResourcePackageCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.SchoolCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PublicReportSummaryRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppInteractionEventReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
+import cn.iocoder.yudao.module.xunjing.dal.dataobject.event.XunjingInteractionEventDO;
+import cn.iocoder.yudao.module.xunjing.dal.mysql.event.XunjingInteractionEventMapper;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums;
 import cn.iocoder.yudao.module.xunjing.service.console.XunjingConsoleService;
 import cn.iocoder.yudao.module.xunjing.service.console.XunjingConsoleServiceImpl;
@@ -60,6 +64,8 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     private XunjingConsoleService consoleService;
     @Resource
     private XunjingAppService appService;
+    @Resource
+    private XunjingInteractionEventMapper interactionEventMapper;
     @MockBean
     private AiKnowledgeSegmentService aiKnowledgeSegmentService;
     @MockBean
@@ -129,6 +135,51 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertEquals("2026-Q2 喀什公益研学报告", report.getTitle());
         assertEquals(1L, report.getPackageCount());
         assertEquals(1L, report.getReviewedKnowledgeCount());
+    }
+
+    @Test
+    public void testRecordAppEventResolvesQrSceneAndKeepsPayload() {
+        Long projectId = consoleService.createProject(projectReq());
+        Long schoolId = consoleService.createSchool(schoolReq());
+        Long packageId = consoleService.createResourcePackage(packageReq(projectId, schoolId));
+        Long qrCodeId = consoleService.createQrCode(qrCodeReq(packageId));
+
+        AppInteractionEventReqVO reqVO = new AppInteractionEventReqVO();
+        reqVO.setSceneCode("QR-KASHGAR-MAP-001");
+        reqVO.setEventType(XunjingEnums.EventType.VIEW.getType());
+        reqVO.setSourceChannel("mini-program");
+        reqVO.setUserTraceId("trace-event-001");
+        reqVO.setPayloadJson("{\"page\":\"map-detail\",\"duration\":12}");
+        Long eventId = appService.recordEvent(reqVO);
+
+        XunjingInteractionEventDO event = interactionEventMapper.selectById(eventId);
+        assertEquals(packageId, event.getPackageId());
+        assertEquals(schoolId, event.getSchoolId());
+        assertEquals(XunjingEnums.EventType.VIEW.getType(), event.getEventType());
+        assertEquals("mini-program", event.getSourceChannel());
+        assertEquals("trace-event-001", event.getUserTraceId());
+        assertTrue(event.getPayloadJson().contains("\"sceneCode\":\"QR-KASHGAR-MAP-001\""));
+        assertTrue(event.getPayloadJson().contains("\"qrCodeId\":" + qrCodeId));
+        assertTrue(event.getPayloadJson().contains("\"page\":\"map-detail\""));
+
+        ReadinessRespVO readiness = consoleService.getReadiness(projectId);
+        assertEquals(1, readiness.getInteractionCount());
+    }
+
+    @Test
+    public void testRecordAppEventStoresMalformedClientPayloadAsString() {
+        Long projectId = consoleService.createProject(projectReq());
+        Long schoolId = consoleService.createSchool(schoolReq());
+        consoleService.createResourcePackage(packageReq(projectId, schoolId));
+
+        AppInteractionEventReqVO reqVO = new AppInteractionEventReqVO();
+        reqVO.setPackageCode("KASHGAR-MAP-001");
+        reqVO.setEventType(XunjingEnums.EventType.VIEW.getType());
+        reqVO.setPayloadJson("{\"page\":}");
+        Long eventId = appService.recordEvent(reqVO);
+
+        XunjingInteractionEventDO event = interactionEventMapper.selectById(eventId);
+        assertEquals("{\"page\":}", JsonUtils.parseTree(event.getPayloadJson()).get("clientPayload").asText());
     }
 
     @Test

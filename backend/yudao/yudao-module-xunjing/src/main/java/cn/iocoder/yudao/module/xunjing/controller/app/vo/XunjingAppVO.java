@@ -33,6 +33,16 @@ public class XunjingAppVO {
     }
 
     @Data
+    public static class AppInteractionEventReqVO {
+        private String packageCode;
+        private String sceneCode;
+        private String eventType;
+        private String sourceChannel;
+        private String userTraceId;
+        private String payloadJson;
+    }
+
+    @Data
     public static class RagChatRespVO {
         private String answer;
         private String safetyStatus;
