@@ -10,6 +10,7 @@ backend/yudao/*
 backend/yudao/sql/*
 !backend/yudao/sql/mysql/
 backend/yudao/sql/mysql/*
+!backend/yudao/sql/mysql/yudao-ai-module.sql
 !backend/yudao/sql/mysql/xunjing-module.sql
 !backend/yudao/sql/mysql/xunjing-seed-kashgar-p0.sql
 !backend/yudao/yudao-ui/

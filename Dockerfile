@@ -4,7 +4,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-RUN npm run release:check
+RUN npm audit --audit-level=moderate && npm run build
 
 FROM nginx:1.27-alpine
 
