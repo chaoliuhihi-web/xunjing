@@ -1,0 +1,281 @@
+import { existsSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
+import { pathToFileURL } from 'node:url'
+
+const requiredEnvKeys = [
+  'SPRING_PROFILES_ACTIVE',
+  'MYSQL_HOST',
+  'MYSQL_PORT',
+  'MYSQL_DATABASE',
+  'MYSQL_USERNAME',
+  'MYSQL_PASSWORD',
+  'REDIS_HOST',
+  'REDIS_PORT',
+  'REDIS_DATABASE',
+  'OSS_ENDPOINT',
+  'OSS_BUCKET',
+  'OSS_PREFIX',
+  'OSS_ACCESS_KEY',
+  'OSS_SECRET_KEY',
+  'QDRANT_URL',
+  'QDRANT_TEXT_COLLECTION',
+  'QDRANT_IMAGE_COLLECTION',
+  'QWEN_API_KEY',
+  'QWEN_BASE_URL',
+  'QWEN_MODEL',
+  'INTERNAL_AUTH_TOKEN'
+]
+
+function pass(name, detail) {
+  return { name, ok: true, detail }
+}
+
+function requireValue(env, key) {
+  if (!env[key]) {
+    throw new Error(`${key} is required for Xinghe Xunjing platform readiness`)
+  }
+}
+
+function rejectUpstreamReuse(env) {
+  const guardedValues = [
+    ['MYSQL_DATABASE', env.MYSQL_DATABASE],
+    ['QDRANT_TEXT_COLLECTION', env.QDRANT_TEXT_COLLECTION],
+    ['QDRANT_IMAGE_COLLECTION', env.QDRANT_IMAGE_COLLECTION],
+    ['OSS_BUCKET', env.OSS_BUCKET],
+    ['OSS_PREFIX', env.OSS_PREFIX]
+  ]
+
+  for (const [key, value] of guardedValues) {
+    if (String(value || '').toLowerCase().includes('xingheai')) {
+      throw new Error(`${key} must not reuse the upstream XingheAI runtime`)
+    }
+  }
+}
+
+async function readText(rootDir, relativePath) {
+  return await readFile(path.join(rootDir, relativePath), 'utf8')
+}
+
+function assertFiles(rootDir, files, label) {
+  for (const file of files) {
+    if (!existsSync(path.join(rootDir, file))) {
+      throw new Error(`Missing ${label}: ${file}`)
+    }
+  }
+}
+
+function assertContains(text, snippet, label) {
+  if (!text.includes(snippet)) {
+    throw new Error(`${label} missing ${snippet}`)
+  }
+}
+
+async function checkStaticFiles(rootDir) {
+  assertFiles(rootDir, [
+    'backend/yudao/pom.xml',
+    'backend/yudao/yudao-module-xunjing/pom.xml',
+    'backend/yudao/yudao-ui/yudao-ui-admin-vue3/src/api/xunjing/console/index.ts',
+    'backend/yudao/yudao-ui/yudao-ui-admin-vue3/src/views/xunjing/console/index.vue'
+  ], 'platform file')
+  return pass('static-files', 'Yudao backend module and admin console files exist')
+}
+
+async function checkSqlSchema(rootDir) {
+  const sql = await readText(rootDir, 'backend/yudao/sql/mysql/xunjing-module.sql')
+  for (const snippet of [
+    'xunjing_resource_package',
+    'xunjing_knowledge_document',
+    'xunjing_media_asset',
+    'xunjing_ai_generation_log',
+    'xunjing:readiness:query'
+  ]) {
+    assertContains(sql, snippet, 'xunjing-module.sql')
+  }
+  return pass('sql-schema', 'Xunjing MySQL schema includes P0 operating tables and permissions')
+}
+
+async function checkSeedData(rootDir) {
+  const seed = await readText(rootDir, 'backend/yudao/sql/mysql/xunjing-seed-kashgar-p0.sql')
+  for (const snippet of [
+    'KASHGAR-MAP-001',
+    '喀什古城研学地图',
+    'QR-KASHGAR-MAP-001',
+    '"p0Ready":true',
+    '"quotaRuleCount":5'
+  ]) {
+    assertContains(seed, snippet, 'xunjing-seed-kashgar-p0.sql')
+  }
+  return pass('seed-data', 'Kashgar P0 seed data is present')
+}
+
+async function checkAdminUiContract(rootDir) {
+  const api = await readText(
+    rootDir,
+    'backend/yudao/yudao-ui/yudao-ui-admin-vue3/src/api/xunjing/console/index.ts'
+  )
+  const view = await readText(
+    rootDir,
+    'backend/yudao/yudao-ui/yudao-ui-admin-vue3/src/views/xunjing/console/index.vue'
+  )
+  for (const snippet of ['getReadiness', 'getDashboard', 'getAiGenerationLogPage']) {
+    assertContains(api, snippet, 'xunjing console API')
+  }
+  for (const snippet of ['XunjingConsole', '资料导入审核', '图影中华素材']) {
+    assertContains(view, snippet, 'xunjing console view')
+  }
+  return pass('admin-ui-contract', 'Yudao admin console route and API contract are present')
+}
+
+function checkEnvironment(env) {
+  for (const key of requiredEnvKeys) {
+    requireValue(env, key)
+  }
+  rejectUpstreamReuse(env)
+  return pass('environment', 'staging environment is isolated and complete')
+}
+
+async function fetchJson(url, options = {}, fetchImpl = fetch) {
+  const response = await fetchImpl(url, options)
+  const body = await response.text()
+  if (!response.ok) {
+    throw new Error(`${url} returned HTTP ${response.status}`)
+  }
+  return JSON.parse(body)
+}
+
+async function checkLiveAdmin(baseUrl, fetchImpl) {
+  const response = await fetchImpl(new URL('/admin/', baseUrl))
+  const body = await response.text()
+  if (!response.ok || !body.includes('星河寻境')) {
+    throw new Error('/admin/ does not expose the Xinghe Xunjing admin console')
+  }
+  return pass('live-admin', 'admin console is reachable')
+}
+
+async function checkLiveResourcePackage(baseUrl, fetchImpl) {
+  const json = await fetchJson(
+    new URL('/app-api/xunjing/resource/package?packageCode=KASHGAR-MAP-001', baseUrl),
+    {},
+    fetchImpl
+  )
+  if (json.code !== 0 || json.data?.packageCode !== 'KASHGAR-MAP-001') {
+    throw new Error('resource package endpoint did not return KASHGAR-MAP-001')
+  }
+  return pass('live-resource-package', 'Kashgar resource package endpoint is reachable')
+}
+
+async function checkLivePublicReport(baseUrl, fetchImpl) {
+  const json = await fetchJson(
+    new URL('/app-api/xunjing/public-report/summary?packageCode=KASHGAR-MAP-001', baseUrl),
+    {},
+    fetchImpl
+  )
+  if (json.code !== 0 || json.data?.p0Ready !== true) {
+    throw new Error('public report endpoint is not P0 ready')
+  }
+  return pass('live-public-report', 'public report summary is P0 ready')
+}
+
+async function checkLiveAiChat(baseUrl, fetchImpl) {
+  const json = await fetchJson(
+    new URL('/app-api/xunjing/ai/chat', baseUrl),
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        packageCode: 'KASHGAR-MAP-001',
+        question: '喀什古城适合如何研学讲解？'
+      })
+    },
+    fetchImpl
+  )
+  if (json.code !== 0 || !json.data?.answer || json.data?.safetyStatus !== 'PASS') {
+    throw new Error('AI chat endpoint did not return a safe sourced answer')
+  }
+  if (!Array.isArray(json.data.sources) || json.data.sources.length === 0) {
+    throw new Error('AI chat endpoint did not return sources')
+  }
+  return pass('live-ai-chat', 'AI chat endpoint returns a safe sourced answer')
+}
+
+export async function loadEnvFile(envPath) {
+  const text = await readFile(envPath, 'utf8')
+  const env = {}
+
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim()
+    if (!line || line.startsWith('#')) {
+      continue
+    }
+
+    const equalIndex = line.indexOf('=')
+    if (equalIndex === -1) {
+      continue
+    }
+
+    const key = line.slice(0, equalIndex).trim()
+    let value = line.slice(equalIndex + 1).trim()
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1)
+    }
+    env[key] = value
+  }
+
+  return env
+}
+
+export async function verifyXunjingPlatformReadiness({
+  env = process.env,
+  baseUrl,
+  includeAiCheck = false,
+  rootDir = process.cwd(),
+  fetchImpl = fetch
+} = {}) {
+  const checks = []
+
+  checks.push(await checkStaticFiles(rootDir))
+  checks.push(await checkSqlSchema(rootDir))
+  checks.push(await checkSeedData(rootDir))
+  checks.push(await checkAdminUiContract(rootDir))
+  checks.push(checkEnvironment(env))
+
+  if (baseUrl) {
+    checks.push(await checkLiveAdmin(baseUrl, fetchImpl))
+    checks.push(await checkLiveResourcePackage(baseUrl, fetchImpl))
+    checks.push(await checkLivePublicReport(baseUrl, fetchImpl))
+    if (includeAiCheck) {
+      checks.push(await checkLiveAiChat(baseUrl, fetchImpl))
+    }
+  }
+
+  return {
+    ok: checks.every((check) => check.ok),
+    checkedAt: new Date().toISOString(),
+    checks
+  }
+}
+
+async function runCli() {
+  const env = process.env.XUNJING_ENV_FILE
+    ? { ...process.env, ...await loadEnvFile(process.env.XUNJING_ENV_FILE) }
+    : process.env
+  const result = await verifyXunjingPlatformReadiness({
+    env,
+    baseUrl: process.env.XUNJING_BASE_URL || undefined,
+    includeAiCheck: process.env.XUNJING_INCLUDE_AI_CHECK === '1',
+    rootDir: process.cwd()
+  })
+  console.log(JSON.stringify(result, null, 2))
+}
+
+const executedPath = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1])).href : ''
+if (import.meta.url === executedPath) {
+  runCli().catch((error) => {
+    console.error(error.message)
+    process.exit(1)
+  })
+}
