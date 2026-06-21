@@ -66,4 +66,28 @@ describe('project structure contract', () => {
       expect(gitignore).toContain(required)
     }
   })
+
+  test('preserves GitHub and Gitee synchronization policy', () => {
+    const policyFiles = [
+      'AGENTS.md',
+      'README.md',
+      'docs/00_项目总览/项目总览.md',
+      'docs/02_开发规划/星河寻境一期开发规划.md',
+      'docs/02_开发规划/星河寻境一期后台Yudao架构规划.md',
+      'docs/04_AI交接任务书/下一阶段开发任务书.md'
+    ]
+
+    for (const file of policyFiles) {
+      const text = readText(file)
+      expect(text).toMatch(/GitHub[\s\S]{0,80}Gitee|Gitee[\s\S]{0,80}GitHub/)
+      expect(text).not.toContain('只推送到 Gitee')
+      expect(text).not.toContain('不再要求 GitHub')
+      expect(text).not.toContain('只推 Gitee')
+    }
+
+    const agents = readText('AGENTS.md')
+    expect(agents).toContain('默认从 GitHub 同步最新代码')
+    expect(agents).toContain('推送代码时必须同步推送到 GitHub 和 Gitee')
+    expect(agents).toContain('如果当前仓库只配置了单一 remote，先说明事实，不要假设另一个 remote 已存在')
+  })
 })

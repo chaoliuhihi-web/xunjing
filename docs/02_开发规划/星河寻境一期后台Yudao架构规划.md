@@ -1234,7 +1234,7 @@ INTERNAL_AUTH_TOKEN
 
 必须完成：
 
-- Gitee `origin` 远端。
+- GitHub / Gitee 双远端；如果当前只有 Gitee `origin`，必须记录事实并等待补齐 GitHub remote。
 - 初始 commit。
 - 迁移源 commit 记录。
 - `backend/yudao` 独立复制。
@@ -1388,5 +1388,5 @@ INTERNAL_AUTH_TOKEN
 - AI 生成日志和成本
 
 真实密钥只放未提交 env 或 Yudao AI 管理，不写入源码和 Markdown。
-正式推送只推送到 Gitee。
+正式推送代码时必须同步推送 GitHub 和 Gitee；如果当前只配置了 Gitee `origin`，只能先推送已配置 remote，并在交付记录中说明 GitHub remote 缺失。
 ```
