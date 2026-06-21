@@ -1,0 +1,95 @@
+name: xinghe-xunjing-platform
+
+services:
+  xunjing-mysql:
+    image: mysql:8.4
+    container_name: xunjing-mysql
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+08:00
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-xunjing_local_root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-yudao_xinghe_xunjing}
+      MYSQL_USER: ${MYSQL_USERNAME:-xunjing}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-xunjing_local_password}
+      TZ: Asia/Shanghai
+    ports:
+      - "${XUNJING_MYSQL_PORT:-33306}:3306"
+    volumes:
+      - xunjing-mysql-data:/var/lib/mysql
+      - ../ops/mysql-init/xunjing-init.sh:/docker-entrypoint-initdb.d/01-xunjing-init.sh:ro
+      - ../backend/yudao/sql/mysql/ruoyi-vue-pro.sql:/opt/xunjing-sql/01-ruoyi-vue-pro.sql:ro
+      - ../backend/yudao/sql/mysql/xunjing-module.sql:/opt/xunjing-sql/02-xunjing-module.sql:ro
+      - ../backend/yudao/sql/mysql/xunjing-seed-kashgar-p0.sql:/opt/xunjing-sql/03-xunjing-seed-kashgar-p0.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  xunjing-redis:
+    image: redis:7-alpine
+    container_name: xunjing-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${XUNJING_REDIS_PORT:-36379}:6379"
+    volumes:
+      - xunjing-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  xunjing-qdrant:
+    image: qdrant/qdrant:latest
+    container_name: xunjing-qdrant
+    restart: unless-stopped
+    ports:
+      - "${XUNJING_QDRANT_HTTP_PORT:-36333}:6333"
+      - "${XUNJING_QDRANT_GRPC_PORT:-36334}:6334"
+    volumes:
+      - xunjing-qdrant-data:/qdrant/storage
+
+  xunjing-minio:
+    image: minio/minio:latest
+    container_name: xunjing-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-xunjingminio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-xunjing_local_minio_password}
+    ports:
+      - "${XUNJING_MINIO_API_PORT:-39000}:9000"
+      - "${XUNJING_MINIO_CONSOLE_PORT:-39001}:9001"
+    volumes:
+      - xunjing-minio-data:/data
+
+  xunjing-minio-init:
+    image: minio/mc:latest
+    container_name: xunjing-minio-init
+    depends_on:
+      - xunjing-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-xunjingminio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-xunjing_local_minio_password}
+      MINIO_BUCKET: ${MINIO_BUCKET:-xinghe-xunjing}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        until mc alias set local http://xunjing-minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"; do
+          sleep 2
+        done
+        mc mb --ignore-existing "local/$${MINIO_BUCKET}"
+        mc anonymous set none "local/$${MINIO_BUCKET}"
+    restart: "no"
+
+volumes:
+  xunjing-mysql-data:
+  xunjing-redis-data:
+  xunjing-qdrant-data:
+  xunjing-minio-data:

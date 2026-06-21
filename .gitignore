@@ -2,6 +2,14 @@
 **/.DS_Store
 **/~$*
 
+# Local env and runtime secrets
+.env
+.env.local
+.env.*.local
+ops/*.env
+!ops/*.env.example
+.runtime/
+
 # Local archives and temporary files
 archive/
 tmp/
@@ -18,6 +26,14 @@ node_modules/
 dist/
 playwright-report/
 test-results/
+
+# Backend build and local dependency outputs
+backend/yudao/**/target/
+backend/yudao/**/node_modules/
+backend/yudao/**/dist/
+backend/yudao/**/.flattened-pom.xml
+backend/yudao/**/.idea/
+backend/yudao/**/.runtime/
 
 # Keep only the website reference assets required by src/data/siteContent.js
 assets/references/*
