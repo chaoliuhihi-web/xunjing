@@ -149,6 +149,33 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testGetPublicReportSummaryScopesToPackageSchool() {
+        Long projectId = consoleService.createProject(projectReq());
+        Long firstSchoolId = consoleService.createSchool(schoolReq());
+        Long secondSchoolId = consoleService.createSchool(schoolReq("喀什第二示范学校"));
+        Long firstPackageId = consoleService.createResourcePackage(packageReq(projectId, firstSchoolId));
+        Long secondPackageId = consoleService.createResourcePackage(packageReq(
+                projectId, secondSchoolId, "KASHGAR-MAP-002", "喀什第二学校研学地图",
+                XunjingEnums.ResourceType.MAP.getType()));
+        consoleService.addKnowledgeDocument(approvedKnowledgeReq(firstPackageId));
+        consoleService.addKnowledgeDocument(approvedKnowledgeReq(secondPackageId));
+
+        Long firstReportId = consoleService.generatePublicReport(reportReq(
+                projectId, firstSchoolId, "2026-Q2 喀什第一学校公益报告"));
+        Long secondReportId = consoleService.generatePublicReport(reportReq(
+                projectId, secondSchoolId, "2026-Q2 喀什第二学校公益报告"));
+
+        PublicReportSummaryRespVO firstSummary = appService.getPublicReportSummary("KASHGAR-MAP-001");
+
+        assertEquals(firstReportId, firstSummary.getReportId());
+        assertEquals(firstSchoolId, firstSummary.getSchoolId());
+        assertEquals("2026-Q2 喀什第一学校公益报告", firstSummary.getTitle());
+        assertEquals(1L, firstSummary.getPackageCount());
+        assertEquals(1L, firstSummary.getReviewedKnowledgeCount());
+        assertFalse(firstSummary.getReportId().equals(secondReportId));
+    }
+
+    @Test
     public void testResolveScanKeepsExistingQrPathQueryParameters() {
         Long projectId = consoleService.createProject(projectReq());
         Long schoolId = consoleService.createSchool(schoolReq());
@@ -471,8 +498,12 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     private SchoolCreateReqVO schoolReq() {
+        return schoolReq("喀什示范学校");
+    }
+
+    private SchoolCreateReqVO schoolReq(String name) {
         SchoolCreateReqVO reqVO = new SchoolCreateReqVO();
-        reqVO.setName("喀什示范学校");
+        reqVO.setName(name);
         reqVO.setRegionName("新疆喀什");
         return reqVO;
     }
@@ -651,12 +682,17 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
 
     private cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.PublicReportGenerateReqVO reportReq(
             Long projectId, Long schoolId) {
+        return reportReq(projectId, schoolId, "2026-Q2 喀什公益研学报告");
+    }
+
+    private cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.PublicReportGenerateReqVO reportReq(
+            Long projectId, Long schoolId, String title) {
         cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.PublicReportGenerateReqVO reqVO =
                 new cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.PublicReportGenerateReqVO();
         reqVO.setProjectId(projectId);
         reqVO.setSchoolId(schoolId);
         reqVO.setReportPeriod("2026-Q2");
-        reqVO.setTitle("2026-Q2 喀什公益研学报告");
+        reqVO.setTitle(title);
         return reqVO;
     }
 

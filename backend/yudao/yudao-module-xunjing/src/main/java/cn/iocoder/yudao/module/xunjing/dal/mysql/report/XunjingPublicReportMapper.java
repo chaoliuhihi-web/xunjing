@@ -16,4 +16,18 @@ public interface XunjingPublicReportMapper extends BaseMapperX<XunjingPublicRepo
                 .last("LIMIT 1"));
     }
 
+    default XunjingPublicReportDO selectLatestByProjectIdAndSchoolId(Long projectId, Long schoolId) {
+        LambdaQueryWrapperX<XunjingPublicReportDO> query = new LambdaQueryWrapperX<XunjingPublicReportDO>()
+                .eq(XunjingPublicReportDO::getProjectId, projectId)
+                .orderByDesc(XunjingPublicReportDO::getGeneratedAt)
+                .orderByDesc(XunjingPublicReportDO::getId)
+                .last("LIMIT 1");
+        if (schoolId == null) {
+            query.isNull(XunjingPublicReportDO::getSchoolId);
+        } else {
+            query.eq(XunjingPublicReportDO::getSchoolId, schoolId);
+        }
+        return selectOne(query);
+    }
+
 }

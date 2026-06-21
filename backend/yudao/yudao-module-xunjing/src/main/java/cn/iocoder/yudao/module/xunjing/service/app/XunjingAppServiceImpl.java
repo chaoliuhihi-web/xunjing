@@ -229,7 +229,11 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     @Override
     public PublicReportSummaryRespVO getPublicReportSummary(String packageCode) {
         XunjingResourcePackageDO resourcePackage = validatePublicPackage(packageCode);
-        XunjingPublicReportDO report = publicReportMapper.selectLatestByProjectId(resourcePackage.getProjectId());
+        XunjingPublicReportDO report = publicReportMapper.selectLatestByProjectIdAndSchoolId(
+                resourcePackage.getProjectId(), resourcePackage.getSchoolId());
+        if (report == null) {
+            report = publicReportMapper.selectLatestByProjectIdAndSchoolId(resourcePackage.getProjectId(), null);
+        }
         if (report == null) {
             throw new IllegalArgumentException("xunjing public report not exists for package: " + packageCode);
         }
