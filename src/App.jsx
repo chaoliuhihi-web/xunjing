@@ -180,12 +180,16 @@ function Hero({ pageKey, eyebrow, title, titleLines, desc, primary = '预约样�
         >
           <source src={visualReferences.heroRiverVideo} type="video/mp4" />
         </video>
-      ) : null}
+      ) : (
+        <img className="hero-bg-image" src={refMap[pageKey]} alt="" aria-hidden="true" />
+      )}
       <div className="hero-motion-layer" aria-hidden="true">
         <span className="speed-line speed-line--a" />
         <span className="speed-line speed-line--b" />
+        <span className="speed-line speed-line--c" />
         <span className="mist mist--a" />
         <span className="mist mist--b" />
+        <span className="hero-light-sweep" />
       </div>
       <span className="hero-glow-ring" aria-hidden="true" />
       <div className="hero-copy">
@@ -212,20 +216,6 @@ function Hero({ pageKey, eyebrow, title, titleLines, desc, primary = '预约样�
             <PlayCircle size={18} />
             {secondary}
           </button>
-        </div>
-      </div>
-      <div className="hero-art" aria-hidden="true">
-        <img src={refMap[pageKey]} alt="" />
-        <div className="hero-proof-panel">
-          <div>
-            <strong>目的地 AI 叙事系统</strong>
-            <span>地方知识 · AI旅伴 · 游记传播</span>
-          </div>
-          <div className="hero-proof-bars">
-            <span />
-            <span />
-            <span />
-          </div>
         </div>
       </div>
     </section>
