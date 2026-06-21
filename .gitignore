@@ -34,6 +34,9 @@ backend/yudao/**/dist/
 backend/yudao/**/.flattened-pom.xml
 backend/yudao/**/.idea/
 backend/yudao/**/.runtime/
+backend/yudao/yudao-server/src/main/resources/application-local.yaml
+backend/yudao/yudao-server/src/main/resources/application-dev.yaml
+backend/yudao/yudao-server/src/main/resources/application-prod.yaml
 
 # Keep only the website reference assets required by src/data/siteContent.js
 assets/references/*
