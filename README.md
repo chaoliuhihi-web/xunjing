@@ -64,4 +64,4 @@ npm run build
 - `backend/yudao/` 独立 Yudao 副本、`yudao-module-xunjing`、P0 SQL/seed、平台依赖栈、后台接口索引和静态 readiness 门禁。
 - 图秀中华新疆首站 P0 闭环以“书/地图/地球仪扫码、权威讲解、RAG sources、数据回传、公益报告”为验收主线。
 
-正式推送代码时，按项目要求同步推送到 GitHub 和 Gitee。
+正式推送代码时，按项目要求只推送到 Gitee。

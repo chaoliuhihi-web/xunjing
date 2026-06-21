@@ -62,8 +62,8 @@ ruby -e 'require "yaml"; %w[application.yaml application-local.yaml application-
 ## Global Constraints
 
 - 当前小程序前端由其他 AI 负责，本计划只覆盖 Yudao 后台、管理端、后台 API、App API 契约和后台验收门禁。
-- 默认从 GitHub 同步最新代码，但当前仓库只有 Gitee `origin`，正式开发前必须补 GitHub remote。
-- 正式推送必须同时推送 GitHub 和 Gitee。
+- 默认从 Gitee `origin` 同步最新代码；本项目只推送到 Gitee，不要求 GitHub remote。
+- 正式推送只推送到 Gitee。
 - 真实 API Key、Token、密码、Cookie 不写入 Markdown、源码、测试快照或 Git 提交。
 - 星河寻境是独立项目，Yudao 必须复制到本仓库独立维护，不允许用 symlink、submodule 或运行时直连原 XingheAI2026V2 后台。
 - 后台功能全部用 Yudao 承接，不新增长期独立管理后台。

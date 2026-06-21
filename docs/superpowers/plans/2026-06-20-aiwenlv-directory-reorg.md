@@ -15,7 +15,7 @@
 - Keep development documentation inside `01_星河寻境/docs`.
 - Keep final human-facing files inside `01_星河寻境/deliverables`.
 - Keep temporary downloads, Office lock files, and system metadata in `01_星河寻境/archive`.
-- This directory is not currently a git repository, so no GitHub/Gitee pull or push is performed during this cleanup.
+- This historical cleanup did not perform pull or push. Current project rule: push only to Gitee.
 
 ---
 
@@ -148,4 +148,4 @@ Run:
 find /Users/bruce/Developer/work/AI文旅 -maxdepth 3 -name .git -type d -print
 ```
 
-Expected: no `.git` directory unless the user later asks to initialize and push to GitHub/Gitee.
+Expected: no `.git` directory unless the user later asks to initialize and push to Gitee.
