@@ -21,7 +21,7 @@
 - `assets/brand/`：品牌基础素材。
 - `assets/references/Web_V3/`、`assets/references/product_effects/`：官网和产品效果参考素材。
 - `assets/references/APP/kashgar-mini-program/`：UniApp/小程序前端迁移源；APP 上线优先在这里复用原小程序代码和逻辑。
-- `backend/yudao/`：星河寻境 Yudao 后台；只承接原线上小程序接口无法覆盖的能力。
+- `backend/yudao/`：星河寻境独立 Yudao 后台；承接 P0 图书/地图/地球仪扫码、知识库、素材库、AI 问答、数据看板和公益报告等平台能力。
 - `docs/00_项目总览/`：项目总览和资料索引。
 - `docs/01_产品规划/`：产品规划、PRD、汇报材料源文件。
 - `docs/02_开发规划/`：开发规划、Yudao 架构、接口索引、部署说明和环境变量清单。
@@ -54,12 +54,14 @@ npm run build
 
 ## 当前开发状态
 
-当前已完成第一阶段官网工程：
+当前已完成第一阶段官网工程，并已进入独立 Yudao 后台建设：
 
 - 首页、产品能力、应用场景、解决方案、试点样板、跟着游记、关于我们页面。
 - 桌面端与移动端响应式导航。
 - 预约演示表单前端成功态。
 - Vitest 内容/交互测试。
 - Playwright 桌面与移动端截图 QA。
+- `backend/yudao/` 独立 Yudao 副本、`yudao-module-xunjing`、P0 SQL/seed、平台依赖栈、后台接口索引和静态 readiness 门禁。
+- 图秀中华新疆首站 P0 闭环以“书/地图/地球仪扫码、权威讲解、RAG sources、数据回传、公益报告”为验收主线。
 
 正式推送代码时，按项目要求同步推送到 GitHub 和 Gitee。

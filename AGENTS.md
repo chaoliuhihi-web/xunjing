@@ -12,7 +12,7 @@
 
 - `src/`、`public/`：官网前端源码和公开静态资源。
 - `assets/references/APP/kashgar-mini-program/`：UniApp/小程序前端迁移与 APP 上线代码，尽最大可能复用原小程序代码和逻辑。
-- `backend/yudao/`：星河寻境 Yudao 后台，只承接原线上小程序接口无法覆盖的能力。
+- `backend/yudao/`：星河寻境独立 Yudao 后台，承接 P0 图书/地图/地球仪扫码、知识库、素材库、AI 问答、数据看板和公益报告等平台能力。
 - `docs/`：项目总览、产品规划、开发规划、交接任务书和部署说明。
 - `ops/`：部署、Nginx、Compose、环境变量样例。
 - `scripts/`：测试、发布、平台 readiness 和运维门禁。
@@ -26,13 +26,15 @@
 - 禁止在仓库根目录写入截图、控制台快照、临时 Markdown、PPT 中间产物或发布包。
 - 禁止把 `dist/`、`tmp/`、`workbench/`、`.playwright-mcp/`、`node_modules/` 作为源码提交。
 - 禁止在前端客户端保存 Coze、Qwen、Yudao 或其他第三方真实密钥。
-- 禁止用 Yudao 接口替换已有可用的原小程序线上接口，例如注册、登录、用户资料、首页、地图、剧场、收藏、点赞和分享等 `api2/*` 链路。
+- 禁止在未补齐 API 契约、`tenant-id`、权限、种子数据和验收门禁前，粗暴替换原小程序线上 `api2/*` 链路。
+- 禁止把 APP 名称、全局标题、包名或描述恢复成 `xinxiake`、`uni-app` 等脚手架/旧项目默认值。
+- 禁止给 APP 增加读取日志、读取账号、读取设备号、写系统设置、修改网络或 Wi-Fi、挂载文件系统等高风险 Android 权限，确需新增权限必须先写明业务理由并补测试。
 - 禁止为了目录变干净而删除、重置或覆盖用户未提交文件。
 
 ## 接口原则
 
-- 小程序注册、登录、用户资料和已有内容接口优先使用线上 `https://kashi.weiapp.net/api2/*`。
-- 原线上接口不能覆盖的新增能力，再使用 `/app-api/xunjing/**` 走 Yudao APP API。
+- 原小程序线上 `https://kashi.weiapp.net/api2/*` 可以作为迁移参考和短期联调兜底，不作为星河寻境 P0 后台长期主体。
+- 图书扫码、地图扫码、地球仪讲解、RAG 问答、资源包、公益报告、素材调用和 AI 评测等 P0 新能力必须通过 `/app-api/xunjing/**` 走独立 Yudao APP API。
 - `/app-api/xunjing/**` 调用必须带 `tenant-id`，并保留公网网关可验证门禁。
 
 ## 验证要求

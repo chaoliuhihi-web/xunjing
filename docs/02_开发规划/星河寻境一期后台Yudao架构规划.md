@@ -18,7 +18,7 @@
 
 - 后台功能全部落在 Yudao 体系内，运营人员只进一个后台。
 - `yudao-module-ai` 负责模型、Key、角色、知识库运行能力，不承接文旅业务表。
-- `yudao-module-xunjing` 负责星河寻境业务、知识治理、图片库、爬虫、二维码、游记、作品和看板。
+- `yudao-module-xunjing` 负责星河寻境业务、知识治理、图片库、资料导入与采集审核、二维码、游记、作品和看板。
 - MySQL 是业务和知识资产事实主库，Qdrant 只做向量索引，Object Storage 只存原文件和衍生文件。
 - 图影中华图片库必须有版权、来源、授权、审核、AI 使用许可、公开展示许可和调用日志。
 - 一期不做完整通用爬虫系统，只做资料导入与采集审核；所有结果先进入待审核，不直接进入正式知识库或图片库。
@@ -201,12 +201,12 @@ flowchart TD
   XJ --> Member["yudao-module-member\n小程序用户"]
   XJ --> System["yudao-module-system\n权限/菜单/租户"]
 
-  XJ --> MySQL["MySQL\n业务/知识/图片/爬虫事实主库"]
+  XJ --> MySQL["MySQL\n业务/知识/图片/采集审核事实主库"]
   XJ --> Redis["Redis\n缓存/限流/任务状态"]
   XJ --> OSS["Object Storage\n原文件/缩略图/衍生图/证据"]
   XJ --> Qdrant["Qdrant\n文本向量/图片向量索引"]
 
-  Crawler["合规采集 Worker\nYudao Job + Connector"] --> XJ
+  Crawler["资料导入 Worker\nYudao Job + 受控 Connector"] --> XJ
 ```
 
 ## 4. 模块划分
@@ -242,7 +242,7 @@ cn.iocoder.yudao.module.xunjing
 | 基础内容 | `content` | 地区、景区、景点、攻略、打卡点、推荐位 |
 | 知识资产 | `knowledge` | 来源、文档、版本、切片、审核、检索引用 |
 | 图影中华图片库 | `media` | 图片、视频、版权、标签、合集、调用日志 |
-| 采集爬虫 | `crawler` | 采集源、任务、运行、结果、待审核资产 |
+| 资料导入与采集审核 | `importitem` / `crawler` | 来源、导入项、运行记录、待审核知识和素材 |
 | AI 编排 | `ai` | 场景配置、Prompt、RAG、生成日志、成本 |
 | 二维码 | `qrcode` | 场景码、目标绑定、扫码统计 |
 | 图书伴读 | `book` | 图书、章节、伴读配置 |
@@ -1345,7 +1345,7 @@ INTERNAL_AUTH_TOKEN
 - `can_promotion_use=false` 的素材不能进入宣传物料。
 - 素材每次调用写入 `xunjing_media_usage_log`。
 
-### 15.4 爬虫门禁
+### 15.4 资料导入与采集审核门禁
 
 - 采集源必须有来源机构和授权说明。
 - 不绕登录、不绕验证码。
@@ -1379,7 +1379,7 @@ INTERNAL_AUTH_TOKEN
 - 内容管理
 - 知识库
 - 图影中华图片库
-- 爬虫采集
+- 资料导入与采集审核
 - 二维码
 - AI 旅伴
 - 扫码伴读
