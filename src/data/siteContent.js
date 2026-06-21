@@ -320,9 +320,9 @@ export const travelogueOutputs = [
 export const pages = {
   home: {
     hero: {
-      title: '让目的地拥有自己的 AI 叙事与内容运营系统',
-      titleLines: ['让目的地拥有', '自己的 AI 叙事', '与内容运营系统'],
-      desc: '为城市、景区、展馆、研学与出版项目，构建从地方知识库、AI 导览、游客互动、游记纪念册到传播数据报告的完整闭环。',
+      title: '星河寻境 AI 文旅内容运营平台',
+      titleLines: ['星河寻境', 'AI 文旅内容运营平台'],
+      desc: '让每一处风景被讲述，让每一次旅行被记录，让每一个目的地被传播。',
       primaryCta: '预约样板演示',
       secondaryCta: '查看解决方案'
     }

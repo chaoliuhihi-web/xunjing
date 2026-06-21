@@ -72,7 +72,7 @@ const result = {
   url,
   title,
   bodyLength: bodyText.length,
-  hasHero: bodyText.includes('让目的地拥有') && bodyText.includes('与内容运营系统'),
+  hasHero: bodyText.includes('星河寻境') && bodyText.includes('AI 文旅内容') && bodyText.includes('让每一处风景被讲述'),
   desktopOverflow,
   mobileOverflow,
   errors,

@@ -431,36 +431,6 @@ img {
   pointer-events: none;
 }
 
-.speed-line {
-  position: absolute;
-  height: 2px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, transparent, rgba(82, 217, 255, 0.95), rgba(29, 134, 255, 0.75), transparent);
-  transform: rotate(-11deg);
-  animation: sweep 7s linear infinite;
-}
-
-.speed-line--a {
-  top: 44%;
-  left: 43%;
-  width: 42vw;
-}
-
-.speed-line--b {
-  top: 61%;
-  left: 36%;
-  width: 58vw;
-  animation-delay: -2.7s;
-}
-
-.speed-line--c {
-  top: 28%;
-  left: 56%;
-  width: 34vw;
-  opacity: 0.58;
-  animation-delay: -4.8s;
-}
-
 .hero-light-sweep {
   position: absolute;
   top: -16%;
@@ -1739,21 +1709,6 @@ img {
   }
 }
 
-@keyframes sweep {
-  0% {
-    opacity: 0;
-    transform: translateX(-20%) rotate(-11deg);
-  }
-  18%,
-  68% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translateX(26%) rotate(-11deg);
-  }
-}
-
 @keyframes heroBgDrift {
   from {
     transform: scale(1.02) translate3d(0, 0, 0);
@@ -1920,6 +1875,14 @@ img {
 
   .hero h1 span {
     white-space: normal;
+  }
+
+  .hero--home h1 {
+    font-size: clamp(34px, 9vw, 38px);
+  }
+
+  .hero--home h1 span {
+    white-space: nowrap;
   }
 
   .hero--travelogue h1 {

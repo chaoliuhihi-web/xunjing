@@ -23,8 +23,8 @@ describe('site content contract', () => {
   });
 
   test('contains the operating proof and module depth needed for an external launch site', () => {
-    expect(pages.home.hero.title).toContain('AI 叙事与内容运营系统');
-    expect(pages.home.hero.desc).toContain('地方知识库');
+    expect(pages.home.hero.title).toContain('AI 文旅内容运营平台');
+    expect(pages.home.hero.desc).toContain('让每一处风景被讲述');
     expect(homeMetrics.map((metric) => metric.label)).toEqual([
       '目的地叙事系统',
       '核心落地场景',

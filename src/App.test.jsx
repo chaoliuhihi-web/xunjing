@@ -12,10 +12,10 @@ describe('Xinghe Xunjing public site', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: /让目的地拥有自己的 AI 叙事/
+        name: /星河寻境 AI 文旅内容运营平台/
       })
     ).toBeInTheDocument();
-    expect(screen.getByText(/传播数据报告的完整闭环/)).toBeInTheDocument();
+    expect(screen.getByText(/让每一处风景被讲述/)).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: '预约样板' }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('星河寻境如何让目的地“活起来”')).toBeInTheDocument();
     expect(screen.getByText('样板项目运营界面')).toBeInTheDocument();
