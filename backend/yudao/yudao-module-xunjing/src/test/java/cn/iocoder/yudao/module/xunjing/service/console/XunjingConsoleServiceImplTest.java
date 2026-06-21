@@ -185,6 +185,49 @@ public class XunjingConsoleServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testGeneratePublicReportScopesMetricsToSchoolWhenSchoolIdProvided() {
+        Long projectId = consoleService.createProject(projectReq());
+        Long schoolId = consoleService.createSchool(schoolReq());
+        Long otherSchoolId = consoleService.createSchool(schoolReq());
+        Long packageId = consoleService.createResourcePackage(packageReq(projectId, schoolId));
+        Long otherPackageId = consoleService.createResourcePackage(packageReq(
+                projectId, otherSchoolId, "KASHGAR-MAP-002", "喀什古城研学地图第二批",
+                XunjingEnums.ResourceType.MAP.getType()));
+
+        consoleService.addKnowledgeDocument(knowledgeReq(packageId));
+        consoleService.addKnowledgeDocument(knowledgeReq(otherPackageId));
+        Long mediaId = consoleService.addMediaAsset(mediaReq(packageId));
+        Long otherMediaId = consoleService.addMediaAsset(mediaReq(otherPackageId));
+        consoleService.addMapPoint(mapPointReq(packageId));
+        consoleService.addMapPoint(mapPointReq(otherPackageId));
+        consoleService.addGlobeModel(globeModelReq(packageId));
+        consoleService.addGlobeModel(globeModelReq(otherPackageId));
+        consoleService.createQrCode(qrCodeReq(packageId));
+        consoleService.createQrCode(qrCodeReq(otherPackageId));
+        consoleService.recordInteraction(eventReq(packageId, schoolId));
+        consoleService.recordInteraction(eventReq(otherPackageId, otherSchoolId));
+        consoleService.recordMediaUsage(mediaUsageReq(mediaId, packageId));
+        consoleService.recordMediaUsage(mediaUsageReq(otherMediaId, otherPackageId));
+        consoleService.recordAiGeneration(aiGenerationLogReq(packageId));
+        consoleService.recordAiGeneration(aiGenerationLogReq(otherPackageId));
+
+        Long reportId = consoleService.generatePublicReport(reportReq(projectId, schoolId));
+
+        XunjingPublicReportDO report = publicReportMapper.selectById(reportId);
+        assertNotNull(report);
+        assertEquals(schoolId, report.getSchoolId());
+        assertTrue(report.getMetricsJson().contains("\"packageCount\":1"));
+        assertTrue(report.getMetricsJson().contains("\"reviewedKnowledgeCount\":1"));
+        assertTrue(report.getMetricsJson().contains("\"reviewedMediaCount\":1"));
+        assertTrue(report.getMetricsJson().contains("\"mapPointCount\":1"));
+        assertTrue(report.getMetricsJson().contains("\"globeModelCount\":1"));
+        assertTrue(report.getMetricsJson().contains("\"qrCodeCount\":1"));
+        assertTrue(report.getMetricsJson().contains("\"interactionCount\":1"));
+        assertTrue(report.getMetricsJson().contains("\"mediaUsageCount\":1"));
+        assertTrue(report.getMetricsJson().contains("\"aiGenerationCount\":1"));
+    }
+
+    @Test
     public void testReviewImportItemPublishesApprovedKnowledgeDocument() {
         Long projectId = consoleService.createProject(projectReq());
         Long schoolId = consoleService.createSchool(schoolReq());
@@ -463,12 +506,18 @@ public class XunjingConsoleServiceImplTest extends BaseDbUnitTest {
     }
 
     private ResourcePackageCreateReqVO packageReq(Long projectId, Long schoolId) {
+        return packageReq(projectId, schoolId, "KASHGAR-MAP-001", "喀什古城研学地图",
+                XunjingEnums.ResourceType.MAP.getType());
+    }
+
+    private ResourcePackageCreateReqVO packageReq(
+            Long projectId, Long schoolId, String packageCode, String title, String resourceType) {
         ResourcePackageCreateReqVO reqVO = new ResourcePackageCreateReqVO();
         reqVO.setProjectId(projectId);
         reqVO.setSchoolId(schoolId);
-        reqVO.setPackageCode("KASHGAR-MAP-001");
-        reqVO.setTitle("喀什古城研学地图");
-        reqVO.setResourceType(XunjingEnums.ResourceType.MAP.getType());
+        reqVO.setPackageCode(packageCode);
+        reqVO.setTitle(title);
+        reqVO.setResourceType(resourceType);
         reqVO.setVersionNo("v1.0.0");
         return reqVO;
     }
