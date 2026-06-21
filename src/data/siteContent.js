@@ -1,3 +1,4 @@
+import brandLogo from '../../assets/brand/LOGO/星河寻境.png';
 import homeReference from '../../assets/references/Web_V3/ChatGPT Image 2026年6月21日 01_10_54 (1).png';
 import capabilityReference from '../../assets/references/Web_V3/ChatGPT Image 2026年6月21日 01_10_55 (2).png';
 import scenarioReference from '../../assets/references/Web_V3/ChatGPT Image 2026年6月21日 01_10_55 (3).png';
@@ -13,7 +14,7 @@ export const brand = {
   name: '星河寻境',
   subtitle: '地方 AI 文旅内容运营平台',
   slogan: '智联山河 · 寻境未来',
-  logo: '/favicon.svg'
+  logo: brandLogo
 };
 
 export const visualReferences = {

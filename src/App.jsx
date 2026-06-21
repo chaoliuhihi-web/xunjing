@@ -68,6 +68,16 @@ const iconMap = {
   chart: BarChart3
 };
 
+const pageHeroBadges = {
+  home: ['文旅内容中台', 'AI 智能运营', '一体化生态'],
+  capabilities: ['平台能力网格', 'AI 生成效率', '持续增长看板'],
+  scenarios: ['景区导览', '扫码伴读', '研学传播'],
+  solutions: ['文旅局方案', '景区方案', '博物馆方案'],
+  pilots: ['样板交付', '方法论复用', '多地复制'],
+  travelogue: ['智能拍摄', '内容复用', '分享闭环'],
+  about: ['品牌资产', '产品交付', '长期运营']
+};
+
 const validPages = new Set(navItems.map((item) => item.page));
 
 function routeFromHash() {
@@ -157,6 +167,7 @@ function Hero({ pageKey, eyebrow, title, desc, primary = '预约演示', seconda
     travelogue: visualReferences.travelogue,
     about: visualReferences.home
   };
+  const badges = pageHeroBadges[pageKey] || [];
 
   return (
     <section className={`hero hero--${pageKey}`}>
@@ -166,10 +177,18 @@ function Hero({ pageKey, eyebrow, title, desc, primary = '预约演示', seconda
         <span className="mist mist--a" />
         <span className="mist mist--b" />
       </div>
+      <span className="hero-glow-ring" aria-hidden="true" />
       <div className="hero-copy">
         {eyebrow ? <p className="hero-eyebrow">{eyebrow}</p> : null}
         <h1>{title}</h1>
         <p>{desc}</p>
+        <div className="hero-badges" aria-label="核心能力">
+          {badges.map((badge) => (
+            <span className="hero-badge" key={badge}>
+              {badge}
+            </span>
+          ))}
+        </div>
         <div className="hero-actions">
           <button className="primary-button" type="button" onClick={onDemo}>
             {primary}
