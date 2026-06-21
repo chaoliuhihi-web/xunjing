@@ -12,6 +12,7 @@ const tempDirs = []
 function stagingEnv(overrides = {}) {
   return {
     SPRING_PROFILES_ACTIVE: 'staging',
+    XUNJING_TENANT_ID: '1',
     MYSQL_HOST: '127.0.0.1',
     MYSQL_PORT: '3306',
     MYSQL_DATABASE: 'yudao_xinghe_xunjing',
@@ -41,6 +42,16 @@ function stagingEnv(overrides = {}) {
 
 async function startPlatformFixture() {
   const server = http.createServer(async (req, res) => {
+    const requireTenant = () => {
+      if (req.headers['tenant-id'] === '1') {
+        return true
+      }
+      res.statusCode = 400
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify({ code: 400, msg: 'tenant-id required' }))
+      return false
+    }
+
     if (req.url === '/admin/' || req.url === '/admin') {
       res.setHeader('Content-Type', 'text/html; charset=utf-8')
       res.end('<!doctype html><title>Yudao Admin</title><main>星河寻境工作台</main>')
@@ -48,6 +59,7 @@ async function startPlatformFixture() {
     }
 
     if (req.url === '/app-api/xunjing/resource/package?packageCode=KASHGAR-MAP-001') {
+      if (!requireTenant()) return
       res.setHeader('Content-Type', 'application/json')
       res.end(JSON.stringify({
         code: 0,
@@ -61,6 +73,7 @@ async function startPlatformFixture() {
     }
 
     if (req.url === '/app-api/xunjing/public-report/summary?packageCode=KASHGAR-MAP-001') {
+      if (!requireTenant()) return
       res.setHeader('Content-Type', 'application/json')
       res.end(JSON.stringify({
         code: 0,
@@ -73,6 +86,7 @@ async function startPlatformFixture() {
     }
 
     if (req.url === '/app-api/xunjing/ai/chat' && req.method === 'POST') {
+      if (!requireTenant()) return
       req.resume()
       await once(req, 'end')
       res.setHeader('Content-Type', 'application/json')

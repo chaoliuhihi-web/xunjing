@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url'
 
 const requiredEnvKeys = [
   'SPRING_PROFILES_ACTIVE',
+  'XUNJING_TENANT_ID',
   'MYSQL_HOST',
   'MYSQL_PORT',
   'MYSQL_DATABASE',
@@ -149,6 +150,13 @@ async function fetchJson(url, options = {}, fetchImpl = fetch) {
   return JSON.parse(body)
 }
 
+function tenantHeaders(tenantId, extraHeaders = {}) {
+  return {
+    ...extraHeaders,
+    'tenant-id': String(tenantId)
+  }
+}
+
 async function checkLiveAdmin(baseUrl, fetchImpl) {
   const response = await fetchImpl(new URL('/admin/', baseUrl))
   const body = await response.text()
@@ -158,10 +166,10 @@ async function checkLiveAdmin(baseUrl, fetchImpl) {
   return pass('live-admin', 'admin console is reachable')
 }
 
-async function checkLiveResourcePackage(baseUrl, fetchImpl) {
+async function checkLiveResourcePackage(baseUrl, fetchImpl, tenantId) {
   const json = await fetchJson(
     new URL('/app-api/xunjing/resource/package?packageCode=KASHGAR-MAP-001', baseUrl),
-    {},
+    { headers: tenantHeaders(tenantId) },
     fetchImpl
   )
   if (json.code !== 0 || json.data?.packageCode !== 'KASHGAR-MAP-001') {
@@ -170,10 +178,10 @@ async function checkLiveResourcePackage(baseUrl, fetchImpl) {
   return pass('live-resource-package', 'Kashgar resource package endpoint is reachable')
 }
 
-async function checkLivePublicReport(baseUrl, fetchImpl) {
+async function checkLivePublicReport(baseUrl, fetchImpl, tenantId) {
   const json = await fetchJson(
     new URL('/app-api/xunjing/public-report/summary?packageCode=KASHGAR-MAP-001', baseUrl),
-    {},
+    { headers: tenantHeaders(tenantId) },
     fetchImpl
   )
   if (json.code !== 0 || json.data?.p0Ready !== true) {
@@ -182,12 +190,12 @@ async function checkLivePublicReport(baseUrl, fetchImpl) {
   return pass('live-public-report', 'public report summary is P0 ready')
 }
 
-async function checkLiveAiChat(baseUrl, fetchImpl) {
+async function checkLiveAiChat(baseUrl, fetchImpl, tenantId) {
   const json = await fetchJson(
     new URL('/app-api/xunjing/ai/chat', baseUrl),
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: tenantHeaders(tenantId, { 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         packageCode: 'KASHGAR-MAP-001',
         question: '喀什古城适合如何研学讲解？'
@@ -238,6 +246,7 @@ export async function verifyXunjingPlatformReadiness({
   baseUrl,
   includeAiCheck = false,
   staticOnly = false,
+  tenantId,
   rootDir = process.cwd(),
   fetchImpl = fetch
 } = {}) {
@@ -252,11 +261,12 @@ export async function verifyXunjingPlatformReadiness({
   }
 
   if (baseUrl && !staticOnly) {
+    const liveTenantId = tenantId || env.XUNJING_TENANT_ID || '1'
     checks.push(await checkLiveAdmin(baseUrl, fetchImpl))
-    checks.push(await checkLiveResourcePackage(baseUrl, fetchImpl))
-    checks.push(await checkLivePublicReport(baseUrl, fetchImpl))
+    checks.push(await checkLiveResourcePackage(baseUrl, fetchImpl, liveTenantId))
+    checks.push(await checkLivePublicReport(baseUrl, fetchImpl, liveTenantId))
     if (includeAiCheck) {
-      checks.push(await checkLiveAiChat(baseUrl, fetchImpl))
+      checks.push(await checkLiveAiChat(baseUrl, fetchImpl, liveTenantId))
     }
   }
 
@@ -292,6 +302,7 @@ async function runCli() {
     baseUrl: readArgValue(args, '--base-url') || process.env.XUNJING_BASE_URL || undefined,
     includeAiCheck: args.includes('--include-ai-check') || process.env.XUNJING_INCLUDE_AI_CHECK === '1',
     staticOnly,
+    tenantId: readArgValue(args, '--tenant-id') || env.XUNJING_TENANT_ID || undefined,
     rootDir: readArgValue(args, '--root') || process.cwd()
   })
   console.log(JSON.stringify(result, null, 2))
