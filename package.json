@@ -15,6 +15,7 @@
     "deploy:verify": "node scripts/verify-deployment.mjs",
     "xunjing:platform:verify": "node scripts/verify-xunjing-platform-readiness.mjs",
     "xunjing:platform:verify:static": "node scripts/verify-xunjing-platform-readiness.mjs --static",
+    "xunjing:yudao:release:gate": "node scripts/verify-xicheng-yudao-release-readiness.mjs",
     "xunjing:ai:bootstrap": "node scripts/bootstrap-yudao-ai-model.mjs",
     "xunjing:platform:deps:config": "docker compose -f ops/xunjing-platform.compose.yml --env-file ops/xunjing-platform.env.example config",
     "xunjing:platform:deps:up": "docker compose -f ops/xunjing-platform.compose.yml --env-file ops/xunjing-platform.env up -d",

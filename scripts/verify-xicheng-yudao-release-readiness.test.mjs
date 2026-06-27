@@ -1,0 +1,175 @@
+import { mkdtemp, mkdir, rm, writeFile, readFile } from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
+import { afterEach, describe, expect, test } from 'vitest'
+import { loadEnvFile } from './verify-xunjing-platform-readiness.mjs'
+import {
+  verifyXichengYudaoReleaseReadiness
+} from './verify-xicheng-yudao-release-readiness.mjs'
+
+const tempDirs = []
+
+function productionEnv(overrides = {}) {
+  return {
+    SPRING_PROFILES_ACTIVE: 'production',
+    XUNJING_TENANT_ID: '1001',
+    XUNJING_APP_API_BASE_URL: 'https://xunjing-api.xingheai.net',
+    MYSQL_HOST: 'xunjing-prod-mysql.internal',
+    MYSQL_PORT: '3306',
+    MYSQL_DATABASE: 'yudao_xinghe_xunjing_prod',
+    MYSQL_USERNAME: 'xunjing_prod',
+    MYSQL_PASSWORD: 'prod-db-password',
+    REDIS_HOST: 'xunjing-prod-redis.internal',
+    REDIS_PORT: '6379',
+    REDIS_DATABASE: '0',
+    REDIS_PASSWORD: 'prod-redis-password',
+    OSS_ENDPOINT: 'https://oss-cn-beijing.aliyuncs.com',
+    OSS_BUCKET: 'xinghe-xunjing-prod',
+    OSS_PREFIX: 'xinghe-xunjing/production/',
+    OSS_ACCESS_KEY: 'prod-oss-access-key',
+    OSS_SECRET_KEY: 'prod-oss-secret-key',
+    QDRANT_URL: 'http://xunjing-prod-qdrant.internal:6333',
+    QDRANT_HOST: 'xunjing-prod-qdrant.internal',
+    QDRANT_GRPC_PORT: '6334',
+    QDRANT_TEXT_COLLECTION: 'xinghe_xunjing_text_production',
+    QDRANT_IMAGE_COLLECTION: 'xinghe_xunjing_image_production',
+    QWEN_API_KEY: 'prod-qwen-api-key',
+    QWEN_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    QWEN_MODEL: 'qwen-plus',
+    DASHSCOPE_API_KEY: 'prod-dashscope-api-key',
+    WX_MP_APP_ID: 'wx-prod-mp-appid',
+    WX_MP_SECRET: 'wx-prod-mp-secret',
+    WX_MINIAPP_APPID: 'wx-prod-miniapp-appid',
+    WX_MINIAPP_SECRET: 'wx-prod-miniapp-secret',
+    XUNJING_VISION_API_URL: 'https://vision.xingheai.net/xunjing/recognize',
+    XUNJING_VISION_API_KEY: 'prod-vision-api-key',
+    XUNJING_VISION_MODEL: 'xunjing-ocr-vision-prod',
+    INTERNAL_AUTH_TOKEN: 'prod-internal-auth-token',
+    ...overrides
+  }
+}
+
+async function createProductionReadyFixture() {
+  const rootDir = await mkdtemp(path.join(os.tmpdir(), 'xicheng-release-ready-'))
+  tempDirs.push(rootDir)
+  const sqlDir = path.join(rootDir, 'backend/yudao/sql/mysql')
+  await mkdir(sqlDir, { recursive: true })
+
+  await writeFile(
+    path.join(sqlDir, 'ruoyi-vue-pro.sql'),
+    [
+      'CREATE TABLE `system_users` (`id` bigint);',
+      'CREATE TABLE `system_tenant` (`id` bigint);',
+      'CREATE TABLE `system_menu` (`id` bigint);',
+      'CREATE TABLE `system_oauth2_client` (`id` bigint);',
+      'CREATE TABLE `infra_api_access_log` (`id` bigint);'
+    ].join('\n')
+  )
+
+  const poiRows = Array.from({ length: 80 }, (_, index) => {
+    const suffix = String(index + 1).padStart(3, '0')
+    const code = `xicheng-prod-poi-${suffix}`
+    return [
+      `(@map_package_id, '${code}', 'beijing-xicheng', 'Production POI ${suffix}', 'Production POI ${suffix}', '["Production POI ${suffix}","Alias ${suffix}"]', 'museum', 'P0', 'Beijing Xicheng', 39.9000000, 116.3000000, 'GCJ02',`,
+      " JSON_OBJECT('geo','field_verified','content','authorized_source','sourceUrl',@xicheng_source_url,'licenseStatus','APPROVED'),",
+      ` '{"gpsRadiusMeters":180,"ocrKeywords":["Production POI ${suffix}"],"photoLabels":["museum","xicheng"],"minConfidence":0.85}',`,
+      ` '{"poiId":"${code}","regionCode":"beijing-xicheng","packageCode":"XICHENG-MAP-001","reviewStatus":"APPROVED","geoStatus":"APPROVED","licenseStatus":"APPROVED","shortIntro":"Reviewed production source.","recommendedQuestions":["What is this POI?"]}',`,
+      " 'APPROVED', 'APPROVED', 'APPROVED', 'PUBLISHED', 'admin', NOW(), 'admin', NOW(), b'0', @tenant_id)"
+    ].join('')
+  }).join(',\n')
+
+  await writeFile(
+    path.join(sqlDir, 'xunjing-seed-xicheng-p0.sql'),
+    [
+      'SET @xicheng_source_url := "https://www.bjxch.gov.cn/reviewed-source";',
+      'INSERT INTO `xunjing_poi` VALUES',
+      `${poiRows};`,
+      'INSERT INTO `xunjing_resource_package` (`readiness_json`) VALUES (\'{"p0Ready":true,"productionReady":true,"regionCode":"beijing-xicheng","packageCode":"XICHENG-MAP-001","poiSeedCount":80,"targetP0PoiCount":80}\');',
+      "INSERT INTO `xunjing_knowledge_document` (`title`, `source_url`, `review_status`, `index_status`) SELECT CONCAT(`name`, ' POI production source'), CONCAT(@xicheng_source_url, '#', `poi_code`), 'APPROVED', 'INDEXED' FROM `xunjing_poi`;"
+    ].join('\n')
+  )
+
+  return rootDir
+}
+
+afterEach(async () => {
+  while (tempDirs.length > 0) {
+    await rm(tempDirs.pop(), { recursive: true, force: true })
+  }
+})
+
+describe('xicheng Yudao release readiness gate', () => {
+  test('keeps the current repo NOT_READY for production until full baseline and reviewed POIs exist', async () => {
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir: process.cwd(),
+      stage: 'production'
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    expect(result.checks.find((check) => check.name === 'full-yudao-baseline')?.ok).toBe(false)
+    expect(result.checks.find((check) => check.name === 'xicheng-production-poi')?.detail).toContain('24/80')
+    expect(result.checks.find((check) => check.name === 'xicheng-source-license')?.ok).toBe(false)
+    expect(result.blockers).toEqual(expect.arrayContaining([
+      expect.stringContaining('complete Yudao baseline'),
+      expect.stringContaining('80 reviewed Xicheng POIs')
+    ]))
+  })
+
+  test('rejects local candidate env placeholders and missing external service evidence', async () => {
+    const env = await loadEnvFile('ops/xunjing-platform.env.example')
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env,
+      rootDir: process.cwd(),
+      stage: 'production'
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    expect(result.checks.find((check) => check.name === 'runtime-env')?.ok).toBe(false)
+    expect(result.checks.find((check) => check.name === 'https-app-api-domain')?.ok).toBe(false)
+    expect(result.checks.find((check) => check.name === 'real-wechat-app')?.ok).toBe(false)
+    expect(result.checks.find((check) => check.name === 'vision-ocr-service')?.ok).toBe(false)
+    expect(result.checks.find((check) => check.name === 'real-ai-provider')?.ok).toBe(false)
+    expect(result.blockers.join('\n')).toContain('SPRING_PROFILES_ACTIVE must be production')
+    expect(result.blockers.join('\n')).toContain('WX_MINIAPP_APPID')
+  })
+
+  test('returns production candidate only when env, full baseline and 80 approved POIs are present', async () => {
+    const rootDir = await createProductionReadyFixture()
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production'
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.status).toBe('PRODUCTION_READY_CANDIDATE')
+    expect(result.blockers).toEqual([])
+    expect(result.checks.map((check) => check.name)).toEqual([
+      'runtime-env',
+      'https-app-api-domain',
+      'real-wechat-app',
+      'real-ai-provider',
+      'vision-ocr-service',
+      'object-storage',
+      'full-yudao-baseline',
+      'xicheng-production-poi',
+      'xicheng-source-license'
+    ])
+  })
+
+  test('is documented as an npm release gate without storing secrets', async () => {
+    const packageJson = JSON.parse(await readFile('package.json', 'utf8'))
+    const deployDoc = await readFile('docs/02_开发规划/星河寻境业务平台部署说明.md', 'utf8')
+
+    expect(packageJson.scripts['xunjing:yudao:release:gate']).toBe(
+      'node scripts/verify-xicheng-yudao-release-readiness.mjs'
+    )
+    expect(deployDoc).toContain('npm run xunjing:yudao:release:gate')
+    expect(deployDoc).toContain('PRODUCTION_READY_CANDIDATE')
+  })
+})
