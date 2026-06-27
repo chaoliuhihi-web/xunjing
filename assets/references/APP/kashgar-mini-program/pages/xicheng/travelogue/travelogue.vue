@@ -322,6 +322,35 @@
 import { XICHENG_OFFICIAL_POIS, XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import { requestCurrentLocationForTrigger } from '@/request/xunjing/trigger.js'
 
+export const hasXichengTravelogueDraftEvidence = ({
+	materials = [],
+	recordingSession = null,
+	studyTaskEvidence = [],
+	routeRecommendation = null
+} = {}) => {
+	const hasMaterialEvidence = Array.isArray(materials) && materials.some(material => {
+		if (!material) return false
+		return Boolean(
+			material.poiCode
+			|| material.poiName
+			|| material.remarkText
+			|| material.imagePath
+			|| material.routeRecommendation
+			|| ['photo', 'remark', 'manual-entry'].includes(material.type)
+		)
+	})
+	const hasTrackEvidence = Boolean(recordingSession && (
+		(Array.isArray(recordingSession.trackPoints) && recordingSession.trackPoints.length > 0)
+		|| (Array.isArray(recordingSession.stayPoints) && recordingSession.stayPoints.length > 0)
+	))
+	const hasStudyEvidence = Array.isArray(studyTaskEvidence) && studyTaskEvidence.some(evidence => evidence && evidence.completedAt)
+	const hasRouteEvidence = Boolean(routeRecommendation && (
+		routeRecommendation.title
+		|| (Array.isArray(routeRecommendation.stops) && routeRecommendation.stops.length > 0)
+	))
+	return hasMaterialEvidence || hasTrackEvidence || hasStudyEvidence || hasRouteEvidence
+}
+
 export const createXichengTravelogueDraft = ({
 	materials = [],
 	parentChildTasks = XICHENG_REGION_CONFIG.parentChildTasks,
@@ -329,6 +358,14 @@ export const createXichengTravelogueDraft = ({
 	recordingSession = null,
 	studyTaskEvidence = []
 } = {}) => {
+	if (!hasXichengTravelogueDraftEvidence({
+		materials,
+		routeRecommendation,
+		recordingSession,
+		studyTaskEvidence
+	})) {
+		return `请先通过识别、开始记录、补充照片或现场备注积累真实素材，再生成西城游记草稿。小京会基于真实照片、轨迹、识别事件、停留点、研学任务证据和用户备注整理内容，不会替用户编造路线。`
+	}
 	const poiNames = Array.from(new Set(
 		materials
 			.map(material => material && material.poiName ? material.poiName : '')
@@ -342,7 +379,7 @@ export const createXichengTravelogueDraft = ({
 		: 0
 	const routeText = routeRecommendation && routeRecommendation.title
 		? routeRecommendation.title
-		: poiNames.length > 0 ? poiNames.join('、') : '白塔寺、西四街巷、什刹海'
+		: poiNames.length > 0 ? poiNames.join('、') : '本次西城 Citywalk'
 	const taskText = parentChildTasks.length > 0 ? parentChildTasks.slice(0, 2).join('；') : '完成现场观察'
 	const photoCount = materials.filter(material => material && material.type === 'photo').length
 	const remarkTexts = materials
