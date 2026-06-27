@@ -419,6 +419,10 @@ describe('xunjing platform readiness verifier', () => {
     })
 
     expect(result.ok).toBe(true)
+    expect(result.summary).toMatchObject({
+      xichengRegionCode: 'beijing-xicheng',
+      xichengPackageCode: 'XICHENG-MAP-001'
+    })
     expect(result.checks.map((check) => check.name)).toContain('live-xicheng-trigger-baitasi')
     expect(result.checks.map((check) => check.name)).toContain('live-xicheng-trigger-gongwangfu')
     expect(result.checks.map((check) => check.name)).toContain('live-xicheng-trigger-planetarium')
@@ -435,6 +439,10 @@ describe('xunjing platform readiness verifier', () => {
     })
 
     expect(result.ok).toBe(true)
+    expect(result.summary).toMatchObject({
+      xichengRegionCode: 'beijing-xicheng',
+      xichengPackageCode: 'XICHENG-MAP-001'
+    })
     expect(result.checks.map((check) => check.name)).toContain('live-xicheng-scan-resolve')
     expect(result.checks.map((check) => check.name)).toContain('live-xicheng-error-feedback')
     expect(result.checks.map((check) => check.name)).toContain('live-xicheng-ai-chat-sourced')

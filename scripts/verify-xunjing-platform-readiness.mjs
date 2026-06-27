@@ -921,6 +921,12 @@ export async function verifyXunjingPlatformReadiness({
       includeAiCheck,
       includeXichengAppCheck,
       includeXichengTriggerCheck,
+      ...(includeXichengAppCheck || includeXichengTriggerCheck
+        ? {
+            xichengRegionCode: 'beijing-xicheng',
+            xichengPackageCode: 'XICHENG-MAP-001'
+          }
+        : {}),
       includeWriteCheck,
       totalChecks: checks.length,
       passedChecks: checks.filter((check) => check.ok).length,

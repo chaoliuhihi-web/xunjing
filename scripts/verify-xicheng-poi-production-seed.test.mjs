@@ -166,6 +166,8 @@ describe('xicheng POI production seed SQL gate', () => {
       poiCount: 80,
       minPoiCount: 80,
       productionReady: true,
+      regionCode: 'beijing-xicheng',
+      packageCode: 'XICHENG-MAP-001',
       reviewBatchCode: 'xicheng-p0-poi-review-20260627',
       reviewBatchEvidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260627.zip',
       sqlFile: sqlPath
@@ -217,6 +219,8 @@ INSERT INTO \`xunjing_public_report\` (\`metrics_json\`) VALUES ('{"productionRe
     expect(evidence.blockers.join('\n')).toContain('seed SQL must fail fast when XICHENG-MAP-001 package is missing')
     expect(evidence.blockers.join('\n')).toContain('seed SQL must not contain REVIEW_REQUIRED or DRAFT')
     expect(evidence.blockers.join('\n')).toContain('production metrics must include "productionReady":true')
+    expect(evidence.blockers.join('\n')).toContain('production metrics must include regionCode=beijing-xicheng')
+    expect(evidence.blockers.join('\n')).toContain('production metrics must include packageCode=XICHENG-MAP-001')
     expect(evidence.blockers.join('\n')).toContain('production metrics must include reviewBatchCode')
     expect(evidence.blockers.join('\n')).toContain('production metrics must include reviewBatchEvidencePackageRef')
     expect(evidence.blockers.join('\n')).toContain('seed SQL must include approved field evidence for each production POI')

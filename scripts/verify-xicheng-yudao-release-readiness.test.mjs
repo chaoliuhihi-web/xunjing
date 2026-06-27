@@ -211,6 +211,8 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
       productionReady: true,
       poiSeedCount: 80,
       targetP0PoiCount: 80,
+      regionCode: 'beijing-xicheng',
+      packageCode: 'XICHENG-MAP-001',
       reviewBatchCode: 'xicheng-p0-poi-review-20260627',
       reviewBatchEvidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260627.zip'
     },
@@ -468,6 +470,33 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence must include review-batch-metrics')
     expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence reviewBatchCode is required')
     expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence reviewBatchEvidencePackageRef must be a non-local evidence package reference')
+  })
+
+  test('fails closed when seed evidence does not declare the Xicheng region and package', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir, {
+      seed: {
+        summary: {
+          regionCode: undefined,
+          packageCode: undefined
+        }
+      }
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(evidenceCheck?.ok).toBe(false)
+    expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence regionCode must be beijing-xicheng')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence packageCode must be XICHENG-MAP-001')
   })
 
   test('fails closed when POI evidence is older than the release freshness window', async () => {

@@ -61,6 +61,9 @@ const requiredSeedEvidenceChecks = [
   'source-documents'
 ]
 
+const expectedXichengRegionCode = 'beijing-xicheng'
+const expectedXichengPackageCode = 'XICHENG-MAP-001'
+
 function check(name, blockers) {
   return {
     name,
@@ -390,6 +393,12 @@ async function checkSeedEvidence(ref, rootDir, freshnessOptions) {
   if (summary.productionReady !== true) {
     blockers.push('seed evidence productionReady must be true')
   }
+  if (summary.regionCode !== expectedXichengRegionCode) {
+    blockers.push('seed evidence regionCode must be beijing-xicheng')
+  }
+  if (summary.packageCode !== expectedXichengPackageCode) {
+    blockers.push('seed evidence packageCode must be XICHENG-MAP-001')
+  }
   blockers.push(...checkReviewBatchSummary(summary, 'seed'))
   blockers.push(...await checkEvidenceSourceHash(rootDir, evidence, 'seed', 'sqlFile', 'sqlSha256'))
   blockers.push(...checkEvidenceChecks(evidence, requiredSeedEvidenceChecks, 'seed'))
@@ -409,6 +418,8 @@ function checkAppReadinessEvidence(ref, stage, freshnessOptions) {
   const summary = summaryOf(evidence)
   const baseUrl = summary.baseUrl || evidence.baseUrl
   const tenantId = String(summary.tenantId || evidence.tenantId || '').trim()
+  const xichengRegionCode = summary.xichengRegionCode || evidence.xichengRegionCode
+  const xichengPackageCode = summary.xichengPackageCode || evidence.xichengPackageCode
   if (evidence.artifactType !== 'xunjing-platform-readiness') {
     blockers.push('app readiness evidence artifactType must be xunjing-platform-readiness')
   }
@@ -422,6 +433,12 @@ function checkAppReadinessEvidence(ref, stage, freshnessOptions) {
   if (!isNonLocalHttpsUrl(baseUrl)) {
     blockers.push(`app readiness evidence baseUrl must be a non-local HTTPS URL for ${stage}`)
   }
+  if (xichengRegionCode !== expectedXichengRegionCode) {
+    blockers.push('app readiness evidence xichengRegionCode must be beijing-xicheng')
+  }
+  if (xichengPackageCode !== expectedXichengPackageCode) {
+    blockers.push('app readiness evidence xichengPackageCode must be XICHENG-MAP-001')
+  }
   blockers.push(...checkEvidenceChecks(evidence, requiredAppReadinessChecks, 'app readiness'))
   const failedChecks = Array.isArray(evidence.checks)
     ? evidence.checks.filter((item) => item.ok !== true)
@@ -430,6 +447,57 @@ function checkAppReadinessEvidence(ref, stage, freshnessOptions) {
     blockers.push(`app readiness evidence has failed checks: ${failedChecks.map((item) => item.name).join(', ')}`)
   }
   return check('app-readiness-evidence', blockers)
+}
+
+function checkEvidenceConsistency({ manifestRef, seedRef, appRef }) {
+  const blockers = []
+  const manifestSummary = summaryOf(manifestRef.data)
+  const seedSummary = summaryOf(seedRef.data)
+  const appSummary = summaryOf(appRef.data)
+
+  if (
+    manifestSummary.regionCode &&
+    seedSummary.regionCode &&
+    manifestSummary.regionCode !== seedSummary.regionCode
+  ) {
+    blockers.push('manifest and seed evidence regionCode must match')
+  }
+  if (
+    manifestSummary.packageCode &&
+    seedSummary.packageCode &&
+    manifestSummary.packageCode !== seedSummary.packageCode
+  ) {
+    blockers.push('manifest and seed evidence packageCode must match')
+  }
+  if (
+    manifestSummary.reviewBatchCode &&
+    seedSummary.reviewBatchCode &&
+    manifestSummary.reviewBatchCode !== seedSummary.reviewBatchCode
+  ) {
+    blockers.push('manifest and seed evidence reviewBatchCode must match')
+  }
+  if (
+    manifestSummary.reviewBatchEvidencePackageRef &&
+    seedSummary.reviewBatchEvidencePackageRef &&
+    manifestSummary.reviewBatchEvidencePackageRef !== seedSummary.reviewBatchEvidencePackageRef
+  ) {
+    blockers.push('manifest and seed evidence reviewBatchEvidencePackageRef must match')
+  }
+  if (
+    appSummary.xichengRegionCode &&
+    manifestSummary.regionCode &&
+    appSummary.xichengRegionCode !== manifestSummary.regionCode
+  ) {
+    blockers.push('app readiness and manifest evidence regionCode must match')
+  }
+  if (
+    appSummary.xichengPackageCode &&
+    manifestSummary.packageCode &&
+    appSummary.xichengPackageCode !== manifestSummary.packageCode
+  ) {
+    blockers.push('app readiness and manifest evidence packageCode must match')
+  }
+  return check('evidence-consistency', blockers)
 }
 
 function collectStringValues(value, results = []) {
@@ -509,6 +577,7 @@ export async function verifyXichengReleaseEvidencePackage({
     await checkManifestEvidence(manifestRef, rootDir, freshnessOptions),
     await checkSeedEvidence(seedRef, rootDir, freshnessOptions),
     checkAppReadinessEvidence(appRef, normalizedStage, freshnessOptions),
+    checkEvidenceConsistency({ manifestRef, seedRef, appRef }),
     checkSecretSafety(evidenceRefs)
   ]
   const blockers = checks.flatMap((item) => item.blockers)
@@ -525,6 +594,9 @@ export async function verifyXichengReleaseEvidencePackage({
       poiManifestStatus: manifestRef.data?.status,
       poiSeedStatus: seedRef.data?.status,
       appReadinessCheckCount: countOkChecks(appRef.data),
+      xichengRegionCode: summaryOf(manifestRef.data).regionCode,
+      xichengPackageCode: summaryOf(manifestRef.data).packageCode,
+      reviewBatchCode: summaryOf(manifestRef.data).reviewBatchCode,
       totalChecks: checks.length,
       passedChecks: checks.filter((item) => item.ok).length,
       failedChecks: checks.filter((item) => !item.ok).length,

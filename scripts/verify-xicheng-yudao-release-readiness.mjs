@@ -9,6 +9,8 @@ const productionPoiTarget = 80
 const allowedEvidenceDirs = new Set(['qa', 'tmp', 'workbench'])
 const defaultMaxEvidenceAgeHours = 24
 const allowedClockSkewMs = 5 * 60 * 1000
+const expectedXichengRegionCode = 'beijing-xicheng'
+const expectedXichengPackageCode = 'XICHENG-MAP-001'
 
 const requiredManifestEvidenceChecks = [
   'manifest-shape',
@@ -542,6 +544,12 @@ async function validateSeedEvidence(ref, rootDir, freshnessOptions) {
   }
   if (summary.productionReady !== true) {
     blockers.push('seed evidence productionReady must be true')
+  }
+  if (summary.regionCode !== expectedXichengRegionCode) {
+    blockers.push('seed evidence regionCode must be beijing-xicheng')
+  }
+  if (summary.packageCode !== expectedXichengPackageCode) {
+    blockers.push('seed evidence packageCode must be XICHENG-MAP-001')
   }
   blockers.push(...checkReviewBatchSummary(summary, 'seed'))
   blockers.push(...checkEvidenceChecks(evidence, requiredSeedEvidenceChecks, 'seed'))

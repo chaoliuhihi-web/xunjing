@@ -199,6 +199,8 @@ function seedEvidence(overrides = {}) {
       productionReady: true,
       poiSeedCount: 80,
       targetP0PoiCount: 80,
+      regionCode: 'beijing-xicheng',
+      packageCode: 'XICHENG-MAP-001',
       reviewBatchCode: 'xicheng-p0-poi-review-20260627',
       reviewBatchEvidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260627.zip'
     },
@@ -225,7 +227,9 @@ function appReadinessEvidence(overrides = {}) {
     checkedAt: freshCheckedAt(),
     summary: {
       baseUrl: 'https://xunjing-api.xingheai.net',
-      tenantId: '1'
+      tenantId: '1',
+      xichengRegionCode: 'beijing-xicheng',
+      xichengPackageCode: 'XICHENG-MAP-001'
     },
     checks: [
       { name: 'live-xicheng-scan-resolve', ok: true },
@@ -282,6 +286,9 @@ describe('xicheng release evidence package gate', () => {
       stage: 'production',
       releaseStatus: 'PRODUCTION_READY_CANDIDATE',
       appReadinessCheckCount: 7,
+      xichengRegionCode: 'beijing-xicheng',
+      xichengPackageCode: 'XICHENG-MAP-001',
+      reviewBatchCode: 'xicheng-p0-poi-review-20260627',
       blockerCount: 0
     })
     expect(report.checks.map((check) => check.name)).toEqual([
@@ -289,6 +296,7 @@ describe('xicheng release evidence package gate', () => {
       'poi-manifest-evidence',
       'poi-seed-evidence',
       'app-readiness-evidence',
+      'evidence-consistency',
       'secret-safety'
     ])
     expect(report.blockers).toEqual([])
@@ -441,6 +449,38 @@ describe('xicheng release evidence package gate', () => {
     const report = JSON.parse(result.stdout)
     expect(report.status).toBe('NOT_READY')
     expect(report.blockers.join('\n')).toContain('release evidence must include vector-embedding-runtime')
+  })
+
+  test('fails closed when APP, manifest and seed evidence do not describe the same Xicheng batch', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir, {
+      summary: {
+        reviewBatchCode: 'xicheng-p0-poi-review-20260628',
+        reviewBatchEvidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260628.zip'
+      }
+    })
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+    const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath,
+      '--evidence-file', 'tmp/xicheng-release-evidence-package.json'
+    ])
+
+    expect(result.status).toBe(1)
+    const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
+    expect(evidence.status).toBe('NOT_READY')
+    expect(evidence.checks.map((check) => check.name)).toContain('evidence-consistency')
+    expect(evidence.blockers.join('\n')).toContain(
+      'manifest and seed evidence reviewBatchCode must match'
+    )
   })
 
   test('fails closed when release evidence lacks Yudao baseline hash metadata', async () => {

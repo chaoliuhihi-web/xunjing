@@ -188,8 +188,16 @@ function checkProductionMetrics(sql, minPoiCount) {
   const blockers = []
   const poiSeedCount = extractNumberMetric(sql, 'poiSeedCount')
   const targetP0PoiCount = extractNumberMetric(sql, 'targetP0PoiCount')
+  const regionCode = extractStringMetric(sql, 'regionCode')
+  const packageCode = extractStringMetric(sql, 'packageCode')
   if (!sql.includes('"productionReady":true')) {
     blockers.push('production metrics must include "productionReady":true')
+  }
+  if (regionCode !== 'beijing-xicheng') {
+    blockers.push('production metrics must include regionCode=beijing-xicheng')
+  }
+  if (packageCode !== 'XICHENG-MAP-001') {
+    blockers.push('production metrics must include packageCode=XICHENG-MAP-001')
   }
   if (!Number.isFinite(poiSeedCount) || poiSeedCount < minPoiCount) {
     blockers.push(`production metrics must include "poiSeedCount" >= ${minPoiCount}`)
@@ -299,6 +307,8 @@ export async function verifyXichengPoiProductionSeed({
       poiCount: extractPoiCodes(sql).length,
       minPoiCount: normalizedMinPoiCount,
       productionReady: sql.includes('"productionReady":true'),
+      regionCode: extractStringMetric(sql, 'regionCode'),
+      packageCode: extractStringMetric(sql, 'packageCode'),
       poiSeedCount: extractNumberMetric(sql, 'poiSeedCount'),
       targetP0PoiCount: extractNumberMetric(sql, 'targetP0PoiCount'),
       reviewBatchCode: extractStringMetric(sql, 'reviewBatchCode'),
