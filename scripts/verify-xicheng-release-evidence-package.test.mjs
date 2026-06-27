@@ -247,6 +247,9 @@ function appReadinessEvidence(overrides = {}) {
     summary: {
       baseUrl: 'https://xunjing-api.xingheai.net',
       tenantId: '1',
+      staticOnly: false,
+      includeXichengAppCheck: true,
+      includeXichengTriggerCheck: true,
       xichengRegionCode: 'beijing-xicheng',
       xichengPackageCode: 'XICHENG-MAP-001'
     },
@@ -746,6 +749,38 @@ describe('xicheng release evidence package gate', () => {
     expect(evidence.blockers.join('\n')).toContain('app readiness evidence tenantId is required')
   })
 
+  test('fails closed when APP readiness evidence was not generated with live Xicheng checks', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence({
+      summary: {
+        staticOnly: true,
+        includeXichengAppCheck: false,
+        includeXichengTriggerCheck: false
+      }
+    }))
+    const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath,
+      '--evidence-file', 'tmp/xicheng-release-evidence-package.json'
+    ])
+
+    expect(result.status).toBe(1)
+    const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
+    expect(evidence.status).toBe('NOT_READY')
+    expect(evidence.blockers.join('\n')).toContain('app readiness evidence staticOnly must be false')
+    expect(evidence.blockers.join('\n')).toContain('app readiness evidence includeXichengAppCheck must be true')
+    expect(evidence.blockers.join('\n')).toContain('app readiness evidence includeXichengTriggerCheck must be true')
+  })
+
   test('fails closed when package input evidence is missing checkedAt timestamp', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeReleaseEvidenceFile(rootDir)
@@ -863,5 +898,8 @@ describe('xicheng release evidence package gate', () => {
     expect(deployDoc).toContain('XICHENG_RELEASE_EVIDENCE_PACKAGE_READY')
     expect(deployDoc).toContain('xunjing-platform-readiness')
     expect(deployDoc).toContain('summary.tenantId')
+    expect(deployDoc).toContain('summary.staticOnly=false')
+    expect(deployDoc).toContain('summary.includeXichengAppCheck=true')
+    expect(deployDoc).toContain('summary.includeXichengTriggerCheck=true')
   })
 })

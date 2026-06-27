@@ -472,6 +472,15 @@ function checkAppReadinessEvidence(ref, stage, freshnessOptions) {
   if (!isNonLocalHttpsUrl(baseUrl)) {
     blockers.push(`app readiness evidence baseUrl must be a non-local HTTPS URL for ${stage}`)
   }
+  if (summary.staticOnly !== false) {
+    blockers.push('app readiness evidence staticOnly must be false')
+  }
+  if (summary.includeXichengAppCheck !== true) {
+    blockers.push('app readiness evidence includeXichengAppCheck must be true')
+  }
+  if (summary.includeXichengTriggerCheck !== true) {
+    blockers.push('app readiness evidence includeXichengTriggerCheck must be true')
+  }
   if (xichengRegionCode !== expectedXichengRegionCode) {
     blockers.push('app readiness evidence xichengRegionCode must be beijing-xicheng')
   }
