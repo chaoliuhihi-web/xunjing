@@ -1066,6 +1066,24 @@ export default {
 				diffMs: nearest.diffMs
 			}
 		},
+		normalizeTrackPointForMaterial(point = null) {
+			if (!point) return null
+			return {
+				trackSessionId: this.recordingSession.sessionId,
+				pointType: point.pointType || 'manual',
+				capturedAt: point.capturedAt || point.recordedAt || '',
+				latitude: point.latitude,
+				longitude: point.longitude,
+				coordType: point.coordType || 'gcj02',
+				accuracyMeters: point.accuracyMeters || 0,
+				diffMs: 0
+			}
+		},
+		async capturePhotoTrackPointIfRecording() {
+			if (this.recordingSession.status !== 'recording') return null
+			const point = await this.captureTrackPoint('photo')
+			return this.normalizeTrackPointForMaterial(point)
+		},
 		addPhotoMaterial() {
 			uni.chooseImage({
 				count: 1,
@@ -1083,6 +1101,7 @@ export default {
 					const resolvedFilePath = photoFileMeta.filePath || filePath
 					const takenAt = new Date().toISOString()
 					const captureLocation = await requestCurrentLocationForTrigger()
+					const photoTrackPoint = await this.capturePhotoTrackPointIfRecording()
 					const material = {
 						photoId: `photo-${Date.now()}`,
 						type: 'photo',
@@ -1099,7 +1118,7 @@ export default {
 						takenAt,
 						exifLocation: photoFileMeta.exifLocation,
 						captureLocation: this.normalizeCaptureLocationForMaterial(captureLocation),
-						nearestTrackPoint: this.findNearestTrackPoint(takenAt),
+						nearestTrackPoint: photoTrackPoint || this.findNearestTrackPoint(takenAt),
 						sources: [],
 						capturedAt: takenAt
 					}
@@ -1518,6 +1537,7 @@ export default {
 				]
 			}
 			this.saveRecordingSession()
+			return point
 		},
 		async markStayPoint() {
 			if (this.recordingSession.status !== 'recording') return

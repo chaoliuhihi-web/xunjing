@@ -61,8 +61,8 @@ assert.match(
 
 assert.match(
   travelogue,
-  /addPhotoMaterial\(\)[\s\S]*requestCurrentLocationForTrigger\(\)[\s\S]*captureLocation:\s*this\.normalizeCaptureLocationForMaterial\(captureLocation\)[\s\S]*nearestTrackPoint:\s*this\.findNearestTrackPoint\(takenAt\)/,
-  'Adding a photo should bind the photo material to capture-time location and the nearest track point'
+  /addPhotoMaterial\(\)[\s\S]*requestCurrentLocationForTrigger\(\)[\s\S]*const photoTrackPoint = await this\.capturePhotoTrackPointIfRecording\(\)[\s\S]*captureLocation:\s*this\.normalizeCaptureLocationForMaterial\(captureLocation\)[\s\S]*nearestTrackPoint:\s*photoTrackPoint \|\| this\.findNearestTrackPoint\(takenAt\)/,
+  'Adding a photo should bind the photo material to capture-time location and prefer a forced photo track point before falling back to nearest track point'
 )
 
 assert.match(
