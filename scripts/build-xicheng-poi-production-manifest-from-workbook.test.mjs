@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -113,6 +114,10 @@ function buildWorkbookCsv() {
   return `${[workbookHeader.join(','), ...rows].join('\n')}\n`
 }
 
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex')
+}
+
 async function writeFileInRoot(rootDir, relativePath, content) {
   const filePath = path.join(rootDir, relativePath)
   await mkdir(path.dirname(filePath), { recursive: true })
@@ -149,7 +154,8 @@ afterEach(async () => {
 describe('xicheng POI production manifest workbook importer', () => {
   test('converts a reviewed workbook into a manifest accepted by the production manifest gate', async () => {
     const rootDir = await createTempRoot()
-    await writeFileInRoot(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv', buildWorkbookCsv())
+    const workbookText = buildWorkbookCsv()
+    const workbookPath = await writeFileInRoot(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv', workbookText)
     const manifestPath = path.join(rootDir, 'workbench/xicheng-production-pois.json')
 
     const result = runWorkbookImporter([
@@ -173,6 +179,8 @@ describe('xicheng POI production manifest workbook importer', () => {
       ok: true,
       status: 'PRODUCTION_MANIFEST_DRAFT_GENERATED',
       summary: {
+        workbookFile: workbookPath,
+        workbookSha256: sha256(workbookText),
         outputFile: manifestPath,
         workbookRows: 80,
         productionReady: true,
@@ -186,6 +194,12 @@ describe('xicheng POI production manifest workbook importer', () => {
       packageCode: 'XICHENG-MAP-001',
       targetP0PoiCount: 80,
       productionReady: true,
+      sourceWorkbook: {
+        workbookFile: workbookPath,
+        workbookSha256: sha256(workbookText),
+        rowCount: 80,
+        arraySeparator: '|'
+      },
       reviewBatch: {
         batchCode: 'xicheng-p0-poi-review-20260628',
         evidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260628.zip'
@@ -252,6 +266,7 @@ describe('xicheng POI production manifest workbook importer', () => {
     )
     expect(deployDoc).toContain('npm run xunjing:xicheng:poi:manifest:from-workbook')
     expect(deployDoc).toContain('--workbook workbench/xicheng-production-pois.review-workbook.csv')
+    expect(deployDoc).toContain('sourceWorkbook.workbookSha256')
     expect(statusDoc).toContain('npm run xunjing:xicheng:poi:manifest:from-workbook')
   })
 })

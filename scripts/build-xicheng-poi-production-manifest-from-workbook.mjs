@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -59,6 +60,10 @@ function readArgValue(args, name) {
 
 function hasArg(args, name) {
   return args.includes(name) || args.some((arg) => arg.startsWith(`${name}=`))
+}
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex')
 }
 
 function resolveInputFile(rootDir, inputFile, optionName) {
@@ -250,7 +255,8 @@ function buildReviewBatchFromArgs(args) {
 export function buildXichengPoiProductionManifestFromWorkbookCsv(workbookText, {
   productionReady = false,
   reviewBatch,
-  targetP0PoiCount
+  targetP0PoiCount,
+  workbookFile
 } = {}) {
   const rows = parseCsv(workbookText)
   if (rows.length === 0) {
@@ -269,6 +275,8 @@ export function buildXichengPoiProductionManifestFromWorkbookCsv(workbookText, {
     productionReady: productionReady === true,
     reviewBatch: buildReviewBatch(reviewBatch),
     sourceWorkbook: {
+      workbookFile,
+      workbookSha256: sha256(workbookText),
       rowCount: workbookRows.length,
       arraySeparator: '|'
     },
@@ -291,7 +299,8 @@ export async function writeXichengPoiProductionManifestFromWorkbook({
   const manifest = buildXichengPoiProductionManifestFromWorkbookCsv(workbookText, {
     productionReady,
     reviewBatch,
-    targetP0PoiCount
+    targetP0PoiCount,
+    workbookFile: resolvedWorkbookFile
   })
 
   await mkdir(path.dirname(resolvedOutputFile), { recursive: true })
@@ -304,6 +313,7 @@ export async function writeXichengPoiProductionManifestFromWorkbook({
     checkedAt: new Date().toISOString(),
     summary: {
       workbookFile: resolvedWorkbookFile,
+      workbookSha256: manifest.sourceWorkbook.workbookSha256,
       outputFile: resolvedOutputFile,
       workbookRows: manifest.pois.length,
       targetP0PoiCount: manifest.targetP0PoiCount,
