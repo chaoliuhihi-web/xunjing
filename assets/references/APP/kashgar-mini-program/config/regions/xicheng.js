@@ -21,6 +21,7 @@ export const XICHENG_REGION_CONFIG = Object.freeze({
 	studyTaskStorageKey: 'xicheng:studyTaskEvidence',
 	badgeAwardStorageKey: 'xicheng:badgeAwards',
 	checkinStorageKey: 'xicheng:routeCheckins',
+	inspirationImportStorageKey: 'xicheng:inspirationImports',
 	reviewStatus: {
 		draft: '草稿',
 		pending: '待审核',

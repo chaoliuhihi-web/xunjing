@@ -70,6 +70,25 @@
 			</view>
 		</view>
 
+		<view class="section-card">
+			<view class="section-head">
+				<text class="section-title">灵感导入记录</text>
+				<text class="section-badge">{{ inspirationImportCount }} 条</text>
+			</view>
+			<view v-if="inspirationImports.length > 0">
+				<view
+					v-for="record in inspirationImports.slice(0, 3)"
+					:key="record.importId"
+					class="material-row"
+				>
+					<text class="material-title">{{ record.routeTitle || '西城灵感路线' }}</text>
+					<text class="material-meta">{{ record.rawTextExcerpt || '已保存导入摘要' }}</text>
+					<text class="material-meta">{{ record.sourcePolicy || '不保存第三方平台原文' }}</text>
+				</view>
+			</view>
+			<text v-else class="empty-copy">从“一键导入灵感”生成路线后，会沉淀为可审核的导入记录。</text>
+		</view>
+
 		<view v-if="recognizedRoute" class="section-card">
 			<view class="section-head">
 				<text class="section-title">识别推荐路线</text>
@@ -362,6 +381,7 @@ export default {
 			studyTaskDrafts: [],
 			badgeAwards: [],
 			routeCheckins: [],
+			inspirationImports: [],
 			recordingSession: createEmptyRecordingSession()
 		}
 	},
@@ -398,6 +418,9 @@ export default {
 		},
 		checkinCount() {
 			return this.routeCheckins.length
+		},
+		inspirationImportCount() {
+			return this.inspirationImports.length
 		},
 		completedStudyTaskEvidence() {
 			return this.studyTaskEvidence.filter(evidence => evidence && evidence.completedAt)
@@ -436,6 +459,7 @@ export default {
 				hotPois: this.createHotPoiRanking(),
 				sourceCount: this.sourceCount,
 				workCount: this.draft ? 1 : 0,
+				inspirationImportCount: this.inspirationImportCount,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
 				badgeAwardCount: this.badgeAwardCount,
 				checkinCount: this.checkinCount,
@@ -506,6 +530,7 @@ export default {
 			const storedStudyTaskEvidence = uni.getStorageSync(XICHENG_REGION_CONFIG.studyTaskStorageKey)
 			const storedBadgeAwards = uni.getStorageSync(XICHENG_REGION_CONFIG.badgeAwardStorageKey)
 			const storedCheckins = uni.getStorageSync(XICHENG_REGION_CONFIG.checkinStorageKey)
+			const storedInspirationImports = uni.getStorageSync(XICHENG_REGION_CONFIG.inspirationImportStorageKey)
 			const materials = Array.isArray(storedMaterials) ? storedMaterials : []
 			this.importedRoute = importedRoute && importedRoute.stops ? importedRoute : null
 			this.reviewSubmission = Array.isArray(storedReviewSubmissions) && storedReviewSubmissions.length > 0
@@ -515,6 +540,7 @@ export default {
 			this.studyTaskEvidence = Array.isArray(storedStudyTaskEvidence) ? storedStudyTaskEvidence : []
 			this.badgeAwards = Array.isArray(storedBadgeAwards) ? storedBadgeAwards : []
 			this.routeCheckins = Array.isArray(storedCheckins) ? storedCheckins : []
+			this.inspirationImports = Array.isArray(storedInspirationImports) ? storedInspirationImports : []
 			this.studyTaskDrafts = this.parentChildTasks.map((_, index) => {
 				const evidence = this.getStudyTaskEvidence(index)
 				return evidence && evidence.answerText ? evidence.answerText : ''
@@ -871,6 +897,8 @@ export default {
 				recordingSession: this.recordingSession,
 				routeCheckins: this.routeCheckins,
 				checkinCount: this.checkinCount,
+				inspirationImports: this.inspirationImports,
+				inspirationImportCount: this.inspirationImportCount,
 				studyTaskEvidence: this.studyTaskEvidence,
 				badgeAwards: this.badgeAwards,
 				activeBadgeAward: this.activeBadgeAward,
@@ -938,6 +966,8 @@ export default {
 				remarkMaterialCount: this.remarkMaterialCount,
 				routeCheckins: this.routeCheckins,
 				checkinCount: this.checkinCount,
+				inspirationImports: this.inspirationImports,
+				inspirationImportCount: this.inspirationImportCount,
 				studyTaskEvidence: this.studyTaskEvidence,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
 				badgeAwards: this.badgeAwards,

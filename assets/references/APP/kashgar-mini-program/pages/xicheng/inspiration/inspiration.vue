@@ -107,6 +107,7 @@ export default {
 			region: XICHENG_REGION_CONFIG,
 			rawText,
 			imagePath: '',
+			inspirationImports: [],
 			matchedPois,
 			route: buildXichengWalkRoute(matchedPois)
 		}
@@ -134,12 +135,14 @@ export default {
 		saveInspirationRoute({ silent = false, includeImageOnly = false } = {}) {
 			const route = {
 				...this.route,
-				rawText: this.rawText,
+				rawTextExcerpt: this.createInspirationTextExcerpt(this.rawText),
 				imagePath: this.imagePath,
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
 				sourceLabel: '灵感导入路线',
 				updatedAt: new Date().toISOString()
 			}
+			const importRecord = this.createInspirationImportRecord(route, includeImageOnly)
+			this.persistInspirationImportRecord(importRecord)
 			const existingMaterials = uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey)
 			const materials = Array.isArray(existingMaterials) ? existingMaterials : []
 			const routeMaterials = includeImageOnly
@@ -177,6 +180,38 @@ export default {
 					icon: 'none'
 				})
 			}
+		},
+		createInspirationTextExcerpt(text = '') {
+			return String(text || '').replace(/\s+/g, ' ').trim().slice(0, 80)
+		},
+		createInspirationImportRecord(route, includeImageOnly = false) {
+			const importedAt = new Date().toISOString()
+			return {
+				importId: `inspiration-${Date.now()}`,
+				regionCode: XICHENG_REGION_CONFIG.regionCode,
+				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				rawTextExcerpt: this.createInspirationTextExcerpt(this.rawText),
+				rawTextLength: String(this.rawText || '').length,
+				extractedPlaceNames: this.matchedPois.map(poi => poi.poiName),
+				matchedPoiCodes: this.matchedPois.map(poi => poi.poiCode),
+				confirmedPois: route.stops,
+				imageIncluded: !!this.imagePath,
+				includeImageOnly,
+				routeTitle: route.title,
+				sourcePolicy: '不保存第三方平台原文',
+				reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
+				publishStatus: 'private',
+				importedAt
+			}
+		},
+		persistInspirationImportRecord(importRecord) {
+			const existingImports = uni.getStorageSync(XICHENG_REGION_CONFIG.inspirationImportStorageKey)
+			const imports = Array.isArray(existingImports) ? existingImports : []
+			this.inspirationImports = [
+				importRecord,
+				...imports
+			].slice(0, 20)
+			uni.setStorageSync(XICHENG_REGION_CONFIG.inspirationImportStorageKey, this.inspirationImports)
 		},
 		openTravelogue() {
 			this.saveInspirationRoute({ silent: true })
