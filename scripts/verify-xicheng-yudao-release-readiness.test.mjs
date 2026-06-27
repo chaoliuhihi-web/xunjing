@@ -25,6 +25,16 @@ const requiredManifestEvidenceChecks = [
   'poi-content',
   'poi-audit'
 ]
+const requiredWorkbookEvidenceChecks = [
+  'workbook-file',
+  'workbook-shape',
+  'poi-count',
+  'poi-identity',
+  'poi-source-license',
+  'poi-field-evidence',
+  'poi-content-audit',
+  'no-placeholder-cells'
+]
 const requiredSeedEvidenceChecks = [
   'sql-file',
   'seed-shape',
@@ -168,6 +178,7 @@ async function writeEnvFile(rootDir, env) {
 
 async function writeProductionPoiEvidence(rootDir, overrides = {}) {
   const manifestEvidencePath = path.join(rootDir, 'qa/xicheng-poi-manifest-evidence.json')
+  const workbookEvidencePath = path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json')
   const seedEvidencePath = path.join(rootDir, 'qa/xicheng-poi-production-seed-evidence.json')
   const manifestSourcePath = path.join(rootDir, 'workbench/xicheng-production-pois.json')
   const workbookSourcePath = path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv')
@@ -213,6 +224,22 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
     checks: passedChecks(requiredManifestEvidenceChecks),
     blockers: []
   }, overrides.manifest)
+  const workbookEvidence = mergeEvidence({
+    artifactType: 'xicheng-poi-review-workbook-readiness',
+    ok: true,
+    status: 'XICHENG_POI_REVIEW_WORKBOOK_READY',
+    checkedAt: freshCheckedAt(),
+    summary: {
+      workbookFile: workbookSourcePath,
+      workbookSha256: sha256(workbookSource),
+      workbookRows: 80,
+      minPoiCount: 80,
+      categoryCount: 8,
+      placeholderCount: 0
+    },
+    checks: passedChecks(requiredWorkbookEvidenceChecks),
+    blockers: []
+  }, overrides.workbook)
   const seedEvidence = mergeEvidence({
     artifactType: 'xicheng-poi-production-seed-readiness',
     ok: true,
@@ -235,8 +262,9 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
     blockers: []
   }, overrides.seed)
   await writeFile(manifestEvidencePath, `${JSON.stringify(manifestEvidence, null, 2)}\n`)
+  await writeFile(workbookEvidencePath, `${JSON.stringify(workbookEvidence, null, 2)}\n`)
   await writeFile(seedEvidencePath, `${JSON.stringify(seedEvidence, null, 2)}\n`)
-  return { manifestEvidencePath, seedEvidencePath }
+  return { manifestEvidencePath, workbookEvidencePath, seedEvidencePath }
 }
 
 afterEach(async () => {
@@ -289,13 +317,14 @@ describe('xicheng Yudao release readiness gate', () => {
 
   test('returns production candidate only when env, full baseline and 80 approved POIs are present', async () => {
     const rootDir = await createProductionReadyFixture()
-    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
 
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
       rootDir,
       stage: 'production',
       poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
       poiSeedEvidencePath: seedEvidencePath
     })
 
@@ -303,6 +332,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(result.status).toBe('PRODUCTION_READY_CANDIDATE')
     expect(result.blockers).toEqual([])
     expect(result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')?.summary).toMatchObject({
+      workbookEvidenceFile: workbookEvidencePath,
       sourceWorkbookFile: path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv'),
       sourceWorkbookSha256: expect.stringMatching(/^[a-f0-9]{64}$/)
     })
@@ -326,13 +356,14 @@ describe('xicheng Yudao release readiness gate', () => {
     const rootDir = await createProductionReadyFixture()
     const yudaoServerJarPath = path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar')
     await rm(yudaoServerJarPath, { force: true })
-    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
 
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
       rootDir,
       stage: 'production',
       poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
       poiSeedEvidencePath: seedEvidencePath
     })
 
@@ -348,7 +379,7 @@ describe('xicheng Yudao release readiness gate', () => {
     const defaultJarPath = path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar')
     const externalJarPath = await writeYudaoServerJar(rootDir, 'tmp/artifacts/yudao-server.jar')
     await rm(defaultJarPath, { force: true })
-    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
 
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
@@ -356,6 +387,7 @@ describe('xicheng Yudao release readiness gate', () => {
       stage: 'production',
       yudaoServerJarPath: externalJarPath,
       poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
       poiSeedEvidencePath: seedEvidencePath
     })
 
@@ -385,7 +417,7 @@ describe('xicheng Yudao release readiness gate', () => {
         'CREATE TABLE `infra_api_access_log` (`id` bigint);'
       ].join('\n')
     )
-    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
 
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
@@ -393,6 +425,7 @@ describe('xicheng Yudao release readiness gate', () => {
       stage: 'production',
       yudaoBaselineSqlPath: externalBaselinePath,
       poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
       poiSeedEvidencePath: seedEvidencePath
     })
 
@@ -416,7 +449,7 @@ describe('xicheng Yudao release readiness gate', () => {
         "(@map_package_id, 'xicheng-local-candidate-001', 'beijing-xicheng', 'Local Candidate', 'Local Candidate', '[]', 'museum', 'P0', 'Beijing Xicheng', 39.9000000, 116.3000000, 'GCJ02', JSON_OBJECT('licenseStatus','REVIEW_REQUIRED'), '{}', '{\"productionReady\":false,\"targetP0PoiCount\":80}', 'APPROVED', 'REVIEW_REQUIRED', 'REVIEW_REQUIRED', 'PUBLISHED', 'admin', NOW(), 'admin', NOW(), b'0', @tenant_id);"
       ].join('\n')
     )
-    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir, {
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir, {
       seedSource: productionSeedSql()
     })
 
@@ -425,6 +458,7 @@ describe('xicheng Yudao release readiness gate', () => {
       rootDir,
       stage: 'production',
       poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
       poiSeedEvidencePath: seedEvidencePath
     })
 
@@ -449,8 +483,54 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidenceCheck?.ok).toBe(false)
     expect(evidenceCheck?.blockers).toEqual([
       'POI manifest evidence is required before production release',
+      'POI workbook evidence is required before production release',
       'POI seed SQL evidence is required before production release'
     ])
+  })
+
+  test('fails closed when workbook readiness evidence is missing before Yudao release approval', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('POI workbook evidence is required before production release')
+  })
+
+  test('fails closed when workbook evidence does not match manifest source workbook provenance', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir, {
+      workbook: {
+        summary: {
+          workbookFile: path.join(rootDir, 'workbench/other-xicheng-production-pois.review-workbook.csv'),
+          workbookSha256: '0'.repeat(64)
+        }
+      }
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('workbook and manifest sourceWorkbookFile must match')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('workbook and manifest sourceWorkbookSha256 must match')
   })
 
   test('fails closed when seed evidence was generated before seed precondition guard existed', async () => {
@@ -756,7 +836,7 @@ describe('xicheng Yudao release readiness gate', () => {
       ].join('\n')
     )
     const envPath = await writeEnvFile(rootDir, productionEnv())
-    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
     const evidenceRelativePath = 'qa/xicheng-yudao-release-evidence.json'
     const evidencePath = path.join(rootDir, evidenceRelativePath)
 
@@ -768,6 +848,7 @@ describe('xicheng Yudao release readiness gate', () => {
       '--yudao-baseline-sql', externalBaselinePath,
       '--yudao-server-jar', path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar'),
       '--poi-manifest-evidence', manifestEvidencePath,
+      '--poi-workbook-evidence', workbookEvidencePath,
       '--poi-seed-evidence', seedEvidencePath,
       '--evidence-file', evidenceRelativePath
     ], {
@@ -783,9 +864,12 @@ describe('xicheng Yudao release readiness gate', () => {
       yudaoBaselineSqlSha256: sha256(await readFile(externalBaselinePath, 'utf8')),
       yudaoServerJarFile: path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar'),
       manifestEvidenceFile: manifestEvidencePath,
+      workbookEvidenceFile: workbookEvidencePath,
       seedEvidenceFile: seedEvidencePath,
       poiManifestFile: path.join(rootDir, 'workbench/xicheng-production-pois.json'),
       poiManifestSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+      sourceWorkbookFile: path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv'),
+      sourceWorkbookSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
       poiSeedSqlFile: path.join(rootDir, 'workbench/xicheng-poi-production-seed.sql'),
       poiSeedSqlSha256: expect.stringMatching(/^[a-f0-9]{64}$/)
     })
@@ -830,6 +914,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(deployDoc).toContain('YUDAO_BASELINE_SQL')
     expect(deployDoc).toContain('--yudao-server-jar')
     expect(deployDoc).toContain('YUDAO_SERVER_JAR')
+    expect(deployDoc).toContain('--poi-workbook-evidence')
     expect(deployDoc).toContain('seed evidence 的 `summary.sqlFile`')
     expect(deployDoc).toContain('sourceWorkbookSha256')
     expect(deployDoc).toContain('poiManifestSha256')
