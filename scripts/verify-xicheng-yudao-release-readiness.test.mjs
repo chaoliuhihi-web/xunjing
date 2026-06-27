@@ -235,7 +235,10 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
       workbookRows: 80,
       minPoiCount: 80,
       categoryCount: 8,
-      placeholderCount: 0
+      placeholderCount: 0,
+      workbookReadyPoiCount: 80,
+      workbookPendingPoiCount: 0,
+      pendingPoiCodes: []
     },
     checks: passedChecks(requiredWorkbookEvidenceChecks),
     blockers: []
@@ -504,6 +507,34 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(result.status).toBe('NOT_READY')
     const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
     expect(evidenceCheck?.blockers.join('\n')).toContain('POI workbook evidence is required before production release')
+  })
+
+  test('fails closed when workbook evidence lacks row-level ready POI progress', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir, {
+      workbook: {
+        summary: {
+          workbookReadyPoiCount: undefined,
+          workbookPendingPoiCount: undefined,
+          pendingPoiCodes: undefined
+        }
+      }
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('workbook evidence must prove 80 ready POI rows')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('workbook evidence must prove there are no pending POI rows')
   })
 
   test('fails closed when workbook evidence does not match manifest source workbook provenance', async () => {
@@ -915,6 +946,8 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(deployDoc).toContain('--yudao-server-jar')
     expect(deployDoc).toContain('YUDAO_SERVER_JAR')
     expect(deployDoc).toContain('--poi-workbook-evidence')
+    expect(deployDoc).toContain('workbookReadyPoiCount')
+    expect(deployDoc).toContain('workbookPendingPoiCount')
     expect(deployDoc).toContain('seed evidence 的 `summary.sqlFile`')
     expect(deployDoc).toContain('sourceWorkbookSha256')
     expect(deployDoc).toContain('poiManifestSha256')

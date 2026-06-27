@@ -596,6 +596,8 @@ async function validateWorkbookEvidence(ref, rootDir, freshnessOptions) {
   const minPoiCount = Number(summary.minPoiCount)
   const categoryCount = Number(summary.categoryCount)
   const placeholderCount = Number(summary.placeholderCount)
+  const readyPoiCount = Number(summary.workbookReadyPoiCount)
+  const pendingPoiCount = Number(summary.workbookPendingPoiCount)
   if (
     !Number.isFinite(workbookRows) ||
     workbookRows < productionPoiTarget ||
@@ -609,6 +611,17 @@ async function validateWorkbookEvidence(ref, rootDir, freshnessOptions) {
   }
   if (!Number.isFinite(placeholderCount) || placeholderCount !== 0) {
     blockers.push('workbook evidence placeholderCount must be 0')
+  }
+  if (!Number.isFinite(readyPoiCount) || readyPoiCount < productionPoiTarget) {
+    blockers.push(`workbook evidence must prove ${productionPoiTarget} ready POI rows`)
+  }
+  if (
+    !Number.isFinite(pendingPoiCount) ||
+    pendingPoiCount !== 0 ||
+    !Array.isArray(summary.pendingPoiCodes) ||
+    summary.pendingPoiCodes.length !== 0
+  ) {
+    blockers.push('workbook evidence must prove there are no pending POI rows')
   }
   blockers.push(...checkEvidenceChecks(evidence, requiredWorkbookEvidenceChecks, 'workbook'))
   if (!hasNoEvidenceBlockers(evidence)) {
