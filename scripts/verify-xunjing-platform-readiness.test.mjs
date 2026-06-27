@@ -1,7 +1,7 @@
 import http from 'node:http'
 import { once } from 'node:events'
 import { execFileSync } from 'node:child_process'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -11,6 +11,25 @@ import { loadEnvFile, verifyXunjingPlatformReadiness } from './verify-xunjing-pl
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const servers = []
 const tempDirs = []
+const staticReadinessFixtureFiles = [
+  'backend/yudao/pom.xml',
+  'backend/yudao/yudao-module-xunjing/pom.xml',
+  'backend/yudao/yudao-ui/yudao-ui-admin-vue3/src/api/xunjing/console/index.ts',
+  'backend/yudao/yudao-ui/yudao-ui-admin-vue3/src/views/xunjing/console/index.vue',
+  'backend/yudao/sql/mysql/yudao-ai-module.sql',
+  'backend/yudao/sql/mysql/xunjing-module.sql',
+  'backend/yudao/sql/mysql/xunjing-seed-kashgar-p0.sql',
+  'backend/yudao/sql/mysql/xunjing-seed-xicheng-p0.sql',
+  'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/trigger/XunjingMultimodalTriggerEngine.java',
+  'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/dal/dataobject/poi/XunjingPoiDO.java',
+  'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/dal/mysql/poi/XunjingPoiMapper.java',
+  'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java',
+  'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/enums/XunjingEnums.java',
+  'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImplTest.java',
+  'backend/yudao/yudao-module-xunjing/src/test/resources/sql/create_tables.sql',
+  'ops/xunjing-platform.compose.yml',
+  'ops/xunjing-platform.env.example'
+]
 
 function stagingEnv(overrides = {}) {
   return {
@@ -308,6 +327,18 @@ async function startPlatformFixture() {
   return `http://127.0.0.1:${port}`
 }
 
+async function createStaticReadinessFixture() {
+  const fixtureRoot = await mkdtemp(path.join(os.tmpdir(), 'xunjing-static-readiness-'))
+  tempDirs.push(fixtureRoot)
+  await Promise.all(staticReadinessFixtureFiles.map(async (relativePath) => {
+    const source = path.join(rootDir, relativePath)
+    const target = path.join(fixtureRoot, relativePath)
+    await mkdir(path.dirname(target), { recursive: true })
+    await cp(source, target, { recursive: true })
+  }))
+  return fixtureRoot
+}
+
 afterEach(async () => {
   await Promise.all(servers.splice(0).map((server) => new Promise((resolve) => server.close(resolve))))
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
@@ -376,6 +407,41 @@ describe('xunjing platform readiness verifier', () => {
       'xicheng-app-event-backend',
       'admin-ui-contract'
     ])
+  })
+
+  test.each([
+    ['interaction event table', 'xunjing_interaction_event'],
+    ['media usage log table', 'xunjing_media_usage_log']
+  ])('static SQL gate rejects missing %s', async (label, tableName) => {
+    const fixtureRoot = await createStaticReadinessFixture()
+    const sqlPath = path.join(fixtureRoot, 'backend/yudao/sql/mysql/xunjing-module.sql')
+    const sql = await readFile(sqlPath, 'utf8')
+    await writeFile(sqlPath, sql.replaceAll(tableName, `missing_${label.replaceAll(' ', '_')}`))
+
+    await expect(verifyXunjingPlatformReadiness({
+      env: {},
+      staticOnly: true,
+      rootDir: fixtureRoot
+    })).rejects.toThrow(tableName)
+  })
+
+  test.each([
+    ['interaction event type column', '`event_type`', 'event_type'],
+    ['interaction source channel column', '`source_channel`', 'source_channel'],
+    ['media usage type column', '`usage_type`', 'usage_type'],
+    ['AI source JSON column', '`source_json`', 'source_json'],
+    ['AI safety status column', '`safety_status`', 'safety_status']
+  ])('static SQL gate rejects missing %s', async (label, columnSnippet, errorSnippet) => {
+    const fixtureRoot = await createStaticReadinessFixture()
+    const sqlPath = path.join(fixtureRoot, 'backend/yudao/sql/mysql/xunjing-module.sql')
+    const sql = await readFile(sqlPath, 'utf8')
+    await writeFile(sqlPath, sql.replaceAll(columnSnippet, '`missing_column`'))
+
+    await expect(verifyXunjingPlatformReadiness({
+      env: {},
+      staticOnly: true,
+      rootDir: fixtureRoot
+    })).rejects.toThrow(errorSnippet)
   })
 
   test('can run API-only live smoke without requiring admin static hosting', async () => {

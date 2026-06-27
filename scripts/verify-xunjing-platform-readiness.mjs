@@ -140,6 +140,26 @@ function assertContains(text, snippet, label) {
   }
 }
 
+function extractCreateTableBlock(sql, tableName) {
+  const marker = `CREATE TABLE IF NOT EXISTS \`${tableName}\``
+  const start = sql.indexOf(marker)
+  if (start === -1) {
+    throw new Error(`xunjing-module.sql missing ${tableName}`)
+  }
+  const end = sql.indexOf('\n) ENGINE=', start)
+  if (end === -1) {
+    throw new Error(`xunjing-module.sql ${tableName} is missing table terminator`)
+  }
+  return sql.slice(start, end)
+}
+
+function assertTableContains(sql, tableName, snippets) {
+  const tableSql = extractCreateTableBlock(sql, tableName)
+  for (const snippet of snippets) {
+    assertContains(tableSql, snippet, `xunjing-module.sql ${tableName}`)
+  }
+}
+
 async function checkStaticFiles(rootDir) {
   assertFiles(rootDir, [
     'backend/yudao/pom.xml',
@@ -166,10 +186,36 @@ async function checkSqlSchema(rootDir) {
   ]) {
     assertContains(sql, snippet, 'xunjing-module.sql')
   }
+  assertTableContains(sql, 'xunjing_media_usage_log', [
+    '`media_id`',
+    '`package_id`',
+    '`scene_code`',
+    '`usage_type`',
+    '`caller`',
+    '`payload_json`',
+    'idx_xunjing_media_usage_package'
+  ])
+  assertTableContains(sql, 'xunjing_interaction_event', [
+    '`package_id`',
+    '`event_type`',
+    '`source_channel`',
+    '`user_trace_id`',
+    '`payload_json`',
+    'idx_xunjing_event_package'
+  ])
+  assertTableContains(sql, 'xunjing_ai_generation_log', [
+    '`package_id`',
+    '`scene_code`',
+    '`user_trace_id`',
+    '`source_json`',
+    '`token_count`',
+    '`safety_status`',
+    'idx_xunjing_ai_log_scene'
+  ])
   for (const snippet of ['ai_api_key', 'ai_model', 'ai_knowledge', 'ai_knowledge_segment']) {
     assertContains(aiSql, snippet, 'yudao-ai-module.sql')
   }
-  return pass('sql-schema', 'Xunjing MySQL schema includes P0 operating tables and permissions')
+  return pass('sql-schema', 'Xunjing MySQL schema includes P0 operating, source usage, interaction and AI audit fields')
 }
 
 async function checkSeedData(rootDir) {
