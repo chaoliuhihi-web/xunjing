@@ -36,7 +36,10 @@ function productionPoi(index, overrides = {}) {
       sourceTitle: `西城生产点位${suffix}官方审核来源`,
       sourceUrl: `https://www.bjxch.gov.cn/xicheng/poi/${suffix}`,
       sourceType: 'OFFICIAL',
-      licenseStatus: 'APPROVED'
+      licenseStatus: 'APPROVED',
+      licenseEvidenceRef: `oss://xunjing-review/xicheng/${poiCode}/source-license-approval.pdf`,
+      licenseReviewedBy: 'xicheng-license-reviewer',
+      licenseReviewedAt: '2026-06-27'
     },
     trigger: {
       gpsRadiusMeters: 180,
@@ -198,6 +201,9 @@ describe('xicheng POI production manifest gate', () => {
     expect(evidence.status).toBe('NOT_READY')
     expect(evidence.blockers.join('\n')).toContain('80 production-ready POIs required; found 1/80')
     expect(evidence.blockers.join('\n')).toContain('xicheng-prod-poi-001 source.licenseStatus must be APPROVED')
+    expect(evidence.blockers.join('\n')).toContain('xicheng-prod-poi-001 source.licenseEvidenceRef must include a source license evidence reference')
+    expect(evidence.blockers.join('\n')).toContain('xicheng-prod-poi-001 source.licenseReviewedBy is required')
+    expect(evidence.blockers.join('\n')).toContain('xicheng-prod-poi-001 source.licenseReviewedAt is required')
     expect(evidence.blockers.join('\n')).toContain('xicheng-prod-poi-001 fieldEvidence.photoEvidenceStatus must be APPROVED')
     expect(evidence.blockers.join('\n')).toContain('xicheng-prod-poi-001 fieldEvidence.evidenceRefs must include at least one object-storage or HTTPS reference')
     expect(evidence.blockers.join('\n')).toContain('xicheng-prod-poi-001 audit.geoStatus must be APPROVED')

@@ -220,6 +220,15 @@ function checkPoiSourceLicense(pois) {
     if (!isApproved(source.licenseStatus)) {
       blockers.push(`${label} source.licenseStatus must be APPROVED`)
     }
+    if (!isFieldEvidenceRef(source.licenseEvidenceRef)) {
+      blockers.push(`${label} source.licenseEvidenceRef must include a source license evidence reference`)
+    }
+    if (!hasText(source.licenseReviewedBy)) {
+      blockers.push(`${label} source.licenseReviewedBy is required`)
+    }
+    if (!hasText(source.licenseReviewedAt)) {
+      blockers.push(`${label} source.licenseReviewedAt is required`)
+    }
   })
   return check('poi-source-license', blockers)
 }

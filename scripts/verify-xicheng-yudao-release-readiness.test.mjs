@@ -31,6 +31,7 @@ const requiredSeedEvidenceChecks = [
   'poi-approval',
   'production-metrics',
   'field-evidence',
+  'source-license-evidence',
   'source-documents'
 ]
 
@@ -346,6 +347,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidenceCheck?.ok).toBe(false)
     expect(evidenceCheck?.blockers.join('\n')).toContain('manifest evidence must include poi-field-evidence')
     expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence must include field-evidence')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence must include source-license-evidence')
   })
 
   test('fails closed when POI evidence is older than the release freshness window', async () => {

@@ -53,6 +53,7 @@ const requiredSeedEvidenceChecks = [
   'poi-approval',
   'production-metrics',
   'field-evidence',
+  'source-license-evidence',
   'source-documents'
 ]
 

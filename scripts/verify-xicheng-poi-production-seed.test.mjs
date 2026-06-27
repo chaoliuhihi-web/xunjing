@@ -37,7 +37,10 @@ function productionPoi(index, overrides = {}) {
       sourceTitle: `西城生产点位${suffix}官方审核来源`,
       sourceUrl: `https://www.bjxch.gov.cn/xicheng/poi/${suffix}`,
       sourceType: 'OFFICIAL',
-      licenseStatus: 'APPROVED'
+      licenseStatus: 'APPROVED',
+      licenseEvidenceRef: `oss://xunjing-review/xicheng/${poiCode}/source-license-approval.pdf`,
+      licenseReviewedBy: 'xicheng-license-reviewer',
+      licenseReviewedAt: '2026-06-27'
     },
     trigger: {
       gpsRadiusMeters: 180,
@@ -164,6 +167,7 @@ describe('xicheng POI production seed SQL gate', () => {
       'poi-approval',
       'production-metrics',
       'field-evidence',
+      'source-license-evidence',
       'source-documents'
     ])
     expect(report.blockers).toEqual([])
@@ -200,6 +204,7 @@ INSERT INTO \`xunjing_public_report\` (\`metrics_json\`) VALUES ('{"productionRe
     expect(evidence.blockers.join('\n')).toContain('seed SQL must not contain REVIEW_REQUIRED or DRAFT')
     expect(evidence.blockers.join('\n')).toContain('production metrics must include "productionReady":true')
     expect(evidence.blockers.join('\n')).toContain('seed SQL must include approved field evidence for each production POI')
+    expect(evidence.blockers.join('\n')).toContain('seed SQL must include approved source license evidence for each production POI')
   })
 
   test('rejects seed evidence paths outside qa tmp or workbench', async () => {

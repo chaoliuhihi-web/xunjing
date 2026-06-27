@@ -164,6 +164,28 @@ function checkFieldEvidence(sql) {
   return check('field-evidence', blockers)
 }
 
+function checkSourceLicenseEvidence(sql) {
+  const blockers = []
+  const poiCount = extractPoiCodes(sql).length
+  const licenseEvidenceRefCount = countMatches(sql, /"licenseEvidenceRef"\s*:\s*"[^"]+"/g)
+  const licenseReviewedByCount = countMatches(sql, /"licenseReviewedBy"\s*:\s*"[^"]+"/g)
+  const licenseReviewedAtCount = countMatches(sql, /"licenseReviewedAt"\s*:\s*"[^"]+"/g)
+  if (
+    poiCount > 0 &&
+    (
+      licenseEvidenceRefCount < poiCount ||
+      licenseReviewedByCount < poiCount ||
+      licenseReviewedAtCount < poiCount
+    )
+  ) {
+    blockers.push('seed SQL must include approved source license evidence for each production POI')
+  }
+  if (/(?:data:|file:\/\/|localhost|127\.0\.0\.1|0\.0\.0\.0)/i.test(sql)) {
+    blockers.push('seed SQL must not contain raw or local source license evidence references')
+  }
+  return check('source-license-evidence', blockers)
+}
+
 function checkSourceDocuments(sql) {
   const blockers = []
   const poiCount = extractPoiCodes(sql).length
@@ -191,6 +213,7 @@ export async function verifyXichengPoiProductionSeed({
     checkPoiApproval(sql),
     checkProductionMetrics(sql, normalizedMinPoiCount),
     checkFieldEvidence(sql),
+    checkSourceLicenseEvidence(sql),
     checkSourceDocuments(sql)
   ]
   const blockers = checks.flatMap((item) => item.blockers)

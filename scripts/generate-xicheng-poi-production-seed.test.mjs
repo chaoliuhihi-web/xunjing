@@ -37,7 +37,10 @@ function productionPoi(index, overrides = {}) {
       sourceTitle: `西城生产点位${suffix}官方审核来源`,
       sourceUrl: `https://www.bjxch.gov.cn/xicheng/poi/${suffix}`,
       sourceType: 'OFFICIAL',
-      licenseStatus: 'APPROVED'
+      licenseStatus: 'APPROVED',
+      licenseEvidenceRef: `oss://xunjing-review/xicheng/${poiCode}/source-license-approval.pdf`,
+      licenseReviewedBy: 'xicheng-license-reviewer',
+      licenseReviewedAt: '2026-06-27'
     },
     trigger: {
       gpsRadiusMeters: 180,
@@ -82,7 +85,10 @@ function productionManifest(overrides = {}) {
       sourceTitle: "西城 O'Clock 官方审核来源",
       sourceUrl: 'https://www.bjxch.gov.cn/xicheng/poi/001',
       sourceType: 'OFFICIAL',
-      licenseStatus: 'APPROVED'
+      licenseStatus: 'APPROVED',
+      licenseEvidenceRef: 'oss://xunjing-review/xicheng/xicheng-prod-poi-001/source-license-approval.pdf',
+      licenseReviewedBy: 'xicheng-license-reviewer',
+      licenseReviewedAt: '2026-06-27'
     }
   })
   return {
@@ -153,6 +159,9 @@ describe('xicheng POI production seed generator', () => {
     expect(sql).toContain("'xicheng-prod-poi-001'")
     expect(sql).toContain("西城 O''Clock 点位")
     expect(sql).toContain('https://www.bjxch.gov.cn/xicheng/poi/001')
+    expect(sql).toContain('oss://xunjing-review/xicheng/xicheng-prod-poi-001/source-license-approval.pdf')
+    expect(sql).toContain('"licenseReviewedBy":"xicheng-license-reviewer"')
+    expect(sql).toContain('"licenseReviewedAt":"2026-06-27"')
     expect(sql).toContain('oss://xunjing-review/xicheng/xicheng-prod-poi-001/field-photo-001.jpg')
     expect(sql).toContain('"fieldEvidenceStatus":"APPROVED"')
     expect(sql).toContain('"triggerSmokeStatus":"PASSED"')

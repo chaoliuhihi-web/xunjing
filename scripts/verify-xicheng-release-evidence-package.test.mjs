@@ -174,6 +174,7 @@ function seedEvidence(overrides = {}) {
       { name: 'poi-approval', ok: true },
       { name: 'production-metrics', ok: true },
       { name: 'field-evidence', ok: true },
+      { name: 'source-license-evidence', ok: true },
       { name: 'source-documents', ok: true }
     ],
     blockers: [],
@@ -300,6 +301,7 @@ describe('xicheng release evidence package gate', () => {
     expect(evidence.status).toBe('NOT_READY')
     expect(evidence.blockers.join('\n')).toContain('manifest evidence must include poi-field-evidence')
     expect(evidence.blockers.join('\n')).toContain('seed evidence must include field-evidence')
+    expect(evidence.blockers.join('\n')).toContain('seed evidence must include source-license-evidence')
   })
 
   test('fails closed when POI source hash metadata is missing from package inputs', async () => {
