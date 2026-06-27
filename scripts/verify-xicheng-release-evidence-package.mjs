@@ -37,6 +37,7 @@ const requiredAppReadinessChecks = [
 const requiredManifestEvidenceChecks = [
   'manifest-shape',
   'manifest-production-flags',
+  'manifest-review-batch',
   'poi-count',
   'poi-identity',
   'poi-coordinates',
@@ -54,6 +55,7 @@ const requiredSeedEvidenceChecks = [
   'poi-count',
   'poi-approval',
   'production-metrics',
+  'review-batch-metrics',
   'field-evidence',
   'source-license-evidence',
   'source-documents'
@@ -165,6 +167,33 @@ function isNonLocalHttpsUrl(value) {
   }
 }
 
+function hasText(value) {
+  return String(value || '').trim().length > 0
+}
+
+function isNonLocalEvidenceRef(value) {
+  if (!hasText(value)) {
+    return false
+  }
+  const normalized = String(value).trim()
+  if (/^(?:data|file):/i.test(normalized) || /imageBase64/i.test(normalized)) {
+    return false
+  }
+  try {
+    const url = new URL(normalized)
+    const protocol = url.protocol.toLowerCase()
+    if (protocol === 'https:') {
+      return !isLoopbackHostname(url.hostname)
+    }
+    if (['oss:', 'cos:', 's3:'].includes(protocol)) {
+      return hasText(url.hostname) && hasText(url.pathname.replaceAll('/', ''))
+    }
+  } catch {
+    return false
+  }
+  return false
+}
+
 function checkEvidenceChecks(evidence, requiredChecks, label) {
   const blockers = []
   const checks = Array.isArray(evidence?.checks) ? evidence.checks : []
@@ -177,6 +206,17 @@ function checkEvidenceChecks(evidence, requiredChecks, label) {
       blockers.push(`${label} evidence check ${name} must be ok`)
     }
   })
+  return blockers
+}
+
+function checkReviewBatchSummary(summary, label) {
+  const blockers = []
+  if (!/^xicheng-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(String(summary.reviewBatchCode || ''))) {
+    blockers.push(`${label} evidence reviewBatchCode is required`)
+  }
+  if (!isNonLocalEvidenceRef(summary.reviewBatchEvidencePackageRef)) {
+    blockers.push(`${label} evidence reviewBatchEvidencePackageRef must be a non-local evidence package reference`)
+  }
   return blockers
 }
 
@@ -312,6 +352,7 @@ async function checkManifestEvidence(ref, rootDir, freshnessOptions) {
   if (summary.productionReady !== true) {
     blockers.push('manifest evidence productionReady must be true')
   }
+  blockers.push(...checkReviewBatchSummary(summary, 'manifest'))
   blockers.push(...await checkEvidenceSourceHash(rootDir, evidence, 'manifest', 'manifestFile', 'manifestSha256'))
   blockers.push(...checkEvidenceChecks(evidence, requiredManifestEvidenceChecks, 'manifest'))
   if (blockersOf(evidence).length > 0) {
@@ -349,6 +390,7 @@ async function checkSeedEvidence(ref, rootDir, freshnessOptions) {
   if (summary.productionReady !== true) {
     blockers.push('seed evidence productionReady must be true')
   }
+  blockers.push(...checkReviewBatchSummary(summary, 'seed'))
   blockers.push(...await checkEvidenceSourceHash(rootDir, evidence, 'seed', 'sqlFile', 'sqlSha256'))
   blockers.push(...checkEvidenceChecks(evidence, requiredSeedEvidenceChecks, 'seed'))
   if (blockersOf(evidence).length > 0) {

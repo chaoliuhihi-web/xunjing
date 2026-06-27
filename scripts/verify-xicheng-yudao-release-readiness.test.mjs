@@ -15,6 +15,7 @@ const staleCheckedAt = () => new Date(Date.now() - 25 * 60 * 60 * 1000).toISOStr
 const requiredManifestEvidenceChecks = [
   'manifest-shape',
   'manifest-production-flags',
+  'manifest-review-batch',
   'poi-count',
   'poi-identity',
   'poi-coordinates',
@@ -31,6 +32,7 @@ const requiredSeedEvidenceChecks = [
   'poi-count',
   'poi-approval',
   'production-metrics',
+  'review-batch-metrics',
   'field-evidence',
   'source-license-evidence',
   'source-documents'
@@ -38,6 +40,19 @@ const requiredSeedEvidenceChecks = [
 
 function passedChecks(names) {
   return names.map((name) => ({ name, ok: true, detail: `${name} passed`, blockers: [] }))
+}
+
+function mergeEvidence(base, overrides = {}) {
+  return {
+    ...base,
+    ...overrides,
+    summary: {
+      ...(base.summary || {}),
+      ...(overrides.summary || {})
+    },
+    checks: overrides.checks || base.checks,
+    blockers: overrides.blockers || base.blockers
+  }
 }
 
 function sha256(value) {
@@ -164,7 +179,7 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
   ].join('\n')
   await writeFile(manifestSourcePath, manifestSource)
   await writeFile(seedSourcePath, seedSource)
-  const manifestEvidence = {
+  const manifestEvidence = mergeEvidence({
     artifactType: 'xicheng-poi-production-manifest-readiness',
     ok: true,
     status: 'PRODUCTION_POI_MANIFEST_READY',
@@ -176,13 +191,14 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
       packageCode: 'XICHENG-MAP-001',
       totalPoiCount: 80,
       targetPoiCount: 80,
-      productionReady: true
+      productionReady: true,
+      reviewBatchCode: 'xicheng-p0-poi-review-20260627',
+      reviewBatchEvidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260627.zip'
     },
     checks: passedChecks(requiredManifestEvidenceChecks),
-    blockers: [],
-    ...overrides.manifest
-  }
-  const seedEvidence = {
+    blockers: []
+  }, overrides.manifest)
+  const seedEvidence = mergeEvidence({
     artifactType: 'xicheng-poi-production-seed-readiness',
     ok: true,
     status: 'PRODUCTION_POI_SEED_READY',
@@ -194,12 +210,13 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
       minPoiCount: 80,
       productionReady: true,
       poiSeedCount: 80,
-      targetP0PoiCount: 80
+      targetP0PoiCount: 80,
+      reviewBatchCode: 'xicheng-p0-poi-review-20260627',
+      reviewBatchEvidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260627.zip'
     },
     checks: passedChecks(requiredSeedEvidenceChecks),
-    blockers: [],
-    ...overrides.seed
-  }
+    blockers: []
+  }, overrides.seed)
   await writeFile(manifestEvidencePath, `${JSON.stringify(manifestEvidence, null, 2)}\n`)
   await writeFile(seedEvidencePath, `${JSON.stringify(seedEvidence, null, 2)}\n`)
   return { manifestEvidencePath, seedEvidencePath }
@@ -414,6 +431,45 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence must include source-license-evidence')
   })
 
+  test('fails closed when POI evidence was generated before review batch gates existed', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir, {
+      manifest: {
+        summary: {
+          reviewBatchCode: undefined,
+          reviewBatchEvidencePackageRef: undefined
+        },
+        checks: passedChecks(requiredManifestEvidenceChecks.filter((name) => name !== 'manifest-review-batch'))
+      },
+      seed: {
+        summary: {
+          reviewBatchCode: undefined,
+          reviewBatchEvidencePackageRef: undefined
+        },
+        checks: passedChecks(requiredSeedEvidenceChecks.filter((name) => name !== 'review-batch-metrics'))
+      }
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(evidenceCheck?.ok).toBe(false)
+    expect(evidenceCheck?.blockers.join('\n')).toContain('manifest evidence must include manifest-review-batch')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('manifest evidence reviewBatchCode is required')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('manifest evidence reviewBatchEvidencePackageRef must be a non-local evidence package reference')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence must include review-batch-metrics')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence reviewBatchCode is required')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence reviewBatchEvidencePackageRef must be a non-local evidence package reference')
+  })
+
   test('fails closed when POI evidence is older than the release freshness window', async () => {
     const rootDir = await createProductionReadyFixture()
     const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir, {
@@ -466,6 +522,7 @@ describe('xicheng Yudao release readiness gate', () => {
       seed: {
         summary: {
           sqlFile: path.join(rootDir, 'workbench/xicheng-poi-production-seed.sql'),
+          sqlSha256: undefined,
           poiCount: 80,
           minPoiCount: 80,
           productionReady: true,

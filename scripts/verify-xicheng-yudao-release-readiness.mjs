@@ -13,6 +13,7 @@ const allowedClockSkewMs = 5 * 60 * 1000
 const requiredManifestEvidenceChecks = [
   'manifest-shape',
   'manifest-production-flags',
+  'manifest-review-batch',
   'poi-count',
   'poi-identity',
   'poi-coordinates',
@@ -30,6 +31,7 @@ const requiredSeedEvidenceChecks = [
   'poi-count',
   'poi-approval',
   'production-metrics',
+  'review-batch-metrics',
   'field-evidence',
   'source-license-evidence',
   'source-documents'
@@ -119,6 +121,29 @@ function isHttpsUrl(value) {
   } catch {
     return false
   }
+}
+
+function isNonLocalEvidenceRef(value) {
+  if (!hasValue(value)) {
+    return false
+  }
+  const normalized = String(value).trim()
+  if (/^(?:data|file):/i.test(normalized) || /imageBase64/i.test(normalized)) {
+    return false
+  }
+  try {
+    const url = new URL(normalized)
+    const protocol = url.protocol.toLowerCase()
+    if (protocol === 'https:') {
+      return !isLoopback(url.hostname)
+    }
+    if (['oss:', 'cos:', 's3:'].includes(protocol)) {
+      return hasValue(url.hostname) && hasValue(url.pathname.replaceAll('/', ''))
+    }
+  } catch {
+    return false
+  }
+  return false
 }
 
 function requireRealEnv(env, keys) {
@@ -368,6 +393,17 @@ function checkEvidenceChecks(evidence, requiredChecks, label) {
   return blockers
 }
 
+function checkReviewBatchSummary(summary, label) {
+  const blockers = []
+  if (!/^xicheng-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(String(summary.reviewBatchCode || ''))) {
+    blockers.push(`${label} evidence reviewBatchCode is required`)
+  }
+  if (!isNonLocalEvidenceRef(summary.reviewBatchEvidencePackageRef)) {
+    blockers.push(`${label} evidence reviewBatchEvidencePackageRef must be a non-local evidence package reference`)
+  }
+  return blockers
+}
+
 function parseMaxEvidenceAgeHours(value) {
   if (value === undefined || value === null || value === '') {
     return defaultMaxEvidenceAgeHours
@@ -467,6 +503,7 @@ async function validateManifestEvidence(ref, rootDir, freshnessOptions) {
   if (summary.productionReady !== true) {
     blockers.push('manifest evidence productionReady must be true')
   }
+  blockers.push(...checkReviewBatchSummary(summary, 'manifest'))
   blockers.push(...checkEvidenceChecks(evidence, requiredManifestEvidenceChecks, 'manifest'))
   if (!hasNoEvidenceBlockers(evidence)) {
     blockers.push(`manifest evidence contains blockers: ${evidence.blockers.join('; ')}`)
@@ -506,6 +543,7 @@ async function validateSeedEvidence(ref, rootDir, freshnessOptions) {
   if (summary.productionReady !== true) {
     blockers.push('seed evidence productionReady must be true')
   }
+  blockers.push(...checkReviewBatchSummary(summary, 'seed'))
   blockers.push(...checkEvidenceChecks(evidence, requiredSeedEvidenceChecks, 'seed'))
   if (!hasNoEvidenceBlockers(evidence)) {
     blockers.push(`seed evidence contains blockers: ${evidence.blockers.join('; ')}`)
