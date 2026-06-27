@@ -783,7 +783,11 @@ describe('xicheng Yudao release readiness gate', () => {
       yudaoBaselineSqlSha256: sha256(await readFile(externalBaselinePath, 'utf8')),
       yudaoServerJarFile: path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar'),
       manifestEvidenceFile: manifestEvidencePath,
-      seedEvidenceFile: seedEvidencePath
+      seedEvidenceFile: seedEvidencePath,
+      poiManifestFile: path.join(rootDir, 'workbench/xicheng-production-pois.json'),
+      poiManifestSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+      poiSeedSqlFile: path.join(rootDir, 'workbench/xicheng-poi-production-seed.sql'),
+      poiSeedSqlSha256: expect.stringMatching(/^[a-f0-9]{64}$/)
     })
     expect(evidence.checks.find((check) => check.name === 'full-yudao-baseline')?.detail).toContain(externalBaselinePath)
   })
@@ -828,6 +832,8 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(deployDoc).toContain('YUDAO_SERVER_JAR')
     expect(deployDoc).toContain('seed evidence 的 `summary.sqlFile`')
     expect(deployDoc).toContain('sourceWorkbookSha256')
+    expect(deployDoc).toContain('poiManifestSha256')
+    expect(deployDoc).toContain('poiSeedSqlSha256')
   })
 
   test('fails closed when manifest evidence lacks source workbook provenance', async () => {

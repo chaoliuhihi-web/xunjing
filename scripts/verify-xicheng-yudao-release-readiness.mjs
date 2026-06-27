@@ -641,8 +641,12 @@ async function checkXichengProductionPoiEvidence({
     summary: {
       manifestEvidenceFile: manifestEvidence.path,
       seedEvidenceFile: seedEvidence.path,
+      poiManifestFile: evidenceSummary(manifestEvidence.data).manifestFile,
+      poiManifestSha256: evidenceSummary(manifestEvidence.data).manifestSha256,
       sourceWorkbookFile: evidenceSummary(manifestEvidence.data).sourceWorkbookFile,
       sourceWorkbookSha256: evidenceSummary(manifestEvidence.data).sourceWorkbookSha256,
+      poiSeedSqlFile: evidenceSummary(seedEvidence.data).sqlFile,
+      poiSeedSqlSha256: evidenceSummary(seedEvidence.data).sqlSha256,
       productionPoiSeedSqlFile: evidenceSummary(seedEvidence.data).sqlFile
     }
   }
