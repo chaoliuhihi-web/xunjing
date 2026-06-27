@@ -312,6 +312,7 @@
 			<text class="section-desc">路线完成：{{ opsReport.routeCompletionRate }}% · 分享数：{{ opsReport.shareCount }}</text>
 			<text class="section-desc">热门 POI：{{ opsReport.hotPoiLabel }}</text>
 			<text class="section-desc">误触发：{{ opsReport.misTriggerCount }} · 识别反馈：{{ opsReport.recognitionFeedbackCount }}</text>
+			<text class="section-desc">安全拦截：{{ opsReport.safetyBlockedCount }} · 服务不可用：{{ opsReport.safetyUnavailableCount }}</text>
 			<text class="section-desc">优化建议：{{ opsReport.optimizationSuggestionText }}</text>
 			<text class="section-desc">上线后可替换为后端真实城市运营报告。</text>
 		</view>
@@ -511,6 +512,15 @@ export default {
 			}).length
 			return explicitFeedbackCount + lowConfidenceMaterialCount
 		},
+		safetyStatusSummary() {
+			return this.createSafetyStatusSummary()
+		},
+		safetyBlockedCount() {
+			return this.safetyStatusSummary.blockedCount
+		},
+		safetyUnavailableCount() {
+			return this.safetyStatusSummary.unavailableCount
+		},
 		opsReport() {
 			const hotPois = this.createHotPoiRanking()
 			const optimizationSuggestions = this.createOptimizationSuggestions()
@@ -534,6 +544,9 @@ export default {
 				recognitionFeedbackCount: this.recognitionFeedbackCount,
 				shareCount: this.shareArtifacts.length,
 				misTriggerCount: this.misTriggerCount,
+				safetyStatusSummary: this.safetyStatusSummary,
+				safetyBlockedCount: this.safetyBlockedCount,
+				safetyUnavailableCount: this.safetyUnavailableCount,
 				optimizationSuggestions: this.createOptimizationSuggestions(),
 				reviewStatus: this.reviewText,
 				posterStatus: this.posterStatus,
@@ -1127,6 +1140,9 @@ export default {
 				badgeAwards: this.badgeAwards,
 				activeBadgeAward: this.activeBadgeAward,
 				badgeAwardCount: this.badgeAwardCount,
+				safetyStatusSummary: this.safetyStatusSummary,
+				safetyBlockedCount: this.safetyBlockedCount,
+				safetyUnavailableCount: this.safetyUnavailableCount,
 				reviewStatus: this.reviewText,
 				submittedAt,
 				materialCount: this.materialCount,
@@ -1135,6 +1151,25 @@ export default {
 				posterStatus: this.posterStatus,
 				pdfStatus: this.pdfStatus,
 				shareArtifacts: this.shareArtifacts
+			}
+		},
+		createSafetyStatusSummary() {
+			const statusItems = [
+				...this.materials,
+				...this.routeCheckins,
+				...this.recognitionFeedbacks
+			].filter(item => item && item.safetyStatus)
+			const statusCounts = statusItems.reduce((counts, item) => {
+				const status = String(item.safetyStatus || '').toUpperCase()
+				if (!status) return counts
+				counts[status] = (counts[status] || 0) + 1
+				return counts
+			}, {})
+			return {
+				totalCount: statusItems.length,
+				blockedCount: statusCounts.BLOCKED || 0,
+				unavailableCount: statusCounts.UNAVAILABLE || 0,
+				statusCounts
 			}
 		},
 		createShareArtifact(assetType) {
