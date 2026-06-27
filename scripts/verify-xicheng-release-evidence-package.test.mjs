@@ -121,6 +121,7 @@ async function writeReleaseEvidenceFile(rootDir, overrides = {}) {
       yudaoServerJarSha256: serverJar.jarSha256,
       yudaoServerJarSizeBytes: serverJar.jarSizeBytes,
       manifestEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-manifest-evidence.json'),
+      workbookEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json'),
       seedEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-production-seed-evidence.json'),
       ...(overrides.summary || {})
     }
@@ -844,6 +845,7 @@ describe('xicheng release evidence package gate', () => {
     const releasePath = await writeReleaseEvidenceFile(rootDir, {
       summary: {
         manifestEvidenceFile: undefined,
+        workbookEvidenceFile: undefined,
         seedEvidenceFile: undefined
       }
     })
@@ -864,6 +866,7 @@ describe('xicheng release evidence package gate', () => {
     const report = JSON.parse(result.stdout)
     expect(report.status).toBe('NOT_READY')
     expect(report.blockers.join('\n')).toContain('release evidence manifestEvidenceFile is required')
+    expect(report.blockers.join('\n')).toContain('release evidence workbookEvidenceFile is required')
     expect(report.blockers.join('\n')).toContain('release evidence seedEvidenceFile is required')
   })
 
@@ -872,6 +875,7 @@ describe('xicheng release evidence package gate', () => {
     const releasePath = await writeReleaseEvidenceFile(rootDir, {
       summary: {
         manifestEvidenceFile: path.join(rootDir, 'qa/other-xicheng-poi-manifest-evidence.json'),
+        workbookEvidenceFile: path.join(rootDir, 'qa/other-xicheng-poi-review-workbook-evidence.json'),
         seedEvidenceFile: path.join(rootDir, 'qa/other-xicheng-poi-production-seed-evidence.json')
       }
     })
@@ -892,6 +896,7 @@ describe('xicheng release evidence package gate', () => {
     const report = JSON.parse(result.stdout)
     expect(report.status).toBe('NOT_READY')
     expect(report.blockers.join('\n')).toContain('release and package manifest evidence file must match')
+    expect(report.blockers.join('\n')).toContain('release and package workbook evidence file must match')
     expect(report.blockers.join('\n')).toContain('release and package seed evidence file must match')
   })
 

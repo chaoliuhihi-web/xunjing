@@ -650,12 +650,18 @@ function checkEvidenceConsistency({ rootDir, releaseRef, manifestRef, workbookRe
   const seedSummary = summaryOf(seedRef.data)
   const appSummary = summaryOf(appRef.data)
   const releaseManifestEvidenceFile = normalizeEvidencePath(rootDir, releaseSummary.manifestEvidenceFile)
+  const releaseWorkbookEvidenceFile = normalizeEvidencePath(rootDir, releaseSummary.workbookEvidenceFile)
   const releaseSeedEvidenceFile = normalizeEvidencePath(rootDir, releaseSummary.seedEvidenceFile)
 
   if (!releaseManifestEvidenceFile) {
     blockers.push('release evidence manifestEvidenceFile is required')
   } else if (manifestRef.path && releaseManifestEvidenceFile !== path.resolve(manifestRef.path)) {
     blockers.push('release and package manifest evidence file must match')
+  }
+  if (!releaseWorkbookEvidenceFile) {
+    blockers.push('release evidence workbookEvidenceFile is required')
+  } else if (workbookRef.path && releaseWorkbookEvidenceFile !== path.resolve(workbookRef.path)) {
+    blockers.push('release and package workbook evidence file must match')
   }
   if (!releaseSeedEvidenceFile) {
     blockers.push('release evidence seedEvidenceFile is required')
