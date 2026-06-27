@@ -29,7 +29,10 @@ for (const required of [
   'trackPoints',
   'stayPoints',
   'startedAt',
-  'finishedAt'
+  'finishedAt',
+  'recordedAt',
+  'appState',
+  'syncStatus'
 ]) {
   assert.ok(travelogue.includes(required), `Travelogue page should support active recording session behavior ${required}`)
 }
@@ -92,6 +95,12 @@ assert.match(
   travelogue,
   /captureTrackPoint\(pointType = 'manual'\)[\s\S]*requestCurrentLocationForTrigger\(\)[\s\S]*trackPoints:\s*\[[\s\S]*this\.recordingSession\.trackPoints/,
   'Capturing a track point should request foreground location and append it to the local session'
+)
+
+assert.match(
+  travelogue,
+  /captureTrackPoint\(pointType = 'manual'\)[\s\S]*const point = \{[\s\S]*capturedAt[\s\S]*recordedAt:\s*capturedAt[\s\S]*appState:\s*'foreground'[\s\S]*syncStatus:\s*'local_pending'[\s\S]*accuracyMeters/,
+  'Captured track points should keep recordedAt, foreground app state, local sync status, and accuracy for upload readiness'
 )
 
 assert.match(
