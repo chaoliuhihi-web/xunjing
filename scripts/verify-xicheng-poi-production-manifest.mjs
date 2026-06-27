@@ -113,6 +113,25 @@ function checkManifestProductionFlags(manifest, minPoiCount) {
   return check('manifest-production-flags', blockers)
 }
 
+function checkManifestReviewBatch(manifest) {
+  const blockers = []
+  const reviewBatch = isObject(manifest.reviewBatch) ? manifest.reviewBatch : {}
+  if (!hasText(reviewBatch.batchCode)) {
+    blockers.push('manifest.reviewBatch.batchCode is required')
+  } else if (!/^xicheng-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(String(reviewBatch.batchCode))) {
+    blockers.push('manifest.reviewBatch.batchCode must be a stable xicheng-* slug')
+  }
+  for (const field of ['dataOwner', 'sourceCompiledBy', 'sourceCompiledAt', 'reviewedBy', 'reviewedAt']) {
+    if (!hasText(reviewBatch[field])) {
+      blockers.push(`manifest.reviewBatch.${field} is required`)
+    }
+  }
+  if (!isFieldEvidenceRef(reviewBatch.evidencePackageRef)) {
+    blockers.push('manifest.reviewBatch.evidencePackageRef must be a non-local evidence package reference')
+  }
+  return check('manifest-review-batch', blockers)
+}
+
 function checkPoiCount(pois, minPoiCount) {
   const blockers = []
   if (pois.length < minPoiCount) {
@@ -315,6 +334,7 @@ export async function verifyXichengPoiProductionManifest({
   const checks = [
     checkManifestShape(manifest),
     checkManifestProductionFlags(manifest, normalizedMinPoiCount),
+    checkManifestReviewBatch(manifest),
     checkPoiCount(pois, normalizedMinPoiCount),
     checkPoiIdentity(pois),
     checkPoiCoordinates(pois),
@@ -342,6 +362,8 @@ export async function verifyXichengPoiProductionManifest({
       targetPoiCount: Number(manifest.targetP0PoiCount) || normalizedMinPoiCount,
       minPoiCount: normalizedMinPoiCount,
       productionReady: manifest.productionReady === true,
+      reviewBatchCode: manifest.reviewBatch?.batchCode,
+      reviewBatchEvidencePackageRef: manifest.reviewBatch?.evidencePackageRef,
       categoryCount: categories.size
     },
     checks,

@@ -67,6 +67,10 @@ function countMatches(sql, pattern) {
   return Array.from(sql.matchAll(pattern)).length
 }
 
+function hasText(value) {
+  return String(value || '').trim().length > 0
+}
+
 function extractPoiCodes(sql) {
   return Array.from(sql.matchAll(/\(@map_package_id,\s*'((?:''|[^'])*)'/g))
     .map((match) => match[1].replaceAll("''", "'"))
@@ -76,6 +80,41 @@ function extractPoiCodes(sql) {
 function extractNumberMetric(sql, name) {
   const match = sql.match(new RegExp(`"${name}"\\s*:\\s*(\\d+)`))
   return match ? Number(match[1]) : undefined
+}
+
+function extractStringMetric(sql, name) {
+  const match = sql.match(new RegExp(`"${name}"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"`))
+  if (!match) {
+    return undefined
+  }
+  try {
+    return JSON.parse(`"${match[1]}"`)
+  } catch {
+    return match[1]
+  }
+}
+
+function isNonLocalEvidenceRef(value) {
+  if (!hasText(value)) {
+    return false
+  }
+  const normalized = String(value).trim()
+  if (/^(?:data|file):/i.test(normalized) || /imageBase64/i.test(normalized)) {
+    return false
+  }
+  try {
+    const url = new URL(normalized)
+    const protocol = url.protocol.toLowerCase()
+    if (protocol === 'https:') {
+      return !['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(url.hostname.toLowerCase())
+    }
+    if (['oss:', 'cos:', 's3:'].includes(protocol)) {
+      return hasText(url.hostname) && hasText(url.pathname.replaceAll('/', ''))
+    }
+  } catch {
+    return false
+  }
+  return false
 }
 
 function checkSqlFile(sql) {
@@ -161,6 +200,19 @@ function checkProductionMetrics(sql, minPoiCount) {
   return check('production-metrics', blockers)
 }
 
+function checkReviewBatchMetrics(sql) {
+  const blockers = []
+  const reviewBatchCode = extractStringMetric(sql, 'reviewBatchCode')
+  const evidencePackageRef = extractStringMetric(sql, 'reviewBatchEvidencePackageRef')
+  if (!/^xicheng-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(String(reviewBatchCode || ''))) {
+    blockers.push('production metrics must include reviewBatchCode')
+  }
+  if (!isNonLocalEvidenceRef(evidencePackageRef)) {
+    blockers.push('production metrics must include reviewBatchEvidencePackageRef')
+  }
+  return check('review-batch-metrics', blockers)
+}
+
 function checkFieldEvidence(sql) {
   const blockers = []
   const poiCount = extractPoiCodes(sql).length
@@ -228,6 +280,7 @@ export async function verifyXichengPoiProductionSeed({
     checkPoiCount(sql, normalizedMinPoiCount),
     checkPoiApproval(sql),
     checkProductionMetrics(sql, normalizedMinPoiCount),
+    checkReviewBatchMetrics(sql),
     checkFieldEvidence(sql),
     checkSourceLicenseEvidence(sql),
     checkSourceDocuments(sql)
@@ -247,7 +300,9 @@ export async function verifyXichengPoiProductionSeed({
       minPoiCount: normalizedMinPoiCount,
       productionReady: sql.includes('"productionReady":true'),
       poiSeedCount: extractNumberMetric(sql, 'poiSeedCount'),
-      targetP0PoiCount: extractNumberMetric(sql, 'targetP0PoiCount')
+      targetP0PoiCount: extractNumberMetric(sql, 'targetP0PoiCount'),
+      reviewBatchCode: extractStringMetric(sql, 'reviewBatchCode'),
+      reviewBatchEvidencePackageRef: extractStringMetric(sql, 'reviewBatchEvidencePackageRef')
     },
     checks,
     blockers

@@ -80,6 +80,15 @@ function productionManifest(overrides = {}) {
     packageCode: 'XICHENG-MAP-001',
     targetP0PoiCount: 80,
     productionReady: true,
+    reviewBatch: {
+      batchCode: 'xicheng-p0-poi-review-20260627',
+      dataOwner: 'xicheng-cultural-tourism-review-team',
+      sourceCompiledBy: 'xicheng-source-compiler',
+      sourceCompiledAt: '2026-06-27',
+      reviewedBy: 'xicheng-production-reviewer',
+      reviewedAt: '2026-06-27',
+      evidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260627.zip'
+    },
     pois: Array.from({ length: 80 }, (_, index) => productionPoi(index + 1)),
     ...overrides
   }
@@ -129,12 +138,14 @@ describe('xicheng POI production manifest gate', () => {
       manifestFile: manifestPath,
       totalPoiCount: 80,
       targetPoiCount: 80,
-      productionReady: true
+      productionReady: true,
+      reviewBatchCode: 'xicheng-p0-poi-review-20260627'
     })
     expect(report.summary.manifestSha256).toMatch(/^[a-f0-9]{64}$/)
     expect(report.checks.map((check) => check.name)).toEqual([
       'manifest-shape',
       'manifest-production-flags',
+      'manifest-review-batch',
       'poi-count',
       'poi-identity',
       'poi-coordinates',
@@ -151,6 +162,15 @@ describe('xicheng POI production manifest gate', () => {
     const rootDir = await createTempRoot()
     const manifestPath = await writeJson(rootDir, 'workbench/xicheng-production-pois.json', productionManifest({
       productionReady: false,
+      reviewBatch: {
+        batchCode: '',
+        dataOwner: '',
+        sourceCompiledBy: '',
+        sourceCompiledAt: '',
+        reviewedBy: '',
+        reviewedAt: '',
+        evidencePackageRef: 'file:///tmp/review-batch.zip'
+      },
       pois: [productionPoi(1, {
         aliases: ['西城生产点位001'],
         coordType: 'BD09',
@@ -200,6 +220,8 @@ describe('xicheng POI production manifest gate', () => {
     expect(evidence.artifactType).toBe('xicheng-poi-production-manifest-readiness')
     expect(evidence.status).toBe('NOT_READY')
     expect(evidence.blockers.join('\n')).toContain('80 production-ready POIs required; found 1/80')
+    expect(evidence.blockers.join('\n')).toContain('manifest.reviewBatch.batchCode is required')
+    expect(evidence.blockers.join('\n')).toContain('manifest.reviewBatch.evidencePackageRef must be a non-local evidence package reference')
     expect(evidence.blockers.join('\n')).toContain('xicheng-prod-poi-001 source.licenseStatus must be APPROVED')
     expect(evidence.blockers.join('\n')).toContain('xicheng-prod-poi-001 source.licenseEvidenceRef must include a source license evidence reference')
     expect(evidence.blockers.join('\n')).toContain('xicheng-prod-poi-001 source.licenseReviewedBy is required')

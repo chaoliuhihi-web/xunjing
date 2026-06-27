@@ -101,6 +101,15 @@ function productionManifest(overrides = {}) {
     packageCode: 'XICHENG-MAP-001',
     targetP0PoiCount: 80,
     productionReady: true,
+    reviewBatch: {
+      batchCode: 'xicheng-p0-poi-review-20260627',
+      dataOwner: 'xicheng-cultural-tourism-review-team',
+      sourceCompiledBy: 'xicheng-source-compiler',
+      sourceCompiledAt: '2026-06-27',
+      reviewedBy: 'xicheng-production-reviewer',
+      reviewedAt: '2026-06-27',
+      evidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260627.zip'
+    },
     pois,
     ...overrides
   }
@@ -167,6 +176,7 @@ describe('xicheng POI production seed generator', () => {
       manifestSha256: sha256(manifestText),
       outputFile: outputPath,
       sqlSha256: sha256(sql),
+      reviewBatchCode: 'xicheng-p0-poi-review-20260627',
       totalPoiCount: 80,
       targetPoiCount: 80
     })

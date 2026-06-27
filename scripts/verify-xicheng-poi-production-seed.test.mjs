@@ -81,6 +81,15 @@ function productionManifest(overrides = {}) {
     packageCode: 'XICHENG-MAP-001',
     targetP0PoiCount: 80,
     productionReady: true,
+    reviewBatch: {
+      batchCode: 'xicheng-p0-poi-review-20260627',
+      dataOwner: 'xicheng-cultural-tourism-review-team',
+      sourceCompiledBy: 'xicheng-source-compiler',
+      sourceCompiledAt: '2026-06-27',
+      reviewedBy: 'xicheng-production-reviewer',
+      reviewedAt: '2026-06-27',
+      evidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260627.zip'
+    },
     pois: Array.from({ length: 80 }, (_, index) => productionPoi(index + 1)),
     ...overrides
   }
@@ -157,6 +166,8 @@ describe('xicheng POI production seed SQL gate', () => {
       poiCount: 80,
       minPoiCount: 80,
       productionReady: true,
+      reviewBatchCode: 'xicheng-p0-poi-review-20260627',
+      reviewBatchEvidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260627.zip',
       sqlFile: sqlPath
     })
     expect(report.summary.sqlSha256).toMatch(/^[a-f0-9]{64}$/)
@@ -167,6 +178,7 @@ describe('xicheng POI production seed SQL gate', () => {
       'poi-count',
       'poi-approval',
       'production-metrics',
+      'review-batch-metrics',
       'field-evidence',
       'source-license-evidence',
       'source-documents'
@@ -205,6 +217,8 @@ INSERT INTO \`xunjing_public_report\` (\`metrics_json\`) VALUES ('{"productionRe
     expect(evidence.blockers.join('\n')).toContain('seed SQL must fail fast when XICHENG-MAP-001 package is missing')
     expect(evidence.blockers.join('\n')).toContain('seed SQL must not contain REVIEW_REQUIRED or DRAFT')
     expect(evidence.blockers.join('\n')).toContain('production metrics must include "productionReady":true')
+    expect(evidence.blockers.join('\n')).toContain('production metrics must include reviewBatchCode')
+    expect(evidence.blockers.join('\n')).toContain('production metrics must include reviewBatchEvidencePackageRef')
     expect(evidence.blockers.join('\n')).toContain('seed SQL must include approved field evidence for each production POI')
     expect(evidence.blockers.join('\n')).toContain('seed SQL must include approved source license evidence for each production POI')
   })

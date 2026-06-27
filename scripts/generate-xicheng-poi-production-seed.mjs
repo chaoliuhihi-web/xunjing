@@ -199,6 +199,8 @@ function buildMetrics(manifest) {
     productionReady: true,
     regionCode: manifest.regionCode,
     packageCode: manifest.packageCode,
+    reviewBatchCode: manifest.reviewBatch?.batchCode,
+    reviewBatchEvidencePackageRef: manifest.reviewBatch?.evidencePackageRef,
     poiSeedCount: manifest.pois.length,
     targetP0PoiCount: Number(manifest.targetP0PoiCount),
     sourceLicenseStatus: 'APPROVED',
@@ -343,6 +345,8 @@ async function runCli() {
     summary: {
       manifestFile: resolvedManifestPath,
       manifestSha256: sha256(manifestText),
+      reviewBatchCode: manifest.reviewBatch?.batchCode,
+      reviewBatchEvidencePackageRef: manifest.reviewBatch?.evidencePackageRef,
       totalPoiCount: manifest.pois.length,
       targetPoiCount: Number(manifest.targetP0PoiCount),
       outputFile,

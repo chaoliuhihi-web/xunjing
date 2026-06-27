@@ -68,7 +68,16 @@ describe('xicheng POI production manifest template generator', () => {
       regionCode: 'beijing-xicheng',
       packageCode: 'XICHENG-MAP-001',
       targetP0PoiCount: 80,
-      productionReady: false
+      productionReady: false,
+      reviewBatch: {
+        batchCode: '',
+        dataOwner: '',
+        sourceCompiledBy: '',
+        sourceCompiledAt: '',
+        reviewedBy: '',
+        reviewedAt: '',
+        evidencePackageRef: ''
+      }
     })
     expect(manifest.pois).toHaveLength(80)
     expect(manifest.templateNotice).toContain('must not be used as production evidence')
@@ -127,6 +136,7 @@ describe('xicheng POI production manifest template generator', () => {
     const gateReport = JSON.parse(await readFile(gateEvidenceFile, 'utf8'))
     expect(gateReport.status).toBe('NOT_READY')
     expect(gateReport.blockers.join('\n')).toContain('manifest.productionReady must be true before production seed merge')
+    expect(gateReport.blockers.join('\n')).toContain('manifest.reviewBatch.batchCode is required')
     expect(gateReport.blockers.join('\n')).toContain('TODO-xicheng-poi-001 poiCode must be a stable xicheng-* slug')
     expect(gateReport.blockers.join('\n')).toContain('TODO-xicheng-poi-001 source.licenseStatus must be APPROVED')
   })

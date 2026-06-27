@@ -111,6 +111,15 @@ export function createXichengPoiProductionManifestTemplate({ count = defaultPoiS
     packageCode: 'XICHENG-MAP-001',
     targetP0PoiCount: poiSlotCount,
     productionReady: false,
+    reviewBatch: {
+      batchCode: '',
+      dataOwner: '',
+      sourceCompiledBy: '',
+      sourceCompiledAt: '',
+      reviewedBy: '',
+      reviewedAt: '',
+      evidencePackageRef: ''
+    },
     templateNotice: 'Fill with reviewed real POI data; this template must not be used as production evidence.',
     pois: Array.from({ length: poiSlotCount }, (_, index) => createPoiTemplate(index))
   }
