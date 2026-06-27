@@ -323,6 +323,7 @@ const AI_AVATAR = 'https://www.neoxiake.com//upload/admin/20260526/e32b564774875
 const KASHGAR_AI_COMPANION_HOME_ENABLED = true
 const KASHGAR_DIARY_GENERATOR_ENABLED = true
 const XICHENG_BLOCKED_ANSWER = '无已审核来源，不能回答'
+const XICHENG_UNAVAILABLE_ANSWER = '小京暂时无法获取已审核来源，请稍后再试'
 
 const XUNJING_AI_CONFIG = {
 	packageCode: 'KASHGAR-MAP-001',
@@ -853,27 +854,12 @@ const createLocalKashgarAiFallback = (question = '') => {
 }
 
 const createLocalXichengAiFallback = (question = '', context = {}) => {
-	const poiName = context.poiName || '西城文化点'
-	const normalizedQuestion = String(question || '').trim()
-	const topic = normalizedQuestion.includes('路线') || normalizedQuestion.includes('攻略')
-		? '路线'
-		: normalizedQuestion.includes('游记') || normalizedQuestion.includes('记录')
-			? '游记'
-			: '讲解'
-	const answer = topic === '路线'
-		? `我是${context.companionName || XICHENG_REGION_CONFIG.companionName}。先按西城试运营资料为你推荐：从${poiName}出发，可以串联周边历史街巷、博物馆或水系空间，控制在 1.5 到 2.5 小时，适合边走边听讲解并完成路线护照打卡。`
-		: topic === '游记'
-			? `我是${context.companionName || XICHENG_REGION_CONFIG.companionName}。我可以先把${poiName}作为今天的游记素材，补上识别地点、讲解要点、亲子观察任务和分享海报标题，后续再合并路线记录生成草稿。`
-			: `我是${context.companionName || XICHENG_REGION_CONFIG.companionName}。先按西城本地导览资料讲解：${poiName}可以从历史沿革、建筑细节、街区生活和亲子研学观察四个角度来听。现场可以先看门头、碑刻或说明牌，再继续问我“下一站去哪”。`
 	return {
 		fallback: true,
-		answer,
+		answer: XICHENG_UNAVAILABLE_ANSWER,
 		sources: [],
-		followUps: [
-			`讲讲${poiName}`,
-			`从${poiName}出发推荐路线`,
-			`把${poiName}写进游记草稿`
-		]
+		followUps: [],
+		safetyStatus: 'UNAVAILABLE'
 	}
 }
 

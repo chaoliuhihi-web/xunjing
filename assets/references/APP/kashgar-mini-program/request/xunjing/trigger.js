@@ -33,9 +33,11 @@ export const isXichengDevelopmentFallbackAllowed = () => {
 	if (runtimeEnv.PROD === true || runtimeEnv.MODE === 'production' || nodeEnv === 'production') {
 		return false
 	}
-	return runtimeEnv.VITE_XICHENG_ALLOW_DEVELOPMENT_FIXTURE === 'true'
-		|| runtimeEnv.DEV === true
-		|| nodeEnv !== 'production'
+	const explicitFixtureFlag = runtimeEnv.VITE_XICHENG_ALLOW_DEVELOPMENT_FIXTURE === 'true'
+	const knownDevelopmentRuntime = runtimeEnv.DEV === true
+		|| runtimeEnv.MODE === 'development'
+		|| nodeEnv === 'development'
+	return explicitFixtureFlag || knownDevelopmentRuntime
 }
 
 const normalizeSuggestedQuestions = (result = {}) => {
