@@ -30,6 +30,29 @@ const requiredAppReadinessChecks = [
   'live-xicheng-trigger-planetarium'
 ]
 
+const requiredManifestEvidenceChecks = [
+  'manifest-shape',
+  'manifest-production-flags',
+  'poi-count',
+  'poi-identity',
+  'poi-coordinates',
+  'poi-triggers',
+  'poi-source-license',
+  'poi-field-evidence',
+  'poi-content',
+  'poi-audit'
+]
+
+const requiredSeedEvidenceChecks = [
+  'sql-file',
+  'seed-shape',
+  'poi-count',
+  'poi-approval',
+  'production-metrics',
+  'field-evidence',
+  'source-documents'
+]
+
 function check(name, blockers) {
   return {
     name,
@@ -165,6 +188,7 @@ function checkManifestEvidence(ref) {
   if (summary.productionReady !== true) {
     blockers.push('manifest evidence productionReady must be true')
   }
+  blockers.push(...checkEvidenceChecks(evidence, requiredManifestEvidenceChecks, 'manifest'))
   if (blockersOf(evidence).length > 0) {
     blockers.push(`manifest evidence contains blockers: ${blockersOf(evidence).join('; ')}`)
   }
@@ -199,6 +223,7 @@ function checkSeedEvidence(ref) {
   if (summary.productionReady !== true) {
     blockers.push('seed evidence productionReady must be true')
   }
+  blockers.push(...checkEvidenceChecks(evidence, requiredSeedEvidenceChecks, 'seed'))
   if (blockersOf(evidence).length > 0) {
     blockers.push(`seed evidence contains blockers: ${blockersOf(evidence).join('; ')}`)
   }

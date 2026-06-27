@@ -62,6 +62,18 @@ function manifestEvidence(overrides = {}) {
       targetPoiCount: 80,
       productionReady: true
     },
+    checks: [
+      { name: 'manifest-shape', ok: true },
+      { name: 'manifest-production-flags', ok: true },
+      { name: 'poi-count', ok: true },
+      { name: 'poi-identity', ok: true },
+      { name: 'poi-coordinates', ok: true },
+      { name: 'poi-triggers', ok: true },
+      { name: 'poi-source-license', ok: true },
+      { name: 'poi-field-evidence', ok: true },
+      { name: 'poi-content', ok: true },
+      { name: 'poi-audit', ok: true }
+    ],
     blockers: [],
     ...overrides
   }
@@ -79,6 +91,15 @@ function seedEvidence(overrides = {}) {
       poiSeedCount: 80,
       targetP0PoiCount: 80
     },
+    checks: [
+      { name: 'sql-file', ok: true },
+      { name: 'seed-shape', ok: true },
+      { name: 'poi-count', ok: true },
+      { name: 'poi-approval', ok: true },
+      { name: 'production-metrics', ok: true },
+      { name: 'field-evidence', ok: true },
+      { name: 'source-documents', ok: true }
+    ],
     blockers: [],
     ...overrides
   }
@@ -156,6 +177,51 @@ describe('xicheng release evidence package gate', () => {
     expect(report.blockers).toEqual([])
     const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
     expect(evidence.status).toBe('XICHENG_RELEASE_EVIDENCE_PACKAGE_READY')
+  })
+
+  test('fails closed when POI evidence was generated before field evidence gates existed', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
+    const manifestPath = await writeJson(rootDir, 'qa/xicheng-poi-manifest-evidence.json', manifestEvidence({
+      checks: [
+        { name: 'manifest-shape', ok: true },
+        { name: 'manifest-production-flags', ok: true },
+        { name: 'poi-count', ok: true },
+        { name: 'poi-identity', ok: true },
+        { name: 'poi-coordinates', ok: true },
+        { name: 'poi-triggers', ok: true },
+        { name: 'poi-source-license', ok: true },
+        { name: 'poi-content', ok: true },
+        { name: 'poi-audit', ok: true }
+      ]
+    }))
+    const seedPath = await writeJson(rootDir, 'qa/xicheng-poi-production-seed-evidence.json', seedEvidence({
+      checks: [
+        { name: 'sql-file', ok: true },
+        { name: 'seed-shape', ok: true },
+        { name: 'poi-count', ok: true },
+        { name: 'poi-approval', ok: true },
+        { name: 'production-metrics', ok: true },
+        { name: 'source-documents', ok: true }
+      ]
+    }))
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+    const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath,
+      '--evidence-file', 'tmp/xicheng-release-evidence-package.json'
+    ])
+
+    expect(result.status).toBe(1)
+    const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
+    expect(evidence.status).toBe('NOT_READY')
+    expect(evidence.blockers.join('\n')).toContain('manifest evidence must include poi-field-evidence')
+    expect(evidence.blockers.join('\n')).toContain('seed evidence must include field-evidence')
   })
 
   test('fails closed for incomplete APP evidence or raw secret-like values', async () => {
