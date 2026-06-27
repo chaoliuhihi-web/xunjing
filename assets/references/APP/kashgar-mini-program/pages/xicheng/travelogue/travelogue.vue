@@ -421,6 +421,47 @@ const decodeJourneyRouteValue = (value = '') => {
 	}
 }
 
+const normalizePhotoCoordinate = (value) => {
+	const numericValue = Number(value)
+	return Number.isFinite(numericValue) ? numericValue : null
+}
+
+export const normalizePhotoExifLocationForMaterial = (fileMeta = {}) => {
+	const exifLocation = fileMeta.exifLocation || fileMeta.location || {}
+	const exifLatitude = exifLocation.latitude !== undefined
+		? exifLocation.latitude
+		: fileMeta.exifLatitude !== undefined ? fileMeta.exifLatitude : fileMeta.latitude
+	const exifLongitude = exifLocation.longitude !== undefined
+		? exifLocation.longitude
+		: fileMeta.exifLongitude !== undefined ? fileMeta.exifLongitude : fileMeta.longitude
+	const latitude = normalizePhotoCoordinate(exifLatitude)
+	const longitude = normalizePhotoCoordinate(exifLongitude)
+	if (latitude === null || longitude === null) return null
+	return {
+		latitude,
+		longitude,
+		coordType: exifLocation.coordType || exifLocation.type || fileMeta.coordType || fileMeta.type || 'gcj02',
+		accuracyMeters: Math.round(Number(exifLocation.accuracyMeters || exifLocation.accuracy || fileMeta.accuracyMeters || fileMeta.accuracy || 0)),
+		exifSource: fileMeta.exifLocation ? 'chooseImage-exifLocation' : 'chooseImage-tempFile'
+	}
+}
+
+export const resolvePhotoEvidenceFileMeta = (chooseImageResult = {}) => {
+	const tempFile = Array.isArray(chooseImageResult.tempFiles) && chooseImageResult.tempFiles[0]
+		? chooseImageResult.tempFiles[0]
+		: {}
+	const filePath = tempFile.path
+		|| tempFile.tempFilePath
+		|| (chooseImageResult.tempFilePaths && chooseImageResult.tempFilePaths[0] ? chooseImageResult.tempFilePaths[0] : '')
+	return {
+		filePath,
+		localFileId: tempFile.fileId || tempFile.uuid || tempFile.path || tempFile.tempFilePath || filePath,
+		imageSizeBytes: Number(tempFile.size || tempFile.fileSize || 0) || 0,
+		imageMimeType: tempFile.type || tempFile.mimeType || '',
+		exifLocation: normalizePhotoExifLocationForMaterial(tempFile)
+	}
+}
+
 export default {
 	data() {
 		return {
@@ -1031,11 +1072,15 @@ export default {
 				sizeType: ['compressed'],
 				sourceType: ['camera', 'album'],
 				success: async (res) => {
+					const photoFileMeta = resolvePhotoEvidenceFileMeta(res)
 					const filePath = res.tempFilePaths && res.tempFilePaths[0] ? res.tempFilePaths[0] : ''
 					if (!filePath) {
-						this.showPhotoEvidenceCaptureFailed('照片未保存，请重新选择')
-						return
+						if (!photoFileMeta.filePath) {
+							this.showPhotoEvidenceCaptureFailed('照片未保存，请重新选择')
+							return
+						}
 					}
+					const resolvedFilePath = photoFileMeta.filePath || filePath
 					const takenAt = new Date().toISOString()
 					const captureLocation = await requestCurrentLocationForTrigger()
 					const material = {
@@ -1046,11 +1091,13 @@ export default {
 						poiCode: '',
 						poiName: '现场照片',
 						sourceLabel: '补充照片',
-						imagePath: filePath,
-						localFileId: filePath,
+						imagePath: filePath || resolvedFilePath,
+						localFileId: photoFileMeta.localFileId || resolvedFilePath,
 						objectKey: '',
+						imageSizeBytes: photoFileMeta.imageSizeBytes,
+						imageMimeType: photoFileMeta.imageMimeType,
 						takenAt,
-						exifLocation: null,
+						exifLocation: photoFileMeta.exifLocation,
 						captureLocation: this.normalizeCaptureLocationForMaterial(captureLocation),
 						nearestTrackPoint: this.findNearestTrackPoint(takenAt),
 						sources: [],
