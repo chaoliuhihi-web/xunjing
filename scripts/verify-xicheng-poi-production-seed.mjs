@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -13,6 +14,10 @@ function check(name, blockers) {
     detail: blockers.length === 0 ? `${name} passed` : blockers.join('; '),
     blockers
   }
+}
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex')
 }
 
 function readArgValue(args, name) {
@@ -198,6 +203,7 @@ export async function verifyXichengPoiProductionSeed({
     checkedAt: new Date().toISOString(),
     summary: {
       sqlFile: resolvedSqlPath,
+      sqlSha256: sha256(sql),
       poiCount: extractPoiCodes(sql).length,
       minPoiCount: normalizedMinPoiCount,
       productionReady: sql.includes('"productionReady":true'),

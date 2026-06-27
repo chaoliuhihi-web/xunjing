@@ -156,6 +156,7 @@ describe('xicheng POI production seed SQL gate', () => {
       productionReady: true,
       sqlFile: sqlPath
     })
+    expect(report.summary.sqlSha256).toMatch(/^[a-f0-9]{64}$/)
     expect(report.checks.map((check) => check.name)).toEqual([
       'sql-file',
       'seed-shape',
