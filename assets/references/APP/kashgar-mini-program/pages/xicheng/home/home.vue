@@ -229,6 +229,10 @@ export default {
 			try {
 				const location = await requestCurrentLocationForTrigger()
 				this.currentLocation = location
+				if (!location) {
+					this.handleRecognitionUnavailable('gps')
+					return
+				}
 				const trigger = await resolveXichengTextTrigger({
 					text: '当前位置附近西城文化点',
 					ocrText: '',
@@ -276,9 +280,11 @@ export default {
 			})
 		},
 		handleRecognitionUnavailable(source = 'scan') {
-			const message = source === 'ocr'
-				? '未获得可识别图片，请补充图片或粘贴展牌文字'
-				: '扫码未完成，请改用文本识别输入展牌或地点线索'
+			const message = source === 'gps'
+				? '无法获取当前位置，请开启定位权限后重试'
+				: source === 'ocr'
+					? '未获得可识别图片，请补充图片或粘贴展牌文字'
+					: '扫码未完成，请改用文本识别输入展牌或地点线索'
 			this.lastError = message
 			uni.showToast({
 				icon: 'none',

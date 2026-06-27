@@ -39,6 +39,18 @@ assert.match(
 )
 
 assert.match(
+  home,
+  /startGpsRecognition\(\)[\s\S]*const location = await requestCurrentLocationForTrigger\(\)[\s\S]*if\s*\(!location\)\s*\{[\s\S]*this\.handleRecognitionUnavailable\('gps'\)[\s\S]*return[\s\S]*resolveXichengTextTrigger\(\{[\s\S]*source:\s*'gps'[\s\S]*location/,
+  'GPS recognition should stop with a user-facing unavailable state when location permission or location data is unavailable'
+)
+
+assert.match(
+  home,
+  /handleRecognitionUnavailable\(source = 'scan'\)[\s\S]*source === 'gps'[\s\S]*无法获取当前位置/,
+  'Recognition unavailable copy should include a GPS-specific location permission message'
+)
+
+assert.match(
   triggerRequest,
   /export const resolveXichengOcrImageTrigger\s*=\s*async[\s\S]*requestXichengTriggerResolve\(\{[\s\S]*ocrText[\s\S]*photoMeta:\s*buildPhotoMetaForTrigger\(\{ filePath, location, imageInfo, imageBase64 \}\)[\s\S]*normalizeXichengTriggerResult\(result,\s*'ocr'\)/,
   'Trigger facade should expose an OCR image flow that keeps OCR labeled as OCR while using the shared multimodal backend contract'
