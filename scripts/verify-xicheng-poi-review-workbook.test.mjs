@@ -204,6 +204,22 @@ describe('xicheng POI review workbook readiness gate', () => {
     expect(result.status).toBe(1)
     const report = JSON.parse(result.stdout)
     expect(report.status).toBe('NOT_READY')
+    expect(report.summary).toMatchObject({
+      totalCheckCount: 8,
+      passedCheckCount: 3,
+      failedCheckCount: 5,
+      blockerCount: 6
+    })
+    expect(report.summary.blockerBreakdown).toEqual([
+      { name: 'workbook-file', ok: true, blockerCount: 0 },
+      { name: 'workbook-shape', ok: true, blockerCount: 0 },
+      { name: 'poi-count', ok: true, blockerCount: 0 },
+      { name: 'poi-identity', ok: false, blockerCount: 1 },
+      { name: 'poi-source-license', ok: false, blockerCount: 1 },
+      { name: 'poi-field-evidence', ok: false, blockerCount: 2 },
+      { name: 'poi-content-audit', ok: false, blockerCount: 1 },
+      { name: 'no-placeholder-cells', ok: false, blockerCount: 1 }
+    ])
     expect(report.blockers.join('\n')).toContain('TODO-xicheng-poi-080 poiCode must be a stable xicheng-* slug')
     expect(report.blockers.join('\n')).toContain('TODO-xicheng-poi-080 source.licenseStatus must be APPROVED')
     expect(report.blockers.join('\n')).toContain('workbook contains placeholder review values')
@@ -212,6 +228,7 @@ describe('xicheng POI review workbook readiness gate', () => {
   test('exposes the workbook gate through npm scripts and deployment docs', async () => {
     const packageJson = JSON.parse(await readFile('package.json', 'utf8'))
     const deployDoc = await readFile('docs/02_开发规划/星河寻境业务平台部署说明.md', 'utf8')
+    const statusDoc = await readFile('docs/04_AI交接任务书/西城P0后台上线状态.md', 'utf8')
 
     expect(packageJson.scripts['xunjing:xicheng:poi:workbook:gate']).toBe(
       'node scripts/verify-xicheng-poi-review-workbook.mjs'
@@ -219,5 +236,7 @@ describe('xicheng POI review workbook readiness gate', () => {
     expect(deployDoc).toContain('npm run xunjing:xicheng:poi:workbook:gate')
     expect(deployDoc).toContain('XICHENG_POI_REVIEW_WORKBOOK_READY')
     expect(deployDoc).toContain('xicheng-poi-review-workbook-evidence.json')
+    expect(deployDoc).toContain('blockerBreakdown')
+    expect(statusDoc).toContain('blockerBreakdown')
   })
 })

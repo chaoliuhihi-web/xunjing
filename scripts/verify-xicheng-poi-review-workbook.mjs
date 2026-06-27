@@ -378,6 +378,11 @@ export async function verifyXichengPoiReviewWorkbook({
   const blockers = checks.flatMap((item) => item.blockers || [])
   const ok = checks.every((item) => item.ok)
   const categories = new Set(pois.map((poi) => poi.category).filter(hasText))
+  const blockerBreakdown = checks.map((item) => ({
+    name: item.name,
+    ok: item.ok,
+    blockerCount: Array.isArray(item.blockers) ? item.blockers.length : 0
+  }))
 
   const report = {
     artifactType,
@@ -390,7 +395,12 @@ export async function verifyXichengPoiReviewWorkbook({
       workbookRows: pois.length,
       minPoiCount: normalizedMinPoiCount,
       categoryCount: categories.size,
-      placeholderCount: placeholderCheck.summary.placeholderCount
+      placeholderCount: placeholderCheck.summary.placeholderCount,
+      totalCheckCount: checks.length,
+      passedCheckCount: checks.filter((item) => item.ok).length,
+      failedCheckCount: checks.filter((item) => !item.ok).length,
+      blockerCount: blockers.length,
+      blockerBreakdown
     },
     checks,
     blockers
