@@ -62,6 +62,37 @@
 - 华为设备可通过 HarmonyOS 兼容版试用，并明确原生 HarmonyOS NEXT 路线。
 - 运营后台可查看识别事件、用户反馈和 POI 纠错。
 
+### 3.4 P0 扩展范围
+
+P0 必须同时覆盖现场体验、运营增长和对外交付三类闭环。实现时按 `P0-Core`、`P0-运营增长`、`P0-内容生产和汇报` 分组推进，但都属于西城真实试运营首版验收范围。
+
+#### P0-Core：现场体验闭环
+
+```text
+西城首页 -> 拍照 / OCR / 定位识别 -> 小京讲解 / 推荐路线 -> 开始记录 -> 生成游记草稿
+```
+
+- 首页提供小京、扫一扫、问问小京、路线推荐、开始记录、生成游记和最近识别入口。
+- 拍照、OCR、定位和文本统一进入多模态触发引擎。
+- 识别结果可进入小京讲解、路线推荐或旅行素材盒。
+- 用户必须主动点击“开始记录”后才采集轨迹。
+- 游记草稿必须基于真实照片、轨迹、识别事件、停留点和用户备注生成。
+
+#### P0-运营增长
+
+- 路线护照：路线下挂打卡点、任务、完成度和徽章。
+- 打卡徽章：完成路线、POI 或任务后生成徽章。
+- 亲子研学任务：每条路线可配置问答、观察、拍照和小测任务。
+- 分享海报：根据路线、照片、徽章和 AI 摘要生成可传播图片。
+- 作品审核：游记、海报、PDF 纪念册默认进入后台审核，不默认公开。
+
+#### P0-内容生产和汇报
+
+- 一键抄作业：用户可粘贴攻略文字、地点清单或上传攻略截图；系统提取地点后匹配西城官方 POI，生成可走路线。
+- 首版不抓取第三方平台原文，不复制小红书、公众号正文和图片，只提取地点、偏好和路线意图。
+- PDF 纪念册：固定模板生成封面、路线地图、照片时间线、游记正文、知识卡片和徽章页。
+- 城市运营报告：固定模板生成访问量、识别量、路线完成、热门 POI、作品数、分享数、误触发和优化建议。
+
 ## 4. UI 设计基准
 
 本版本 UI 参考以下设计稿目录：
@@ -440,6 +471,144 @@ assets/references/APP/xicheng-multimodal/design-mockups/
 }
 ```
 
+### 10.4 Photo Memory Event
+
+图片经纬度和拍照信息主要用于游记时间线、足迹、路线复盘和 POI 归属，不应只作为识别触发使用。系统必须区分“拍照瞬间 APP 获取的位置”和“图片文件 EXIF 中原始携带的位置”。
+
+```json
+{
+  "photoEventId": "photo_20260626_0001",
+  "userId": "anonymous_or_bound_user",
+  "regionCode": "XICHENG",
+  "trackSessionId": "track_20260626_0001",
+  "imageUrl": "",
+  "thumbUrl": "",
+  "capturedAt": "2026-06-26T10:12:30+08:00",
+  "uploadedAt": "2026-06-26T10:13:05+08:00",
+  "captureLocation": {
+    "lng": 116.357,
+    "lat": 39.923,
+    "coordType": "GCJ02",
+    "accuracyMeters": 18,
+    "source": "app_location"
+  },
+  "exifLocation": {
+    "exists": true,
+    "lng": 116.3569,
+    "lat": 39.9231,
+    "coordType": "WGS84",
+    "source": "image_exif"
+  },
+  "nearestTrackPoint": {
+    "trackPointId": "tp_000128",
+    "distanceMeters": 9,
+    "timeDeltaSeconds": 6
+  },
+  "matchedPoi": {
+    "poiId": "xicheng-baitasi",
+    "name": "白塔寺",
+    "distanceMeters": 86,
+    "confidence": 0.91,
+    "matchSignals": ["captureLocation", "ocrText", "visualLabel"]
+  },
+  "recognition": {
+    "ocrText": "白塔寺",
+    "visualLabels": ["white_pagoda", "temple", "hutong"],
+    "confidence": 0.88
+  },
+  "userCorrection": {
+    "confirmedPoiId": "",
+    "confirmedPlaceName": "",
+    "note": ""
+  },
+  "travelogue": {
+    "includeByDefault": true,
+    "tags": ["白塔寺", "西城Citywalk", "历史建筑"],
+    "captionDraft": "从白塔寺开始的西城漫步。"
+  },
+  "privacy": {
+    "preciseLocationVisibleToUser": false,
+    "shareLocationPrecision": "poi_area | approximate | hidden"
+  }
+}
+```
+
+优先级：
+
+1. 用户拍照时 APP 获取的 `captureLocation`。
+2. 图片 EXIF 读取到的 `exifLocation`。
+3. 照片拍摄时间匹配到的最近轨迹点。
+4. OCR、视觉识别、附近 POI 与用户确认结果。
+
+EXIF GPS 不能作为唯一依据。用户从相册上传、图片压缩、跨应用分享、系统隐私设置都可能导致 EXIF 缺失或被清理。
+
+### 10.5 Track Session
+
+轨迹记录是用户主动开启的 Citywalk / 研学 / 旅行记录能力，用于持续收集经纬度并生成游记足迹。它不是默认后台定位，也不应静默开启。
+
+```json
+{
+  "trackSessionId": "track_20260626_0001",
+  "userId": "anonymous_or_bound_user",
+  "regionCode": "XICHENG",
+  "name": "白塔寺到历代帝王庙 Citywalk",
+  "status": "recording | paused | finished | discarded",
+  "startedAt": "2026-06-26T10:00:00+08:00",
+  "endedAt": "",
+  "durationSeconds": 0,
+  "distanceMeters": 0,
+  "pointCount": 0,
+  "photoCount": 0,
+  "poiCount": 0,
+  "recordingMode": "foreground_mvp | background_enhanced",
+  "coordType": "GCJ02",
+  "summary": {
+    "startPoiId": "xicheng-baitasi",
+    "endPoiId": "",
+    "visitedPoiIds": ["xicheng-baitasi"],
+    "stayPoints": []
+  },
+  "privacy": {
+    "requiresExplicitStart": true,
+    "backgroundLocationEnabled": false,
+    "shareTrackDefault": "private"
+  }
+}
+```
+
+### 10.6 Track Point
+
+```json
+{
+  "trackPointId": "tp_000128",
+  "trackSessionId": "track_20260626_0001",
+  "seq": 128,
+  "lng": 116.357,
+  "lat": 39.923,
+  "coordType": "GCJ02",
+  "accuracyMeters": 12,
+  "altitudeMeters": 58,
+  "speedMetersPerSecond": 1.2,
+  "headingDegrees": 86,
+  "recordedAt": "2026-06-26T10:20:31+08:00",
+  "appState": "foreground | background",
+  "source": "gps | network | fused_location | exif | manual",
+  "batteryPercent": 74,
+  "syncStatus": "pending | synced | failed",
+  "quality": {
+    "isOutlier": false,
+    "filteredReason": ""
+  }
+}
+```
+
+轨迹点清洗规则：
+
+- `accuracyMeters > 80` 的点默认降权，不直接用于 POI 归属。
+- 短时间异常跳点需要过滤，例如 5 秒内跳变 500 米。
+- 同一位置停留超过阈值可生成 `stayPoint`，用于游记“停留点”叙事。
+- 距离计算、路线折线和停留点生成应在后端完成，前端只负责采集、缓存和展示。
+
 ## 11. 核心功能
 
 ### 11.1 首页
@@ -526,6 +695,11 @@ assets/references/APP/xicheng-multimodal/design-mockups/
 
 - 用户选择的识别足迹
 - 图片
+- 图片拍摄时间
+- 拍照时定位
+- EXIF 经纬度
+- 轨迹 Session
+- 轨迹停留点
 - POI 名称
 - 路线
 - 用户补充文字
@@ -539,6 +713,8 @@ assets/references/APP/xicheng-multimodal/design-mockups/
 - 小京点评
 - 可编辑段落
 - 分享图文
+- 足迹地图
+- 拍照点与路线复盘
 
 风格：
 
@@ -574,6 +750,55 @@ assets/references/APP/xicheng-multimodal/design-mockups/
 - 轨迹点字段至少包含 `trackSessionId`、`latitude`、`longitude`、`coordType`、`accuracyMeters`、`speed`、`heading`、`altitude`、`recordedAt`、`batteryState`。
 - 游记生成时可把轨迹点压缩成路线摘要、停留 POI、照片时间线和步行距离。
 
+游记生成逻辑：
+
+- 优先使用用户主动选择的照片和足迹。
+- 照片没有 EXIF 时，用拍摄时间匹配最近轨迹点。
+- 照片和轨迹点都无法归属 POI 时，用 OCR、视觉标签和用户手动选择结果补充。
+- 对用户展示“白塔寺附近”“阜成门内大街一带”等可读地点，不默认公开精确经纬度。
+- 生成文案必须保留可编辑状态，用户可删除照片、隐藏地点或修改 POI 归属。
+
+### 11.7 实时轨迹记录
+
+目标：
+
+- 支持用户主动点击“开始记录”，持续收集经纬度。
+- 支持暂停、继续、结束和丢弃轨迹。
+- 支持把照片、识别事件和用户备注绑定到轨迹时间线。
+- 支持根据轨迹生成游记足迹、路线复盘和停留点。
+
+MVP 范围：
+
+- 前台轨迹记录为首期必做。
+- 后台持续轨迹记录作为增强能力，不作为第一版默认能力。
+- 纯 H5 不作为真实现场轨迹记录主方案；现场测试以 UniApp 打包 APP 为准。
+- 后台轨迹记录需要原生定位插件或地图定位 SDK 支持。
+
+采集策略：
+
+| 场景 | 建议策略 |
+| --- | --- |
+| 前台记录 | 每 5-10 秒或移动 5-10 米记录一次 |
+| 后台增强 | 每 10-30 秒或移动 10-30 米记录一次 |
+| 低电量 | 每 30-60 秒记录一次 |
+| 拍照瞬间 | 强制记录一个关键轨迹点 |
+| 暂停 / 结束 | 停止定位采集 |
+
+本地缓存：
+
+- 轨迹点必须先写入本地缓存，再批量上传。
+- 每 10-30 个点批量上传一次。
+- 网络失败时保留 `syncStatus = pending`，下次恢复网络后重试。
+- 上传成功后标记 `synced`，不得重复计入轨迹距离。
+
+后端处理：
+
+- 清洗漂移点和异常跳点。
+- 计算距离、时长、速度、停留点和路线折线。
+- 将照片按时间匹配最近轨迹点。
+- 将轨迹点按空间距离匹配附近 POI。
+- 为游记生成提供“时间线 + POI + 照片 + 停留点”结构化素材。
+
 ## 12. 后端与 Yudao 能力
 
 ### 12.1 资源包
@@ -602,8 +827,26 @@ GET /app-api/xunjing/routes?regionCode=XICHENG
 GET /app-api/xunjing/routes/{routeId}
 POST /app-api/xunjing/triggers/resolve
 POST /app-api/xunjing/events/recognition
+POST /app-api/xunjing/events/photos
 POST /app-api/xunjing/ai/chat
 POST /app-api/xunjing/travelogues/generate
+POST /app-api/xunjing/tracks/sessions
+POST /app-api/xunjing/tracks/{trackSessionId}/points/batch
+PATCH /app-api/xunjing/tracks/{trackSessionId}/pause
+PATCH /app-api/xunjing/tracks/{trackSessionId}/resume
+PATCH /app-api/xunjing/tracks/{trackSessionId}/finish
+GET /app-api/xunjing/tracks/{trackSessionId}
+POST /app-api/xunjing/inspirations/import
+POST /app-api/xunjing/inspirations/{id}/confirm-pois
+POST /app-api/xunjing/routes/generate
+GET /app-api/xunjing/routes/{routeId}/passport
+POST /app-api/xunjing/routes/{routeId}/checkins
+POST /app-api/xunjing/tasks/{taskId}/submit
+POST /app-api/xunjing/badges/claim
+POST /app-api/xunjing/posters/generate
+POST /app-api/xunjing/memorials/pdf
+POST /app-api/xunjing/reports/city-ops/generate
+POST /app-api/xunjing/works/{workId}/submit-review
 POST /app-api/xunjing/feedback
 ```
 
@@ -622,9 +865,22 @@ POST /app-api/xunjing/feedback
 - 讲解内容管理
 - AI prompt 配置
 - 识别事件查看
+- 图片素材事件查看
+- 轨迹 Session 查看
+- 轨迹点质量与异常点查看
+- 路线护照管理
+- 打卡任务管理
+- 亲子研学任务管理
+- 徽章管理
+- 灵感导入记录
+- 分享海报模板
+- PDF 纪念册模板
+- 用户作品审核
+- 城市运营报告生成
 - 用户反馈查看
 - 误触发标记
 - 热门 POI 统计
+- 热门路线和停留点统计
 - 试用用户管理
 - 内容审核流转
 
@@ -662,6 +918,10 @@ POST /app-api/xunjing/feedback
       "coordType": "gcj02",
       "accuracyMeters": 18
     }
+  },
+  "trackContext": {
+    "trackSessionId": "track_20260626_0001",
+    "nearestTrackPointId": "tp_000128"
   },
   "recentPoiCodes": ["xicheng-shichahai"]
 }
@@ -712,6 +972,8 @@ POST /app-api/xunjing/feedback
 | OCR + GPS 同时命中 | 可直接推荐 AI 讲解 |
 | 拍照识别命中建筑 / 牌匾 / 地标 | 展示候选 POI |
 | 用户连续识别 2 个以上 POI | 推荐生成游记 |
+| 用户拍照时间匹配轨迹点和附近 POI | 将照片归属到游记素材 |
+| 用户主动开启轨迹记录且停留超过阈值 | 生成停留点并推荐补充游记 |
 | 置信度低于 0.85 | 不自动触发，展示候选确认 |
 
 ## 14. 隐私与合规
@@ -719,15 +981,21 @@ POST /app-api/xunjing/feedback
 ### 14.1 定位
 
 - 只在用户授权后使用定位。
-- 默认不做后台持续定位。
+- 默认不做后台持续定位；轨迹记录必须由用户主动点击“开始记录”。
 - 附近触发、路线、识别时仅采集必要位置。
+- 轨迹记录页面必须持续展示记录状态，并提供暂停、结束和删除入口。
+- 后台持续轨迹记录属于增强能力，需要单独权限说明、系统通知和平台审核准备。
 - 识别事件用于优化时必须脱敏或匿名化。
+- 对外分享游记时默认隐藏精确经纬度，只展示 POI、街区或近似地点。
 
 ### 14.2 相机与图片
 
 - 拍照识别前说明用途。
 - 用户图片不默认公开。
 - 用于模型评估或运营纠错时需要明确授权。
+- 拍照时可记录拍摄时间、拍照时定位和定位精度，用于游记足迹。
+- 上传图片后后端可尝试读取 EXIF GPS，但 EXIF 可能缺失、被清理或与当前上传位置不同。
+- 用户必须可以删除图片、隐藏地点或修正 POI 归属。
 
 ### 14.3 AI 内容
 
@@ -750,6 +1018,8 @@ POST /app-api/xunjing/feedback
 - 每个 P0 POI 有坐标、地址、来源、别名、分类、摘要、触发关键词和审核状态。
 - 坐标系统字段完整。
 - 坐标偏移经过校验。
+- 照片素材事件能区分 `captureLocation` 和 `exifLocation`。
+- 轨迹点能记录 `accuracyMeters`、`recordedAt`、`appState` 和 `syncStatus`。
 - 每条路线至少 3 个 POI。
 - 数据来源可追溯。
 
@@ -763,6 +1033,8 @@ POST /app-api/xunjing/feedback
 - 识别结果页可展示真实 POI。
 - 路线页可展示真实路线。
 - 游记生成页可基于真实足迹生成草稿。
+- 用户可主动开始、暂停、继续和结束轨迹记录。
+- 拍照后可生成照片素材事件，并绑定拍照时定位或最近轨迹点。
 
 ### 15.3 后端验收
 
@@ -770,9 +1042,14 @@ POST /app-api/xunjing/feedback
 - 能查询西城 POI。
 - 能查询西城路线。
 - 能写入识别事件。
+- 能写入图片素材事件。
+- 能创建轨迹 Session。
+- 能批量写入轨迹点。
+- 能完成轨迹点基础清洗、距离统计和停留点识别。
 - 能记录用户反馈。
 - 触发接口能基于 OCR 命中 POI。
 - 触发接口能基于 GPS 返回附近 POI。
+- 游记接口能基于照片、轨迹点、停留点和 POI 生成结构化素材。
 - AI 问答支持 regionCode、poiId、routeId 上下文。
 
 ### 15.4 试运营验收
@@ -839,6 +1116,35 @@ POST /app-api/xunjing/feedback
 - 用户确认机制
 - 误触发反馈
 
+### Phase 4.5：轨迹与游记素材 MVP
+
+产出：
+
+- 前台轨迹记录
+- 轨迹 Session 和 Track Point API
+- 本地轨迹点缓存与批量上传
+- 拍照时定位记录
+- 图片 EXIF GPS 读取
+- 照片与最近轨迹点匹配
+- 停留点识别
+- 游记素材时间线
+- 精确位置隐藏和用户删除机制
+
+### Phase 4.6：P0 运营增长与内容交付
+
+产出：
+
+- 路线护照和路线完成度
+- 打卡徽章
+- 亲子研学任务
+- 分享海报固定模板
+- 用户作品审核流
+- 一键抄作业 MVP：文字、地点清单、攻略截图导入
+- AI 地点提取和官方 POI 匹配
+- 可走路线生成
+- PDF 纪念册固定模板
+- 城市运营报告固定模板
+
 ### Phase 5：多人灰度试运营
 
 产出：
@@ -862,6 +1168,10 @@ POST /app-api/xunjing/feedback
 | iOS 审核卡住 | 提前准备隐私政策、权限说明、AI 说明 |
 | HarmonyOS 长期依赖 APK | 兼容版先试用，原生 ArkTS / ArkUI 同步规划 |
 | 多人试用成本升高 | 限流、缓存、模型分级、灰度邀请码 |
+| EXIF 经纬度缺失或被清理 | 拍照瞬间记录 APP 定位，EXIF 仅作为补充证据 |
+| 后台轨迹记录耗电或审核风险 | 第一版只做用户主动前台记录，后台增强单独申请权限和说明 |
+| GPS 漂移导致游记错位 | 使用定位精度、异常跳点过滤、停留点识别和用户确认机制 |
+| 用户担心隐私暴露 | 游记分享默认隐藏精确经纬度，提供删除图片、删除轨迹和隐藏地点入口 |
 
 ## 18. 参考资料
 
