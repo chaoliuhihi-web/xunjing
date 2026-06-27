@@ -9,6 +9,8 @@ import {
 } from './verify-xicheng-yudao-release-readiness.mjs'
 
 const tempDirs = []
+const freshCheckedAt = () => new Date().toISOString()
+const staleCheckedAt = () => new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
 const requiredManifestEvidenceChecks = [
   'manifest-shape',
   'manifest-production-flags',
@@ -138,6 +140,7 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
     artifactType: 'xicheng-poi-production-manifest-readiness',
     ok: true,
     status: 'PRODUCTION_POI_MANIFEST_READY',
+    checkedAt: freshCheckedAt(),
     summary: {
       regionCode: 'beijing-xicheng',
       packageCode: 'XICHENG-MAP-001',
@@ -153,6 +156,7 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
     artifactType: 'xicheng-poi-production-seed-readiness',
     ok: true,
     status: 'PRODUCTION_POI_SEED_READY',
+    checkedAt: freshCheckedAt(),
     summary: {
       sqlFile: path.join(rootDir, 'workbench/xicheng-poi-production-seed.sql'),
       poiCount: 80,
@@ -316,6 +320,52 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidenceCheck?.ok).toBe(false)
     expect(evidenceCheck?.blockers.join('\n')).toContain('manifest evidence must include poi-field-evidence')
     expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence must include field-evidence')
+  })
+
+  test('fails closed when POI evidence is older than the release freshness window', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir, {
+      manifest: {
+        checkedAt: staleCheckedAt()
+      }
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(evidenceCheck?.ok).toBe(false)
+    expect(evidenceCheck?.blockers.join('\n')).toContain('manifest evidence checkedAt must be within the last 24 hours')
+  })
+
+  test('fails closed when POI evidence is missing checkedAt', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir, {
+      seed: {
+        checkedAt: undefined
+      }
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(evidenceCheck?.ok).toBe(false)
+    expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence checkedAt must be a valid timestamp')
   })
 
   test('writes a secret-safe release evidence file even when production is not ready', async () => {
