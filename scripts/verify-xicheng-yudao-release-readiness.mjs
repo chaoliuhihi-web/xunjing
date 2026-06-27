@@ -6,6 +6,8 @@ import { loadEnvFile } from './verify-xunjing-platform-readiness.mjs'
 
 const productionPoiTarget = 80
 const allowedEvidenceDirs = new Set(['qa', 'tmp', 'workbench'])
+const defaultMaxEvidenceAgeHours = 24
+const allowedClockSkewMs = 5 * 60 * 1000
 
 const requiredManifestEvidenceChecks = [
   'manifest-shape',
@@ -314,7 +316,34 @@ function checkEvidenceChecks(evidence, requiredChecks, label) {
   return blockers
 }
 
-function validateManifestEvidence(ref) {
+function parseMaxEvidenceAgeHours(value) {
+  if (value === undefined || value === null || value === '') {
+    return defaultMaxEvidenceAgeHours
+  }
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error('max evidence age hours must be a positive number')
+  }
+  return parsed
+}
+
+function checkEvidenceTimestamp(evidence, label, { now, maxEvidenceAgeMs }) {
+  const timestamp = evidence?.checkedAt
+  const parsed = typeof timestamp === 'string' ? Date.parse(timestamp) : Number.NaN
+  if (Number.isNaN(parsed)) {
+    return [`${label} evidence checkedAt must be a valid timestamp`]
+  }
+  const nowMs = now.getTime()
+  if (parsed - nowMs > allowedClockSkewMs) {
+    return [`${label} evidence checkedAt must not be in the future`]
+  }
+  if (nowMs - parsed > maxEvidenceAgeMs) {
+    return [`${label} evidence checkedAt must be within the last ${maxEvidenceAgeMs / 60 / 60 / 1000} hours`]
+  }
+  return []
+}
+
+function validateManifestEvidence(ref, freshnessOptions) {
   const blockers = []
   if (!ref.path) {
     return ['POI manifest evidence is required before production release']
@@ -327,6 +356,7 @@ function validateManifestEvidence(ref) {
   if (evidence.artifactType !== 'xicheng-poi-production-manifest-readiness') {
     blockers.push('manifest evidence artifactType must be xicheng-poi-production-manifest-readiness')
   }
+  blockers.push(...checkEvidenceTimestamp(evidence, 'manifest', freshnessOptions))
   if (evidence.ok !== true) {
     blockers.push('manifest evidence ok must be true')
   }
@@ -355,7 +385,7 @@ function validateManifestEvidence(ref) {
   return blockers
 }
 
-function validateSeedEvidence(ref) {
+function validateSeedEvidence(ref, freshnessOptions) {
   const blockers = []
   if (!ref.path) {
     return ['POI seed SQL evidence is required before production release']
@@ -370,6 +400,7 @@ function validateSeedEvidence(ref) {
   if (evidence.artifactType !== 'xicheng-poi-production-seed-readiness') {
     blockers.push('seed evidence artifactType must be xicheng-poi-production-seed-readiness')
   }
+  blockers.push(...checkEvidenceTimestamp(evidence, 'seed', freshnessOptions))
   if (evidence.ok !== true) {
     blockers.push('seed evidence ok must be true')
   }
@@ -395,15 +426,16 @@ function validateSeedEvidence(ref) {
 async function checkXichengProductionPoiEvidence({
   rootDir,
   poiManifestEvidencePath,
-  poiSeedEvidencePath
+  poiSeedEvidencePath,
+  freshnessOptions
 }) {
   const [manifestEvidence, seedEvidence] = await Promise.all([
     loadEvidenceInput(rootDir, poiManifestEvidencePath),
     loadEvidenceInput(rootDir, poiSeedEvidencePath)
   ])
   const blockers = [
-    ...validateManifestEvidence(manifestEvidence),
-    ...validateSeedEvidence(seedEvidence)
+    ...validateManifestEvidence(manifestEvidence, freshnessOptions),
+    ...validateSeedEvidence(seedEvidence, freshnessOptions)
   ]
   const details = []
   if (manifestEvidence.path) {
@@ -486,11 +518,18 @@ export async function verifyXichengYudaoReleaseReadiness({
   rootDir = process.cwd(),
   stage = 'production',
   poiManifestEvidencePath,
-  poiSeedEvidencePath
+  poiSeedEvidencePath,
+  maxEvidenceAgeHours = defaultMaxEvidenceAgeHours,
+  now = new Date()
 } = {}) {
   const normalizedStage = String(stage || 'production').toLowerCase()
   if (!['production', 'staging'].includes(normalizedStage)) {
     throw new Error('stage must be production or staging')
+  }
+
+  const freshnessOptions = {
+    now,
+    maxEvidenceAgeMs: maxEvidenceAgeHours * 60 * 60 * 1000
   }
 
   const checks = [
@@ -504,7 +543,8 @@ export async function verifyXichengYudaoReleaseReadiness({
     await checkXichengProductionPoiEvidence({
       rootDir,
       poiManifestEvidencePath,
-      poiSeedEvidencePath
+      poiSeedEvidencePath,
+      freshnessOptions
     }),
     await checkXichengProductionPoi(rootDir),
     await checkXichengSourceLicense(rootDir)
@@ -518,6 +558,7 @@ export async function verifyXichengYudaoReleaseReadiness({
       ? (normalizedStage === 'production' ? 'PRODUCTION_READY_CANDIDATE' : 'PREPROD_READY_CANDIDATE')
       : 'NOT_READY',
     stage: normalizedStage,
+    maxEvidenceAgeHours,
     checkedAt: new Date().toISOString(),
     checks,
     blockers
@@ -596,7 +637,10 @@ async function runCli() {
     poiManifestEvidencePath: readArgValue(args, '--poi-manifest-evidence') ||
       process.env.XICHENG_POI_MANIFEST_EVIDENCE,
     poiSeedEvidencePath: readArgValue(args, '--poi-seed-evidence') ||
-      process.env.XICHENG_POI_SEED_EVIDENCE
+      process.env.XICHENG_POI_SEED_EVIDENCE,
+    maxEvidenceAgeHours: parseMaxEvidenceAgeHours(
+      readArgValue(args, '--max-evidence-age-hours') || process.env.XICHENG_MAX_EVIDENCE_AGE_HOURS
+    )
   })
   await writeReleaseEvidence({
     rootDir,
