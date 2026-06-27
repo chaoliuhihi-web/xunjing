@@ -620,11 +620,14 @@ export default {
 					stayPoints: Array.isArray(storedRecordingSession.stayPoints) ? storedRecordingSession.stayPoints : []
 				}
 				: createEmptyRecordingSession()
+			const routeRegionCode = decodeJourneyRouteValue(options.regionCode) || XICHENG_REGION_CONFIG.regionCode
+			const routePackageCode = decodeJourneyRouteValue(options.packageCode) || XICHENG_REGION_CONFIG.packageCode
 			const routePoiName = decodeJourneyRouteValue(options.poiName)
 			if (routePoiName && !materials.some(material => material && material.poiName === routePoiName)) {
 				materials.unshift({
 					type: 'manual-entry',
-					regionCode: XICHENG_REGION_CONFIG.regionCode,
+					regionCode: routeRegionCode,
+					packageCode: routePackageCode,
 					poiCode: decodeJourneyRouteValue(options.poiCode),
 					poiName: routePoiName,
 					sourceLabel: '入口记录',
