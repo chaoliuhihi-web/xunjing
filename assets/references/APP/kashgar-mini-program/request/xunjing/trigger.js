@@ -50,8 +50,19 @@ const normalizeSuggestedQuestions = (result = {}) => {
 	return XICHENG_SUGGESTED_QUESTIONS
 }
 
+const normalizeConfidence = (result = {}) => {
+	const hasConfidence = result.confidence !== undefined && result.confidence !== null && result.confidence !== ''
+	const rawConfidence = hasConfidence
+		? Number(result.confidence)
+		: Number(result.confidencePercent || 0) / 100
+	if (!Number.isFinite(rawConfidence)) {
+		return 0
+	}
+	return rawConfidence > 1 ? rawConfidence / 100 : rawConfidence
+}
+
 export const normalizeXichengTriggerResult = (result = {}, source = '') => {
-	const confidence = Number(result.confidence || 0)
+	const confidence = normalizeConfidence(result)
 	const suggestedQuestions = normalizeSuggestedQuestions(result)
 	const sources = Array.isArray(result.sources) ? result.sources : []
 	return {
@@ -67,7 +78,9 @@ export const normalizeXichengTriggerResult = (result = {}, source = '') => {
 		source,
 		sourceLabel: result.sourceLabel || resolveXichengSourceLabel(source),
 		confidence,
-		confidencePercent: Math.round(confidence * 100),
+		confidencePercent: result.confidencePercent !== undefined && result.confidencePercent !== null && result.confidencePercent !== ''
+			? Math.round(Number(result.confidencePercent))
+			: Math.round(confidence * 100),
 		requiresUserConfirm: result.requiresUserConfirm !== false,
 		suggestedQuestions,
 		recommendedQuestions: suggestedQuestions,
