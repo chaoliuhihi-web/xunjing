@@ -36,6 +36,17 @@
 			<text>生成游记草稿</text>
 		</view>
 
+		<view class="journey-panel">
+			<view>
+				<text class="journey-title">西城 Citywalk 记录</text>
+				<text class="journey-desc">把识别点、照片、备注和任务沉淀为旅行素材盒。</text>
+			</view>
+			<view class="journey-actions">
+				<button class="primary-button" @click="openXichengTravelogue('record')">开始记录 Citywalk</button>
+				<button class="ghost-button" @click="openXichengTravelogue('draft')">生成游记草稿</button>
+			</view>
+		</view>
+
 		<view class="ops-section">
 			<view class="ops-card">
 				<text class="ops-title">{{ routePassport.title }}</text>
@@ -159,6 +170,11 @@ export default {
 			uni.navigateTo({
 				url: `/pages/ai-guide/ai-guide?regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&companionName=${encodeURIComponent(this.region.companionName)}`
 			})
+		},
+		openXichengTravelogue(mode = 'record') {
+			uni.navigateTo({
+				url: `/pages/xicheng/travelogue/travelogue?mode=${encodeURIComponent(mode)}&regionCode=${encodeURIComponent(this.region.regionCode)}`
+			})
 		}
 	}
 }
@@ -277,6 +293,35 @@ export default {
 	text-align: center;
 	color: #344054;
 	box-sizing: border-box;
+}
+
+.journey-panel {
+	margin-top: 28rpx;
+	padding: 32rpx;
+	border-radius: 8rpx;
+	background: #FFFFFF;
+	box-shadow: 0 12rpx 36rpx rgba(31, 41, 51, 0.08);
+}
+
+.journey-title {
+	display: block;
+	font-size: 32rpx;
+	font-weight: 700;
+	color: #122033;
+}
+
+.journey-desc {
+	display: block;
+	margin-top: 10rpx;
+	font-size: 24rpx;
+	line-height: 1.6;
+	color: #667085;
+}
+
+.journey-actions {
+	display: flex;
+	gap: 20rpx;
+	margin-top: 24rpx;
 }
 
 .ops-section {

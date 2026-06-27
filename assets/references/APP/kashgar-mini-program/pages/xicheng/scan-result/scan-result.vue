@@ -136,8 +136,25 @@ export default {
 			})
 		},
 		startRecording() {
+			const existingMaterials = uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey)
+			const material = {
+				type: 'recognition',
+				regionCode: this.result.regionCode || XICHENG_REGION_CONFIG.regionCode,
+				packageCode: this.result.packageCode || XICHENG_REGION_CONFIG.packageCode,
+				poiCode: this.result.poiCode || '',
+				poiName: this.result.poiName || '',
+				sourceLabel: this.result.sourceLabel || '',
+				confidence: this.result.confidence || 0,
+				sources: this.sourceList,
+				capturedAt: new Date().toISOString()
+			}
+			const materials = Array.isArray(existingMaterials) ? existingMaterials : []
+			uni.setStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey, [
+				material,
+				...materials
+			].slice(0, 50))
 			uni.navigateTo({
-				url: `/pages/ai-guide/ai-guide?mode=diary&regionCode=${encodeURIComponent(this.result.regionCode)}&poiCode=${encodeURIComponent(this.result.poiCode || '')}&poiName=${encodeURIComponent(this.result.poiName || '')}&companionName=${encodeURIComponent(this.result.companionName)}`
+				url: `/pages/xicheng/travelogue/travelogue?mode=record&regionCode=${encodeURIComponent(this.result.regionCode)}&poiCode=${encodeURIComponent(this.result.poiCode || '')}&poiName=${encodeURIComponent(this.result.poiName || '')}&companionName=${encodeURIComponent(this.result.companionName)}`
 			})
 		}
 	}

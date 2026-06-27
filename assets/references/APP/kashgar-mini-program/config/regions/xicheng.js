@@ -11,6 +11,15 @@ export const XICHENG_REGION_CONFIG = Object.freeze({
 	tenantId: requestConfig.XunjingTenantId || '1',
 	companionName: '小京',
 	storageKey: 'xicheng:lastRecognitionResult',
+	materialsStorageKey: 'xicheng:journeyMaterials',
+	journeyStorageKey: 'xicheng:journeyDraft',
+	localOpsReportKey: 'xicheng:localOpsReport',
+	reviewStatus: {
+		draft: '草稿',
+		pending: '待审核',
+		approved: '已审核',
+		rejected: '需修改'
+	},
 	routePassport: {
 		title: '路线护照',
 		badgePrefix: '西城印章',

@@ -45,6 +45,17 @@
 			}
 		},
 		{
+			"path": "pages/xicheng/travelogue/travelogue",
+			"style": {
+				"navigationBarTitleText": "西城游记草稿",
+				"navigationStyle": "custom",
+				"mp-weixin": {
+					"navigationStyle": "custom",
+					"homeButton": false
+				}
+			}
+		},
+		{
 			"path": "pages/banner/banner",
 			"style": {
 				"navigationBarTitleText": "详情",
