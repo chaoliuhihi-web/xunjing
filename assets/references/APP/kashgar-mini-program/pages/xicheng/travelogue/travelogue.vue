@@ -1266,6 +1266,35 @@ export default {
 				statusCounts
 			}
 		},
+		sanitizeMaterialForPublicShare(material = {}) {
+			return {
+				type: material.type || '',
+				regionCode: material.regionCode || XICHENG_REGION_CONFIG.regionCode,
+				packageCode: material.packageCode || XICHENG_REGION_CONFIG.packageCode,
+				poiCode: material.poiCode || '',
+				poiName: material.poiName || '',
+				sourceLabel: material.sourceLabel || '',
+				remarkText: material.remarkText || '',
+				hasPhoto: Boolean(material.imagePath),
+				routeRecommendation: material.routeRecommendation || null,
+				sourceCount: Array.isArray(material.sources) ? material.sources.length : 0,
+				safetyStatus: material.safetyStatus || '',
+				publicLocationLabel: material.publicLocationLabel || this.createPublicLocationLabel(material),
+				locationHidden: true,
+				capturedAt: material.capturedAt || material.takenAt || ''
+			}
+		},
+		createPublicRecordingSummary() {
+			return {
+				sessionStatus: this.recordingSession.status || 'idle',
+				startedAt: this.recordingSession.startedAt || '',
+				finishedAt: this.recordingSession.finishedAt || '',
+				routePointCount: this.routePointCount,
+				stayPointCount: this.stayPointCount,
+				shareTrackDefault: 'private',
+				exactTrackHidden: true
+			}
+		},
 		createShareArtifact(assetType) {
 			const createdAt = new Date().toISOString()
 			const routeTitle = this.recognizedRoute && this.recognizedRoute.title
@@ -1283,6 +1312,13 @@ export default {
 				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
 				companionName: XICHENG_REGION_CONFIG.companionName,
 				routeTitle,
+				publicMaterials: this.materials.map(material => this.sanitizeMaterialForPublicShare(material)),
+				publicRecordingSummary: this.createPublicRecordingSummary(),
+				privacy: {
+					shareLocationPrecision: 'poi_area',
+					shareTrackDefault: 'private',
+					exactCoordinatesHidden: true
+				},
 				templateCode: assetType === 'pdf' ? 'xicheng-memorial-pdf-v1' : 'xicheng-share-poster-v1',
 				templateLabel: assetType === 'pdf' ? 'PDF固定模板：封面、路线地图、照片时间线、游记正文、知识卡片、徽章页' : '分享海报固定模板',
 				templateSections: assetType === 'pdf' ? this.createMemorialPdfTemplate(routeTitle, createdAt) : this.createPosterTemplate(routeTitle),
