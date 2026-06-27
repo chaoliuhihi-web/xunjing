@@ -17,6 +17,16 @@ import {
 
 export const XICHENG_TRIGGER_API_PATH = 'app-api/xunjing/triggers/resolve'
 
+export const XICHENG_SOURCE_LABELS = Object.freeze({
+	photo: '拍照识别',
+	scan: '扫码识别',
+	ocr: 'OCR识别',
+	gps: 'GPS定位',
+	text: '文本识别'
+})
+
+export const resolveXichengSourceLabel = (source = '') => XICHENG_SOURCE_LABELS[source] || 'OCR识别'
+
 export const isXichengDevelopmentFallbackAllowed = () => {
 	const runtimeEnv = import.meta && import.meta.env ? import.meta.env : {}
 	const nodeEnv = typeof process !== 'undefined' && process.env ? process.env.NODE_ENV : ''
@@ -53,7 +63,7 @@ export const normalizeXichengTriggerResult = (result = {}, source = '') => {
 		action: result.action || 'open_ai_guide',
 		triggerType: result.triggerType || source || 'unknown',
 		source,
-		sourceLabel: result.sourceLabel || (source === 'photo' ? '拍照识别' : source === 'scan' ? '扫码识别' : 'OCR识别'),
+		sourceLabel: result.sourceLabel || resolveXichengSourceLabel(source),
 		confidence,
 		confidencePercent: Math.round(confidence * 100),
 		requiresUserConfirm: result.requiresUserConfirm !== false,

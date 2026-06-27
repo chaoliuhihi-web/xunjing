@@ -27,14 +27,32 @@
 				<text class="quick-title">拍照识别</text>
 				<text class="quick-desc">识别门头、文物和说明牌</text>
 			</view>
+			<view class="quick-card" @click="startGpsRecognition">
+				<text class="quick-title">GPS定位</text>
+				<text class="quick-desc">用当前位置识别附近文化点</text>
+			</view>
 			<view class="quick-card" @click="startOcrRecognition">
 				<text class="quick-title">OCR识别</text>
 				<text class="quick-desc">从图片文字提取地点线索</text>
+			</view>
+			<view class="quick-card" @click="startTextRecognition">
+				<text class="quick-title">文本识别</text>
+				<text class="quick-desc">粘贴地点、展牌或攻略文字</text>
 			</view>
 			<view class="quick-card" @click="askXiaojing">
 				<text class="quick-title">问问小京</text>
 				<text class="quick-desc">继续咨询路线和讲解</text>
 			</view>
+		</view>
+
+		<view class="text-recognition-panel">
+			<textarea
+				v-model="textRecognitionInput"
+				class="text-recognition-input"
+				placeholder="输入白塔寺、什刹海，或粘贴展牌/攻略文字"
+				auto-height
+			/>
+			<button class="primary-button" :disabled="recognizing" @click="startTextRecognition">文本识别</button>
 		</view>
 
 		<view class="flow-strip">
@@ -92,6 +110,7 @@ export default {
 			parentChildTasks: XICHENG_REGION_CONFIG.parentChildTasks,
 			sharePoster: XICHENG_REGION_CONFIG.sharePoster,
 			currentLocation: null,
+			textRecognitionInput: '',
 			recognizing: false,
 			lastError: ''
 		}
@@ -138,6 +157,37 @@ export default {
 		},
 		startOcrRecognition() {
 			this.resolveTextAndOpenResult('白塔寺 文物说明牌 北京西城', 'ocr')
+		},
+		async startGpsRecognition() {
+			if (this.recognizing) return
+			this.recognizing = true
+			this.lastError = ''
+			try {
+				const location = await requestCurrentLocationForTrigger()
+				this.currentLocation = location
+				const trigger = await resolveXichengTextTrigger({
+					text: '当前位置附近西城文化点',
+					ocrText: '',
+					source: 'gps',
+					location
+				})
+				this.openScanResult(trigger, 'gps')
+			} catch (error) {
+				this.lastError = error && (error.errMsg || error.message) ? (error.errMsg || error.message) : '定位识别失败'
+			} finally {
+				this.recognizing = false
+			}
+		},
+		startTextRecognition() {
+			const text = this.textRecognitionInput.trim()
+			if (!text) {
+				uni.showToast({
+					icon: 'none',
+					title: '请输入地点线索'
+				})
+				return
+			}
+			this.resolveTextAndOpenResult(text, 'text')
 		},
 		startPhotoRecognition() {
 			if (this.recognizing) return
@@ -292,6 +342,32 @@ export default {
 	font-size: 24rpx;
 	font-weight: 700;
 	color: #122033;
+}
+
+.text-recognition-panel {
+	margin-top: 28rpx;
+	padding: 24rpx;
+	border-radius: 8rpx;
+	background: #FFFFFF;
+	box-shadow: 0 8rpx 24rpx rgba(31, 41, 51, 0.06);
+}
+
+.text-recognition-input {
+	width: 100%;
+	min-height: 112rpx;
+	padding: 20rpx;
+	box-sizing: border-box;
+	border: 2rpx solid #D6E3DC;
+	border-radius: 8rpx;
+	background: #F9FBFA;
+	font-size: 26rpx;
+	line-height: 1.5;
+	color: #122033;
+}
+
+.text-recognition-panel .primary-button {
+	margin-top: 20rpx;
+	width: 100%;
 }
 
 .quick-grid,

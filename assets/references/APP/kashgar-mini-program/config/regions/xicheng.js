@@ -79,7 +79,9 @@ export const XICHENG_OFFICIAL_POIS = Object.freeze([
 export const XICHENG_HOME_ACTIONS = Object.freeze([
 	{ key: 'scan', title: '扫一扫', subtitle: '二维码 / 牌匾 / 门票', source: 'scan' },
 	{ key: 'photo', title: '拍照识别', subtitle: '门头 / 文物 / 说明牌', source: 'photo' },
+	{ key: 'gps', title: 'GPS定位', subtitle: '附近文化点 / 可走路线', source: 'gps' },
 	{ key: 'ocr', title: 'OCR识别', subtitle: '图片文字生成讲解线索', source: 'ocr' },
+	{ key: 'text', title: '文本识别', subtitle: '地点 / 展牌 / 攻略文字', source: 'text' },
 	{ key: 'ask', title: '问问小京', subtitle: '带着当前位置继续问', source: 'chat' }
 ])
 
