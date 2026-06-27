@@ -237,6 +237,19 @@
 			<button class="ghost-button" @click="submitReview">作品审核</button>
 		</view>
 
+		<view class="section-card">
+			<view class="section-head">
+				<text class="section-title">隐私与本地数据</text>
+				<text class="section-badge">试运营</text>
+			</view>
+			<text class="section-desc">西城试运营素材、轨迹、反馈、审核包和分享产物先保存在本机，可随时清除。</text>
+			<view class="evidence-actions">
+				<button class="ghost-button" @click="openPrivacyPolicy">隐私政策</button>
+				<button class="ghost-button" @click="openUserProtocol">用户协议</button>
+				<button class="ghost-button danger-button" @click="clearXichengLocalData">清除西城本地数据</button>
+			</view>
+		</view>
+
 		<view v-if="shareArtifacts.length > 0" class="section-card">
 			<view class="section-head">
 				<text class="section-title">分享产物包</text>
@@ -598,6 +611,51 @@ export default {
 			return options.mode === 'record'
 				&& options.autoStart === '1'
 				&& this.recordingSession.status !== 'recording'
+		},
+		openPrivacyPolicy() {
+			uni.navigateTo({
+				url: '/pagesInfo/aboutus/policy'
+			})
+		},
+		openUserProtocol() {
+			uni.navigateTo({
+				url: '/pagesInfo/aboutus/protocol'
+			})
+		},
+		clearXichengLocalData() {
+			uni.showModal({
+				title: '清除西城本地数据',
+				content: '将清除本机保存的西城识别结果、路线记录、游记草稿、审核包、分享产物和反馈记录。',
+				confirmText: '清除',
+				confirmColor: '#B42318',
+				success: (res) => {
+					if (!res.confirm) return
+					XICHENG_REGION_CONFIG.privacyClearStorageKeys.forEach(key => uni.removeStorageSync(key))
+					this.resetXichengLocalState()
+					uni.showToast({
+						title: '西城本地数据已清除',
+						icon: 'none'
+					})
+				}
+			})
+		},
+		resetXichengLocalState() {
+			this.materials = []
+			this.importedRoute = null
+			this.draft = ''
+			this.reviewText = XICHENG_REGION_CONFIG.reviewStatus.draft
+			this.posterStatus = '未生成'
+			this.pdfStatus = '未生成'
+			this.reviewSubmission = null
+			this.shareArtifacts = []
+			this.remarkInput = ''
+			this.studyTaskEvidence = []
+			this.studyTaskDrafts = this.parentChildTasks.map(() => '')
+			this.badgeAwards = []
+			this.routeCheckins = []
+			this.inspirationImports = []
+			this.recognitionFeedbacks = []
+			this.recordingSession = createEmptyRecordingSession()
 		},
 		persistJourneyMaterials() {
 			uni.setStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey, this.materials.slice(0, 50))

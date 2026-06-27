@@ -1,6 +1,6 @@
 import requestConfig from '../../request/config.js'
 
-export const XICHENG_REGION_CONFIG = Object.freeze({
+const XICHENG_REGION_BASE_CONFIG = {
 	regionCode: 'beijing-xicheng',
 	regionName: '北京西城',
 	cityName: '北京西城',
@@ -44,6 +44,25 @@ export const XICHENG_REGION_CONFIG = Object.freeze({
 		subtitle: '把今天走过的文化点生成分享海报',
 		auditStatus: 'pending'
 	}
+}
+
+export const XICHENG_REGION_CONFIG = Object.freeze({
+	...XICHENG_REGION_BASE_CONFIG,
+	privacyClearStorageKeys: Object.freeze([
+		XICHENG_REGION_BASE_CONFIG.storageKey,
+		XICHENG_REGION_BASE_CONFIG.materialsStorageKey,
+		XICHENG_REGION_BASE_CONFIG.journeyStorageKey,
+		XICHENG_REGION_BASE_CONFIG.inspirationStorageKey,
+		XICHENG_REGION_BASE_CONFIG.localOpsReportKey,
+		XICHENG_REGION_BASE_CONFIG.reviewStorageKey,
+		XICHENG_REGION_BASE_CONFIG.shareAssetStorageKey,
+		XICHENG_REGION_BASE_CONFIG.recordingStorageKey,
+		XICHENG_REGION_BASE_CONFIG.studyTaskStorageKey,
+		XICHENG_REGION_BASE_CONFIG.badgeAwardStorageKey,
+		XICHENG_REGION_BASE_CONFIG.checkinStorageKey,
+		XICHENG_REGION_BASE_CONFIG.inspirationImportStorageKey,
+		XICHENG_REGION_BASE_CONFIG.recognitionFeedbackStorageKey
+	])
 })
 
 export const XICHENG_OFFICIAL_POIS = Object.freeze([
