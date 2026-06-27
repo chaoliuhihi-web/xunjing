@@ -1446,6 +1446,9 @@ export default {
 			const point = {
 				pointType,
 				capturedAt,
+				recordedAt: capturedAt,
+				appState: 'foreground',
+				syncStatus: 'local_pending',
 				latitude: location && location.latitude !== undefined ? Number(location.latitude) : null,
 				longitude: location && location.longitude !== undefined ? Number(location.longitude) : null,
 				coordType: location && location.coordType ? location.coordType : 'gcj02',
@@ -1467,6 +1470,9 @@ export default {
 			const stayPoint = {
 				pointType: 'stay',
 				capturedAt,
+				recordedAt: capturedAt,
+				appState: 'foreground',
+				syncStatus: 'local_pending',
 				latitude: location && location.latitude !== undefined ? Number(location.latitude) : null,
 				longitude: location && location.longitude !== undefined ? Number(location.longitude) : null,
 				coordType: location && location.coordType ? location.coordType : 'gcj02',

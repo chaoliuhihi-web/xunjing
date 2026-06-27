@@ -50,6 +50,12 @@ assert.match(
 
 assert.match(
   travelogue,
+  /markStayPoint\(\)[\s\S]*const stayPoint = \{[\s\S]*capturedAt[\s\S]*recordedAt:\s*capturedAt[\s\S]*appState:\s*'foreground'[\s\S]*syncStatus:\s*'local_pending'[\s\S]*accuracyMeters/,
+  'Marked stay points should keep recordedAt, foreground app state, local sync status, and accuracy for upload readiness'
+)
+
+assert.match(
+  travelogue,
   /submitReviewPackage\(\)[\s\S]*stayPointCount:\s*this\.stayPointCount/,
   'Review package should include stay point count'
 )
