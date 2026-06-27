@@ -21,7 +21,8 @@ for (const required of [
   'packageCode=${encodeURIComponent(this.result.packageCode || XICHENG_REGION_CONFIG.packageCode)}',
   "poiCode=${encodeURIComponent(this.result.poiCode || '')}",
   "poiName=${encodeURIComponent(this.result.poiName || '')}",
-  'companionName=${encodeURIComponent(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}'
+  'companionName=${encodeURIComponent(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}',
+  "safetyStatus=${encodeURIComponent(this.result.safetyStatus || '')}"
 ]) {
   assert.ok(startRecordingBlock.includes(required), `Recognition start-record route should carry ${required}`)
 }
@@ -29,8 +30,10 @@ for (const required of [
 for (const required of [
   'const routeRegionCode = decodeJourneyRouteValue(options.regionCode) || XICHENG_REGION_CONFIG.regionCode',
   'const routePackageCode = decodeJourneyRouteValue(options.packageCode) || XICHENG_REGION_CONFIG.packageCode',
+  'const routeSafetyStatus = decodeJourneyRouteValue(options.safetyStatus)',
   'regionCode: routeRegionCode',
-  'packageCode: routePackageCode'
+  'packageCode: routePackageCode',
+  'safetyStatus: routeSafetyStatus'
 ]) {
   assert.ok(loadJourneyBlock.includes(required), `Travelogue route material should preserve ${required}`)
 }
