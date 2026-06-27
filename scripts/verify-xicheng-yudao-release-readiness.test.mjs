@@ -337,7 +337,10 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')?.summary).toMatchObject({
       workbookEvidenceFile: workbookEvidencePath,
       sourceWorkbookFile: path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv'),
-      sourceWorkbookSha256: expect.stringMatching(/^[a-f0-9]{64}$/)
+      sourceWorkbookSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+      workbookReadyPoiCount: 80,
+      workbookPendingPoiCount: 0,
+      pendingPoiCodes: []
     })
     expect(result.checks.map((check) => check.name)).toEqual([
       'runtime-env',
@@ -902,7 +905,10 @@ describe('xicheng Yudao release readiness gate', () => {
       sourceWorkbookFile: path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv'),
       sourceWorkbookSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
       poiSeedSqlFile: path.join(rootDir, 'workbench/xicheng-poi-production-seed.sql'),
-      poiSeedSqlSha256: expect.stringMatching(/^[a-f0-9]{64}$/)
+      poiSeedSqlSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+      workbookReadyPoiCount: 80,
+      workbookPendingPoiCount: 0,
+      pendingPoiCodes: []
     })
     expect(evidence.checks.find((check) => check.name === 'full-yudao-baseline')?.detail).toContain(externalBaselinePath)
   })
@@ -932,6 +938,7 @@ describe('xicheng Yudao release readiness gate', () => {
   test('is documented as an npm release gate without storing secrets', async () => {
     const packageJson = JSON.parse(await readFile('package.json', 'utf8'))
     const deployDoc = await readFile('docs/02_开发规划/星河寻境业务平台部署说明.md', 'utf8')
+    const statusDoc = await readFile('docs/04_AI交接任务书/西城P0后台上线状态.md', 'utf8')
 
     expect(packageJson.scripts['xunjing:yudao:release:gate']).toBe(
       'node scripts/verify-xicheng-yudao-release-readiness.mjs'
@@ -948,6 +955,10 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(deployDoc).toContain('--poi-workbook-evidence')
     expect(deployDoc).toContain('workbookReadyPoiCount')
     expect(deployDoc).toContain('workbookPendingPoiCount')
+    expect(deployDoc).toContain('release evidence summary 会直接提升这些行级 POI 完成数')
+    expect(statusDoc).toContain('workbookReadyPoiCount')
+    expect(statusDoc).toContain('workbookPendingPoiCount')
+    expect(statusDoc).toContain('package summary 里直接展示 workbook 行级完成数')
     expect(deployDoc).toContain('seed evidence 的 `summary.sqlFile`')
     expect(deployDoc).toContain('sourceWorkbookSha256')
     expect(deployDoc).toContain('poiManifestSha256')

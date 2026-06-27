@@ -788,6 +788,9 @@ async function checkXichengProductionPoiEvidence({
       poiManifestSha256: evidenceSummary(manifestEvidence.data).manifestSha256,
       sourceWorkbookFile: evidenceSummary(manifestEvidence.data).sourceWorkbookFile,
       sourceWorkbookSha256: evidenceSummary(manifestEvidence.data).sourceWorkbookSha256,
+      workbookReadyPoiCount: evidenceSummary(workbookEvidence.data).workbookReadyPoiCount,
+      workbookPendingPoiCount: evidenceSummary(workbookEvidence.data).workbookPendingPoiCount,
+      pendingPoiCodes: evidenceSummary(workbookEvidence.data).pendingPoiCodes,
       poiSeedSqlFile: evidenceSummary(seedEvidence.data).sqlFile,
       poiSeedSqlSha256: evidenceSummary(seedEvidence.data).sqlSha256,
       productionPoiSeedSqlFile: evidenceSummary(seedEvidence.data).sqlFile

@@ -496,6 +496,9 @@ describe('xicheng release evidence package gate', () => {
       appReadinessEvidenceFile: appPath,
       sourceWorkbookFile: path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv'),
       sourceWorkbookSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+      workbookReadyPoiCount: 80,
+      workbookPendingPoiCount: 0,
+      pendingPoiCodes: [],
       blockerCount: 0
     })
     const releaseEvidenceText = await readFile(releasePath, 'utf8')
