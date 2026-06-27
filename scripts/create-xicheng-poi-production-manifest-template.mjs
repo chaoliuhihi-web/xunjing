@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -46,6 +46,165 @@ function resolveOutputFile(rootDir, outputFile) {
     throw new Error('output file must be under qa/, tmp/ or workbench/')
   }
   return resolvedFile
+}
+
+function sqlStringValue(token) {
+  const trimmed = String(token || '').trim()
+  if (!trimmed.startsWith("'") || !trimmed.endsWith("'")) {
+    return trimmed
+  }
+  return trimmed.slice(1, -1).replaceAll("''", "'")
+}
+
+function parseJsonString(token, fallback) {
+  try {
+    return JSON.parse(sqlStringValue(token))
+  } catch {
+    return fallback
+  }
+}
+
+function splitSqlTopLevelValues(row) {
+  const text = row.trim().replace(/^\(/, '').replace(/\)$/, '')
+  const values = []
+  let current = ''
+  let depth = 0
+  let inString = false
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index]
+    const next = text[index + 1]
+    if (char === "'") {
+      current += char
+      if (inString && next === "'") {
+        current += next
+        index += 1
+      } else {
+        inString = !inString
+      }
+      continue
+    }
+    if (!inString) {
+      if (char === '(') {
+        depth += 1
+      } else if (char === ')') {
+        depth -= 1
+      } else if (char === ',' && depth === 0) {
+        values.push(current.trim())
+        current = ''
+        continue
+      }
+    }
+    current += char
+  }
+  if (current.trim()) {
+    values.push(current.trim())
+  }
+  return values
+}
+
+function splitSqlRows(valuesSql) {
+  const rows = []
+  let rowStart = -1
+  let depth = 0
+  let inString = false
+  for (let index = 0; index < valuesSql.length; index += 1) {
+    const char = valuesSql[index]
+    const next = valuesSql[index + 1]
+    if (char === "'") {
+      if (inString && next === "'") {
+        index += 1
+      } else {
+        inString = !inString
+      }
+      continue
+    }
+    if (inString) {
+      continue
+    }
+    if (char === '(') {
+      if (depth === 0) {
+        rowStart = index
+      }
+      depth += 1
+    } else if (char === ')') {
+      depth -= 1
+      if (depth === 0 && rowStart >= 0) {
+        rows.push(valuesSql.slice(rowStart, index + 1))
+        rowStart = -1
+      }
+    } else if (char === ';' && depth === 0) {
+      break
+    }
+  }
+  return rows
+}
+
+function extractPoiValuesSql(sql) {
+  const insertIndex = sql.indexOf('INSERT INTO `xunjing_poi`')
+  if (insertIndex < 0) {
+    return ''
+  }
+  const valuesIndex = sql.indexOf('VALUES', insertIndex)
+  if (valuesIndex < 0) {
+    return ''
+  }
+  return sql.slice(valuesIndex + 'VALUES'.length)
+}
+
+function extractXichengSourceUrl(sql) {
+  const match = sql.match(/SET\s+@xicheng_source_url\s*:=\s*'((?:''|[^'])*)'/i)
+  return match ? match[1].replaceAll("''", "'") : ''
+}
+
+function createPoiTemplateFromSeedRow(row, index, sourceUrl) {
+  const values = splitSqlTopLevelValues(row)
+  const content = parseJsonString(values[14], {})
+  return {
+    ...createPoiTemplate(index),
+    poiCode: sqlStringValue(values[1]),
+    regionCode: sqlStringValue(values[2]),
+    packageCode: 'XICHENG-MAP-001',
+    name: sqlStringValue(values[3]),
+    displayName: sqlStringValue(values[4]),
+    aliases: parseJsonString(values[5], []),
+    category: sqlStringValue(values[6]),
+    priority: sqlStringValue(values[7]),
+    address: sqlStringValue(values[8]),
+    latitude: Number(values[9]),
+    longitude: Number(values[10]),
+    coordType: sqlStringValue(values[11]),
+    source: {
+      sourceTitle: `${sqlStringValue(values[3])} 公开来源待复核`,
+      sourceUrl,
+      sourceType: 'OFFICIAL_PUBLIC',
+      licenseStatus: 'REVIEW_REQUIRED',
+      licenseEvidenceRef: '',
+      licenseReviewedBy: '',
+      licenseReviewedAt: ''
+    },
+    trigger: parseJsonString(values[13], createPoiTemplate(index).trigger),
+    content: {
+      shortIntro: String(content.shortIntro || ''),
+      recommendedQuestions: Array.isArray(content.recommendedQuestions)
+        ? content.recommendedQuestions
+        : []
+    },
+    audit: {
+      reviewStatus: 'REVIEW_REQUIRED',
+      geoStatus: 'REVIEW_REQUIRED',
+      licenseStatus: 'REVIEW_REQUIRED',
+      status: 'DRAFT',
+      reviewedBy: '',
+      reviewedAt: ''
+    }
+  }
+}
+
+export function importPoiTemplatesFromLocalSeedSql(sql) {
+  const sourceUrl = extractXichengSourceUrl(sql)
+  return splitSqlRows(extractPoiValuesSql(sql))
+    .map((row, index) => createPoiTemplateFromSeedRow(row, index, sourceUrl))
+    .filter((poi) => poi.poiCode.startsWith('xicheng-'))
 }
 
 function slotId(index) {
@@ -104,8 +263,17 @@ function createPoiTemplate(index) {
   }
 }
 
-export function createXichengPoiProductionManifestTemplate({ count = defaultPoiSlotCount } = {}) {
-  const poiSlotCount = normalizeSlotCount(count)
+export function createXichengPoiProductionManifestTemplate({
+  count = defaultPoiSlotCount,
+  seedPois = [],
+  seedSqlFile
+} = {}) {
+  const importedSeedPois = Array.isArray(seedPois) ? seedPois : []
+  const poiSlotCount = Math.max(normalizeSlotCount(count), importedSeedPois.length)
+  const todoPois = Array.from(
+    { length: poiSlotCount - importedSeedPois.length },
+    (_, index) => createPoiTemplate(importedSeedPois.length + index)
+  )
   return {
     regionCode: 'beijing-xicheng',
     packageCode: 'XICHENG-MAP-001',
@@ -120,18 +288,38 @@ export function createXichengPoiProductionManifestTemplate({ count = defaultPoiS
       reviewedAt: '',
       evidencePackageRef: ''
     },
-    templateNotice: 'Fill with reviewed real POI data; this template must not be used as production evidence.',
-    pois: Array.from({ length: poiSlotCount }, (_, index) => createPoiTemplate(index))
+    ...(importedSeedPois.length > 0
+      ? {
+          seedSource: {
+            sqlFile: seedSqlFile,
+            localCandidateOnly: true,
+            importedPoiCount: importedSeedPois.length
+          }
+        }
+      : {}),
+    templateNotice: importedSeedPois.length > 0
+      ? 'Prefilled from local-candidate seed for review workflow only; fill the remaining POIs and replace all review placeholders before production.'
+      : 'Fill with reviewed real POI data; this template must not be used as production evidence.',
+    pois: [...importedSeedPois, ...todoPois]
   }
 }
 
 export async function writeXichengPoiProductionManifestTemplate({
   rootDir = process.cwd(),
   outputFile,
-  count = defaultPoiSlotCount
+  count = defaultPoiSlotCount,
+  seedSqlFile
 } = {}) {
   const resolvedOutputFile = resolveOutputFile(rootDir, outputFile)
-  const manifest = createXichengPoiProductionManifestTemplate({ count })
+  const resolvedSeedSqlFile = seedSqlFile ? path.resolve(seedSqlFile) : undefined
+  const seedPois = resolvedSeedSqlFile
+    ? importPoiTemplatesFromLocalSeedSql(await readFile(resolvedSeedSqlFile, 'utf8'))
+    : []
+  const manifest = createXichengPoiProductionManifestTemplate({
+    count,
+    seedPois,
+    seedSqlFile: resolvedSeedSqlFile
+  })
   await mkdir(path.dirname(resolvedOutputFile), { recursive: true })
   await writeFile(resolvedOutputFile, `${JSON.stringify(manifest, null, 2)}\n`)
   return {
@@ -142,6 +330,8 @@ export async function writeXichengPoiProductionManifestTemplate({
     summary: {
       outputFile: resolvedOutputFile,
       poiSlots: manifest.pois.length,
+      importedPoiCount: seedPois.length,
+      todoPoiSlots: manifest.pois.length - seedPois.length,
       productionReady: manifest.productionReady,
       warning: 'Template contains TODO placeholders and must fail production manifest gate until reviewed real data is filled.'
     }
@@ -153,7 +343,8 @@ async function runCli() {
   const report = await writeXichengPoiProductionManifestTemplate({
     rootDir: path.resolve(readArgValue(args, '--root') || process.cwd()),
     outputFile: readArgValue(args, '--output'),
-    count: readArgValue(args, '--count') || defaultPoiSlotCount
+    count: readArgValue(args, '--count') || defaultPoiSlotCount,
+    seedSqlFile: readArgValue(args, '--seed-sql')
   })
   console.log(JSON.stringify(report, null, 2))
 }
