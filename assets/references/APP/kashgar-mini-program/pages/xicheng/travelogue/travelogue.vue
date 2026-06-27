@@ -33,7 +33,7 @@
 					<text class="report-label">轨迹点</text>
 				</view>
 				<view>
-					<text class="report-value">{{ recordingSession.stayPoints.length }}</text>
+					<text class="report-value">{{ stayPointCount }}</text>
 					<text class="report-label">停留点</text>
 				</view>
 				<view>
@@ -44,6 +44,7 @@
 			<view class="recording-actions">
 				<button class="primary-button" :disabled="recordingSession.status === 'recording'" @click="startRecordingSession">开始记录</button>
 				<button class="ghost-button" :disabled="recordingSession.status !== 'recording'" @click="captureTrackPoint('manual')">补记位置</button>
+				<button class="ghost-button" :disabled="recordingSession.status !== 'recording'" @click="markStayPoint">标记停留</button>
 				<button class="ghost-button" :disabled="recordingSession.status !== 'recording'" @click="pauseRecordingSession">暂停</button>
 				<button class="ghost-button" :disabled="recordingSession.status === 'idle' || recordingSession.status === 'finished'" @click="finishRecordingSession">结束</button>
 			</view>
@@ -251,6 +252,9 @@ export const createXichengTravelogueDraft = ({
 	const routePointCount = recordingSession && Array.isArray(recordingSession.trackPoints)
 		? recordingSession.trackPoints.length
 		: 0
+	const stayPointCount = recordingSession && Array.isArray(recordingSession.stayPoints)
+		? recordingSession.stayPoints.length
+		: 0
 	const routeText = routeRecommendation && routeRecommendation.title
 		? routeRecommendation.title
 		: poiNames.length > 0 ? poiNames.join('、') : '白塔寺、西四街巷、什刹海'
@@ -261,9 +265,10 @@ export const createXichengTravelogueDraft = ({
 		.filter(Boolean)
 		.slice(0, 2)
 	const trackText = routePointCount > 0 ? `本次主动记录了 ${routePointCount} 个前台位置点，` : ''
+	const stayText = stayPointCount > 0 ? `本次标记了 ${stayPointCount} 个停留点，` : ''
 	const photoText = photoCount > 0 ? `现场补充了 ${photoCount} 张照片，` : ''
 	const remarkText = remarkTexts.length > 0 ? `用户备注提到：${remarkTexts.join('；')}。` : ''
-	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒，${trackText}${photoText}我们沿途完成了${taskText}。${remarkText}这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
+	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒，${trackText}${stayText}${photoText}我们沿途完成了${taskText}。${remarkText}这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
 }
 
 const createEmptyRecordingSession = () => ({
@@ -328,6 +333,7 @@ export default {
 				pdfStatus: this.pdfStatus,
 				shareAssetCount: this.shareArtifacts.length,
 				routePointCount: this.routePointCount,
+				stayPointCount: this.stayPointCount,
 				photoMaterialCount: this.photoMaterialCount,
 				remarkMaterialCount: this.remarkMaterialCount,
 				recordingStatus: this.recordingStatusText
@@ -335,6 +341,9 @@ export default {
 		},
 		routePointCount() {
 			return Array.isArray(this.recordingSession.trackPoints) ? this.recordingSession.trackPoints.length : 0
+		},
+		stayPointCount() {
+			return Array.isArray(this.recordingSession.stayPoints) ? this.recordingSession.stayPoints.length : 0
 		},
 		photoMaterialCount() {
 			return this.materials.filter(material => material && material.type === 'photo').length
@@ -562,6 +571,7 @@ export default {
 				recognizedRoute: this.recognizedRoute,
 				recordingSession: this.recordingSession,
 				routePointCount: this.routePointCount,
+				stayPointCount: this.stayPointCount,
 				photoMaterialCount: this.photoMaterialCount,
 				remarkMaterialCount: this.remarkMaterialCount,
 				reviewStatus: this.reviewText,
@@ -591,6 +601,7 @@ export default {
 				routeTitle,
 				draftExcerpt: String(this.draft || '').slice(0, 80),
 				materialCount: this.materialCount,
+				stayPointCount: this.stayPointCount,
 				photoMaterialCount: this.photoMaterialCount,
 				remarkMaterialCount: this.remarkMaterialCount,
 				sourceCount: this.sourceCount,
@@ -677,6 +688,32 @@ export default {
 				]
 			}
 			this.saveRecordingSession()
+		},
+		async markStayPoint() {
+			if (this.recordingSession.status !== 'recording') return
+			const location = await requestCurrentLocationForTrigger()
+			const capturedAt = new Date().toISOString()
+			const stayPoint = {
+				pointType: 'stay',
+				capturedAt,
+				latitude: location && location.latitude !== undefined ? Number(location.latitude) : null,
+				longitude: location && location.longitude !== undefined ? Number(location.longitude) : null,
+				coordType: location && location.coordType ? location.coordType : 'gcj02',
+				accuracyMeters: location && location.accuracyMeters !== undefined ? Number(location.accuracyMeters) : 0
+			}
+			this.recordingSession = {
+				...this.recordingSession,
+				stayPoints: [
+					...(Array.isArray(this.recordingSession.stayPoints) ? this.recordingSession.stayPoints : []),
+					stayPoint
+				]
+			}
+			this.saveRecordingSession()
+			this.refreshDraftFromEvidence()
+			uni.showToast({
+				title: '停留点已标记',
+				icon: 'none'
+			})
 		},
 		formatArtifactTime(createdAt) {
 			return String(createdAt || '').slice(0, 10)
