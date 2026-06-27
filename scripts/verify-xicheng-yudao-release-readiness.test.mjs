@@ -46,6 +46,8 @@ function sha256(value) {
 function productionEnv(overrides = {}) {
   return {
     SPRING_PROFILES_ACTIVE: 'production',
+    SPRING_AI_VECTORSTORE_TYPE: 'qdrant',
+    SPRING_AI_MODEL_EMBEDDING: 'dashscope',
     XUNJING_TENANT_ID: '1001',
     XUNJING_APP_API_BASE_URL: 'https://xunjing-api.xingheai.net',
     MYSQL_HOST: 'xunjing-prod-mysql.internal',
@@ -71,6 +73,7 @@ function productionEnv(overrides = {}) {
     QWEN_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     QWEN_MODEL: 'qwen-plus',
     DASHSCOPE_API_KEY: 'prod-dashscope-api-key',
+    DASHSCOPE_EMBEDDING_ENABLED: 'true',
     WX_MP_APP_ID: 'wx-prod-mp-appid',
     WX_MP_SECRET: 'wx-prod-mp-secret',
     WX_MINIAPP_APPID: 'wx-prod-miniapp-appid',
@@ -265,6 +268,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(result.blockers).toEqual([])
     expect(result.checks.map((check) => check.name)).toEqual([
       'runtime-env',
+      'vector-embedding-runtime',
       'https-app-api-domain',
       'real-wechat-app',
       'real-ai-provider',
@@ -486,7 +490,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidence.summary).toMatchObject({
       stage: 'production',
       status: 'NOT_READY',
-      totalChecks: 10
+      totalChecks: 11
     })
     expect(evidence.blockers.join('\n')).toContain('SPRING_PROFILES_ACTIVE must be production')
     expect(JSON.stringify(evidence)).not.toContain('prod-db-password')
@@ -524,5 +528,35 @@ describe('xicheng Yudao release readiness gate', () => {
     )
     expect(deployDoc).toContain('npm run xunjing:yudao:release:gate')
     expect(deployDoc).toContain('PRODUCTION_READY_CANDIDATE')
+    expect(deployDoc).toContain('SPRING_AI_VECTORSTORE_TYPE')
+    expect(deployDoc).toContain('SPRING_AI_MODEL_EMBEDDING')
+    expect(deployDoc).toContain('DASHSCOPE_EMBEDDING_ENABLED')
+  })
+
+  test('fails closed when production vector store or embedding runtime is disabled', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv({
+        SPRING_AI_VECTORSTORE_TYPE: 'none',
+        SPRING_AI_MODEL_EMBEDDING: 'none',
+        DASHSCOPE_EMBEDDING_ENABLED: 'false'
+      }),
+      rootDir,
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const vectorCheck = result.checks.find((check) => check.name === 'vector-embedding-runtime')
+    expect(vectorCheck?.ok).toBe(false)
+    expect(vectorCheck?.blockers).toEqual(expect.arrayContaining([
+      'SPRING_AI_VECTORSTORE_TYPE must be qdrant for production',
+      'SPRING_AI_MODEL_EMBEDDING must enable a real embedding provider for production',
+      'DASHSCOPE_EMBEDDING_ENABLED must be true for production embeddings'
+    ]))
   })
 })

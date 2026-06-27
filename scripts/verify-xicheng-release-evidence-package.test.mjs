@@ -104,13 +104,14 @@ function releaseEvidence(overrides = {}) {
     summary: {
       stage: 'production',
       status: 'PRODUCTION_READY_CANDIDATE',
-      totalChecks: 10,
-      passedChecks: 10,
+      totalChecks: 11,
+      passedChecks: 11,
       failedChecks: 0,
       blockerCount: 0
     },
     checks: [
       { name: 'runtime-env', ok: true },
+      { name: 'vector-embedding-runtime', ok: true },
       { name: 'https-app-api-domain', ok: true },
       { name: 'real-wechat-app', ok: true },
       { name: 'real-ai-provider', ok: true },
@@ -302,6 +303,45 @@ describe('xicheng release evidence package gate', () => {
     expect(evidence.blockers.join('\n')).toContain('manifest evidence must include poi-field-evidence')
     expect(evidence.blockers.join('\n')).toContain('seed evidence must include field-evidence')
     expect(evidence.blockers.join('\n')).toContain('seed evidence must include source-license-evidence')
+  })
+
+  test('fails closed when release evidence was generated before vector embedding gate existed', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence({
+      summary: {
+        totalChecks: 10,
+        passedChecks: 10
+      },
+      checks: [
+        { name: 'runtime-env', ok: true },
+        { name: 'https-app-api-domain', ok: true },
+        { name: 'real-wechat-app', ok: true },
+        { name: 'real-ai-provider', ok: true },
+        { name: 'vision-ocr-service', ok: true },
+        { name: 'object-storage', ok: true },
+        { name: 'full-yudao-baseline', ok: true },
+        { name: 'xicheng-production-poi-evidence', ok: true },
+        { name: 'xicheng-production-poi', ok: true },
+        { name: 'xicheng-source-license', ok: true }
+      ]
+    }))
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.blockers.join('\n')).toContain('release evidence must include vector-embedding-runtime')
   })
 
   test('fails closed when POI source hash metadata is missing from package inputs', async () => {

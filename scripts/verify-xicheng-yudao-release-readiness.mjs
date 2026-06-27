@@ -36,6 +36,8 @@ const requiredSeedEvidenceChecks = [
 
 const requiredProductionEnvKeys = [
   'SPRING_PROFILES_ACTIVE',
+  'SPRING_AI_VECTORSTORE_TYPE',
+  'SPRING_AI_MODEL_EMBEDDING',
   'XUNJING_TENANT_ID',
   'XUNJING_APP_API_BASE_URL',
   'MYSQL_HOST',
@@ -61,6 +63,7 @@ const requiredProductionEnvKeys = [
   'QWEN_BASE_URL',
   'QWEN_MODEL',
   'DASHSCOPE_API_KEY',
+  'DASHSCOPE_EMBEDDING_ENABLED',
   'WX_MP_APP_ID',
   'WX_MP_SECRET',
   'WX_MINIAPP_APPID',
@@ -146,6 +149,32 @@ function checkRuntimeEnv(env, stage) {
     blockers.length === 0,
     blockers.length === 0
       ? `${stage} runtime env is complete and not local-only`
+      : blockers.join('; '),
+    blockers
+  )
+}
+
+function checkVectorEmbeddingRuntime(env, stage) {
+  const blockers = []
+  const vectorStoreType = String(env.SPRING_AI_VECTORSTORE_TYPE || '').trim().toLowerCase()
+  const embeddingModel = String(env.SPRING_AI_MODEL_EMBEDDING || '').trim().toLowerCase()
+  const dashscopeEmbeddingEnabled = String(env.DASHSCOPE_EMBEDDING_ENABLED || '').trim().toLowerCase()
+
+  if (vectorStoreType !== 'qdrant') {
+    blockers.push(`SPRING_AI_VECTORSTORE_TYPE must be qdrant for ${stage}`)
+  }
+  if (!embeddingModel || embeddingModel === 'none') {
+    blockers.push(`SPRING_AI_MODEL_EMBEDDING must enable a real embedding provider for ${stage}`)
+  }
+  if (dashscopeEmbeddingEnabled !== 'true') {
+    blockers.push(`DASHSCOPE_EMBEDDING_ENABLED must be true for ${stage} embeddings`)
+  }
+
+  return check(
+    'vector-embedding-runtime',
+    blockers.length === 0,
+    blockers.length === 0
+      ? 'Qdrant vector store and embedding runtime are enabled'
       : blockers.join('; '),
     blockers
   )
@@ -579,6 +608,7 @@ export async function verifyXichengYudaoReleaseReadiness({
 
   const checks = [
     checkRuntimeEnv(env, normalizedStage),
+    checkVectorEmbeddingRuntime(env, normalizedStage),
     checkHttpsAppApiDomain(env),
     checkRealWechatApp(env),
     checkRealAiProvider(env),

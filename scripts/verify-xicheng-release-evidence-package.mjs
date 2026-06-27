@@ -12,6 +12,7 @@ const allowedClockSkewMs = 5 * 60 * 1000
 
 const requiredReleaseChecks = [
   'runtime-env',
+  'vector-embedding-runtime',
   'https-app-api-domain',
   'real-wechat-app',
   'real-ai-provider',
