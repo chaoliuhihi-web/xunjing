@@ -87,6 +87,7 @@ public class XunjingAppVO {
         private String intent;
         private String action;
         private String triggerType;
+        private String packageCode;
         private String regionCode;
         private String poiCode;
         private String poiName;

@@ -94,7 +94,7 @@ public class XunjingMultimodalTriggerEngine {
                 .toList();
 
         if (matches.isEmpty()) {
-            return noMatch(regionCode);
+            return noMatch(regionCode, safeReqVO.getPackageCode());
         }
         String intent = detectIntent(safeReqVO);
         MatchScore best = matches.get(0);
@@ -104,17 +104,18 @@ public class XunjingMultimodalTriggerEngine {
         respVO.setIntent(intent);
         respVO.setAction(resolveAction(intent, autoTrigger));
         respVO.setTriggerType(resolveTriggerType(best.signals()));
+        respVO.setPackageCode(safeReqVO.getPackageCode());
         respVO.setRegionCode(regionCode);
         respVO.setPoiCode(best.poi().code());
         respVO.setPoiName(best.poi().name());
         respVO.setConfidence(best.confidence());
         respVO.setRequiresUserConfirm(!autoTrigger);
         respVO.setReason(buildReason(best.signals(), autoTrigger));
-        respVO.setTargetPath(buildTargetPath(intent, regionCode, best.poi().code(), !autoTrigger));
+        respVO.setTargetPath(buildTargetPath(intent, regionCode, best.poi().code(), safeReqVO.getPackageCode(), !autoTrigger));
         respVO.setSuggestedQuestions(best.poi().suggestedQuestions());
         respVO.setSources(toSources(best.poi()));
         respVO.setCandidates(matches.stream()
-                .map(match -> toCandidate(match, intent, regionCode))
+                .map(match -> toCandidate(match, intent, regionCode, safeReqVO.getPackageCode()))
                 .toList());
         return respVO;
     }
@@ -212,30 +213,31 @@ public class XunjingMultimodalTriggerEngine {
                 sourceProfiles(poi, source, summary));
     }
 
-    private MultimodalCandidateRespVO toCandidate(MatchScore match, String intent, String regionCode) {
+    private MultimodalCandidateRespVO toCandidate(MatchScore match, String intent, String regionCode, String packageCode) {
         MultimodalCandidateRespVO candidate = new MultimodalCandidateRespVO();
         candidate.setPoiCode(match.poi().code());
         candidate.setPoiName(match.poi().name());
         candidate.setConfidence(match.confidence());
         candidate.setDistanceMeters(match.distanceMeters() == null ? null : round1(match.distanceMeters()));
         candidate.setSummary(match.poi().summary());
-        candidate.setTargetPath(buildTargetPath(intent, regionCode, match.poi().code(), true));
+        candidate.setTargetPath(buildTargetPath(intent, regionCode, match.poi().code(), packageCode, true));
         candidate.setSuggestedQuestions(match.poi().suggestedQuestions());
         candidate.setSources(toSources(match.poi()));
         candidate.setMatchedSignals(match.signals());
         return candidate;
     }
 
-    private MultimodalTriggerRespVO noMatch(String regionCode) {
+    private MultimodalTriggerRespVO noMatch(String regionCode, String packageCode) {
         MultimodalTriggerRespVO respVO = new MultimodalTriggerRespVO();
         respVO.setIntent("ask");
         respVO.setAction("ask_ai_companion");
         respVO.setTriggerType("none");
+        respVO.setPackageCode(packageCode);
         respVO.setRegionCode(regionCode);
         respVO.setConfidence(0D);
         respVO.setRequiresUserConfirm(true);
         respVO.setReason("定位、文字和图片信号不足，进入问问小京。");
-        respVO.setTargetPath("/pages/ai-chat/index?regionCode=" + regionCode);
+        respVO.setTargetPath("/pages/ai-chat/index" + buildContextQuery(regionCode, null, packageCode, false));
         respVO.setSuggestedQuestions(List.of("我在西城附近，有什么值得看的地方？", "我可以拍什么让小京识别？"));
         respVO.setSources(List.of());
         respVO.setCandidates(List.of());
@@ -292,14 +294,29 @@ public class XunjingMultimodalTriggerEngine {
         };
     }
 
-    private String buildTargetPath(String intent, String regionCode, String poiCode, boolean confirm) {
-        String confirmQuery = confirm ? "&confirm=1" : "";
+    private String buildTargetPath(String intent, String regionCode, String poiCode, String packageCode, boolean confirm) {
+        String query = buildContextQuery(regionCode, poiCode, packageCode, confirm);
         return switch (intent) {
-            case "route" -> "/pages/routes/recommend?regionCode=" + regionCode + "&poiCode=" + poiCode + confirmQuery;
-            case "food" -> "/pages/food/recommend?regionCode=" + regionCode + "&poiCode=" + poiCode + confirmQuery;
-            case "record" -> "/pages/travel-note/edit?regionCode=" + regionCode + "&poiCode=" + poiCode + confirmQuery;
-            default -> "/pages/ai-guide/detail?regionCode=" + regionCode + "&poiCode=" + poiCode + confirmQuery;
+            case "route" -> "/pages/routes/recommend" + query;
+            case "food" -> "/pages/food/recommend" + query;
+            case "record" -> "/pages/travel-note/edit" + query;
+            default -> "/pages/ai-guide/detail" + query;
         };
+    }
+
+    private String buildContextQuery(String regionCode, String poiCode, String packageCode, boolean confirm) {
+        List<String> params = new ArrayList<>();
+        params.add("regionCode=" + regionCode);
+        if (hasText(poiCode)) {
+            params.add("poiCode=" + poiCode);
+        }
+        if (hasText(packageCode)) {
+            params.add("packageCode=" + packageCode);
+        }
+        if (confirm) {
+            params.add("confirm=1");
+        }
+        return "?" + String.join("&", params);
     }
 
     private String resolveTriggerType(List<String> signals) {

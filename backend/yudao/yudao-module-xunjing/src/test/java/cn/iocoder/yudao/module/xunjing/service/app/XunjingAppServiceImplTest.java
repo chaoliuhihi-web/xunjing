@@ -432,7 +432,10 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
 
         MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
 
+        assertEquals("XICHENG-MAP-001", respVO.getPackageCode());
         assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
+        assertTrue(respVO.getTargetPath().contains("packageCode=XICHENG-MAP-001"));
+        assertTrue(respVO.getCandidates().get(0).getTargetPath().contains("packageCode=XICHENG-MAP-001"));
         List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
                 new LambdaQueryWrapperX<XunjingInteractionEventDO>()
                         .eq(XunjingInteractionEventDO::getPackageId, packageId)
