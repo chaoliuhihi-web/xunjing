@@ -6,6 +6,8 @@ const artifactType = 'xicheng-release-evidence-package'
 const readyStatus = 'XICHENG_RELEASE_EVIDENCE_PACKAGE_READY'
 const allowedEvidenceDirs = new Set(['qa', 'tmp', 'workbench'])
 const productionPoiTarget = 80
+const defaultMaxEvidenceAgeHours = 24
+const allowedClockSkewMs = 5 * 60 * 1000
 
 const requiredReleaseChecks = [
   'runtime-env',
@@ -110,10 +112,29 @@ function blockersOf(evidence) {
   return Array.isArray(evidence?.blockers) ? evidence.blockers : []
 }
 
-function checkEvidenceTimestamp(evidence, label) {
+function parseMaxEvidenceAgeHours(value) {
+  if (value === undefined || value === null || value === '') {
+    return defaultMaxEvidenceAgeHours
+  }
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error('max evidence age hours must be a positive number')
+  }
+  return parsed
+}
+
+function checkEvidenceTimestamp(evidence, label, { now, maxEvidenceAgeMs }) {
   const timestamp = evidence?.checkedAt
-  if (typeof timestamp !== 'string' || Number.isNaN(Date.parse(timestamp))) {
+  const parsed = typeof timestamp === 'string' ? Date.parse(timestamp) : Number.NaN
+  if (Number.isNaN(parsed)) {
     return [`${label} evidence checkedAt must be a valid timestamp`]
+  }
+  const nowMs = now.getTime()
+  if (parsed - nowMs > allowedClockSkewMs) {
+    return [`${label} evidence checkedAt must not be in the future`]
+  }
+  if (nowMs - parsed > maxEvidenceAgeMs) {
+    return [`${label} evidence checkedAt must be within the last ${maxEvidenceAgeMs / 60 / 60 / 1000} hours`]
   }
   return []
 }
@@ -151,7 +172,7 @@ function checkEvidenceChecks(evidence, requiredChecks, label) {
   return blockers
 }
 
-function checkReleaseEvidence(ref, stage) {
+function checkReleaseEvidence(ref, stage, freshnessOptions) {
   const blockers = []
   if (ref.error) {
     blockers.push(ref.error)
@@ -166,7 +187,7 @@ function checkReleaseEvidence(ref, stage) {
   if (evidence.artifactType !== 'xicheng-yudao-release-readiness') {
     blockers.push('release evidence artifactType must be xicheng-yudao-release-readiness')
   }
-  blockers.push(...checkEvidenceTimestamp(evidence, 'release'))
+  blockers.push(...checkEvidenceTimestamp(evidence, 'release', freshnessOptions))
   if (evidence.ok !== true) {
     blockers.push('release evidence ok must be true')
   }
@@ -186,7 +207,7 @@ function checkReleaseEvidence(ref, stage) {
   return check('release-gate-evidence', blockers)
 }
 
-function checkManifestEvidence(ref) {
+function checkManifestEvidence(ref, freshnessOptions) {
   const blockers = []
   if (ref.error) {
     blockers.push(ref.error)
@@ -197,7 +218,7 @@ function checkManifestEvidence(ref) {
   if (evidence.artifactType !== 'xicheng-poi-production-manifest-readiness') {
     blockers.push('manifest evidence artifactType must be xicheng-poi-production-manifest-readiness')
   }
-  blockers.push(...checkEvidenceTimestamp(evidence, 'manifest'))
+  blockers.push(...checkEvidenceTimestamp(evidence, 'manifest', freshnessOptions))
   if (evidence.ok !== true) {
     blockers.push('manifest evidence ok must be true')
   }
@@ -223,7 +244,7 @@ function checkManifestEvidence(ref) {
   return check('poi-manifest-evidence', blockers)
 }
 
-function checkSeedEvidence(ref) {
+function checkSeedEvidence(ref, freshnessOptions) {
   const blockers = []
   if (ref.error) {
     blockers.push(ref.error)
@@ -236,7 +257,7 @@ function checkSeedEvidence(ref) {
   if (evidence.artifactType !== 'xicheng-poi-production-seed-readiness') {
     blockers.push('seed evidence artifactType must be xicheng-poi-production-seed-readiness')
   }
-  blockers.push(...checkEvidenceTimestamp(evidence, 'seed'))
+  blockers.push(...checkEvidenceTimestamp(evidence, 'seed', freshnessOptions))
   if (evidence.ok !== true) {
     blockers.push('seed evidence ok must be true')
   }
@@ -259,7 +280,7 @@ function checkSeedEvidence(ref) {
   return check('poi-seed-evidence', blockers)
 }
 
-function checkAppReadinessEvidence(ref, stage) {
+function checkAppReadinessEvidence(ref, stage, freshnessOptions) {
   const blockers = []
   if (ref.error) {
     blockers.push(ref.error)
@@ -268,7 +289,7 @@ function checkAppReadinessEvidence(ref, stage) {
   const evidence = ref.data || {}
   const summary = summaryOf(evidence)
   const baseUrl = summary.baseUrl || evidence.baseUrl
-  blockers.push(...checkEvidenceTimestamp(evidence, 'app readiness'))
+  blockers.push(...checkEvidenceTimestamp(evidence, 'app readiness', freshnessOptions))
   if (evidence.ok !== true) {
     blockers.push('app readiness evidence ok must be true')
   }
@@ -338,7 +359,9 @@ export async function verifyXichengReleaseEvidencePackage({
   releaseEvidencePath,
   poiManifestEvidencePath,
   poiSeedEvidencePath,
-  appReadinessEvidencePath
+  appReadinessEvidencePath,
+  maxEvidenceAgeHours = defaultMaxEvidenceAgeHours,
+  now = new Date()
 } = {}) {
   const normalizedStage = String(stage || 'production').toLowerCase()
   if (!['production', 'staging'].includes(normalizedStage)) {
@@ -351,11 +374,15 @@ export async function verifyXichengReleaseEvidencePackage({
     loadJsonFile(rootDir, appReadinessEvidencePath, 'app readiness')
   ])
   const [releaseRef, manifestRef, seedRef, appRef] = evidenceRefs
+  const freshnessOptions = {
+    now,
+    maxEvidenceAgeMs: maxEvidenceAgeHours * 60 * 60 * 1000
+  }
   const checks = [
-    checkReleaseEvidence(releaseRef, normalizedStage),
-    checkManifestEvidence(manifestRef),
-    checkSeedEvidence(seedRef),
-    checkAppReadinessEvidence(appRef, normalizedStage),
+    checkReleaseEvidence(releaseRef, normalizedStage, freshnessOptions),
+    checkManifestEvidence(manifestRef, freshnessOptions),
+    checkSeedEvidence(seedRef, freshnessOptions),
+    checkAppReadinessEvidence(appRef, normalizedStage, freshnessOptions),
     checkSecretSafety(evidenceRefs)
   ]
   const blockers = checks.flatMap((item) => item.blockers)
@@ -375,7 +402,8 @@ export async function verifyXichengReleaseEvidencePackage({
       totalChecks: checks.length,
       passedChecks: checks.filter((item) => item.ok).length,
       failedChecks: checks.filter((item) => !item.ok).length,
-      blockerCount: blockers.length
+      blockerCount: blockers.length,
+      maxEvidenceAgeHours
     },
     evidenceFiles: {
       release: releaseRef.path,
@@ -430,7 +458,10 @@ async function runCli() {
     poiSeedEvidencePath: readArgValue(args, '--poi-seed-evidence') ||
       process.env.XICHENG_POI_SEED_EVIDENCE,
     appReadinessEvidencePath: readArgValue(args, '--app-readiness-evidence') ||
-      process.env.XICHENG_APP_READINESS_EVIDENCE
+      process.env.XICHENG_APP_READINESS_EVIDENCE,
+    maxEvidenceAgeHours: parseMaxEvidenceAgeHours(
+      readArgValue(args, '--max-evidence-age-hours') || process.env.XICHENG_MAX_EVIDENCE_AGE_HOURS
+    )
   })
   await writeEvidence({
     rootDir,
