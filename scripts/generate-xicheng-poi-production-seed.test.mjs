@@ -1,11 +1,16 @@
 import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, test } from 'vitest'
 
 const tempDirs = []
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex')
+}
 
 function productionPoi(index, overrides = {}) {
   const suffix = String(index).padStart(3, '0')
@@ -135,11 +140,14 @@ describe('xicheng POI production seed generator', () => {
     const rootDir = await createTempRoot()
     const manifestPath = await writeJson(rootDir, 'workbench/xicheng-production-pois.json', productionManifest())
     const outputPath = path.join(rootDir, 'tmp/xicheng-poi-production-seed.sql')
+    const evidencePath = path.join(rootDir, 'qa/xicheng-poi-production-seed-generation-evidence.json')
+    const manifestText = await readFile(manifestPath, 'utf8')
 
     const result = runGenerator([
       '--manifest', manifestPath,
       '--root', rootDir,
-      '--output', 'tmp/xicheng-poi-production-seed.sql'
+      '--output', 'tmp/xicheng-poi-production-seed.sql',
+      '--evidence-file', 'qa/xicheng-poi-production-seed-generation-evidence.json'
     ])
 
     expect(result.status).toBe(0)
@@ -151,6 +159,18 @@ describe('xicheng POI production seed generator', () => {
     })
 
     const sql = await readFile(outputPath, 'utf8')
+    const evidence = JSON.parse(await readFile(evidencePath, 'utf8'))
+    expect(evidence.artifactType).toBe('xicheng-poi-production-seed-generation')
+    expect(evidence.status).toBe('PRODUCTION_POI_SEED_GENERATED')
+    expect(evidence.summary).toMatchObject({
+      manifestFile: manifestPath,
+      manifestSha256: sha256(manifestText),
+      outputFile: outputPath,
+      sqlSha256: sha256(sql),
+      totalPoiCount: 80,
+      targetPoiCount: 80
+    })
+    expect(evidence.checks.map((check) => check.name)).toContain('manifest-gate')
     expect(sql).toContain('Generated from reviewed Xicheng POI production manifest')
     expect(sql).toContain('INSERT INTO `xunjing_poi`')
     expect(sql).toContain('INSERT INTO `xunjing_knowledge_document`')
@@ -193,6 +213,21 @@ describe('xicheng POI production seed generator', () => {
     expect(result.stderr).toContain('manifest is not production-ready')
     expect(result.stderr).toContain('80 production-ready POIs required; found 1/80')
     expect(existsSync(outputPath)).toBe(false)
+  })
+
+  test('rejects seed generation evidence paths outside qa tmp or workbench', async () => {
+    const rootDir = await createTempRoot()
+    const manifestPath = await writeJson(rootDir, 'workbench/xicheng-production-pois.json', productionManifest())
+
+    const result = runGenerator([
+      '--manifest', manifestPath,
+      '--root', rootDir,
+      '--output', 'tmp/xicheng-poi-production-seed.sql',
+      '--evidence-file', 'xicheng-poi-production-seed-generation-evidence.json'
+    ])
+
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('evidence file must be under qa/, tmp/ or workbench/')
   })
 
   test('exposes the seed generator through npm scripts and deployment docs', async () => {

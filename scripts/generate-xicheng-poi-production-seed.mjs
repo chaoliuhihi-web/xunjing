@@ -1,9 +1,19 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { verifyXichengPoiProductionManifest } from './verify-xicheng-poi-production-manifest.mjs'
 
 const allowedOutputDirs = new Set(['qa', 'tmp', 'workbench'])
+const allowedEvidenceDirs = new Set(['qa', 'tmp', 'workbench'])
+
+function check(name, ok, detail, blockers = []) {
+  return { name, ok, detail, blockers }
+}
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex')
+}
 
 function sqlString(value) {
   return `'${String(value ?? '').replaceAll("'", "''")}'`
@@ -54,6 +64,36 @@ function resolveOutputFile(rootDir, outputFile) {
     throw new Error('output file must be under qa/, tmp/ or workbench/')
   }
   return resolvedFile
+}
+
+function resolveEvidenceFile(rootDir, evidenceFile) {
+  if (!evidenceFile) {
+    return undefined
+  }
+  const resolvedRoot = path.resolve(rootDir)
+  const resolvedFile = path.isAbsolute(evidenceFile)
+    ? path.resolve(evidenceFile)
+    : path.resolve(resolvedRoot, evidenceFile)
+  const relativePath = path.relative(resolvedRoot, resolvedFile)
+  const [topLevelDir] = relativePath.split(path.sep)
+  if (
+    !relativePath ||
+    relativePath.startsWith('..') ||
+    path.isAbsolute(relativePath) ||
+    !allowedEvidenceDirs.has(topLevelDir)
+  ) {
+    throw new Error('evidence file must be under qa/, tmp/ or workbench/')
+  }
+  return resolvedFile
+}
+
+async function writeEvidence({ rootDir, evidenceFile, report }) {
+  const resolvedFile = resolveEvidenceFile(rootDir, evidenceFile)
+  if (!resolvedFile) {
+    return
+  }
+  await mkdir(path.dirname(resolvedFile), { recursive: true })
+  await writeFile(resolvedFile, `${JSON.stringify(report, null, 2)}\n`)
 }
 
 function productionSourceJson(poi) {
@@ -287,23 +327,39 @@ async function runCli() {
     throw new Error(`manifest is not production-ready: ${report.blockers.join('; ')}`)
   }
 
-  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
+  const resolvedManifestPath = path.resolve(manifestPath)
+  const manifestText = await readFile(resolvedManifestPath, 'utf8')
+  const manifest = JSON.parse(manifestText)
   const sql = generateXichengPoiProductionSeedSql(manifest, {
     tenantId: readArgValue(args, '--tenant-id') || process.env.XUNJING_TENANT_ID || 1
   })
   await mkdir(path.dirname(outputFile), { recursive: true })
   await writeFile(outputFile, sql)
-  console.log(JSON.stringify({
-    artifactType: 'xicheng-poi-production-seed',
+  const generationReport = {
+    artifactType: 'xicheng-poi-production-seed-generation',
     ok: true,
     status: 'PRODUCTION_POI_SEED_GENERATED',
     checkedAt: new Date().toISOString(),
     summary: {
+      manifestFile: resolvedManifestPath,
+      manifestSha256: sha256(manifestText),
       totalPoiCount: manifest.pois.length,
       targetPoiCount: Number(manifest.targetP0PoiCount),
-      outputFile
-    }
-  }, null, 2))
+      outputFile,
+      sqlSha256: sha256(sql)
+    },
+    checks: [
+      check('manifest-gate', true, 'manifest gate returned PRODUCTION_POI_MANIFEST_READY'),
+      check('seed-sql-generated', true, 'production seed SQL was written')
+    ],
+    blockers: []
+  }
+  await writeEvidence({
+    rootDir,
+    evidenceFile: readArgValue(args, '--evidence-file') || readArgValue(args, '--evidence-output'),
+    report: generationReport
+  })
+  console.log(JSON.stringify(generationReport, null, 2))
 }
 
 const executedPath = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1])).href : ''
