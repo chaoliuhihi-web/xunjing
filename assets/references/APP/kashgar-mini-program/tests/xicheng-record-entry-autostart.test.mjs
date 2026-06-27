@@ -16,6 +16,12 @@ assert.match(
 )
 
 assert.match(
+  home,
+  /openXichengTravelogue\(mode = 'record'\)[\s\S]*regionCode=\$\{encodeURIComponent\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeURIComponent\(this\.region\.packageCode\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.region\.companionName\)\}/,
+  'Home travelogue entry should carry regionCode, packageCode, and companionName for direct record/draft attribution'
+)
+
+assert.match(
   scanResult,
   /startRecording\(\)[\s\S]*mode=record[\s\S]*autoStart=1[\s\S]*poiCode=\$\{encodeURIComponent\(this\.result\.poiCode \|\| ''\)\}/,
   'Scan-result start-record action should navigate with autoStart=1 and preserve POI context'
