@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -68,6 +69,10 @@ function check(name, blockers) {
     detail: blockers.length === 0 ? `${name} passed` : blockers.join('; '),
     blockers
   }
+}
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex')
 }
 
 function poiLabel(poi, index) {
@@ -293,7 +298,9 @@ export async function verifyXichengPoiProductionManifest({
   if (!manifestPath) {
     throw new Error('--manifest is required')
   }
-  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
+  const resolvedManifestPath = path.resolve(manifestPath)
+  const manifestText = await readFile(resolvedManifestPath, 'utf8')
+  const manifest = JSON.parse(manifestText)
   const pois = Array.isArray(manifest.pois) ? manifest.pois : []
   const normalizedMinPoiCount = Number(minPoiCount) || defaultMinPoiCount
   const checks = [
@@ -318,6 +325,8 @@ export async function verifyXichengPoiProductionManifest({
     status: ok ? 'PRODUCTION_POI_MANIFEST_READY' : 'NOT_READY',
     checkedAt: new Date().toISOString(),
     summary: {
+      manifestFile: resolvedManifestPath,
+      manifestSha256: sha256(manifestText),
       regionCode: manifest.regionCode,
       packageCode: manifest.packageCode,
       totalPoiCount: pois.length,

@@ -1,5 +1,6 @@
 import { existsSync, statSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { loadEnvFile } from './verify-xunjing-platform-readiness.mjs'
@@ -71,6 +72,10 @@ const requiredProductionEnvKeys = [
 
 function check(name, ok, detail, blockers = []) {
   return { name, ok, detail, blockers }
+}
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex')
 }
 
 function hasValue(value) {
@@ -343,7 +348,43 @@ function checkEvidenceTimestamp(evidence, label, { now, maxEvidenceAgeMs }) {
   return []
 }
 
-function validateManifestEvidence(ref, freshnessOptions) {
+async function checkEvidenceSourceHash(rootDir, evidence, label, fileField, hashField) {
+  const blockers = []
+  const summary = evidenceSummary(evidence)
+  const sourcePath = summary[fileField]
+  const expectedSha256 = summary[hashField]
+
+  if (!hasValue(sourcePath)) {
+    blockers.push(`${label} evidence ${fileField} is required`)
+    return blockers
+  }
+  if (!/^[a-f0-9]{64}$/.test(String(expectedSha256 || ''))) {
+    blockers.push(`${label} evidence ${hashField} must be a sha256 hex digest`)
+    return blockers
+  }
+
+  const resolvedRoot = path.resolve(rootDir)
+  const resolvedSource = path.isAbsolute(sourcePath)
+    ? path.resolve(sourcePath)
+    : path.resolve(resolvedRoot, sourcePath)
+  const relativePath = path.relative(resolvedRoot, resolvedSource)
+  if (!relativePath || relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+    blockers.push(`${label} evidence ${fileField} must be under release root`)
+    return blockers
+  }
+
+  try {
+    const sourceText = await readFile(resolvedSource, 'utf8')
+    if (sha256(sourceText) !== expectedSha256) {
+      blockers.push(`${label} evidence ${hashField} must match ${fileField} content`)
+    }
+  } catch (error) {
+    blockers.push(`${label} evidence ${fileField} cannot be read: ${error.message}`)
+  }
+  return blockers
+}
+
+async function validateManifestEvidence(ref, rootDir, freshnessOptions) {
   const blockers = []
   if (!ref.path) {
     return ['POI manifest evidence is required before production release']
@@ -357,6 +398,7 @@ function validateManifestEvidence(ref, freshnessOptions) {
     blockers.push('manifest evidence artifactType must be xicheng-poi-production-manifest-readiness')
   }
   blockers.push(...checkEvidenceTimestamp(evidence, 'manifest', freshnessOptions))
+  blockers.push(...await checkEvidenceSourceHash(rootDir, evidence, 'manifest', 'manifestFile', 'manifestSha256'))
   if (evidence.ok !== true) {
     blockers.push('manifest evidence ok must be true')
   }
@@ -385,7 +427,7 @@ function validateManifestEvidence(ref, freshnessOptions) {
   return blockers
 }
 
-function validateSeedEvidence(ref, freshnessOptions) {
+async function validateSeedEvidence(ref, rootDir, freshnessOptions) {
   const blockers = []
   if (!ref.path) {
     return ['POI seed SQL evidence is required before production release']
@@ -401,6 +443,7 @@ function validateSeedEvidence(ref, freshnessOptions) {
     blockers.push('seed evidence artifactType must be xicheng-poi-production-seed-readiness')
   }
   blockers.push(...checkEvidenceTimestamp(evidence, 'seed', freshnessOptions))
+  blockers.push(...await checkEvidenceSourceHash(rootDir, evidence, 'seed', 'sqlFile', 'sqlSha256'))
   if (evidence.ok !== true) {
     blockers.push('seed evidence ok must be true')
   }
@@ -433,10 +476,11 @@ async function checkXichengProductionPoiEvidence({
     loadEvidenceInput(rootDir, poiManifestEvidencePath),
     loadEvidenceInput(rootDir, poiSeedEvidencePath)
   ])
-  const blockers = [
-    ...validateManifestEvidence(manifestEvidence, freshnessOptions),
-    ...validateSeedEvidence(seedEvidence, freshnessOptions)
-  ]
+  const [manifestBlockers, seedBlockers] = await Promise.all([
+    validateManifestEvidence(manifestEvidence, rootDir, freshnessOptions),
+    validateSeedEvidence(seedEvidence, rootDir, freshnessOptions)
+  ])
+  const blockers = [...manifestBlockers, ...seedBlockers]
   const details = []
   if (manifestEvidence.path) {
     details.push(`manifest=${manifestEvidence.path}`)

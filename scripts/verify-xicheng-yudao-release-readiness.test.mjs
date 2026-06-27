@@ -1,5 +1,6 @@
 import { mkdtemp, mkdir, rm, writeFile, readFile } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, test } from 'vitest'
@@ -35,6 +36,10 @@ const requiredSeedEvidenceChecks = [
 
 function passedChecks(names) {
   return names.map((name) => ({ name, ok: true, detail: `${name} passed`, blockers: [] }))
+}
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex')
 }
 
 function productionEnv(overrides = {}) {
@@ -135,13 +140,33 @@ async function writeEnvFile(rootDir, env) {
 async function writeProductionPoiEvidence(rootDir, overrides = {}) {
   const manifestEvidencePath = path.join(rootDir, 'qa/xicheng-poi-manifest-evidence.json')
   const seedEvidencePath = path.join(rootDir, 'qa/xicheng-poi-production-seed-evidence.json')
+  const manifestSourcePath = path.join(rootDir, 'workbench/xicheng-production-pois.json')
+  const seedSourcePath = path.join(rootDir, 'workbench/xicheng-poi-production-seed.sql')
   await mkdir(path.dirname(manifestEvidencePath), { recursive: true })
+  await mkdir(path.dirname(manifestSourcePath), { recursive: true })
+  const manifestSource = `${JSON.stringify({
+    regionCode: 'beijing-xicheng',
+    packageCode: 'XICHENG-MAP-001',
+    productionReady: true,
+    targetP0PoiCount: 80,
+    pois: Array.from({ length: 80 }, (_, index) => ({ poiCode: `xicheng-prod-poi-${String(index + 1).padStart(3, '0')}` }))
+  }, null, 2)}\n`
+  const seedSource = [
+    '/* Generated from reviewed Xicheng POI production manifest. */',
+    'INSERT INTO `xunjing_poi` VALUES',
+    Array.from({ length: 80 }, (_, index) => `(@map_package_id, 'xicheng-prod-poi-${String(index + 1).padStart(3, '0')}')`).join(',\n'),
+    ';'
+  ].join('\n')
+  await writeFile(manifestSourcePath, manifestSource)
+  await writeFile(seedSourcePath, seedSource)
   const manifestEvidence = {
     artifactType: 'xicheng-poi-production-manifest-readiness',
     ok: true,
     status: 'PRODUCTION_POI_MANIFEST_READY',
     checkedAt: freshCheckedAt(),
     summary: {
+      manifestFile: manifestSourcePath,
+      manifestSha256: sha256(manifestSource),
       regionCode: 'beijing-xicheng',
       packageCode: 'XICHENG-MAP-001',
       totalPoiCount: 80,
@@ -158,7 +183,8 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
     status: 'PRODUCTION_POI_SEED_READY',
     checkedAt: freshCheckedAt(),
     summary: {
-      sqlFile: path.join(rootDir, 'workbench/xicheng-poi-production-seed.sql'),
+      sqlFile: seedSourcePath,
+      sqlSha256: sha256(seedSource),
       poiCount: 80,
       minPoiCount: 80,
       productionReady: true,
@@ -366,6 +392,67 @@ describe('xicheng Yudao release readiness gate', () => {
     const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
     expect(evidenceCheck?.ok).toBe(false)
     expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence checkedAt must be a valid timestamp')
+  })
+
+  test('fails closed when POI evidence is missing source file hash metadata', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir, {
+      seed: {
+        summary: {
+          sqlFile: path.join(rootDir, 'workbench/xicheng-poi-production-seed.sql'),
+          poiCount: 80,
+          minPoiCount: 80,
+          productionReady: true,
+          poiSeedCount: 80,
+          targetP0PoiCount: 80
+        }
+      }
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(evidenceCheck?.ok).toBe(false)
+    expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence sqlSha256 must be a sha256 hex digest')
+  })
+
+  test('fails closed when POI evidence hash does not match its source file', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir, {
+      manifest: {
+        summary: {
+          manifestFile: path.join(rootDir, 'workbench/xicheng-production-pois.json'),
+          manifestSha256: '0'.repeat(64),
+          regionCode: 'beijing-xicheng',
+          packageCode: 'XICHENG-MAP-001',
+          totalPoiCount: 80,
+          targetPoiCount: 80,
+          productionReady: true
+        }
+      }
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(evidenceCheck?.ok).toBe(false)
+    expect(evidenceCheck?.blockers.join('\n')).toContain('manifest evidence manifestSha256 must match manifestFile content')
   })
 
   test('writes a secret-safe release evidence file even when production is not ready', async () => {

@@ -123,10 +123,12 @@ describe('xicheng POI production manifest gate', () => {
     const report = JSON.parse(result.stdout)
     expect(report.status).toBe('PRODUCTION_POI_MANIFEST_READY')
     expect(report.summary).toMatchObject({
+      manifestFile: manifestPath,
       totalPoiCount: 80,
       targetPoiCount: 80,
       productionReady: true
     })
+    expect(report.summary.manifestSha256).toMatch(/^[a-f0-9]{64}$/)
     expect(report.checks.map((check) => check.name)).toEqual([
       'manifest-shape',
       'manifest-production-flags',
