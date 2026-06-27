@@ -69,6 +69,12 @@ assert.match(
 
 assert.match(
   travelogue,
+  /createShareArtifact\(assetType\)[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*companionName:\s*XICHENG_REGION_CONFIG\.companionName/,
+  'Generated poster and PDF assets should carry source channel and companion context for operations attribution'
+)
+
+assert.match(
+  travelogue,
   /createShareArtifact\(assetType\)[\s\S]*auditRequired:\s*true[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'[\s\S]*visibilityLabel:\s*'待审核 · 未公开'/,
   'Generated poster and PDF assets should default to audit-required private visibility'
 )

@@ -1191,6 +1191,8 @@ export default {
 				title: assetTitle,
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
 				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
+				companionName: XICHENG_REGION_CONFIG.companionName,
 				routeTitle,
 				templateCode: assetType === 'pdf' ? 'xicheng-memorial-pdf-v1' : 'xicheng-share-poster-v1',
 				templateLabel: assetType === 'pdf' ? 'PDF固定模板：封面、路线地图、照片时间线、游记正文、知识卡片、徽章页' : '分享海报固定模板',
