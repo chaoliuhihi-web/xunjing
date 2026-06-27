@@ -95,6 +95,7 @@ async function checkSqlSchema(rootDir) {
     'xunjing_resource_package',
     'xunjing_knowledge_document',
     'xunjing_media_asset',
+    'xunjing_poi',
     'xunjing_ai_generation_log',
     'xunjing:readiness:query'
   ]) {
@@ -122,6 +123,35 @@ async function checkSeedData(rootDir) {
     assertContains(seed, snippet, 'xunjing-seed-kashgar-p0.sql')
   }
   return pass('seed-data', 'Kashgar P0 seed data is present')
+}
+
+async function checkXichengSeedData(rootDir) {
+  const seed = await readText(rootDir, 'backend/yudao/sql/mysql/xunjing-seed-xicheng-p0.sql')
+  for (const snippet of [
+    'XICHENG-2026-P0',
+    'XICHENG-MAP-001',
+    'QR-XICHENG-MAP-001',
+    'beijing-xicheng',
+    '"regionCode":"beijing-xicheng"',
+    '"reviewStatus":"APPROVED"',
+    '"geoStatus":"REVIEW_REQUIRED"',
+    '"licenseStatus":"REVIEW_REQUIRED"',
+    '"poiId":"xicheng-baitasi"',
+    '"poiId":"xicheng-emperors-temple"',
+    '"poiId":"xicheng-beihai-park"',
+    '"poiId":"xicheng-shichahai"',
+    '"poiId":"xicheng-dashilar"',
+    '西城 AI 旅伴 P0 固定评测集',
+    '"p0LocalCandidate":true',
+    '"productionReady":false'
+  ]) {
+    assertContains(seed, snippet, 'xunjing-seed-xicheng-p0.sql')
+  }
+  const poiCount = seed.match(/"poiId":"xicheng-/g)?.length ?? 0
+  if (poiCount < 24) {
+    throw new Error(`xunjing-seed-xicheng-p0.sql must include at least 24 local-candidate POIs; found ${poiCount}`)
+  }
+  return pass('xicheng-seed-data', 'Xicheng P0 local-candidate POI, source and gate seed data is present')
 }
 
 async function checkAdminUiContract(rootDir) {
@@ -407,6 +437,7 @@ export async function verifyXunjingPlatformReadiness({
   checks.push(await checkStaticFiles(rootDir))
   checks.push(await checkSqlSchema(rootDir))
   checks.push(await checkSeedData(rootDir))
+  checks.push(await checkXichengSeedData(rootDir))
   checks.push(await checkAdminUiContract(rootDir))
   if (!staticOnly) {
     checks.push(checkEnvironment(env))

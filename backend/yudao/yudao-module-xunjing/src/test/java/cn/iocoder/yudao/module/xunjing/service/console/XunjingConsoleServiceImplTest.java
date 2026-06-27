@@ -467,7 +467,9 @@ public class XunjingConsoleServiceImplTest extends BaseDbUnitTest {
         assertEquals(false, result.getPassed());
         assertEquals(caseId, result.getResults().get(0).getCaseId());
         assertEquals(false, result.getResults().get(0).getPassed());
-        assertEquals("SOURCE_REQUIRED_BUT_EMPTY", result.getResults().get(0).getFailureReason());
+        assertEquals("BLOCKED", result.getResults().get(0).getSafetyStatus());
+        assertEquals(0, result.getResults().get(0).getSourceCount());
+        assertEquals("SAFETY_STATUS_BLOCKED", result.getResults().get(0).getFailureReason());
     }
 
     @Test

@@ -22,5 +22,6 @@ describe('docker build context', () => {
 
     expect(dockerignore).toContain('!backend/yudao/sql/mysql/xunjing-module.sql');
     expect(dockerignore).toContain('!backend/yudao/sql/mysql/xunjing-seed-kashgar-p0.sql');
+    expect(dockerignore).toContain('!backend/yudao/sql/mysql/xunjing-seed-xicheng-p0.sql');
   });
 });

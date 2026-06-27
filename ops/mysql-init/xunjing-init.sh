@@ -33,6 +33,9 @@ mysql_base < /opt/xunjing-sql/03-xunjing-module.sql
 echo "Importing Xunjing Kashgar seed data..."
 mysql_base < /opt/xunjing-sql/04-xunjing-seed-kashgar-p0.sql
 
+echo "Importing Xunjing Xicheng seed data..."
+mysql_base < /opt/xunjing-sql/05-xunjing-seed-xicheng-p0.sql
+
 xunjing_table_count="$(mysql_base --batch --skip-column-names --execute "select count(*) from information_schema.tables where table_schema = database() and table_name like 'xunjing_%';")"
 if [ "${xunjing_table_count}" -le 0 ]; then
   echo "Xunjing MySQL initialization failed: no xunjing_% tables were created." >&2
@@ -45,10 +48,22 @@ if [ "${package_count}" -le 0 ]; then
   exit 1
 fi
 
+xicheng_package_count="$(mysql_base --batch --skip-column-names --execute "select count(*) from xunjing_resource_package where package_code = 'XICHENG-MAP-001';")"
+if [ "${xicheng_package_count}" -le 0 ]; then
+  echo "Xunjing MySQL initialization failed: Xicheng seed package XICHENG-MAP-001 is missing." >&2
+  exit 1
+fi
+
+xicheng_poi_count="$(mysql_base --batch --skip-column-names --execute "select count(*) from xunjing_poi where region_code = 'beijing-xicheng' and review_status = 'APPROVED';")"
+if [ "${xicheng_poi_count}" -lt 24 ]; then
+  echo "Xunjing MySQL initialization failed: Xicheng approved POI seed count is below 24." >&2
+  exit 1
+fi
+
 yudao_ai_table_count="$(mysql_base --batch --skip-column-names --execute "select count(*) from information_schema.tables where table_schema = database() and table_name in ('ai_api_key', 'ai_model', 'ai_knowledge');")"
 if [ "${yudao_ai_table_count}" -ne 3 ]; then
   echo "Xunjing MySQL initialization failed: Yudao AI management tables are missing." >&2
   exit 1
 fi
 
-echo "Xunjing MySQL initialization completed with ${xunjing_table_count} xunjing tables and Yudao AI management tables."
+echo "Xunjing MySQL initialization completed with ${xunjing_table_count} xunjing tables, Kashgar package and ${xicheng_poi_count} Xicheng POIs."

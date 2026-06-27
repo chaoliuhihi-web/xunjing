@@ -149,6 +149,40 @@ CREATE TABLE IF NOT EXISTS `xunjing_map_point` (
   KEY `idx_xunjing_map_package` (`package_id`, `tenant_id`, `sort_order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='星河寻境地图点位';
 
+CREATE TABLE IF NOT EXISTS `xunjing_poi` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'POI 编号',
+  `package_id` bigint NOT NULL COMMENT '资源包编号',
+  `poi_code` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'POI 业务编码',
+  `region_code` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '区域编码',
+  `name` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '展示名称',
+  `official_name` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '官方名称',
+  `aliases_json` text COLLATE utf8mb4_unicode_ci COMMENT '别名 JSON',
+  `category` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '分类',
+  `poi_level` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'POI 等级',
+  `address` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '地址',
+  `latitude` decimal(10,7) DEFAULT NULL COMMENT '纬度',
+  `longitude` decimal(10,7) DEFAULT NULL COMMENT '经度',
+  `coord_type` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'GCJ02' COMMENT '坐标系',
+  `source_json` text COLLATE utf8mb4_unicode_ci COMMENT '来源与授权 JSON',
+  `trigger_json` text COLLATE utf8mb4_unicode_ci COMMENT '触发配置 JSON',
+  `content_json` text COLLATE utf8mb4_unicode_ci COMMENT '讲解内容 JSON',
+  `review_status` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'DRAFT' COMMENT '内容审核状态',
+  `geo_status` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'REVIEW_REQUIRED' COMMENT '坐标审核状态',
+  `license_status` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'REVIEW_REQUIRED' COMMENT '来源授权状态',
+  `status` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '状态',
+  `creator` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updater` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
+  `tenant_id` bigint NOT NULL DEFAULT 0 COMMENT '租户编号',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_xunjing_poi_code_tenant` (`poi_code`, `tenant_id`),
+  KEY `idx_xunjing_poi_region` (`region_code`, `tenant_id`, `status`),
+  KEY `idx_xunjing_poi_package` (`package_id`, `tenant_id`, `status`),
+  KEY `idx_xunjing_poi_review` (`review_status`, `geo_status`, `license_status`, `tenant_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='星河寻境可运营 POI';
+
 CREATE TABLE IF NOT EXISTS `xunjing_globe_model` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '地球仪模型编号',
   `package_id` bigint NOT NULL COMMENT '资源包编号',

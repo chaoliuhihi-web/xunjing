@@ -27,6 +27,7 @@ describe('xunjing platform dependency compose configuration', () => {
     expect(compose).toContain('../backend/yudao/sql/mysql/yudao-ai-module.sql:/opt/xunjing-sql/02-yudao-ai-module.sql:ro');
     expect(compose).toContain('../backend/yudao/sql/mysql/xunjing-module.sql:/opt/xunjing-sql/03-xunjing-module.sql:ro');
     expect(compose).toContain('../backend/yudao/sql/mysql/xunjing-seed-kashgar-p0.sql:/opt/xunjing-sql/04-xunjing-seed-kashgar-p0.sql:ro');
+    expect(compose).toContain('../backend/yudao/sql/mysql/xunjing-seed-xicheng-p0.sql:/opt/xunjing-sql/05-xunjing-seed-xicheng-p0.sql:ro');
     expect(compose).not.toContain('MYSQL_DATABASE: ruoyi-vue-pro');
   });
 
@@ -47,9 +48,12 @@ describe('xunjing platform dependency compose configuration', () => {
     expect(initScript).toContain('/opt/xunjing-sql/02-yudao-ai-module.sql');
     expect(initScript).toContain('/opt/xunjing-sql/03-xunjing-module.sql');
     expect(initScript).toContain('/opt/xunjing-sql/04-xunjing-seed-kashgar-p0.sql');
+    expect(initScript).toContain('/opt/xunjing-sql/05-xunjing-seed-xicheng-p0.sql');
     expect(initScript).toContain('--default-character-set=utf8mb4');
     expect(initScript).toContain('information_schema.tables');
     expect(initScript).toContain('xunjing_%');
+    expect(initScript).toContain("package_code = 'XICHENG-MAP-001'");
+    expect(initScript).toContain("region_code = 'beijing-xicheng'");
     expect(initScript).toContain('ai_api_key');
     expect(initScript).toContain('ai_model');
     expect(initScript).toContain('ai_knowledge');

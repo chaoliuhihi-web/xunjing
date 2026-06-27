@@ -7,6 +7,7 @@ const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const moduleSqlPath = 'backend/yudao/sql/mysql/xunjing-module.sql'
 const yudaoAiSqlPath = 'backend/yudao/sql/mysql/yudao-ai-module.sql'
 const seedSqlPath = 'backend/yudao/sql/mysql/xunjing-seed-kashgar-p0.sql'
+const xichengSeedSqlPath = 'backend/yudao/sql/mysql/xunjing-seed-xicheng-p0.sql'
 
 async function readText(path) {
   return await readFile(resolve(rootDir, path), 'utf8')
@@ -41,6 +42,34 @@ describe('xunjing yudao sql contract', () => {
       expect(seed).toContain(riskTag)
     }
     expect(seed).toContain('cache_enabled')
+  })
+
+  test('keeps Xicheng POI seed data maintainable and gateable', async () => {
+    const moduleSql = await readText(moduleSqlPath)
+    const seed = await readText(xichengSeedSqlPath)
+
+    for (const snippet of [
+      'CREATE TABLE IF NOT EXISTS `xunjing_poi`',
+      '`poi_code` varchar(64)',
+      '`region_code` varchar(64)',
+      '`aliases_json` text',
+      '`trigger_json` text',
+      '`source_json` text',
+      '`review_status` varchar(32)',
+      '`geo_status` varchar(32)',
+      '`license_status` varchar(32)',
+      '`uk_xunjing_poi_code_tenant`'
+    ]) {
+      expect(moduleSql).toContain(snippet)
+    }
+
+    expect(seed).toContain('XICHENG-2026-P0')
+    expect(seed).toContain('XICHENG-MAP-001')
+    expect(seed).toContain('QR-XICHENG-MAP-001')
+    expect(seed).toContain('beijing-xicheng')
+    expect(seed.match(/"poiId":"xicheng-/g) ?? []).toHaveLength(24)
+    expect(seed).toContain('"targetP0PoiCount":80')
+    expect(seed).toContain('"productionReady":false')
   })
 
   test('includes Yudao AI management schema in independent platform initialization', async () => {
