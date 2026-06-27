@@ -12,6 +12,12 @@ const onLoadBlock = aiGuide.match(/onLoad\(\(options = \{\}\) => \{[\s\S]*?\n\}\
 
 assert.match(
   aiGuide,
+  /const getActiveXunjingAiConfig\s*=\s*\(context = xichengAiContext\.value\) => \{[\s\S]*hasXichengAiContext\(context\)[\s\S]*packageCode:\s*context\.packageCode \|\| XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.aiSceneCode[\s\S]*tenantId:\s*XICHENG_REGION_CONFIG\.tenantId[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*return XUNJING_AI_CONFIG/,
+  'AI chat request should resolve package, scene, tenant, and source channel from active Xicheng context'
+)
+
+assert.match(
+  aiGuide,
   /const getActiveXunjingResourceConfig\s*=\s*\(context = xichengAiContext\.value\) => \{[\s\S]*hasXichengAiContext\(context\)[\s\S]*packageCode:\s*context\.packageCode \|\| XICHENG_REGION_CONFIG\.packageCode[\s\S]*tenantId:\s*XICHENG_REGION_CONFIG\.tenantId[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*return XUNJING_RESOURCE_CONFIG/,
   'AI guide should resolve resource package config from active Xicheng context instead of always using the Kashgar package'
 )
@@ -32,6 +38,12 @@ assert.match(
   resourceEventRequest,
   /const eventConfig = getActiveXunjingEventConfig\(context\)[\s\S]*url:\s*buildYudaoAppApiUrl\(eventConfig\.apiPath\)[\s\S]*'tenant-id':\s*eventConfig\.tenantId[\s\S]*packageCode:\s*eventConfig\.packageCode[\s\S]*sourceChannel:\s*eventConfig\.sourceChannel/,
   'Resource event request should send VIEW/ASK/MEDIA_USE events under the active Xicheng package'
+)
+
+assert.match(
+  aiGuide,
+  /const requestXunjingAiChat\s*=\s*\(question\)[\s\S]*const context = xichengAiContext\.value \|\| \{\}[\s\S]*const aiConfig = getActiveXunjingAiConfig\(context\)[\s\S]*packageCode:\s*aiConfig\.packageCode[\s\S]*sceneCode:\s*aiConfig\.sceneCode[\s\S]*sourceChannel:\s*aiConfig\.sourceChannel[\s\S]*'tenant-id':\s*aiConfig\.tenantId/,
+  'AI chat request should send the active Xicheng tenant-id and package context when Xiaojing is opened from recognition'
 )
 
 assert.match(

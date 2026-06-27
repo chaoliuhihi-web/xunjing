@@ -86,11 +86,12 @@ assert.doesNotMatch(
 )
 
 for (const required of [
-  "'tenant-id': XUNJING_AI_CONFIG.tenantId",
-  'packageCode: XUNJING_AI_CONFIG.packageCode',
+  'const aiConfig = getActiveXunjingAiConfig(context)',
+  "'tenant-id': aiConfig.tenantId",
+  'packageCode: aiConfig.packageCode',
   'question',
-  'sceneCode: XUNJING_AI_CONFIG.sceneCode',
-  'sourceChannel: XUNJING_AI_CONFIG.sourceChannel',
+  'sceneCode: aiConfig.sceneCode',
+  'sourceChannel: aiConfig.sourceChannel',
   'userTraceId: getUserTraceId()'
 ]) {
   assert.ok(aiGuide.includes(required), `Yudao AI request should include ${required}`)

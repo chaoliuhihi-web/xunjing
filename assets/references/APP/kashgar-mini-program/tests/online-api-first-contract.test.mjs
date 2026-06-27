@@ -76,14 +76,14 @@ for (const required of [
   'buildYudaoAppApiUrl(XUNJING_AI_CONFIG.apiPath)',
   'buildYudaoAppApiUrl(resourceConfig.apiPath)',
   'buildYudaoAppApiUrl(eventConfig.apiPath)',
-  "'tenant-id': XUNJING_AI_CONFIG.tenantId",
+  "'tenant-id': aiConfig.tenantId",
   "'tenant-id': resourceConfig.tenantId",
   "'tenant-id': eventConfig.tenantId",
-  'packageCode: XUNJING_AI_CONFIG.packageCode',
+  'packageCode: aiConfig.packageCode',
   'packageCode: resourceConfig.packageCode',
   'packageCode: eventConfig.packageCode',
-  "sceneCode: XUNJING_AI_CONFIG.sceneCode",
-  "sourceChannel: XUNJING_AI_CONFIG.sourceChannel",
+  'sceneCode: aiConfig.sceneCode',
+  'sourceChannel: aiConfig.sourceChannel',
   'sourceChannel: eventConfig.sourceChannel',
   'question'
 ]) {

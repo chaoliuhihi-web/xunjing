@@ -733,6 +733,19 @@ const getActiveXunjingEventConfig = (context = xichengAiContext.value) => {
 	return XUNJING_EVENT_CONFIG
 }
 
+const getActiveXunjingAiConfig = (context = xichengAiContext.value) => {
+	if (hasXichengAiContext(context)) {
+		return {
+			...XUNJING_AI_CONFIG,
+			packageCode: context.packageCode || XICHENG_REGION_CONFIG.packageCode,
+			sceneCode: XICHENG_REGION_CONFIG.aiSceneCode,
+			tenantId: XICHENG_REGION_CONFIG.tenantId,
+			sourceChannel: XICHENG_REGION_CONFIG.sourceChannel
+		}
+	}
+	return XUNJING_AI_CONFIG
+}
+
 const getXunjingPackageDetailScope = (context = xichengAiContext.value) => {
 	const resourceConfig = getActiveXunjingResourceConfig(context)
 	return `${resourceConfig.tenantId}:${resourceConfig.packageCode}`
@@ -957,18 +970,17 @@ const createXunjingResultFollowUps = (result = {}) => {
 const requestXunjingAiChat = (question) => {
 	let requestTask = null
 	const context = xichengAiContext.value || {}
+	const aiConfig = getActiveXunjingAiConfig(context)
 	const requestQuestion = buildXichengContextQuestion(question, context)
 	const requestPayload = {
-		packageCode: XUNJING_AI_CONFIG.packageCode,
+		packageCode: aiConfig.packageCode,
 		question: requestQuestion,
-		sceneCode: XUNJING_AI_CONFIG.sceneCode,
-		sourceChannel: XUNJING_AI_CONFIG.sourceChannel,
+		sceneCode: aiConfig.sceneCode,
+		sourceChannel: aiConfig.sourceChannel,
 		userTraceId: getUserTraceId()
 	}
 	if (hasXichengAiContext(context)) {
-		requestPayload.packageCode = context.packageCode || XICHENG_REGION_CONFIG.packageCode
 		requestPayload.regionCode = context.regionCode || XICHENG_REGION_CONFIG.regionCode
-		requestPayload.sceneCode = XICHENG_REGION_CONFIG.aiSceneCode
 		requestPayload.poiCode = context.poiCode
 		requestPayload.poiName = context.poiName
 		requestPayload.companionName = context.companionName || XICHENG_REGION_CONFIG.companionName
@@ -980,7 +992,7 @@ const requestXunjingAiChat = (question) => {
 			method: 'POST',
 			header: {
 				'Content-Type': 'application/json',
-				'tenant-id': XUNJING_AI_CONFIG.tenantId
+				'tenant-id': aiConfig.tenantId
 			},
 			data: requestPayload,
 			success: (res) => {
