@@ -40,6 +40,24 @@ function stagingEnv(overrides = {}) {
   }
 }
 
+function assertXichengTriggerPayload(payload, expectedPoiCode) {
+  expect(payload.regionCode).toBe('beijing-xicheng')
+  expect(payload.userTraceId).toBe(`platform-readiness-${expectedPoiCode}`)
+  expect(payload.location).toBeTruthy()
+  if (expectedPoiCode === 'xicheng-baitasi') {
+    expect(payload.ocrText).toContain('妙应寺白塔')
+    expect(payload.location.latitude).toBe(39.9231)
+    return
+  }
+  if (expectedPoiCode === 'xicheng-gongwangfu') {
+    expect(payload.ocrText).toContain('恭王府')
+    expect(payload.location.longitude).toBe(116.38677)
+    return
+  }
+  expect(payload.ocrText).toContain('北京天文馆')
+  expect(payload.imageLabels).toContain('planetarium')
+}
+
 async function startPlatformFixture() {
   const server = http.createServer(async (req, res) => {
     const requireTenant = () => {
@@ -109,6 +127,42 @@ async function startPlatformFixture() {
           title: '喀什古城研学地图',
           resourceType: 'MAP',
           targetPath: '/pages/map/detail?packageCode=KASHGAR-MAP-001&sceneCode=QR-KASHGAR-MAP-001'
+        }
+      }))
+      return
+    }
+
+    if (req.url === '/app-api/xunjing/triggers/resolve' && req.method === 'POST') {
+      if (!requireTenant()) return
+      let body = ''
+      req.on('data', (chunk) => {
+        body += chunk
+      })
+      await once(req, 'end')
+      const payload = JSON.parse(body)
+      const expectedPoiCode = payload.ocrText?.includes('妙应寺白塔')
+        ? 'xicheng-baitasi'
+        : payload.ocrText?.includes('恭王府')
+          ? 'xicheng-gongwangfu'
+          : 'xicheng-planetarium'
+      assertXichengTriggerPayload(payload, expectedPoiCode)
+      const poiName = {
+        'xicheng-baitasi': '妙应寺白塔',
+        'xicheng-gongwangfu': '恭王府',
+        'xicheng-planetarium': '北京天文馆'
+      }[expectedPoiCode]
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify({
+        code: 0,
+        data: {
+          regionCode: 'beijing-xicheng',
+          poiCode: expectedPoiCode,
+          poiName,
+          confidence: 0.92,
+          requiresUserConfirm: false,
+          targetPath: `/pages/ai-guide/detail?regionCode=beijing-xicheng&poiCode=${expectedPoiCode}`,
+          suggestedQuestions: [`给我讲讲${poiName}。`],
+          sources: [{ title: poiName, sourceType: 'OFFICIAL_PUBLIC' }]
         }
       }))
       return
@@ -268,6 +322,22 @@ describe('xunjing platform readiness verifier', () => {
       'live-resource-event',
       'live-media-usage'
     ])
+  })
+
+  test('runs live Xicheng trigger smoke checks when requested', async () => {
+    const baseUrl = await startPlatformFixture()
+
+    const result = await verifyXunjingPlatformReadiness({
+      env: stagingEnv(),
+      baseUrl,
+      skipAdminCheck: true,
+      includeXichengTriggerCheck: true
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.checks.map((check) => check.name)).toContain('live-xicheng-trigger-baitasi')
+    expect(result.checks.map((check) => check.name)).toContain('live-xicheng-trigger-gongwangfu')
+    expect(result.checks.map((check) => check.name)).toContain('live-xicheng-trigger-planetarium')
   })
 
   test('rejects environment values that reuse the upstream XingheAI runtime', async () => {

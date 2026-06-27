@@ -31,6 +31,66 @@ const requiredEnvKeys = [
   'INTERNAL_AUTH_TOKEN'
 ]
 
+const xichengTriggerSmokeCases = [
+  {
+    name: 'live-xicheng-trigger-baitasi',
+    detail: 'Xicheng DB trigger resolves Miaoying Temple White Pagoda',
+    poiCode: 'xicheng-baitasi',
+    poiName: '妙应寺白塔',
+    payload: {
+      regionCode: 'beijing-xicheng',
+      ocrText: '妙应寺白塔入口',
+      text: '我在白塔寺附近，想听讲解',
+      location: {
+        latitude: 39.9231,
+        longitude: 116.35726,
+        coordType: 'GCJ02',
+        accuracyMeters: 20
+      },
+      imageLabels: ['white_pagoda', 'temple'],
+      userTraceId: 'platform-readiness-xicheng-baitasi'
+    }
+  },
+  {
+    name: 'live-xicheng-trigger-gongwangfu',
+    detail: 'Xicheng DB trigger resolves Prince Kung Mansion',
+    poiCode: 'xicheng-gongwangfu',
+    poiName: '恭王府',
+    payload: {
+      regionCode: 'beijing-xicheng',
+      ocrText: '恭王府博物馆入口',
+      text: '我在恭王府，开始讲解',
+      location: {
+        latitude: 39.93705,
+        longitude: 116.38677,
+        coordType: 'GCJ02',
+        accuracyMeters: 20
+      },
+      imageLabels: ['palace', 'courtyard'],
+      userTraceId: 'platform-readiness-xicheng-gongwangfu'
+    }
+  },
+  {
+    name: 'live-xicheng-trigger-planetarium',
+    detail: 'Xicheng DB trigger resolves Beijing Planetarium',
+    poiCode: 'xicheng-planetarium',
+    poiName: '北京天文馆',
+    payload: {
+      regionCode: 'beijing-xicheng',
+      ocrText: '北京天文馆',
+      text: '孩子想看天文馆讲解',
+      location: {
+        latitude: 39.9388,
+        longitude: 116.34398,
+        coordType: 'GCJ02',
+        accuracyMeters: 20
+      },
+      imageLabels: ['planetarium', 'science', 'dome'],
+      userTraceId: 'platform-readiness-xicheng-planetarium'
+    }
+  }
+]
+
 function pass(name, detail) {
   return { name, ok: true, detail }
 }
@@ -275,6 +335,33 @@ async function checkLiveScanResolve(baseUrl, fetchImpl, tenantId) {
   return pass('live-scan-resolve', 'Kashgar QR scene resolves to the APP target path')
 }
 
+async function checkLiveXichengTrigger(baseUrl, fetchImpl, tenantId, smokeCase) {
+  const json = await fetchJson(
+    new URL('/app-api/xunjing/triggers/resolve', baseUrl),
+    {
+      method: 'POST',
+      headers: tenantHeaders(tenantId, { 'Content-Type': 'application/json' }),
+      body: JSON.stringify(smokeCase.payload)
+    },
+    fetchImpl
+  )
+  if (
+    json.code !== 0 ||
+    json.data?.regionCode !== 'beijing-xicheng' ||
+    json.data?.poiCode !== smokeCase.poiCode ||
+    json.data?.poiName !== smokeCase.poiName ||
+    Number(json.data?.confidence || 0) < 0.85 ||
+    json.data?.requiresUserConfirm !== false ||
+    !String(json.data?.targetPath || '').includes(`poiCode=${smokeCase.poiCode}`)
+  ) {
+    throw new Error(`/app-api/xunjing/triggers/resolve did not resolve ${smokeCase.poiCode}`)
+  }
+  if (!Array.isArray(json.data.sources) || json.data.sources.length === 0) {
+    throw new Error(`/app-api/xunjing/triggers/resolve did not return sources for ${smokeCase.poiCode}`)
+  }
+  return pass(smokeCase.name, smokeCase.detail)
+}
+
 async function fetchLiveResourcePackageData(baseUrl, fetchImpl, tenantId) {
   const json = await fetchJson(
     new URL('/app-api/xunjing/resource/package?packageCode=KASHGAR-MAP-001', baseUrl),
@@ -466,6 +553,7 @@ export async function verifyXunjingPlatformReadiness({
   env = process.env,
   baseUrl,
   includeAiCheck = false,
+  includeXichengTriggerCheck = false,
   includeWriteCheck = false,
   skipAdminCheck = false,
   staticOnly = false,
@@ -492,6 +580,11 @@ export async function verifyXunjingPlatformReadiness({
     }
     checks.push(await checkLiveResourcePackage(baseUrl, fetchImpl, liveTenantId))
     checks.push(await checkLiveScanResolve(baseUrl, fetchImpl, liveTenantId))
+    if (includeXichengTriggerCheck) {
+      for (const smokeCase of xichengTriggerSmokeCases) {
+        checks.push(await checkLiveXichengTrigger(baseUrl, fetchImpl, liveTenantId, smokeCase))
+      }
+    }
     checks.push(await checkLivePublicReport(baseUrl, fetchImpl, liveTenantId))
     if (includeWriteCheck) {
       checks.push(await checkLiveResourceEvent(baseUrl, fetchImpl, liveTenantId))
@@ -536,6 +629,8 @@ async function runCli() {
     env,
     baseUrl: readArgValue(args, '--base-url') || process.env.XUNJING_BASE_URL || undefined,
     includeAiCheck: args.includes('--include-ai-check') || process.env.XUNJING_INCLUDE_AI_CHECK === '1',
+    includeXichengTriggerCheck: args.includes('--include-xicheng-trigger-check')
+      || process.env.XUNJING_INCLUDE_XICHENG_TRIGGER_CHECK === '1',
     includeWriteCheck: args.includes('--include-write-check') || process.env.XUNJING_INCLUDE_WRITE_CHECK === '1',
     skipAdminCheck: args.includes('--skip-admin-check') || process.env.XUNJING_SKIP_ADMIN_CHECK === '1',
     staticOnly,
