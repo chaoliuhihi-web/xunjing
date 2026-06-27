@@ -28,6 +28,12 @@ describe('xicheng backend launch readiness', () => {
     const triggerEngine = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/trigger/XunjingMultimodalTriggerEngine.java'
     )
+    const appService = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java'
+    )
+    const enums = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/enums/XunjingEnums.java'
+    )
     const appTest = await readText(
       'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImplTest.java'
     )
@@ -48,11 +54,20 @@ describe('xicheng backend launch readiness', () => {
     expect(verifier).toContain('live-xicheng-trigger-baitasi')
     expect(verifier).toContain('live-xicheng-trigger-gongwangfu')
     expect(verifier).toContain('live-xicheng-trigger-planetarium')
+    expect(verifier).toContain('recordTriggerResolveEventIfPossible')
+    expect(verifier).toContain('EventType.TRIGGER_RESOLVE')
+    expect(verifier).toContain('testResolveMultimodalTriggerRecordsRecognitionEventWhenPackageProvided')
     expect(moduleSql).toContain('CREATE TABLE IF NOT EXISTS `xunjing_poi`')
     expect(triggerEngine).toContain('XunjingPoiMapper')
     expect(triggerEngine).toContain('loadDatabasePoiProfiles')
     expect(triggerEngine).toContain('selectPublishedListByRegionCode')
+    expect(appService).toContain('recordTriggerResolveEventIfPossible')
+    expect(appService).toContain('buildTriggerResolveEventPayload')
+    expect(appService).toContain('EventType.TRIGGER_RESOLVE')
+    expect(appService).not.toContain('payload.put("imageBase64"')
+    expect(enums).toContain('TRIGGER_RESOLVE("TRIGGER_RESOLVE")')
     expect(appTest).toContain('testResolveMultimodalTriggerUsesPublishedPoiFromDatabase')
+    expect(appTest).toContain('testResolveMultimodalTriggerRecordsRecognitionEventWhenPackageProvided')
     expect(appTest).toContain('testAnswerBlocksWhenReviewedSourcesDoNotMatchXichengPoiContext')
 
     for (const snippet of [

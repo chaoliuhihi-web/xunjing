@@ -112,6 +112,7 @@ public final class XunjingEnums {
         SCAN("SCAN"),
         VIEW("VIEW"),
         ASK("ASK"),
+        TRIGGER_RESOLVE("TRIGGER_RESOLVE"),
         SHARE("SHARE"),
         MEDIA_USE("MEDIA_USE");
 

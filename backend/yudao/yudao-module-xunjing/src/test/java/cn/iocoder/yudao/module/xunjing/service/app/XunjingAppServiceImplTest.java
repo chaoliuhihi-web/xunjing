@@ -386,6 +386,42 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerRecordsRecognitionEventWhenPackageProvided() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-multimodal-trigger");
+        reqVO.setOcrText("恭王府博物馆入口");
+        reqVO.setImageLabels(List.of("palace", "courtyard"));
+        reqVO.setLocation(location("39.937050", "116.386770", 20));
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
+        List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.TRIGGER_RESOLVE.getType()));
+        assertEquals(1, events.size());
+        XunjingInteractionEventDO event = events.get(0);
+        assertEquals(schoolId, event.getSchoolId());
+        assertEquals("xicheng-app", event.getSourceChannel());
+        assertEquals("trace-xicheng-multimodal-001", event.getUserTraceId());
+        assertTrue(event.getPayloadJson().contains("\"sceneCode\":\"xicheng-multimodal-trigger\""));
+        assertTrue(event.getPayloadJson().contains("\"regionCode\":\"beijing-xicheng\""));
+        assertTrue(event.getPayloadJson().contains("\"poiCode\":\"xicheng-gongwangfu\""));
+        assertTrue(event.getPayloadJson().contains("\"poiName\":\"恭王府\""));
+        assertTrue(event.getPayloadJson().contains("\"requiresUserConfirm\":false"));
+        assertTrue(event.getPayloadJson().contains("\"ocrText\":\"恭王府博物馆入口\""));
+        assertTrue(event.getPayloadJson().contains("\"imageLabelCount\":2"));
+        assertFalse(event.getPayloadJson().contains("imageBase64"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerRequiresConfirmWhenOnlyImageSignalMatches() {
         MultimodalTriggerReqVO reqVO = multimodalReq();
         reqVO.setImageLabels(List.of("lake", "imperial_garden", "white_tower"));

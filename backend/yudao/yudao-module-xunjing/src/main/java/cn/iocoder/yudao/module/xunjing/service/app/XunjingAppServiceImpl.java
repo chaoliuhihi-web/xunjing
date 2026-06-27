@@ -20,8 +20,10 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppKnowled
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppMapPointRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppMediaAssetRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppPackageDetailRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.LocationPointReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PhotoMetaReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PublicReportSummaryRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
@@ -236,8 +238,11 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public MultimodalTriggerRespVO resolveMultimodalTrigger(MultimodalTriggerReqVO reqVO) {
-        return multimodalTriggerEngine.resolve(reqVO);
+        MultimodalTriggerRespVO respVO = multimodalTriggerEngine.resolve(reqVO);
+        recordTriggerResolveEventIfPossible(reqVO, respVO);
+        return respVO;
     }
 
     @Override
@@ -573,6 +578,73 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         payload.put("poiName", defaultIfBlank(reqVO.getPoiName(), ""));
         payload.put("routeId", defaultIfBlank(reqVO.getRouteId(), ""));
         return JsonUtils.toJsonString(payload);
+    }
+
+    private void recordTriggerResolveEventIfPossible(MultimodalTriggerReqVO reqVO, MultimodalTriggerRespVO respVO) {
+        if (!hasText(reqVO.getPackageCode())) {
+            return;
+        }
+        XunjingResourcePackageDO resourcePackage = validatePublicPackage(reqVO.getPackageCode());
+
+        XunjingInteractionEventDO event = new XunjingInteractionEventDO();
+        event.setPackageId(resourcePackage.getId());
+        event.setSchoolId(resourcePackage.getSchoolId());
+        event.setEventType(EventType.TRIGGER_RESOLVE.getType());
+        event.setSourceChannel(defaultIfBlank(reqVO.getSourceChannel(), "mini-program"));
+        event.setUserTraceId(reqVO.getUserTraceId());
+        event.setPayloadJson(buildTriggerResolveEventPayload(reqVO, respVO));
+        event.setTenantId(TenantContextHolder.getRequiredTenantId());
+        interactionEventMapper.insert(event);
+    }
+
+    private String buildTriggerResolveEventPayload(MultimodalTriggerReqVO reqVO, MultimodalTriggerRespVO respVO) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("packageCode", defaultIfBlank(reqVO.getPackageCode(), ""));
+        payload.put("sceneCode", defaultIfBlank(reqVO.getSceneCode(), ""));
+        payload.put("regionCode", defaultIfBlank(respVO.getRegionCode(), defaultIfBlank(reqVO.getRegionCode(), "")));
+        payload.put("intent", defaultIfBlank(respVO.getIntent(), ""));
+        payload.put("action", defaultIfBlank(respVO.getAction(), ""));
+        payload.put("triggerType", defaultIfBlank(respVO.getTriggerType(), ""));
+        payload.put("poiCode", defaultIfBlank(respVO.getPoiCode(), ""));
+        payload.put("poiName", defaultIfBlank(respVO.getPoiName(), ""));
+        payload.put("confidence", respVO.getConfidence());
+        payload.put("requiresUserConfirm", respVO.getRequiresUserConfirm());
+        payload.put("reason", defaultIfBlank(respVO.getReason(), ""));
+        payload.put("text", truncateForEvent(reqVO.getText(), 200));
+        payload.put("ocrText", truncateForEvent(reqVO.getOcrText(), 200));
+        payload.put("imageLabelCount", reqVO.getImageLabels() == null ? 0 : reqVO.getImageLabels().size());
+        payload.put("recentPoiCount", reqVO.getRecentPoiCodes() == null ? 0 : reqVO.getRecentPoiCodes().size());
+        payload.put("location", buildTriggerLocationPayload(reqVO.getLocation()));
+        payload.put("photoMeta", buildTriggerPhotoMetaPayload(reqVO.getPhotoMeta()));
+        payload.put("candidateCount", respVO.getCandidates() == null ? 0 : respVO.getCandidates().size());
+        payload.put("sourceCount", respVO.getSources() == null ? 0 : respVO.getSources().size());
+        return JsonUtils.toJsonString(payload);
+    }
+
+    private Map<String, Object> buildTriggerLocationPayload(LocationPointReqVO location) {
+        if (location == null) {
+            return Map.of();
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("latitude", location.getLatitude());
+        payload.put("longitude", location.getLongitude());
+        payload.put("coordType", defaultIfBlank(location.getCoordType(), ""));
+        payload.put("accuracyMeters", location.getAccuracyMeters());
+        return payload;
+    }
+
+    private Map<String, Object> buildTriggerPhotoMetaPayload(PhotoMetaReqVO photoMeta) {
+        if (photoMeta == null) {
+            return Map.of();
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("imageId", defaultIfBlank(photoMeta.getImageId(), ""));
+        payload.put("takenAt", defaultIfBlank(photoMeta.getTakenAt(), ""));
+        payload.put("imageMimeType", defaultIfBlank(photoMeta.getImageMimeType(), ""));
+        payload.put("imageWidth", photoMeta.getImageWidth());
+        payload.put("imageHeight", photoMeta.getImageHeight());
+        payload.put("exifLocation", buildTriggerLocationPayload(photoMeta.getExifLocation()));
+        return payload;
     }
 
     private void recordScanEvent(XunjingResourcePackageDO resourcePackage, ScanResolveReqVO reqVO, XunjingQrCodeDO qrCode) {
@@ -1002,6 +1074,13 @@ public class XunjingAppServiceImpl implements XunjingAppService {
 
     private String defaultIfBlank(String value, String defaultValue) {
         return value == null || value.isBlank() ? defaultValue : value;
+    }
+
+    private String truncateForEvent(String value, int maxLength) {
+        if (!hasText(value)) {
+            return "";
+        }
+        return value.length() <= maxLength ? value : value.substring(0, maxLength);
     }
 
     private String effectiveUserTraceId(RagChatReqVO reqVO) {

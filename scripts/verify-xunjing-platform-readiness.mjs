@@ -326,6 +326,14 @@ async function checkXichengTriggerBackend(rootDir) {
     rootDir,
     'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/dal/mysql/poi/XunjingPoiMapper.java'
   )
+  const appService = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java'
+  )
+  const enums = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/enums/XunjingEnums.java'
+  )
   const appTest = await readText(
     rootDir,
     'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImplTest.java'
@@ -348,10 +356,26 @@ async function checkXichengTriggerBackend(rootDir) {
     assertContains(poiDo, snippet, 'XunjingPoiDO.java')
   }
   assertContains(mapper, 'selectPublishedListByRegionCode', 'XunjingPoiMapper.java')
+  for (const snippet of [
+    'recordTriggerResolveEventIfPossible',
+    'buildTriggerResolveEventPayload',
+    'EventType.TRIGGER_RESOLVE'
+  ]) {
+    assertContains(appService, snippet, 'XunjingAppServiceImpl.java')
+  }
+  assertContains(enums, 'TRIGGER_RESOLVE("TRIGGER_RESOLVE")', 'XunjingEnums.java')
   assertContains(appTest, 'testResolveMultimodalTriggerUsesPublishedPoiFromDatabase', 'XunjingAppServiceImplTest.java')
+  assertContains(
+    appTest,
+    'testResolveMultimodalTriggerRecordsRecognitionEventWhenPackageProvided',
+    'XunjingAppServiceImplTest.java'
+  )
   assertContains(appTest, 'xicheng-gongwangfu', 'XunjingAppServiceImplTest.java')
   assertContains(h2Schema, 'CREATE TABLE IF NOT EXISTS "xunjing_poi"', 'create_tables.sql')
-  return pass('xicheng-trigger-backend', 'Xicheng trigger resolution reads approved xunjing_poi rows with static fallback')
+  return pass(
+    'xicheng-trigger-backend',
+    'Xicheng trigger resolution reads approved xunjing_poi rows and records TRIGGER_RESOLVE events'
+  )
 }
 
 async function checkXichengAiSourceGuardBackend(rootDir) {
