@@ -152,12 +152,26 @@
 			<text class="section-title">亲子研学任务</text>
 			<view
 				v-for="(task, index) in parentChildTasks"
-				:key="task"
+				:key="`study-task-${index}`"
 				class="task-row"
 			>
 				<text class="task-index">{{ index + 1 }}</text>
-				<text class="task-copy">{{ task }}</text>
-				<text class="task-status">{{ index < completedTaskCount ? '已完成' : '进行中' }}</text>
+				<view class="task-main">
+					<text class="task-copy">{{ task }}</text>
+					<text v-if="getStudyTaskEvidence(index)" class="task-evidence">研学任务证据：{{ formatStudyTaskEvidence(getStudyTaskEvidence(index)) }}</text>
+					<textarea
+						v-else
+						v-model="studyTaskDrafts[index]"
+						class="task-input"
+						maxlength="160"
+						placeholder="记录孩子观察、答案或一句发现"
+					/>
+					<view class="task-actions">
+						<button class="mini-button" :disabled="!!getStudyTaskEvidence(index)" @click="submitStudyTaskEvidence(index)">提交观察</button>
+						<button class="mini-button" :disabled="!!getStudyTaskEvidence(index)" @click="addStudyTaskPhoto(index)">拍照完成</button>
+					</view>
+				</view>
+				<text class="task-status">{{ getStudyTaskStatus(index) }}</text>
 			</view>
 		</view>
 
@@ -257,7 +271,8 @@ export const createXichengTravelogueDraft = ({
 	materials = [],
 	parentChildTasks = XICHENG_REGION_CONFIG.parentChildTasks,
 	routeRecommendation = null,
-	recordingSession = null
+	recordingSession = null,
+	studyTaskEvidence = []
 } = {}) => {
 	const poiNames = Array.from(new Set(
 		materials
@@ -283,7 +298,13 @@ export const createXichengTravelogueDraft = ({
 	const stayText = stayPointCount > 0 ? `本次标记了 ${stayPointCount} 个停留点，` : ''
 	const photoText = photoCount > 0 ? `现场补充了 ${photoCount} 张照片，` : ''
 	const remarkText = remarkTexts.length > 0 ? `用户备注提到：${remarkTexts.join('；')}。` : ''
-	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒，${trackText}${stayText}${photoText}我们沿途完成了${taskText}。${remarkText}这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
+	const completedStudyEvidence = studyTaskEvidence
+		.filter(evidence => evidence && evidence.completedAt)
+		.slice(0, 2)
+	const studyEvidenceText = completedStudyEvidence.length > 0
+		? `研学任务证据包括：${completedStudyEvidence.map(evidence => evidence.answerText || evidence.taskText || '照片观察').join('；')}。`
+		: ''
+	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒，${trackText}${stayText}${photoText}我们沿途完成了${taskText}。${remarkText}${studyEvidenceText}这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
 }
 
 const createEmptyRecordingSession = () => ({
@@ -314,6 +335,8 @@ export default {
 			reviewSubmission: null,
 			shareArtifacts: [],
 			remarkInput: '',
+			studyTaskEvidence: [],
+			studyTaskDrafts: [],
 			recordingSession: createEmptyRecordingSession()
 		}
 	},
@@ -327,7 +350,7 @@ export default {
 			}, 0)
 		},
 		completedTaskCount() {
-			return Math.min(this.materials.length, this.parentChildTasks.length)
+			return Math.min(this.studyTaskEvidenceCount, this.parentChildTasks.length)
 		},
 		passportProgress() {
 			const total = Math.max(this.parentChildTasks.length, 1)
@@ -338,6 +361,12 @@ export default {
 		},
 		badgeName() {
 			return `${this.routePassport.badgePrefix || '西城印章'} · Citywalk`
+		},
+		completedStudyTaskEvidence() {
+			return this.studyTaskEvidence.filter(evidence => evidence && evidence.completedAt)
+		},
+		studyTaskEvidenceCount() {
+			return this.completedStudyTaskEvidence.length
 		},
 		reportTemplateSections() {
 			return [
@@ -370,6 +399,7 @@ export default {
 				hotPois: this.createHotPoiRanking(),
 				sourceCount: this.sourceCount,
 				workCount: this.draft ? 1 : 0,
+				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
 				shareCount: this.shareArtifacts.length,
 				misTriggerCount: this.misTriggerCount,
 				optimizationSuggestions: this.createOptimizationSuggestions(),
@@ -434,12 +464,18 @@ export default {
 			const storedReviewSubmissions = uni.getStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey)
 			const storedShareAssets = uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey)
 			const storedRecordingSession = uni.getStorageSync(XICHENG_REGION_CONFIG.recordingStorageKey)
+			const storedStudyTaskEvidence = uni.getStorageSync(XICHENG_REGION_CONFIG.studyTaskStorageKey)
 			const materials = Array.isArray(storedMaterials) ? storedMaterials : []
 			this.importedRoute = importedRoute && importedRoute.stops ? importedRoute : null
 			this.reviewSubmission = Array.isArray(storedReviewSubmissions) && storedReviewSubmissions.length > 0
 				? storedReviewSubmissions[0]
 				: null
 			this.shareArtifacts = Array.isArray(storedShareAssets) ? storedShareAssets : []
+			this.studyTaskEvidence = Array.isArray(storedStudyTaskEvidence) ? storedStudyTaskEvidence : []
+			this.studyTaskDrafts = this.parentChildTasks.map((_, index) => {
+				const evidence = this.getStudyTaskEvidence(index)
+				return evidence && evidence.answerText ? evidence.answerText : ''
+			})
 			this.recordingSession = storedRecordingSession && Array.isArray(storedRecordingSession.trackPoints)
 				? {
 					...createEmptyRecordingSession(),
@@ -469,7 +505,8 @@ export default {
 					materials: this.materials,
 					parentChildTasks: this.parentChildTasks,
 					routeRecommendation: this.recognizedRoute,
-					recordingSession: this.recordingSession
+					recordingSession: this.recordingSession,
+					studyTaskEvidence: this.studyTaskEvidence
 				})
 			this.reviewText = cachedDraft && cachedDraft.reviewText ? cachedDraft.reviewText : this.reviewText
 			this.posterStatus = cachedDraft && cachedDraft.posterStatus ? cachedDraft.posterStatus : this.posterStatus
@@ -564,9 +601,83 @@ export default {
 				materials: this.materials,
 				parentChildTasks: this.parentChildTasks,
 				routeRecommendation: this.recognizedRoute,
-				recordingSession: this.recordingSession
+				recordingSession: this.recordingSession,
+				studyTaskEvidence: this.studyTaskEvidence
 			})
 			this.saveDraft({ silent: true })
+		},
+		getStudyTaskEvidence(index) {
+			return this.studyTaskEvidence.find(evidence => evidence && evidence.taskId === `study-task-${index + 1}`) || null
+		},
+		getStudyTaskStatus(index) {
+			return this.getStudyTaskEvidence(index) ? '已完成' : '进行中'
+		},
+		formatStudyTaskEvidence(evidence = {}) {
+			if (evidence.evidenceType === 'photo') return evidence.answerText || '照片证据'
+			return evidence.answerText || '观察记录'
+		},
+		createStudyTaskEvidence(index, evidenceType, payload = {}) {
+			const completedAt = new Date().toISOString()
+			return {
+				taskId: `study-task-${index + 1}`,
+				taskIndex: index,
+				taskText: this.parentChildTasks[index],
+				evidenceType,
+				answerText: payload.answerText || '',
+				photoPath: payload.photoPath || '',
+				regionCode: XICHENG_REGION_CONFIG.regionCode,
+				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				completedAt,
+				reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
+				publishStatus: 'private'
+			}
+		},
+		persistStudyTaskEvidence(evidence) {
+			const existingEvidence = this.studyTaskEvidence.filter(item => item && item.taskId !== evidence.taskId)
+			this.studyTaskEvidence = [
+				evidence,
+				...existingEvidence
+			].slice(0, this.parentChildTasks.length)
+			uni.setStorageSync(XICHENG_REGION_CONFIG.studyTaskStorageKey, this.studyTaskEvidence)
+			this.refreshDraftFromEvidence()
+		},
+		submitStudyTaskEvidence(index) {
+			const answerText = String(this.studyTaskDrafts[index] || '').trim()
+			if (!answerText) {
+				uni.showToast({
+					title: '请先填写观察',
+					icon: 'none'
+				})
+				return
+			}
+			const evidence = this.createStudyTaskEvidence(index, 'answer', {
+				answerText: this.studyTaskDrafts[index].trim()
+			})
+			this.persistStudyTaskEvidence(evidence)
+			uni.showToast({
+				title: '研学任务已完成',
+				icon: 'none'
+			})
+		},
+		addStudyTaskPhoto(index) {
+			uni.chooseImage({
+				count: 1,
+				sizeType: ['compressed'],
+				sourceType: ['camera', 'album'],
+				success: (res) => {
+					const filePath = res.tempFilePaths && res.tempFilePaths[0] ? res.tempFilePaths[0] : ''
+					if (!filePath) return
+					const evidence = this.createStudyTaskEvidence(index, 'photo', {
+						answerText: String(this.studyTaskDrafts[index] || '').trim(),
+						photoPath: filePath
+					})
+					this.persistStudyTaskEvidence(evidence)
+					uni.showToast({
+						title: '研学照片已保存',
+						icon: 'none'
+					})
+				}
+			})
 		},
 		addRemarkMaterial() {
 			if (!this.remarkInput.trim()) {
@@ -677,6 +788,7 @@ export default {
 				reviewSubmission: this.reviewSubmission,
 				shareArtifacts: this.shareArtifacts,
 				recordingSession: this.recordingSession,
+				studyTaskEvidence: this.studyTaskEvidence,
 				reviewText: this.reviewText,
 				posterStatus: this.posterStatus,
 				pdfStatus: this.pdfStatus,
@@ -739,6 +851,8 @@ export default {
 				stayPointCount: this.stayPointCount,
 				photoMaterialCount: this.photoMaterialCount,
 				remarkMaterialCount: this.remarkMaterialCount,
+				studyTaskEvidence: this.studyTaskEvidence,
+				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
 				reviewStatus: this.reviewText,
 				submittedAt,
 				materialCount: this.materialCount,
@@ -772,6 +886,8 @@ export default {
 				stayPointCount: this.stayPointCount,
 				photoMaterialCount: this.photoMaterialCount,
 				remarkMaterialCount: this.remarkMaterialCount,
+				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
+				studyTaskEvidence: this.completedStudyTaskEvidence,
 				sourceCount: this.sourceCount,
 				badgeName: this.badgeName,
 				passportProgress: this.passportProgress,
@@ -1241,8 +1357,12 @@ export default {
 .task-row {
 	display: grid;
 	grid-template-columns: 48rpx minmax(0, 1fr) 104rpx;
-	align-items: center;
+	align-items: flex-start;
 	gap: 14rpx;
+}
+
+.task-main {
+	min-width: 0;
 }
 
 .task-index,
@@ -1258,9 +1378,38 @@ export default {
 }
 
 .task-copy {
+	display: block;
 	font-size: 26rpx;
 	line-height: 1.5;
 	color: #344054;
+}
+
+.task-evidence {
+	display: block;
+	margin-top: 10rpx;
+	font-size: 24rpx;
+	line-height: 1.5;
+	color: #1F6E5A;
+}
+
+.task-input {
+	width: 100%;
+	min-height: 112rpx;
+	margin-top: 12rpx;
+	padding: 16rpx;
+	border-radius: 8rpx;
+	background: #FFFFFF;
+	box-sizing: border-box;
+	font-size: 24rpx;
+	line-height: 1.5;
+	color: #1F2933;
+}
+
+.task-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12rpx;
+	margin-top: 12rpx;
 }
 
 .draft-input {

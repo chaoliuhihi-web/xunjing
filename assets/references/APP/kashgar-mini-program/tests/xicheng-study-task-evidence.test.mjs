@@ -1,0 +1,121 @@
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
+
+const root = process.cwd()
+const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
+
+const regionConfig = read('config', 'regions', 'xicheng.js')
+const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+
+assert.ok(
+  regionConfig.includes("studyTaskStorageKey: 'xicheng:studyTaskEvidence'"),
+  'Xicheng config should define a local study task evidence storage key'
+)
+
+for (const required of [
+  'studyTaskEvidence',
+  'studyTaskDrafts',
+  'studyTaskEvidenceCount',
+  'completedStudyTaskEvidence',
+  '提交观察',
+  '拍照完成',
+  'submitStudyTaskEvidence',
+  'addStudyTaskPhoto',
+  'createStudyTaskEvidence',
+  'persistStudyTaskEvidence',
+  'studyTaskStorageKey',
+  'taskId',
+  'taskText',
+  'evidenceType',
+  'answerText',
+  'photoPath',
+  'completedAt',
+  '研学任务证据'
+]) {
+  assert.ok(travelogue.includes(required), `Travelogue should support study task evidence ${required}`)
+}
+
+assert.match(
+  travelogue,
+  /completedTaskCount\(\)[\s\S]*return Math\.min\(this\.studyTaskEvidenceCount, this\.parentChildTasks\.length\)/,
+  'Route passport progress should be driven by completed study task evidence, not just material count'
+)
+
+assert.match(
+  travelogue,
+  /studyTaskEvidenceCount\(\)[\s\S]*return this\.completedStudyTaskEvidence\.length/,
+  'Travelogue should compute the completed study task evidence count'
+)
+
+assert.match(
+  travelogue,
+  /completedStudyTaskEvidence\(\)[\s\S]*this\.studyTaskEvidence\.filter\(evidence => evidence && evidence\.completedAt\)/,
+  'Completed study task evidence should be filtered by completedAt'
+)
+
+assert.match(
+  travelogue,
+  /uni\.getStorageSync\(XICHENG_REGION_CONFIG\.studyTaskStorageKey\)[\s\S]*this\.studyTaskEvidence/,
+  'Travelogue should restore study task evidence from local storage'
+)
+
+assert.match(
+  travelogue,
+  /submitStudyTaskEvidence\(index\)[\s\S]*this\.createStudyTaskEvidence\(index, 'answer'[\s\S]*answerText:\s*this\.studyTaskDrafts\[index\]\.trim\(\)[\s\S]*this\.persistStudyTaskEvidence\(evidence\)/,
+  'Submitting a study task observation should create and persist answer evidence'
+)
+
+assert.match(
+  travelogue,
+  /addStudyTaskPhoto\(index\)[\s\S]*uni\.chooseImage\(\{[\s\S]*this\.createStudyTaskEvidence\(index, 'photo'[\s\S]*photoPath:\s*filePath[\s\S]*this\.persistStudyTaskEvidence\(evidence\)/,
+  'Completing a study task by photo should create and persist photo evidence'
+)
+
+assert.match(
+  travelogue,
+  /createStudyTaskEvidence\(index, evidenceType, payload = \{\}\)[\s\S]*taskId:\s*`study-task-\$\{index \+ 1\}`[\s\S]*taskText:\s*this\.parentChildTasks\[index\][\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  'Study task evidence should include task identity, task text, and default private review status'
+)
+
+assert.match(
+  travelogue,
+  /persistStudyTaskEvidence\(evidence\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.studyTaskStorageKey, this\.studyTaskEvidence\)[\s\S]*this\.refreshDraftFromEvidence\(\)/,
+  'Persisting study task evidence should save local evidence and refresh the travelogue draft'
+)
+
+assert.match(
+  travelogue,
+  /createXichengTravelogueDraft\s*=\s*\(\{[\s\S]*studyTaskEvidence = \[\][\s\S]*studyEvidenceText[\s\S]*研学任务证据/,
+  'Travelogue draft generation should summarize study task evidence'
+)
+
+assert.match(
+  travelogue,
+  /saveDraft\(\{ silent = false \} = \{\}\)[\s\S]*studyTaskEvidence:\s*this\.studyTaskEvidence/,
+  'Saved travelogue draft should include study task evidence'
+)
+
+assert.match(
+  travelogue,
+  /submitReviewPackage\(\)[\s\S]*studyTaskEvidence:\s*this\.studyTaskEvidence[\s\S]*studyTaskEvidenceCount:\s*this\.studyTaskEvidenceCount/,
+  'Review package should include study task evidence for operations review'
+)
+
+assert.match(
+  travelogue,
+  /createShareArtifact\(assetType\)[\s\S]*studyTaskEvidenceCount:\s*this\.studyTaskEvidenceCount[\s\S]*studyTaskEvidence:\s*this\.completedStudyTaskEvidence/,
+  'Poster and PDF assets should include study task completion evidence'
+)
+
+assert.match(
+  travelogue,
+  /opsReport\(\)[\s\S]*studyTaskEvidenceCount:\s*this\.studyTaskEvidenceCount/,
+  'Local operations report should include study task evidence count'
+)
+
+assert.doesNotMatch(
+  travelogue,
+  /background-location|startLocationUpdateBackground|\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
+  'Study task evidence MVP should stay local and avoid background location, backend calls, or client-side secrets'
+)
