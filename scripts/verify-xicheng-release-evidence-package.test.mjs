@@ -471,6 +471,11 @@ describe('xicheng release evidence package gate', () => {
       xichengRegionCode: 'beijing-xicheng',
       xichengPackageCode: 'XICHENG-MAP-001',
       reviewBatchCode: 'xicheng-p0-poi-review-20260627',
+      releaseEvidenceFile: releasePath,
+      poiManifestEvidenceFile: manifestPath,
+      poiWorkbookEvidenceFile: workbookPath,
+      poiSeedEvidenceFile: seedPath,
+      appReadinessEvidenceFile: appPath,
       sourceWorkbookFile: path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv'),
       sourceWorkbookSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
       blockerCount: 0
@@ -1237,5 +1242,6 @@ describe('xicheng release evidence package gate', () => {
     expect(deployDoc).toContain('check.summary.sourceCount')
     expect(deployDoc).toContain('check.summary.confidence')
     expect(deployDoc).toContain('evidenceFileSha256')
+    expect(deployDoc).toContain('summary.poiWorkbookEvidenceFile')
   })
 })
