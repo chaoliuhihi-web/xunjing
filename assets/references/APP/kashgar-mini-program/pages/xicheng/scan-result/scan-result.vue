@@ -30,6 +30,10 @@
 
 		<view class="bottom-actions">
 			<button class="primary-button" @click="askXiaojing()">问问小京</button>
+			<button class="ghost-button" @click="openRouteDetail">推荐路线</button>
+		</view>
+		<view class="bottom-actions">
+			<button class="ghost-button" @click="addToMaterialBox">加入旅行素材</button>
 			<button class="ghost-button" @click="startRecording">开始记录</button>
 		</view>
 	</view>
@@ -41,6 +45,10 @@ import {
 	XICHENG_REGION_CONFIG,
 	XICHENG_RECOMMENDED_QUESTIONS
 } from '@/config/regions/xicheng.js'
+import {
+	appendXichengMaterialEvent,
+	startXichengTrackSession
+} from '@/request/xunjing/track.js'
 
 const normalizeResult = (result = {}) => ({
 	...XICHENG_DEVELOPMENT_TRIGGER_FIXTURE,
@@ -92,9 +100,36 @@ export default {
 				url: `/pages/ai-guide/ai-guide?${query}`
 			})
 		},
-		startRecording() {
+		openRouteDetail() {
 			uni.navigateTo({
-				url: `/pages/ai-guide/ai-guide?mode=diary&regionCode=${encodeURIComponent(this.result.regionCode)}&poiCode=${encodeURIComponent(this.result.poiCode || '')}&poiName=${encodeURIComponent(this.result.poiName || '')}&companionName=${encodeURIComponent(this.result.companionName)}`
+				url: `/pages/xicheng/route-detail/route-detail?poiCode=${encodeURIComponent(this.result.poiCode || '')}&poiName=${encodeURIComponent(this.result.poiName || '')}`
+			})
+		},
+		addToMaterialBox() {
+			appendXichengMaterialEvent({
+				eventType: 'recognition',
+				title: `识别事件：${this.result.poiName}`,
+				poiCode: this.result.poiCode || '',
+				poiName: this.result.poiName || '',
+				summary: this.result.reason || '来自扫码、拍照、OCR或定位识别结果。'
+			})
+			uni.navigateTo({
+				url: '/pages/xicheng/material-box/material-box'
+			})
+		},
+		async startRecording() {
+			const session = await startXichengTrackSession({
+				startPoiCode: this.result.poiCode || ''
+			})
+			appendXichengMaterialEvent({
+				eventType: 'track',
+				title: '开始记录',
+				poiCode: this.result.poiCode || '',
+				poiName: this.result.poiName || '',
+				summary: `轨迹 ${session.trackSessionId} 已从识别结果页开始。`
+			})
+			uni.navigateTo({
+				url: '/pages/xicheng/material-box/material-box'
 			})
 		}
 	}

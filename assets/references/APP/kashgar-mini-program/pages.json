@@ -45,6 +45,50 @@
 			}
 		},
 		{
+			"path": "pages/xicheng/route-detail/route-detail",
+			"style": {
+				"navigationBarTitleText": "西城路线",
+				"navigationStyle": "custom",
+				"mp-weixin": {
+					"navigationStyle": "custom",
+					"homeButton": false
+				}
+			}
+		},
+		{
+			"path": "pages/xicheng/material-box/material-box",
+			"style": {
+				"navigationBarTitleText": "旅行素材盒",
+				"navigationStyle": "custom",
+				"mp-weixin": {
+					"navigationStyle": "custom",
+					"homeButton": false
+				}
+			}
+		},
+		{
+			"path": "pages/xicheng/travelogue/travelogue",
+			"style": {
+				"navigationBarTitleText": "游记草稿",
+				"navigationStyle": "custom",
+				"mp-weixin": {
+					"navigationStyle": "custom",
+					"homeButton": false
+				}
+			}
+		},
+		{
+			"path": "pages/xicheng/passport/passport",
+			"style": {
+				"navigationBarTitleText": "路线护照",
+				"navigationStyle": "custom",
+				"mp-weixin": {
+					"navigationStyle": "custom",
+					"homeButton": false
+				}
+			}
+		},
+		{
 			"path": "pages/banner/banner",
 			"style": {
 				"navigationBarTitleText": "详情",

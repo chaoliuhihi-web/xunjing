@@ -36,8 +36,16 @@
 			<text>生成游记草稿</text>
 		</view>
 
+		<view class="route-card" @click="openRouteDetail">
+			<view>
+				<text class="ops-title">今日推荐路线</text>
+				<text class="ops-desc">{{ defaultRoute.subtitle }} · {{ defaultRoute.durationText }}</text>
+			</view>
+			<text class="route-arrow">进入</text>
+		</view>
+
 		<view class="ops-section">
-			<view class="ops-card">
+			<view class="ops-card" @click="openPassport">
 				<text class="ops-title">{{ routePassport.title }}</text>
 				<text class="ops-desc">{{ routePassport.thresholdText }}</text>
 			</view>
@@ -45,9 +53,13 @@
 				<text class="ops-title">亲子研学任务</text>
 				<text class="ops-desc">{{ parentChildTasks[0] }}</text>
 			</view>
-			<view class="ops-card">
+			<view class="ops-card" @click="openTravelogue">
 				<text class="ops-title">分享海报</text>
 				<text class="ops-desc">{{ sharePoster.subtitle }}</text>
+			</view>
+			<view class="ops-card" @click="openMaterialBox">
+				<text class="ops-title">旅行素材盒</text>
+				<text class="ops-desc">查看轨迹、照片、识别事件和用户备注</text>
 			</view>
 		</view>
 
@@ -57,6 +69,7 @@
 
 <script>
 import {
+	XICHENG_DEFAULT_ROUTE,
 	XICHENG_REGION_CONFIG
 } from '@/config/regions/xicheng.js'
 import {
@@ -72,6 +85,7 @@ export default {
 			routePassport: XICHENG_REGION_CONFIG.routePassport,
 			parentChildTasks: XICHENG_REGION_CONFIG.parentChildTasks,
 			sharePoster: XICHENG_REGION_CONFIG.sharePoster,
+			defaultRoute: XICHENG_DEFAULT_ROUTE,
 			currentLocation: null,
 			recognizing: false,
 			lastError: ''
@@ -159,6 +173,26 @@ export default {
 			uni.navigateTo({
 				url: `/pages/ai-guide/ai-guide?regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&companionName=${encodeURIComponent(this.region.companionName)}`
 			})
+		},
+		openRouteDetail() {
+			uni.navigateTo({
+				url: `/pages/xicheng/route-detail/route-detail?routeId=${encodeURIComponent(this.defaultRoute.routeId)}&poiCode=${encodeURIComponent(this.defaultRoute.startPoiCode)}`
+			})
+		},
+		openMaterialBox() {
+			uni.navigateTo({
+				url: `/pages/xicheng/material-box/material-box?routeId=${encodeURIComponent(this.defaultRoute.routeId)}`
+			})
+		},
+		openTravelogue() {
+			uni.navigateTo({
+				url: `/pages/xicheng/travelogue/travelogue?routeId=${encodeURIComponent(this.defaultRoute.routeId)}`
+			})
+		},
+		openPassport() {
+			uni.navigateTo({
+				url: `/pages/xicheng/passport/passport?routeId=${encodeURIComponent(this.defaultRoute.routeId)}`
+			})
 		}
 	}
 }
@@ -237,12 +271,26 @@ export default {
 }
 
 .quick-card,
-.ops-card {
+.ops-card,
+.route-card {
 	min-height: 150rpx;
 	padding: 24rpx;
 	border-radius: 8rpx;
 	background: #FFFFFF;
 	box-sizing: border-box;
+}
+
+.route-card {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: 28rpx;
+	min-height: 132rpx;
+}
+
+.route-arrow {
+	font-size: 24rpx;
+	color: #1F6E5A;
 }
 
 .quick-title,

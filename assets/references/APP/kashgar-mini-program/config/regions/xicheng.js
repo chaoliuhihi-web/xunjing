@@ -41,6 +41,95 @@ export const XICHENG_RECOMMENDED_QUESTIONS = Object.freeze([
 	'把这个点写进我的游记草稿'
 ])
 
+export const XICHENG_DEFAULT_ROUTE = Object.freeze({
+	routeId: 'xicheng-baitasi-culture-walk',
+	title: '白塔寺文化 Citywalk',
+	subtitle: '白塔寺 - 历代帝王庙 - 什刹海',
+	durationText: '约 2.5 小时',
+	distanceText: '约 3.2 公里',
+	theme: '亲子研学',
+	suitableFor: '亲子家庭 / Citywalk / 文博爱好者',
+	startPoiCode: 'xicheng-baitasi',
+	checkinPoints: [
+		{ poiCode: 'xicheng-baitasi', poiName: '白塔寺', task: '观察白塔的塔身比例', completed: true },
+		{ poiCode: 'xicheng-diwangmiao', poiName: '历代帝王庙', task: '找一处古建斗拱', completed: false },
+		{ poiCode: 'xicheng-shichahai', poiName: '什刹海', task: '拍一张水系与胡同同框照片', completed: false }
+	],
+	passportTasks: [
+		{ taskId: 'task-baitasi-photo', title: '拍下白塔细节', type: 'photo', completed: true },
+		{ taskId: 'task-hutong-observe', title: '记录一个胡同门牌', type: 'observe', completed: false },
+		{ taskId: 'task-history-quiz', title: '回答 1 道小京提问', type: 'quiz', completed: false }
+	],
+	badges: [
+		{ badgeId: 'badge-white-pagoda', title: '白塔初识', status: 'earned' },
+		{ badgeId: 'badge-family-study', title: '亲子研学家', status: 'locked' },
+		{ badgeId: 'badge-citywalker', title: '西城漫步者', status: 'locked' }
+	]
+})
+
+export const XICHENG_MATERIAL_TIMELINE = Object.freeze([
+	{
+		eventId: 'material-recognition-baitasi',
+		eventType: 'recognition',
+		title: '识别到白塔寺',
+		poiCode: 'xicheng-baitasi',
+		poiName: '白塔寺',
+		recordedAt: '2026-06-27T10:00:00.000Z',
+		summary: 'OCR 与定位信号匹配到白塔寺，可作为游记第一站。'
+	},
+	{
+		eventId: 'material-task-photo',
+		eventType: 'task',
+		title: '完成亲子观察任务',
+		poiCode: 'xicheng-baitasi',
+		poiName: '白塔寺',
+		recordedAt: '2026-06-27T10:08:00.000Z',
+		summary: '观察白塔塔身和周边院落关系。'
+	}
+])
+
+export const XICHENG_TRAVELOGUE_TEMPLATE = Object.freeze({
+	draftId: 'xicheng-travelogue-draft-dev',
+	title: '沿着白塔，走进西城的一天',
+	summary: '从白塔寺出发，沿着胡同和水系完成一次轻量 Citywalk。',
+	styles: ['城市漫步', '文化随笔', '亲子研学', '朋友圈短文', '小红书图文笔记'],
+	sections: [
+		{ heading: '第一站：白塔寺', body: '我们从白塔寺开始，先听小京讲白塔与街区的关系。' },
+		{ heading: '路上的观察', body: '孩子记录了门牌、院落和古建细节，把观察任务变成旅行素材。' },
+		{ heading: '小京点评', body: '这条路线适合慢走，重点不是赶景点，而是把历史线索和日常街巷连接起来。' }
+	],
+	sharePoster: {
+		title: '我的西城寻径',
+		status: 'ready'
+	},
+	memorialPdf: {
+		title: '西城 Citywalk 纪念册',
+		status: 'ready'
+	},
+	reviewStatus: 'pending'
+})
+
+export const XICHENG_CITY_OPS_REPORT = Object.freeze({
+	reportId: 'xicheng-city-ops-dev',
+	title: '西城 AI 旅伴试运营日报',
+	cityOpsReport: true,
+	metrics: [
+		{ label: '访问量', value: '128' },
+		{ label: '识别量', value: '46' },
+		{ label: '路线完成', value: '18' },
+		{ label: '作品数', value: '9' },
+		{ label: '分享数', value: '6' },
+		{ label: '误触发', value: '3' }
+	],
+	suggestion: '优先补齐白塔寺、历代帝王庙和什刹海的识别别名与亲子任务素材。'
+})
+
+export const XICHENG_P0_GROWTH_CONFIG = Object.freeze({
+	materialTimeline: XICHENG_MATERIAL_TIMELINE,
+	travelogueTemplate: XICHENG_TRAVELOGUE_TEMPLATE,
+	cityOpsReport: XICHENG_CITY_OPS_REPORT
+})
+
 export const XICHENG_DEVELOPMENT_TRIGGER_FIXTURE = Object.freeze({
 	developmentOnly: true,
 	notForProduction: true,
