@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -62,6 +63,10 @@ function check(name, blockers) {
     detail: blockers.length === 0 ? `${name} passed` : blockers.join('; '),
     blockers
   }
+}
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex')
 }
 
 function readArgValue(args, name) {
@@ -172,6 +177,42 @@ function checkEvidenceChecks(evidence, requiredChecks, label) {
   return blockers
 }
 
+async function checkEvidenceSourceHash(rootDir, evidence, label, fileField, hashField) {
+  const blockers = []
+  const summary = summaryOf(evidence)
+  const sourcePath = summary[fileField]
+  const expectedSha256 = summary[hashField]
+
+  if (!sourcePath || String(sourcePath).trim().length === 0) {
+    blockers.push(`${label} evidence ${fileField} is required`)
+    return blockers
+  }
+  if (!/^[a-f0-9]{64}$/.test(String(expectedSha256 || ''))) {
+    blockers.push(`${label} evidence ${hashField} must be a sha256 hex digest`)
+    return blockers
+  }
+
+  const resolvedRoot = path.resolve(rootDir)
+  const resolvedSource = path.isAbsolute(sourcePath)
+    ? path.resolve(sourcePath)
+    : path.resolve(resolvedRoot, sourcePath)
+  const relativePath = path.relative(resolvedRoot, resolvedSource)
+  if (!relativePath || relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+    blockers.push(`${label} evidence ${fileField} must be under release root`)
+    return blockers
+  }
+
+  try {
+    const sourceText = await readFile(resolvedSource, 'utf8')
+    if (sha256(sourceText) !== expectedSha256) {
+      blockers.push(`${label} evidence ${hashField} must match ${fileField} content`)
+    }
+  } catch (error) {
+    blockers.push(`${label} evidence ${fileField} cannot be read: ${error.message}`)
+  }
+  return blockers
+}
+
 function checkReleaseEvidence(ref, stage, freshnessOptions) {
   const blockers = []
   if (ref.error) {
@@ -207,7 +248,7 @@ function checkReleaseEvidence(ref, stage, freshnessOptions) {
   return check('release-gate-evidence', blockers)
 }
 
-function checkManifestEvidence(ref, freshnessOptions) {
+async function checkManifestEvidence(ref, rootDir, freshnessOptions) {
   const blockers = []
   if (ref.error) {
     blockers.push(ref.error)
@@ -237,6 +278,7 @@ function checkManifestEvidence(ref, freshnessOptions) {
   if (summary.productionReady !== true) {
     blockers.push('manifest evidence productionReady must be true')
   }
+  blockers.push(...await checkEvidenceSourceHash(rootDir, evidence, 'manifest', 'manifestFile', 'manifestSha256'))
   blockers.push(...checkEvidenceChecks(evidence, requiredManifestEvidenceChecks, 'manifest'))
   if (blockersOf(evidence).length > 0) {
     blockers.push(`manifest evidence contains blockers: ${blockersOf(evidence).join('; ')}`)
@@ -244,7 +286,7 @@ function checkManifestEvidence(ref, freshnessOptions) {
   return check('poi-manifest-evidence', blockers)
 }
 
-function checkSeedEvidence(ref, freshnessOptions) {
+async function checkSeedEvidence(ref, rootDir, freshnessOptions) {
   const blockers = []
   if (ref.error) {
     blockers.push(ref.error)
@@ -273,6 +315,7 @@ function checkSeedEvidence(ref, freshnessOptions) {
   if (summary.productionReady !== true) {
     blockers.push('seed evidence productionReady must be true')
   }
+  blockers.push(...await checkEvidenceSourceHash(rootDir, evidence, 'seed', 'sqlFile', 'sqlSha256'))
   blockers.push(...checkEvidenceChecks(evidence, requiredSeedEvidenceChecks, 'seed'))
   if (blockersOf(evidence).length > 0) {
     blockers.push(`seed evidence contains blockers: ${blockersOf(evidence).join('; ')}`)
@@ -380,8 +423,8 @@ export async function verifyXichengReleaseEvidencePackage({
   }
   const checks = [
     checkReleaseEvidence(releaseRef, normalizedStage, freshnessOptions),
-    checkManifestEvidence(manifestRef, freshnessOptions),
-    checkSeedEvidence(seedRef, freshnessOptions),
+    await checkManifestEvidence(manifestRef, rootDir, freshnessOptions),
+    await checkSeedEvidence(seedRef, rootDir, freshnessOptions),
     checkAppReadinessEvidence(appRef, normalizedStage, freshnessOptions),
     checkSecretSafety(evidenceRefs)
   ]

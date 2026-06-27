@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -21,8 +22,80 @@ async function writeJson(rootDir, relativePath, value) {
   return filePath
 }
 
-function releaseEvidence(overrides = {}) {
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex')
+}
+
+function mergeEvidence(base, overrides) {
   return {
+    ...base,
+    ...overrides,
+    summary: {
+      ...(base.summary || {}),
+      ...(overrides.summary || {})
+    },
+    checks: overrides.checks || base.checks,
+    blockers: overrides.blockers || base.blockers
+  }
+}
+
+async function writePoiSourceFiles(rootDir) {
+  const manifestFile = path.join(rootDir, 'workbench/xicheng-production-pois.json')
+  const sqlFile = path.join(rootDir, 'workbench/xicheng-poi-production-seed.sql')
+  const manifestSource = `${JSON.stringify({
+    regionCode: 'beijing-xicheng',
+    packageCode: 'XICHENG-MAP-001',
+    productionReady: true,
+    targetP0PoiCount: 80,
+    pois: Array.from({ length: 80 }, (_, index) => ({
+      poiCode: `xicheng-prod-poi-${String(index + 1).padStart(3, '0')}`
+    }))
+  }, null, 2)}\n`
+  const sqlSource = [
+    '/* Generated from reviewed Xicheng POI production manifest. */',
+    'INSERT INTO `xunjing_poi` VALUES',
+    Array.from({ length: 80 }, (_, index) => {
+      return `(@map_package_id, 'xicheng-prod-poi-${String(index + 1).padStart(3, '0')}')`
+    }).join(',\n'),
+    ';'
+  ].join('\n')
+  await mkdir(path.dirname(manifestFile), { recursive: true })
+  await writeFile(manifestFile, manifestSource)
+  await writeFile(sqlFile, sqlSource)
+  return {
+    manifestFile,
+    manifestSha256: sha256(manifestSource),
+    sqlFile,
+    sqlSha256: sha256(sqlSource)
+  }
+}
+
+async function writeManifestEvidenceFile(rootDir, overrides = {}) {
+  const sources = await writePoiSourceFiles(rootDir)
+  return writeJson(rootDir, 'qa/xicheng-poi-manifest-evidence.json', manifestEvidence({
+    ...overrides,
+    summary: {
+      manifestFile: sources.manifestFile,
+      manifestSha256: sources.manifestSha256,
+      ...(overrides.summary || {})
+    }
+  }))
+}
+
+async function writeSeedEvidenceFile(rootDir, overrides = {}) {
+  const sources = await writePoiSourceFiles(rootDir)
+  return writeJson(rootDir, 'qa/xicheng-poi-production-seed-evidence.json', seedEvidence({
+    ...overrides,
+    summary: {
+      sqlFile: sources.sqlFile,
+      sqlSha256: sources.sqlSha256,
+      ...(overrides.summary || {})
+    }
+  }))
+}
+
+function releaseEvidence(overrides = {}) {
+  return mergeEvidence({
     artifactType: 'xicheng-yudao-release-readiness',
     ok: true,
     status: 'PRODUCTION_READY_CANDIDATE',
@@ -49,12 +122,11 @@ function releaseEvidence(overrides = {}) {
       { name: 'xicheng-source-license', ok: true }
     ],
     blockers: [],
-    ...overrides
-  }
+  }, overrides)
 }
 
 function manifestEvidence(overrides = {}) {
-  return {
+  return mergeEvidence({
     artifactType: 'xicheng-poi-production-manifest-readiness',
     ok: true,
     status: 'PRODUCTION_POI_MANIFEST_READY',
@@ -79,12 +151,11 @@ function manifestEvidence(overrides = {}) {
       { name: 'poi-audit', ok: true }
     ],
     blockers: [],
-    ...overrides
-  }
+  }, overrides)
 }
 
 function seedEvidence(overrides = {}) {
-  return {
+  return mergeEvidence({
     artifactType: 'xicheng-poi-production-seed-readiness',
     ok: true,
     status: 'PRODUCTION_POI_SEED_READY',
@@ -106,12 +177,11 @@ function seedEvidence(overrides = {}) {
       { name: 'source-documents', ok: true }
     ],
     blockers: [],
-    ...overrides
-  }
+  }, overrides)
 }
 
 function appReadinessEvidence(overrides = {}) {
-  return {
+  return mergeEvidence({
     ok: true,
     checkedAt: freshCheckedAt(),
     summary: {
@@ -127,8 +197,7 @@ function appReadinessEvidence(overrides = {}) {
       { name: 'live-xicheng-trigger-gongwangfu', ok: true },
       { name: 'live-xicheng-trigger-planetarium', ok: true }
     ],
-    ...overrides
-  }
+  }, overrides)
 }
 
 function runPackageGate(args) {
@@ -151,8 +220,8 @@ describe('xicheng release evidence package gate', () => {
   test('accepts a complete production release evidence package and writes package evidence', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
-    const manifestPath = await writeJson(rootDir, 'qa/xicheng-poi-manifest-evidence.json', manifestEvidence())
-    const seedPath = await writeJson(rootDir, 'qa/xicheng-poi-production-seed-evidence.json', seedEvidence())
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
     const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
     const outputPath = path.join(rootDir, 'qa/xicheng-release-evidence-package.json')
 
@@ -191,7 +260,7 @@ describe('xicheng release evidence package gate', () => {
   test('fails closed when POI evidence was generated before field evidence gates existed', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
-    const manifestPath = await writeJson(rootDir, 'qa/xicheng-poi-manifest-evidence.json', manifestEvidence({
+    const manifestPath = await writeManifestEvidenceFile(rootDir, {
       checks: [
         { name: 'manifest-shape', ok: true },
         { name: 'manifest-production-flags', ok: true },
@@ -203,8 +272,8 @@ describe('xicheng release evidence package gate', () => {
         { name: 'poi-content', ok: true },
         { name: 'poi-audit', ok: true }
       ]
-    }))
-    const seedPath = await writeJson(rootDir, 'qa/xicheng-poi-production-seed-evidence.json', seedEvidence({
+    })
+    const seedPath = await writeSeedEvidenceFile(rootDir, {
       checks: [
         { name: 'sql-file', ok: true },
         { name: 'seed-shape', ok: true },
@@ -213,7 +282,7 @@ describe('xicheng release evidence package gate', () => {
         { name: 'production-metrics', ok: true },
         { name: 'source-documents', ok: true }
       ]
-    }))
+    })
     const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
     const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
 
@@ -233,11 +302,67 @@ describe('xicheng release evidence package gate', () => {
     expect(evidence.blockers.join('\n')).toContain('seed evidence must include field-evidence')
   })
 
+  test('fails closed when POI source hash metadata is missing from package inputs', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir, {
+      summary: {
+        sqlSha256: undefined
+      }
+    })
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+    const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath,
+      '--evidence-file', 'tmp/xicheng-release-evidence-package.json'
+    ])
+
+    expect(result.status).toBe(1)
+    const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
+    expect(evidence.status).toBe('NOT_READY')
+    expect(evidence.blockers.join('\n')).toContain('seed evidence sqlSha256 must be a sha256 hex digest')
+  })
+
+  test('fails closed when POI evidence source hash does not match package input source file', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
+    const manifestPath = await writeManifestEvidenceFile(rootDir, {
+      summary: {
+        manifestSha256: '0'.repeat(64)
+      }
+    })
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+    const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath,
+      '--evidence-file', 'tmp/xicheng-release-evidence-package.json'
+    ])
+
+    expect(result.status).toBe(1)
+    const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
+    expect(evidence.status).toBe('NOT_READY')
+    expect(evidence.blockers.join('\n')).toContain('manifest evidence manifestSha256 must match manifestFile content')
+  })
+
   test('fails closed when production APP readiness evidence comes from a local HTTP server', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
-    const manifestPath = await writeJson(rootDir, 'qa/xicheng-poi-manifest-evidence.json', manifestEvidence())
-    const seedPath = await writeJson(rootDir, 'qa/xicheng-poi-production-seed-evidence.json', seedEvidence())
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
     const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence({
       summary: {
         baseUrl: 'http://127.0.0.1:48080',
@@ -265,10 +390,10 @@ describe('xicheng release evidence package gate', () => {
   test('fails closed when package input evidence is missing checkedAt timestamp', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
-    const manifestPath = await writeJson(rootDir, 'qa/xicheng-poi-manifest-evidence.json', manifestEvidence())
-    const seedPath = await writeJson(rootDir, 'qa/xicheng-poi-production-seed-evidence.json', seedEvidence({
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir, {
       checkedAt: undefined
-    }))
+    })
     const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
     const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
 
@@ -291,10 +416,10 @@ describe('xicheng release evidence package gate', () => {
   test('fails closed when package input evidence is older than the allowed freshness window', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
-    const manifestPath = await writeJson(rootDir, 'qa/xicheng-poi-manifest-evidence.json', manifestEvidence({
+    const manifestPath = await writeManifestEvidenceFile(rootDir, {
       checkedAt: staleCheckedAt()
-    }))
-    const seedPath = await writeJson(rootDir, 'qa/xicheng-poi-production-seed-evidence.json', seedEvidence())
+    })
+    const seedPath = await writeSeedEvidenceFile(rootDir)
     const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
     const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
 
@@ -321,8 +446,8 @@ describe('xicheng release evidence package gate', () => {
         MYSQL_PASSWORD: 'prod-db-password'
       }
     }))
-    const manifestPath = await writeJson(rootDir, 'qa/xicheng-poi-manifest-evidence.json', manifestEvidence())
-    const seedPath = await writeJson(rootDir, 'qa/xicheng-poi-production-seed-evidence.json', seedEvidence())
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
     const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence({
       checks: [
         { name: 'live-xicheng-scan-resolve', ok: true },
@@ -351,8 +476,8 @@ describe('xicheng release evidence package gate', () => {
   test('rejects package evidence output paths outside qa tmp or workbench', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
-    const manifestPath = await writeJson(rootDir, 'qa/xicheng-poi-manifest-evidence.json', manifestEvidence())
-    const seedPath = await writeJson(rootDir, 'qa/xicheng-poi-production-seed-evidence.json', seedEvidence())
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
     const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
 
     const result = runPackageGate([
