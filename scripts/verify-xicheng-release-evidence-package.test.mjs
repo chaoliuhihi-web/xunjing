@@ -129,6 +129,12 @@ async function writeReleaseEvidenceFile(rootDir, overrides = {}) {
 
 async function writeManifestEvidenceFile(rootDir, overrides = {}) {
   const sources = await writePoiSourceFiles(rootDir)
+  await writeJson(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json', workbookEvidence({
+    summary: {
+      workbookFile: sources.workbookFile,
+      workbookSha256: sources.workbookSha256
+    }
+  }))
   return writeJson(rootDir, 'qa/xicheng-poi-manifest-evidence.json', manifestEvidence({
     ...overrides,
     summary: {
@@ -136,6 +142,18 @@ async function writeManifestEvidenceFile(rootDir, overrides = {}) {
       manifestSha256: sources.manifestSha256,
       sourceWorkbookFile: sources.workbookFile,
       sourceWorkbookSha256: sources.workbookSha256,
+      ...(overrides.summary || {})
+    }
+  }))
+}
+
+async function writeWorkbookEvidenceFile(rootDir, overrides = {}) {
+  const sources = await writePoiSourceFiles(rootDir)
+  return writeJson(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json', workbookEvidence({
+    ...overrides,
+    summary: {
+      workbookFile: sources.workbookFile,
+      workbookSha256: sources.workbookSha256,
       ...(overrides.summary || {})
     }
   }))
@@ -213,6 +231,32 @@ function manifestEvidence(overrides = {}) {
       { name: 'poi-field-evidence', ok: true },
       { name: 'poi-content', ok: true },
       { name: 'poi-audit', ok: true }
+    ],
+    blockers: [],
+  }, overrides)
+}
+
+function workbookEvidence(overrides = {}) {
+  return mergeEvidence({
+    artifactType: 'xicheng-poi-review-workbook-readiness',
+    ok: true,
+    status: 'XICHENG_POI_REVIEW_WORKBOOK_READY',
+    checkedAt: freshCheckedAt(),
+    summary: {
+      workbookRows: 80,
+      minPoiCount: 80,
+      categoryCount: 8,
+      placeholderCount: 0
+    },
+    checks: [
+      { name: 'workbook-file', ok: true },
+      { name: 'workbook-shape', ok: true },
+      { name: 'poi-count', ok: true },
+      { name: 'poi-identity', ok: true },
+      { name: 'poi-source-license', ok: true },
+      { name: 'poi-field-evidence', ok: true },
+      { name: 'poi-content-audit', ok: true },
+      { name: 'no-placeholder-cells', ok: true }
     ],
     blockers: [],
   }, overrides)
@@ -360,10 +404,27 @@ function appReadinessEvidence(overrides = {}) {
   }, overrides)
 }
 
-function runPackageGate(args) {
+function readArgValue(args, name) {
+  const index = args.indexOf(name)
+  return index >= 0 ? args[index + 1] : undefined
+}
+
+function runPackageGate(args, options = {}) {
+  const resolvedArgs = [...args]
+  const rootDir = readArgValue(resolvedArgs, '--root')
+  if (
+    !options.withoutDefaultWorkbookEvidence &&
+    rootDir &&
+    !resolvedArgs.includes('--poi-workbook-evidence')
+  ) {
+    resolvedArgs.push(
+      '--poi-workbook-evidence',
+      path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json')
+    )
+  }
   return spawnSync(process.execPath, [
     path.resolve('scripts/verify-xicheng-release-evidence-package.mjs'),
-    ...args
+    ...resolvedArgs
   ], {
     cwd: process.cwd(),
     encoding: 'utf8'
@@ -381,6 +442,7 @@ describe('xicheng release evidence package gate', () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeReleaseEvidenceFile(rootDir)
     const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const workbookPath = path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json')
     const seedPath = await writeSeedEvidenceFile(rootDir)
     const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
     const outputPath = path.join(rootDir, 'qa/xicheng-release-evidence-package.json')
@@ -390,6 +452,7 @@ describe('xicheng release evidence package gate', () => {
       '--stage', 'production',
       '--release-evidence', releasePath,
       '--poi-manifest-evidence', manifestPath,
+      '--poi-workbook-evidence', workbookPath,
       '--poi-seed-evidence', seedPath,
       '--app-readiness-evidence', appPath,
       '--evidence-file', 'qa/xicheng-release-evidence-package.json'
@@ -402,6 +465,7 @@ describe('xicheng release evidence package gate', () => {
     expect(report.summary).toMatchObject({
       stage: 'production',
       releaseStatus: 'PRODUCTION_READY_CANDIDATE',
+      poiWorkbookStatus: 'XICHENG_POI_REVIEW_WORKBOOK_READY',
       appReadinessCheckCount: 7,
       xichengRegionCode: 'beijing-xicheng',
       xichengPackageCode: 'XICHENG-MAP-001',
@@ -412,17 +476,20 @@ describe('xicheng release evidence package gate', () => {
     })
     const releaseEvidenceText = await readFile(releasePath, 'utf8')
     const manifestEvidenceText = await readFile(manifestPath, 'utf8')
+    const workbookEvidenceText = await readFile(workbookPath, 'utf8')
     const seedEvidenceText = await readFile(seedPath, 'utf8')
     const appEvidenceText = await readFile(appPath, 'utf8')
     expect(report.evidenceFileSha256).toMatchObject({
       release: sha256(releaseEvidenceText),
       poiManifest: sha256(manifestEvidenceText),
+      poiWorkbook: sha256(workbookEvidenceText),
       poiSeed: sha256(seedEvidenceText),
       appReadiness: sha256(appEvidenceText)
     })
     expect(report.checks.map((check) => check.name)).toEqual([
       'release-gate-evidence',
       'poi-manifest-evidence',
+      'poi-workbook-evidence',
       'poi-seed-evidence',
       'app-readiness-evidence',
       'evidence-consistency',
@@ -431,6 +498,95 @@ describe('xicheng release evidence package gate', () => {
     expect(report.blockers).toEqual([])
     const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
     expect(evidence.status).toBe('XICHENG_RELEASE_EVIDENCE_PACKAGE_READY')
+  })
+
+  test('fails closed when workbook readiness evidence is missing before packaging', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ], { withoutDefaultWorkbookEvidence: true })
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.checks.map((check) => check.name)).toContain('poi-workbook-evidence')
+    expect(report.blockers.join('\n')).toContain('workbook evidence is required')
+  })
+
+  test('fails closed when workbook evidence does not match manifest workbook provenance', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+    const otherWorkbookFile = path.join(rootDir, 'workbench/xicheng-other-review-workbook.csv')
+    const otherWorkbookText = 'poiCode,name\nxicheng-other,Other workbook\n'
+    await writeFile(otherWorkbookFile, otherWorkbookText)
+    const workbookPath = await writeWorkbookEvidenceFile(rootDir, {
+      summary: {
+        workbookFile: otherWorkbookFile,
+        workbookSha256: sha256(otherWorkbookText)
+      }
+    })
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-workbook-evidence', workbookPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.blockers.join('\n')).toContain('workbook and manifest sourceWorkbookFile must match')
+    expect(report.blockers.join('\n')).toContain('workbook and manifest sourceWorkbookSha256 must match')
+  })
+
+  test('fails closed when workbook evidence lacks reviewed row and placeholder metrics', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const workbookPath = await writeWorkbookEvidenceFile(rootDir, {
+      summary: {
+        workbookRows: undefined,
+        minPoiCount: undefined,
+        categoryCount: 7,
+        placeholderCount: 1
+      }
+    })
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-workbook-evidence', workbookPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.blockers.join('\n')).toContain('workbook evidence must prove at least 80 reviewed POI rows')
+    expect(report.blockers.join('\n')).toContain('workbook evidence must prove at least 8 POI categories')
+    expect(report.blockers.join('\n')).toContain('workbook evidence placeholderCount must be 0')
   })
 
   test('fails closed when POI evidence was generated before field evidence gates existed', async () => {

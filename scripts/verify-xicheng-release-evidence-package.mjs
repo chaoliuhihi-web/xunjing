@@ -49,6 +49,17 @@ const requiredManifestEvidenceChecks = [
   'poi-audit'
 ]
 
+const requiredWorkbookEvidenceChecks = [
+  'workbook-file',
+  'workbook-shape',
+  'poi-count',
+  'poi-identity',
+  'poi-source-license',
+  'poi-field-evidence',
+  'poi-content-audit',
+  'no-placeholder-cells'
+]
+
 const requiredSeedEvidenceChecks = [
   'sql-file',
   'seed-shape',
@@ -482,6 +493,50 @@ async function checkManifestEvidence(ref, rootDir, freshnessOptions) {
   return check('poi-manifest-evidence', blockers)
 }
 
+async function checkWorkbookEvidence(ref, rootDir, freshnessOptions) {
+  const blockers = []
+  if (ref.error) {
+    blockers.push(ref.error)
+    return check('poi-workbook-evidence', blockers)
+  }
+  const evidence = ref.data || {}
+  const summary = summaryOf(evidence)
+  if (evidence.artifactType !== 'xicheng-poi-review-workbook-readiness') {
+    blockers.push('workbook evidence artifactType must be xicheng-poi-review-workbook-readiness')
+  }
+  blockers.push(...checkEvidenceTimestamp(evidence, 'workbook', freshnessOptions))
+  if (evidence.ok !== true) {
+    blockers.push('workbook evidence ok must be true')
+  }
+  if (evidence.status !== 'XICHENG_POI_REVIEW_WORKBOOK_READY') {
+    blockers.push('workbook evidence status must be XICHENG_POI_REVIEW_WORKBOOK_READY')
+  }
+  const workbookRows = Number(summary.workbookRows)
+  const minPoiCount = Number(summary.minPoiCount)
+  const categoryCount = Number(summary.categoryCount)
+  const placeholderCount = Number(summary.placeholderCount)
+  if (
+    !Number.isFinite(workbookRows) ||
+    workbookRows < productionPoiTarget ||
+    !Number.isFinite(minPoiCount) ||
+    minPoiCount < productionPoiTarget
+  ) {
+    blockers.push(`workbook evidence must prove at least ${productionPoiTarget} reviewed POI rows`)
+  }
+  if (!Number.isFinite(categoryCount) || categoryCount < 8) {
+    blockers.push('workbook evidence must prove at least 8 POI categories')
+  }
+  if (!Number.isFinite(placeholderCount) || placeholderCount !== 0) {
+    blockers.push('workbook evidence placeholderCount must be 0')
+  }
+  blockers.push(...await checkEvidenceSourceHash(rootDir, evidence, 'workbook', 'workbookFile', 'workbookSha256'))
+  blockers.push(...checkEvidenceChecks(evidence, requiredWorkbookEvidenceChecks, 'workbook'))
+  if (blockersOf(evidence).length > 0) {
+    blockers.push(`workbook evidence contains blockers: ${blockersOf(evidence).join('; ')}`)
+  }
+  return check('poi-workbook-evidence', blockers)
+}
+
 async function checkSeedEvidence(ref, rootDir, freshnessOptions) {
   const blockers = []
   if (ref.error) {
@@ -587,10 +642,11 @@ function normalizeEvidencePath(rootDir, filePath) {
     : path.resolve(resolvedRoot, filePath)
 }
 
-function checkEvidenceConsistency({ rootDir, releaseRef, manifestRef, seedRef, appRef }) {
+function checkEvidenceConsistency({ rootDir, releaseRef, manifestRef, workbookRef, seedRef, appRef }) {
   const blockers = []
   const releaseSummary = summaryOf(releaseRef.data)
   const manifestSummary = summaryOf(manifestRef.data)
+  const workbookSummary = summaryOf(workbookRef.data)
   const seedSummary = summaryOf(seedRef.data)
   const appSummary = summaryOf(appRef.data)
   const releaseManifestEvidenceFile = normalizeEvidencePath(rootDir, releaseSummary.manifestEvidenceFile)
@@ -634,6 +690,21 @@ function checkEvidenceConsistency({ rootDir, releaseRef, manifestRef, seedRef, a
     manifestSummary.reviewBatchEvidencePackageRef !== seedSummary.reviewBatchEvidencePackageRef
   ) {
     blockers.push('manifest and seed evidence reviewBatchEvidencePackageRef must match')
+  }
+  if (
+    manifestSummary.sourceWorkbookFile &&
+    workbookSummary.workbookFile &&
+    normalizeEvidencePath(rootDir, manifestSummary.sourceWorkbookFile) !==
+      normalizeEvidencePath(rootDir, workbookSummary.workbookFile)
+  ) {
+    blockers.push('workbook and manifest sourceWorkbookFile must match')
+  }
+  if (
+    manifestSummary.sourceWorkbookSha256 &&
+    workbookSummary.workbookSha256 &&
+    manifestSummary.sourceWorkbookSha256 !== workbookSummary.workbookSha256
+  ) {
+    blockers.push('workbook and manifest sourceWorkbookSha256 must match')
   }
   if (
     appSummary.xichengRegionCode &&
@@ -704,6 +775,7 @@ export async function verifyXichengReleaseEvidencePackage({
   stage = 'production',
   releaseEvidencePath,
   poiManifestEvidencePath,
+  poiWorkbookEvidencePath,
   poiSeedEvidencePath,
   appReadinessEvidencePath,
   maxEvidenceAgeHours = defaultMaxEvidenceAgeHours,
@@ -716,10 +788,11 @@ export async function verifyXichengReleaseEvidencePackage({
   const evidenceRefs = await Promise.all([
     loadJsonFile(rootDir, releaseEvidencePath, 'release'),
     loadJsonFile(rootDir, poiManifestEvidencePath, 'manifest'),
+    loadJsonFile(rootDir, poiWorkbookEvidencePath, 'workbook'),
     loadJsonFile(rootDir, poiSeedEvidencePath, 'seed'),
     loadJsonFile(rootDir, appReadinessEvidencePath, 'app readiness')
   ])
-  const [releaseRef, manifestRef, seedRef, appRef] = evidenceRefs
+  const [releaseRef, manifestRef, workbookRef, seedRef, appRef] = evidenceRefs
   const freshnessOptions = {
     now,
     maxEvidenceAgeMs: maxEvidenceAgeHours * 60 * 60 * 1000
@@ -727,9 +800,10 @@ export async function verifyXichengReleaseEvidencePackage({
   const checks = [
     await checkReleaseEvidence(releaseRef, normalizedStage, freshnessOptions),
     await checkManifestEvidence(manifestRef, rootDir, freshnessOptions),
+    await checkWorkbookEvidence(workbookRef, rootDir, freshnessOptions),
     await checkSeedEvidence(seedRef, rootDir, freshnessOptions),
     checkAppReadinessEvidence(appRef, normalizedStage, freshnessOptions),
-    checkEvidenceConsistency({ rootDir, releaseRef, manifestRef, seedRef, appRef }),
+    checkEvidenceConsistency({ rootDir, releaseRef, manifestRef, workbookRef, seedRef, appRef }),
     checkSecretSafety(evidenceRefs)
   ]
   const blockers = checks.flatMap((item) => item.blockers)
@@ -744,6 +818,7 @@ export async function verifyXichengReleaseEvidencePackage({
       stage: normalizedStage,
       releaseStatus: releaseRef.data?.status,
       poiManifestStatus: manifestRef.data?.status,
+      poiWorkbookStatus: workbookRef.data?.status,
       poiSeedStatus: seedRef.data?.status,
       appReadinessCheckCount: countOkChecks(appRef.data),
       xichengRegionCode: summaryOf(manifestRef.data).regionCode,
@@ -760,12 +835,14 @@ export async function verifyXichengReleaseEvidencePackage({
     evidenceFiles: {
       release: releaseRef.path,
       poiManifest: manifestRef.path,
+      poiWorkbook: workbookRef.path,
       poiSeed: seedRef.path,
       appReadiness: appRef.path
     },
     evidenceFileSha256: {
       release: releaseRef.sha256,
       poiManifest: manifestRef.sha256,
+      poiWorkbook: workbookRef.sha256,
       poiSeed: seedRef.sha256,
       appReadiness: appRef.sha256
     },
@@ -813,6 +890,8 @@ async function runCli() {
     releaseEvidencePath: readArgValue(args, '--release-evidence') || process.env.XICHENG_RELEASE_EVIDENCE,
     poiManifestEvidencePath: readArgValue(args, '--poi-manifest-evidence') ||
       process.env.XICHENG_POI_MANIFEST_EVIDENCE,
+    poiWorkbookEvidencePath: readArgValue(args, '--poi-workbook-evidence') ||
+      process.env.XICHENG_POI_WORKBOOK_EVIDENCE,
     poiSeedEvidencePath: readArgValue(args, '--poi-seed-evidence') ||
       process.env.XICHENG_POI_SEED_EVIDENCE,
     appReadinessEvidencePath: readArgValue(args, '--app-readiness-evidence') ||
