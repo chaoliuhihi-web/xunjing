@@ -200,6 +200,16 @@ async function startPlatformFixture() {
     if (req.url === '/app-api/xunjing/resource/events' && req.method === 'POST') {
       if (!requireTenant()) return
       const payload = await readJsonBody(req)
+      if (payload.eventType === 'ERROR_FEEDBACK') {
+        expect(payload.packageCode).toBe('XICHENG-MAP-001')
+        expect(payload.sceneCode).toBe('xicheng-ai-guide')
+        expect(payload.sourceChannel).toBe('platform-readiness')
+        expect(payload.userTraceId).toBe('platform-readiness-xicheng-error-feedback')
+        const clientPayload = JSON.parse(payload.payloadJson)
+        expect(clientPayload.category).toBe('ocr_no_match')
+        expect(clientPayload.message).toContain('无法识别')
+        expect(clientPayload.severity).toBe('WARN')
+      }
       if (payload.eventType === 'MEDIA_USE') {
         const clientPayload = JSON.parse(payload.payloadJson)
         if (clientPayload.mediaId !== 3101 || clientPayload.usageType !== 'READINESS_CHECK') {
@@ -320,6 +330,7 @@ describe('xunjing platform readiness verifier', () => {
       'xicheng-poi-seed-quality',
       'xicheng-trigger-backend',
       'xicheng-ai-source-guard-backend',
+      'xicheng-app-event-backend',
       'admin-ui-contract',
       'environment',
       'live-admin',
@@ -350,6 +361,7 @@ describe('xunjing platform readiness verifier', () => {
       'xicheng-poi-seed-quality',
       'xicheng-trigger-backend',
       'xicheng-ai-source-guard-backend',
+      'xicheng-app-event-backend',
       'admin-ui-contract'
     ])
   })
@@ -373,6 +385,7 @@ describe('xunjing platform readiness verifier', () => {
       'xicheng-poi-seed-quality',
       'xicheng-trigger-backend',
       'xicheng-ai-source-guard-backend',
+      'xicheng-app-event-backend',
       'admin-ui-contract',
       'environment',
       'live-resource-package',
@@ -411,6 +424,7 @@ describe('xunjing platform readiness verifier', () => {
 
     expect(result.ok).toBe(true)
     expect(result.checks.map((check) => check.name)).toContain('live-xicheng-scan-resolve')
+    expect(result.checks.map((check) => check.name)).toContain('live-xicheng-error-feedback')
     expect(result.checks.map((check) => check.name)).toContain('live-xicheng-ai-chat-sourced')
     expect(result.checks.map((check) => check.name)).toContain('live-xicheng-ai-chat-blocked')
   })

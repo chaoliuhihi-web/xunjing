@@ -407,6 +407,33 @@ async function checkXichengAiSourceGuardBackend(rootDir) {
   )
 }
 
+async function checkXichengAppEventBackend(rootDir) {
+  const appService = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java'
+  )
+  const enums = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/enums/XunjingEnums.java'
+  )
+  const appTest = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImplTest.java'
+  )
+  for (const snippet of [
+    'resolveAppEventQrCode(reqVO, hasText(reqVO.getPackageCode()))',
+    'buildAppEventPayload'
+  ]) {
+    assertContains(appService, snippet, 'XunjingAppServiceImpl.java')
+  }
+  assertContains(enums, 'ERROR_FEEDBACK("ERROR_FEEDBACK")', 'XunjingEnums.java')
+  assertContains(appTest, 'testRecordAppErrorFeedbackEventKeepsXichengContext', 'XunjingAppServiceImplTest.java')
+  return pass(
+    'xicheng-app-event-backend',
+    'Xicheng APP events accept package-bound error feedback and keep ordinary scene context'
+  )
+}
+
 async function checkAdminUiContract(rootDir) {
   const api = await readText(
     rootDir,
@@ -510,6 +537,34 @@ async function checkLiveXichengScanResolve(baseUrl, fetchImpl, tenantId) {
     throw new Error('scan resolve endpoint did not return the Xicheng map target')
   }
   return pass('live-xicheng-scan-resolve', 'Xicheng QR scene resolves to the APP target path')
+}
+
+async function checkLiveXichengErrorFeedback(baseUrl, fetchImpl, tenantId) {
+  const json = await fetchJson(
+    new URL('/app-api/xunjing/resource/events', baseUrl),
+    {
+      method: 'POST',
+      headers: tenantHeaders(tenantId, { 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        packageCode: 'XICHENG-MAP-001',
+        sceneCode: 'xicheng-ai-guide',
+        eventType: 'ERROR_FEEDBACK',
+        sourceChannel: 'platform-readiness',
+        userTraceId: 'platform-readiness-xicheng-error-feedback',
+        payloadJson: JSON.stringify({
+          category: 'ocr_no_match',
+          message: '无法识别当前位置',
+          poiCode: 'xicheng-unknown',
+          severity: 'WARN'
+        })
+      })
+    },
+    fetchImpl
+  )
+  if (json.code !== 0 || !json.data) {
+    throw new Error('/app-api/xunjing/resource/events did not record Xicheng ERROR_FEEDBACK')
+  }
+  return pass('live-xicheng-error-feedback', 'Xicheng APP error feedback event is accepted with package attribution')
 }
 
 async function checkLiveXichengTrigger(baseUrl, fetchImpl, tenantId, smokeCase) {
@@ -815,6 +870,7 @@ export async function verifyXunjingPlatformReadiness({
   checks.push(await checkXichengPoiSeedQuality(rootDir))
   checks.push(await checkXichengTriggerBackend(rootDir))
   checks.push(await checkXichengAiSourceGuardBackend(rootDir))
+  checks.push(await checkXichengAppEventBackend(rootDir))
   checks.push(await checkAdminUiContract(rootDir))
   if (!staticOnly) {
     checks.push(checkEnvironment(env))
@@ -829,6 +885,7 @@ export async function verifyXunjingPlatformReadiness({
     checks.push(await checkLiveScanResolve(baseUrl, fetchImpl, liveTenantId))
     if (includeXichengAppCheck) {
       checks.push(await checkLiveXichengScanResolve(baseUrl, fetchImpl, liveTenantId))
+      checks.push(await checkLiveXichengErrorFeedback(baseUrl, fetchImpl, liveTenantId))
       checks.push(await checkLiveXichengAiChatSourced(baseUrl, fetchImpl, liveTenantId))
       checks.push(await checkLiveXichengAiChatBlocked(baseUrl, fetchImpl, liveTenantId))
     }

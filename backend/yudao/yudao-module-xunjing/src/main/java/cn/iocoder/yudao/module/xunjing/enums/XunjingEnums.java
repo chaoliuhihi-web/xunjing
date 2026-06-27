@@ -113,6 +113,7 @@ public final class XunjingEnums {
         VIEW("VIEW"),
         ASK("ASK"),
         TRIGGER_RESOLVE("TRIGGER_RESOLVE"),
+        ERROR_FEEDBACK("ERROR_FEEDBACK"),
         SHARE("SHARE"),
         MEDIA_USE("MEDIA_USE");
 

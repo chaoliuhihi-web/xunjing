@@ -215,7 +215,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long recordEvent(AppInteractionEventReqVO reqVO) {
-        XunjingQrCodeDO qrCode = resolveAppEventQrCode(reqVO);
+        XunjingQrCodeDO qrCode = resolveAppEventQrCode(reqVO, hasText(reqVO.getPackageCode()));
         XunjingResourcePackageDO resourcePackage = resolveAppEventPackage(reqVO, qrCode);
 
         XunjingInteractionEventDO event = new XunjingInteractionEventDO();
@@ -276,13 +276,13 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         return respVO;
     }
 
-    private XunjingQrCodeDO resolveAppEventQrCode(AppInteractionEventReqVO reqVO) {
+    private XunjingQrCodeDO resolveAppEventQrCode(AppInteractionEventReqVO reqVO, boolean packageCodeProvided) {
         if (!hasText(reqVO.getSceneCode())) {
             return null;
         }
         XunjingQrCodeDO qrCode = qrCodeMapper.selectBySceneCodeAndStatus(
                 reqVO.getSceneCode(), QrCodeStatus.ACTIVE.getStatus());
-        if (qrCode == null) {
+        if (qrCode == null && !packageCodeProvided) {
             throw new IllegalArgumentException("xunjing qr code not exists: " + reqVO.getSceneCode());
         }
         return qrCode;

@@ -249,6 +249,37 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testRecordAppErrorFeedbackEventKeepsXichengContext() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+
+        AppInteractionEventReqVO reqVO = new AppInteractionEventReqVO();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-ai-guide");
+        reqVO.setEventType(XunjingEnums.EventType.ERROR_FEEDBACK.getType());
+        reqVO.setSourceChannel("xicheng-app");
+        reqVO.setUserTraceId("trace-xicheng-error-001");
+        reqVO.setPayloadJson("""
+                {"category":"ocr_no_match","message":"无法识别当前位置","poiCode":"xicheng-unknown","severity":"WARN"}
+                """);
+
+        Long eventId = appService.recordEvent(reqVO);
+
+        XunjingInteractionEventDO event = interactionEventMapper.selectById(eventId);
+        assertEquals(packageId, event.getPackageId());
+        assertEquals(schoolId, event.getSchoolId());
+        assertEquals(XunjingEnums.EventType.ERROR_FEEDBACK.getType(), event.getEventType());
+        assertEquals("xicheng-app", event.getSourceChannel());
+        assertEquals("trace-xicheng-error-001", event.getUserTraceId());
+        assertTrue(event.getPayloadJson().contains("\"packageCode\":\"XICHENG-MAP-001\""));
+        assertTrue(event.getPayloadJson().contains("\"sceneCode\":\"xicheng-ai-guide\""));
+        assertTrue(event.getPayloadJson().contains("\"category\":\"ocr_no_match\""));
+        assertTrue(event.getPayloadJson().contains("\"message\":\"无法识别当前位置\""));
+        assertTrue(event.getPayloadJson().contains("\"poiCode\":\"xicheng-unknown\""));
+    }
+
+    @Test
     public void testRecordAppEventDefaultsBlankTypeAndRejectsInvalidType() {
         Long projectId = consoleService.createProject(projectReq());
         Long schoolId = consoleService.createSchool(schoolReq());
