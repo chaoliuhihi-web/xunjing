@@ -474,6 +474,7 @@ async function checkManifestEvidence(ref, rootDir, freshnessOptions) {
   }
   blockers.push(...checkReviewBatchSummary(summary, 'manifest'))
   blockers.push(...await checkEvidenceSourceHash(rootDir, evidence, 'manifest', 'manifestFile', 'manifestSha256'))
+  blockers.push(...await checkEvidenceSourceHash(rootDir, evidence, 'manifest source workbook', 'sourceWorkbookFile', 'sourceWorkbookSha256'))
   blockers.push(...checkEvidenceChecks(evidence, requiredManifestEvidenceChecks, 'manifest'))
   if (blockersOf(evidence).length > 0) {
     blockers.push(`manifest evidence contains blockers: ${blockersOf(evidence).join('; ')}`)
@@ -748,6 +749,8 @@ export async function verifyXichengReleaseEvidencePackage({
       xichengRegionCode: summaryOf(manifestRef.data).regionCode,
       xichengPackageCode: summaryOf(manifestRef.data).packageCode,
       reviewBatchCode: summaryOf(manifestRef.data).reviewBatchCode,
+      sourceWorkbookFile: summaryOf(manifestRef.data).sourceWorkbookFile,
+      sourceWorkbookSha256: summaryOf(manifestRef.data).sourceWorkbookSha256,
       totalChecks: checks.length,
       passedChecks: checks.filter((item) => item.ok).length,
       failedChecks: checks.filter((item) => !item.ok).length,

@@ -41,6 +41,7 @@ function mergeEvidence(base, overrides) {
 
 async function writePoiSourceFiles(rootDir) {
   const manifestFile = path.join(rootDir, 'workbench/xicheng-production-pois.json')
+  const workbookFile = path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv')
   const sqlFile = path.join(rootDir, 'workbench/xicheng-poi-production-seed.sql')
   const manifestSource = `${JSON.stringify({
     regionCode: 'beijing-xicheng',
@@ -59,12 +60,21 @@ async function writePoiSourceFiles(rootDir) {
     }).join(',\n'),
     ';'
   ].join('\n')
+  const workbookSource = [
+    'poiCode,name,licenseStatus,photoEvidenceStatus,triggerSmokeStatus',
+    ...Array.from({ length: 80 }, (_, index) => {
+      return `xicheng-prod-poi-${String(index + 1).padStart(3, '0')},Xicheng Production POI ${index + 1},APPROVED,APPROVED,PASSED`
+    })
+  ].join('\n')
   await mkdir(path.dirname(manifestFile), { recursive: true })
   await writeFile(manifestFile, manifestSource)
+  await writeFile(workbookFile, workbookSource)
   await writeFile(sqlFile, sqlSource)
   return {
     manifestFile,
     manifestSha256: sha256(manifestSource),
+    workbookFile,
+    workbookSha256: sha256(workbookSource),
     sqlFile,
     sqlSha256: sha256(sqlSource)
   }
@@ -124,6 +134,8 @@ async function writeManifestEvidenceFile(rootDir, overrides = {}) {
     summary: {
       manifestFile: sources.manifestFile,
       manifestSha256: sources.manifestSha256,
+      sourceWorkbookFile: sources.workbookFile,
+      sourceWorkbookSha256: sources.workbookSha256,
       ...(overrides.summary || {})
     }
   }))
@@ -394,6 +406,8 @@ describe('xicheng release evidence package gate', () => {
       xichengRegionCode: 'beijing-xicheng',
       xichengPackageCode: 'XICHENG-MAP-001',
       reviewBatchCode: 'xicheng-p0-poi-review-20260627',
+      sourceWorkbookFile: path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv'),
+      sourceWorkbookSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
       blockerCount: 0
     })
     const releaseEvidenceText = await readFile(releasePath, 'utf8')
@@ -525,6 +539,34 @@ describe('xicheng release evidence package gate', () => {
     expect(evidence.blockers.join('\n')).toContain('seed evidence must include review-batch-metrics')
     expect(evidence.blockers.join('\n')).toContain('seed evidence reviewBatchCode is required')
     expect(evidence.blockers.join('\n')).toContain('seed evidence reviewBatchEvidencePackageRef must be a non-local evidence package reference')
+  })
+
+  test('fails closed when manifest evidence does not expose source workbook provenance', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
+    const manifestPath = await writeManifestEvidenceFile(rootDir, {
+      summary: {
+        sourceWorkbookFile: undefined,
+        sourceWorkbookSha256: undefined
+      }
+    })
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+    const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath,
+      '--evidence-file', 'tmp/xicheng-release-evidence-package.json'
+    ])
+
+    expect(result.status).toBe(1)
+    const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
+    expect(evidence.status).toBe('NOT_READY')
+    expect(evidence.blockers.join('\n')).toContain('manifest source workbook evidence sourceWorkbookFile is required')
   })
 
   test('fails closed when release evidence was generated before vector embedding gate existed', async () => {
