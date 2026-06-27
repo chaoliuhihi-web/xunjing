@@ -6,6 +6,7 @@ import {
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 
 export const XICHENG_AI_CHAT_API_PATH = 'app-api/xunjing/ai/chat'
+const XICHENG_BLOCKED_ANSWER = '无已审核来源，不能回答'
 
 export const buildXichengAiChatPayload = ({ question = '', context = {} } = {}) => ({
 	packageCode: context.packageCode || XICHENG_REGION_CONFIG.packageCode,
@@ -17,7 +18,8 @@ export const buildXichengAiChatPayload = ({ question = '', context = {} } = {}) 
 	poiCode: context.poiCode || '',
 	poiName: context.poiName || '',
 	companionName: context.companionName || XICHENG_REGION_CONFIG.companionName,
-	recognitionConfidence: context.confidence || null
+	recognitionConfidence: context.confidence || null,
+	safetyStatus: context.safetyStatus || ''
 })
 
 export const normalizeXichengAiChatResponse = (payload = {}) => {
@@ -26,11 +28,12 @@ export const normalizeXichengAiChatResponse = (payload = {}) => {
 		: Array.isArray(payload.recommendedQuestions)
 			? payload.recommendedQuestions
 			: []
+	const safetyStatus = payload.safetyStatus || ''
 	return {
-		answer: payload.answer ? String(payload.answer) : '',
+		answer: safetyStatus === 'BLOCKED' ? XICHENG_BLOCKED_ANSWER : payload.answer ? String(payload.answer) : '',
 		suggestedQuestions,
 		sources: Array.isArray(payload.sources) ? payload.sources : [],
-		safetyStatus: payload.safetyStatus || '',
+		safetyStatus,
 		logId: payload.logId || ''
 	}
 }
