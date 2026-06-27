@@ -246,6 +246,7 @@
 			<view class="evidence-actions">
 				<button class="ghost-button" @click="openPrivacyPolicy">隐私政策</button>
 				<button class="ghost-button" @click="openUserProtocol">用户协议</button>
+				<button class="ghost-button" @click="openAiContentNotice">AI 内容说明</button>
 				<button class="ghost-button danger-button" @click="clearXichengLocalData">清除西城本地数据</button>
 			</view>
 		</view>
@@ -698,6 +699,14 @@ export default {
 		openUserProtocol() {
 			uni.navigateTo({
 				url: '/pagesInfo/aboutus/protocol'
+			})
+		},
+		openAiContentNotice() {
+			uni.showModal({
+				title: 'AI 内容说明',
+				content: '小京回答和游记草稿由 AI 辅助生成，仅作旅行参考；西城讲解优先使用已审核来源，无已审核来源时不编造。',
+				showCancel: false,
+				confirmText: '知道了'
 			})
 		},
 		clearXichengLocalData() {

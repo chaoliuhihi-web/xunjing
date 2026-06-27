@@ -41,10 +41,12 @@ for (const required of [
   '清除西城本地数据',
   '隐私政策',
   '用户协议',
+  'AI 内容说明',
   'clearXichengLocalData',
   'resetXichengLocalState',
   'openPrivacyPolicy',
   'openUserProtocol',
+  'openAiContentNotice',
   'privacyClearStorageKeys'
 ]) {
   assert.ok(travelogue.includes(required), `Travelogue should expose privacy/local data control ${required}`)
@@ -72,6 +74,12 @@ assert.match(
   travelogue,
   /openUserProtocol\(\)[\s\S]*url:\s*'\/pagesInfo\/aboutus\/protocol'/,
   'User agreement entry should navigate to the existing user protocol page'
+)
+
+assert.match(
+  travelogue,
+  /openAiContentNotice\(\)[\s\S]*uni\.showModal\([\s\S]*AI 内容说明[\s\S]*AI 辅助生成[\s\S]*仅作旅行参考[\s\S]*已审核来源[\s\S]*不编造/,
+  'AI content notice should explain AI-assisted output, reference-only use, reviewed-source priority, and no fabrication without sources'
 )
 
 assert.match(
