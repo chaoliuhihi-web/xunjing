@@ -1220,6 +1220,37 @@ describe('xicheng release evidence package gate', () => {
     expect(evidence.blockers.join('\n')).toContain('app readiness evidence check live-xicheng-ai-chat-blocked summary.contextEcho must be true')
   })
 
+  test('fails closed when APP AI readiness summaries do not use Xicheng AI guide scene', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const workbookPath = path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json')
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appEvidence = appReadinessEvidence()
+    for (const check of appEvidence.checks.filter((item) => item.name.startsWith('live-xicheng-ai-chat-'))) {
+      check.summary.sceneCode = 'wrong-scene'
+    }
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appEvidence)
+    const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-workbook-evidence', workbookPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath,
+      '--evidence-file', 'tmp/xicheng-release-evidence-package.json'
+    ])
+
+    expect(result.status).toBe(1)
+    const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
+    expect(evidence.status).toBe('NOT_READY')
+    expect(evidence.blockers.join('\n')).toContain('app readiness evidence check live-xicheng-ai-chat-sourced summary.sceneCode must be xicheng-ai-guide')
+    expect(evidence.blockers.join('\n')).toContain('app readiness evidence check live-xicheng-ai-chat-blocked summary.sceneCode must be xicheng-ai-guide')
+  })
+
   test('fails closed when package input evidence is missing checkedAt timestamp', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeReleaseEvidenceFile(rootDir)
@@ -1344,6 +1375,7 @@ describe('xicheng release evidence package gate', () => {
     expect(deployDoc).toContain('check.summary.sourceCount')
     expect(deployDoc).toContain('check.summary.poiName')
     expect(deployDoc).toContain('check.summary.contextEcho')
+    expect(deployDoc).toContain('check.summary.sceneCode')
     expect(deployDoc).toContain('check.summary.confidence')
     expect(deployDoc).toContain('check.summary.packageCode')
     expect(deployDoc).toContain('check.summary.targetPath')
