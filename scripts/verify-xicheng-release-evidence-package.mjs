@@ -244,7 +244,7 @@ function checkSummaryContains(summary, field, expectedSnippet, label, blockers) 
   }
 }
 
-function checkAppReadinessCheckSummaries(evidence) {
+function checkAppReadinessCheckSummaries(evidence, expectedTenantId) {
   const blockers = []
   const checks = Array.isArray(evidence?.checks) ? evidence.checks : []
   const byName = new Map(checks.map((item) => [item.name, item]))
@@ -270,6 +270,9 @@ function checkAppReadinessCheckSummaries(evidence) {
 
   const sourcedSummary = summaryOfCheck('live-xicheng-ai-chat-sourced')
   checkSummaryEquals(sourcedSummary, 'endpoint', '/app-api/xunjing/ai/chat', 'app readiness evidence check live-xicheng-ai-chat-sourced', blockers)
+  if (hasText(expectedTenantId)) {
+    checkSummaryEquals(sourcedSummary, 'tenantId', expectedTenantId, 'app readiness evidence check live-xicheng-ai-chat-sourced', blockers)
+  }
   checkSummaryEquals(sourcedSummary, 'regionCode', expectedXichengRegionCode, 'app readiness evidence check live-xicheng-ai-chat-sourced', blockers)
   checkSummaryEquals(sourcedSummary, 'packageCode', expectedXichengPackageCode, 'app readiness evidence check live-xicheng-ai-chat-sourced', blockers)
   checkSummaryEquals(sourcedSummary, 'sceneCode', 'xicheng-ai-guide', 'app readiness evidence check live-xicheng-ai-chat-sourced', blockers)
@@ -284,6 +287,9 @@ function checkAppReadinessCheckSummaries(evidence) {
 
   const blockedSummary = summaryOfCheck('live-xicheng-ai-chat-blocked')
   checkSummaryEquals(blockedSummary, 'endpoint', '/app-api/xunjing/ai/chat', 'app readiness evidence check live-xicheng-ai-chat-blocked', blockers)
+  if (hasText(expectedTenantId)) {
+    checkSummaryEquals(blockedSummary, 'tenantId', expectedTenantId, 'app readiness evidence check live-xicheng-ai-chat-blocked', blockers)
+  }
   checkSummaryEquals(blockedSummary, 'regionCode', expectedXichengRegionCode, 'app readiness evidence check live-xicheng-ai-chat-blocked', blockers)
   checkSummaryEquals(blockedSummary, 'packageCode', expectedXichengPackageCode, 'app readiness evidence check live-xicheng-ai-chat-blocked', blockers)
   checkSummaryEquals(blockedSummary, 'sceneCode', 'xicheng-ai-guide', 'app readiness evidence check live-xicheng-ai-chat-blocked', blockers)
@@ -637,7 +643,7 @@ function checkAppReadinessEvidence(ref, stage, freshnessOptions) {
     blockers.push('app readiness evidence xichengPackageCode must be XICHENG-MAP-001')
   }
   blockers.push(...checkEvidenceChecks(evidence, requiredAppReadinessChecks, 'app readiness'))
-  blockers.push(...checkAppReadinessCheckSummaries(evidence))
+  blockers.push(...checkAppReadinessCheckSummaries(evidence, tenantId))
   const failedChecks = Array.isArray(evidence.checks)
     ? evidence.checks.filter((item) => item.ok !== true)
     : []

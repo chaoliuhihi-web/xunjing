@@ -720,6 +720,7 @@ async function checkLiveXichengAiChatSourced(baseUrl, fetchImpl, tenantId) {
   }
   return pass('live-xicheng-ai-chat-sourced', 'Xicheng AI chat returns a safe answer with matching POI sources', {
     endpoint: '/app-api/xunjing/ai/chat',
+    tenantId: String(tenantId),
     packageCode: json.data.packageCode,
     sceneCode: json.data.sceneCode,
     regionCode: json.data.regionCode,
@@ -765,6 +766,7 @@ async function checkLiveXichengAiChatBlocked(baseUrl, fetchImpl, tenantId) {
   assertXichengAiChatContextEcho(json.data, expectedContext)
   return pass('live-xicheng-ai-chat-blocked', 'Xicheng AI chat blocks when no matching POI source is available', {
     endpoint: '/app-api/xunjing/ai/chat',
+    tenantId: String(tenantId),
     packageCode: json.data.packageCode,
     sceneCode: json.data.sceneCode,
     regionCode: json.data.regionCode,

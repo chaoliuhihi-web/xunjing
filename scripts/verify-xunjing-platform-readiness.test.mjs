@@ -573,6 +573,7 @@ describe('xunjing platform readiness verifier', () => {
     })
     expect(checkByName(result, 'live-xicheng-ai-chat-sourced')?.summary).toMatchObject({
       endpoint: '/app-api/xunjing/ai/chat',
+      tenantId: '1',
       packageCode: 'XICHENG-MAP-001',
       sceneCode: 'xicheng-ai-guide',
       regionCode: 'beijing-xicheng',
@@ -585,6 +586,7 @@ describe('xunjing platform readiness verifier', () => {
     })
     expect(checkByName(result, 'live-xicheng-ai-chat-blocked')?.summary).toMatchObject({
       endpoint: '/app-api/xunjing/ai/chat',
+      tenantId: '1',
       packageCode: 'XICHENG-MAP-001',
       sceneCode: 'xicheng-ai-guide',
       regionCode: 'beijing-xicheng',
