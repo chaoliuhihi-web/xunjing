@@ -20,6 +20,7 @@ for (const required of [
   'routePointCount',
   'startRecordingSession',
   'pauseRecordingSession',
+  'resumeRecordingSession',
   'finishRecordingSession',
   'deleteRecordingSession',
   'captureTrackPoint',
@@ -49,6 +50,24 @@ assert.match(
   travelogue,
   /pauseRecordingSession\(\)[\s\S]*status:\s*'paused'[\s\S]*pausedAt/,
   'Pausing a recording session should preserve the session and mark pausedAt'
+)
+
+assert.match(
+  travelogue,
+  /@click="resumeRecordingSession"/,
+  'Recording controls should expose an explicit resume entry after pausing'
+)
+
+assert.match(
+  travelogue,
+  /:disabled="recordingSession\.status === 'recording' \|\| recordingSession\.status === 'paused'"/,
+  'Start recording should not reset an existing paused recording session'
+)
+
+assert.match(
+  travelogue,
+  /resumeRecordingSession\(\)[\s\S]*status:\s*'recording'[\s\S]*resumedAt[\s\S]*this\.captureTrackPoint\('resume'\)/,
+  'Resuming a paused recording session should preserve the session, mark resumedAt, and capture a resume point'
 )
 
 assert.match(

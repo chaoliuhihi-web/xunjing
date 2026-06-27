@@ -42,7 +42,8 @@
 				</view>
 			</view>
 			<view class="recording-actions">
-				<button class="primary-button" :disabled="recordingSession.status === 'recording'" @click="startRecordingSession">开始记录</button>
+				<button class="primary-button" :disabled="recordingSession.status === 'recording' || recordingSession.status === 'paused'" @click="startRecordingSession">开始记录</button>
+				<button class="ghost-button" :disabled="recordingSession.status !== 'paused'" @click="resumeRecordingSession">继续</button>
 				<button class="ghost-button" :disabled="recordingSession.status !== 'recording'" @click="captureTrackPoint('manual')">补记位置</button>
 				<button class="ghost-button" :disabled="recordingSession.status !== 'recording'" @click="markStayPoint">标记停留</button>
 				<button class="ghost-button" :disabled="recordingSession.status !== 'recording'" @click="pauseRecordingSession">暂停</button>
@@ -695,6 +696,20 @@ export default {
 			this.saveRecordingSession()
 			uni.showToast({
 				title: '记录已暂停',
+				icon: 'none'
+			})
+		},
+		async resumeRecordingSession() {
+			if (this.recordingSession.status !== 'paused') return
+			this.recordingSession = {
+				...this.recordingSession,
+				status: 'recording',
+				resumedAt: new Date().toISOString()
+			}
+			this.saveRecordingSession()
+			await this.captureTrackPoint('resume')
+			uni.showToast({
+				title: '记录已继续',
 				icon: 'none'
 			})
 		},
