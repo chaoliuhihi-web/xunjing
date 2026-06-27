@@ -832,6 +832,12 @@ export default {
 				icon: 'none'
 			})
 		},
+		showPhotoEvidenceCaptureFailed(title = '照片选择失败') {
+			uni.showToast({
+				title,
+				icon: 'none'
+			})
+		},
 		addStudyTaskPhoto(index) {
 			uni.chooseImage({
 				count: 1,
@@ -839,7 +845,10 @@ export default {
 				sourceType: ['camera', 'album'],
 				success: (res) => {
 					const filePath = res.tempFilePaths && res.tempFilePaths[0] ? res.tempFilePaths[0] : ''
-					if (!filePath) return
+					if (!filePath) {
+						this.showPhotoEvidenceCaptureFailed('研学照片未保存，请重新选择')
+						return
+					}
 					const evidence = this.createStudyTaskEvidence(index, 'photo', {
 						answerText: String(this.studyTaskDrafts[index] || '').trim(),
 						photoPath: filePath
@@ -849,6 +858,9 @@ export default {
 						title: '研学照片已保存',
 						icon: 'none'
 					})
+				},
+				fail: () => {
+					this.showPhotoEvidenceCaptureFailed()
 				}
 			})
 		},
@@ -959,7 +971,10 @@ export default {
 				sourceType: ['camera', 'album'],
 				success: async (res) => {
 					const filePath = res.tempFilePaths && res.tempFilePaths[0] ? res.tempFilePaths[0] : ''
-					if (!filePath) return
+					if (!filePath) {
+						this.showPhotoEvidenceCaptureFailed('照片未保存，请重新选择')
+						return
+					}
 					const takenAt = new Date().toISOString()
 					const captureLocation = await requestCurrentLocationForTrigger()
 					const material = {
@@ -987,6 +1002,9 @@ export default {
 						title: '照片已加入素材盒',
 						icon: 'none'
 					})
+				},
+				fail: () => {
+					this.showPhotoEvidenceCaptureFailed()
 				}
 			})
 		},
