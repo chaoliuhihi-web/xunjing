@@ -87,6 +87,47 @@
 			<text>生成游记草稿</text>
 		</view>
 
+		<view class="route-recommendation-section">
+			<view class="section-head">
+				<view>
+					<text class="section-kicker">官方路线</text>
+					<text class="section-title">路线推荐</text>
+				</view>
+				<text class="section-link" @click="openXichengInspiration">导入灵感</text>
+			</view>
+			<view
+				v-for="route in recommendedRoutes.slice(0, 3)"
+				:key="route.routeCode"
+				class="recommended-route-card"
+				@click="openRecommendedRoute(route)"
+			>
+				<view class="route-card-header">
+					<view>
+						<text class="route-title">{{ route.title }}</text>
+						<text class="route-desc">{{ route.summary }}</text>
+					</view>
+					<text class="route-theme">{{ route.theme }}</text>
+				</view>
+				<view class="route-meta">
+					<text>{{ route.durationText }}</text>
+					<text>路线护照 {{ route.passportTaskCount }} 点</text>
+					<text>研学任务 {{ route.studyTaskCount }} 个</text>
+				</view>
+				<view class="route-stops">
+					<text
+						v-for="(stop, index) in route.stops"
+						:key="`${route.routeCode}-${stop.poiCode}`"
+						class="route-stop"
+					>
+						{{ index + 1 }}. {{ stop.poiName }}
+					</text>
+				</view>
+				<view class="route-card-action">
+					<button class="mini-button" @click.stop="openRecommendedRoute(route)">加入路线护照</button>
+				</view>
+			</view>
+		</view>
+
 		<view class="journey-panel">
 			<view>
 				<text class="journey-title">西城 Citywalk 记录</text>
@@ -119,6 +160,7 @@
 
 <script>
 import {
+	XICHENG_RECOMMENDED_ROUTES,
 	XICHENG_REGION_CONFIG
 } from '@/config/regions/xicheng.js'
 import {
@@ -132,6 +174,7 @@ export default {
 	data() {
 		return {
 			region: XICHENG_REGION_CONFIG,
+			recommendedRoutes: XICHENG_RECOMMENDED_ROUTES,
 			routePassport: XICHENG_REGION_CONFIG.routePassport,
 			parentChildTasks: XICHENG_REGION_CONFIG.parentChildTasks,
 			sharePoster: XICHENG_REGION_CONFIG.sharePoster,
@@ -350,6 +393,44 @@ export default {
 		askXiaojing() {
 			uni.navigateTo({
 				url: `/pages/ai-guide/ai-guide?regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&companionName=${encodeURIComponent(this.region.companionName)}`
+			})
+		},
+		openRecommendedRoute(route = {}) {
+			const updatedAt = new Date().toISOString()
+			const stops = Array.isArray(route.stops)
+				? route.stops.map(stop => ({ ...stop }))
+				: []
+			const routePayload = {
+				...route,
+				stops,
+				regionCode: this.region.regionCode,
+				packageCode: this.region.packageCode,
+				sourceChannel: this.region.sourceChannel,
+				routeSource: 'home-recommendation',
+				sourceLabel: '官方推荐路线',
+				updatedAt
+			}
+			const existingMaterials = uni.getStorageSync(this.region.materialsStorageKey)
+			const materials = Array.isArray(existingMaterials) ? existingMaterials : []
+			const routeMaterials = stops.map(stop => ({
+				type: 'official-route-poi',
+				regionCode: this.region.regionCode,
+				packageCode: this.region.packageCode,
+				poiCode: stop.poiCode,
+				poiName: stop.poiName,
+				routeCode: route.routeCode,
+				routeTitle: route.title,
+				sourceLabel: '官方推荐路线',
+				sources: [],
+				capturedAt: updatedAt
+			}))
+			uni.setStorageSync(this.region.inspirationStorageKey, routePayload)
+			uni.setStorageSync(this.region.materialsStorageKey, [
+				...routeMaterials,
+				...materials
+			].slice(0, 80))
+			uni.navigateTo({
+				url: `/pages/xicheng/travelogue/travelogue?mode=route&regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&companionName=${encodeURIComponent(this.region.companionName)}`
 			})
 		},
 		openXichengTravelogue(mode = 'record') {
@@ -638,6 +719,128 @@ export default {
 	text-align: center;
 	color: #344054;
 	box-sizing: border-box;
+}
+
+.route-recommendation-section {
+	margin-top: 28rpx;
+	padding: 30rpx;
+	border-radius: 8rpx;
+	background: #FFFFFF;
+	box-shadow: 0 12rpx 36rpx rgba(31, 41, 51, 0.08);
+}
+
+.section-head,
+.route-card-header,
+.route-meta,
+.route-card-action {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 18rpx;
+}
+
+.section-kicker {
+	display: block;
+	font-size: 22rpx;
+	line-height: 1.4;
+	color: #1F6E5A;
+}
+
+.section-title {
+	display: block;
+	margin-top: 6rpx;
+	font-size: 34rpx;
+	font-weight: 700;
+	color: #122033;
+}
+
+.section-link {
+	flex-shrink: 0;
+	font-size: 24rpx;
+	font-weight: 700;
+	color: #1F6E5A;
+}
+
+.recommended-route-card {
+	margin-top: 22rpx;
+	padding: 24rpx;
+	border: 2rpx solid #D6E3DC;
+	border-radius: 8rpx;
+	background: #F9FBFA;
+	box-sizing: border-box;
+}
+
+.route-card-header {
+	align-items: flex-start;
+}
+
+.route-title {
+	display: block;
+	font-size: 30rpx;
+	font-weight: 700;
+	line-height: 1.35;
+	color: #122033;
+}
+
+.route-desc {
+	display: block;
+	margin-top: 8rpx;
+	font-size: 24rpx;
+	line-height: 1.55;
+	color: #667085;
+}
+
+.route-theme {
+	flex-shrink: 0;
+	padding: 8rpx 12rpx;
+	border-radius: 8rpx;
+	background: #EEF5F1;
+	font-size: 22rpx;
+	color: #1F6E5A;
+}
+
+.route-meta {
+	justify-content: flex-start;
+	flex-wrap: wrap;
+	margin-top: 18rpx;
+}
+
+.route-meta text {
+	padding: 8rpx 12rpx;
+	border-radius: 8rpx;
+	background: #FFFFFF;
+	font-size: 22rpx;
+	color: #344054;
+}
+
+.route-stops {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12rpx;
+	margin-top: 18rpx;
+}
+
+.route-stop {
+	padding: 8rpx 12rpx;
+	border-radius: 8rpx;
+	background: #E8ECE7;
+	font-size: 22rpx;
+	color: #344054;
+}
+
+.route-card-action {
+	justify-content: flex-end;
+	margin-top: 20rpx;
+}
+
+.mini-button {
+	min-width: 180rpx;
+	height: 64rpx;
+	line-height: 64rpx;
+	border-radius: 8rpx;
+	background: #1F6E5A;
+	font-size: 24rpx;
+	color: #FFFFFF;
 }
 
 .journey-panel {

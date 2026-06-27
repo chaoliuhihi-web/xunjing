@@ -111,6 +111,57 @@ export const XICHENG_OFFICIAL_POIS = Object.freeze([
 	}
 ])
 
+const findXichengOfficialPoi = (poiCode) => XICHENG_OFFICIAL_POIS.find(poi => poi.poiCode === poiCode)
+
+const createXichengRouteStops = (poiCodes = []) => poiCodes
+	.map(poiCode => findXichengOfficialPoi(poiCode))
+	.filter(Boolean)
+
+export const XICHENG_RECOMMENDED_ROUTES = Object.freeze([
+	{
+		routeCode: 'baitasi-imperial-shichahai',
+		title: '白塔寺 - 历代帝王庙 - 什刹海',
+		theme: '亲子研学',
+		durationText: '约 2.5 小时',
+		summary: '从寺庙建筑、礼制文化走到水系胡同，适合家庭和研学团完成路线护照。',
+		passportTaskCount: 3,
+		studyTaskCount: 3,
+		stops: createXichengRouteStops([
+			'xicheng-baitasi',
+			'xicheng-imperial-temple',
+			'xicheng-shichahai'
+		])
+	},
+	{
+		routeCode: 'beihai-shichahai-waterfront',
+		title: '北海公园 - 什刹海 - 白塔寺',
+		theme: '水岸慢行',
+		durationText: '约 3 小时',
+		summary: '串联皇家园林、水系胡同和白塔地标，适合周末半日 Citywalk。',
+		passportTaskCount: 3,
+		studyTaskCount: 2,
+		stops: createXichengRouteStops([
+			'xicheng-beihai',
+			'xicheng-shichahai',
+			'xicheng-baitasi'
+		])
+	},
+	{
+		routeCode: 'dashilar-old-brand-walk',
+		title: '大栅栏 - 历代帝王庙 - 白塔寺',
+		theme: '老字号与中轴文化',
+		durationText: '约 2 小时',
+		summary: '用老字号街区作为入口，带出西城中轴、礼制和胡同文化的运营主题。',
+		passportTaskCount: 3,
+		studyTaskCount: 2,
+		stops: createXichengRouteStops([
+			'xicheng-dashilar',
+			'xicheng-imperial-temple',
+			'xicheng-baitasi'
+		])
+	}
+])
+
 export const XICHENG_HOME_ACTIONS = Object.freeze([
 	{ key: 'scan', title: '扫一扫', subtitle: '二维码 / 牌匾 / 门票', source: 'scan' },
 	{ key: 'photo', title: '拍照识别', subtitle: '门头 / 文物 / 说明牌', source: 'photo' },
