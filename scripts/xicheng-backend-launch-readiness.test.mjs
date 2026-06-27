@@ -18,10 +18,21 @@ describe('xicheng backend launch readiness', () => {
     const verifier = await readText('scripts/verify-xunjing-platform-readiness.mjs')
     const seed = await readText(xichengSeedPath)
     const moduleSql = await readText('backend/yudao/sql/mysql/xunjing-module.sql')
+    const triggerEngine = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/trigger/XunjingMultimodalTriggerEngine.java'
+    )
+    const appTest = await readText(
+      'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImplTest.java'
+    )
 
     expect(verifier).toContain('xunjing-seed-xicheng-p0.sql')
     expect(verifier).toContain('xicheng-seed-data')
+    expect(verifier).toContain('xicheng-trigger-backend')
     expect(moduleSql).toContain('CREATE TABLE IF NOT EXISTS `xunjing_poi`')
+    expect(triggerEngine).toContain('XunjingPoiMapper')
+    expect(triggerEngine).toContain('loadDatabasePoiProfiles')
+    expect(triggerEngine).toContain('selectPublishedListByRegionCode')
+    expect(appTest).toContain('testResolveMultimodalTriggerUsesPublishedPoiFromDatabase')
 
     for (const snippet of [
       'XICHENG-2026-P0',

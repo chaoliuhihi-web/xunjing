@@ -1,25 +1,35 @@
 package cn.iocoder.yudao.module.xunjing.service.app.trigger;
 
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.LocationPointReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalCandidateRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PhotoMetaReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.SourceRespVO;
+import cn.iocoder.yudao.module.xunjing.dal.dataobject.poi.XunjingPoiDO;
+import cn.iocoder.yudao.module.xunjing.dal.mysql.poi.XunjingPoiMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 @Component
+@Slf4j
 public class XunjingMultimodalTriggerEngine {
 
     private static final String REGION_XICHENG = "beijing-xicheng";
+    private static final String POI_STATUS_PUBLISHED = "PUBLISHED";
+    private static final String REVIEW_STATUS_APPROVED = "APPROVED";
     private static final double AUTO_TRIGGER_THRESHOLD = 0.85D;
 
     private static final List<PoiProfile> XICHENG_POIS = List.of(
@@ -67,12 +77,14 @@ public class XunjingMultimodalTriggerEngine {
 
     @Resource
     private XunjingVisionRecognitionService visionRecognitionService;
+    @Resource
+    private XunjingPoiMapper poiMapper;
 
     public MultimodalTriggerRespVO resolve(MultimodalTriggerReqVO reqVO) {
         MultimodalTriggerReqVO safeReqVO = visionRecognitionService.enrich(
                 reqVO == null ? new MultimodalTriggerReqVO() : reqVO);
         String regionCode = normalizeRegionCode(safeReqVO.getRegionCode());
-        List<PoiProfile> poiProfiles = REGION_XICHENG.equals(regionCode) ? XICHENG_POIS : List.of();
+        List<PoiProfile> poiProfiles = loadPoiProfiles(regionCode);
 
         List<MatchScore> matches = poiProfiles.stream()
                 .map(poi -> score(poi, safeReqVO))
@@ -113,7 +125,7 @@ public class XunjingMultimodalTriggerEngine {
         Double distanceMeters = null;
 
         LocationPointReqVO location = effectiveLocation(reqVO);
-        if (hasCoordinate(location)) {
+        if (hasCoordinate(location) && poi.hasCoordinate()) {
             distanceMeters = haversineMeters(
                     location.getLatitude().doubleValue(), location.getLongitude().doubleValue(),
                     poi.latitude(), poi.longitude());
@@ -148,6 +160,58 @@ public class XunjingMultimodalTriggerEngine {
         return new MatchScore(poi, round2(Math.min(score, 0.99D)), distanceMeters, List.copyOf(signals));
     }
 
+    private List<PoiProfile> loadPoiProfiles(String regionCode) {
+        if (!REGION_XICHENG.equals(regionCode)) {
+            return List.of();
+        }
+        List<PoiProfile> databasePoiProfiles = loadDatabasePoiProfiles(regionCode);
+        return databasePoiProfiles.isEmpty() ? XICHENG_POIS : databasePoiProfiles;
+    }
+
+    private List<PoiProfile> loadDatabasePoiProfiles(String regionCode) {
+        try {
+            return poiMapper.selectPublishedListByRegionCode(
+                            regionCode, POI_STATUS_PUBLISHED, REVIEW_STATUS_APPROVED).stream()
+                    .map(this::toPoiProfile)
+                    .toList();
+        } catch (RuntimeException ex) {
+            log.warn("[loadDatabasePoiProfiles][regionCode({}) fallback to static POIs]", regionCode, ex);
+            return List.of();
+        }
+    }
+
+    private PoiProfile toPoiProfile(XunjingPoiDO poi) {
+        Map<String, Object> trigger = parseJsonObject(poi.getTriggerJson());
+        Map<String, Object> content = parseJsonObject(poi.getContentJson());
+        Map<String, Object> source = parseJsonObject(poi.getSourceJson());
+
+        List<String> aliases = new ArrayList<>();
+        addText(aliases, poi.getName());
+        addText(aliases, poi.getOfficialName());
+        aliases.addAll(parseStringArray(poi.getAliasesJson()));
+        aliases.addAll(stringListFromValue(trigger.get("ocrKeywords")));
+
+        List<String> visualLabels = stringListFromValue(trigger.get("photoLabels"));
+        String summary = stringValue(content.get("shortIntro"),
+                stringValue(source.get("contentDigest"), defaultIfBlank(poi.getOfficialName(), poi.getName())));
+        List<String> suggestedQuestions = stringListFromValue(content.get("recommendedQuestions"));
+        if (suggestedQuestions.isEmpty()) {
+            suggestedQuestions = defaultSuggestedQuestions(poi.getName());
+        }
+
+        return new PoiProfile(
+                poi.getPoiCode(),
+                poi.getName(),
+                distinctTexts(aliases),
+                distinctTexts(visualLabels),
+                doubleValue(poi.getLatitude()),
+                doubleValue(poi.getLongitude()),
+                doubleValue(trigger.get("gpsRadiusMeters"), 220D),
+                summary,
+                suggestedQuestions,
+                sourceProfiles(poi, source, summary));
+    }
+
     private MultimodalCandidateRespVO toCandidate(MatchScore match, String intent, String regionCode) {
         MultimodalCandidateRespVO candidate = new MultimodalCandidateRespVO();
         candidate.setPoiCode(match.poi().code());
@@ -176,6 +240,19 @@ public class XunjingMultimodalTriggerEngine {
         respVO.setSources(List.of());
         respVO.setCandidates(List.of());
         return respVO;
+    }
+
+    private List<SourceProfile> sourceProfiles(XunjingPoiDO poi, Map<String, Object> source, String summary) {
+        String sourceUrl = stringValue(source.get("sourceUrl"), "");
+        String contentDigest = stringValue(source.get("contentDigest"), summary);
+        if (!hasText(sourceUrl) && !hasText(contentDigest)) {
+            return List.of();
+        }
+        return List.of(new SourceProfile(
+                poi.getName(),
+                stringValue(source.get("sourceType"), "OFFICIAL_PUBLIC"),
+                sourceUrl,
+                contentDigest));
     }
 
     private List<SourceRespVO> toSources(PoiProfile poi) {
@@ -307,6 +384,82 @@ public class XunjingMultimodalTriggerEngine {
         return location != null && location.getLatitude() != null && location.getLongitude() != null;
     }
 
+    private Map<String, Object> parseJsonObject(String json) {
+        if (!hasText(json)) {
+            return Map.of();
+        }
+        Map<String, Object> parsed = JsonUtils.parseObjectQuietly(json, new TypeReference<>() {
+        });
+        return parsed == null ? Map.of() : parsed;
+    }
+
+    private List<String> parseStringArray(String json) {
+        if (!hasText(json)) {
+            return List.of();
+        }
+        List<String> parsed = JsonUtils.parseObjectQuietly(json, new TypeReference<>() {
+        });
+        return parsed == null ? List.of() : distinctTexts(parsed);
+    }
+
+    private List<String> stringListFromValue(Object value) {
+        if (!(value instanceof List<?> values)) {
+            return List.of();
+        }
+        List<String> result = new ArrayList<>();
+        for (Object item : values) {
+            if (item != null) {
+                addText(result, item.toString());
+            }
+        }
+        return distinctTexts(result);
+    }
+
+    private List<String> distinctTexts(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return List.of();
+        }
+        Set<String> distinctValues = new LinkedHashSet<>();
+        for (String value : values) {
+            if (hasText(value)) {
+                distinctValues.add(value.trim());
+            }
+        }
+        return List.copyOf(distinctValues);
+    }
+
+    private List<String> defaultSuggestedQuestions(String poiName) {
+        return List.of("给我讲讲" + poiName + "。", poiName + "附近适合怎么逛？", "这里适合亲子研学怎么讲？");
+    }
+
+    private void addText(List<String> values, String value) {
+        if (hasText(value)) {
+            values.add(value.trim());
+        }
+    }
+
+    private String stringValue(Object value, String fallback) {
+        return value == null || !hasText(value.toString()) ? fallback : value.toString().trim();
+    }
+
+    private Double doubleValue(BigDecimal value) {
+        return value == null ? null : value.doubleValue();
+    }
+
+    private double doubleValue(Object value, double fallback) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (value != null && hasText(value.toString())) {
+            try {
+                return Double.parseDouble(value.toString());
+            } catch (NumberFormatException ignored) {
+                return fallback;
+            }
+        }
+        return fallback;
+    }
+
     private double haversineMeters(double latitude1, double longitude1, double latitude2, double longitude2) {
         double earthRadiusMeters = 6371000D;
         double dLat = Math.toRadians(latitude2 - latitude1);
@@ -351,8 +504,11 @@ public class XunjingMultimodalTriggerEngine {
     }
 
     private record PoiProfile(String code, String name, List<String> aliases, List<String> visualLabels,
-                              double latitude, double longitude, double radiusMeters, String summary,
+                              Double latitude, Double longitude, double radiusMeters, String summary,
                               List<String> suggestedQuestions, List<SourceProfile> sources) {
+        private boolean hasCoordinate() {
+            return latitude != null && longitude != null;
+        }
     }
 
     private record SourceProfile(String title, String sourceType, String sourceUrl, String contentDigest) {

@@ -8,6 +8,7 @@ DELETE FROM "xunjing_crawler_source";
 DELETE FROM "xunjing_qrcode";
 DELETE FROM "xunjing_interaction_event";
 DELETE FROM "xunjing_globe_model";
+DELETE FROM "xunjing_poi";
 DELETE FROM "xunjing_map_point";
 DELETE FROM "xunjing_media_usage_log";
 DELETE FROM "xunjing_media_asset";

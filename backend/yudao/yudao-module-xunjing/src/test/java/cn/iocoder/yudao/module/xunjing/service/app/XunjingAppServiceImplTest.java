@@ -56,7 +56,9 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.jdbc.core.JdbcTemplate;
 
+import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -84,6 +86,8 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     private XunjingInteractionEventMapper interactionEventMapper;
     @Resource
     private XunjingMediaUsageLogMapper mediaUsageLogMapper;
+    @Resource
+    private DataSource dataSource;
     @MockBean
     private AiKnowledgeSegmentService aiKnowledgeSegmentService;
     @MockBean
@@ -354,6 +358,31 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertEquals("xicheng-emperors-temple", respVO.getPoiCode());
         assertTrue(respVO.getConfidence() >= 0.85D);
         assertFalse(respVO.getRequiresUserConfirm());
+    }
+
+    @Test
+    public void testResolveMultimodalTriggerUsesPublishedPoiFromDatabase() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setOcrText("恭王府博物馆入口");
+        reqVO.setImageLabels(List.of("palace", "courtyard"));
+        reqVO.setLocation(location("39.937050", "116.386770", 20));
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
+        assertEquals("恭王府", respVO.getPoiName());
+        assertEquals("start_ai_guide", respVO.getAction());
+        assertTrue(respVO.getConfidence() >= 0.85D);
+        assertFalse(respVO.getRequiresUserConfirm());
+        assertTrue(respVO.getSuggestedQuestions().contains("恭王府适合怎么参观？"));
+        assertFalse(respVO.getSources().isEmpty());
+        assertEquals("恭王府", respVO.getSources().get(0).getTitle());
+        assertTrue(respVO.getSources().get(0).getSourceUrl().contains("bjxch.gov.cn"));
     }
 
     @Test
@@ -820,6 +849,23 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         location.setAccuracyMeters(accuracyMeters);
         location.setCoordType("gcj02");
         return location;
+    }
+
+    private void insertXichengPoi(Long packageId) {
+        new JdbcTemplate(dataSource).update("""
+                INSERT INTO "xunjing_poi"
+                ("package_id", "poi_code", "region_code", "name", "official_name", "aliases_json",
+                 "category", "poi_level", "address", "latitude", "longitude", "coord_type",
+                 "source_json", "trigger_json", "content_json", "review_status", "geo_status",
+                 "license_status", "status", "tenant_id")
+                VALUES (?, 'xicheng-gongwangfu', 'beijing-xicheng', '恭王府', '恭王府博物馆',
+                 '["恭王府","恭王府博物馆","和珅府"]',
+                 'museum_scenic', 'P0', '北京市西城区前海西街17号', 39.9370500, 116.3867700, 'GCJ02',
+                 '{"sourceType":"OFFICIAL_PUBLIC","sourceUrl":"https://www.bjxch.gov.cn/example/gongwangfu","contentDigest":"恭王府是西城王府文化和园林空间的代表性点位。"}',
+                 '{"gpsRadiusMeters":280,"ocrKeywords":["恭王府","恭王府博物馆"],"photoLabels":["palace","garden","courtyard","museum"],"minConfidence":0.85}',
+                 '{"shortIntro":"西城王府文化和园林空间的代表性点位。","recommendedQuestions":["恭王府适合怎么参观？","王府文化怎么给孩子讲？","附近还能去哪？"]}',
+                 'APPROVED', 'REVIEW_REQUIRED', 'REVIEW_REQUIRED', 'PUBLISHED', ?)
+                """, packageId, TENANT_ID);
     }
 
     private QrCodeCreateReqVO qrCodeReq(Long packageId) {

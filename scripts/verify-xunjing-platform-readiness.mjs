@@ -154,6 +154,47 @@ async function checkXichengSeedData(rootDir) {
   return pass('xicheng-seed-data', 'Xicheng P0 local-candidate POI, source and gate seed data is present')
 }
 
+async function checkXichengTriggerBackend(rootDir) {
+  const engine = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/trigger/XunjingMultimodalTriggerEngine.java'
+  )
+  const poiDo = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/dal/dataobject/poi/XunjingPoiDO.java'
+  )
+  const mapper = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/dal/mysql/poi/XunjingPoiMapper.java'
+  )
+  const appTest = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImplTest.java'
+  )
+  const h2Schema = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/test/resources/sql/create_tables.sql'
+  )
+
+  for (const snippet of [
+    'XunjingPoiMapper',
+    'loadDatabasePoiProfiles',
+    'selectPublishedListByRegionCode',
+    'sourceProfiles',
+    'databasePoiProfiles.isEmpty() ? XICHENG_POIS : databasePoiProfiles'
+  ]) {
+    assertContains(engine, snippet, 'XunjingMultimodalTriggerEngine.java')
+  }
+  for (const snippet of ['@TableName("xunjing_poi")', 'private String sourceJson', 'private String triggerJson', 'private String contentJson']) {
+    assertContains(poiDo, snippet, 'XunjingPoiDO.java')
+  }
+  assertContains(mapper, 'selectPublishedListByRegionCode', 'XunjingPoiMapper.java')
+  assertContains(appTest, 'testResolveMultimodalTriggerUsesPublishedPoiFromDatabase', 'XunjingAppServiceImplTest.java')
+  assertContains(appTest, 'xicheng-gongwangfu', 'XunjingAppServiceImplTest.java')
+  assertContains(h2Schema, 'CREATE TABLE IF NOT EXISTS "xunjing_poi"', 'create_tables.sql')
+  return pass('xicheng-trigger-backend', 'Xicheng trigger resolution reads approved xunjing_poi rows with static fallback')
+}
+
 async function checkAdminUiContract(rootDir) {
   const api = await readText(
     rootDir,
@@ -438,6 +479,7 @@ export async function verifyXunjingPlatformReadiness({
   checks.push(await checkSqlSchema(rootDir))
   checks.push(await checkSeedData(rootDir))
   checks.push(await checkXichengSeedData(rootDir))
+  checks.push(await checkXichengTriggerBackend(rootDir))
   checks.push(await checkAdminUiContract(rootDir))
   if (!staticOnly) {
     checks.push(checkEnvironment(env))

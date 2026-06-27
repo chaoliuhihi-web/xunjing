@@ -210,6 +210,7 @@ describe('xunjing platform readiness verifier', () => {
       'sql-schema',
       'seed-data',
       'xicheng-seed-data',
+      'xicheng-trigger-backend',
       'admin-ui-contract',
       'environment',
       'live-admin',
@@ -237,6 +238,7 @@ describe('xunjing platform readiness verifier', () => {
       'sql-schema',
       'seed-data',
       'xicheng-seed-data',
+      'xicheng-trigger-backend',
       'admin-ui-contract'
     ])
   })
@@ -257,6 +259,7 @@ describe('xunjing platform readiness verifier', () => {
       'sql-schema',
       'seed-data',
       'xicheng-seed-data',
+      'xicheng-trigger-backend',
       'admin-ui-contract',
       'environment',
       'live-resource-package',
