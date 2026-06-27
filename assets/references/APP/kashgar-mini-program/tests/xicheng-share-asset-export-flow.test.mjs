@@ -30,6 +30,7 @@ for (const required of [
   'templateCode',
   'templateSections',
   'createMemorialPdfTemplate',
+  'createMemorialPdfSourceCards',
   'shareAssetCount',
   'formatArtifactTime'
 ]) {
@@ -94,6 +95,18 @@ assert.match(
   travelogue,
   /createMemorialPdfTemplate\(routeTitle, createdAt\)[\s\S]*sectionKey:\s*'cover'[\s\S]*sectionKey:\s*'route-map'[\s\S]*sectionKey:\s*'photo-timeline'[\s\S]*sectionKey:\s*'travelogue-body'[\s\S]*sectionKey:\s*'knowledge-cards'[\s\S]*sectionKey:\s*'badge-page'/,
   'PDF memorial asset should include the P0 fixed template sections: cover, route map, photo timeline, travelogue body, knowledge cards, and badge page'
+)
+
+assert.match(
+  travelogue,
+  /createMemorialPdfTemplate\(routeTitle, createdAt\)[\s\S]*sectionKey:\s*'knowledge-cards'[\s\S]*sourceCount:\s*this\.sourceCount[\s\S]*sourceCards:\s*this\.createMemorialPdfSourceCards\(\)/,
+  'PDF memorial knowledge cards should include reviewed source cards, not only a source count'
+)
+
+assert.match(
+  travelogue,
+  /createMemorialPdfSourceCards\(\)[\s\S]*this\.materials\.forEach[\s\S]*Array\.isArray\(material\.sources\)[\s\S]*title:\s*source\.title \|\| source\.name[\s\S]*excerpt:\s*source\.excerpt \|\| source\.summary \|\| source\.url[\s\S]*poiName:\s*material\.poiName \|\| ''[\s\S]*slice\(0, 8\)/,
+  'PDF memorial source cards should summarize reviewed material sources with POI attribution and a bounded card count'
 )
 
 assert.match(
