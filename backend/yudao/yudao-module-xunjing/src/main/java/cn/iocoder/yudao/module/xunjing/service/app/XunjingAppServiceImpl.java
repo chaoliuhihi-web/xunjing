@@ -192,7 +192,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         CachedAnswer cachedAnswer = getCachedAnswerIfEnabled(resourcePackage, qrCode, reqVO);
         if (cachedAnswer != null && !cachedAnswer.sources().isEmpty()) {
             Long logId = recordCachedAiGeneration(resourcePackage, qrCode, reqVO, cachedAnswer);
-            RagChatRespVO respVO = new RagChatRespVO();
+            RagChatRespVO respVO = buildRagChatResponse(resourcePackage, reqVO);
             respVO.setAnswer(cachedAnswer.answer());
             respVO.setSafetyStatus(AiSafetyStatus.PASSED.getStatus());
             respVO.setLogId(logId);
@@ -204,7 +204,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
 
         Long logId = recordAiGeneration(resourcePackage, qrCode, reqVO, answer, sources);
 
-        RagChatRespVO respVO = new RagChatRespVO();
+        RagChatRespVO respVO = buildRagChatResponse(resourcePackage, reqVO);
         respVO.setAnswer(answer.answer());
         respVO.setSafetyStatus(AiSafetyStatus.PASSED.getStatus());
         respVO.setLogId(logId);
@@ -775,7 +775,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             XunjingResourcePackageDO resourcePackage, XunjingQrCodeDO qrCode, RagChatReqVO reqVO, String answer,
             XunjingAiQuotaRuleDO quotaRule) {
         Long logId = recordBlockedAiGeneration(resourcePackage, qrCode, reqVO, answer, quotaRule);
-        RagChatRespVO respVO = new RagChatRespVO();
+        RagChatRespVO respVO = buildRagChatResponse(resourcePackage, reqVO);
         respVO.setAnswer(answer);
         respVO.setSafetyStatus(AiSafetyStatus.BLOCKED.getStatus());
         respVO.setLogId(logId);
@@ -787,11 +787,21 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             XunjingResourcePackageDO resourcePackage, XunjingQrCodeDO qrCode, RagChatReqVO reqVO) {
         String answer = "没有找到已审核且可公开引用的资料来源，不能直接回答这个问题。请先在后台补充并审核该地点的讲解资料。";
         Long logId = recordNoSourceBlockedAiGeneration(resourcePackage, qrCode, reqVO, answer);
-        RagChatRespVO respVO = new RagChatRespVO();
+        RagChatRespVO respVO = buildRagChatResponse(resourcePackage, reqVO);
         respVO.setAnswer(answer);
         respVO.setSafetyStatus(AiSafetyStatus.BLOCKED.getStatus());
         respVO.setLogId(logId);
         respVO.setSources(List.of());
+        return respVO;
+    }
+
+    private RagChatRespVO buildRagChatResponse(XunjingResourcePackageDO resourcePackage, RagChatReqVO reqVO) {
+        RagChatRespVO respVO = new RagChatRespVO();
+        respVO.setPackageCode(resourcePackage.getPackageCode());
+        respVO.setSceneCode(defaultIfBlank(reqVO.getSceneCode(), DEFAULT_CHAT_SCENE_CODE));
+        respVO.setRegionCode(defaultIfBlank(reqVO.getRegionCode(), ""));
+        respVO.setPoiCode(defaultIfBlank(reqVO.getPoiCode(), ""));
+        respVO.setPoiName(defaultIfBlank(reqVO.getPoiName(), ""));
         return respVO;
     }
 

@@ -603,6 +603,10 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         RagChatRespVO answer = appService.answer(reqVO);
 
         assertEquals("PASSED", answer.getSafetyStatus());
+        assertEquals("XICHENG-MAP-001", answer.getPackageCode());
+        assertEquals("beijing-xicheng", answer.getRegionCode());
+        assertEquals("xicheng-baitasi", answer.getPoiCode());
+        assertEquals("妙应寺白塔", answer.getPoiName());
         assertFalse(answer.getSources().isEmpty());
         assertEquals("妙应寺白塔权威讲解稿", answer.getSources().get(0).getTitle());
         assertTrue(answer.getAnswer().contains("妙应寺白塔"));
@@ -626,6 +630,10 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         RagChatRespVO answer = appService.answer(xichengRagReq());
 
         assertEquals("BLOCKED", answer.getSafetyStatus());
+        assertEquals("XICHENG-MAP-001", answer.getPackageCode());
+        assertEquals("beijing-xicheng", answer.getRegionCode());
+        assertEquals("xicheng-baitasi", answer.getPoiCode());
+        assertEquals("妙应寺白塔", answer.getPoiName());
         assertTrue(answer.getAnswer().contains("没有找到已审核"));
         assertTrue(answer.getSources().isEmpty());
     }

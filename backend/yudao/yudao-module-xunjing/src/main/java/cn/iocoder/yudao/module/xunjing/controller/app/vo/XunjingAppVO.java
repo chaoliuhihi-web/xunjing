@@ -171,6 +171,11 @@ public class XunjingAppVO {
 
     @Data
     public static class RagChatRespVO {
+        private String packageCode;
+        private String sceneCode;
+        private String regionCode;
+        private String poiCode;
+        private String poiName;
         private String answer;
         private String safetyStatus;
         private Long logId;

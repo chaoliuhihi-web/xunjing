@@ -668,18 +668,33 @@ async function checkLiveXichengTrigger(baseUrl, fetchImpl, tenantId, smokeCase) 
   })
 }
 
+function assertXichengAiChatContextEcho(data, expected) {
+  if (
+    data?.packageCode !== expected.packageCode ||
+    data?.sceneCode !== expected.sceneCode ||
+    data?.regionCode !== expected.regionCode ||
+    data?.poiCode !== expected.poiCode ||
+    data?.poiName !== expected.poiName
+  ) {
+    throw new Error('/app-api/xunjing/ai/chat did not echo Xicheng POI context')
+  }
+}
+
 async function checkLiveXichengAiChatSourced(baseUrl, fetchImpl, tenantId) {
+  const expectedContext = {
+    packageCode: 'XICHENG-MAP-001',
+    sceneCode: 'xicheng-ai-guide',
+    regionCode: 'beijing-xicheng',
+    poiCode: 'xicheng-baitasi',
+    poiName: '妙应寺白塔'
+  }
   const json = await fetchJson(
     new URL('/app-api/xunjing/ai/chat', baseUrl),
     {
       method: 'POST',
       headers: tenantHeaders(tenantId, { 'Content-Type': 'application/json' }),
       body: JSON.stringify({
-        packageCode: 'XICHENG-MAP-001',
-        sceneCode: 'xicheng-ai-guide',
-        regionCode: 'beijing-xicheng',
-        poiCode: 'xicheng-baitasi',
-        poiName: '妙应寺白塔',
+        ...expectedContext,
         question: '白塔寺为什么重要？',
         userTraceId: 'platform-readiness-xicheng-ai-sourced'
       })
@@ -690,6 +705,7 @@ async function checkLiveXichengAiChatSourced(baseUrl, fetchImpl, tenantId) {
   if (json.code !== 0 || !json.data?.answer || !passedSafetyStatuses.has(json.data?.safetyStatus)) {
     throw new Error('/app-api/xunjing/ai/chat did not return a sourced Xicheng POI answer')
   }
+  assertXichengAiChatContextEcho(json.data, expectedContext)
   if (!Array.isArray(json.data.sources) || json.data.sources.length === 0) {
     throw new Error('/app-api/xunjing/ai/chat did not return sources for Xicheng POI answer')
   }
@@ -704,11 +720,11 @@ async function checkLiveXichengAiChatSourced(baseUrl, fetchImpl, tenantId) {
   }
   return pass('live-xicheng-ai-chat-sourced', 'Xicheng AI chat returns a safe answer with matching POI sources', {
     endpoint: '/app-api/xunjing/ai/chat',
-    regionCode: 'beijing-xicheng',
-    packageCode: 'XICHENG-MAP-001',
-    sceneCode: 'xicheng-ai-guide',
-    poiCode: 'xicheng-baitasi',
-    poiName: '妙应寺白塔',
+    packageCode: json.data.packageCode,
+    sceneCode: json.data.sceneCode,
+    regionCode: json.data.regionCode,
+    poiCode: json.data.poiCode,
+    poiName: json.data.poiName,
     safetyStatus: json.data.safetyStatus,
     sourceCount: json.data.sources.length,
     logId: json.data.logId
@@ -716,17 +732,20 @@ async function checkLiveXichengAiChatSourced(baseUrl, fetchImpl, tenantId) {
 }
 
 async function checkLiveXichengAiChatBlocked(baseUrl, fetchImpl, tenantId) {
+  const expectedContext = {
+    packageCode: 'XICHENG-MAP-001',
+    sceneCode: 'xicheng-ai-guide',
+    regionCode: 'beijing-xicheng',
+    poiCode: 'xicheng-source-guard-negative',
+    poiName: '来源门禁测试点位'
+  }
   const json = await fetchJson(
     new URL('/app-api/xunjing/ai/chat', baseUrl),
     {
       method: 'POST',
       headers: tenantHeaders(tenantId, { 'Content-Type': 'application/json' }),
       body: JSON.stringify({
-        packageCode: 'XICHENG-MAP-001',
-        sceneCode: 'xicheng-ai-guide',
-        regionCode: 'beijing-xicheng',
-        poiCode: 'xicheng-source-guard-negative',
-        poiName: '来源门禁测试点位',
+        ...expectedContext,
         question: '请讲讲这个测试点位。',
         userTraceId: 'platform-readiness-xicheng-ai-blocked'
       })
@@ -742,13 +761,14 @@ async function checkLiveXichengAiChatBlocked(baseUrl, fetchImpl, tenantId) {
   ) {
     throw new Error('/app-api/xunjing/ai/chat did not block Xicheng POI answer without matching sources')
   }
+  assertXichengAiChatContextEcho(json.data, expectedContext)
   return pass('live-xicheng-ai-chat-blocked', 'Xicheng AI chat blocks when no matching POI source is available', {
     endpoint: '/app-api/xunjing/ai/chat',
-    regionCode: 'beijing-xicheng',
-    packageCode: 'XICHENG-MAP-001',
-    sceneCode: 'xicheng-ai-guide',
-    poiCode: 'xicheng-source-guard-negative',
-    poiName: '来源门禁测试点位',
+    packageCode: json.data.packageCode,
+    sceneCode: json.data.sceneCode,
+    regionCode: json.data.regionCode,
+    poiCode: json.data.poiCode,
+    poiName: json.data.poiName,
     safetyStatus: json.data.safetyStatus,
     sourceCount: Array.isArray(json.data.sources) ? json.data.sources.length : 0,
     logId: json.data.logId

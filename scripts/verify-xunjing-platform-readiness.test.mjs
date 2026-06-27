@@ -94,7 +94,8 @@ async function readJsonBody(req) {
   return JSON.parse(body)
 }
 
-async function startPlatformFixture() {
+async function startPlatformFixture(options = {}) {
+  const includeXichengAiResponseContext = options.includeXichengAiResponseContext !== false
   const server = http.createServer(async (req, res) => {
     const requireTenant = () => {
       if (req.headers['tenant-id'] === '1') {
@@ -262,10 +263,20 @@ async function startPlatformFixture() {
         expect(payload.regionCode).toBe('beijing-xicheng')
         expect(payload.poiName).toBe('妙应寺白塔')
         expect(payload.sceneCode).toBe('xicheng-ai-guide')
+        const context = includeXichengAiResponseContext
+          ? {
+              packageCode: 'XICHENG-MAP-001',
+              sceneCode: 'xicheng-ai-guide',
+              regionCode: 'beijing-xicheng',
+              poiCode: 'xicheng-baitasi',
+              poiName: '妙应寺白塔'
+            }
+          : {}
         res.setHeader('Content-Type', 'application/json')
         res.end(JSON.stringify({
           code: 0,
           data: {
+            ...context,
             answer: '根据已审核资料《妙应寺白塔权威讲解稿》：妙应寺白塔是西城重要历史文化地标。',
             sources: [{ title: '妙应寺白塔权威讲解稿', sourceUrl: 'https://www.bjxch.gov.cn/example/baitasi' }],
             safetyStatus: 'PASSED',
@@ -276,10 +287,20 @@ async function startPlatformFixture() {
       }
       if (payload.packageCode === 'XICHENG-MAP-001' && payload.poiCode === 'xicheng-source-guard-negative') {
         expect(payload.regionCode).toBe('beijing-xicheng')
+        const context = includeXichengAiResponseContext
+          ? {
+              packageCode: 'XICHENG-MAP-001',
+              sceneCode: 'xicheng-ai-guide',
+              regionCode: 'beijing-xicheng',
+              poiCode: 'xicheng-source-guard-negative',
+              poiName: '来源门禁测试点位'
+            }
+          : {}
         res.setHeader('Content-Type', 'application/json')
         res.end(JSON.stringify({
           code: 0,
           data: {
+            ...context,
             answer: '没有找到已审核且可公开引用的资料来源，不能直接回答这个问题。',
             sources: [],
             safetyStatus: 'BLOCKED',
@@ -552,6 +573,8 @@ describe('xunjing platform readiness verifier', () => {
     })
     expect(checkByName(result, 'live-xicheng-ai-chat-sourced')?.summary).toMatchObject({
       endpoint: '/app-api/xunjing/ai/chat',
+      packageCode: 'XICHENG-MAP-001',
+      sceneCode: 'xicheng-ai-guide',
       regionCode: 'beijing-xicheng',
       poiCode: 'xicheng-baitasi',
       poiName: '妙应寺白塔',
@@ -561,12 +584,26 @@ describe('xunjing platform readiness verifier', () => {
     })
     expect(checkByName(result, 'live-xicheng-ai-chat-blocked')?.summary).toMatchObject({
       endpoint: '/app-api/xunjing/ai/chat',
+      packageCode: 'XICHENG-MAP-001',
+      sceneCode: 'xicheng-ai-guide',
       regionCode: 'beijing-xicheng',
       poiCode: 'xicheng-source-guard-negative',
+      poiName: '来源门禁测试点位',
       safetyStatus: 'BLOCKED',
       sourceCount: 0,
       logId: 2102
     })
+  })
+
+  test('rejects live Xicheng AI readiness when chat response omits context echo', async () => {
+    const baseUrl = await startPlatformFixture({ includeXichengAiResponseContext: false })
+
+    await expect(verifyXunjingPlatformReadiness({
+      env: stagingEnv(),
+      baseUrl,
+      skipAdminCheck: true,
+      includeXichengAppCheck: true
+    })).rejects.toThrow('/app-api/xunjing/ai/chat did not echo Xicheng POI context')
   })
 
   test('rejects environment values that reuse the upstream XingheAI runtime', async () => {
