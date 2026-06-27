@@ -69,6 +69,10 @@
 				<text class="ops-title">旅行素材盒</text>
 				<text class="ops-desc">查看轨迹、照片、识别事件和用户备注</text>
 			</view>
+			<view class="ops-card" @click="openOpsReport">
+				<text class="ops-title">城市运营报告</text>
+				<text class="ops-desc">查看访问、识别、路线、作品和分享数据</text>
+			</view>
 		</view>
 
 		<view v-if="lastError" class="error-line">{{ lastError }}</view>
@@ -205,6 +209,11 @@ export default {
 		openPassport() {
 			uni.navigateTo({
 				url: `/pages/xicheng/passport/passport?routeId=${encodeURIComponent(this.defaultRoute.routeId)}`
+			})
+		},
+		openOpsReport() {
+			uni.navigateTo({
+				url: '/pages/xicheng/ops-report/ops-report'
 			})
 		}
 	}

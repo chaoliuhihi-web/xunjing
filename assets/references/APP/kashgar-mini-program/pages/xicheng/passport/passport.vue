@@ -39,6 +39,7 @@
 				<text>{{ metric.value }}</text>
 			</view>
 			<text class="suggestion">{{ report.suggestion }}</text>
+			<button class="report-button" @click="openOpsReport">查看城市运营报告</button>
 		</view>
 	</view>
 </template>
@@ -69,6 +70,13 @@ export default {
 	async onLoad(options = {}) {
 		const routeId = decodeURIComponent(options.routeId || XICHENG_DEFAULT_ROUTE.routeId)
 		this.route = await getXichengRoutePassport({ routeId })
+	},
+	methods: {
+		openOpsReport() {
+			uni.navigateTo({
+				url: '/pages/xicheng/ops-report/ops-report'
+			})
+		}
 	}
 }
 </script>
@@ -157,5 +165,15 @@ export default {
 
 .suggestion {
 	margin-top: 20rpx;
+}
+
+.report-button {
+	margin-top: 24rpx;
+	height: 76rpx;
+	line-height: 76rpx;
+	border-radius: 8rpx;
+	background: #1F6E5A;
+	color: #FFFFFF;
+	font-size: 24rpx;
 }
 </style>
