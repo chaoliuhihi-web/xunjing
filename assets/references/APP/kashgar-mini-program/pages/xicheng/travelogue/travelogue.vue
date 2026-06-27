@@ -122,6 +122,29 @@
 			<button class="ghost-button" @click="submitReview">作品审核</button>
 		</view>
 
+		<view v-if="reviewSubmission" class="section-card">
+			<view class="section-head">
+				<text class="section-title">审核提交记录</text>
+				<text class="section-badge">{{ reviewSubmission.reviewStatus }}</text>
+			</view>
+			<view class="report-grid">
+				<view>
+					<text class="report-value">{{ reviewSubmission.materialCount }}</text>
+					<text class="report-label">素材数</text>
+				</view>
+				<view>
+					<text class="report-value">{{ reviewSubmission.sourceCount }}</text>
+					<text class="report-label">来源数</text>
+				</view>
+				<view>
+					<text class="report-value">{{ reviewSubmission.workCount }}</text>
+					<text class="report-label">作品数</text>
+				</view>
+			</view>
+			<text class="section-desc">提交时间：{{ reviewSubmission.submittedAt }}</text>
+			<text class="section-desc">海报：{{ reviewSubmission.posterStatus }} · PDF：{{ reviewSubmission.pdfStatus }}</text>
+		</view>
+
 		<view class="section-card">
 			<view class="section-head">
 				<text class="section-title">城市运营报告</text>
@@ -177,7 +200,8 @@ export default {
 			draft: '',
 			reviewText: XICHENG_REGION_CONFIG.reviewStatus.draft,
 			posterStatus: '未生成',
-			pdfStatus: '未生成'
+			pdfStatus: '未生成',
+			reviewSubmission: null
 		}
 	},
 	computed: {
@@ -235,8 +259,12 @@ export default {
 		loadJourney(options = {}) {
 			const storedMaterials = uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey)
 			const importedRoute = uni.getStorageSync(XICHENG_REGION_CONFIG.inspirationStorageKey)
+			const storedReviewSubmissions = uni.getStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey)
 			const materials = Array.isArray(storedMaterials) ? storedMaterials : []
 			this.importedRoute = importedRoute && importedRoute.stops ? importedRoute : null
+			this.reviewSubmission = Array.isArray(storedReviewSubmissions) && storedReviewSubmissions.length > 0
+				? storedReviewSubmissions[0]
+				: null
 			const routePoiName = options.poiName ? decodeURIComponent(options.poiName) : ''
 			if (routePoiName && !materials.some(material => material && material.poiName === routePoiName)) {
 				materials.unshift({
@@ -270,6 +298,7 @@ export default {
 				draft: this.draft,
 				materials: this.materials,
 				recognizedRoute: this.recognizedRoute,
+				reviewSubmission: this.reviewSubmission,
 				reviewText: this.reviewText,
 				posterStatus: this.posterStatus,
 				pdfStatus: this.pdfStatus,
@@ -302,11 +331,35 @@ export default {
 		},
 		submitReview() {
 			this.reviewText = XICHENG_REGION_CONFIG.reviewStatus.pending
+			const reviewPayload = this.submitReviewPackage()
+			const existingSubmissions = uni.getStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey)
+			uni.setStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey, [
+				reviewPayload,
+				...(Array.isArray(existingSubmissions) ? existingSubmissions : [])
+			].slice(0, 20))
+			this.reviewSubmission = reviewPayload
 			this.saveDraft({ silent: true })
 			uni.showToast({
 				title: '作品审核已提交',
 				icon: 'none'
 			})
+		},
+		submitReviewPackage() {
+			const submittedAt = new Date().toISOString()
+			return {
+				regionCode: XICHENG_REGION_CONFIG.regionCode,
+				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				draft: this.draft,
+				materials: this.materials,
+				recognizedRoute: this.recognizedRoute,
+				reviewStatus: this.reviewText,
+				submittedAt,
+				materialCount: this.materialCount,
+				sourceCount: this.sourceCount,
+				workCount: this.draft ? 1 : 0,
+				posterStatus: this.posterStatus,
+				pdfStatus: this.pdfStatus
+			}
 		}
 	}
 }
