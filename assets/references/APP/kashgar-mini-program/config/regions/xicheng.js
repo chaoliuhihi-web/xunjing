@@ -34,6 +34,7 @@ const XICHENG_REGION_BASE_CONFIG = {
 	routePassport: {
 		title: '路线护照',
 		badgePrefix: '西城印章',
+		targetCheckinCount: 3,
 		thresholdText: '完成 3 个文化点打卡可生成西城路线纪念章'
 	},
 	parentChildTasks: [

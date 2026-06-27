@@ -39,7 +39,7 @@ for (const required of [
 assert.match(
   travelogue,
   /completedTaskCount\(\)[\s\S]*return Math\.min\(this\.studyTaskEvidenceCount, this\.parentChildTasks\.length\)/,
-  'Route passport progress should be driven by completed study task evidence, not just material count'
+  'Study task completion count should be driven by completed evidence, not just material count'
 )
 
 assert.match(

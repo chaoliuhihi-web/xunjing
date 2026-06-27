@@ -16,6 +16,8 @@ assert.ok(
 for (const required of [
   'badgeAwards',
   'activeBadgeAward',
+  'routePassportTargetCount',
+  'routePassportCheckinCount',
   'claimRouteBadge',
   'createRouteBadgeAward',
   'persistRouteBadgeAward',
@@ -53,6 +55,24 @@ assert.match(
 )
 
 assert.match(
+  regionConfig,
+  /routePassport:\s*\{[\s\S]*targetCheckinCount:\s*3[\s\S]*thresholdText:\s*'完成 3 个文化点打卡可生成西城路线纪念章'/,
+  'Route passport config should declare the 3-check-in completion target used by the UI copy'
+)
+
+assert.match(
+  travelogue,
+  /routePassportCheckinCount\(\)[\s\S]*new Set\([\s\S]*this\.routeCheckins[\s\S]*checkin\.poiCode \|\| checkin\.poiName[\s\S]*return Math\.min\(checkedPoiKeys\.size, this\.routePassportTargetCount\)/,
+  'Route passport progress should count unique route check-in POIs, not study task completions'
+)
+
+assert.match(
+  travelogue,
+  /passportProgress\(\)[\s\S]*const total = Math\.max\(this\.routePassportTargetCount, 1\)[\s\S]*return Math\.min\(100, Math\.round\(\(this\.routePassportCheckinCount \/ total\) \* 100\)\)/,
+  'Route passport progress should be calculated from the 3-check-in target'
+)
+
+assert.match(
   travelogue,
   /claimRouteBadge\(\)[\s\S]*if \(!this\.badgeUnlocked \|\| this\.activeBadgeAward\) return[\s\S]*const award = this\.createRouteBadgeAward\(\)[\s\S]*this\.persistRouteBadgeAward\(award\)/,
   'Claiming a route badge should require an unlocked passport and avoid duplicate awards'
@@ -60,7 +80,7 @@ assert.match(
 
 assert.match(
   travelogue,
-  /createRouteBadgeAward\(\)[\s\S]*awardId:\s*`badge-\$\{Date\.now\(\)\}`[\s\S]*badgeCode:\s*this\.routeBadgeCode[\s\S]*badgeName:\s*this\.badgeName[\s\S]*routePassportTitle:\s*this\.routePassport\.title[\s\S]*passportProgress:\s*this\.passportProgress[\s\S]*studyTaskEvidenceCount:\s*this\.studyTaskEvidenceCount[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  /createRouteBadgeAward\(\)[\s\S]*awardId:\s*`badge-\$\{Date\.now\(\)\}`[\s\S]*badgeCode:\s*this\.routeBadgeCode[\s\S]*badgeName:\s*this\.badgeName[\s\S]*routePassportTitle:\s*this\.routePassport\.title[\s\S]*passportProgress:\s*this\.passportProgress[\s\S]*routePassportTargetCount:\s*this\.routePassportTargetCount[\s\S]*routePassportCheckinCount:\s*this\.routePassportCheckinCount[\s\S]*checkinCount:\s*this\.checkinCount[\s\S]*studyTaskEvidenceCount:\s*this\.studyTaskEvidenceCount[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
   'Badge award payload should include identity, route passport context, completion evidence, and private review status'
 )
 

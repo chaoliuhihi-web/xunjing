@@ -457,9 +457,20 @@ export default {
 		completedTaskCount() {
 			return Math.min(this.studyTaskEvidenceCount, this.parentChildTasks.length)
 		},
+		routePassportTargetCount() {
+			return Number(this.routePassport.targetCheckinCount) || 3
+		},
+		routePassportCheckinCount() {
+			const checkedPoiKeys = new Set(
+				this.routeCheckins
+					.map(checkin => checkin && (checkin.poiCode || checkin.poiName) ? (checkin.poiCode || checkin.poiName) : '')
+					.filter(Boolean)
+			)
+			return Math.min(checkedPoiKeys.size, this.routePassportTargetCount)
+		},
 		passportProgress() {
-			const total = Math.max(this.parentChildTasks.length, 1)
-			return Math.min(100, Math.round((this.completedTaskCount / total) * 100))
+			const total = Math.max(this.routePassportTargetCount, 1)
+			return Math.min(100, Math.round((this.routePassportCheckinCount / total) * 100))
 		},
 		badgeUnlocked() {
 			return this.passportProgress >= 100
@@ -921,6 +932,9 @@ export default {
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
 				packageCode: XICHENG_REGION_CONFIG.packageCode,
 				passportProgress: this.passportProgress,
+				routePassportTargetCount: this.routePassportTargetCount,
+				routePassportCheckinCount: this.routePassportCheckinCount,
+				checkinCount: this.checkinCount,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
 				awardedAt,
 				reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
