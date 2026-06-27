@@ -1,7 +1,7 @@
 {
   "name": "xinghe-xunjing-kashgar-app",
   "version": "1.0.0",
-  "description": "喀什 AI 文旅导览 UniApp APP",
+  "description": "星河寻境城市 AI 旅伴 UniApp APP，面向西城 P0 并保留喀什基线",
   "main": "main.js",
   "scripts": {
     "serve": "npm run dev:h5",

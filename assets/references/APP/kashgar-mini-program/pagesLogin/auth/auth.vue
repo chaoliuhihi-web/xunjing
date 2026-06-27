@@ -8,8 +8,8 @@
 		<!-- Logo 和标题 -->
 		<view class="auth-header">
 			<image class="logo" :src="UrlImg + '/themes/simpleboot3/public/assets/images/foot/logo.png'" mode="aspectFit"></image>
-			<text class="app-name">新喀什</text>
-			<text class="welcome-text">欢迎来到新喀什</text>
+			<text class="app-name">星河寻境</text>
+			<text class="welcome-text">欢迎来到星河寻境</text>
 		</view>
 
 		<!-- 授权按钮 -->

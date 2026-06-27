@@ -7,6 +7,9 @@ const indexPath = path.join(root, 'pages', 'index', 'index.vue')
 const storyDetailPath = path.join(root, 'subPackages', 'feature', 'theater', 'theaterDetail.vue')
 const myPath = path.join(root, 'subPackages', 'user', 'my', 'my.vue')
 const aiGuidePath = path.join(root, 'pages', 'ai-guide', 'ai-guide.vue')
+const appConfigPath = path.join(root, 'app.js')
+const projectConfigPath = path.join(root, 'project.config.json')
+const authPath = path.join(root, 'pagesLogin', 'auth', 'auth.vue')
 const packagePath = path.join(root, 'package.json')
 const manifestPath = path.join(root, 'manifest.json')
 const pagesPath = path.join(root, 'pages.json')
@@ -15,6 +18,8 @@ const indexPage = fs.readFileSync(indexPath, 'utf8')
 const storyDetailPage = fs.readFileSync(storyDetailPath, 'utf8')
 const myPage = fs.readFileSync(myPath, 'utf8')
 const aiGuidePage = fs.readFileSync(aiGuidePath, 'utf8')
+const appConfig = fs.readFileSync(appConfigPath, 'utf8')
+const authPage = fs.readFileSync(authPath, 'utf8')
 const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'))
 const readJsonc = (filePath) => JSON.parse(
   fs.readFileSync(filePath, 'utf8')
@@ -23,6 +28,7 @@ const readJsonc = (filePath) => JSON.parse(
 )
 const manifestJson = readJsonc(manifestPath)
 const pagesJson = readJsonc(pagesPath)
+const projectConfigJson = readJsonc(projectConfigPath)
 const qaReport = fs.existsSync(qaPath) ? fs.readFileSync(qaPath, 'utf8') : ''
 
 assert.equal(
@@ -45,8 +51,8 @@ assert.equal(
 
 assert.match(
   packageJson.description,
-  /喀什|AI 文旅|UniApp APP/,
-  'APP package description should describe the current product'
+  /星河寻境.*城市 AI 旅伴.*西城.*喀什/,
+  'APP package description should describe the city companion product and retained Kashgar baseline'
 )
 
 assert.equal(
@@ -57,8 +63,8 @@ assert.equal(
 
 assert.match(
   manifestJson.description,
-  /喀什|AI文旅|文旅/,
-  'APP manifest description should describe the Kashgar AI cultural-travel product'
+  /星河寻境.*城市 AI 旅伴.*西城.*喀什/,
+  'APP manifest description should describe the Xicheng city companion product and retained Kashgar baseline'
 )
 
 assert.equal(
@@ -66,6 +72,50 @@ assert.equal(
   '星河寻境',
   'APP global navigation title should not keep the scaffold default'
 )
+
+assert.equal(
+  projectConfigJson.projectname,
+  'xinghe-xunjing',
+  'WeChat project name should use the Xinghe Xunjing product identity'
+)
+
+assert.match(
+  appConfig,
+  /name:\s*'星河寻境'/,
+  'APP global config should expose the Xinghe Xunjing product name'
+)
+
+assert.match(
+  appConfig,
+  /description:\s*'星河寻境城市 AI 旅伴/,
+  'APP global config should describe the city companion product'
+)
+
+assert.match(
+  authPage,
+  /星河寻境/,
+  'login authorization page should use the Xinghe Xunjing product name'
+)
+
+for (const [label, content] of Object.entries({
+  'APP global config': appConfig,
+  'WeChat project config': fs.readFileSync(projectConfigPath, 'utf8'),
+  'login authorization page': authPage,
+  'APP package manifest': JSON.stringify(packageJson),
+  'UniApp manifest': fs.readFileSync(manifestPath, 'utf8'),
+})) {
+  for (const forbiddenIdentity of [
+    /\bxinxiake\b/i,
+    /新喀什/,
+    /喀什应用/,
+  ]) {
+    assert.doesNotMatch(
+      content,
+      forbiddenIdentity,
+      `${label} should not keep old scaffold or legacy product identity ${forbiddenIdentity}`
+    )
+  }
+}
 
 const androidPermissions = manifestJson['app-plus']?.distribute?.android?.permissions || []
 const hasAndroidPermission = (name) => androidPermissions.some(permission => permission.includes(`android.permission.${name}`))
@@ -108,7 +158,7 @@ const iosPrivacy = manifestJson['app-plus']?.distribute?.ios?.privacyDescription
 
 for (const [key, expected] of Object.entries({
   NSCameraUsageDescription: /扫码|拍照|识别/,
-  NSLocationWhenInUseUsageDescription: /定位|附近|喀什/,
+  NSLocationWhenInUseUsageDescription: /定位|附近|城市/,
   NSPhotoLibraryUsageDescription: /相册|图片|照片/,
   NSPhotoLibraryAddUsageDescription: /保存|相册|照片/,
 })) {

@@ -2,9 +2,9 @@
 export default {
   // 应用基本信息
   appInfo: {
-    name: 'xinxiake',
+    name: '星河寻境',
     version: '1.0.0',
-    description: '喀什应用'
+    description: '星河寻境城市 AI 旅伴，面向西城 P0 并保留喀什基线'
   },
 
   // API 配置
@@ -36,7 +36,7 @@ export default {
       },
       {
         pagePath: 'subPackages/feature/theater/theater',
-        text: '喀什剧场',
+        text: '游记剧场',
         iconPath: 'static/tabbar/tab.png',
         selectedIconPath: 'static/tabbar/tab_small.png'
       },
