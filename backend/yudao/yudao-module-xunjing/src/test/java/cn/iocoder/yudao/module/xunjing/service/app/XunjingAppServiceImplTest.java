@@ -40,6 +40,7 @@ import cn.iocoder.yudao.module.xunjing.dal.mysql.event.XunjingInteractionEventMa
 import cn.iocoder.yudao.module.xunjing.dal.mysql.media.XunjingMediaUsageLogMapper;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums;
 import cn.iocoder.yudao.module.xunjing.service.app.trigger.XunjingMultimodalTriggerEngine;
+import cn.iocoder.yudao.module.xunjing.service.app.trigger.XunjingVisionRecognitionService;
 import cn.iocoder.yudao.module.xunjing.service.console.XunjingConsoleService;
 import cn.iocoder.yudao.module.xunjing.service.console.XunjingConsoleServiceImpl;
 import jakarta.annotation.Resource;
@@ -68,7 +69,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@Import({XunjingConsoleServiceImpl.class, XunjingAppServiceImpl.class, XunjingMultimodalTriggerEngine.class})
+@Import({XunjingConsoleServiceImpl.class, XunjingAppServiceImpl.class, XunjingMultimodalTriggerEngine.class,
+        XunjingVisionRecognitionService.class})
 public class XunjingAppServiceImplTest extends BaseDbUnitTest {
 
     private static final Long TENANT_ID = 1L;

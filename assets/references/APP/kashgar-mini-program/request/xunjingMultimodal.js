@@ -9,6 +9,8 @@ export const XUNJING_MULTIMODAL_TRIGGER_CONFIG = {
 	tenantId: config.XunjingTenantId || '1'
 }
 
+export const MAX_VISION_IMAGE_BASE64_CHARS = 4000000
+
 export const buildYudaoAppApiUrl = (path) => {
 	const base = String(config.UrlYudaoAppRequest || config.UrlRequest || '').replace(/\/+$/, '')
 	const normalizedPath = String(path || '').replace(/^\/+/, '')
@@ -70,6 +72,71 @@ export const requestCurrentLocationForTrigger = ({ timeout = 6000 } = {}) => {
 	})
 }
 
+export const toImageMimeType = (filePath = '', imageInfo = {}) => {
+	const type = String(imageInfo.type || imageInfo.mimeType || '').toLowerCase()
+	if (type.startsWith('image/')) {
+		return type
+	}
+	const source = String(filePath || imageInfo.path || '').toLowerCase()
+	if (source.endsWith('.png')) {
+		return 'image/png'
+	}
+	if (source.endsWith('.webp')) {
+		return 'image/webp'
+	}
+	if (source.endsWith('.heic') || source.endsWith('.heif')) {
+		return 'image/heic'
+	}
+	return 'image/jpeg'
+}
+
+export const requestImageInfoForTrigger = (filePath = '') => {
+	return new Promise((resolve) => {
+		if (!filePath || !uni.getImageInfo) {
+			resolve(null)
+			return
+		}
+		uni.getImageInfo({
+			src: filePath,
+			success: (imageInfo) => {
+				resolve({
+					width: Number(imageInfo.width || 0),
+					height: Number(imageInfo.height || 0),
+					type: toImageMimeType(filePath, imageInfo)
+				})
+			},
+			fail: () => {
+				resolve(null)
+			}
+		})
+	})
+}
+
+export const readLocalImageBase64ForTrigger = (filePath = '') => {
+	return new Promise((resolve) => {
+		if (!filePath || !uni.getFileSystemManager) {
+			resolve(null)
+			return
+		}
+		const fileSystemManager = uni.getFileSystemManager()
+		if (!fileSystemManager || !fileSystemManager.readFile) {
+			resolve(null)
+			return
+		}
+		fileSystemManager.readFile({
+			filePath,
+			encoding: 'base64',
+			success: (res) => {
+				const imageBase64 = String(res && res.data ? res.data : '')
+				resolve(imageBase64.length <= MAX_VISION_IMAGE_BASE64_CHARS ? imageBase64 : null)
+			},
+			fail: () => {
+				resolve(null)
+			}
+		})
+	})
+}
+
 export const inferImageLabelsFromLocalHints = ({ filePath = '', text = '', ocrText = '' } = {}) => {
 	const source = `${filePath} ${text} ${ocrText}`.toLowerCase()
 	const labels = new Set()
@@ -97,10 +164,19 @@ export const inferImageLabelsFromLocalHints = ({ filePath = '', text = '', ocrTe
 	return Array.from(labels)
 }
 
-export const buildPhotoMetaForTrigger = ({ filePath = '', location = null } = {}) => ({
+export const buildPhotoMetaForTrigger = ({
+	filePath = '',
+	location = null,
+	imageInfo = null,
+	imageBase64 = null
+} = {}) => ({
 	imageId: filePath ? String(filePath).split('/').pop() : '',
 	imageUrl: filePath,
 	takenAt: new Date().toISOString(),
+	imageMimeType: toImageMimeType(filePath, imageInfo || {}),
+	imageWidth: imageInfo && imageInfo.width ? Number(imageInfo.width) : null,
+	imageHeight: imageInfo && imageInfo.height ? Number(imageInfo.height) : null,
+	imageBase64: imageBase64 || null,
 	exifLocation: normalizeLocationForTrigger(location)
 })
 
@@ -160,7 +236,11 @@ export const resolveXunjingPhotoTrigger = async ({
 	ocrText = '',
 	imageLabels = []
 } = {}) => {
-	const location = await requestCurrentLocationForTrigger()
+	const [location, imageInfo, imageBase64] = await Promise.all([
+		requestCurrentLocationForTrigger(),
+		requestImageInfoForTrigger(filePath),
+		readLocalImageBase64ForTrigger(filePath)
+	])
 	const labels = imageLabels.length > 0
 		? imageLabels
 		: inferImageLabelsFromLocalHints({ filePath, text, ocrText })
@@ -168,7 +248,7 @@ export const resolveXunjingPhotoTrigger = async ({
 		text,
 		ocrText,
 		location,
-		photoMeta: buildPhotoMetaForTrigger({ filePath, location }),
+		photoMeta: buildPhotoMetaForTrigger({ filePath, location, imageInfo, imageBase64 }),
 		imageLabels: labels
 	})
 }

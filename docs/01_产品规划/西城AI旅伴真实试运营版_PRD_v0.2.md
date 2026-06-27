@@ -652,6 +652,10 @@ POST /app-api/xunjing/feedback
     "imageId": "local-photo-id",
     "imageUrl": "local-temp-file-path",
     "takenAt": "2026-06-27T10:00:00.000Z",
+    "imageMimeType": "image/jpeg",
+    "imageWidth": 1440,
+    "imageHeight": 1080,
+    "imageBase64": "bounded-base64-for-server-vision",
     "exifLocation": {
       "latitude": 39.9231,
       "longitude": 116.35726,
@@ -694,8 +698,10 @@ POST /app-api/xunjing/feedback
 - 当前后端已落地 `/app-api/xunjing/triggers/resolve`，Yudao Controller 内部路径为 `/xunjing/triggers/resolve`。
 - APP 调用必须带 `tenant-id`。
 - MVP 先用西城 seed POI 做现场测试，已覆盖白塔寺/妙应寺白塔、历代帝王庙、北海公园、什刹海、大栅栏。
+- APP 拍照触发会读取图片 MIME、宽高和受限 base64；后端通过 `XunjingVisionRecognitionService` 调用服务端视觉模型适配器生成/合并 `imageLabels`。
+- 视觉模型通过服务端环境变量启用：`XUNJING_VISION_API_URL`、`XUNJING_VISION_API_KEY`、`XUNJING_VISION_MODEL`。前端禁止保存模型密钥。
 - 后续生产化时，POI seed 必须迁移到后台可维护 POI 表，识别事件要落表并支持运营纠错。
-- 真实 OCR 或图片视觉模型只需要把结果写入 `ocrText`、`imageLabels`，不要重写触发接口契约。
+- 真实 OCR 只需要把结果写入 `ocrText`；图片视觉模型已通过后端适配器接入同一契约，不要重写触发接口。
 
 ### 13.3 触发规则
 
@@ -850,7 +856,7 @@ POST /app-api/xunjing/feedback
 | --- | --- |
 | POI 数据授权不清 | 数据源分层，核心数据走官方公开或授权路径 |
 | 坐标偏移 | 明确 WGS84 / GCJ-02 / BD-09，统一转换 |
-| 视觉识别误判 | 第一版以 GPS + OCR 为主，视觉只给候选 |
+| 视觉识别误判 | 第一版以 GPS + OCR 为主，视觉只给候选；模型密钥只在服务端，图片 base64 做长度限制 |
 | 用户被频繁打扰 | 置信度阈值、停留判断、用户确认 |
 | AI 讲解胡编 | RAG 绑定审核内容，不知道就兜底 |
 | iOS 审核卡住 | 提前准备隐私政策、权限说明、AI 说明 |

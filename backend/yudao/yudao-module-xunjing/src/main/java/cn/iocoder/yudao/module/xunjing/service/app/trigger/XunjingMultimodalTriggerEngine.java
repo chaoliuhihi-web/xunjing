@@ -5,6 +5,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.Multimodal
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PhotoMetaReqVO;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -43,8 +44,12 @@ public class XunjingMultimodalTriggerEngine {
                     39.894380D, 116.393660D, 360D, "老字号、商业街巷和近代城市生活的西城代表片区。")
     );
 
+    @Resource
+    private XunjingVisionRecognitionService visionRecognitionService;
+
     public MultimodalTriggerRespVO resolve(MultimodalTriggerReqVO reqVO) {
-        MultimodalTriggerReqVO safeReqVO = reqVO == null ? new MultimodalTriggerReqVO() : reqVO;
+        MultimodalTriggerReqVO safeReqVO = visionRecognitionService.enrich(
+                reqVO == null ? new MultimodalTriggerReqVO() : reqVO);
         String regionCode = defaultIfBlank(safeReqVO.getRegionCode(), REGION_XICHENG);
         List<PoiProfile> poiProfiles = REGION_XICHENG.equals(regionCode) ? XICHENG_POIS : List.of();
 

@@ -32,20 +32,32 @@ assert.match(
 
 assert.match(
   triggerModule,
-  /export const buildPhotoMetaForTrigger[\s\S]*imageId[\s\S]*imageUrl[\s\S]*takenAt[\s\S]*exifLocation/,
-  'Photo trigger payload should keep image id, local path, capture time, and EXIF/current location for travel notes'
+  /export const buildPhotoMetaForTrigger[\s\S]*imageId[\s\S]*imageUrl[\s\S]*takenAt[\s\S]*imageMimeType[\s\S]*imageWidth[\s\S]*imageHeight[\s\S]*imageBase64[\s\S]*exifLocation/,
+  'Photo trigger payload should keep image id, local path, capture time, MIME, dimensions, base64, and EXIF/current location for travel notes and backend vision recognition'
+)
+
+assert.match(
+  triggerModule,
+  /export const readLocalImageBase64ForTrigger[\s\S]*getFileSystemManager\(\)[\s\S]*encoding:\s*'base64'[\s\S]*MAX_VISION_IMAGE_BASE64_CHARS/,
+  'Photo trigger helper should read bounded local image base64 for backend vision recognition without exposing model keys in the client'
+)
+
+assert.match(
+  triggerModule,
+  /export const requestImageInfoForTrigger[\s\S]*uni\.getImageInfo[\s\S]*toImageMimeType/,
+  'Photo trigger helper should read local image dimensions and MIME for backend vision recognition'
 )
 
 assert.match(
   triggerModule,
   /export const inferImageLabelsFromLocalHints[\s\S]*white_pagoda[\s\S]*imperial_garden[\s\S]*imperial_temple[\s\S]*hutong/,
-  'MVP should provide deterministic image-label hints for Xicheng field fixtures before native vision plugins are wired'
+  'Photo trigger helper should keep deterministic image-label fallback hints for Xicheng field fixtures when backend vision provider is not configured'
 )
 
 assert.match(
   triggerModule,
-  /export const resolveXunjingPhotoTrigger\s*=\s*async[\s\S]*requestCurrentLocationForTrigger\(\)[\s\S]*return resolveXunjingMultimodalTrigger\(\{[\s\S]*photoMeta:\s*buildPhotoMetaForTrigger\(\{ filePath, location \}\)/,
-  'Photo trigger helper should combine photo, location, labels, and OCR text before calling backend'
+  /export const resolveXunjingPhotoTrigger\s*=\s*async[\s\S]*Promise\.all\(\[[\s\S]*requestCurrentLocationForTrigger\(\)[\s\S]*requestImageInfoForTrigger\(filePath\)[\s\S]*readLocalImageBase64ForTrigger\(filePath\)[\s\S]*photoMeta:\s*buildPhotoMetaForTrigger\(\{ filePath, location, imageInfo, imageBase64 \}\)/,
+  'Photo trigger helper should combine photo bytes, image metadata, location, fallback labels, and OCR text before calling backend'
 )
 
 assert.match(

@@ -63,6 +63,9 @@ describe('xunjing app API contract', () => {
     const triggerEngine = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/trigger/XunjingMultimodalTriggerEngine.java'
     )
+    const visionService = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/trigger/XunjingVisionRecognitionService.java'
+    )
 
     expect(controller).toContain('@PostMapping("/triggers/resolve")')
     expect(controller).toContain('MultimodalTriggerReqVO')
@@ -70,11 +73,17 @@ describe('xunjing app API contract', () => {
     expect(appVo).toContain('class MultimodalTriggerReqVO')
     expect(appVo).toContain('class LocationPointReqVO')
     expect(appVo).toContain('class PhotoMetaReqVO')
+    expect(appVo).toContain('imageMimeType')
+    expect(appVo).toContain('imageWidth')
+    expect(appVo).toContain('imageHeight')
+    expect(appVo).toContain('imageBase64')
     expect(appVo).toContain('class MultimodalTriggerRespVO')
     expect(appVo).toContain('imageLabels')
     expect(appVo).toContain('ocrText')
     expect(appVo).toContain('requiresUserConfirm')
     expect(appService).toContain('MultimodalTriggerRespVO resolveMultimodalTrigger(MultimodalTriggerReqVO reqVO)')
+    expect(triggerEngine).toContain('XunjingVisionRecognitionService')
+    expect(triggerEngine).toContain('visionRecognitionService.enrich')
     expect(triggerEngine).toContain('REGION_XICHENG')
     expect(triggerEngine).toContain('AUTO_TRIGGER_THRESHOLD = 0.85D')
     expect(triggerEngine).toContain('xicheng-baitasi')
@@ -82,5 +91,11 @@ describe('xunjing app API contract', () => {
     expect(triggerEngine).toContain('gps_radius')
     expect(triggerEngine).toContain('ocr_alias')
     expect(triggerEngine).toContain('image_label')
+    expect(visionService).toContain('XUNJING_VISION_API_URL')
+    expect(visionService).toContain('XUNJING_VISION_API_KEY')
+    expect(visionService).toContain('XUNJING_VISION_MODEL')
+    expect(visionService).toContain('imageBase64')
+    expect(visionService).toContain('chat/completions')
+    expect(visionService).toContain('extractVisionLabels')
   })
 })

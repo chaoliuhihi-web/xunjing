@@ -71,6 +71,10 @@ public class XunjingAppVO {
         private String imageId;
         private String imageUrl;
         private String takenAt;
+        private String imageMimeType;
+        private Integer imageWidth;
+        private Integer imageHeight;
+        private String imageBase64;
         private LocationPointReqVO exifLocation;
     }
 
