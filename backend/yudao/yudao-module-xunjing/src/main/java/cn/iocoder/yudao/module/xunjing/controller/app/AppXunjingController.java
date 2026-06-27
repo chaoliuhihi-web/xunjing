@@ -4,6 +4,8 @@ import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PublicReportSummaryRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.ResourceType;
@@ -44,6 +46,14 @@ public class AppXunjingController {
     @PermitAll
     public CommonResult<RagChatRespVO> chat(@Valid @RequestBody RagChatReqVO reqVO) {
         return success(appService.answer(reqVO));
+    }
+
+    @PostMapping("/triggers/resolve")
+    @Operation(summary = "多模态触发识别")
+    @PermitAll
+    public CommonResult<MultimodalTriggerRespVO> resolveTrigger(
+            @Valid @RequestBody MultimodalTriggerReqVO reqVO) {
+        return success(appService.resolveMultimodalTrigger(reqVO));
     }
 
     @PostMapping("/reading/ask")

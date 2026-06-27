@@ -48,6 +48,7 @@ import cn.iocoder.yudao.module.xunjing.dal.dataobject.report.XunjingPublicReport
 import cn.iocoder.yudao.module.xunjing.dal.mysql.report.XunjingPublicReportMapper;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums;
 import cn.iocoder.yudao.module.xunjing.service.app.XunjingAppServiceImpl;
+import cn.iocoder.yudao.module.xunjing.service.app.trigger.XunjingMultimodalTriggerEngine;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,7 +63,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Import({XunjingConsoleServiceImpl.class, XunjingAppServiceImpl.class})
+@Import({XunjingConsoleServiceImpl.class, XunjingAppServiceImpl.class, XunjingMultimodalTriggerEngine.class})
 public class XunjingConsoleServiceImplTest extends BaseDbUnitTest {
 
     private static final Long TENANT_ID = 1L;

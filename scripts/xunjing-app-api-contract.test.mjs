@@ -49,4 +49,38 @@ describe('xunjing app API contract', () => {
     expect(controller).toContain('appService.answerForResourceType(reqVO, expectedResourceType)')
     expect(appService).toContain('RagChatRespVO answerForResourceType(RagChatReqVO reqVO, String expectedResourceType)')
   })
+
+  test('multimodal trigger endpoint exposes Xicheng field-test contract', async () => {
+    const controller = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/AppXunjingController.java'
+    )
+    const appVo = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'
+    )
+    const appService = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppService.java'
+    )
+    const triggerEngine = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/trigger/XunjingMultimodalTriggerEngine.java'
+    )
+
+    expect(controller).toContain('@PostMapping("/triggers/resolve")')
+    expect(controller).toContain('MultimodalTriggerReqVO')
+    expect(controller).toContain('appService.resolveMultimodalTrigger(reqVO)')
+    expect(appVo).toContain('class MultimodalTriggerReqVO')
+    expect(appVo).toContain('class LocationPointReqVO')
+    expect(appVo).toContain('class PhotoMetaReqVO')
+    expect(appVo).toContain('class MultimodalTriggerRespVO')
+    expect(appVo).toContain('imageLabels')
+    expect(appVo).toContain('ocrText')
+    expect(appVo).toContain('requiresUserConfirm')
+    expect(appService).toContain('MultimodalTriggerRespVO resolveMultimodalTrigger(MultimodalTriggerReqVO reqVO)')
+    expect(triggerEngine).toContain('REGION_XICHENG')
+    expect(triggerEngine).toContain('AUTO_TRIGGER_THRESHOLD = 0.85D')
+    expect(triggerEngine).toContain('xicheng-baitasi')
+    expect(triggerEngine).toContain('xicheng-emperors-temple')
+    expect(triggerEngine).toContain('gps_radius')
+    expect(triggerEngine).toContain('ocr_alias')
+    expect(triggerEngine).toContain('image_label')
+  })
 })

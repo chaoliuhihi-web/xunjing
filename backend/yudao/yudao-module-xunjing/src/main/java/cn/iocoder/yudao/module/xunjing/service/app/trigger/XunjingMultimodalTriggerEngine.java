@@ -1,0 +1,305 @@
+package cn.iocoder.yudao.module.xunjing.service.app.trigger;
+
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.LocationPointReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalCandidateRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PhotoMetaReqVO;
+import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
+@Component
+public class XunjingMultimodalTriggerEngine {
+
+    private static final String REGION_XICHENG = "beijing-xicheng";
+    private static final double AUTO_TRIGGER_THRESHOLD = 0.85D;
+
+    private static final List<PoiProfile> XICHENG_POIS = List.of(
+            new PoiProfile("xicheng-baitasi", "妙应寺白塔",
+                    List.of("妙应寺白塔", "妙应寺", "白塔寺", "白塔寺东夹道", "白塔"),
+                    List.of("white_pagoda", "pagoda", "temple", "temple_gate", "baitasi", "miaoying_temple"),
+                    39.923100D, 116.357260D, 220D, "白塔寺片区的北京城市更新和元代白塔文化节点。"),
+            new PoiProfile("xicheng-emperors-temple", "历代帝王庙",
+                    List.of("历代帝王庙", "帝王庙", "帝王庙大街"),
+                    List.of("imperial_temple", "temple", "paifang", "beijing_architecture"),
+                    39.918930D, 116.365870D, 180D, "明清皇家礼制和北京中轴文化延展的重要观察点。"),
+            new PoiProfile("xicheng-beihai-park", "北海公园",
+                    List.of("北海公园", "北海", "琼华岛", "北海白塔"),
+                    List.of("lake", "imperial_garden", "white_tower", "park", "beihai"),
+                    39.925450D, 116.389020D, 520D, "皇家园林、白塔和水岸空间共同构成的北京文化地标。"),
+            new PoiProfile("xicheng-shichahai", "什刹海",
+                    List.of("什刹海", "后海", "前海", "西海", "烟袋斜街"),
+                    List.of("lake", "hutong", "waterfront", "old_beijing", "shichahai"),
+                    39.940310D, 116.386390D, 650D, "胡同、水系和市井生活交织的老北京漫游片区。"),
+            new PoiProfile("xicheng-dashilar", "大栅栏",
+                    List.of("大栅栏", "前门大栅栏", "杨梅竹斜街", "北京坊"),
+                    List.of("hutong", "shop_sign", "old_beijing", "qianmen", "dashilar"),
+                    39.894380D, 116.393660D, 360D, "老字号、商业街巷和近代城市生活的西城代表片区。")
+    );
+
+    public MultimodalTriggerRespVO resolve(MultimodalTriggerReqVO reqVO) {
+        MultimodalTriggerReqVO safeReqVO = reqVO == null ? new MultimodalTriggerReqVO() : reqVO;
+        String regionCode = defaultIfBlank(safeReqVO.getRegionCode(), REGION_XICHENG);
+        List<PoiProfile> poiProfiles = REGION_XICHENG.equals(regionCode) ? XICHENG_POIS : List.of();
+
+        List<MatchScore> matches = poiProfiles.stream()
+                .map(poi -> score(poi, safeReqVO))
+                .filter(match -> match.confidence() > 0D)
+                .sorted(Comparator.comparing(MatchScore::confidence).reversed())
+                .limit(3)
+                .toList();
+
+        if (matches.isEmpty()) {
+            return noMatch(regionCode);
+        }
+        String intent = detectIntent(safeReqVO);
+        MatchScore best = matches.get(0);
+        boolean autoTrigger = best.confidence() >= AUTO_TRIGGER_THRESHOLD;
+
+        MultimodalTriggerRespVO respVO = new MultimodalTriggerRespVO();
+        respVO.setIntent(intent);
+        respVO.setAction(resolveAction(intent, autoTrigger));
+        respVO.setTriggerType(resolveTriggerType(best.signals()));
+        respVO.setRegionCode(regionCode);
+        respVO.setPoiCode(best.poi().code());
+        respVO.setPoiName(best.poi().name());
+        respVO.setConfidence(best.confidence());
+        respVO.setRequiresUserConfirm(!autoTrigger);
+        respVO.setReason(buildReason(best.signals(), autoTrigger));
+        respVO.setTargetPath(buildTargetPath(intent, regionCode, best.poi().code(), !autoTrigger));
+        respVO.setCandidates(matches.stream()
+                .map(match -> toCandidate(match, intent, regionCode))
+                .toList());
+        return respVO;
+    }
+
+    private MatchScore score(PoiProfile poi, MultimodalTriggerReqVO reqVO) {
+        double score = 0D;
+        Set<String> signals = new LinkedHashSet<>();
+        Double distanceMeters = null;
+
+        LocationPointReqVO location = effectiveLocation(reqVO);
+        if (hasCoordinate(location)) {
+            distanceMeters = haversineMeters(
+                    location.getLatitude().doubleValue(), location.getLongitude().doubleValue(),
+                    poi.latitude(), poi.longitude());
+            if (distanceMeters <= poi.radiusMeters()) {
+                score += 0.38D;
+                signals.add("gps_radius");
+            } else if (distanceMeters <= poi.radiusMeters() * 2D) {
+                score += 0.18D;
+                signals.add("gps_nearby");
+            }
+        }
+
+        if (containsAlias(reqVO.getOcrText(), poi)) {
+            score += 0.45D;
+            signals.add("ocr_alias");
+        }
+        if (containsAlias(reqVO.getText(), poi)) {
+            score += 0.34D;
+            signals.add("text_alias");
+        }
+        if (reqVO.getRecentPoiCodes() != null && reqVO.getRecentPoiCodes().contains(poi.code())) {
+            score += 0.08D;
+            signals.add("context_poi");
+        }
+
+        int imageMatchCount = imageMatchCount(reqVO.getImageLabels(), poi);
+        if (imageMatchCount > 0) {
+            score += Math.min(0.38D, 0.22D + (imageMatchCount - 1) * 0.08D);
+            signals.add("image_label");
+        }
+
+        return new MatchScore(poi, round2(Math.min(score, 0.99D)), distanceMeters, List.copyOf(signals));
+    }
+
+    private MultimodalCandidateRespVO toCandidate(MatchScore match, String intent, String regionCode) {
+        MultimodalCandidateRespVO candidate = new MultimodalCandidateRespVO();
+        candidate.setPoiCode(match.poi().code());
+        candidate.setPoiName(match.poi().name());
+        candidate.setConfidence(match.confidence());
+        candidate.setDistanceMeters(match.distanceMeters() == null ? null : round1(match.distanceMeters()));
+        candidate.setSummary(match.poi().summary());
+        candidate.setTargetPath(buildTargetPath(intent, regionCode, match.poi().code(), true));
+        candidate.setMatchedSignals(match.signals());
+        return candidate;
+    }
+
+    private MultimodalTriggerRespVO noMatch(String regionCode) {
+        MultimodalTriggerRespVO respVO = new MultimodalTriggerRespVO();
+        respVO.setIntent("ask");
+        respVO.setAction("ask_ai_companion");
+        respVO.setTriggerType("none");
+        respVO.setRegionCode(regionCode);
+        respVO.setConfidence(0D);
+        respVO.setRequiresUserConfirm(true);
+        respVO.setReason("定位、文字和图片信号不足，进入问问小京。");
+        respVO.setTargetPath("/pages/ai-chat/index?regionCode=" + regionCode);
+        respVO.setCandidates(List.of());
+        return respVO;
+    }
+
+    private String detectIntent(MultimodalTriggerReqVO reqVO) {
+        String text = normalize(defaultIfBlank(reqVO.getText(), "") + " " + defaultIfBlank(reqVO.getOcrText(), ""));
+        if (containsAny(text, List.of("下一站", "路线", "怎么走", "去哪", "行程", "推荐路线"))) {
+            return "route";
+        }
+        if (containsAny(text, List.of("好吃", "美食", "餐厅", "小吃", "咖啡"))) {
+            return "food";
+        }
+        if (containsAny(text, List.of("游记", "记录", "拍照", "生成"))) {
+            return "record";
+        }
+        return "guide";
+    }
+
+    private String resolveAction(String intent, boolean autoTrigger) {
+        return switch (intent) {
+            case "route" -> autoTrigger ? "open_route_recommendation" : "confirm_route_recommendation";
+            case "food" -> autoTrigger ? "open_food_recommendation" : "confirm_food_recommendation";
+            case "record" -> autoTrigger ? "start_travel_note" : "confirm_travel_note";
+            default -> autoTrigger ? "start_ai_guide" : "confirm_ai_guide";
+        };
+    }
+
+    private String buildTargetPath(String intent, String regionCode, String poiCode, boolean confirm) {
+        String confirmQuery = confirm ? "&confirm=1" : "";
+        return switch (intent) {
+            case "route" -> "/pages/routes/recommend?regionCode=" + regionCode + "&poiCode=" + poiCode + confirmQuery;
+            case "food" -> "/pages/food/recommend?regionCode=" + regionCode + "&poiCode=" + poiCode + confirmQuery;
+            case "record" -> "/pages/travel-note/edit?regionCode=" + regionCode + "&poiCode=" + poiCode + confirmQuery;
+            default -> "/pages/ai-guide/detail?regionCode=" + regionCode + "&poiCode=" + poiCode + confirmQuery;
+        };
+    }
+
+    private String resolveTriggerType(List<String> signals) {
+        if (signals.contains("ocr_alias")) {
+            return "ocr";
+        }
+        if (signals.contains("gps_radius") || signals.contains("gps_nearby")) {
+            return "location";
+        }
+        if (signals.contains("image_label")) {
+            return "image";
+        }
+        if (signals.contains("text_alias")) {
+            return "text";
+        }
+        return "context";
+    }
+
+    private String buildReason(List<String> signals, boolean autoTrigger) {
+        List<String> parts = new ArrayList<>();
+        if (signals.contains("gps_radius") || signals.contains("gps_nearby")) {
+            parts.add("定位");
+        }
+        if (signals.contains("ocr_alias")) {
+            parts.add("OCR文字");
+        }
+        if (signals.contains("text_alias")) {
+            parts.add("用户文本");
+        }
+        if (signals.contains("image_label")) {
+            parts.add("图片识别");
+        }
+        if (signals.contains("context_poi")) {
+            parts.add("上下文");
+        }
+        String evidence = parts.isEmpty() ? "上下文" : String.join("+", parts);
+        return autoTrigger ? evidence + "已达到自动触发阈值。" : evidence + "匹配到候选点，需用户确认。";
+    }
+
+    private boolean containsAlias(String text, PoiProfile poi) {
+        if (!hasText(text)) {
+            return false;
+        }
+        String normalizedText = normalize(text);
+        return poi.aliases().stream().anyMatch(alias -> normalizedText.contains(normalize(alias)));
+    }
+
+    private int imageMatchCount(List<String> imageLabels, PoiProfile poi) {
+        if (imageLabels == null || imageLabels.isEmpty()) {
+            return 0;
+        }
+        Set<String> normalizedLabels = new LinkedHashSet<>();
+        for (String label : imageLabels) {
+            if (hasText(label)) {
+                normalizedLabels.add(normalize(label));
+            }
+        }
+        int count = 0;
+        for (String visualLabel : poi.visualLabels()) {
+            String normalizedVisualLabel = normalize(visualLabel);
+            for (String label : normalizedLabels) {
+                if (label.equals(normalizedVisualLabel)
+                        || label.contains(normalizedVisualLabel)
+                        || normalizedVisualLabel.contains(label)) {
+                    count++;
+                    break;
+                }
+            }
+        }
+        return count;
+    }
+
+    private LocationPointReqVO effectiveLocation(MultimodalTriggerReqVO reqVO) {
+        if (reqVO.getLocation() != null) {
+            return reqVO.getLocation();
+        }
+        PhotoMetaReqVO photoMeta = reqVO.getPhotoMeta();
+        return photoMeta == null ? null : photoMeta.getExifLocation();
+    }
+
+    private boolean hasCoordinate(LocationPointReqVO location) {
+        return location != null && location.getLatitude() != null && location.getLongitude() != null;
+    }
+
+    private double haversineMeters(double latitude1, double longitude1, double latitude2, double longitude2) {
+        double earthRadiusMeters = 6371000D;
+        double dLat = Math.toRadians(latitude2 - latitude1);
+        double dLon = Math.toRadians(longitude2 - longitude1);
+        double a = Math.sin(dLat / 2D) * Math.sin(dLat / 2D)
+                + Math.cos(Math.toRadians(latitude1)) * Math.cos(Math.toRadians(latitude2))
+                * Math.sin(dLon / 2D) * Math.sin(dLon / 2D);
+        return earthRadiusMeters * 2D * Math.atan2(Math.sqrt(a), Math.sqrt(1D - a));
+    }
+
+    private boolean containsAny(String text, List<String> keywords) {
+        return keywords.stream().anyMatch(text::contains);
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(" ", "");
+    }
+
+    private String defaultIfBlank(String value, String fallback) {
+        return hasText(value) ? value.trim() : fallback;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private double round1(double value) {
+        return Math.round(value * 10D) / 10D;
+    }
+
+    private double round2(double value) {
+        return Math.round(value * 100D) / 100D;
+    }
+
+    private record PoiProfile(String code, String name, List<String> aliases, List<String> visualLabels,
+                              double latitude, double longitude, double radiusMeters, String summary) {
+    }
+
+    private record MatchScore(PoiProfile poi, double confidence, Double distanceMeters, List<String> signals) {
+    }
+
+}

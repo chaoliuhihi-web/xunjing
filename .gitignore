@@ -52,6 +52,13 @@ assets/references/*
 !assets/references/Web_V3/*.png
 !assets/references/product_effects/
 !assets/references/product_effects/*.png
+!assets/references/APP/
+!assets/references/APP/kashgar-mini-program/
+!assets/references/APP/kashgar-mini-program/**
+assets/references/APP/kashgar-mini-program/.git/
+assets/references/APP/kashgar-mini-program/node_modules/
+assets/references/APP/kashgar-mini-program/dist/
+assets/references/APP/kashgar-mini-program/unpackage/
 
 # Local production workbenches and heavy handoff artifacts
 workbench/

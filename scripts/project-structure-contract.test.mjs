@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
@@ -39,6 +39,20 @@ describe('project structure contract', () => {
       'archive/'
     ]) {
       expect(readme).toContain(required)
+    }
+  })
+
+  test('keeps canonical UniApp source checked into the APP reference directory', () => {
+    for (const required of [
+      'assets/references/APP/kashgar-mini-program/package.json',
+      'assets/references/APP/kashgar-mini-program/pages.json',
+      'assets/references/APP/kashgar-mini-program/manifest.json',
+      'assets/references/APP/kashgar-mini-program/pages/index/index.vue',
+      'assets/references/APP/kashgar-mini-program/pages/ai-guide/ai-guide.vue',
+      'assets/references/APP/kashgar-mini-program/request/xunjingMultimodal.js',
+      'assets/references/APP/kashgar-mini-program/tests/xicheng-multimodal-trigger-contract.test.mjs'
+    ]) {
+      expect(existsSync(resolve(rootDir, required))).toBe(true)
     }
   })
 

@@ -1,0 +1,85 @@
+{
+    "name" : "星河寻境",
+    "appid" : "__UNI__DA550CB",
+    "description" : "喀什 AI 文旅导览与游记生成 APP",
+    "versionName" : "1.0.0",
+    "versionCode" : "100",
+    "transformPx" : false,
+    "app-plus" : {
+        /* 5+App特有相关 */
+        "usingComponents" : true,
+        "nvueCompiler" : "uni-app",
+        "nvueStyleCompiler" : "uni-app",
+        "splashscreen" : {
+            "alwaysShowBeforeRender" : true,
+            "waiting" : true,
+            "autoclose" : true,
+            "delay" : 0
+        },
+        "modules" : {
+            "Geolocation" : {},
+            "Maps" : {},
+            "OAuth" : {}
+        },
+        /* 模块配置 */
+        "distribute" : {
+            /* 应用发布信息 */
+            "android" : {
+                /* android打包配置 */
+                "permissions" : [
+                    "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>",
+                    "<uses-permission android:name=\"android.permission.CAMERA\"/>",
+                    "<uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\"/>",
+                    "<uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\"/>",
+                    "<uses-feature android:name=\"android.hardware.camera\" android:required=\"false\"/>",
+                    "<uses-feature android:name=\"android.hardware.camera.autofocus\" android:required=\"false\"/>"
+                ]
+            },
+            "ios" : {
+                "privacyDescription" : {
+                    "NSCameraUsageDescription" : "用于扫描景点二维码、拍照选择图片并进入对应的喀什导览内容。",
+                    "NSLocationWhenInUseUsageDescription" : "用于展示当前位置城市和附近的喀什文旅导览内容。",
+                    "NSPhotoLibraryUsageDescription" : "用于从相册选择图片，辅助 AI 导览解读喀什景点与游记内容。",
+                    "NSPhotoLibraryAddUsageDescription" : "用于保存短剧、游记图片等内容到系统相册。"
+                }
+            },
+            /* ios打包配置 */
+            "sdkConfigs" : {
+                "maps" : {
+                    "tencent" : {
+                        "key" : "Y2EBZ-ALIEI-542GN-UQTLT-NX6A3-VNFLA"
+                    }
+                },
+                "geolocation" : {
+                    "tencent" : {
+                        "__platform__" : [ "ios", "android" ],
+                        "apikey_ios" : "Y2EBZ-ALIEI-542GN-UQTLT-NX6A3-VNFLA",
+                        "apikey_android" : "Y2EBZ-ALIEI-542GN-UQTLT-NX6A3-VNFLA"
+                    }
+                }
+            }
+        }
+    },
+    /* SDK配置 */
+    "quickapp" : {},
+    /* 快应用特有相关 */
+    "mp-weixin" : {
+        /* 小程序特有相关 */
+        "appid" : "wx1d4909549607b6d5",
+        "setting" : {
+            "urlCheck" : false
+        },
+        "lazyCodeLoading" : "requiredComponents",
+        "usingComponents" : true,
+		"requiredPrivateInfos": ["getFuzzyLocation"],
+        "permission" : {
+            "scope.userFuzzyLocation" : {
+                "desc" : "用于首页展示当前所在城市"
+            },
+            "scope.record" : {
+                "desc" : "用于语音提问和AI语音回复"
+            }
+        }
+    },
+    "vueVersion" : "3"
+}

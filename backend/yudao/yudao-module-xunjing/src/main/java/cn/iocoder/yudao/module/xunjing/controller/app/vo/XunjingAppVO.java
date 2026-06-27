@@ -44,6 +44,63 @@ public class XunjingAppVO {
     }
 
     @Data
+    public static class MultimodalTriggerReqVO {
+        private String regionCode;
+        private String packageCode;
+        private String sceneCode;
+        private String sourceChannel;
+        private String userTraceId;
+        private String text;
+        private String ocrText;
+        private LocationPointReqVO location;
+        private PhotoMetaReqVO photoMeta;
+        private List<String> imageLabels;
+        private List<String> recentPoiCodes;
+    }
+
+    @Data
+    public static class LocationPointReqVO {
+        private BigDecimal latitude;
+        private BigDecimal longitude;
+        private String coordType;
+        private Integer accuracyMeters;
+    }
+
+    @Data
+    public static class PhotoMetaReqVO {
+        private String imageId;
+        private String imageUrl;
+        private String takenAt;
+        private LocationPointReqVO exifLocation;
+    }
+
+    @Data
+    public static class MultimodalTriggerRespVO {
+        private String intent;
+        private String action;
+        private String triggerType;
+        private String regionCode;
+        private String poiCode;
+        private String poiName;
+        private Double confidence;
+        private Boolean requiresUserConfirm;
+        private String reason;
+        private String targetPath;
+        private List<MultimodalCandidateRespVO> candidates;
+    }
+
+    @Data
+    public static class MultimodalCandidateRespVO {
+        private String poiCode;
+        private String poiName;
+        private Double confidence;
+        private Double distanceMeters;
+        private String summary;
+        private String targetPath;
+        private List<String> matchedSignals;
+    }
+
+    @Data
     public static class AppPackageDetailRespVO {
         private Long id;
         private String packageCode;

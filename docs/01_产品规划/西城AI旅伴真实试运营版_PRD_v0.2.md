@@ -1,6 +1,6 @@
 # 西城 AI 旅伴真实试运营版 PRD v0.2
 
-> 本 PRD 面向北京西城区真实多人试用，不再按 mock 测试版处理。产品必须以真实 POI、真实定位、真实识别事件、真实运营后台和三端发布为基础。  
+> 本 PRD 面向北京西城区真实多人试用，不再按 mock 测试版处理。产品必须以真实 POI、真实定位、真实识别事件、真实运营后台和三端发布为基础。
 > 地图与 POI 原则：真实 GIS 定位置与关系，Image Gen / UI 效果图定氛围与审美。
 
 ## 1. 背景
@@ -548,6 +548,32 @@ assets/references/APP/xicheng-multimodal/design-mockups/
 - 朋友圈短文
 - 小红书风格，但视觉不网红化
 
+### 11.6 照片与轨迹素材
+
+照片素材必须保存为游记可用事件，而不是只作为一次性识别输入。
+
+照片事件字段：
+
+- `photoId`
+- `localFileId / objectKey`
+- `takenAt`
+- `exifLatitude / exifLongitude`
+- `captureLatitude / captureLongitude`
+- `coordType`
+- `accuracyMeters`
+- `poiCode`
+- `triggerConfidence`
+- `userTraceId`
+- `travelogueDraftId`
+
+轨迹采集用于后续类似“六只脚”的实时行走记录：
+
+- 用户显式开启后才采集。
+- 前台采集优先，后台持续定位必须单独申请权限并说明用途。
+- 采样策略首期可按 `5-10 秒` 或 `10-30 米` 变化写入一次。
+- 轨迹点字段至少包含 `trackSessionId`、`latitude`、`longitude`、`coordType`、`accuracyMeters`、`speed`、`heading`、`altitude`、`recordedAt`、`batteryState`。
+- 游记生成时可把轨迹点压缩成路线摘要、停留 POI、照片时间线和步行距离。
+
 ## 12. 后端与 Yudao 能力
 
 ### 12.1 资源包
@@ -608,16 +634,32 @@ POST /app-api/xunjing/feedback
 
 ```json
 {
-  "regionCode": "XICHENG",
+  "regionCode": "beijing-xicheng",
   "packageCode": "XICHENG-MAP-001",
-  "source": "camera | ocr | gps | text",
+  "sceneCode": "xicheng-multimodal-trigger",
+  "sourceChannel": "APP_UNIAPP",
+  "userTraceId": "guest",
   "text": "白塔寺",
-  "imageUrl": "",
+  "ocrText": "妙应寺白塔入口",
+  "imageLabels": ["white_pagoda", "temple_gate"],
   "location": {
-    "lng": 116.357,
-    "lat": 39.923,
-    "coordType": "GCJ02"
-  }
+    "latitude": 39.9231,
+    "longitude": 116.35726,
+    "coordType": "gcj02",
+    "accuracyMeters": 18
+  },
+  "photoMeta": {
+    "imageId": "local-photo-id",
+    "imageUrl": "local-temp-file-path",
+    "takenAt": "2026-06-27T10:00:00.000Z",
+    "exifLocation": {
+      "latitude": 39.9231,
+      "longitude": 116.35726,
+      "coordType": "gcj02",
+      "accuracyMeters": 18
+    }
+  },
+  "recentPoiCodes": ["xicheng-shichahai"]
 }
 ```
 
@@ -627,13 +669,33 @@ POST /app-api/xunjing/feedback
 {
   "intent": "guide",
   "action": "start_ai_guide",
-  "poiId": "xicheng-baitasi",
-  "poiName": "白塔寺",
+  "triggerType": "ocr",
+  "regionCode": "beijing-xicheng",
+  "poiCode": "xicheng-baitasi",
+  "poiName": "妙应寺白塔",
   "confidence": 0.92,
-  "reason": "OCR 命中 POI 别名，并且当前位置接近白塔寺",
-  "requiresUserConfirm": false
+  "requiresUserConfirm": false,
+  "reason": "OCR文字+定位已达到自动触发阈值。",
+  "targetPath": "/pages/ai-guide/detail?regionCode=beijing-xicheng&poiCode=xicheng-baitasi",
+  "candidates": [
+    {
+      "poiCode": "xicheng-baitasi",
+      "poiName": "妙应寺白塔",
+      "confidence": 0.92,
+      "distanceMeters": 32.5,
+      "matchedSignals": ["gps_radius", "ocr_alias", "image_label"]
+    }
+  ]
 }
 ```
+
+### 13.2.1 MVP 当前实现口径
+
+- 当前后端已落地 `/app-api/xunjing/triggers/resolve`，Yudao Controller 内部路径为 `/xunjing/triggers/resolve`。
+- APP 调用必须带 `tenant-id`。
+- MVP 先用西城 seed POI 做现场测试，已覆盖白塔寺/妙应寺白塔、历代帝王庙、北海公园、什刹海、大栅栏。
+- 后续生产化时，POI seed 必须迁移到后台可维护 POI 表，识别事件要落表并支持运营纠错。
+- 真实 OCR 或图片视觉模型只需要把结果写入 `ocrText`、`imageLabels`，不要重写触发接口契约。
 
 ### 13.3 触发规则
 

@@ -31,11 +31,15 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatReq
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.LocationPointReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerRespVO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.media.XunjingMediaUsageLogDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.event.XunjingInteractionEventDO;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.event.XunjingInteractionEventMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.media.XunjingMediaUsageLogMapper;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums;
+import cn.iocoder.yudao.module.xunjing.service.app.trigger.XunjingMultimodalTriggerEngine;
 import cn.iocoder.yudao.module.xunjing.service.console.XunjingConsoleService;
 import cn.iocoder.yudao.module.xunjing.service.console.XunjingConsoleServiceImpl;
 import jakarta.annotation.Resource;
@@ -64,7 +68,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@Import({XunjingConsoleServiceImpl.class, XunjingAppServiceImpl.class})
+@Import({XunjingConsoleServiceImpl.class, XunjingAppServiceImpl.class, XunjingMultimodalTriggerEngine.class})
 public class XunjingAppServiceImplTest extends BaseDbUnitTest {
 
     private static final Long TENANT_ID = 1L;
@@ -290,6 +294,57 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertEquals("mini-program", usageLog.getCaller());
         assertTrue(usageLog.getPayloadJson().contains("\"userTraceId\":\"trace-media-001\""));
         assertEquals(1, consoleService.getReadiness(projectId).getMediaUsageCount());
+    }
+
+    @Test
+    public void testResolveMultimodalTriggerStartsGuideWhenGpsAndOcrMatchXichengPoi() {
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setOcrText("妙应寺白塔入口");
+        reqVO.setImageLabels(List.of("white_pagoda", "temple_gate"));
+        reqVO.setLocation(location("39.923100", "116.357260", 18));
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("guide", respVO.getIntent());
+        assertEquals("start_ai_guide", respVO.getAction());
+        assertEquals("xicheng-baitasi", respVO.getPoiCode());
+        assertEquals("妙应寺白塔", respVO.getPoiName());
+        assertTrue(respVO.getConfidence() >= 0.85D);
+        assertFalse(respVO.getRequiresUserConfirm());
+        assertTrue(respVO.getTargetPath().contains("poiCode=xicheng-baitasi"));
+        assertTrue(respVO.getCandidates().get(0).getMatchedSignals().contains("gps_radius"));
+        assertTrue(respVO.getCandidates().get(0).getMatchedSignals().contains("ocr_alias"));
+    }
+
+    @Test
+    public void testResolveMultimodalTriggerUsesAliasAndRadiusForXichengRouteIntent() {
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setText("我在历代帝王庙，下一站去哪");
+        reqVO.setOcrText("帝王庙");
+        reqVO.setLocation(location("39.918930", "116.365870", 35));
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("route", respVO.getIntent());
+        assertEquals("open_route_recommendation", respVO.getAction());
+        assertEquals("xicheng-emperors-temple", respVO.getPoiCode());
+        assertTrue(respVO.getConfidence() >= 0.85D);
+        assertFalse(respVO.getRequiresUserConfirm());
+    }
+
+    @Test
+    public void testResolveMultimodalTriggerRequiresConfirmWhenOnlyImageSignalMatches() {
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setImageLabels(List.of("lake", "imperial_garden", "white_tower"));
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("guide", respVO.getIntent());
+        assertEquals("confirm_ai_guide", respVO.getAction());
+        assertEquals("xicheng-beihai-park", respVO.getPoiCode());
+        assertTrue(respVO.getConfidence() < 0.85D);
+        assertTrue(respVO.getRequiresUserConfirm());
+        assertTrue(respVO.getReason().contains("图片"));
     }
 
     @Test
@@ -622,6 +677,23 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         RagChatReqVO reqVO = ragReq();
         reqVO.setQrSceneCode(qrSceneCode);
         return reqVO;
+    }
+
+    private MultimodalTriggerReqVO multimodalReq() {
+        MultimodalTriggerReqVO reqVO = new MultimodalTriggerReqVO();
+        reqVO.setRegionCode("beijing-xicheng");
+        reqVO.setSourceChannel("xicheng-app");
+        reqVO.setUserTraceId("trace-xicheng-multimodal-001");
+        return reqVO;
+    }
+
+    private LocationPointReqVO location(String latitude, String longitude, Integer accuracyMeters) {
+        LocationPointReqVO location = new LocationPointReqVO();
+        location.setLatitude(new BigDecimal(latitude));
+        location.setLongitude(new BigDecimal(longitude));
+        location.setAccuracyMeters(accuracyMeters);
+        location.setCoordType("gcj02");
+        return location;
     }
 
     private QrCodeCreateReqVO qrCodeReq(Long packageId) {

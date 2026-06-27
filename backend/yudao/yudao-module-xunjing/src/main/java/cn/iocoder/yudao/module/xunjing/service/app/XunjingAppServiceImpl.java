@@ -20,6 +20,8 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppKnowled
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppMapPointRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppMediaAssetRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppPackageDetailRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PublicReportSummaryRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
@@ -53,6 +55,7 @@ import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.QrCodeStatus;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.ResourceType;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.ReviewStatus;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.VectorStatus;
+import cn.iocoder.yudao.module.xunjing.service.app.trigger.XunjingMultimodalTriggerEngine;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -113,6 +116,8 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     private XunjingMapPointMapper mapPointMapper;
     @Resource
     private XunjingGlobeModelMapper globeModelMapper;
+    @Resource
+    private XunjingMultimodalTriggerEngine multimodalTriggerEngine;
     @Autowired(required = false)
     private AiKnowledgeSegmentService aiKnowledgeSegmentService;
     @Autowired(required = false)
@@ -224,6 +229,11 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             recordAppMediaUsage(resourcePackage, qrCode, event, reqVO);
         }
         return event.getId();
+    }
+
+    @Override
+    public MultimodalTriggerRespVO resolveMultimodalTrigger(MultimodalTriggerReqVO reqVO) {
+        return multimodalTriggerEngine.resolve(reqVO);
     }
 
     @Override
