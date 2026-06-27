@@ -89,6 +89,12 @@ function productionManifest(overrides = {}) {
       reviewedAt: '2026-06-27',
       evidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260627.zip'
     },
+    sourceWorkbook: {
+      workbookFile: 'workbench/xicheng-production-pois.review-workbook.csv',
+      workbookSha256: 'a'.repeat(64),
+      rowCount: 80,
+      arraySeparator: '|'
+    },
     pois: Array.from({ length: 80 }, (_, index) => productionPoi(index + 1)),
     ...overrides
   }
@@ -139,7 +145,9 @@ describe('xicheng POI production manifest gate', () => {
       totalPoiCount: 80,
       targetPoiCount: 80,
       productionReady: true,
-      reviewBatchCode: 'xicheng-p0-poi-review-20260627'
+      reviewBatchCode: 'xicheng-p0-poi-review-20260627',
+      sourceWorkbookFile: 'workbench/xicheng-production-pois.review-workbook.csv',
+      sourceWorkbookSha256: 'a'.repeat(64)
     })
     expect(report.summary.manifestSha256).toMatch(/^[a-f0-9]{64}$/)
     expect(report.checks.map((check) => check.name)).toEqual([
@@ -254,5 +262,6 @@ describe('xicheng POI production manifest gate', () => {
     )
     expect(deployDoc).toContain('npm run xunjing:xicheng:poi:manifest:gate')
     expect(deployDoc).toContain('PRODUCTION_POI_MANIFEST_READY')
+    expect(deployDoc).toContain('summary.sourceWorkbookSha256')
   })
 })

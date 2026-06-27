@@ -347,6 +347,7 @@ export async function verifyXichengPoiProductionManifest({
   const blockers = checks.flatMap((item) => item.blockers)
   const ok = checks.every((item) => item.ok)
   const categories = new Set(pois.map((poi) => poi.category).filter(hasText))
+  const sourceWorkbook = isObject(manifest.sourceWorkbook) ? manifest.sourceWorkbook : {}
 
   return {
     artifactType,
@@ -364,6 +365,8 @@ export async function verifyXichengPoiProductionManifest({
       productionReady: manifest.productionReady === true,
       reviewBatchCode: manifest.reviewBatch?.batchCode,
       reviewBatchEvidencePackageRef: manifest.reviewBatch?.evidencePackageRef,
+      sourceWorkbookFile: sourceWorkbook.workbookFile,
+      sourceWorkbookSha256: sourceWorkbook.workbookSha256,
       categoryCount: categories.size
     },
     checks,
