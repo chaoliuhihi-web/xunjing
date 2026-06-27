@@ -161,6 +161,7 @@ for (const [key, expected] of Object.entries({
   NSLocationWhenInUseUsageDescription: /定位|附近|城市/,
   NSPhotoLibraryUsageDescription: /相册|图片|照片/,
   NSPhotoLibraryAddUsageDescription: /保存|相册|照片/,
+  NSMicrophoneUsageDescription: /麦克风|语音|提问/,
 })) {
   assert.match(
     iosPrivacy[key] || '',

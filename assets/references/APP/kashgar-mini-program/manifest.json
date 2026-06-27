@@ -39,6 +39,7 @@
                 "privacyDescription" : {
                     "NSCameraUsageDescription" : "用于扫描景点二维码、拍照识别地点，并进入对应的城市导览内容。",
                     "NSLocationWhenInUseUsageDescription" : "用于展示当前位置城市、附近景点和可走路线。",
+                    "NSMicrophoneUsageDescription" : "用于语音提问和语音识别，把用户说出的地点或问题转入 AI 旅伴问答。",
                     "NSPhotoLibraryUsageDescription" : "用于从相册选择图片，辅助 AI 识别景点、生成游记素材。",
                     "NSPhotoLibraryAddUsageDescription" : "用于保存游记图片、分享海报和纪念内容到系统相册。"
                 }
