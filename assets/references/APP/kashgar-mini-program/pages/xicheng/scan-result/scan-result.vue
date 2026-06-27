@@ -16,6 +16,26 @@
 			</view>
 		</view>
 
+		<view v-if="recommendedRoute" class="route-card">
+			<view class="section-head">
+				<text class="section-title">推荐路线</text>
+				<text class="section-badge">{{ recommendedRoute.durationText || recommendedRoute.duration || '可加入路线护照' }}</text>
+			</view>
+			<text class="route-title">{{ recommendedRoute.title || '西城 Citywalk 推荐路线' }}</text>
+			<text v-if="recommendedRoute.summary || recommendedRoute.theme" class="route-desc">
+				{{ recommendedRoute.summary || recommendedRoute.theme }}
+			</text>
+			<view v-if="routeSteps.length > 0" class="route-steps">
+				<text
+					v-for="(stop, index) in routeSteps"
+					:key="`${stop.poiCode || stop.poiName || stop}-${index}`"
+					class="route-stop"
+				>
+					{{ index + 1 }}. {{ stop.poiName || stop }}
+				</text>
+			</view>
+		</view>
+
 		<view class="question-card">
 			<text class="section-title">可以继续问小京</text>
 			<view
@@ -69,6 +89,8 @@ const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
 	confidence: 0,
 	requiresUserConfirm: true,
 	suggestedQuestions: XICHENG_SUGGESTED_QUESTIONS,
+	routeRecommendation: null,
+	recommendedRoute: null,
 	sources: []
 })
 
@@ -91,6 +113,8 @@ const normalizeResult = (result = {}) => ({
 	poiName: result.poiName || XICHENG_EMPTY_RECOGNITION_RESULT.poiName,
 	suggestedQuestions: normalizeSuggestedQuestions(result),
 	recommendedQuestions: normalizeSuggestedQuestions(result),
+	routeRecommendation: result.routeRecommendation || result.recommendedRoute || null,
+	recommendedRoute: result.routeRecommendation || result.recommendedRoute || null,
 	sources: Array.isArray(result.sources) ? result.sources : []
 })
 
@@ -109,6 +133,20 @@ export default {
 		},
 		sourceList() {
 			return Array.isArray(this.result.sources) ? this.result.sources : []
+		},
+		recommendedRoute() {
+			return this.result.routeRecommendation || this.result.recommendedRoute || null
+		},
+		routeSteps() {
+			if (!this.recommendedRoute) return []
+			if (Array.isArray(this.recommendedRoute.stops) && this.recommendedRoute.stops.length > 0) {
+				return this.recommendedRoute.stops
+			}
+			const title = String(this.recommendedRoute.title || '')
+			return title
+				.split(/\s*[-—－]\s*/)
+				.map(name => name.trim())
+				.filter(Boolean)
 		}
 	},
 	onLoad(options = {}) {
@@ -145,6 +183,7 @@ export default {
 				poiName: this.result.poiName || '',
 				sourceLabel: this.result.sourceLabel || '',
 				confidence: this.result.confidence || 0,
+				routeRecommendation: this.recommendedRoute,
 				sources: this.sourceList,
 				capturedAt: new Date().toISOString()
 			}
@@ -172,6 +211,7 @@ export default {
 
 .result-card,
 .question-card,
+.route-card,
 .source-card {
 	padding: 32rpx;
 	border-radius: 8rpx;
@@ -228,10 +268,60 @@ export default {
 	margin-top: 28rpx;
 }
 
+.route-card {
+	margin-top: 28rpx;
+}
+
 .section-title {
 	display: block;
 	font-size: 30rpx;
 	font-weight: 700;
+}
+
+.section-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16rpx;
+}
+
+.section-badge {
+	flex-shrink: 0;
+	padding: 8rpx 14rpx;
+	border-radius: 8rpx;
+	background: #EEF5F1;
+	font-size: 22rpx;
+	color: #1F6E5A;
+}
+
+.route-title {
+	display: block;
+	margin-top: 18rpx;
+	font-size: 28rpx;
+	font-weight: 700;
+	color: #1F2933;
+}
+
+.route-desc {
+	display: block;
+	margin-top: 10rpx;
+	font-size: 24rpx;
+	line-height: 1.55;
+	color: #667085;
+}
+
+.route-steps {
+	margin-top: 18rpx;
+}
+
+.route-stop {
+	display: block;
+	margin-top: 12rpx;
+	padding: 18rpx;
+	border-radius: 8rpx;
+	background: #F2F4F7;
+	font-size: 26rpx;
+	color: #344054;
 }
 
 .question-row {

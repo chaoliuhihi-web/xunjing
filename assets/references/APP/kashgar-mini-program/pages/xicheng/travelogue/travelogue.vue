@@ -39,6 +39,26 @@
 			</view>
 		</view>
 
+		<view v-if="recognizedRoute" class="section-card">
+			<view class="section-head">
+				<text class="section-title">识别推荐路线</text>
+				<text class="section-badge">{{ recognizedRoute.durationText || recognizedRoute.duration || '已加入素材' }}</text>
+			</view>
+			<text class="route-title">{{ recognizedRoute.title || '西城 Citywalk 推荐路线' }}</text>
+			<text v-if="recognizedRoute.summary || recognizedRoute.theme" class="section-desc">
+				{{ recognizedRoute.summary || recognizedRoute.theme }}
+			</text>
+			<view v-if="recognizedRouteStops.length > 0" class="route-steps">
+				<text
+					v-for="(stop, index) in recognizedRouteStops"
+					:key="`${stop.poiCode || stop.poiName || stop}-${index}`"
+					class="route-stop"
+				>
+					{{ index + 1 }}. {{ stop.poiName || stop }}
+				</text>
+			</view>
+		</view>
+
 		<view class="section-card">
 			<view class="section-head">
 				<text class="section-title">路线护照</text>
@@ -131,14 +151,17 @@ import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 
 export const createXichengTravelogueDraft = ({
 	materials = [],
-	parentChildTasks = XICHENG_REGION_CONFIG.parentChildTasks
+	parentChildTasks = XICHENG_REGION_CONFIG.parentChildTasks,
+	routeRecommendation = null
 } = {}) => {
 	const poiNames = Array.from(new Set(
 		materials
 			.map(material => material && material.poiName ? material.poiName : '')
 			.filter(Boolean)
 	))
-	const routeText = poiNames.length > 0 ? poiNames.join('、') : '白塔寺、西四街巷、什刹海'
+	const routeText = routeRecommendation && routeRecommendation.title
+		? routeRecommendation.title
+		: poiNames.length > 0 ? poiNames.join('、') : '白塔寺、西四街巷、什刹海'
 	const taskText = parentChildTasks.length > 0 ? parentChildTasks.slice(0, 2).join('；') : '完成现场观察'
 	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒，我们沿途完成了${taskText}。这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
 }
@@ -188,6 +211,21 @@ export default {
 				posterStatus: this.posterStatus,
 				pdfStatus: this.pdfStatus
 			}
+		},
+		recognizedRoute() {
+			const routeMaterial = this.materials.find(material => material && material.routeRecommendation)
+			return routeMaterial ? routeMaterial.routeRecommendation : null
+		},
+		recognizedRouteStops() {
+			if (!this.recognizedRoute) return []
+			if (Array.isArray(this.recognizedRoute.stops) && this.recognizedRoute.stops.length > 0) {
+				return this.recognizedRoute.stops
+			}
+			const title = String(this.recognizedRoute.title || '')
+			return title
+				.split(/\s*[-—－]\s*/)
+				.map(name => name.trim())
+				.filter(Boolean)
 		}
 	},
 	onLoad(options = {}) {
@@ -218,7 +256,8 @@ export default {
 				? cachedDraft.draft
 				: createXichengTravelogueDraft({
 					materials: this.materials,
-					parentChildTasks: this.parentChildTasks
+					parentChildTasks: this.parentChildTasks,
+					routeRecommendation: this.recognizedRoute
 				})
 			this.reviewText = cachedDraft && cachedDraft.reviewText ? cachedDraft.reviewText : this.reviewText
 			this.posterStatus = cachedDraft && cachedDraft.posterStatus ? cachedDraft.posterStatus : this.posterStatus
@@ -230,6 +269,7 @@ export default {
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
 				draft: this.draft,
 				materials: this.materials,
+				recognizedRoute: this.recognizedRoute,
 				reviewText: this.reviewText,
 				posterStatus: this.posterStatus,
 				pdfStatus: this.pdfStatus,

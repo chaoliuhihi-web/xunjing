@@ -69,6 +69,8 @@ export const normalizeXichengTriggerResult = (result = {}, source = '') => {
 		requiresUserConfirm: result.requiresUserConfirm !== false,
 		suggestedQuestions,
 		recommendedQuestions: suggestedQuestions,
+		routeRecommendation: result.routeRecommendation || result.recommendedRoute || null,
+		recommendedRoute: result.routeRecommendation || result.recommendedRoute || null,
 		sources,
 		safetyStatus: result.safetyStatus || ''
 	}
