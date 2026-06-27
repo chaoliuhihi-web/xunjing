@@ -193,6 +193,7 @@
 			>
 				<text class="material-title">{{ artifact.title }}</text>
 				<text class="material-meta">{{ artifact.assetLabel }} · {{ artifact.visibilityLabel || '待审核 · 未公开' }} · {{ formatArtifactTime(artifact.createdAt) }}</text>
+				<text v-if="artifact.templateLabel" class="material-meta">{{ artifact.templateLabel }}</text>
 			</view>
 		</view>
 
@@ -728,6 +729,9 @@ export default {
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
 				packageCode: XICHENG_REGION_CONFIG.packageCode,
 				routeTitle,
+				templateCode: assetType === 'pdf' ? 'xicheng-memorial-pdf-v1' : 'xicheng-share-poster-v1',
+				templateLabel: assetType === 'pdf' ? 'PDF固定模板：封面、路线地图、照片时间线、游记正文、知识卡片、徽章页' : '分享海报固定模板',
+				templateSections: assetType === 'pdf' ? this.createMemorialPdfTemplate(routeTitle, createdAt) : this.createPosterTemplate(routeTitle),
 				draftExcerpt: String(this.draft || '').slice(0, 80),
 				materialCount: this.materialCount,
 				stayPointCount: this.stayPointCount,
@@ -744,6 +748,62 @@ export default {
 				pdfStatus: this.pdfStatus,
 				createdAt
 			}
+		},
+		createPosterTemplate(routeTitle) {
+			return [
+				{
+					sectionKey: 'share-card',
+					title: '分享海报',
+					routeTitle,
+					badgeName: this.badgeName,
+					passportProgress: this.passportProgress,
+					draftExcerpt: String(this.draft || '').slice(0, 80)
+				}
+			]
+		},
+		createMemorialPdfTemplate(routeTitle, createdAt) {
+			return [
+				{
+					sectionKey: 'cover',
+					title: '封面',
+					routeTitle,
+					createdAt,
+					subtitle: '我的西城 Citywalk 纪念册'
+				},
+				{
+					sectionKey: 'route-map',
+					title: '路线地图',
+					routeTitle,
+					routePointCount: this.routePointCount,
+					stayPointCount: this.stayPointCount
+				},
+				{
+					sectionKey: 'photo-timeline',
+					title: '照片时间线',
+					photoMaterialCount: this.photoMaterialCount,
+					materialCount: this.materialCount
+				},
+				{
+					sectionKey: 'travelogue-body',
+					title: '游记正文',
+					draftExcerpt: String(this.draft || '').slice(0, 160)
+				},
+				{
+					sectionKey: 'knowledge-cards',
+					title: '知识卡片',
+					sourceCount: this.sourceCount,
+					poiNames: this.materials
+						.map(material => material && material.poiName ? material.poiName : '')
+						.filter(Boolean)
+						.slice(0, 6)
+				},
+				{
+					sectionKey: 'badge-page',
+					title: '徽章页',
+					badgeName: this.badgeName,
+					passportProgress: this.passportProgress
+				}
+			]
 		},
 		persistShareArtifact(artifact) {
 			const existingArtifacts = uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey)

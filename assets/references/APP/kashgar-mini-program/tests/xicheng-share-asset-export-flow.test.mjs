@@ -27,6 +27,9 @@ for (const required of [
   'auditRequired',
   'publishStatus',
   'visibilityLabel',
+  'templateCode',
+  'templateSections',
+  'createMemorialPdfTemplate',
   'shareAssetCount',
   'formatArtifactTime'
 ]) {
@@ -73,6 +76,24 @@ assert.match(
   travelogue,
   /artifact\.assetLabel[\s\S]*artifact\.visibilityLabel/,
   'Share artifact list should show audit visibility so operators know generated works are not public'
+)
+
+assert.match(
+  travelogue,
+  /createShareArtifact\(assetType\)[\s\S]*templateCode:\s*assetType === 'pdf' \? 'xicheng-memorial-pdf-v1' : 'xicheng-share-poster-v1'[\s\S]*templateSections:\s*assetType === 'pdf' \? this\.createMemorialPdfTemplate\(routeTitle, createdAt\) : this\.createPosterTemplate\(routeTitle\)/,
+  'Share artifacts should record which fixed template produced the poster or PDF package'
+)
+
+assert.match(
+  travelogue,
+  /createMemorialPdfTemplate\(routeTitle, createdAt\)[\s\S]*sectionKey:\s*'cover'[\s\S]*sectionKey:\s*'route-map'[\s\S]*sectionKey:\s*'photo-timeline'[\s\S]*sectionKey:\s*'travelogue-body'[\s\S]*sectionKey:\s*'knowledge-cards'[\s\S]*sectionKey:\s*'badge-page'/,
+  'PDF memorial asset should include the P0 fixed template sections: cover, route map, photo timeline, travelogue body, knowledge cards, and badge page'
+)
+
+assert.match(
+  travelogue,
+  /artifact\.templateLabel/,
+  'Share artifact list should expose the fixed template label for operations review'
 )
 
 assert.doesNotMatch(
