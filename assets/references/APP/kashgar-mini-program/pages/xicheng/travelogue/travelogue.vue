@@ -37,6 +37,10 @@
 					<text class="report-label">停留点</text>
 				</view>
 				<view>
+					<text class="report-value">{{ filteredTrackPointCount }}</text>
+					<text class="report-label">异常点</text>
+				</view>
+				<view>
 					<text class="report-value">{{ recordingSession.startedAt ? formatArtifactTime(recordingSession.startedAt) : '--' }}</text>
 					<text class="report-label">开始日期</text>
 				</view>
@@ -314,6 +318,7 @@
 			<text class="section-desc">热门 POI：{{ opsReport.hotPoiLabel }}</text>
 			<text class="section-desc">误触发：{{ opsReport.misTriggerCount }} · 识别反馈：{{ opsReport.recognitionFeedbackCount }}</text>
 			<text class="section-desc">安全拦截：{{ opsReport.safetyBlockedCount }} · 服务不可用：{{ opsReport.safetyUnavailableCount }}</text>
+			<text class="section-desc">轨迹质量：{{ opsReport.qualityReport.usableRate }}% 可用 · 异常点：{{ opsReport.filteredTrackPointCount }}</text>
 			<text class="section-desc">优化建议：{{ opsReport.optimizationSuggestionText }}</text>
 			<text class="section-desc">上线后可替换为后端真实城市运营报告。</text>
 		</view>
@@ -639,6 +644,8 @@ export default {
 				optimizationSuggestionText: optimizationSuggestions.join('；'),
 				routePointCount: this.routePointCount,
 				stayPointCount: this.stayPointCount,
+				qualityReport: this.qualityReport,
+				filteredTrackPointCount: this.filteredTrackPointCount,
 				photoMaterialCount: this.photoMaterialCount,
 				remarkMaterialCount: this.remarkMaterialCount,
 				recordingStatus: this.recordingStatusText
@@ -649,6 +656,23 @@ export default {
 		},
 		stayPointCount() {
 			return Array.isArray(this.recordingSession.stayPoints) ? this.recordingSession.stayPoints.length : 0
+		},
+		filteredTrackPointCount() {
+			return Array.isArray(this.recordingSession.filteredTrackPoints) ? this.recordingSession.filteredTrackPoints.length : 0
+		},
+		qualityReport() {
+			const acceptedTrackPoints = Array.isArray(this.recordingSession.trackPoints) ? this.recordingSession.trackPoints : []
+			const filteredTrackPoints = Array.isArray(this.recordingSession.filteredTrackPoints) ? this.recordingSession.filteredTrackPoints : []
+			const lowAccuracyPointCount = acceptedTrackPoints.filter(point => point && point.locationQuality === 'low_accuracy').length
+			const abnormalJumpPointCount = filteredTrackPoints.filter(point => point && point.filteredReason === 'abnormal_jump').length
+			const totalQualityPointCount = acceptedTrackPoints.length + filteredTrackPoints.length
+			return {
+				acceptedTrackPointCount: this.routePointCount,
+				filteredTrackPointCount: this.filteredTrackPointCount,
+				lowAccuracyPointCount,
+				abnormalJumpPointCount,
+				usableRate: totalQualityPointCount > 0 ? Math.round((acceptedTrackPoints.length / totalQualityPointCount) * 100) : 100
+			}
 		},
 		photoMaterialCount() {
 			return this.materials.filter(material => material && material.type === 'photo').length
@@ -1258,6 +1282,9 @@ export default {
 				recordingSession: this.recordingSession,
 				routePointCount: this.routePointCount,
 				stayPointCount: this.stayPointCount,
+				qualityReport: this.qualityReport,
+				filteredTrackPoints: this.recordingSession.filteredTrackPoints,
+				filteredTrackPointCount: this.filteredTrackPointCount,
 				photoMaterialCount: this.photoMaterialCount,
 				remarkMaterialCount: this.remarkMaterialCount,
 				routeCheckins: this.routeCheckins,
@@ -1328,6 +1355,8 @@ export default {
 				finishedAt: this.recordingSession.finishedAt || '',
 				routePointCount: this.routePointCount,
 				stayPointCount: this.stayPointCount,
+				filteredTrackPointCount: this.filteredTrackPointCount,
+				qualityReport: this.qualityReport,
 				shareTrackDefault: 'private',
 				exactTrackHidden: true
 			}
@@ -1351,6 +1380,8 @@ export default {
 				routeTitle,
 				publicMaterials: this.materials.map(material => this.sanitizeMaterialForPublicShare(material)),
 				publicRecordingSummary: this.createPublicRecordingSummary(),
+				qualityReport: this.qualityReport,
+				filteredTrackPointCount: this.filteredTrackPointCount,
 				privacy: {
 					shareLocationPrecision: 'poi_area',
 					shareTrackDefault: 'private',
