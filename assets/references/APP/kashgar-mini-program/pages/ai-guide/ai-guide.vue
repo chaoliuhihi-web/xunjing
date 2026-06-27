@@ -468,7 +468,9 @@ const xichengAiContext = ref({
 	poiCode: '',
 	poiName: '',
 	companionName: '',
-	confidence: ''
+	confidence: '',
+	sourceLabel: '',
+	sources: []
 })
 
 const handleNavHeight = (height) => {
@@ -500,7 +502,7 @@ const createWelcomeMessage = () => ({
 		: '您好！我是AI小导游，有什么可以帮助您的吗？',
 	images: [],
 	followUps: [],
-	sources: [],
+	sources: hasXichengAiContext() ? getXichengContextSources() : [],
 	safetyStatus: '',
 	isPending: false,
 	interrupted: false,
@@ -638,6 +640,33 @@ const normalizeXichengAiContext = (options = {}) => ({
 	confidence: decodeRouteValue(options.confidence)
 })
 
+const createEmptyXichengRecognitionContext = () => ({
+	poiCode: '',
+	poiName: '',
+	confidence: '',
+	sourceLabel: '',
+	sources: []
+})
+
+const loadCachedXichengRecognitionContext = (context = {}) => {
+	const cached = uni.getStorageSync(XICHENG_REGION_CONFIG.storageKey)
+	if (!cached || typeof cached !== 'object') {
+		return createEmptyXichengRecognitionContext()
+	}
+	const matchesPoiCode = Boolean(context.poiCode) && cached.poiCode === context.poiCode
+	const matchesPoiName = Boolean(context.poiName) && cached.poiName === context.poiName
+	if (!matchesPoiCode && !matchesPoiName) {
+		return createEmptyXichengRecognitionContext()
+	}
+	return {
+		poiCode: cached.poiCode || '',
+		poiName: cached.poiName || '',
+		confidence: cached.confidence || '',
+		sourceLabel: cached.sourceLabel || '',
+		sources: Array.isArray(cached.sources) ? cached.sources : []
+	}
+}
+
 const applyXichengAiContext = (options = {}) => {
 	const context = normalizeXichengAiContext(options)
 	if (context.regionCode !== XICHENG_REGION_CONFIG.regionCode && !context.poiCode && !context.poiName) {
@@ -647,17 +676,22 @@ const applyXichengAiContext = (options = {}) => {
 			poiCode: '',
 			poiName: '',
 			companionName: '',
-			confidence: ''
+			confidence: '',
+			sourceLabel: '',
+			sources: []
 		}
 		return xichengAiContext.value
 	}
+	const cachedRecognition = loadCachedXichengRecognitionContext(context)
 	xichengAiContext.value = {
 		regionCode: context.regionCode || XICHENG_REGION_CONFIG.regionCode,
 		packageCode: context.packageCode || XICHENG_REGION_CONFIG.packageCode,
-		poiCode: context.poiCode,
-		poiName: context.poiName,
+		poiCode: context.poiCode || cachedRecognition.poiCode,
+		poiName: context.poiName || cachedRecognition.poiName,
 		companionName: context.companionName || XICHENG_REGION_CONFIG.companionName,
-		confidence: context.confidence
+		confidence: context.confidence || cachedRecognition.confidence,
+		sourceLabel: cachedRecognition.sourceLabel,
+		sources: cachedRecognition.sources
 	}
 	return xichengAiContext.value
 }
@@ -669,6 +703,11 @@ const hasXichengAiContext = (context = xichengAiContext.value) => (
 		|| Boolean(context.poiName)
 	)
 )
+
+const getXichengContextSources = () => {
+	const context = xichengAiContext.value || {}
+	return Array.isArray(context.sources) ? context.sources : []
+}
 
 const buildXichengContextQuestion = (question = '', context = xichengAiContext.value) => {
 	if (!hasXichengAiContext(context)) {
