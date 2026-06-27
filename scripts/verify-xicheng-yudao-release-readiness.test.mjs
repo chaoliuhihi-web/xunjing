@@ -170,6 +170,7 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
   const manifestEvidencePath = path.join(rootDir, 'qa/xicheng-poi-manifest-evidence.json')
   const seedEvidencePath = path.join(rootDir, 'qa/xicheng-poi-production-seed-evidence.json')
   const manifestSourcePath = path.join(rootDir, 'workbench/xicheng-production-pois.json')
+  const workbookSourcePath = path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv')
   const seedSourcePath = path.join(rootDir, 'workbench/xicheng-poi-production-seed.sql')
   await mkdir(path.dirname(manifestEvidencePath), { recursive: true })
   await mkdir(path.dirname(manifestSourcePath), { recursive: true })
@@ -180,8 +181,16 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
     targetP0PoiCount: 80,
     pois: Array.from({ length: 80 }, (_, index) => ({ poiCode: `xicheng-prod-poi-${String(index + 1).padStart(3, '0')}` }))
   }, null, 2)}\n`
+  const workbookSource = [
+    'poiCode,name,licenseStatus,photoEvidenceStatus,triggerSmokeStatus',
+    ...Array.from({ length: 80 }, (_, index) => {
+      const suffix = String(index + 1).padStart(3, '0')
+      return `xicheng-prod-poi-${suffix},Xicheng Production POI ${suffix},APPROVED,APPROVED,PASSED`
+    })
+  ].join('\n')
   const seedSource = overrides.seedSource || productionSeedSql()
   await writeFile(manifestSourcePath, manifestSource)
+  await writeFile(workbookSourcePath, workbookSource)
   await writeFile(seedSourcePath, seedSource)
   const manifestEvidence = mergeEvidence({
     artifactType: 'xicheng-poi-production-manifest-readiness',
@@ -197,7 +206,9 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
       targetPoiCount: 80,
       productionReady: true,
       reviewBatchCode: 'xicheng-p0-poi-review-20260627',
-      reviewBatchEvidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260627.zip'
+      reviewBatchEvidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260627.zip',
+      sourceWorkbookFile: workbookSourcePath,
+      sourceWorkbookSha256: sha256(workbookSource)
     },
     checks: passedChecks(requiredManifestEvidenceChecks),
     blockers: []
@@ -291,6 +302,10 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(result.ok).toBe(true)
     expect(result.status).toBe('PRODUCTION_READY_CANDIDATE')
     expect(result.blockers).toEqual([])
+    expect(result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')?.summary).toMatchObject({
+      sourceWorkbookFile: path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv'),
+      sourceWorkbookSha256: expect.stringMatching(/^[a-f0-9]{64}$/)
+    })
     expect(result.checks.map((check) => check.name)).toEqual([
       'runtime-env',
       'vector-embedding-runtime',
@@ -812,6 +827,32 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(deployDoc).toContain('--yudao-server-jar')
     expect(deployDoc).toContain('YUDAO_SERVER_JAR')
     expect(deployDoc).toContain('seed evidence 的 `summary.sqlFile`')
+    expect(deployDoc).toContain('sourceWorkbookSha256')
+  })
+
+  test('fails closed when manifest evidence lacks source workbook provenance', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir, {
+      manifest: {
+        summary: {
+          sourceWorkbookFile: undefined,
+          sourceWorkbookSha256: undefined
+        }
+      }
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('manifest source workbook evidence sourceWorkbookFile is required')
   })
 
   test('fails closed when production vector store or embedding runtime is disabled', async () => {

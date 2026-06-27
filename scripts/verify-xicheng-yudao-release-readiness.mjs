@@ -552,6 +552,7 @@ async function validateManifestEvidence(ref, rootDir, freshnessOptions) {
     blockers.push('manifest evidence productionReady must be true')
   }
   blockers.push(...checkReviewBatchSummary(summary, 'manifest'))
+  blockers.push(...await checkEvidenceSourceHash(rootDir, evidence, 'manifest source workbook', 'sourceWorkbookFile', 'sourceWorkbookSha256'))
   blockers.push(...checkEvidenceChecks(evidence, requiredManifestEvidenceChecks, 'manifest'))
   if (!hasNoEvidenceBlockers(evidence)) {
     blockers.push(`manifest evidence contains blockers: ${evidence.blockers.join('; ')}`)
@@ -640,6 +641,8 @@ async function checkXichengProductionPoiEvidence({
     summary: {
       manifestEvidenceFile: manifestEvidence.path,
       seedEvidenceFile: seedEvidence.path,
+      sourceWorkbookFile: evidenceSummary(manifestEvidence.data).sourceWorkbookFile,
+      sourceWorkbookSha256: evidenceSummary(manifestEvidence.data).sourceWorkbookSha256,
       productionPoiSeedSqlFile: evidenceSummary(seedEvidence.data).sqlFile
     }
   }
