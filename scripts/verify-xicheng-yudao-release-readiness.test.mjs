@@ -9,6 +9,31 @@ import {
 } from './verify-xicheng-yudao-release-readiness.mjs'
 
 const tempDirs = []
+const requiredManifestEvidenceChecks = [
+  'manifest-shape',
+  'manifest-production-flags',
+  'poi-count',
+  'poi-identity',
+  'poi-coordinates',
+  'poi-triggers',
+  'poi-source-license',
+  'poi-field-evidence',
+  'poi-content',
+  'poi-audit'
+]
+const requiredSeedEvidenceChecks = [
+  'sql-file',
+  'seed-shape',
+  'poi-count',
+  'poi-approval',
+  'production-metrics',
+  'field-evidence',
+  'source-documents'
+]
+
+function passedChecks(names) {
+  return names.map((name) => ({ name, ok: true, detail: `${name} passed`, blockers: [] }))
+}
 
 function productionEnv(overrides = {}) {
   return {
@@ -120,7 +145,7 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
       targetPoiCount: 80,
       productionReady: true
     },
-    checks: [],
+    checks: passedChecks(requiredManifestEvidenceChecks),
     blockers: [],
     ...overrides.manifest
   }
@@ -136,7 +161,7 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
       poiSeedCount: 80,
       targetP0PoiCount: 80
     },
-    checks: [],
+    checks: passedChecks(requiredSeedEvidenceChecks),
     blockers: [],
     ...overrides.seed
   }
@@ -268,6 +293,29 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidenceCheck?.ok).toBe(false)
     expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence status must be PRODUCTION_POI_SEED_READY')
     expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence must prove at least 80 production POIs')
+  })
+
+  test('fails closed when POI evidence was generated before current field evidence gates', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir, {
+      manifest: { checks: [] },
+      seed: { checks: [] }
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(evidenceCheck?.ok).toBe(false)
+    expect(evidenceCheck?.blockers.join('\n')).toContain('manifest evidence must include poi-field-evidence')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence must include field-evidence')
   })
 
   test('writes a secret-safe release evidence file even when production is not ready', async () => {
