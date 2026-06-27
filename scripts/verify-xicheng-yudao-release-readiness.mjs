@@ -812,6 +812,7 @@ function resolveEvidenceFile(rootDir, evidenceFile) {
 function buildReleaseEvidence(result) {
   const baselineSummary = result.checks.find((item) => item.name === 'full-yudao-baseline')?.summary || {}
   const serverArtifactSummary = result.checks.find((item) => item.name === 'yudao-server-artifact')?.summary || {}
+  const productionPoiEvidenceSummary = result.checks.find((item) => item.name === 'xicheng-production-poi-evidence')?.summary || {}
   return {
     artifactType: 'xicheng-yudao-release-readiness',
     summary: {
@@ -822,7 +823,8 @@ function buildReleaseEvidence(result) {
       failedChecks: result.checks.filter((item) => !item.ok).length,
       blockerCount: result.blockers.length,
       ...baselineSummary,
-      ...serverArtifactSummary
+      ...serverArtifactSummary,
+      ...productionPoiEvidenceSummary
     },
     ...result
   }

@@ -110,6 +110,8 @@ async function writeReleaseEvidenceFile(rootDir, overrides = {}) {
       yudaoServerJarFile: serverJar.jarFile,
       yudaoServerJarSha256: serverJar.jarSha256,
       yudaoServerJarSizeBytes: serverJar.jarSizeBytes,
+      manifestEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-manifest-evidence.json'),
+      seedEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-production-seed-evidence.json'),
       ...(overrides.summary || {})
     }
   }))
@@ -541,6 +543,62 @@ describe('xicheng release evidence package gate', () => {
     expect(evidence.blockers.join('\n')).toContain(
       'manifest and seed evidence reviewBatchCode must match'
     )
+  })
+
+  test('fails closed when release evidence does not identify the POI evidence files it gated', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
+      summary: {
+        manifestEvidenceFile: undefined,
+        seedEvidenceFile: undefined
+      }
+    })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.blockers.join('\n')).toContain('release evidence manifestEvidenceFile is required')
+    expect(report.blockers.join('\n')).toContain('release evidence seedEvidenceFile is required')
+  })
+
+  test('fails closed when release evidence references different POI evidence files than the package inputs', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
+      summary: {
+        manifestEvidenceFile: path.join(rootDir, 'qa/other-xicheng-poi-manifest-evidence.json'),
+        seedEvidenceFile: path.join(rootDir, 'qa/other-xicheng-poi-production-seed-evidence.json')
+      }
+    })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.blockers.join('\n')).toContain('release and package manifest evidence file must match')
+    expect(report.blockers.join('\n')).toContain('release and package seed evidence file must match')
   })
 
   test('fails closed when release evidence lacks Yudao baseline hash metadata', async () => {

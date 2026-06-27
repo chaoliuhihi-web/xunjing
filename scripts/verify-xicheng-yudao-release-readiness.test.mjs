@@ -766,7 +766,9 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidence.summary).toMatchObject({
       yudaoBaselineSqlFile: externalBaselinePath,
       yudaoBaselineSqlSha256: sha256(await readFile(externalBaselinePath, 'utf8')),
-      yudaoServerJarFile: path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar')
+      yudaoServerJarFile: path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar'),
+      manifestEvidenceFile: manifestEvidencePath,
+      seedEvidenceFile: seedEvidencePath
     })
     expect(evidence.checks.find((check) => check.name === 'full-yudao-baseline')?.detail).toContain(externalBaselinePath)
   })

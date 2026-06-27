@@ -488,11 +488,35 @@ function checkAppReadinessEvidence(ref, stage, freshnessOptions) {
   return check('app-readiness-evidence', blockers)
 }
 
-function checkEvidenceConsistency({ manifestRef, seedRef, appRef }) {
+function normalizeEvidencePath(rootDir, filePath) {
+  if (!hasText(filePath)) {
+    return undefined
+  }
+  const resolvedRoot = path.resolve(rootDir)
+  return path.isAbsolute(filePath)
+    ? path.resolve(filePath)
+    : path.resolve(resolvedRoot, filePath)
+}
+
+function checkEvidenceConsistency({ rootDir, releaseRef, manifestRef, seedRef, appRef }) {
   const blockers = []
+  const releaseSummary = summaryOf(releaseRef.data)
   const manifestSummary = summaryOf(manifestRef.data)
   const seedSummary = summaryOf(seedRef.data)
   const appSummary = summaryOf(appRef.data)
+  const releaseManifestEvidenceFile = normalizeEvidencePath(rootDir, releaseSummary.manifestEvidenceFile)
+  const releaseSeedEvidenceFile = normalizeEvidencePath(rootDir, releaseSummary.seedEvidenceFile)
+
+  if (!releaseManifestEvidenceFile) {
+    blockers.push('release evidence manifestEvidenceFile is required')
+  } else if (manifestRef.path && releaseManifestEvidenceFile !== path.resolve(manifestRef.path)) {
+    blockers.push('release and package manifest evidence file must match')
+  }
+  if (!releaseSeedEvidenceFile) {
+    blockers.push('release evidence seedEvidenceFile is required')
+  } else if (seedRef.path && releaseSeedEvidenceFile !== path.resolve(seedRef.path)) {
+    blockers.push('release and package seed evidence file must match')
+  }
 
   if (
     manifestSummary.regionCode &&
@@ -616,7 +640,7 @@ export async function verifyXichengReleaseEvidencePackage({
     await checkManifestEvidence(manifestRef, rootDir, freshnessOptions),
     await checkSeedEvidence(seedRef, rootDir, freshnessOptions),
     checkAppReadinessEvidence(appRef, normalizedStage, freshnessOptions),
-    checkEvidenceConsistency({ manifestRef, seedRef, appRef }),
+    checkEvidenceConsistency({ rootDir, releaseRef, manifestRef, seedRef, appRef }),
     checkSecretSafety(evidenceRefs)
   ]
   const blockers = checks.flatMap((item) => item.blockers)
