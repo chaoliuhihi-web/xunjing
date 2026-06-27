@@ -315,6 +315,7 @@ import CustomNav from '@/components/custom-nav/custom-nav.vue'
 import TabBar from '@/components/tab-bar/tab-bar.vue'
 import config from '@/request/config.js'
 import { resolveXunjingPhotoTrigger } from '@/request/xunjingMultimodal.js'
+import { normalizeXichengAiChatResponse } from '@/request/xunjing/chat.js'
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 
 const UrlImg = config.UrlImg
@@ -899,6 +900,13 @@ const normalizeXunjingAiResponse = (res) => {
 	}
 	const body = res && res.data ? res.data : {}
 	const payload = body && body.data && typeof body.data === 'object' ? body.data : body
+	if (hasXichengAiContext()) {
+		const normalizedXichengResponse = normalizeXichengAiChatResponse(payload)
+		if (!normalizedXichengResponse.answer) {
+			throw new Error('AI返回为空')
+		}
+		return normalizedXichengResponse
+	}
 	const sources = payload && Array.isArray(payload.sources) ? payload.sources : []
 	const suggestedQuestions = payload && Array.isArray(payload.suggestedQuestions)
 		? payload.suggestedQuestions
