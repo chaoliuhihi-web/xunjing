@@ -41,6 +41,12 @@ assert.match(
 
 assert.match(
   travelogue,
+  /submitReviewPackage\(\)[\s\S]*return \{[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*companionName:\s*XICHENG_REGION_CONFIG\.companionName/,
+  'review payload should carry Xicheng package, source channel, and companion context for operations review'
+)
+
+assert.match(
+  travelogue,
   /uni\.getStorageSync\(XICHENG_REGION_CONFIG\.reviewStorageKey\)[\s\S]*this\.reviewSubmission/,
   'travelogue should restore the last review submission on load'
 )

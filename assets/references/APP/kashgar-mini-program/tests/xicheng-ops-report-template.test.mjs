@@ -30,6 +30,12 @@ assert.match(
 
 assert.match(
   travelogue,
+  /opsReport\(\)[\s\S]*return \{[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*companionName:\s*XICHENG_REGION_CONFIG\.companionName/,
+  'Local ops report should carry Xicheng package, source channel, and companion context for city operations attribution'
+)
+
+assert.match(
+  travelogue,
   /reportTemplateSections\(\)[\s\S]*sectionKey:\s*'traffic'[\s\S]*sectionKey:\s*'route-completion'[\s\S]*sectionKey:\s*'hot-pois'[\s\S]*sectionKey:\s*'content-works'[\s\S]*sectionKey:\s*'sharing'[\s\S]*sectionKey:\s*'mis-trigger'[\s\S]*sectionKey:\s*'optimization'/,
   'City operations report should declare fixed template sections for traffic, route completion, hot POIs, content works, sharing, mis-trigger, and optimization'
 )

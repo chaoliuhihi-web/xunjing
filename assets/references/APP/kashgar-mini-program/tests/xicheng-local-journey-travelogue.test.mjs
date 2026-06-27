@@ -78,6 +78,12 @@ assert.match(
   'Travelogue page should load local journey materials and persist the editable draft locally'
 )
 
+assert.match(
+  travelogue,
+  /saveDraft\(\{ silent = false \} = \{\}\)[\s\S]*const payload = \{[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*companionName:\s*XICHENG_REGION_CONFIG\.companionName/,
+  'Saved travelogue draft should carry Xicheng package, source channel, and companion context for release attribution'
+)
+
 assert.doesNotMatch(
   travelogue,
   /\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,

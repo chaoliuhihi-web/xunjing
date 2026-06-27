@@ -516,6 +516,10 @@ export default {
 			const optimizationSuggestions = this.createOptimizationSuggestions()
 			return {
 				templateCode: 'xicheng-city-ops-report-v1',
+				regionCode: XICHENG_REGION_CONFIG.regionCode,
+				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
+				companionName: XICHENG_REGION_CONFIG.companionName,
 				templateSections: this.reportTemplateSections,
 				visitCount: this.materialCount + this.shareArtifacts.length,
 				recognitionCount: this.materialCount,
@@ -1030,6 +1034,9 @@ export default {
 		saveDraft({ silent = false } = {}) {
 			const payload = {
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
+				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
+				companionName: XICHENG_REGION_CONFIG.companionName,
 				draft: this.draft,
 				materials: this.materials,
 				recognizedRoute: this.recognizedRoute,
@@ -1099,6 +1106,8 @@ export default {
 			return {
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
 				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
+				companionName: XICHENG_REGION_CONFIG.companionName,
 				draft: this.draft,
 				materials: this.materials,
 				recognizedRoute: this.recognizedRoute,
