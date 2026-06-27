@@ -25,6 +25,7 @@ function releaseEvidence(overrides = {}) {
     ok: true,
     status: 'PRODUCTION_READY_CANDIDATE',
     stage: 'production',
+    checkedAt: '2026-06-27T00:10:00.000Z',
     summary: {
       stage: 'production',
       status: 'PRODUCTION_READY_CANDIDATE',
@@ -55,6 +56,7 @@ function manifestEvidence(overrides = {}) {
     artifactType: 'xicheng-poi-production-manifest-readiness',
     ok: true,
     status: 'PRODUCTION_POI_MANIFEST_READY',
+    checkedAt: '2026-06-27T00:20:00.000Z',
     summary: {
       regionCode: 'beijing-xicheng',
       packageCode: 'XICHENG-MAP-001',
@@ -84,6 +86,7 @@ function seedEvidence(overrides = {}) {
     artifactType: 'xicheng-poi-production-seed-readiness',
     ok: true,
     status: 'PRODUCTION_POI_SEED_READY',
+    checkedAt: '2026-06-27T00:30:00.000Z',
     summary: {
       poiCount: 80,
       minPoiCount: 80,
@@ -255,6 +258,32 @@ describe('xicheng release evidence package gate', () => {
     const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
     expect(evidence.status).toBe('NOT_READY')
     expect(evidence.blockers.join('\n')).toContain('app readiness evidence baseUrl must be a non-local HTTPS URL for production')
+  })
+
+  test('fails closed when package input evidence is missing checkedAt timestamp', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
+    const manifestPath = await writeJson(rootDir, 'qa/xicheng-poi-manifest-evidence.json', manifestEvidence())
+    const seedPath = await writeJson(rootDir, 'qa/xicheng-poi-production-seed-evidence.json', seedEvidence({
+      checkedAt: undefined
+    }))
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+    const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath,
+      '--evidence-file', 'tmp/xicheng-release-evidence-package.json'
+    ])
+
+    expect(result.status).toBe(1)
+    const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
+    expect(evidence.status).toBe('NOT_READY')
+    expect(evidence.blockers.join('\n')).toContain('seed evidence checkedAt must be a valid timestamp')
   })
 
   test('fails closed for incomplete APP evidence or raw secret-like values', async () => {

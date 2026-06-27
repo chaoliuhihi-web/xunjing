@@ -110,6 +110,14 @@ function blockersOf(evidence) {
   return Array.isArray(evidence?.blockers) ? evidence.blockers : []
 }
 
+function checkEvidenceTimestamp(evidence, label) {
+  const timestamp = evidence?.checkedAt
+  if (typeof timestamp !== 'string' || Number.isNaN(Date.parse(timestamp))) {
+    return [`${label} evidence checkedAt must be a valid timestamp`]
+  }
+  return []
+}
+
 function isLoopbackHostname(hostname) {
   const normalized = String(hostname || '').trim().toLowerCase()
   return normalized === 'localhost' ||
@@ -158,6 +166,7 @@ function checkReleaseEvidence(ref, stage) {
   if (evidence.artifactType !== 'xicheng-yudao-release-readiness') {
     blockers.push('release evidence artifactType must be xicheng-yudao-release-readiness')
   }
+  blockers.push(...checkEvidenceTimestamp(evidence, 'release'))
   if (evidence.ok !== true) {
     blockers.push('release evidence ok must be true')
   }
@@ -188,6 +197,7 @@ function checkManifestEvidence(ref) {
   if (evidence.artifactType !== 'xicheng-poi-production-manifest-readiness') {
     blockers.push('manifest evidence artifactType must be xicheng-poi-production-manifest-readiness')
   }
+  blockers.push(...checkEvidenceTimestamp(evidence, 'manifest'))
   if (evidence.ok !== true) {
     blockers.push('manifest evidence ok must be true')
   }
@@ -226,6 +236,7 @@ function checkSeedEvidence(ref) {
   if (evidence.artifactType !== 'xicheng-poi-production-seed-readiness') {
     blockers.push('seed evidence artifactType must be xicheng-poi-production-seed-readiness')
   }
+  blockers.push(...checkEvidenceTimestamp(evidence, 'seed'))
   if (evidence.ok !== true) {
     blockers.push('seed evidence ok must be true')
   }
@@ -257,6 +268,7 @@ function checkAppReadinessEvidence(ref, stage) {
   const evidence = ref.data || {}
   const summary = summaryOf(evidence)
   const baseUrl = summary.baseUrl || evidence.baseUrl
+  blockers.push(...checkEvidenceTimestamp(evidence, 'app readiness'))
   if (evidence.ok !== true) {
     blockers.push('app readiness evidence ok must be true')
   }
