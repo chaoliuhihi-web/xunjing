@@ -20,6 +20,21 @@ export const buildXichengAiChatPayload = ({ question = '', context = {} } = {}) 
 	recognitionConfidence: context.confidence || null
 })
 
+export const normalizeXichengAiChatResponse = (payload = {}) => {
+	const suggestedQuestions = Array.isArray(payload.suggestedQuestions)
+		? payload.suggestedQuestions
+		: Array.isArray(payload.recommendedQuestions)
+			? payload.recommendedQuestions
+			: []
+	return {
+		answer: payload.answer ? String(payload.answer) : '',
+		suggestedQuestions,
+		sources: Array.isArray(payload.sources) ? payload.sources : [],
+		safetyStatus: payload.safetyStatus || '',
+		logId: payload.logId || ''
+	}
+}
+
 export const requestXichengAiChat = ({ question = '', context = {} } = {}) => {
 	return new Promise((resolve, reject) => {
 		uni.request({
@@ -37,7 +52,7 @@ export const requestXichengAiChat = ({ question = '', context = {} } = {}) => {
 					return
 				}
 				try {
-					resolve(getYudaoCommonResultPayload(res))
+					resolve(normalizeXichengAiChatResponse(getYudaoCommonResultPayload(res)))
 				} catch (error) {
 					reject(error)
 				}

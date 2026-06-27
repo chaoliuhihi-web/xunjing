@@ -19,13 +19,30 @@
 		<view class="question-card">
 			<text class="section-title">可以继续问小京</text>
 			<view
-				v-for="question in recommendedQuestions"
+				v-for="question in suggestedQuestions"
 				:key="question"
 				class="question-row"
 				@click="askXiaojing(question)"
 			>
 				<text>{{ question }}</text>
 			</view>
+		</view>
+
+		<view class="source-card">
+			<text class="section-title">已审核来源</text>
+			<view v-if="sourceList.length > 0">
+				<view
+					v-for="(source, index) in sourceList"
+					:key="source.id || source.url || source.title || index"
+					class="source-row"
+				>
+					<text class="source-title">{{ source.title || source.name || '审核来源' }}</text>
+					<text v-if="source.excerpt || source.summary || source.url" class="source-desc">
+						{{ source.excerpt || source.summary || source.url }}
+					</text>
+				</view>
+			</view>
+			<text v-else class="source-empty">暂无已审核来源，小京会按后台审核状态回答。</text>
 		</view>
 
 		<view class="bottom-actions">
@@ -37,21 +54,44 @@
 
 <script>
 import {
-	XICHENG_DEVELOPMENT_TRIGGER_FIXTURE,
 	XICHENG_REGION_CONFIG,
-	XICHENG_RECOMMENDED_QUESTIONS
+	XICHENG_SUGGESTED_QUESTIONS
 } from '@/config/regions/xicheng.js'
 
+const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
+	regionCode: XICHENG_REGION_CONFIG.regionCode,
+	packageCode: XICHENG_REGION_CONFIG.packageCode,
+	companionName: XICHENG_REGION_CONFIG.companionName,
+	poiCode: '',
+	poiName: '待确认西城文化点',
+	sourceLabel: '识别结果',
+	reason: '小京已结合扫码、拍照、OCR和定位信号完成识别。',
+	confidence: 0,
+	requiresUserConfirm: true,
+	suggestedQuestions: XICHENG_SUGGESTED_QUESTIONS,
+	sources: []
+})
+
+const normalizeSuggestedQuestions = (result = {}) => {
+	if (Array.isArray(result.suggestedQuestions) && result.suggestedQuestions.length > 0) {
+		return result.suggestedQuestions
+	}
+	if (Array.isArray(result.recommendedQuestions) && result.recommendedQuestions.length > 0) {
+		return result.recommendedQuestions
+	}
+	return XICHENG_SUGGESTED_QUESTIONS
+}
+
 const normalizeResult = (result = {}) => ({
-	...XICHENG_DEVELOPMENT_TRIGGER_FIXTURE,
+	...XICHENG_EMPTY_RECOGNITION_RESULT,
 	...result,
 	regionCode: result.regionCode || XICHENG_REGION_CONFIG.regionCode,
 	packageCode: result.packageCode || XICHENG_REGION_CONFIG.packageCode,
 	companionName: result.companionName || XICHENG_REGION_CONFIG.companionName,
-	poiName: result.poiName || XICHENG_DEVELOPMENT_TRIGGER_FIXTURE.poiName,
-	recommendedQuestions: Array.isArray(result.recommendedQuestions) && result.recommendedQuestions.length > 0
-		? result.recommendedQuestions
-		: XICHENG_RECOMMENDED_QUESTIONS
+	poiName: result.poiName || XICHENG_EMPTY_RECOGNITION_RESULT.poiName,
+	suggestedQuestions: normalizeSuggestedQuestions(result),
+	recommendedQuestions: normalizeSuggestedQuestions(result),
+	sources: Array.isArray(result.sources) ? result.sources : []
 })
 
 export default {
@@ -64,8 +104,11 @@ export default {
 		confidencePercent() {
 			return Math.round(Number(this.result.confidence || 0) * 100)
 		},
-		recommendedQuestions() {
-			return this.result.recommendedQuestions || XICHENG_RECOMMENDED_QUESTIONS
+		suggestedQuestions() {
+			return this.result.suggestedQuestions || XICHENG_SUGGESTED_QUESTIONS
+		},
+		sourceList() {
+			return Array.isArray(this.result.sources) ? this.result.sources : []
 		}
 	},
 	onLoad(options = {}) {
@@ -78,7 +121,7 @@ export default {
 	},
 	methods: {
 		askXiaojing(question = '') {
-			const prompt = question || this.recommendedQuestions[0] || `讲讲${this.result.poiName}`
+			const prompt = question || this.suggestedQuestions[0] || `讲讲${this.result.poiName}`
 			const query = [
 				`question=${encodeURIComponent(prompt)}`,
 				`regionCode=${encodeURIComponent(this.result.regionCode || XICHENG_REGION_CONFIG.regionCode)}`,
@@ -111,7 +154,8 @@ export default {
 }
 
 .result-card,
-.question-card {
+.question-card,
+.source-card {
 	padding: 32rpx;
 	border-radius: 8rpx;
 	background: #FFFFFF;
@@ -163,6 +207,10 @@ export default {
 	margin-top: 28rpx;
 }
 
+.source-card {
+	margin-top: 28rpx;
+}
+
 .section-title {
 	display: block;
 	font-size: 30rpx;
@@ -176,6 +224,34 @@ export default {
 	background: #F2F4F7;
 	font-size: 26rpx;
 	color: #344054;
+}
+
+.source-row {
+	margin-top: 18rpx;
+	padding: 22rpx;
+	border-radius: 8rpx;
+	border: 1rpx solid #D9E7DF;
+	background: #FAFCFA;
+}
+
+.source-title,
+.source-desc,
+.source-empty {
+	display: block;
+	line-height: 1.55;
+}
+
+.source-title {
+	font-size: 26rpx;
+	font-weight: 700;
+	color: #1F2933;
+}
+
+.source-desc,
+.source-empty {
+	margin-top: 8rpx;
+	font-size: 24rpx;
+	color: #667085;
 }
 
 .bottom-actions {

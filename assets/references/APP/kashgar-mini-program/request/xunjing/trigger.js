@@ -12,13 +12,36 @@ import {
 import {
 	XICHENG_REGION_CONFIG,
 	XICHENG_DEVELOPMENT_TRIGGER_FIXTURE,
-	XICHENG_RECOMMENDED_QUESTIONS
+	XICHENG_SUGGESTED_QUESTIONS
 } from '@/config/regions/xicheng.js'
 
 export const XICHENG_TRIGGER_API_PATH = 'app-api/xunjing/triggers/resolve'
 
+export const isXichengDevelopmentFallbackAllowed = () => {
+	const runtimeEnv = import.meta && import.meta.env ? import.meta.env : {}
+	const nodeEnv = typeof process !== 'undefined' && process.env ? process.env.NODE_ENV : ''
+	if (runtimeEnv.PROD === true || runtimeEnv.MODE === 'production' || nodeEnv === 'production') {
+		return false
+	}
+	return runtimeEnv.VITE_XICHENG_ALLOW_DEVELOPMENT_FIXTURE === 'true'
+		|| runtimeEnv.DEV === true
+		|| nodeEnv !== 'production'
+}
+
+const normalizeSuggestedQuestions = (result = {}) => {
+	if (Array.isArray(result.suggestedQuestions) && result.suggestedQuestions.length > 0) {
+		return result.suggestedQuestions
+	}
+	if (Array.isArray(result.recommendedQuestions) && result.recommendedQuestions.length > 0) {
+		return result.recommendedQuestions
+	}
+	return XICHENG_SUGGESTED_QUESTIONS
+}
+
 export const normalizeXichengTriggerResult = (result = {}, source = '') => {
 	const confidence = Number(result.confidence || 0)
+	const suggestedQuestions = normalizeSuggestedQuestions(result)
+	const sources = Array.isArray(result.sources) ? result.sources : []
 	return {
 		...result,
 		regionCode: result.regionCode || XICHENG_REGION_CONFIG.regionCode,
@@ -34,9 +57,10 @@ export const normalizeXichengTriggerResult = (result = {}, source = '') => {
 		confidence,
 		confidencePercent: Math.round(confidence * 100),
 		requiresUserConfirm: result.requiresUserConfirm !== false,
-		recommendedQuestions: Array.isArray(result.recommendedQuestions) && result.recommendedQuestions.length > 0
-			? result.recommendedQuestions
-			: XICHENG_RECOMMENDED_QUESTIONS
+		suggestedQuestions,
+		recommendedQuestions: suggestedQuestions,
+		sources,
+		safetyStatus: result.safetyStatus || ''
 	}
 }
 
@@ -105,7 +129,7 @@ export const resolveXichengTextTrigger = async ({
 	location = null,
 	recentPoiCodes = [],
 	source = 'ocr',
-	allowDevelopmentFallback = true
+	allowDevelopmentFallback = isXichengDevelopmentFallbackAllowed()
 } = {}) => {
 	try {
 		const result = await requestXichengTriggerResolve({
@@ -134,7 +158,7 @@ export const resolveXichengPhotoTrigger = async ({
 	text = '',
 	ocrText = '',
 	imageLabels = [],
-	allowDevelopmentFallback = true
+	allowDevelopmentFallback = isXichengDevelopmentFallbackAllowed()
 } = {}) => {
 	const [location, imageInfo, imageBase64] = await Promise.all([
 		requestCurrentLocationForTrigger(),

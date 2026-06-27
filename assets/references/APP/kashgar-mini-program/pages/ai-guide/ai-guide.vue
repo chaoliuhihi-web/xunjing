@@ -245,6 +245,19 @@
 							</view>
 						</view>
 						<text v-if="msg.interrupted" class="message-status">已打断</text>
+						<view v-if="msg.sources && msg.sources.length > 0" class="message-source-list">
+							<text class="message-source-heading">已审核来源</text>
+							<view
+								v-for="(source, sourceIndex) in msg.sources"
+								:key="source.id || source.url || source.title || sourceIndex"
+								class="message-source-item"
+							>
+								<text class="message-source-title">{{ source.title || source.name || '审核来源' }}</text>
+								<text v-if="source.excerpt || source.summary || source.url" class="message-source-desc">
+									{{ source.excerpt || source.summary || source.url }}
+								</text>
+							</view>
+						</view>
 
 						<!-- 跟进问题列表 -->
 						<view v-if="msg.followUps && msg.followUps.length > 0" class="follow-up-list">
@@ -309,6 +322,7 @@ const BG_IMAGE = 'https://www.neoxiake.com//upload/admin/20260527/f0405d5a04cbe3
 const AI_AVATAR = 'https://www.neoxiake.com//upload/admin/20260526/e32b5647748751716be8f7eca54ef57f.png'
 const KASHGAR_AI_COMPANION_HOME_ENABLED = true
 const KASHGAR_DIARY_GENERATOR_ENABLED = true
+const XICHENG_BLOCKED_ANSWER = '无已审核来源，不能回答'
 
 const XUNJING_AI_CONFIG = {
 	packageCode: 'KASHGAR-MAP-001',
@@ -485,6 +499,8 @@ const createWelcomeMessage = () => ({
 		: '您好！我是AI小导游，有什么可以帮助您的吗？',
 	images: [],
 	followUps: [],
+	sources: [],
+	safetyStatus: '',
 	isPending: false,
 	interrupted: false,
 	hasSpoken: false
@@ -495,6 +511,8 @@ const createUserMessage = ({ content = '', images = [] } = {}) => ({
 	content,
 	images,
 	followUps: [],
+	sources: [],
+	safetyStatus: '',
 	isPending: false,
 	interrupted: false
 })
@@ -504,6 +522,8 @@ const createAssistantMessage = () => ({
 	content: '',
 	images: [],
 	followUps: [],
+	sources: [],
+	safetyStatus: '',
 	isPending: true,
 	interrupted: false,
 	hasSpoken: false
@@ -540,6 +560,8 @@ const normalizeCachedMessages = (list) => {
 			content: item.content || '',
 			images: Array.isArray(item.images) ? item.images : [],
 			followUps: Array.isArray(item.followUps) ? item.followUps : [],
+			sources: Array.isArray(item.sources) ? item.sources : [],
+			safetyStatus: item.safetyStatus || '',
 			isPending: false,
 			interrupted: Boolean(item.interrupted)
 		}))
@@ -760,15 +782,26 @@ const normalizeXunjingAiResponse = (res) => {
 	}
 	const body = res && res.data ? res.data : {}
 	const payload = body && body.data && typeof body.data === 'object' ? body.data : body
-	const answer = payload && payload.answer ? String(payload.answer) : ''
 	const sources = payload && Array.isArray(payload.sources) ? payload.sources : []
+	const suggestedQuestions = payload && Array.isArray(payload.suggestedQuestions)
+		? payload.suggestedQuestions
+		: payload && Array.isArray(payload.recommendedQuestions)
+			? payload.recommendedQuestions
+			: []
+	const safetyStatus = payload && payload.safetyStatus ? String(payload.safetyStatus) : ''
+	const answer = safetyStatus === 'BLOCKED'
+		? XICHENG_BLOCKED_ANSWER
+		: payload && payload.answer
+			? String(payload.answer)
+			: ''
 	if (!answer) {
 		throw new Error('AI返回为空')
 	}
 	return {
 		answer,
 		sources,
-		safetyStatus: payload.safetyStatus || '',
+		suggestedQuestions,
+		safetyStatus,
 		logId: payload.logId || ''
 	}
 }
@@ -829,6 +862,14 @@ const createSourceFollowUps = (sources = []) => sources
 	.filter(source => source && source.title)
 	.slice(0, 3)
 	.map(source => source.title)
+
+const createXunjingResultFollowUps = (result = {}) => {
+	const suggestedQuestions = result && Array.isArray(result.suggestedQuestions) ? result.suggestedQuestions : []
+	if (suggestedQuestions.length > 0) {
+		return suggestedQuestions.slice(0, 3)
+	}
+	return createSourceFollowUps(result && result.sources ? result.sources : [])
+}
 
 const requestXunjingAiChat = (question) => {
 	let requestTask = null
@@ -1427,6 +1468,8 @@ const startXunjingAiRequest = ({ question, assistantMessage }) => {
 			fullContent: '',
 			displayContent: '',
 			followUps: [],
+			sources: [],
+			safetyStatus: '',
 			renderTimer: null,
 			lastRenderAt: 0,
 			spokenLength: 0,
@@ -1480,26 +1523,58 @@ const startXunjingAiRequest = ({ question, assistantMessage }) => {
 					settleRequest(() => reject({ type: 'INTERRUPTED' }))
 					return
 				}
-				if (result && result.fallback) {
-					appendAnswerContent(state, result.answer)
-					state.followUps = result.followUps || []
+				if (result && result.safetyStatus === 'BLOCKED') {
+					appendAnswerContent(state, XICHENG_BLOCKED_ANSWER)
+					state.followUps = []
+					state.sources = result.sources || []
+					state.safetyStatus = 'BLOCKED'
 					state.streamFinished = true
 					flushStreamContent(state)
 					commitAssistantMessage(assistantMessage, {
 						isPending: false,
-						followUps: result.followUps || []
+						followUps: [],
+						sources: result.sources,
+						safetyStatus: 'BLOCKED'
 					})
 					saveMessagesCache()
 					clearActiveStreamIfMatch(requestController.id)
-					settleRequest(() => resolve({ answer: state.fullContent, followUps: state.followUps, fallback: true }))
+					settleRequest(() => resolve({
+						answer: state.fullContent,
+						followUps: [],
+						sources: result.sources,
+						safetyStatus: 'BLOCKED'
+					}))
+					return
+				}
+				if (result && result.fallback) {
+					appendAnswerContent(state, result.answer)
+					state.followUps = result.followUps || []
+					state.sources = result.sources || []
+					state.streamFinished = true
+					flushStreamContent(state)
+					commitAssistantMessage(assistantMessage, {
+						isPending: false,
+						followUps: result.followUps || [],
+						sources: result.sources || [],
+						safetyStatus: result.safetyStatus || ''
+					})
+					saveMessagesCache()
+					clearActiveStreamIfMatch(requestController.id)
+					settleRequest(() => resolve({ answer: state.fullContent, followUps: state.followUps, sources: state.sources, fallback: true }))
 					return
 				}
 				appendAnswerContent(state, result.answer)
-				state.followUps = createSourceFollowUps(result.sources)
+				state.followUps = createXunjingResultFollowUps(result)
+				state.sources = result.sources || []
+				state.safetyStatus = result.safetyStatus || ''
 				state.streamFinished = true
 				flushStreamContent(state)
 				queueStreamSpeech(state, { force: true })
-				commitAssistantMessage(assistantMessage, { isPending: false })
+				commitAssistantMessage(assistantMessage, {
+					isPending: false,
+					sources: result.sources || [],
+					safetyStatus: result.safetyStatus || ''
+				})
 				if (!state.fullContent) {
 					cancelStreamContentRender(state)
 					saveMessagesCache()
@@ -1512,7 +1587,7 @@ const startXunjingAiRequest = ({ question, assistantMessage }) => {
 				}
 				saveMessagesCache()
 				clearActiveStreamIfMatch(requestController.id)
-				settleRequest(() => resolve({ answer: state.fullContent, followUps: state.followUps, sources: result.sources }))
+				settleRequest(() => resolve({ answer: state.fullContent, followUps: state.followUps, sources: result.sources, safetyStatus: result.safetyStatus || '' }))
 			})
 			.catch((err) => {
 				if (requestSettled) {
@@ -3155,6 +3230,47 @@ loadChatHistory({ preferCache: true })
 	font-size: 28rpx;
 	color: #4A5568;
 	line-height: 1.6;
+}
+
+.message-source-list {
+	margin-top: 20rpx;
+	margin-left: 96rpx;
+	margin-right: 30rpx;
+	padding: 20rpx 24rpx;
+	border-radius: 8rpx;
+	border: 1rpx solid rgba(36, 76, 65, 0.14);
+	background: rgba(255, 252, 244, 0.92);
+}
+
+.message-source-heading,
+.message-source-title,
+.message-source-desc {
+	display: block;
+	line-height: 1.55;
+}
+
+.message-source-heading {
+	font-size: 24rpx;
+	font-weight: 700;
+	color: #244C41;
+}
+
+.message-source-item {
+	margin-top: 14rpx;
+	padding-top: 14rpx;
+	border-top: 1rpx solid rgba(36, 76, 65, 0.1);
+}
+
+.message-source-title {
+	font-size: 24rpx;
+	font-weight: 700;
+	color: #183B34;
+}
+
+.message-source-desc {
+	margin-top: 6rpx;
+	font-size: 22rpx;
+	color: #6C766D;
 }
 
 .container {

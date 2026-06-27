@@ -27,6 +27,7 @@ const combined = [
   scanResult,
   aiGuide
 ].join('\n')
+const blockedAiBranch = aiGuide.match(/if\s*\(\s*result\s*&&\s*result\.safetyStatus\s*===\s*'BLOCKED'\s*\)\s*\{[\s\S]*?\n\s*\}\n\s*if\s*\(\s*result\s*&&\s*result\.fallback\s*\)/)?.[0] || ''
 
 for (const required of [
   'XICHENG_REGION_CONFIG',
@@ -61,6 +62,9 @@ for (const required of [
   'packageCode: XICHENG_REGION_CONFIG.packageCode',
   'sceneCode: XICHENG_REGION_CONFIG.sceneCode',
   'sourceChannel: XICHENG_REGION_CONFIG.sourceChannel',
+  'suggestedQuestions',
+  'sources',
+  'isXichengDevelopmentFallbackAllowed',
   'resolveXichengTextTrigger',
   'resolveXichengPhotoTrigger',
   'createXichengDevelopmentTriggerFallback'
@@ -74,7 +78,10 @@ for (const required of [
   'regionCode: context.regionCode || XICHENG_REGION_CONFIG.regionCode',
   'poiCode: context.poiCode',
   'poiName: context.poiName',
-  'companionName: context.companionName || XICHENG_REGION_CONFIG.companionName'
+  'companionName: context.companionName || XICHENG_REGION_CONFIG.companionName',
+  'suggestedQuestions',
+  'sources',
+  'safetyStatus'
 ]) {
   assert.ok(chatRequest.includes(required), `Chat facade should include ${required}`)
 }
@@ -101,7 +108,9 @@ for (const required of [
 for (const required of [
   'confidencePercent',
   'sourceLabel',
-  'recommendedQuestions',
+  'suggestedQuestions',
+  'sourceList',
+  '已审核来源',
   'askXiaojing',
   '/pages/ai-guide/ai-guide?',
   'regionCode',
@@ -111,6 +120,30 @@ for (const required of [
 ]) {
   assert.ok(scanResult.includes(required), `Recognition result page should include ${required}`)
 }
+
+assert.doesNotMatch(
+  scanResult,
+  /result:\s*normalizeResult\(\)[\s\S]*XICHENG_DEVELOPMENT_TRIGGER_FIXTURE/,
+  'Recognition result page should not initialize empty production state by merging the development fixture as a real result'
+)
+
+assert.match(
+  aiGuide,
+  /XICHENG_BLOCKED_ANSWER\s*=\s*'无已审核来源，不能回答'/,
+  'AI guide should define the exact blocked answer for unapproved-source responses'
+)
+
+assert.match(
+  blockedAiBranch,
+  /if\s*\(\s*result\s*&&\s*result\.safetyStatus\s*===\s*'BLOCKED'\s*\)[\s\S]*XICHENG_BLOCKED_ANSWER[\s\S]*sources:\s*result\.sources/,
+  'AI guide should render BLOCKED as a blocked answer with sources metadata instead of using local fallback'
+)
+
+assert.doesNotMatch(
+  blockedAiBranch,
+  /createLocalXichengAiFallback|createLocalXunjingAiFallback/,
+  'AI guide should never fabricate a local Xicheng answer for BLOCKED safety responses'
+)
 
 assert.match(
   aiGuide,

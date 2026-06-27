@@ -35,11 +35,13 @@ export const XICHENG_HOME_ACTIONS = Object.freeze([
 	{ key: 'ask', title: '问问小京', subtitle: '带着当前位置继续问', source: 'chat' }
 ])
 
-export const XICHENG_RECOMMENDED_QUESTIONS = Object.freeze([
+export const XICHENG_SUGGESTED_QUESTIONS = Object.freeze([
 	'讲讲白塔寺的历史故事',
 	'从这里出发推荐一条亲子研学路线',
 	'把这个点写进我的游记草稿'
 ])
+
+export const XICHENG_RECOMMENDED_QUESTIONS = XICHENG_SUGGESTED_QUESTIONS
 
 export const XICHENG_DEVELOPMENT_TRIGGER_FIXTURE = Object.freeze({
 	developmentOnly: true,
@@ -56,7 +58,14 @@ export const XICHENG_DEVELOPMENT_TRIGGER_FIXTURE = Object.freeze({
 	requiresUserConfirm: true,
 	sourceLabel: '开发兜底样例',
 	reason: '用于无后台或弱网环境下演示西城识别结果页，不可作为生产识别结果',
-	recommendedQuestions: XICHENG_RECOMMENDED_QUESTIONS,
+	suggestedQuestions: XICHENG_SUGGESTED_QUESTIONS,
+	recommendedQuestions: XICHENG_SUGGESTED_QUESTIONS,
+	sources: [
+		{
+			title: '西城试运营开发样例',
+			excerpt: '仅用于开发环境验证识别结果页来源展示，不可作为生产审核来源。'
+		}
+	],
 	routeRecommendation: {
 		title: '白塔寺 - 历代帝王庙 - 什刹海',
 		durationText: '约 2.5 小时',
