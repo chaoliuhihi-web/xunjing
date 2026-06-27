@@ -1,7 +1,9 @@
 import { existsSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
+
+const allowedEvidenceDirs = new Set(['qa', 'tmp', 'workbench'])
 
 const requiredEnvKeys = [
   'SPRING_PROFILES_ACTIVE',
@@ -941,6 +943,36 @@ function readArgValue(args, name) {
   return undefined
 }
 
+function resolveEvidenceFile(rootDir, evidenceFile) {
+  if (!evidenceFile) {
+    return undefined
+  }
+  const resolvedRoot = path.resolve(rootDir)
+  const resolvedFile = path.isAbsolute(evidenceFile)
+    ? path.resolve(evidenceFile)
+    : path.resolve(resolvedRoot, evidenceFile)
+  const relativePath = path.relative(resolvedRoot, resolvedFile)
+  const [topLevelDir] = relativePath.split(path.sep)
+  if (
+    !relativePath ||
+    relativePath.startsWith('..') ||
+    path.isAbsolute(relativePath) ||
+    !allowedEvidenceDirs.has(topLevelDir)
+  ) {
+    throw new Error('evidence file must be under qa/, tmp/ or workbench/')
+  }
+  return resolvedFile
+}
+
+async function writeEvidence({ rootDir, evidenceFile, report }) {
+  const resolvedFile = resolveEvidenceFile(rootDir, evidenceFile)
+  if (!resolvedFile) {
+    return
+  }
+  await mkdir(path.dirname(resolvedFile), { recursive: true })
+  await writeFile(resolvedFile, `${JSON.stringify(report, null, 2)}\n`)
+}
+
 async function runCli() {
   const args = process.argv.slice(2)
   const envFile = readArgValue(args, '--env-file') || process.env.XUNJING_ENV_FILE
@@ -948,6 +980,7 @@ async function runCli() {
     ? { ...process.env, ...await loadEnvFile(envFile) }
     : process.env
   const staticOnly = args.includes('--static') || process.env.XUNJING_STATIC_ONLY === '1'
+  const rootDir = path.resolve(readArgValue(args, '--root') || process.cwd())
   const result = await verifyXunjingPlatformReadiness({
     env,
     baseUrl: readArgValue(args, '--base-url') || process.env.XUNJING_BASE_URL || undefined,
@@ -960,9 +993,17 @@ async function runCli() {
     skipAdminCheck: args.includes('--skip-admin-check') || process.env.XUNJING_SKIP_ADMIN_CHECK === '1',
     staticOnly,
     tenantId: readArgValue(args, '--tenant-id') || env.XUNJING_TENANT_ID || undefined,
-    rootDir: readArgValue(args, '--root') || process.cwd()
+    rootDir
+  })
+  await writeEvidence({
+    rootDir,
+    evidenceFile: readArgValue(args, '--evidence-file') || readArgValue(args, '--output'),
+    report: result
   })
   console.log(JSON.stringify(result, null, 2))
+  if (!result.ok) {
+    process.exit(1)
+  }
 }
 
 const executedPath = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1])).href : ''

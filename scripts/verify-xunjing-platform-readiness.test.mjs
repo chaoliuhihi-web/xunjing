@@ -1,11 +1,14 @@
 import http from 'node:http'
 import { once } from 'node:events'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { execFileSync } from 'node:child_process'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, test } from 'vitest'
 import { loadEnvFile, verifyXunjingPlatformReadiness } from './verify-xunjing-platform-readiness.mjs'
 
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const servers = []
 const tempDirs = []
 
@@ -463,5 +466,56 @@ describe('xunjing platform readiness verifier', () => {
       QWEN_API_KEY: 'secret value',
       EMPTY_VALUE: ''
     })
+  })
+
+  test('CLI writes readiness evidence under controlled evidence directories', async () => {
+    await mkdir(path.resolve(rootDir, 'tmp'), { recursive: true })
+    const evidenceDir = await mkdtemp(path.resolve(rootDir, 'tmp/xunjing-platform-readiness-'))
+    tempDirs.push(evidenceDir)
+    const evidencePath = path.resolve(evidenceDir, 'xicheng-app-readiness-evidence.json')
+
+    const stdout = execFileSync(process.execPath, [
+      'scripts/verify-xunjing-platform-readiness.mjs',
+      '--static',
+      '--evidence-file',
+      evidencePath
+    ], {
+      cwd: rootDir,
+      encoding: 'utf8'
+    })
+
+    const printed = JSON.parse(stdout)
+    const evidence = JSON.parse(await readFile(evidencePath, 'utf8'))
+    expect(printed.artifactType).toBe('xunjing-platform-readiness')
+    expect(evidence.artifactType).toBe('xunjing-platform-readiness')
+    expect(evidence.ok).toBe(true)
+    expect(evidence.summary.staticOnly).toBe(true)
+    expect(evidence.checks.map((check) => check.name)).toContain('xicheng-trigger-backend')
+  })
+
+  test('CLI refuses readiness evidence files outside qa tmp or workbench', async () => {
+    const evidenceDir = await mkdtemp(path.join(os.tmpdir(), 'xunjing-platform-readiness-outside-'))
+    tempDirs.push(evidenceDir)
+    const evidencePath = path.join(evidenceDir, 'xicheng-app-readiness-evidence.json')
+
+    let error
+    try {
+      execFileSync(process.execPath, [
+        'scripts/verify-xunjing-platform-readiness.mjs',
+        '--static',
+        '--evidence-file',
+        evidencePath
+      ], {
+        cwd: rootDir,
+        encoding: 'utf8',
+        stdio: 'pipe'
+      })
+    } catch (caught) {
+      error = caught
+    }
+
+    expect(error).toBeTruthy()
+    expect(error.status).toBe(1)
+    expect(String(error.stderr)).toContain('evidence file must be under qa/, tmp/ or workbench/')
   })
 })
