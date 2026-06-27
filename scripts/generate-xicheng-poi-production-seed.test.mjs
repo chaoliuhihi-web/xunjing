@@ -45,6 +45,13 @@ function productionPoi(index, overrides = {}) {
       photoLabels: ['xicheng', 'landmark'],
       minConfidence: 0.85
     },
+    fieldEvidence: {
+      photoEvidenceStatus: 'APPROVED',
+      triggerSmokeStatus: 'PASSED',
+      evidenceRefs: [`oss://xunjing-review/xicheng/${poiCode}/field-photo-001.jpg`],
+      verifiedBy: 'xicheng-field-reviewer',
+      verifiedAt: '2026-06-27'
+    },
     content: {
       shortIntro: `西城生产点位${suffix}已完成来源授权、坐标复核和内容审核，可用于生产试运营讲解。`,
       recommendedQuestions: [
@@ -146,6 +153,9 @@ describe('xicheng POI production seed generator', () => {
     expect(sql).toContain("'xicheng-prod-poi-001'")
     expect(sql).toContain("西城 O''Clock 点位")
     expect(sql).toContain('https://www.bjxch.gov.cn/xicheng/poi/001')
+    expect(sql).toContain('oss://xunjing-review/xicheng/xicheng-prod-poi-001/field-photo-001.jpg')
+    expect(sql).toContain('"fieldEvidenceStatus":"APPROVED"')
+    expect(sql).toContain('"triggerSmokeStatus":"PASSED"')
     expect(sql).toContain('"poiSeedCount":80')
     expect(sql).toContain('"targetP0PoiCount":80')
     expect(sql).toContain('"productionReady":true')

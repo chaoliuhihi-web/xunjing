@@ -141,6 +141,24 @@ function checkProductionMetrics(sql, minPoiCount) {
   return check('production-metrics', blockers)
 }
 
+function checkFieldEvidence(sql) {
+  const blockers = []
+  const poiCount = extractPoiCodes(sql).length
+  const fieldEvidenceStatusCount = countMatches(sql, /"fieldEvidenceStatus"\s*:\s*"APPROVED"/g)
+  const triggerSmokeStatusCount = countMatches(sql, /"triggerSmokeStatus"\s*:\s*"PASSED"/g)
+  const fieldEvidenceRefsCount = countMatches(sql, /"fieldEvidenceRefs"\s*:\s*\[/g)
+  if (
+    poiCount > 0 &&
+    (fieldEvidenceStatusCount < poiCount || triggerSmokeStatusCount < poiCount || fieldEvidenceRefsCount < poiCount)
+  ) {
+    blockers.push('seed SQL must include approved field evidence for each production POI')
+  }
+  if (/(?:data:image|imageBase64|file:\/\/)/i.test(sql)) {
+    blockers.push('seed SQL must not contain raw image data or local field evidence file paths')
+  }
+  return check('field-evidence', blockers)
+}
+
 function checkSourceDocuments(sql) {
   const blockers = []
   const poiCount = extractPoiCodes(sql).length
@@ -167,6 +185,7 @@ export async function verifyXichengPoiProductionSeed({
     checkPoiCount(sql, normalizedMinPoiCount),
     checkPoiApproval(sql),
     checkProductionMetrics(sql, normalizedMinPoiCount),
+    checkFieldEvidence(sql),
     checkSourceDocuments(sql)
   ]
   const blockers = checks.flatMap((item) => item.blockers)

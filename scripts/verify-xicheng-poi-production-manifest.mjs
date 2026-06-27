@@ -20,6 +20,10 @@ function isApproved(value) {
   return String(value || '').trim().toUpperCase() === 'APPROVED'
 }
 
+function isPassed(value) {
+  return String(value || '').trim().toUpperCase() === 'PASSED'
+}
+
 function isPublished(value) {
   return String(value || '').trim().toUpperCase() === 'PUBLISHED'
 }
@@ -32,6 +36,29 @@ function isHttpsUrl(value) {
   } catch {
     return false
   }
+}
+
+function isFieldEvidenceRef(value) {
+  if (!hasText(value)) {
+    return false
+  }
+  const normalized = String(value).trim()
+  if (/^(?:data|file):/i.test(normalized) || /imageBase64/i.test(normalized)) {
+    return false
+  }
+  try {
+    const url = new URL(normalized)
+    const protocol = url.protocol.toLowerCase()
+    if (protocol === 'https:') {
+      return !['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(url.hostname.toLowerCase())
+    }
+    if (['oss:', 'cos:', 's3:'].includes(protocol)) {
+      return hasText(url.hostname) && hasText(url.pathname.replaceAll('/', ''))
+    }
+  } catch {
+    return false
+  }
+  return false
 }
 
 function check(name, blockers) {
@@ -192,6 +219,35 @@ function checkPoiSourceLicense(pois) {
   return check('poi-source-license', blockers)
 }
 
+function checkPoiFieldEvidence(pois) {
+  const blockers = []
+  pois.forEach((poi, index) => {
+    const label = poiLabel(poi, index)
+    const fieldEvidence = isObject(poi.fieldEvidence) ? poi.fieldEvidence : {}
+    if (!isApproved(fieldEvidence.photoEvidenceStatus)) {
+      blockers.push(`${label} fieldEvidence.photoEvidenceStatus must be APPROVED`)
+    }
+    if (!isPassed(fieldEvidence.triggerSmokeStatus)) {
+      blockers.push(`${label} fieldEvidence.triggerSmokeStatus must be PASSED`)
+    }
+    if (!Array.isArray(fieldEvidence.evidenceRefs) || fieldEvidence.evidenceRefs.length === 0) {
+      blockers.push(`${label} fieldEvidence.evidenceRefs must include at least one object-storage or HTTPS reference`)
+    } else {
+      const invalidRefs = fieldEvidence.evidenceRefs.filter((ref) => !isFieldEvidenceRef(ref))
+      if (invalidRefs.length > 0) {
+        blockers.push(`${label} fieldEvidence.evidenceRefs must include at least one object-storage or HTTPS reference`)
+      }
+    }
+    if (!hasText(fieldEvidence.verifiedBy)) {
+      blockers.push(`${label} fieldEvidence.verifiedBy is required`)
+    }
+    if (!hasText(fieldEvidence.verifiedAt)) {
+      blockers.push(`${label} fieldEvidence.verifiedAt is required`)
+    }
+  })
+  return check('poi-field-evidence', blockers)
+}
+
 function checkPoiContent(pois) {
   const blockers = []
   pois.forEach((poi, index) => {
@@ -248,6 +304,7 @@ export async function verifyXichengPoiProductionManifest({
     checkPoiCoordinates(pois),
     checkPoiTriggers(pois),
     checkPoiSourceLicense(pois),
+    checkPoiFieldEvidence(pois),
     checkPoiContent(pois),
     checkPoiAudit(pois)
   ]

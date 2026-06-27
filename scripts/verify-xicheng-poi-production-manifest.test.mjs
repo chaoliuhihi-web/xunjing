@@ -44,6 +44,13 @@ function productionPoi(index, overrides = {}) {
       photoLabels: ['xicheng', 'landmark'],
       minConfidence: 0.85
     },
+    fieldEvidence: {
+      photoEvidenceStatus: 'APPROVED',
+      triggerSmokeStatus: 'PASSED',
+      evidenceRefs: [`oss://xunjing-review/xicheng/${poiCode}/field-photo-001.jpg`],
+      verifiedBy: 'xicheng-field-reviewer',
+      verifiedAt: '2026-06-27'
+    },
     content: {
       shortIntro: `西城生产点位${suffix}已完成来源授权、坐标复核和内容审核，可用于生产试运营讲解。`,
       recommendedQuestions: [
@@ -128,6 +135,7 @@ describe('xicheng POI production manifest gate', () => {
       'poi-coordinates',
       'poi-triggers',
       'poi-source-license',
+      'poi-field-evidence',
       'poi-content',
       'poi-audit'
     ])
@@ -152,6 +160,13 @@ describe('xicheng POI production manifest gate', () => {
           ocrKeywords: ['西城生产点位001'],
           photoLabels: ['xicheng'],
           minConfidence: 0.5
+        },
+        fieldEvidence: {
+          photoEvidenceStatus: 'REVIEW_REQUIRED',
+          triggerSmokeStatus: 'FAILED',
+          evidenceRefs: ['file:///tmp/raw-field-photo.jpg'],
+          verifiedBy: '',
+          verifiedAt: ''
         },
         content: {
           shortIntro: '太短',
@@ -181,6 +196,8 @@ describe('xicheng POI production manifest gate', () => {
     expect(evidence.status).toBe('NOT_READY')
     expect(evidence.blockers.join('\n')).toContain('80 production-ready POIs required; found 1/80')
     expect(evidence.blockers.join('\n')).toContain('xicheng-prod-poi-001 source.licenseStatus must be APPROVED')
+    expect(evidence.blockers.join('\n')).toContain('xicheng-prod-poi-001 fieldEvidence.photoEvidenceStatus must be APPROVED')
+    expect(evidence.blockers.join('\n')).toContain('xicheng-prod-poi-001 fieldEvidence.evidenceRefs must include at least one object-storage or HTTPS reference')
     expect(evidence.blockers.join('\n')).toContain('xicheng-prod-poi-001 audit.geoStatus must be APPROVED')
   })
 

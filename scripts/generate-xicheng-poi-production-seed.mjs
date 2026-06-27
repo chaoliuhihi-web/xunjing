@@ -64,6 +64,11 @@ function productionSourceJson(poi) {
     sourceUrl: poi.source.sourceUrl,
     sourceType: poi.source.sourceType,
     licenseStatus: poi.source.licenseStatus,
+    fieldEvidenceStatus: poi.fieldEvidence.photoEvidenceStatus,
+    triggerSmokeStatus: poi.fieldEvidence.triggerSmokeStatus,
+    fieldEvidenceRefs: poi.fieldEvidence.evidenceRefs,
+    fieldVerifiedBy: poi.fieldEvidence.verifiedBy,
+    fieldVerifiedAt: poi.fieldEvidence.verifiedAt,
     reviewedBy: poi.audit.reviewedBy,
     reviewedAt: poi.audit.reviewedAt
   }
@@ -81,6 +86,8 @@ function productionContentJson(poi) {
     recommendedQuestions: poi.content.recommendedQuestions,
     sourceTitle: poi.source.sourceTitle,
     sourceUrl: poi.source.sourceUrl,
+    fieldEvidenceStatus: poi.fieldEvidence.photoEvidenceStatus,
+    triggerSmokeStatus: poi.fieldEvidence.triggerSmokeStatus,
     reviewedBy: poi.audit.reviewedBy,
     reviewedAt: poi.audit.reviewedAt
   }
@@ -150,7 +157,9 @@ function buildMetrics(manifest) {
     targetP0PoiCount: Number(manifest.targetP0PoiCount),
     sourceLicenseStatus: 'APPROVED',
     geoStatus: 'APPROVED',
-    reviewStatus: 'APPROVED'
+    reviewStatus: 'APPROVED',
+    fieldEvidenceStatus: 'APPROVED',
+    triggerSmokeStatus: 'PASSED'
   }
 }
 

@@ -45,6 +45,13 @@ function productionPoi(index, overrides = {}) {
       photoLabels: ['xicheng', 'landmark'],
       minConfidence: 0.85
     },
+    fieldEvidence: {
+      photoEvidenceStatus: 'APPROVED',
+      triggerSmokeStatus: 'PASSED',
+      evidenceRefs: [`oss://xunjing-review/xicheng/${poiCode}/field-photo-001.jpg`],
+      verifiedBy: 'xicheng-field-reviewer',
+      verifiedAt: '2026-06-27'
+    },
     content: {
       shortIntro: `西城生产点位${suffix}已完成来源授权、坐标复核和内容审核，可用于生产试运营讲解。`,
       recommendedQuestions: [
@@ -155,6 +162,7 @@ describe('xicheng POI production seed SQL gate', () => {
       'poi-count',
       'poi-approval',
       'production-metrics',
+      'field-evidence',
       'source-documents'
     ])
     expect(report.blockers).toEqual([])
@@ -190,6 +198,7 @@ INSERT INTO \`xunjing_public_report\` (\`metrics_json\`) VALUES ('{"productionRe
     expect(evidence.blockers.join('\n')).toContain('80 production POI seed rows required; found 1/80')
     expect(evidence.blockers.join('\n')).toContain('seed SQL must not contain REVIEW_REQUIRED or DRAFT')
     expect(evidence.blockers.join('\n')).toContain('production metrics must include "productionReady":true')
+    expect(evidence.blockers.join('\n')).toContain('seed SQL must include approved field evidence for each production POI')
   })
 
   test('rejects seed evidence paths outside qa tmp or workbench', async () => {
