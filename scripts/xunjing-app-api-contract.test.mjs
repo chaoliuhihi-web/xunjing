@@ -78,6 +78,9 @@ describe('xunjing app API contract', () => {
     expect(appVo).toContain('imageHeight')
     expect(appVo).toContain('imageBase64')
     expect(appVo).toContain('class MultimodalTriggerRespVO')
+    expect(appVo).toContain('private List<String> suggestedQuestions;')
+    expect(appVo).toContain('private List<SourceRespVO> sources;')
+    expect(appVo).toContain('class MultimodalCandidateRespVO')
     expect(appVo).toContain('imageLabels')
     expect(appVo).toContain('ocrText')
     expect(appVo).toContain('requiresUserConfirm')
@@ -97,5 +100,25 @@ describe('xunjing app API contract', () => {
     expect(visionService).toContain('imageBase64')
     expect(visionService).toContain('chat/completions')
     expect(visionService).toContain('extractVisionLabels')
+  })
+
+  test('xicheng AI chat contract carries POI context and blocks no-source answers', async () => {
+    const appVo = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'
+    )
+    const appService = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java'
+    )
+
+    expect(appVo).toMatch(/class RagChatReqVO[\s\S]*private String regionCode;/)
+    expect(appVo).toMatch(/class RagChatReqVO[\s\S]*private String poiCode;/)
+    expect(appVo).toMatch(/class RagChatReqVO[\s\S]*private String poiName;/)
+    expect(appVo).toMatch(/class RagChatReqVO[\s\S]*private String routeId;/)
+    expect(appService).toContain('buildNoSourceBlockedResponse')
+    expect(appService).toContain('AiSafetyStatus.BLOCKED.getStatus()')
+    expect(appService).toContain('buildSourceSearchText(reqVO)')
+    expect(appService).toContain('buildChatInputSummary(reqVO)')
+    expect(appService).toContain('reqVO.getPoiCode()')
+    expect(appService).toContain('reqVO.getRegionCode()')
   })
 })

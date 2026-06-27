@@ -182,8 +182,13 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             return quotaBlocked;
         }
 
+        List<SourceRespVO> sources = searchPublicSources(resourcePackage.getId(), buildSourceSearchText(reqVO));
+        if (sources.isEmpty()) {
+            return buildNoSourceBlockedResponse(resourcePackage, qrCode, reqVO);
+        }
+
         CachedAnswer cachedAnswer = getCachedAnswerIfEnabled(resourcePackage, qrCode, reqVO);
-        if (cachedAnswer != null) {
+        if (cachedAnswer != null && !cachedAnswer.sources().isEmpty()) {
             Long logId = recordCachedAiGeneration(resourcePackage, qrCode, reqVO, cachedAnswer);
             RagChatRespVO respVO = new RagChatRespVO();
             respVO.setAnswer(cachedAnswer.answer());
@@ -193,8 +198,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             return respVO;
         }
 
-        List<SourceRespVO> sources = searchPublicSources(resourcePackage.getId(), reqVO.getQuestion());
-        AnswerGenerationResult answer = generateAnswer(reqVO.getQuestion(), sources);
+        AnswerGenerationResult answer = generateAnswer(reqVO, sources);
 
         Long logId = recordAiGeneration(resourcePackage, qrCode, reqVO, answer, sources);
 
@@ -427,24 +431,41 @@ public class XunjingAppServiceImpl implements XunjingAppService {
 
     private double score(XunjingKnowledgeDocumentDO document, String question) {
         double score = 0.60D;
-        String text = (document.getTitle() == null ? "" : document.getTitle())
-                + (document.getContentDigest() == null ? "" : document.getContentDigest());
+        String text = normalizeSearchText((document.getTitle() == null ? "" : document.getTitle())
+                + (document.getContentDigest() == null ? "" : document.getContentDigest()));
         if (question != null && !question.isBlank()) {
             for (String keyword : List.of("喀什", "古城", "新疆", "地图", "地球仪", "图书", "孩子", "研学")) {
                 if (question.contains(keyword) && text.contains(keyword)) {
                     score += 0.05D;
                 }
             }
+            for (String token : searchTokens(question)) {
+                if (text.contains(token)) {
+                    score += 0.08D;
+                }
+            }
         }
         return Math.min(score, 0.95D);
     }
 
-    private AnswerGenerationResult generateAnswer(String question, List<SourceRespVO> sources) {
-        if (sources.isEmpty()) {
-            return new AnswerGenerationResult("我暂时没有找到已审核且可公开引用的资料来源，不能直接回答这个问题。",
-                    "xunjing-rag-facade", "p0-rag-no-source-2026-06-21");
+    private List<String> searchTokens(String query) {
+        Matcher matcher = Pattern.compile("[\\p{IsHan}\\p{Alnum}-]{2,}").matcher(normalizeSearchText(query));
+        List<String> tokens = new java.util.ArrayList<>();
+        while (matcher.find() && tokens.size() < 20) {
+            String token = matcher.group();
+            if (!tokens.contains(token)) {
+                tokens.add(token);
+            }
         }
-        AnswerGenerationResult aiGenerated = tryGenerateAnswerByYudaoAi(question, sources);
+        return tokens;
+    }
+
+    private String normalizeSearchText(String value) {
+        return defaultIfBlank(value, "").toLowerCase(Locale.ROOT);
+    }
+
+    private AnswerGenerationResult generateAnswer(RagChatReqVO reqVO, List<SourceRespVO> sources) {
+        AnswerGenerationResult aiGenerated = tryGenerateAnswerByYudaoAi(reqVO, sources);
         if (aiGenerated != null) {
             return aiGenerated;
         }
@@ -454,7 +475,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
                 "xunjing-rag-facade", "p0-rag-facade-2026-06-21");
     }
 
-    private AnswerGenerationResult tryGenerateAnswerByYudaoAi(String question, List<SourceRespVO> sources) {
+    private AnswerGenerationResult tryGenerateAnswerByYudaoAi(RagChatReqVO reqVO, List<SourceRespVO> sources) {
         if (aiModelService == null) {
             return null;
         }
@@ -467,7 +488,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             if (chatModel == null) {
                 return null;
             }
-            ChatResponse response = chatModel.call(buildRagPrompt(question, sources, model));
+            ChatResponse response = chatModel.call(buildRagPrompt(reqVO, sources, model));
             String content = AiUtils.getChatResponseContent(response);
             if (!hasText(content)) {
                 return null;
@@ -475,12 +496,13 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             return new AnswerGenerationResult(content, defaultIfBlank(model.getModel(), "yudao-ai-chat"),
                     "p0-rag-yudao-ai-2026-06-21");
         } catch (Exception ex) {
-            log.warn("[tryGenerateAnswerByYudaoAi][question({}) sourceCount({}) fallback]", question, sources.size(), ex);
+            log.warn("[tryGenerateAnswerByYudaoAi][question({}) sourceCount({}) fallback]",
+                    reqVO.getQuestion(), sources.size(), ex);
             return null;
         }
     }
 
-    private Prompt buildRagPrompt(String question, List<SourceRespVO> sources, AiModelDO model) {
+    private Prompt buildRagPrompt(RagChatReqVO reqVO, List<SourceRespVO> sources, AiModelDO model) {
         String system = """
                 你是星河寻境文旅研学 AI 讲解员。必须基于后台提供的资料来源回答，不允许编造未给出的史实、机构、人物、价格、开放时间或路线。
                 如果资料不足，需要明确说明资料不足，并引导用户换一个更具体的问题。
@@ -491,7 +513,8 @@ public class XunjingAppServiceImpl implements XunjingAppService {
                         + "\n来源：" + defaultIfBlank(source.getSourceUrl(), source.getSourceType())
                         + "\n内容：" + defaultIfBlank(source.getContentDigest(), ""))
                 .collect(Collectors.joining("\n\n"));
-        String user = "用户问题：\n" + question
+        String user = "用户问题：\n" + reqVO.getQuestion()
+                + "\n\n上下文：\n" + buildChatContextText(reqVO)
                 + "\n\n后台资料来源：\n" + references
                 + "\n\n请直接给出回答，并在回答末尾用一句话说明“本回答基于已审核资料”。";
         ChatOptions options = AiUtils.buildChatOptions(AiPlatformEnum.validatePlatform(model.getPlatform()),
@@ -506,10 +529,20 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         event.setEventType(EventType.ASK.getType());
         event.setSourceChannel(defaultIfBlank(reqVO.getSourceChannel(), "mini-program"));
         event.setUserTraceId(reqVO.getUserTraceId());
-        event.setPayloadJson("{\"sceneCode\":\"" + jsonEscape(defaultIfBlank(reqVO.getSceneCode(), "xunjing-rag-chat"))
-                + "\",\"question\":\"" + jsonEscape(reqVO.getQuestion()) + "\"}");
+        event.setPayloadJson(buildAskEventPayload(reqVO));
         event.setTenantId(TenantContextHolder.getRequiredTenantId());
         interactionEventMapper.insert(event);
+    }
+
+    private String buildAskEventPayload(RagChatReqVO reqVO) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("sceneCode", defaultIfBlank(reqVO.getSceneCode(), DEFAULT_CHAT_SCENE_CODE));
+        payload.put("question", reqVO.getQuestion());
+        payload.put("regionCode", defaultIfBlank(reqVO.getRegionCode(), ""));
+        payload.put("poiCode", defaultIfBlank(reqVO.getPoiCode(), ""));
+        payload.put("poiName", defaultIfBlank(reqVO.getPoiName(), ""));
+        payload.put("routeId", defaultIfBlank(reqVO.getRouteId(), ""));
+        return JsonUtils.toJsonString(payload);
     }
 
     private void recordScanEvent(XunjingResourcePackageDO resourcePackage, ScanResolveReqVO reqVO, XunjingQrCodeDO qrCode) {
@@ -538,7 +571,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         aiLog.setUserTraceId(effectiveUserTraceId(reqVO));
         aiLog.setModelCode(answer.modelCode());
         aiLog.setPromptVersion(answer.promptVersion());
-        aiLog.setInputSummary(reqVO.getQuestion());
+        aiLog.setInputSummary(buildChatInputSummary(reqVO));
         aiLog.setOutputSummary(answer.answer());
         aiLog.setSourceJson(buildSourceJson(sources));
         aiLog.setTokenCount((long) (defaultIfBlank(reqVO.getQuestion(), "").length() + answer.answer().length()));
@@ -558,7 +591,8 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         }
         XunjingAiGenerationLogDO cachedLog = aiGenerationLogMapper.selectLatestCacheCandidate(
                 resourcePackage.getId(), qrCode == null ? null : qrCode.getId(), effectiveUserTraceId(reqVO),
-                sceneCode, reqVO.getQuestion(), LocalDate.now().atStartOfDay(), AiSafetyStatus.PASSED.getStatus());
+                sceneCode, buildChatInputSummary(reqVO), LocalDate.now().atStartOfDay(),
+                AiSafetyStatus.PASSED.getStatus());
         if (cachedLog == null || !hasText(cachedLog.getOutputSummary())) {
             return null;
         }
@@ -599,7 +633,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         aiLog.setUserTraceId(effectiveUserTraceId(reqVO));
         aiLog.setModelCode("xunjing-rag-cache");
         aiLog.setPromptVersion("p0-rag-cache-2026-06-21");
-        aiLog.setInputSummary(reqVO.getQuestion());
+        aiLog.setInputSummary(buildChatInputSummary(reqVO));
         aiLog.setOutputSummary(cachedAnswer.answer());
         aiLog.setSourceJson(defaultIfBlank(cachedAnswer.sourceJson(), buildSourceJson(cachedAnswer.sources())));
         aiLog.setTokenCount(0L);
@@ -647,6 +681,48 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         return respVO;
     }
 
+    private RagChatRespVO buildNoSourceBlockedResponse(
+            XunjingResourcePackageDO resourcePackage, XunjingQrCodeDO qrCode, RagChatReqVO reqVO) {
+        String answer = "没有找到已审核且可公开引用的资料来源，不能直接回答这个问题。请先在后台补充并审核该地点的讲解资料。";
+        Long logId = recordNoSourceBlockedAiGeneration(resourcePackage, qrCode, reqVO, answer);
+        RagChatRespVO respVO = new RagChatRespVO();
+        respVO.setAnswer(answer);
+        respVO.setSafetyStatus(AiSafetyStatus.BLOCKED.getStatus());
+        respVO.setLogId(logId);
+        respVO.setSources(List.of());
+        return respVO;
+    }
+
+    private Long recordNoSourceBlockedAiGeneration(
+            XunjingResourcePackageDO resourcePackage, XunjingQrCodeDO qrCode, RagChatReqVO reqVO, String answer) {
+        Map<String, Object> sourceGuard = new LinkedHashMap<>();
+        sourceGuard.put("reason", "NO_REVIEWED_SOURCE");
+        sourceGuard.put("regionCode", defaultIfBlank(reqVO.getRegionCode(), ""));
+        sourceGuard.put("poiCode", defaultIfBlank(reqVO.getPoiCode(), ""));
+        sourceGuard.put("poiName", defaultIfBlank(reqVO.getPoiName(), ""));
+        sourceGuard.put("routeId", defaultIfBlank(reqVO.getRouteId(), ""));
+
+        XunjingAiGenerationLogDO aiLog = new XunjingAiGenerationLogDO();
+        aiLog.setProjectId(resourcePackage.getProjectId());
+        aiLog.setSchoolId(resourcePackage.getSchoolId());
+        aiLog.setPackageId(resourcePackage.getId());
+        aiLog.setQrCodeId(qrCode == null ? null : qrCode.getId());
+        aiLog.setSceneCode(defaultIfBlank(reqVO.getSceneCode(), DEFAULT_CHAT_SCENE_CODE));
+        aiLog.setUserTraceId(effectiveUserTraceId(reqVO));
+        aiLog.setModelCode("xunjing-source-guard");
+        aiLog.setPromptVersion("p0-source-guard-2026-06-27");
+        aiLog.setInputSummary(buildChatInputSummary(reqVO));
+        aiLog.setOutputSummary(answer);
+        aiLog.setSourceJson(JsonUtils.toJsonString(sourceGuard));
+        aiLog.setTokenCount(0L);
+        aiLog.setCostAmount(BigDecimal.ZERO);
+        aiLog.setSafetyStatus(AiSafetyStatus.BLOCKED.getStatus());
+        aiLog.setCacheHit(false);
+        aiLog.setTenantId(TenantContextHolder.getRequiredTenantId());
+        aiGenerationLogMapper.insert(aiLog);
+        return aiLog.getId();
+    }
+
     private Long recordBlockedAiGeneration(
             XunjingResourcePackageDO resourcePackage, XunjingQrCodeDO qrCode, RagChatReqVO reqVO, String answer,
             XunjingAiQuotaRuleDO quotaRule) {
@@ -659,7 +735,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         aiLog.setUserTraceId(effectiveUserTraceId(reqVO));
         aiLog.setModelCode("xunjing-quota-guard");
         aiLog.setPromptVersion("p0-quota-guard-2026-06-21");
-        aiLog.setInputSummary(reqVO.getQuestion());
+        aiLog.setInputSummary(buildChatInputSummary(reqVO));
         aiLog.setOutputSummary(answer);
         aiLog.setSourceJson("{\"quotaRuleId\":" + quotaRule.getId()
                 + ",\"scopeType\":\"" + jsonEscape(quotaRule.getScopeType())
@@ -853,6 +929,38 @@ public class XunjingAppServiceImpl implements XunjingAppService {
 
     private String buildSourceJson(List<SourceRespVO> sources) {
         return JsonUtils.toJsonString(sources);
+    }
+
+    private String buildChatContextText(RagChatReqVO reqVO) {
+        List<String> parts = List.of(
+                "regionCode=" + defaultIfBlank(reqVO.getRegionCode(), ""),
+                "poiCode=" + defaultIfBlank(reqVO.getPoiCode(), ""),
+                "poiName=" + defaultIfBlank(reqVO.getPoiName(), ""),
+                "routeId=" + defaultIfBlank(reqVO.getRouteId(), "")
+        );
+        return parts.stream()
+                .filter(part -> !part.endsWith("="))
+                .collect(Collectors.joining("\n"));
+    }
+
+    private String buildChatInputSummary(RagChatReqVO reqVO) {
+        String context = buildChatContextText(reqVO);
+        if (!hasText(context)) {
+            return reqVO.getQuestion();
+        }
+        return reqVO.getQuestion() + "\n" + context;
+    }
+
+    private String buildSourceSearchText(RagChatReqVO reqVO) {
+        return java.util.stream.Stream.of(
+                        reqVO.getQuestion(),
+                        reqVO.getPoiName(),
+                        reqVO.getPoiCode(),
+                        reqVO.getRegionCode(),
+                        reqVO.getRouteId())
+                .filter(this::hasText)
+                .distinct()
+                .collect(Collectors.joining("\n"));
     }
 
     private String jsonEscape(String value) {
