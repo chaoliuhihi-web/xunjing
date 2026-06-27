@@ -567,11 +567,36 @@ const normalizeCachedMessages = (list) => {
 		}))
 }
 
-const saveMessagesCache = () => {
-	uni.setStorageSync(CHAT_CACHE_KEY, normalizeCachedMessages(messages.value))
+const getActiveXichengCacheScope = () => {
+	const context = xichengAiContext.value || {}
+	if (
+		context.regionCode !== XICHENG_REGION_CONFIG.regionCode
+		&& !context.poiCode
+		&& !context.poiName
+	) {
+		return ''
+	}
+	const regionCode = context.regionCode || XICHENG_REGION_CONFIG.regionCode
+	const poiCode = context.poiCode || ''
+	const poiScope = poiCode || context.poiName || 'general'
+	return `${encodeURIComponent(regionCode)}:${encodeURIComponent(poiScope)}`
 }
 
-const loadMessagesCache = () => normalizeCachedMessages(uni.getStorageSync(CHAT_CACHE_KEY) || [])
+const getActiveChatCacheKey = () => {
+	const scope = getActiveXichengCacheScope()
+	return scope ? `${CHAT_CACHE_KEY}:xicheng:${scope}` : CHAT_CACHE_KEY
+}
+
+const getActiveConversationKey = () => {
+	const scope = getActiveXichengCacheScope()
+	return scope ? `${CONVERSATION_KEY}:xicheng:${scope}` : CONVERSATION_KEY
+}
+
+const saveMessagesCache = () => {
+	uni.setStorageSync(getActiveChatCacheKey(), normalizeCachedMessages(messages.value))
+}
+
+const loadMessagesCache = () => normalizeCachedMessages(uni.getStorageSync(getActiveChatCacheKey()) || [])
 
 const setWelcomeMessage = () => {
 	const welcomeMessage = createWelcomeMessage()
@@ -1480,7 +1505,7 @@ const startXunjingAiRequest = ({ question, assistantMessage }) => {
 		if (shouldStartNewConversationAfterInterrupt) {
 			shouldStartNewConversationAfterInterrupt = false
 			conversationId.value = ''
-			uni.removeStorageSync(CONVERSATION_KEY)
+			uni.removeStorageSync(getActiveConversationKey())
 		}
 		const requestController = {
 			id: ++streamSeed,
@@ -1653,8 +1678,8 @@ const clearChatHistory = () => {
 				interruptCurrentResponse({ showStatus: false })
 				stopAiSpeech()
 				clearPendingUiTimers()
-				uni.removeStorageSync(CONVERSATION_KEY)
-				uni.removeStorageSync(CHAT_CACHE_KEY)
+				uni.removeStorageSync(getActiveConversationKey())
+				uni.removeStorageSync(getActiveChatCacheKey())
 				conversationId.value = ''
 				setWelcomeMessage()
 				uni.showToast({
