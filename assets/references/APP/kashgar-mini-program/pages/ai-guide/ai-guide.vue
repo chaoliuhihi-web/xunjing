@@ -976,6 +976,16 @@ const createXunjingResultFollowUps = (result = {}) => {
 const requestXunjingAiChat = (question) => {
 	let requestTask = null
 	const context = xichengAiContext.value || {}
+	if (hasXichengAiContext(context) && context.safetyStatus === 'BLOCKED') {
+		const blockedRequest = Promise.resolve({
+			answer: XICHENG_BLOCKED_ANSWER,
+			sources: getXichengContextSources(),
+			suggestedQuestions: [],
+			safetyStatus: 'BLOCKED'
+		})
+		blockedRequest.abort = () => {}
+		return blockedRequest
+	}
 	const aiConfig = getActiveXunjingAiConfig(context)
 	const requestQuestion = buildXichengContextQuestion(question, context)
 	const requestPayload = {
