@@ -26,6 +26,7 @@ const requiredManifestEvidenceChecks = [
 const requiredSeedEvidenceChecks = [
   'sql-file',
   'seed-shape',
+  'seed-preconditions',
   'poi-count',
   'poi-approval',
   'production-metrics',
@@ -274,11 +275,20 @@ function isRegularNonEmptySql(filePath) {
   return stat.isFile() && stat.size > 0
 }
 
-async function checkFullYudaoBaseline(rootDir) {
-  const baselinePath = path.join(rootDir, 'backend/yudao/sql/mysql/ruoyi-vue-pro.sql')
+function resolveBaselineSqlPath(rootDir, yudaoBaselineSqlPath) {
+  if (!hasValue(yudaoBaselineSqlPath)) {
+    return path.join(rootDir, 'backend/yudao/sql/mysql/ruoyi-vue-pro.sql')
+  }
+  return path.isAbsolute(yudaoBaselineSqlPath)
+    ? path.resolve(yudaoBaselineSqlPath)
+    : path.resolve(rootDir, yudaoBaselineSqlPath)
+}
+
+async function checkFullYudaoBaseline(rootDir, yudaoBaselineSqlPath) {
+  const baselinePath = resolveBaselineSqlPath(rootDir, yudaoBaselineSqlPath)
   const blockers = []
   if (!isRegularNonEmptySql(baselinePath)) {
-    blockers.push('complete Yudao baseline ruoyi-vue-pro.sql is missing or not a regular SQL file')
+    blockers.push(`complete Yudao baseline SQL is missing or not a regular SQL file: ${baselinePath}`)
   } else {
     const sql = await readTextIfExists(baselinePath)
     for (const snippet of [
@@ -297,7 +307,7 @@ async function checkFullYudaoBaseline(rootDir) {
     'full-yudao-baseline',
     blockers.length === 0,
     blockers.length === 0
-      ? 'Complete Yudao baseline SQL is present'
+      ? `Complete Yudao baseline SQL is present: ${baselinePath}`
       : blockers.join('; '),
     blockers
   )
@@ -591,6 +601,7 @@ export async function verifyXichengYudaoReleaseReadiness({
   env = process.env,
   rootDir = process.cwd(),
   stage = 'production',
+  yudaoBaselineSqlPath,
   poiManifestEvidencePath,
   poiSeedEvidencePath,
   maxEvidenceAgeHours = defaultMaxEvidenceAgeHours,
@@ -614,7 +625,7 @@ export async function verifyXichengYudaoReleaseReadiness({
     checkRealAiProvider(env),
     checkVisionOcrService(env),
     checkObjectStorage(env),
-    await checkFullYudaoBaseline(rootDir),
+    await checkFullYudaoBaseline(rootDir, yudaoBaselineSqlPath || env.YUDAO_BASELINE_SQL),
     await checkXichengProductionPoiEvidence({
       rootDir,
       poiManifestEvidencePath,
@@ -709,6 +720,7 @@ async function runCli() {
     env,
     rootDir,
     stage: readArgValue(args, '--stage') || process.env.XUNJING_RELEASE_STAGE || 'production',
+    yudaoBaselineSqlPath: readArgValue(args, '--yudao-baseline-sql') || env.YUDAO_BASELINE_SQL,
     poiManifestEvidencePath: readArgValue(args, '--poi-manifest-evidence') ||
       process.env.XICHENG_POI_MANIFEST_EVIDENCE,
     poiSeedEvidencePath: readArgValue(args, '--poi-seed-evidence') ||

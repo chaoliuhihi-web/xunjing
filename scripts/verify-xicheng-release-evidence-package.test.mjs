@@ -171,6 +171,7 @@ function seedEvidence(overrides = {}) {
     checks: [
       { name: 'sql-file', ok: true },
       { name: 'seed-shape', ok: true },
+      { name: 'seed-preconditions', ok: true },
       { name: 'poi-count', ok: true },
       { name: 'poi-approval', ok: true },
       { name: 'production-metrics', ok: true },
@@ -302,6 +303,7 @@ describe('xicheng release evidence package gate', () => {
     const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
     expect(evidence.status).toBe('NOT_READY')
     expect(evidence.blockers.join('\n')).toContain('manifest evidence must include poi-field-evidence')
+    expect(evidence.blockers.join('\n')).toContain('seed evidence must include seed-preconditions')
     expect(evidence.blockers.join('\n')).toContain('seed evidence must include field-evidence')
     expect(evidence.blockers.join('\n')).toContain('seed evidence must include source-license-evidence')
   })

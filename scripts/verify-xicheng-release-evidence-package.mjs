@@ -50,6 +50,7 @@ const requiredManifestEvidenceChecks = [
 const requiredSeedEvidenceChecks = [
   'sql-file',
   'seed-shape',
+  'seed-preconditions',
   'poi-count',
   'poi-approval',
   'production-metrics',

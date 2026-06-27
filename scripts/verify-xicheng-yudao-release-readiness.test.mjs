@@ -27,6 +27,7 @@ const requiredManifestEvidenceChecks = [
 const requiredSeedEvidenceChecks = [
   'sql-file',
   'seed-shape',
+  'seed-preconditions',
   'poi-count',
   'poi-approval',
   'production-metrics',
@@ -281,6 +282,39 @@ describe('xicheng Yudao release readiness gate', () => {
     ])
   })
 
+  test('accepts a verified external Yudao baseline SQL path without committing the baseline', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const repoBaselinePath = path.join(rootDir, 'backend/yudao/sql/mysql/ruoyi-vue-pro.sql')
+    const externalBaselinePath = path.join(rootDir, 'tmp/vendor-ruoyi-vue-pro.sql')
+    await rm(repoBaselinePath, { force: true })
+    await mkdir(path.dirname(externalBaselinePath), { recursive: true })
+    await writeFile(
+      externalBaselinePath,
+      [
+        'CREATE TABLE `system_users` (`id` bigint);',
+        'CREATE TABLE `system_tenant` (`id` bigint);',
+        'CREATE TABLE `system_menu` (`id` bigint);',
+        'CREATE TABLE `system_oauth2_client` (`id` bigint);',
+        'CREATE TABLE `infra_api_access_log` (`id` bigint);'
+      ].join('\n')
+    )
+    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      yudaoBaselineSqlPath: externalBaselinePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(true)
+    const baselineCheck = result.checks.find((check) => check.name === 'full-yudao-baseline')
+    expect(baselineCheck?.ok).toBe(true)
+    expect(baselineCheck?.detail).toContain(externalBaselinePath)
+  })
+
   test('fails closed when reviewed POI manifest and seed evidence are missing', async () => {
     const rootDir = await createProductionReadyFixture()
 
@@ -298,6 +332,28 @@ describe('xicheng Yudao release readiness gate', () => {
       'POI manifest evidence is required before production release',
       'POI seed SQL evidence is required before production release'
     ])
+  })
+
+  test('fails closed when seed evidence was generated before seed precondition guard existed', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir, {
+      seed: {
+        checks: passedChecks(requiredSeedEvidenceChecks.filter((name) => name !== 'seed-preconditions'))
+      }
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence must include seed-preconditions')
   })
 
   test('fails closed when production POI evidence is not ready', async () => {
@@ -497,6 +553,47 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(JSON.stringify(evidence)).not.toContain('replace-with-real-vision-key')
   })
 
+  test('CLI accepts an external Yudao baseline SQL path for production release evidence', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const repoBaselinePath = path.join(rootDir, 'backend/yudao/sql/mysql/ruoyi-vue-pro.sql')
+    const externalBaselinePath = path.join(rootDir, 'tmp/vendor-ruoyi-vue-pro.sql')
+    await rm(repoBaselinePath, { force: true })
+    await mkdir(path.dirname(externalBaselinePath), { recursive: true })
+    await writeFile(
+      externalBaselinePath,
+      [
+        'CREATE TABLE `system_users` (`id` bigint);',
+        'CREATE TABLE `system_tenant` (`id` bigint);',
+        'CREATE TABLE `system_menu` (`id` bigint);',
+        'CREATE TABLE `system_oauth2_client` (`id` bigint);',
+        'CREATE TABLE `infra_api_access_log` (`id` bigint);'
+      ].join('\n')
+    )
+    const envPath = await writeEnvFile(rootDir, productionEnv())
+    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const evidenceRelativePath = 'qa/xicheng-yudao-release-evidence.json'
+    const evidencePath = path.join(rootDir, evidenceRelativePath)
+
+    const result = spawnSync(process.execPath, [
+      path.resolve('scripts/verify-xicheng-yudao-release-readiness.mjs'),
+      '--root', rootDir,
+      '--stage', 'production',
+      '--env-file', envPath,
+      '--yudao-baseline-sql', externalBaselinePath,
+      '--poi-manifest-evidence', manifestEvidencePath,
+      '--poi-seed-evidence', seedEvidencePath,
+      '--evidence-file', evidenceRelativePath
+    ], {
+      cwd: process.cwd(),
+      encoding: 'utf8'
+    })
+
+    expect(result.status).toBe(0)
+    const evidence = JSON.parse(await readFile(evidencePath, 'utf8'))
+    expect(evidence.status).toBe('PRODUCTION_READY_CANDIDATE')
+    expect(evidence.checks.find((check) => check.name === 'full-yudao-baseline')?.detail).toContain(externalBaselinePath)
+  })
+
   test('rejects release evidence paths outside qa tmp or workbench', async () => {
     const rootDir = await createProductionReadyFixture()
     const envPath = await writeEnvFile(rootDir, productionEnv())
@@ -531,6 +628,8 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(deployDoc).toContain('SPRING_AI_VECTORSTORE_TYPE')
     expect(deployDoc).toContain('SPRING_AI_MODEL_EMBEDDING')
     expect(deployDoc).toContain('DASHSCOPE_EMBEDDING_ENABLED')
+    expect(deployDoc).toContain('--yudao-baseline-sql')
+    expect(deployDoc).toContain('YUDAO_BASELINE_SQL')
   })
 
   test('fails closed when production vector store or embedding runtime is disabled', async () => {
