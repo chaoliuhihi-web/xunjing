@@ -310,13 +310,13 @@ export default {
 			uni.setStorageSync(this.region.storageKey, result)
 			this.recentRecognition = result
 			uni.navigateTo({
-				url: `/pages/xicheng/scan-result/scan-result?source=${encodeURIComponent(source)}&poiCode=${encodeURIComponent(result.poiCode || '')}`
+				url: `/pages/xicheng/scan-result/scan-result?source=${encodeURIComponent(source)}&regionCode=${encodeURIComponent(result.regionCode || this.region.regionCode)}&packageCode=${encodeURIComponent(result.packageCode || this.region.packageCode)}&poiCode=${encodeURIComponent(result.poiCode || '')}&poiName=${encodeURIComponent(result.poiName || '')}&companionName=${encodeURIComponent(result.companionName || this.region.companionName)}`
 			})
 		},
 		openRecentRecognition() {
 			if (!this.recentRecognition) return
 			uni.navigateTo({
-				url: `/pages/xicheng/scan-result/scan-result?source=${encodeURIComponent(this.recentRecognition.source || '')}&poiCode=${encodeURIComponent(this.recentRecognition.poiCode || '')}`
+				url: `/pages/xicheng/scan-result/scan-result?source=${encodeURIComponent(this.recentRecognition.source || '')}&regionCode=${encodeURIComponent(this.recentRecognition.regionCode || this.region.regionCode)}&packageCode=${encodeURIComponent(this.recentRecognition.packageCode || this.region.packageCode)}&poiCode=${encodeURIComponent(this.recentRecognition.poiCode || '')}&poiName=${encodeURIComponent(this.recentRecognition.poiName || '')}&companionName=${encodeURIComponent(this.recentRecognition.companionName || this.region.companionName)}`
 			})
 		},
 		continueRecentRecognitionWithXiaojing() {
