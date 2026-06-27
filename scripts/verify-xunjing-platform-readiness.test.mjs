@@ -58,6 +58,15 @@ function assertXichengTriggerPayload(payload, expectedPoiCode) {
   expect(payload.imageLabels).toContain('planetarium')
 }
 
+async function readJsonBody(req) {
+  let body = ''
+  req.on('data', (chunk) => {
+    body += chunk
+  })
+  await once(req, 'end')
+  return JSON.parse(body)
+}
+
 async function startPlatformFixture() {
   const server = http.createServer(async (req, res) => {
     const requireTenant = () => {
@@ -91,6 +100,21 @@ async function startPlatformFixture() {
       return
     }
 
+    if (req.url === '/app-api/xunjing/resource/package?packageCode=XICHENG-MAP-001') {
+      if (!requireTenant()) return
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify({
+        code: 0,
+        data: {
+          packageCode: 'XICHENG-MAP-001',
+          title: '西城 AI 旅伴真实试运营地图',
+          mediaAssets: [{ id: 4101, title: '妙应寺白塔试运营图片' }],
+          sources: [{ title: '妙应寺白塔权威资料' }]
+        }
+      }))
+      return
+    }
+
     if (req.url === '/app-api/xunjing/public-report/summary?packageCode=KASHGAR-MAP-001') {
       if (!requireTenant()) return
       res.setHeader('Content-Type', 'application/json')
@@ -106,12 +130,22 @@ async function startPlatformFixture() {
 
     if (req.url === '/app-api/xunjing/scan/resolve' && req.method === 'POST') {
       if (!requireTenant()) return
-      let body = ''
-      req.on('data', (chunk) => {
-        body += chunk
-      })
-      await once(req, 'end')
-      const payload = JSON.parse(body)
+      const payload = await readJsonBody(req)
+      if (payload.sceneCode === 'QR-XICHENG-MAP-001') {
+        expect(payload.userTraceId).toBe('platform-readiness-xicheng-scan-check')
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({
+          code: 0,
+          data: {
+            packageCode: 'XICHENG-MAP-001',
+            sceneCode: 'QR-XICHENG-MAP-001',
+            title: '西城 AI 旅伴真实试运营地图',
+            resourceType: 'MAP',
+            targetPath: '/pages/map/detail?packageCode=XICHENG-MAP-001&sceneCode=QR-XICHENG-MAP-001'
+          }
+        }))
+        return
+      }
       if (payload.sceneCode !== 'QR-KASHGAR-MAP-001') {
         res.statusCode = 400
         res.setHeader('Content-Type', 'application/json')
@@ -134,12 +168,7 @@ async function startPlatformFixture() {
 
     if (req.url === '/app-api/xunjing/triggers/resolve' && req.method === 'POST') {
       if (!requireTenant()) return
-      let body = ''
-      req.on('data', (chunk) => {
-        body += chunk
-      })
-      await once(req, 'end')
-      const payload = JSON.parse(body)
+      const payload = await readJsonBody(req)
       const expectedPoiCode = payload.ocrText?.includes('妙应寺白塔')
         ? 'xicheng-baitasi'
         : payload.ocrText?.includes('恭王府')
@@ -170,12 +199,7 @@ async function startPlatformFixture() {
 
     if (req.url === '/app-api/xunjing/resource/events' && req.method === 'POST') {
       if (!requireTenant()) return
-      let body = ''
-      req.on('data', (chunk) => {
-        body += chunk
-      })
-      await once(req, 'end')
-      const payload = JSON.parse(body)
+      const payload = await readJsonBody(req)
       if (payload.eventType === 'MEDIA_USE') {
         const clientPayload = JSON.parse(payload.payloadJson)
         if (clientPayload.mediaId !== 3101 || clientPayload.usageType !== 'READINESS_CHECK') {
@@ -195,8 +219,37 @@ async function startPlatformFixture() {
 
     if (req.url === '/app-api/xunjing/ai/chat' && req.method === 'POST') {
       if (!requireTenant()) return
-      req.resume()
-      await once(req, 'end')
+      const payload = await readJsonBody(req)
+      if (payload.packageCode === 'XICHENG-MAP-001' && payload.poiCode === 'xicheng-baitasi') {
+        expect(payload.regionCode).toBe('beijing-xicheng')
+        expect(payload.poiName).toBe('妙应寺白塔')
+        expect(payload.sceneCode).toBe('xicheng-ai-guide')
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({
+          code: 0,
+          data: {
+            answer: '根据已审核资料《妙应寺白塔权威讲解稿》：妙应寺白塔是西城重要历史文化地标。',
+            sources: [{ title: '妙应寺白塔权威讲解稿', sourceUrl: 'https://www.bjxch.gov.cn/example/baitasi' }],
+            safetyStatus: 'PASSED',
+            logId: 2101
+          }
+        }))
+        return
+      }
+      if (payload.packageCode === 'XICHENG-MAP-001' && payload.poiCode === 'xicheng-source-guard-negative') {
+        expect(payload.regionCode).toBe('beijing-xicheng')
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({
+          code: 0,
+          data: {
+            answer: '没有找到已审核且可公开引用的资料来源，不能直接回答这个问题。',
+            sources: [],
+            safetyStatus: 'BLOCKED',
+            logId: 2102
+          }
+        }))
+        return
+      }
       res.setHeader('Content-Type', 'application/json')
       res.end(JSON.stringify({
         code: 0,
@@ -341,6 +394,22 @@ describe('xunjing platform readiness verifier', () => {
     expect(result.checks.map((check) => check.name)).toContain('live-xicheng-trigger-baitasi')
     expect(result.checks.map((check) => check.name)).toContain('live-xicheng-trigger-gongwangfu')
     expect(result.checks.map((check) => check.name)).toContain('live-xicheng-trigger-planetarium')
+  })
+
+  test('runs live Xicheng scan and AI source guard checks when requested', async () => {
+    const baseUrl = await startPlatformFixture()
+
+    const result = await verifyXunjingPlatformReadiness({
+      env: stagingEnv(),
+      baseUrl,
+      skipAdminCheck: true,
+      includeXichengAppCheck: true
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.checks.map((check) => check.name)).toContain('live-xicheng-scan-resolve')
+    expect(result.checks.map((check) => check.name)).toContain('live-xicheng-ai-chat-sourced')
+    expect(result.checks.map((check) => check.name)).toContain('live-xicheng-ai-chat-blocked')
   })
 
   test('rejects environment values that reuse the upstream XingheAI runtime', async () => {

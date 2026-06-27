@@ -364,6 +364,31 @@ async function checkLiveScanResolve(baseUrl, fetchImpl, tenantId) {
   return pass('live-scan-resolve', 'Kashgar QR scene resolves to the APP target path')
 }
 
+async function checkLiveXichengScanResolve(baseUrl, fetchImpl, tenantId) {
+  const json = await fetchJson(
+    new URL('/app-api/xunjing/scan/resolve', baseUrl),
+    {
+      method: 'POST',
+      headers: tenantHeaders(tenantId, { 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        sceneCode: 'QR-XICHENG-MAP-001',
+        userTraceId: 'platform-readiness-xicheng-scan-check'
+      })
+    },
+    fetchImpl
+  )
+  if (
+    json.code !== 0 ||
+    json.data?.packageCode !== 'XICHENG-MAP-001' ||
+    json.data?.sceneCode !== 'QR-XICHENG-MAP-001' ||
+    !String(json.data?.targetPath || '').includes('packageCode=XICHENG-MAP-001') ||
+    !String(json.data?.targetPath || '').includes('sceneCode=QR-XICHENG-MAP-001')
+  ) {
+    throw new Error('scan resolve endpoint did not return the Xicheng map target')
+  }
+  return pass('live-xicheng-scan-resolve', 'Xicheng QR scene resolves to the APP target path')
+}
+
 async function checkLiveXichengTrigger(baseUrl, fetchImpl, tenantId, smokeCase) {
   const json = await fetchJson(
     new URL('/app-api/xunjing/triggers/resolve', baseUrl),
@@ -389,6 +414,73 @@ async function checkLiveXichengTrigger(baseUrl, fetchImpl, tenantId, smokeCase) 
     throw new Error(`/app-api/xunjing/triggers/resolve did not return sources for ${smokeCase.poiCode}`)
   }
   return pass(smokeCase.name, smokeCase.detail)
+}
+
+async function checkLiveXichengAiChatSourced(baseUrl, fetchImpl, tenantId) {
+  const json = await fetchJson(
+    new URL('/app-api/xunjing/ai/chat', baseUrl),
+    {
+      method: 'POST',
+      headers: tenantHeaders(tenantId, { 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        packageCode: 'XICHENG-MAP-001',
+        sceneCode: 'xicheng-ai-guide',
+        regionCode: 'beijing-xicheng',
+        poiCode: 'xicheng-baitasi',
+        poiName: '妙应寺白塔',
+        question: '白塔寺为什么重要？',
+        userTraceId: 'platform-readiness-xicheng-ai-sourced'
+      })
+    },
+    fetchImpl
+  )
+  const passedSafetyStatuses = new Set(['PASS', 'PASSED'])
+  if (json.code !== 0 || !json.data?.answer || !passedSafetyStatuses.has(json.data?.safetyStatus)) {
+    throw new Error('/app-api/xunjing/ai/chat did not return a sourced Xicheng POI answer')
+  }
+  if (!Array.isArray(json.data.sources) || json.data.sources.length === 0) {
+    throw new Error('/app-api/xunjing/ai/chat did not return sources for Xicheng POI answer')
+  }
+  const sourceText = json.data.sources
+    .map((source) => `${source.title || ''}\n${source.contentDigest || ''}\n${source.sourceUrl || ''}`)
+    .join('\n')
+  if (!sourceText.includes('妙应寺白塔') && !sourceText.includes('xicheng-baitasi')) {
+    throw new Error('/app-api/xunjing/ai/chat returned sources that do not match xicheng-baitasi')
+  }
+  if (!json.data.logId) {
+    throw new Error('/app-api/xunjing/ai/chat did not return logId for Xicheng POI answer')
+  }
+  return pass('live-xicheng-ai-chat-sourced', 'Xicheng AI chat returns a safe answer with matching POI sources')
+}
+
+async function checkLiveXichengAiChatBlocked(baseUrl, fetchImpl, tenantId) {
+  const json = await fetchJson(
+    new URL('/app-api/xunjing/ai/chat', baseUrl),
+    {
+      method: 'POST',
+      headers: tenantHeaders(tenantId, { 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        packageCode: 'XICHENG-MAP-001',
+        sceneCode: 'xicheng-ai-guide',
+        regionCode: 'beijing-xicheng',
+        poiCode: 'xicheng-source-guard-negative',
+        poiName: '来源门禁测试点位',
+        question: '请讲讲这个测试点位。',
+        userTraceId: 'platform-readiness-xicheng-ai-blocked'
+      })
+    },
+    fetchImpl
+  )
+  if (
+    json.code !== 0 ||
+    json.data?.safetyStatus !== 'BLOCKED' ||
+    !json.data?.answer ||
+    (Array.isArray(json.data?.sources) && json.data.sources.length > 0) ||
+    !json.data?.logId
+  ) {
+    throw new Error('/app-api/xunjing/ai/chat did not block Xicheng POI answer without matching sources')
+  }
+  return pass('live-xicheng-ai-chat-blocked', 'Xicheng AI chat blocks when no matching POI source is available')
 }
 
 async function fetchLiveResourcePackageData(baseUrl, fetchImpl, tenantId) {
@@ -582,6 +674,7 @@ export async function verifyXunjingPlatformReadiness({
   env = process.env,
   baseUrl,
   includeAiCheck = false,
+  includeXichengAppCheck = false,
   includeXichengTriggerCheck = false,
   includeWriteCheck = false,
   skipAdminCheck = false,
@@ -610,6 +703,11 @@ export async function verifyXunjingPlatformReadiness({
     }
     checks.push(await checkLiveResourcePackage(baseUrl, fetchImpl, liveTenantId))
     checks.push(await checkLiveScanResolve(baseUrl, fetchImpl, liveTenantId))
+    if (includeXichengAppCheck) {
+      checks.push(await checkLiveXichengScanResolve(baseUrl, fetchImpl, liveTenantId))
+      checks.push(await checkLiveXichengAiChatSourced(baseUrl, fetchImpl, liveTenantId))
+      checks.push(await checkLiveXichengAiChatBlocked(baseUrl, fetchImpl, liveTenantId))
+    }
     if (includeXichengTriggerCheck) {
       for (const smokeCase of xichengTriggerSmokeCases) {
         checks.push(await checkLiveXichengTrigger(baseUrl, fetchImpl, liveTenantId, smokeCase))
@@ -659,6 +757,8 @@ async function runCli() {
     env,
     baseUrl: readArgValue(args, '--base-url') || process.env.XUNJING_BASE_URL || undefined,
     includeAiCheck: args.includes('--include-ai-check') || process.env.XUNJING_INCLUDE_AI_CHECK === '1',
+    includeXichengAppCheck: args.includes('--include-xicheng-app-check')
+      || process.env.XUNJING_INCLUDE_XICHENG_APP_CHECK === '1',
     includeXichengTriggerCheck: args.includes('--include-xicheng-trigger-check')
       || process.env.XUNJING_INCLUDE_XICHENG_TRIGGER_CHECK === '1',
     includeWriteCheck: args.includes('--include-write-check') || process.env.XUNJING_INCLUDE_WRITE_CHECK === '1',
