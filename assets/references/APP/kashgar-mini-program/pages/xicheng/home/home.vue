@@ -1,12 +1,23 @@
 <template>
 	<view class="xicheng-home">
 		<view class="hero">
-			<text class="eyebrow">{{ region.cityName }}</text>
-			<text class="title">小京 AI旅伴</text>
-			<text class="subtitle">拍照、OCR、定位识别后，直接进入讲解、路线和游记草稿。</text>
-			<view class="hero-actions">
-				<button class="primary-button" :disabled="recognizing" @click="startPhotoRecognition">拍照识别</button>
-				<button class="ghost-button" :disabled="recognizing" @click="askXiaojing">问问小京</button>
+			<view class="hero-main">
+				<view class="hero-copy">
+					<text class="eyebrow">{{ region.cityName }}</text>
+					<text class="title">小京 AI旅伴</text>
+					<text class="subtitle">拍照、OCR、定位识别后，直接进入讲解、路线和游记草稿。</text>
+					<view class="hero-actions">
+						<button class="primary-button" :disabled="recognizing" @click="startPhotoRecognition">拍照识别</button>
+						<button class="ghost-button" :disabled="recognizing" @click="askXiaojing">问问小京</button>
+					</view>
+				</view>
+				<view class="companion-visual">
+					<image class="xiaojing-avatar" :src="region.companionAvatar" mode="aspectFit" />
+					<view class="companion-bubble">
+						<text class="companion-name">{{ region.companionName }}</text>
+						<text class="companion-line">我陪你看懂西城</text>
+					</view>
+				</view>
 			</view>
 		</view>
 
@@ -369,6 +380,61 @@ export default {
 	border-radius: 8rpx;
 	background: #FFFFFF;
 	box-shadow: 0 12rpx 36rpx rgba(31, 41, 51, 0.08);
+}
+
+.hero-main {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 24rpx;
+}
+
+.hero-copy {
+	flex: 1;
+	min-width: 0;
+}
+
+.companion-visual {
+	width: 220rpx;
+	flex-shrink: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.xiaojing-avatar {
+	width: 208rpx;
+	height: 268rpx;
+	border-radius: 8rpx;
+	background: #EEF5F1;
+}
+
+.companion-bubble {
+	width: 100%;
+	margin-top: 14rpx;
+	padding: 14rpx 12rpx;
+	border-radius: 8rpx;
+	background: #F7F5EE;
+	box-sizing: border-box;
+}
+
+.companion-name,
+.companion-line {
+	display: block;
+	text-align: center;
+}
+
+.companion-name {
+	font-size: 24rpx;
+	font-weight: 700;
+	color: #1F6E5A;
+}
+
+.companion-line {
+	margin-top: 4rpx;
+	font-size: 22rpx;
+	line-height: 1.4;
+	color: #667085;
 }
 
 .eyebrow,

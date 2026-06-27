@@ -10,6 +10,7 @@ const XICHENG_REGION_BASE_CONFIG = {
 	sourceChannel: 'APP_UNIAPP',
 	tenantId: requestConfig.XunjingTenantId || '1',
 	companionName: '小京',
+	companionAvatar: '/static/xicheng/xiaojing-companion.png',
 	storageKey: 'xicheng:lastRecognitionResult',
 	materialsStorageKey: 'xicheng:journeyMaterials',
 	journeyStorageKey: 'xicheng:journeyDraft',
