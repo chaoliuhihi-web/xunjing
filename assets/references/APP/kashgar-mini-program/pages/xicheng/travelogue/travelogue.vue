@@ -240,6 +240,10 @@
 				</view>
 			</view>
 			<text class="section-desc">分享产物：{{ opsReport.shareAssetCount }}</text>
+			<text class="section-desc">路线完成：{{ opsReport.routeCompletionRate }}% · 分享数：{{ opsReport.shareCount }}</text>
+			<text class="section-desc">热门 POI：{{ opsReport.hotPoiLabel }}</text>
+			<text class="section-desc">误触发：{{ opsReport.misTriggerCount }}</text>
+			<text class="section-desc">优化建议：{{ opsReport.optimizationSuggestionText }}</text>
 			<text class="section-desc">上线后可替换为后端真实城市运营报告。</text>
 		</view>
 	</view>
@@ -335,15 +339,46 @@ export default {
 		badgeName() {
 			return `${this.routePassport.badgePrefix || '西城印章'} · Citywalk`
 		},
+		reportTemplateSections() {
+			return [
+				{ sectionKey: 'traffic', title: '访问与识别' },
+				{ sectionKey: 'route-completion', title: '路线完成' },
+				{ sectionKey: 'hot-pois', title: '热门 POI' },
+				{ sectionKey: 'content-works', title: '作品数' },
+				{ sectionKey: 'sharing', title: '分享数' },
+				{ sectionKey: 'mis-trigger', title: '误触发' },
+				{ sectionKey: 'optimization', title: '优化建议' }
+			]
+		},
+		misTriggerCount() {
+			return this.materials.filter(material => {
+				const confidence = material && material.triggerConfidence !== undefined
+					? Number(material.triggerConfidence)
+					: 0
+				return confidence > 0 && confidence < 0.6
+			}).length
+		},
 		opsReport() {
+			const hotPois = this.createHotPoiRanking()
+			const optimizationSuggestions = this.createOptimizationSuggestions()
 			return {
+				templateCode: 'xicheng-city-ops-report-v1',
+				templateSections: this.reportTemplateSections,
+				visitCount: this.materialCount + this.shareArtifacts.length,
 				recognitionCount: this.materialCount,
+				routeCompletionRate: this.passportProgress,
+				hotPois: this.createHotPoiRanking(),
 				sourceCount: this.sourceCount,
 				workCount: this.draft ? 1 : 0,
+				shareCount: this.shareArtifacts.length,
+				misTriggerCount: this.misTriggerCount,
+				optimizationSuggestions: this.createOptimizationSuggestions(),
 				reviewStatus: this.reviewText,
 				posterStatus: this.posterStatus,
 				pdfStatus: this.pdfStatus,
 				shareAssetCount: this.shareArtifacts.length,
+				hotPoiLabel: hotPois.length > 0 ? hotPois.map(poi => `${poi.poiName}(${poi.visitCount})`).join('、') : '暂无',
+				optimizationSuggestionText: optimizationSuggestions.join('；'),
 				routePointCount: this.routePointCount,
 				stayPointCount: this.stayPointCount,
 				photoMaterialCount: this.photoMaterialCount,
@@ -804,6 +839,37 @@ export default {
 					passportProgress: this.passportProgress
 				}
 			]
+		},
+		createHotPoiRanking() {
+			const ranking = this.materials.reduce((ranking, material) => {
+				const poiName = material && material.poiName ? material.poiName : ''
+				if (!poiName || ['现场照片', '现场备注'].includes(poiName)) return ranking
+				if (!ranking[poiName]) {
+					ranking[poiName] = {
+						poiCode: material.poiCode || '',
+						poiName,
+						visitCount: 0
+					}
+				}
+				ranking[poiName].visitCount += 1
+				return ranking
+			}, {})
+			return Object.values(ranking)
+				.sort((left, right) => right.visitCount - left.visitCount)
+				.slice(0, 5)
+		},
+		createOptimizationSuggestions() {
+			const suggestions = []
+			if (this.misTriggerCount > 0) {
+				suggestions.push('复核低置信识别素材，补充别名和触发关键词')
+			}
+			if (this.sourceCount === 0) {
+				suggestions.push('补充已审核讲解来源，提升小京回答可信度')
+			}
+			if (this.passportProgress < 100) {
+				suggestions.push('优化路线护照任务，引导完成更多打卡点')
+			}
+			return suggestions.length > 0 ? suggestions : ['继续观察路线完成、分享转化和热门 POI 分布']
 		},
 		persistShareArtifact(artifact) {
 			const existingArtifacts = uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey)
