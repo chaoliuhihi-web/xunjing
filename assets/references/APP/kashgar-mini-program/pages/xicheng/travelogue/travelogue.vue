@@ -122,6 +122,21 @@
 			<button class="ghost-button" @click="submitReview">作品审核</button>
 		</view>
 
+		<view v-if="shareArtifacts.length > 0" class="section-card">
+			<view class="section-head">
+				<text class="section-title">分享产物包</text>
+				<text class="section-badge">{{ shareArtifacts.length }} 个产物</text>
+			</view>
+			<view
+				v-for="artifact in shareArtifacts.slice(0, 3)"
+				:key="artifact.assetId"
+				class="material-row"
+			>
+				<text class="material-title">{{ artifact.title }}</text>
+				<text class="material-meta">{{ artifact.assetLabel }} · {{ formatArtifactTime(artifact.createdAt) }}</text>
+			</view>
+		</view>
+
 		<view v-if="reviewSubmission" class="section-card">
 			<view class="section-head">
 				<text class="section-title">审核提交记录</text>
@@ -164,6 +179,7 @@
 					<text class="report-label">作品数</text>
 				</view>
 			</view>
+			<text class="section-desc">分享产物：{{ opsReport.shareAssetCount }}</text>
 			<text class="section-desc">上线后可替换为后端真实城市运营报告。</text>
 		</view>
 	</view>
@@ -201,7 +217,8 @@ export default {
 			reviewText: XICHENG_REGION_CONFIG.reviewStatus.draft,
 			posterStatus: '未生成',
 			pdfStatus: '未生成',
-			reviewSubmission: null
+			reviewSubmission: null,
+			shareArtifacts: []
 		}
 	},
 	computed: {
@@ -233,7 +250,8 @@ export default {
 				workCount: this.draft ? 1 : 0,
 				reviewStatus: this.reviewText,
 				posterStatus: this.posterStatus,
-				pdfStatus: this.pdfStatus
+				pdfStatus: this.pdfStatus,
+				shareAssetCount: this.shareArtifacts.length
 			}
 		},
 		recognizedRoute() {
@@ -260,11 +278,13 @@ export default {
 			const storedMaterials = uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey)
 			const importedRoute = uni.getStorageSync(XICHENG_REGION_CONFIG.inspirationStorageKey)
 			const storedReviewSubmissions = uni.getStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey)
+			const storedShareAssets = uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey)
 			const materials = Array.isArray(storedMaterials) ? storedMaterials : []
 			this.importedRoute = importedRoute && importedRoute.stops ? importedRoute : null
 			this.reviewSubmission = Array.isArray(storedReviewSubmissions) && storedReviewSubmissions.length > 0
 				? storedReviewSubmissions[0]
 				: null
+			this.shareArtifacts = Array.isArray(storedShareAssets) ? storedShareAssets : []
 			const routePoiName = options.poiName ? decodeURIComponent(options.poiName) : ''
 			if (routePoiName && !materials.some(material => material && material.poiName === routePoiName)) {
 				materials.unshift({
@@ -299,6 +319,7 @@ export default {
 				materials: this.materials,
 				recognizedRoute: this.recognizedRoute,
 				reviewSubmission: this.reviewSubmission,
+				shareArtifacts: this.shareArtifacts,
 				reviewText: this.reviewText,
 				posterStatus: this.posterStatus,
 				pdfStatus: this.pdfStatus,
@@ -315,6 +336,8 @@ export default {
 		},
 		generatePoster() {
 			this.posterStatus = '分享海报已生成'
+			const posterAsset = this.createShareArtifact('poster')
+			this.persistShareArtifact(posterAsset)
 			this.saveDraft({ silent: true })
 			uni.showToast({
 				title: '分享海报已生成',
@@ -323,6 +346,8 @@ export default {
 		},
 		exportMemorialPdf() {
 			this.pdfStatus = 'PDF纪念册已生成'
+			const pdfAsset = this.createShareArtifact('pdf')
+			this.persistShareArtifact(pdfAsset)
 			this.saveDraft({ silent: true })
 			uni.showToast({
 				title: 'PDF纪念册已生成',
@@ -358,8 +383,45 @@ export default {
 				sourceCount: this.sourceCount,
 				workCount: this.draft ? 1 : 0,
 				posterStatus: this.posterStatus,
-				pdfStatus: this.pdfStatus
+				pdfStatus: this.pdfStatus,
+				shareArtifacts: this.shareArtifacts
 			}
+		},
+		createShareArtifact(assetType) {
+			const createdAt = new Date().toISOString()
+			const routeTitle = this.recognizedRoute && this.recognizedRoute.title
+				? this.recognizedRoute.title
+				: this.importedRoute && this.importedRoute.title ? this.importedRoute.title : '西城 Citywalk'
+			const assetLabel = assetType === 'pdf' ? 'PDF纪念册' : '分享海报'
+			const assetTitle = assetType === 'pdf' ? '西城 PDF纪念册' : '西城分享海报'
+			return {
+				assetId: `${assetType}-${Date.now()}`,
+				assetType,
+				assetLabel,
+				title: assetTitle,
+				regionCode: XICHENG_REGION_CONFIG.regionCode,
+				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				routeTitle,
+				draftExcerpt: String(this.draft || '').slice(0, 80),
+				materialCount: this.materialCount,
+				sourceCount: this.sourceCount,
+				badgeName: this.badgeName,
+				passportProgress: this.passportProgress,
+				posterStatus: this.posterStatus,
+				pdfStatus: this.pdfStatus,
+				createdAt
+			}
+		},
+		persistShareArtifact(artifact) {
+			const existingArtifacts = uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey)
+			this.shareArtifacts = [
+				artifact,
+				...(Array.isArray(existingArtifacts) ? existingArtifacts : [])
+			].slice(0, 20)
+			uni.setStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey, this.shareArtifacts)
+		},
+		formatArtifactTime(createdAt) {
+			return String(createdAt || '').slice(0, 10)
 		}
 	}
 }

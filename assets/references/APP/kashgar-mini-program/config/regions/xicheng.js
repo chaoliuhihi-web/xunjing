@@ -16,6 +16,7 @@ export const XICHENG_REGION_CONFIG = Object.freeze({
 	inspirationStorageKey: 'xicheng:inspirationRoute',
 	localOpsReportKey: 'xicheng:localOpsReport',
 	reviewStorageKey: 'xicheng:reviewSubmissions',
+	shareAssetStorageKey: 'xicheng:shareAssets',
 	reviewStatus: {
 		draft: '草稿',
 		pending: '待审核',
