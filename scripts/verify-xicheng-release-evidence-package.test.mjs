@@ -1156,6 +1156,37 @@ describe('xicheng release evidence package gate', () => {
     expect(evidence.blockers.join('\n')).toContain('app readiness evidence check live-xicheng-trigger-baitasi summary.targetPath must include packageCode=XICHENG-MAP-001')
   })
 
+  test('fails closed when APP AI readiness summaries lack POI names', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const workbookPath = path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json')
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appEvidence = appReadinessEvidence()
+    for (const check of appEvidence.checks.filter((item) => item.name.startsWith('live-xicheng-ai-chat-'))) {
+      delete check.summary.poiName
+    }
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appEvidence)
+    const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-workbook-evidence', workbookPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath,
+      '--evidence-file', 'tmp/xicheng-release-evidence-package.json'
+    ])
+
+    expect(result.status).toBe(1)
+    const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
+    expect(evidence.status).toBe('NOT_READY')
+    expect(evidence.blockers.join('\n')).toContain('app readiness evidence check live-xicheng-ai-chat-sourced summary.poiName must be 妙应寺白塔')
+    expect(evidence.blockers.join('\n')).toContain('app readiness evidence check live-xicheng-ai-chat-blocked summary.poiName must be 来源门禁测试点位')
+  })
+
   test('fails closed when package input evidence is missing checkedAt timestamp', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeReleaseEvidenceFile(rootDir)
@@ -1278,6 +1309,7 @@ describe('xicheng release evidence package gate', () => {
     expect(deployDoc).toContain('summary.includeXichengTriggerCheck=true')
     expect(deployDoc).toContain('check.summary.logId')
     expect(deployDoc).toContain('check.summary.sourceCount')
+    expect(deployDoc).toContain('check.summary.poiName')
     expect(deployDoc).toContain('check.summary.confidence')
     expect(deployDoc).toContain('check.summary.packageCode')
     expect(deployDoc).toContain('check.summary.targetPath')
