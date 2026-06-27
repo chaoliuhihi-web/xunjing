@@ -265,7 +265,10 @@ export default {
 				sourceType: ['camera', 'album'],
 				success: async (res) => {
 					const filePath = res.tempFilePaths && res.tempFilePaths[0] ? res.tempFilePaths[0] : ''
-					if (!filePath) return
+					if (!filePath) {
+						this.handleRecognitionUnavailable('photo')
+						return
+					}
 					this.recognizing = true
 					this.lastError = ''
 					try {
@@ -276,15 +279,20 @@ export default {
 					} finally {
 						this.recognizing = false
 					}
+				},
+				fail: () => {
+					this.handleRecognitionUnavailable('photo')
 				}
 			})
 		},
 		handleRecognitionUnavailable(source = 'scan') {
 			const message = source === 'gps'
 				? '无法获取当前位置，请开启定位权限后重试'
-				: source === 'ocr'
-					? '未获得可识别图片，请补充图片或粘贴展牌文字'
-					: '扫码未完成，请改用文本识别输入展牌或地点线索'
+				: source === 'photo'
+					? '未获得可识别照片，请重新拍照或从相册选择'
+					: source === 'ocr'
+						? '未获得可识别图片，请补充图片或粘贴展牌文字'
+						: '扫码未完成，请改用文本识别输入展牌或地点线索'
 			this.lastError = message
 			uni.showToast({
 				icon: 'none',

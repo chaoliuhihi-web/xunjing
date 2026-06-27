@@ -40,14 +40,26 @@ assert.match(
 
 assert.match(
   home,
+  /startPhotoRecognition\(\)[\s\S]*uni\.chooseImage\(\{[\s\S]*const filePath = res\.tempFilePaths[\s\S]*if\s*\(!filePath\)\s*\{[\s\S]*this\.handleRecognitionUnavailable\('photo'\)[\s\S]*return[\s\S]*resolveXichengPhotoTrigger\(\{ filePath \}\)/,
+  'Photo recognition should surface an unavailable state when camera or album returns no image file'
+)
+
+assert.match(
+  home,
+  /startPhotoRecognition\(\)[\s\S]*fail:\s*\(\)\s*=>\s*\{[\s\S]*this\.handleRecognitionUnavailable\('photo'\)/,
+  'Photo recognition should surface an unavailable state when the user cancels or camera permission fails'
+)
+
+assert.match(
+  home,
   /startGpsRecognition\(\)[\s\S]*const location = await requestCurrentLocationForTrigger\(\)[\s\S]*if\s*\(!location\)\s*\{[\s\S]*this\.handleRecognitionUnavailable\('gps'\)[\s\S]*return[\s\S]*resolveXichengTextTrigger\(\{[\s\S]*source:\s*'gps'[\s\S]*location/,
   'GPS recognition should stop with a user-facing unavailable state when location permission or location data is unavailable'
 )
 
 assert.match(
   home,
-  /handleRecognitionUnavailable\(source = 'scan'\)[\s\S]*source === 'gps'[\s\S]*无法获取当前位置/,
-  'Recognition unavailable copy should include a GPS-specific location permission message'
+  /handleRecognitionUnavailable\(source = 'scan'\)[\s\S]*source === 'gps'[\s\S]*无法获取当前位置[\s\S]*source === 'photo'[\s\S]*未获得可识别照片/,
+  'Recognition unavailable copy should include GPS and photo-specific permission messages'
 )
 
 assert.match(
