@@ -411,6 +411,14 @@ const createEmptyRecordingSession = () => ({
 	stayPoints: []
 })
 
+const decodeJourneyRouteValue = (value = '') => {
+	try {
+		return decodeURIComponent(String(value || ''))
+	} catch (error) {
+		return String(value || '')
+	}
+}
+
 export default {
 	data() {
 		return {
@@ -612,12 +620,12 @@ export default {
 					stayPoints: Array.isArray(storedRecordingSession.stayPoints) ? storedRecordingSession.stayPoints : []
 				}
 				: createEmptyRecordingSession()
-			const routePoiName = options.poiName ? decodeURIComponent(options.poiName) : ''
+			const routePoiName = decodeJourneyRouteValue(options.poiName)
 			if (routePoiName && !materials.some(material => material && material.poiName === routePoiName)) {
 				materials.unshift({
 					type: 'manual-entry',
 					regionCode: XICHENG_REGION_CONFIG.regionCode,
-					poiCode: options.poiCode ? decodeURIComponent(options.poiCode) : '',
+					poiCode: decodeJourneyRouteValue(options.poiCode),
 					poiName: routePoiName,
 					sourceLabel: '入口记录',
 					sources: [],
