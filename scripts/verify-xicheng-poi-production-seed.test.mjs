@@ -163,6 +163,7 @@ describe('xicheng POI production seed SQL gate', () => {
     expect(report.checks.map((check) => check.name)).toEqual([
       'sql-file',
       'seed-shape',
+      'seed-preconditions',
       'poi-count',
       'poi-approval',
       'production-metrics',
@@ -201,6 +202,7 @@ INSERT INTO \`xunjing_public_report\` (\`metrics_json\`) VALUES ('{"productionRe
     const evidence = JSON.parse(await readFile(evidencePath, 'utf8'))
     expect(evidence.status).toBe('NOT_READY')
     expect(evidence.blockers.join('\n')).toContain('80 production POI seed rows required; found 1/80')
+    expect(evidence.blockers.join('\n')).toContain('seed SQL must fail fast when XICHENG-MAP-001 package is missing')
     expect(evidence.blockers.join('\n')).toContain('seed SQL must not contain REVIEW_REQUIRED or DRAFT')
     expect(evidence.blockers.join('\n')).toContain('production metrics must include "productionReady":true')
     expect(evidence.blockers.join('\n')).toContain('seed SQL must include approved field evidence for each production POI')

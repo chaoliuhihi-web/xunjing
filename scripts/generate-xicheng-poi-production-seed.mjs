@@ -199,6 +199,24 @@ SET @school_id := (
   LIMIT 1
 );
 
+DROP PROCEDURE IF EXISTS \`xunjing_assert_xicheng_production_seed_ready\`;
+DELIMITER //
+CREATE PROCEDURE \`xunjing_assert_xicheng_production_seed_ready\`()
+BEGIN
+  IF @map_package_id IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'XICHENG-MAP-001 resource package is required before production POI seed';
+  END IF;
+  IF @project_id IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'XICHENG-MAP-001 project_id is required before production POI seed';
+  END IF;
+  IF @school_id IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'XICHENG-MAP-001 school_id is required before production POI seed';
+  END IF;
+END//
+DELIMITER ;
+CALL \`xunjing_assert_xicheng_production_seed_ready\`();
+DROP PROCEDURE IF EXISTS \`xunjing_assert_xicheng_production_seed_ready\`;
+
 DELETE FROM \`xunjing_knowledge_document\`
 WHERE \`tenant_id\` = @tenant_id
   AND \`package_id\` = @map_package_id

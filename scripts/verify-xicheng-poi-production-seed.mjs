@@ -104,6 +104,21 @@ function checkSeedShape(sql) {
   return check('seed-shape', blockers)
 }
 
+function checkSeedPreconditions(sql) {
+  const blockers = []
+  const requiredSnippets = [
+    'xunjing_assert_xicheng_production_seed_ready',
+    "SIGNAL SQLSTATE '45000'",
+    'XICHENG-MAP-001 resource package is required before production POI seed',
+    'CALL `xunjing_assert_xicheng_production_seed_ready`()'
+  ]
+  const missingGuard = requiredSnippets.some((snippet) => !sql.includes(snippet))
+  if (missingGuard) {
+    blockers.push('seed SQL must fail fast when XICHENG-MAP-001 package is missing')
+  }
+  return check('seed-preconditions', blockers)
+}
+
 function checkPoiCount(sql, minPoiCount) {
   const blockers = []
   const poiCodes = extractPoiCodes(sql)
@@ -209,6 +224,7 @@ export async function verifyXichengPoiProductionSeed({
   const checks = [
     checkSqlFile(sql),
     checkSeedShape(sql),
+    checkSeedPreconditions(sql),
     checkPoiCount(sql, normalizedMinPoiCount),
     checkPoiApproval(sql),
     checkProductionMetrics(sql, normalizedMinPoiCount),
