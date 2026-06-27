@@ -182,7 +182,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             return quotaBlocked;
         }
 
-        List<SourceRespVO> sources = searchPublicSources(resourcePackage.getId(), buildSourceSearchText(reqVO));
+        List<SourceRespVO> sources = searchPublicSources(resourcePackage, reqVO);
         if (sources.isEmpty()) {
             return buildNoSourceBlockedResponse(resourcePackage, qrCode, reqVO);
         }
@@ -372,19 +372,21 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         return resourcePackage;
     }
 
-    private List<SourceRespVO> searchPublicSources(Long packageId, String question) {
-        XunjingResourcePackageDO resourcePackage = resourcePackageMapper.selectById(packageId);
-        List<SourceRespVO> yudaoAiSources = searchYudaoAiKnowledgeSources(resourcePackage, question);
+    private List<SourceRespVO> searchPublicSources(XunjingResourcePackageDO resourcePackage, RagChatReqVO reqVO) {
+        String question = buildSourceSearchText(reqVO);
+        List<SourceRespVO> yudaoAiSources = filterSourcesByPoiContext(
+                searchYudaoAiKnowledgeSources(resourcePackage, question), reqVO);
         if (!yudaoAiSources.isEmpty()) {
             return yudaoAiSources;
         }
-        return knowledgeDocumentMapper.selectPublicListByPackageId(
-                        packageId, ReviewStatus.APPROVED.getStatus(), VectorStatus.INDEXED.getStatus())
+        List<SourceRespVO> knowledgeSources = knowledgeDocumentMapper.selectPublicListByPackageId(
+                        resourcePackage.getId(), ReviewStatus.APPROVED.getStatus(), VectorStatus.INDEXED.getStatus())
                 .stream()
                 .map(document -> toSource(document, question))
                 .sorted(Comparator.comparing(SourceRespVO::getScore).reversed())
                 .limit(TOP_K)
                 .toList();
+        return filterSourcesByPoiContext(knowledgeSources, reqVO);
     }
 
     private List<SourceRespVO> searchYudaoAiKnowledgeSources(XunjingResourcePackageDO resourcePackage, String question) {
@@ -427,6 +429,34 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         source.setContentDigest(segment.getContent());
         source.setScore(segment.getScore() == null ? 0.60D : segment.getScore());
         return source;
+    }
+
+    private List<SourceRespVO> filterSourcesByPoiContext(List<SourceRespVO> sources, RagChatReqVO reqVO) {
+        if (!hasPoiSourceConstraint(reqVO)) {
+            return sources;
+        }
+        return sources.stream()
+                .filter(source -> sourceMatchesPoiContext(source, reqVO))
+                .toList();
+    }
+
+    private boolean hasPoiSourceConstraint(RagChatReqVO reqVO) {
+        return hasText(reqVO.getPoiCode()) || hasText(reqVO.getPoiName());
+    }
+
+    private boolean sourceMatchesPoiContext(SourceRespVO source, RagChatReqVO reqVO) {
+        String sourceText = normalizeSearchText(defaultIfBlank(source.getTitle(), "")
+                + "\n" + defaultIfBlank(source.getContentDigest(), "")
+                + "\n" + defaultIfBlank(source.getSourceUrl(), ""));
+        if (hasText(reqVO.getPoiCode()) && sourceText.contains(normalizeSearchText(reqVO.getPoiCode()))) {
+            return true;
+        }
+        if (hasText(reqVO.getPoiName()) && sourceText.contains(normalizeSearchText(reqVO.getPoiName()))) {
+            return true;
+        }
+        return searchTokens(reqVO.getPoiName()).stream()
+                .map(this::normalizeSearchText)
+                .anyMatch(sourceText::contains);
     }
 
     private double score(XunjingKnowledgeDocumentDO document, String question) {

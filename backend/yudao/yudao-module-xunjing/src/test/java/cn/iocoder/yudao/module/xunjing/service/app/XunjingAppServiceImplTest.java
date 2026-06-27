@@ -561,6 +561,24 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testAnswerBlocksWhenReviewedSourcesDoNotMatchXichengPoiContext() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        consoleService.addKnowledgeDocument(xichengUnrelatedKnowledgeReq(packageId));
+
+        RagChatReqVO reqVO = xichengRagReq();
+        reqVO.setRegionCode("beijing-xicheng");
+        reqVO.setPoiCode("xicheng-baitasi");
+        reqVO.setPoiName("妙应寺白塔");
+        RagChatRespVO answer = appService.answer(reqVO);
+
+        assertEquals("BLOCKED", answer.getSafetyStatus());
+        assertTrue(answer.getAnswer().contains("没有找到已审核"));
+        assertTrue(answer.getSources().isEmpty());
+    }
+
+    @Test
     public void testAnswerUsesYudaoAiKnowledgeSegmentsWhenPackageBound() {
         Long projectId = consoleService.createProject(projectReq());
         Long schoolId = consoleService.createSchool(schoolReq());

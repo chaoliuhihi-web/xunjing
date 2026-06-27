@@ -28,6 +28,7 @@ describe('xicheng backend launch readiness', () => {
     expect(verifier).toContain('xunjing-seed-xicheng-p0.sql')
     expect(verifier).toContain('xicheng-seed-data')
     expect(verifier).toContain('xicheng-trigger-backend')
+    expect(verifier).toContain('xicheng-ai-source-guard-backend')
     expect(verifier).toContain('includeXichengTriggerCheck')
     expect(verifier).toContain('--include-xicheng-trigger-check')
     expect(verifier).toContain('live-xicheng-trigger-baitasi')
@@ -38,6 +39,7 @@ describe('xicheng backend launch readiness', () => {
     expect(triggerEngine).toContain('loadDatabasePoiProfiles')
     expect(triggerEngine).toContain('selectPublishedListByRegionCode')
     expect(appTest).toContain('testResolveMultimodalTriggerUsesPublishedPoiFromDatabase')
+    expect(appTest).toContain('testAnswerBlocksWhenReviewedSourcesDoNotMatchXichengPoiContext')
 
     for (const snippet of [
       'XICHENG-2026-P0',

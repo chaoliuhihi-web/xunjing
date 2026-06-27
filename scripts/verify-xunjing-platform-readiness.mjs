@@ -255,6 +255,35 @@ async function checkXichengTriggerBackend(rootDir) {
   return pass('xicheng-trigger-backend', 'Xicheng trigger resolution reads approved xunjing_poi rows with static fallback')
 }
 
+async function checkXichengAiSourceGuardBackend(rootDir) {
+  const appService = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java'
+  )
+  const appTest = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImplTest.java'
+  )
+  for (const snippet of [
+    'filterSourcesByPoiContext',
+    'hasPoiSourceConstraint',
+    'sourceMatchesPoiContext',
+    'buildNoSourceBlockedResponse',
+    'recordNoSourceBlockedAiGeneration'
+  ]) {
+    assertContains(appService, snippet, 'XunjingAppServiceImpl.java')
+  }
+  assertContains(
+    appTest,
+    'testAnswerBlocksWhenReviewedSourcesDoNotMatchXichengPoiContext',
+    'XunjingAppServiceImplTest.java'
+  )
+  return pass(
+    'xicheng-ai-source-guard-backend',
+    'Xicheng AI chat blocks when reviewed sources do not match the requested POI context'
+  )
+}
+
 async function checkAdminUiContract(rootDir) {
   const api = await readText(
     rootDir,
@@ -568,6 +597,7 @@ export async function verifyXunjingPlatformReadiness({
   checks.push(await checkSeedData(rootDir))
   checks.push(await checkXichengSeedData(rootDir))
   checks.push(await checkXichengTriggerBackend(rootDir))
+  checks.push(await checkXichengAiSourceGuardBackend(rootDir))
   checks.push(await checkAdminUiContract(rootDir))
   if (!staticOnly) {
     checks.push(checkEnvironment(env))
