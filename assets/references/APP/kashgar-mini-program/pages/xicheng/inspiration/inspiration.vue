@@ -18,7 +18,7 @@
 			</view>
 		</view>
 
-		<view class="input-card">
+		<view v-if="!extractedPlaces.length" class="input-card">
 			<textarea
 				v-model="inputText"
 				class="inspiration-input"
@@ -87,6 +87,11 @@ import {
 
 const DEFAULT_TEXT = '白塔寺、历代帝王庙、什刹海，想做一条适合亲子研学的西城 Citywalk。'
 
+const normalizeMatchedPoiForConfirmation = (poi = {}) => ({
+	...poi,
+	confirmed: poi.confirmed === false ? true : poi.confirmed !== false
+})
+
 export default {
 	data() {
 		return {
@@ -143,10 +148,7 @@ export default {
 				})
 				this.importResult = result
 				this.extractedPlaces = result.extractedPlaces || []
-				this.matchedPois = (result.matchedPois || []).map(poi => ({
-					...poi,
-					confirmed: poi.confirmed !== false
-				}))
+				this.matchedPois = (result.matchedPois || []).map(normalizeMatchedPoiForConfirmation)
 				if (!this.matchedPois.length) {
 					this.lastError = '暂未匹配到西城官方 POI，请补充白塔寺、历代帝王庙、什刹海等地点线索。'
 				}

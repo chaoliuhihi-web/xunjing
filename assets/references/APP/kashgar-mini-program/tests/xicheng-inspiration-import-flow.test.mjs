@@ -87,6 +87,23 @@ for (const required of [
   assert.ok(inspirationPage.includes(required), `Inspiration page should include ${required}`)
 }
 
+assert.ok(
+  inspirationPage.includes('normalizeMatchedPoiForConfirmation'),
+  'Inspiration page should normalize matched POIs before user confirmation'
+)
+
+assert.match(
+  inspirationPage,
+  /confirmed:\s*poi\.confirmed === false \? true : poi\.confirmed !== false/,
+  'Matched official POIs should be selected by default so route generation is not blocked before user toggles confirmation'
+)
+
+assert.match(
+  inspirationPage,
+  /<view\s+v-if="!extractedPlaces\.length"\s+class="input-card">/,
+  'Inspiration input card should collapse after extraction so POI confirmation and route generation are visible on mobile'
+)
+
 assert.match(
   inspirationPage,
   /matchedPois[\s\S]*poiCode[\s\S]*poiName[\s\S]*confidence[\s\S]*confirmed/,
