@@ -725,6 +725,7 @@ async function checkLiveXichengAiChatSourced(baseUrl, fetchImpl, tenantId) {
     regionCode: json.data.regionCode,
     poiCode: json.data.poiCode,
     poiName: json.data.poiName,
+    contextEcho: true,
     safetyStatus: json.data.safetyStatus,
     sourceCount: json.data.sources.length,
     logId: json.data.logId
@@ -769,6 +770,7 @@ async function checkLiveXichengAiChatBlocked(baseUrl, fetchImpl, tenantId) {
     regionCode: json.data.regionCode,
     poiCode: json.data.poiCode,
     poiName: json.data.poiName,
+    contextEcho: true,
     safetyStatus: json.data.safetyStatus,
     sourceCount: Array.isArray(json.data.sources) ? json.data.sources.length : 0,
     logId: json.data.logId

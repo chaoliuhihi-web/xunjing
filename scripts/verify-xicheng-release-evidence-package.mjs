@@ -274,6 +274,7 @@ function checkAppReadinessCheckSummaries(evidence) {
   checkSummaryEquals(sourcedSummary, 'packageCode', expectedXichengPackageCode, 'app readiness evidence check live-xicheng-ai-chat-sourced', blockers)
   checkSummaryEquals(sourcedSummary, 'poiCode', 'xicheng-baitasi', 'app readiness evidence check live-xicheng-ai-chat-sourced', blockers)
   checkSummaryEquals(sourcedSummary, 'poiName', '妙应寺白塔', 'app readiness evidence check live-xicheng-ai-chat-sourced', blockers)
+  checkSummaryEquals(sourcedSummary, 'contextEcho', true, 'app readiness evidence check live-xicheng-ai-chat-sourced', blockers)
   if (!['PASS', 'PASSED'].includes(String(sourcedSummary.safetyStatus || ''))) {
     blockers.push('app readiness evidence check live-xicheng-ai-chat-sourced summary.safetyStatus must be PASSED')
   }
@@ -286,6 +287,7 @@ function checkAppReadinessCheckSummaries(evidence) {
   checkSummaryEquals(blockedSummary, 'packageCode', expectedXichengPackageCode, 'app readiness evidence check live-xicheng-ai-chat-blocked', blockers)
   checkSummaryEquals(blockedSummary, 'poiCode', 'xicheng-source-guard-negative', 'app readiness evidence check live-xicheng-ai-chat-blocked', blockers)
   checkSummaryEquals(blockedSummary, 'poiName', '来源门禁测试点位', 'app readiness evidence check live-xicheng-ai-chat-blocked', blockers)
+  checkSummaryEquals(blockedSummary, 'contextEcho', true, 'app readiness evidence check live-xicheng-ai-chat-blocked', blockers)
   checkSummaryEquals(blockedSummary, 'safetyStatus', 'BLOCKED', 'app readiness evidence check live-xicheng-ai-chat-blocked', blockers)
   if (Number(blockedSummary.sourceCount) !== 0) {
     blockers.push('app readiness evidence check live-xicheng-ai-chat-blocked summary.sourceCount must be 0')

@@ -578,6 +578,7 @@ describe('xunjing platform readiness verifier', () => {
       regionCode: 'beijing-xicheng',
       poiCode: 'xicheng-baitasi',
       poiName: '妙应寺白塔',
+      contextEcho: true,
       safetyStatus: 'PASSED',
       sourceCount: 1,
       logId: 2101
@@ -589,6 +590,7 @@ describe('xunjing platform readiness verifier', () => {
       regionCode: 'beijing-xicheng',
       poiCode: 'xicheng-source-guard-negative',
       poiName: '来源门禁测试点位',
+      contextEcho: true,
       safetyStatus: 'BLOCKED',
       sourceCount: 0,
       logId: 2102
