@@ -329,6 +329,93 @@ export function buildPoiReviewChecklistCsv(manifest) {
   return `${[header.join(','), ...rows].join('\n')}\n`
 }
 
+function listCell(values) {
+  return Array.isArray(values) ? values.filter(hasText).join('|') : ''
+}
+
+export function buildPoiReviewWorkbookCsv(manifest) {
+  const header = [
+    'poiCode',
+    'name',
+    'displayName',
+    'aliases',
+    'category',
+    'priority',
+    'address',
+    'latitude',
+    'longitude',
+    'coordType',
+    'sourceTitle',
+    'sourceUrl',
+    'sourceType',
+    'licenseStatus',
+    'licenseEvidenceRef',
+    'licenseReviewedBy',
+    'licenseReviewedAt',
+    'gpsRadiusMeters',
+    'ocrKeywords',
+    'photoLabels',
+    'minConfidence',
+    'photoEvidenceStatus',
+    'triggerSmokeStatus',
+    'fieldEvidenceRefs',
+    'fieldVerifiedBy',
+    'fieldVerifiedAt',
+    'shortIntro',
+    'recommendedQuestions',
+    'reviewStatus',
+    'geoStatus',
+    'auditLicenseStatus',
+    'status',
+    'reviewedBy',
+    'reviewedAt'
+  ]
+  const rows = (Array.isArray(manifest.pois) ? manifest.pois : []).map((poi) => {
+    const source = poi.source || {}
+    const trigger = poi.trigger || {}
+    const fieldEvidence = poi.fieldEvidence || {}
+    const content = poi.content || {}
+    const audit = poi.audit || {}
+    return [
+      poi.poiCode,
+      poi.name,
+      poi.displayName,
+      listCell(poi.aliases),
+      poi.category,
+      poi.priority,
+      poi.address,
+      poi.latitude ?? '',
+      poi.longitude ?? '',
+      poi.coordType,
+      source.sourceTitle,
+      source.sourceUrl,
+      source.sourceType,
+      source.licenseStatus,
+      source.licenseEvidenceRef,
+      source.licenseReviewedBy,
+      source.licenseReviewedAt,
+      trigger.gpsRadiusMeters ?? '',
+      listCell(trigger.ocrKeywords),
+      listCell(trigger.photoLabels),
+      trigger.minConfidence ?? '',
+      fieldEvidence.photoEvidenceStatus,
+      fieldEvidence.triggerSmokeStatus,
+      listCell(fieldEvidence.evidenceRefs),
+      fieldEvidence.verifiedBy,
+      fieldEvidence.verifiedAt,
+      content.shortIntro,
+      listCell(content.recommendedQuestions),
+      audit.reviewStatus,
+      audit.geoStatus,
+      audit.licenseStatus,
+      audit.status,
+      audit.reviewedBy,
+      audit.reviewedAt
+    ].map(csvCell).join(',')
+  })
+  return `${[header.join(','), ...rows].join('\n')}\n`
+}
+
 function slotId(index) {
   return String(index + 1).padStart(3, '0')
 }
@@ -431,11 +518,15 @@ export async function writeXichengPoiProductionManifestTemplate({
   outputFile,
   count = defaultPoiSlotCount,
   seedSqlFile,
-  reviewChecklistFile
+  reviewChecklistFile,
+  reviewWorkbookFile
 } = {}) {
   const resolvedOutputFile = resolveOutputFile(rootDir, outputFile)
   const resolvedReviewChecklistFile = reviewChecklistFile
     ? resolveOutputFile(rootDir, reviewChecklistFile)
+    : undefined
+  const resolvedReviewWorkbookFile = reviewWorkbookFile
+    ? resolveOutputFile(rootDir, reviewWorkbookFile)
     : undefined
   const resolvedSeedSqlFile = seedSqlFile ? path.resolve(seedSqlFile) : undefined
   const seedPois = resolvedSeedSqlFile
@@ -452,6 +543,10 @@ export async function writeXichengPoiProductionManifestTemplate({
     await mkdir(path.dirname(resolvedReviewChecklistFile), { recursive: true })
     await writeFile(resolvedReviewChecklistFile, buildPoiReviewChecklistCsv(manifest))
   }
+  if (resolvedReviewWorkbookFile) {
+    await mkdir(path.dirname(resolvedReviewWorkbookFile), { recursive: true })
+    await writeFile(resolvedReviewWorkbookFile, buildPoiReviewWorkbookCsv(manifest))
+  }
   return {
     artifactType,
     ok: true,
@@ -463,6 +558,12 @@ export async function writeXichengPoiProductionManifestTemplate({
         ? {
             reviewChecklistFile: resolvedReviewChecklistFile,
             checklistRows: manifest.pois.length
+          }
+        : {}),
+      ...(resolvedReviewWorkbookFile
+        ? {
+            reviewWorkbookFile: resolvedReviewWorkbookFile,
+            workbookRows: manifest.pois.length
           }
         : {}),
       poiSlots: manifest.pois.length,
@@ -481,7 +582,8 @@ async function runCli() {
     outputFile: readArgValue(args, '--output'),
     count: readArgValue(args, '--count') || defaultPoiSlotCount,
     seedSqlFile: readArgValue(args, '--seed-sql'),
-    reviewChecklistFile: readArgValue(args, '--review-checklist')
+    reviewChecklistFile: readArgValue(args, '--review-checklist'),
+    reviewWorkbookFile: readArgValue(args, '--review-workbook')
   })
   console.log(JSON.stringify(report, null, 2))
 }

@@ -157,13 +157,15 @@ describe('xicheng POI production manifest template generator', () => {
     const rootDir = await createTempRoot()
     const outputFile = path.join(rootDir, 'workbench/xicheng-production-pois.prefilled.json')
     const checklistFile = path.join(rootDir, 'workbench/xicheng-production-pois.review-checklist.csv')
+    const workbookFile = path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv')
     const seedSql = path.resolve('backend/yudao/sql/mysql/xunjing-seed-xicheng-p0.sql')
 
     const result = runTemplateGenerator([
       '--root', rootDir,
       '--output', 'workbench/xicheng-production-pois.prefilled.json',
       '--seed-sql', seedSql,
-      '--review-checklist', 'workbench/xicheng-production-pois.review-checklist.csv'
+      '--review-checklist', 'workbench/xicheng-production-pois.review-checklist.csv',
+      '--review-workbook', 'workbench/xicheng-production-pois.review-workbook.csv'
     ])
 
     expect(result.status).toBe(0)
@@ -175,9 +177,11 @@ describe('xicheng POI production manifest template generator', () => {
       summary: {
         outputFile,
         reviewChecklistFile: checklistFile,
+        reviewWorkbookFile: workbookFile,
         poiSlots: 80,
         importedPoiCount: 24,
         checklistRows: 80,
+        workbookRows: 80,
         todoPoiSlots: 56,
         productionReady: false
       }
@@ -259,6 +263,51 @@ describe('xicheng POI production manifest template generator', () => {
     expect(checklistLines[25]).toContain('TODO-xicheng-poi-025')
     expect(checklistLines[25]).toContain('name')
     expect(checklistLines[25]).toContain('source.sourceUrl')
+
+    const workbook = await readFile(workbookFile, 'utf8')
+    const workbookLines = workbook.trim().split('\n')
+    expect(workbookLines).toHaveLength(81)
+    expect(workbookLines[0]).toBe([
+      'poiCode',
+      'name',
+      'displayName',
+      'aliases',
+      'category',
+      'priority',
+      'address',
+      'latitude',
+      'longitude',
+      'coordType',
+      'sourceTitle',
+      'sourceUrl',
+      'sourceType',
+      'licenseStatus',
+      'licenseEvidenceRef',
+      'licenseReviewedBy',
+      'licenseReviewedAt',
+      'gpsRadiusMeters',
+      'ocrKeywords',
+      'photoLabels',
+      'minConfidence',
+      'photoEvidenceStatus',
+      'triggerSmokeStatus',
+      'fieldEvidenceRefs',
+      'fieldVerifiedBy',
+      'fieldVerifiedAt',
+      'shortIntro',
+      'recommendedQuestions',
+      'reviewStatus',
+      'geoStatus',
+      'auditLicenseStatus',
+      'status',
+      'reviewedBy',
+      'reviewedAt'
+    ].join(','))
+    expect(workbookLines[1]).toContain('xicheng-baitasi')
+    expect(workbookLines[1]).toContain('妙应寺白塔')
+    expect(workbookLines[1]).toContain('妙应寺白塔|妙应寺|白塔寺')
+    expect(workbookLines[1]).toContain('REVIEW_REQUIRED')
+    expect(workbookLines[25]).toContain('TODO-xicheng-poi-025')
   })
 
   test('exposes the template generator through npm scripts and deployment docs', async () => {
@@ -273,9 +322,11 @@ describe('xicheng POI production manifest template generator', () => {
     expect(deployDoc).toContain('productionReady=false')
     expect(deployDoc).toContain('--seed-sql backend/yudao/sql/mysql/xunjing-seed-xicheng-p0.sql')
     expect(deployDoc).toContain('--review-checklist workbench/xicheng-production-pois.review-checklist.csv')
+    expect(deployDoc).toContain('--review-workbook workbench/xicheng-production-pois.review-workbook.csv')
     expect(statusDoc).toContain('npm run xunjing:xicheng:poi:manifest:template')
     expect(statusDoc).toContain('模板不会通过 production manifest gate')
     expect(statusDoc).toContain('--seed-sql backend/yudao/sql/mysql/xunjing-seed-xicheng-p0.sql')
     expect(statusDoc).toContain('--review-checklist workbench/xicheng-production-pois.review-checklist.csv')
+    expect(statusDoc).toContain('--review-workbook workbench/xicheng-production-pois.review-workbook.csv')
   })
 })
