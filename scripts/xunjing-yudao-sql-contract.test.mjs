@@ -98,8 +98,10 @@ describe('xunjing yudao sql contract', () => {
 
     expect(aiSql).not.toContain('sk-')
     expect(aiSql).not.toContain('AIza')
-    expect(compose).toContain('yudao-ai-module.sql:/opt/xunjing-sql/02-yudao-ai-module.sql:ro')
-    expect(initScript).toContain('/opt/xunjing-sql/02-yudao-ai-module.sql')
+    expect(compose).toContain('xunjing-yudao-runtime-minimal.sql:/opt/xunjing-sql/02-xunjing-yudao-runtime-minimal.sql:ro')
+    expect(compose).toContain('yudao-ai-module.sql:/opt/xunjing-sql/03-yudao-ai-module.sql:ro')
+    expect(initScript).toContain('/opt/xunjing-sql/02-xunjing-yudao-runtime-minimal.sql')
+    expect(initScript).toContain('/opt/xunjing-sql/03-yudao-ai-module.sql')
     expect(initScript).toContain("table_name in ('ai_api_key', 'ai_model', 'ai_knowledge')")
   })
 })

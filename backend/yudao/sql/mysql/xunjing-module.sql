@@ -405,6 +405,16 @@ CREATE TABLE IF NOT EXISTS `xunjing_ai_generation_log` (
   KEY `idx_xunjing_ai_log_scene` (`scene_code`, `tenant_id`, `create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='星河寻境AI调用成本日志';
 
+DROP PROCEDURE IF EXISTS `xunjing_install_system_menu`;
+DELIMITER $$
+CREATE PROCEDURE `xunjing_install_system_menu`()
+BEGIN
+IF EXISTS (
+  SELECT 1
+  FROM information_schema.tables
+  WHERE table_schema = DATABASE()
+    AND table_name = 'system_menu'
+) THEN
 INSERT INTO `system_menu` (`id`, `name`, `permission`, `type`, `sort`, `parent_id`, `path`, `icon`, `component`, `component_name`, `status`, `visible`, `keep_alive`, `always_show`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
 (880000, '星河寻境', '', 1, 60, 0, '/xunjing', 'ep:location', NULL, NULL, 0, b'1', b'1', b'1', 'admin', NOW(), 'admin', NOW(), b'0'),
 (880001, '星河寻境工作台', 'xunjing:resource-package:query', 2, 1, 880000, 'console', 'ep:map-location', 'xunjing/console/index', 'XunjingConsole', 0, b'1', b'1', b'1', 'admin', NOW(), 'admin', NOW(), b'0'),
@@ -462,5 +472,13 @@ ON DUPLICATE KEY UPDATE
   `updater` = 'admin',
   `update_time` = NOW(),
   `deleted` = b'0';
+ELSE
+  SELECT 'Skipping Xunjing admin menu install because system_menu table is missing' AS `xunjing_admin_menu_notice`;
+END IF;
+END$$
+DELIMITER ;
+
+CALL `xunjing_install_system_menu`();
+DROP PROCEDURE IF EXISTS `xunjing_install_system_menu`;
 
 SET FOREIGN_KEY_CHECKS = 1;

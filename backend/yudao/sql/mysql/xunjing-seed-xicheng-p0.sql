@@ -4,7 +4,7 @@
  This seed is for local/preflight APP integration. Coordinates and source licenses remain REVIEW_REQUIRED before production.
 */
 
-SET NAMES utf8mb4;
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 SET FOREIGN_KEY_CHECKS = 0;
 
 SET @tenant_id := 1;
@@ -69,7 +69,14 @@ SET @map_package_id := (
 DELETE FROM `xunjing_knowledge_document`
 WHERE `tenant_id` = @tenant_id
   AND `package_id` = @map_package_id
-  AND `source_url` IN (@xicheng_source_url, 'https://whlyj.beijing.gov.cn/', 'internal://xunjing/xicheng/p0-trigger-policy');
+  AND (
+    `source_url` COLLATE utf8mb4_unicode_ci IN (
+      @xicheng_source_url COLLATE utf8mb4_unicode_ci,
+      _utf8mb4'https://whlyj.beijing.gov.cn/' COLLATE utf8mb4_unicode_ci,
+      _utf8mb4'internal://xunjing/xicheng/p0-trigger-policy' COLLATE utf8mb4_unicode_ci
+    )
+    OR `source_url` COLLATE utf8mb4_unicode_ci LIKE CONCAT(@xicheng_source_url, _utf8mb4'#%') COLLATE utf8mb4_unicode_ci
+  );
 
 DELETE FROM `xunjing_poi`
 WHERE `tenant_id` = @tenant_id
@@ -122,6 +129,33 @@ VALUES
 (@map_package_id, 'xicheng-yinding-bridge', 'beijing-xicheng', '银锭桥', '银锭桥', '["银锭桥","银锭观山","后海银锭桥"]', 'bridge_landmark', 'P0', '北京市西城区什刹海前海与后海之间', 39.9409000, 116.3878000, 'GCJ02', JSON_OBJECT('geo','manual_prd_candidate','content','official_or_editorial','sourceUrl',@xicheng_source_url,'licenseStatus','REVIEW_REQUIRED'), '{"gpsRadiusMeters":160,"ocrKeywords":["银锭桥","银锭观山"],"photoLabels":["bridge","lake","waterfront"],"minConfidence":0.85}', '{"poiId":"xicheng-yinding-bridge","regionCode":"beijing-xicheng","packageCode":"XICHENG-MAP-001","reviewStatus":"APPROVED","geoStatus":"REVIEW_REQUIRED","licenseStatus":"REVIEW_REQUIRED","shortIntro":"什刹海水系和胡同漫游的重要地标。","recommendedQuestions":["银锭桥有什么故事？","这里适合怎么看什刹海？","下一站推荐哪里？"]}', 'APPROVED', 'REVIEW_REQUIRED', 'REVIEW_REQUIRED', 'PUBLISHED', 'admin', NOW(), 'admin', NOW(), b'0', @tenant_id),
 (@map_package_id, 'xicheng-niujie', 'beijing-xicheng', '牛街', '牛街', '["牛街","牛街片区","牛街美食"]', 'historic_food_street', 'P0', '北京市西城区牛街', 39.8831600, 116.3601000, 'GCJ02', JSON_OBJECT('geo','manual_prd_candidate','content','official_or_editorial','sourceUrl',@xicheng_source_url,'licenseStatus','REVIEW_REQUIRED'), '{"gpsRadiusMeters":420,"ocrKeywords":["牛街","牛街美食","牛街片区"],"photoLabels":["food_street","old_beijing","street"],"minConfidence":0.85}', '{"poiId":"xicheng-niujie","regionCode":"beijing-xicheng","packageCode":"XICHENG-MAP-001","reviewStatus":"APPROVED","geoStatus":"REVIEW_REQUIRED","licenseStatus":"REVIEW_REQUIRED","shortIntro":"适合观察北京多元饮食文化和街区生活的代表片区。","recommendedQuestions":["牛街适合吃什么？","这里如何讲饮食文化？","附近还能去哪？"]}', 'APPROVED', 'REVIEW_REQUIRED', 'REVIEW_REQUIRED', 'PUBLISHED', 'admin', NOW(), 'admin', NOW(), b'0', @tenant_id),
 (@map_package_id, 'xicheng-financial-street', 'beijing-xicheng', '金融街', '金融街', '["金融街","北京金融街","金城坊"]', 'urban_landmark', 'P0', '北京市西城区金融街片区', 39.9165000, 116.3604000, 'GCJ02', JSON_OBJECT('geo','manual_prd_candidate','content','official_or_editorial','sourceUrl',@xicheng_source_url,'licenseStatus','REVIEW_REQUIRED'), '{"gpsRadiusMeters":560,"ocrKeywords":["金融街","北京金融街","金城坊"],"photoLabels":["urban","office","modern_city"],"minConfidence":0.85}', '{"poiId":"xicheng-financial-street","regionCode":"beijing-xicheng","packageCode":"XICHENG-MAP-001","reviewStatus":"APPROVED","geoStatus":"REVIEW_REQUIRED","licenseStatus":"REVIEW_REQUIRED","shortIntro":"展示西城现代城市功能和金融产业空间的代表片区。","recommendedQuestions":["金融街适合怎么讲城市变化？","这里和老城有什么关系？","附近有哪些文化点？"]}', 'APPROVED', 'REVIEW_REQUIRED', 'REVIEW_REQUIRED', 'PUBLISHED', 'admin', NOW(), 'admin', NOW(), b'0', @tenant_id);
+
+INSERT INTO `xunjing_knowledge_document`
+(`package_id`, `title`, `source_type`, `source_url`, `content_digest`, `authority_level`, `review_status`, `vector_status`, `creator`, `create_time`, `updater`, `update_time`, `deleted`, `tenant_id`)
+SELECT
+  @map_package_id,
+  CONCAT(`name`, ' POI 级已审核来源'),
+  'OFFICIAL_PUBLIC',
+  CONCAT(@xicheng_source_url, '#', `poi_code`),
+  CONCAT(
+    'POI 级已审核来源：', `name`,
+    '（poiCode=', `poi_code`, '，regionCode=', `region_code`, '）。',
+    JSON_UNQUOTE(JSON_EXTRACT(`content_json`, '$.shortIntro')),
+    ' 触发关键词、坐标和别名来自西城 P0 本地候选 seed；生产发布前仍需完成来源授权、坐标复核和内容审核。'
+  ),
+  'OFFICIAL',
+  'APPROVED',
+  'INDEXED',
+  'admin',
+  NOW(),
+  'admin',
+  NOW(),
+  b'0',
+  @tenant_id
+FROM `xunjing_poi`
+WHERE `tenant_id` = @tenant_id
+  AND `package_id` = @map_package_id
+ORDER BY `poi_code`;
 
 SET @sort_order := 0;
 INSERT INTO `xunjing_map_point`

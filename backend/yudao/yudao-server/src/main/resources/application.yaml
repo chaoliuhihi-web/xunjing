@@ -158,8 +158,9 @@ spring:
       video: ${SPRING_AI_MODEL_VIDEO:none}
       rerank: false # 是否开启“通义千问”的 Rerank 模型，填写 dashscope 开启
     vectorstore: # 向量存储
+      type: ${SPRING_AI_VECTORSTORE_TYPE:qdrant}
       redis:
-        initialize-schema: true
+        initialize-schema: false
         index-name: knowledge_index # Redis 中向量索引的名称：用于存储和检索向量数据的索引标识符，所有相关的向量搜索操作都会基于这个索引进行
         prefix: "knowledge_segment:" # Redis 中存储向量数据的键名前缀：这个前缀会添加到每个存储在 Redis 中的向量数据键名前，每个 document 都是一个 hash 结构
       qdrant:
@@ -168,7 +169,7 @@ spring:
         host: ${QDRANT_HOST:127.0.0.1}
         port: ${QDRANT_GRPC_PORT:36334}
       milvus:
-        initialize-schema: true
+        initialize-schema: false
         database-name: default # Milvus 中数据库的名称
         collection-name: knowledge_segment # Milvus 中集合的名称：用于存储向量数据的集合标识符，所有相关的向量操作都会在这个集合中进行
         client:

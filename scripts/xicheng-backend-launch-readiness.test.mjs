@@ -118,6 +118,12 @@ describe('xicheng backend launch readiness', () => {
     }
     expect(seed).toContain('INSERT INTO `xunjing_poi`')
     expect(seed).toContain('INSERT INTO `xunjing_knowledge_document`')
+    expect(seed).toContain("CONCAT(`name`, ' POI 级已审核来源')")
+    expect(seed).toContain('xicheng-baitasi')
+    expect(seed).toContain('POI 级已审核来源')
+    expect(seed).toContain("JSON_UNQUOTE(JSON_EXTRACT(`content_json`, '$.shortIntro'))")
+    expect(seed).toContain("CONCAT(@xicheng_source_url, _utf8mb4'#%')")
     expect(seed).toContain('INSERT INTO `xunjing_ai_eval_case`')
+    expect(seed).toContain('@xicheng_source_url COLLATE utf8mb4_unicode_ci')
   })
 })
