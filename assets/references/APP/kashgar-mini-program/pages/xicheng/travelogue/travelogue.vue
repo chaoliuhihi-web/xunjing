@@ -410,8 +410,38 @@ const createEmptyRecordingSession = () => ({
 	pausedAt: '',
 	finishedAt: '',
 	trackPoints: [],
-	stayPoints: []
+	stayPoints: [],
+	filteredTrackPoints: []
 })
+
+const XICHENG_TRACK_POINT_QUALITY = Object.freeze({
+	maxPoiAttributionAccuracyMeters: 80,
+	abnormalJumpWindowSeconds: 5,
+	abnormalJumpDistanceMeters: 500
+})
+
+const normalizeTrackNumber = (value) => {
+	const numericValue = Number(value)
+	return Number.isFinite(numericValue) ? numericValue : null
+}
+
+const calculateTrackPointDistanceMeters = (left = {}, right = {}) => {
+	const leftLatitude = normalizeTrackNumber(left.latitude)
+	const leftLongitude = normalizeTrackNumber(left.longitude)
+	const rightLatitude = normalizeTrackNumber(right.latitude)
+	const rightLongitude = normalizeTrackNumber(right.longitude)
+	if (leftLatitude === null || leftLongitude === null || rightLatitude === null || rightLongitude === null) {
+		return null
+	}
+	const toRadians = degrees => degrees * Math.PI / 180
+	const earthRadiusMeters = 6371000
+	const deltaLatitude = toRadians(rightLatitude - leftLatitude)
+	const deltaLongitude = toRadians(rightLongitude - leftLongitude)
+	const a = Math.sin(deltaLatitude / 2) ** 2
+		+ Math.cos(toRadians(leftLatitude)) * Math.cos(toRadians(rightLatitude)) * Math.sin(deltaLongitude / 2) ** 2
+	const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+	return Math.round(earthRadiusMeters * c)
+}
 
 const decodeJourneyRouteValue = (value = '') => {
 	try {
@@ -687,7 +717,8 @@ export default {
 					...createEmptyRecordingSession(),
 					...storedRecordingSession,
 					trackPoints: storedRecordingSession.trackPoints,
-					stayPoints: Array.isArray(storedRecordingSession.stayPoints) ? storedRecordingSession.stayPoints : []
+					stayPoints: Array.isArray(storedRecordingSession.stayPoints) ? storedRecordingSession.stayPoints : [],
+					filteredTrackPoints: Array.isArray(storedRecordingSession.filteredTrackPoints) ? storedRecordingSession.filteredTrackPoints : []
 				}
 				: createEmptyRecordingSession()
 			const routeRegionCode = decodeJourneyRouteValue(options.regionCode) || XICHENG_REGION_CONFIG.regionCode
@@ -1042,7 +1073,9 @@ export default {
 			}
 		},
 		findNearestTrackPoint(capturedAt = '') {
-			const trackPoints = Array.isArray(this.recordingSession.trackPoints) ? this.recordingSession.trackPoints : []
+			const trackPoints = Array.isArray(this.recordingSession.trackPoints)
+				? this.recordingSession.trackPoints.filter(point => point && point.poiAttributionEligible !== false)
+				: []
 			const capturedTime = new Date(capturedAt).getTime()
 			if (!Number.isFinite(capturedTime) || trackPoints.length === 0) return null
 			const nearest = trackPoints.reduce((best, point) => {
@@ -1063,6 +1096,8 @@ export default {
 				longitude: nearest.point.longitude,
 				coordType: nearest.point.coordType || 'gcj02',
 				accuracyMeters: nearest.point.accuracyMeters || 0,
+				locationQuality: nearest.point.locationQuality || 'usable',
+				poiAttributionEligible: nearest.point.poiAttributionEligible !== false,
 				diffMs: nearest.diffMs
 			}
 		},
@@ -1076,6 +1111,8 @@ export default {
 				longitude: point.longitude,
 				coordType: point.coordType || 'gcj02',
 				accuracyMeters: point.accuracyMeters || 0,
+				locationQuality: point.locationQuality || 'usable',
+				poiAttributionEligible: point.poiAttributionEligible !== false,
 				diffMs: 0
 			}
 		},
@@ -1550,6 +1587,68 @@ export default {
 				}
 			})
 		},
+		getLastAcceptedTrackPoint() {
+			const trackPoints = Array.isArray(this.recordingSession.trackPoints) ? this.recordingSession.trackPoints : []
+			return trackPoints.length > 0 ? trackPoints[trackPoints.length - 1] : null
+		},
+		createTrackPointQuality(point = {}, previousPoint = null) {
+			const accuracyMeters = Number(point.accuracyMeters || 0)
+			if (normalizeTrackNumber(point.latitude) === null || normalizeTrackNumber(point.longitude) === null) {
+				return {
+					locationQuality: 'invalid_location',
+					poiAttributionEligible: false,
+					filteredReason: 'invalid_location',
+					distanceFromPreviousMeters: null,
+					secondsFromPrevious: null
+				}
+			}
+			const distanceFromPreviousMeters = previousPoint
+				? calculateTrackPointDistanceMeters(previousPoint, point)
+				: null
+			const secondsFromPrevious = previousPoint && (previousPoint.recordedAt || previousPoint.capturedAt)
+				? Math.round(Math.abs(new Date(point.recordedAt || point.capturedAt).getTime() - new Date(previousPoint.recordedAt || previousPoint.capturedAt).getTime()) / 1000)
+				: null
+			if (
+				secondsFromPrevious !== null
+				&& distanceFromPreviousMeters !== null
+				&& secondsFromPrevious <= XICHENG_TRACK_POINT_QUALITY.abnormalJumpWindowSeconds
+				&& distanceFromPreviousMeters >= XICHENG_TRACK_POINT_QUALITY.abnormalJumpDistanceMeters
+			) {
+				return {
+					locationQuality: 'abnormal_jump',
+					poiAttributionEligible: false,
+					filteredReason: 'abnormal_jump',
+					distanceFromPreviousMeters,
+					secondsFromPrevious
+				}
+			}
+			if (accuracyMeters > XICHENG_TRACK_POINT_QUALITY.maxPoiAttributionAccuracyMeters) {
+				return {
+					locationQuality: 'low_accuracy',
+					poiAttributionEligible: false,
+					filteredReason: '',
+					distanceFromPreviousMeters,
+					secondsFromPrevious
+				}
+			}
+			return {
+				locationQuality: 'usable',
+				poiAttributionEligible: true,
+				filteredReason: '',
+				distanceFromPreviousMeters,
+				secondsFromPrevious
+			}
+		},
+		persistFilteredTrackPoint(point) {
+			this.recordingSession = {
+				...this.recordingSession,
+				filteredTrackPoints: [
+					...(Array.isArray(this.recordingSession.filteredTrackPoints) ? this.recordingSession.filteredTrackPoints : []),
+					point
+				].slice(-50)
+			}
+			this.saveRecordingSession()
+		},
 		async captureTrackPoint(pointType = 'manual') {
 			if (this.recordingSession.status === 'idle' || this.recordingSession.status === 'finished') return
 			const location = await requestCurrentLocationForTrigger()
@@ -1565,6 +1664,22 @@ export default {
 				coordType: location && location.coordType ? location.coordType : 'gcj02',
 				accuracyMeters: location && location.accuracyMeters !== undefined ? Number(location.accuracyMeters) : 0
 			}
+			const quality = this.createTrackPointQuality(point, this.getLastAcceptedTrackPoint())
+			if (quality.filteredReason === 'abnormal_jump') {
+				this.persistFilteredTrackPoint({
+					...point,
+					...quality
+				})
+				return null
+			}
+			if (quality.filteredReason === 'invalid_location') {
+				this.persistFilteredTrackPoint({
+					...point,
+					...quality
+				})
+				return null
+			}
+			Object.assign(point, quality)
 			this.recordingSession = {
 				...this.recordingSession,
 				trackPoints: [
@@ -1590,11 +1705,26 @@ export default {
 				coordType: location && location.coordType ? location.coordType : 'gcj02',
 				accuracyMeters: location && location.accuracyMeters !== undefined ? Number(location.accuracyMeters) : 0
 			}
+			const quality = this.createTrackPointQuality(stayPoint, this.getLastAcceptedTrackPoint())
+			if (quality.filteredReason === 'abnormal_jump' || quality.filteredReason === 'invalid_location') {
+				this.persistFilteredTrackPoint({
+					...stayPoint,
+					...quality
+				})
+				uni.showToast({
+					title: '定位漂移较大，未标记停留点',
+					icon: 'none'
+				})
+				return
+			}
 			this.recordingSession = {
 				...this.recordingSession,
 				stayPoints: [
 					...(Array.isArray(this.recordingSession.stayPoints) ? this.recordingSession.stayPoints : []),
-					stayPoint
+					{
+						...stayPoint,
+						...quality
+					}
 				]
 			}
 			this.saveRecordingSession()
