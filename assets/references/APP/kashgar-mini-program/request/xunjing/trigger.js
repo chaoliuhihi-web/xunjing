@@ -204,4 +204,41 @@ export const resolveXichengPhotoTrigger = async ({
 	}
 }
 
+export const resolveXichengOcrImageTrigger = async ({
+	filePath = '',
+	text = '',
+	ocrText = '',
+	imageLabels = [],
+	allowDevelopmentFallback = isXichengDevelopmentFallbackAllowed()
+} = {}) => {
+	try {
+		const [location, imageInfo, imageBase64] = await Promise.all([
+			requestCurrentLocationForTrigger(),
+			requestImageInfoForTrigger(filePath),
+			readLocalImageBase64ForTrigger(filePath)
+		])
+		const labels = imageLabels.length > 0
+			? imageLabels
+			: inferImageLabelsFromLocalHints({ filePath, text, ocrText })
+		const result = await requestXichengTriggerResolve({
+			text: text || ocrText,
+			ocrText,
+			location,
+			photoMeta: buildPhotoMetaForTrigger({ filePath, location, imageInfo, imageBase64 }),
+			imageLabels: labels
+		})
+		return normalizeXichengTriggerResult(result, 'ocr')
+	} catch (error) {
+		if (!allowDevelopmentFallback) {
+			throw error
+		}
+		return createXichengDevelopmentTriggerFallback({
+			text,
+			ocrText,
+			source: 'ocr',
+			errorMessage: error && (error.errMsg || error.message) ? (error.errMsg || error.message) : ''
+		})
+	}
+}
+
 export { requestCurrentLocationForTrigger }

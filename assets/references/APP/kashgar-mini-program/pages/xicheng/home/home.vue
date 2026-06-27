@@ -112,6 +112,7 @@ import {
 } from '@/config/regions/xicheng.js'
 import {
 	requestCurrentLocationForTrigger,
+	resolveXichengOcrImageTrigger,
 	resolveXichengPhotoTrigger,
 	resolveXichengTextTrigger
 } from '@/request/xunjing/trigger.js'
@@ -173,20 +174,53 @@ export default {
 		},
 		startScanRecognition() {
 			if (!uni.scanCode) {
-				this.resolveTextAndOpenResult('白塔寺 西城文化点', 'scan')
+				this.handleRecognitionUnavailable('scan')
 				return
 			}
 			uni.scanCode({
 				success: (res) => {
-					this.resolveTextAndOpenResult(res.result || res.path || '', 'scan')
+					const scannedText = res.result || res.path || ''
+					if (!scannedText) {
+						this.handleRecognitionUnavailable('scan')
+						return
+					}
+					this.resolveTextAndOpenResult(scannedText, 'scan')
 				},
 				fail: () => {
-					this.resolveTextAndOpenResult('白塔寺 西城文化点', 'scan')
+					this.handleRecognitionUnavailable('scan')
 				}
 			})
 		},
 		startOcrRecognition() {
-			this.resolveTextAndOpenResult('白塔寺 文物说明牌 北京西城', 'ocr')
+			if (this.recognizing) return
+			uni.chooseImage({
+				count: 1,
+				sizeType: ['compressed'],
+				sourceType: ['camera', 'album'],
+				success: async (res) => {
+					const filePath = res.tempFilePaths && res.tempFilePaths[0] ? res.tempFilePaths[0] : ''
+					if (!filePath) {
+						this.handleRecognitionUnavailable('ocr')
+						return
+					}
+					this.recognizing = true
+					this.lastError = ''
+					try {
+						const trigger = await resolveXichengOcrImageTrigger({
+							filePath,
+							ocrText: this.textRecognitionInput.trim()
+						})
+						this.openScanResult(trigger, 'ocr')
+					} catch (error) {
+						this.lastError = error && (error.errMsg || error.message) ? (error.errMsg || error.message) : 'OCR识别失败'
+					} finally {
+						this.recognizing = false
+					}
+				},
+				fail: () => {
+					this.handleRecognitionUnavailable('ocr')
+				}
+			})
 		},
 		async startGpsRecognition() {
 			if (this.recognizing) return
@@ -239,6 +273,16 @@ export default {
 						this.recognizing = false
 					}
 				}
+			})
+		},
+		handleRecognitionUnavailable(source = 'scan') {
+			const message = source === 'ocr'
+				? '未获得可识别图片，请补充图片或粘贴展牌文字'
+				: '扫码未完成，请改用文本识别输入展牌或地点线索'
+			this.lastError = message
+			uni.showToast({
+				icon: 'none',
+				title: message
 			})
 		},
 		openScanResult(trigger = {}, source = '') {
