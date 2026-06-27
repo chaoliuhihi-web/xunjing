@@ -109,6 +109,10 @@ function appReadinessEvidence(overrides = {}) {
   return {
     ok: true,
     checkedAt: '2026-06-27T00:00:00.000Z',
+    summary: {
+      baseUrl: 'https://xunjing-api.xingheai.net',
+      tenantId: '1'
+    },
     checks: [
       { name: 'live-xicheng-scan-resolve', ok: true },
       { name: 'live-xicheng-error-feedback', ok: true },
@@ -222,6 +226,35 @@ describe('xicheng release evidence package gate', () => {
     expect(evidence.status).toBe('NOT_READY')
     expect(evidence.blockers.join('\n')).toContain('manifest evidence must include poi-field-evidence')
     expect(evidence.blockers.join('\n')).toContain('seed evidence must include field-evidence')
+  })
+
+  test('fails closed when production APP readiness evidence comes from a local HTTP server', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
+    const manifestPath = await writeJson(rootDir, 'qa/xicheng-poi-manifest-evidence.json', manifestEvidence())
+    const seedPath = await writeJson(rootDir, 'qa/xicheng-poi-production-seed-evidence.json', seedEvidence())
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence({
+      summary: {
+        baseUrl: 'http://127.0.0.1:48080',
+        tenantId: '1'
+      }
+    }))
+    const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath,
+      '--evidence-file', 'tmp/xicheng-release-evidence-package.json'
+    ])
+
+    expect(result.status).toBe(1)
+    const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
+    expect(evidence.status).toBe('NOT_READY')
+    expect(evidence.blockers.join('\n')).toContain('app readiness evidence baseUrl must be a non-local HTTPS URL for production')
   })
 
   test('fails closed for incomplete APP evidence or raw secret-like values', async () => {

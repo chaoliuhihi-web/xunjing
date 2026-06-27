@@ -910,6 +910,19 @@ export async function verifyXunjingPlatformReadiness({
   return {
     ok: checks.every((check) => check.ok),
     checkedAt: new Date().toISOString(),
+    summary: {
+      baseUrl,
+      tenantId: tenantId || env.XUNJING_TENANT_ID || undefined,
+      staticOnly,
+      skipAdminCheck,
+      includeAiCheck,
+      includeXichengAppCheck,
+      includeXichengTriggerCheck,
+      includeWriteCheck,
+      totalChecks: checks.length,
+      passedChecks: checks.filter((check) => check.ok).length,
+      failedChecks: checks.filter((check) => !check.ok).length
+    },
     checks
   }
 }

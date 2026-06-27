@@ -110,6 +110,24 @@ function blockersOf(evidence) {
   return Array.isArray(evidence?.blockers) ? evidence.blockers : []
 }
 
+function isLoopbackHostname(hostname) {
+  const normalized = String(hostname || '').trim().toLowerCase()
+  return normalized === 'localhost' ||
+    normalized === '127.0.0.1' ||
+    normalized === '::1' ||
+    normalized === '0.0.0.0' ||
+    normalized === 'host.docker.internal'
+}
+
+function isNonLocalHttpsUrl(value) {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' && !isLoopbackHostname(url.hostname)
+  } catch {
+    return false
+  }
+}
+
 function checkEvidenceChecks(evidence, requiredChecks, label) {
   const blockers = []
   const checks = Array.isArray(evidence?.checks) ? evidence.checks : []
@@ -230,15 +248,20 @@ function checkSeedEvidence(ref) {
   return check('poi-seed-evidence', blockers)
 }
 
-function checkAppReadinessEvidence(ref) {
+function checkAppReadinessEvidence(ref, stage) {
   const blockers = []
   if (ref.error) {
     blockers.push(ref.error)
     return check('app-readiness-evidence', blockers)
   }
   const evidence = ref.data || {}
+  const summary = summaryOf(evidence)
+  const baseUrl = summary.baseUrl || evidence.baseUrl
   if (evidence.ok !== true) {
     blockers.push('app readiness evidence ok must be true')
+  }
+  if (!isNonLocalHttpsUrl(baseUrl)) {
+    blockers.push(`app readiness evidence baseUrl must be a non-local HTTPS URL for ${stage}`)
   }
   blockers.push(...checkEvidenceChecks(evidence, requiredAppReadinessChecks, 'app readiness'))
   const failedChecks = Array.isArray(evidence.checks)
@@ -320,7 +343,7 @@ export async function verifyXichengReleaseEvidencePackage({
     checkReleaseEvidence(releaseRef, normalizedStage),
     checkManifestEvidence(manifestRef),
     checkSeedEvidence(seedRef),
-    checkAppReadinessEvidence(appRef),
+    checkAppReadinessEvidence(appRef, normalizedStage),
     checkSecretSafety(evidenceRefs)
   ]
   const blockers = checks.flatMap((item) => item.blockers)
