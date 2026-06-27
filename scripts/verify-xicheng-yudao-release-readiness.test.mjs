@@ -313,6 +313,10 @@ describe('xicheng Yudao release readiness gate', () => {
     const baselineCheck = result.checks.find((check) => check.name === 'full-yudao-baseline')
     expect(baselineCheck?.ok).toBe(true)
     expect(baselineCheck?.detail).toContain(externalBaselinePath)
+    expect(baselineCheck?.summary).toMatchObject({
+      yudaoBaselineSqlFile: externalBaselinePath,
+      yudaoBaselineSqlSha256: sha256(await readFile(externalBaselinePath, 'utf8'))
+    })
   })
 
   test('fails closed when reviewed POI manifest and seed evidence are missing', async () => {
@@ -591,6 +595,10 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(result.status).toBe(0)
     const evidence = JSON.parse(await readFile(evidencePath, 'utf8'))
     expect(evidence.status).toBe('PRODUCTION_READY_CANDIDATE')
+    expect(evidence.summary).toMatchObject({
+      yudaoBaselineSqlFile: externalBaselinePath,
+      yudaoBaselineSqlSha256: sha256(await readFile(externalBaselinePath, 'utf8'))
+    })
     expect(evidence.checks.find((check) => check.name === 'full-yudao-baseline')?.detail).toContain(externalBaselinePath)
   })
 

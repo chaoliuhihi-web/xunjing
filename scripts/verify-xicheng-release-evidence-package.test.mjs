@@ -70,6 +70,35 @@ async function writePoiSourceFiles(rootDir) {
   }
 }
 
+async function writeYudaoBaselineFile(rootDir) {
+  const baselineFile = path.join(rootDir, 'tmp/vendor-ruoyi-vue-pro.sql')
+  const baselineSource = [
+    'CREATE TABLE `system_users` (`id` bigint);',
+    'CREATE TABLE `system_tenant` (`id` bigint);',
+    'CREATE TABLE `system_menu` (`id` bigint);',
+    'CREATE TABLE `system_oauth2_client` (`id` bigint);',
+    'CREATE TABLE `infra_api_access_log` (`id` bigint);'
+  ].join('\n')
+  await mkdir(path.dirname(baselineFile), { recursive: true })
+  await writeFile(baselineFile, baselineSource)
+  return {
+    baselineFile,
+    baselineSha256: sha256(baselineSource)
+  }
+}
+
+async function writeReleaseEvidenceFile(rootDir, overrides = {}) {
+  const baseline = await writeYudaoBaselineFile(rootDir)
+  return writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence({
+    ...overrides,
+    summary: {
+      yudaoBaselineSqlFile: baseline.baselineFile,
+      yudaoBaselineSqlSha256: baseline.baselineSha256,
+      ...(overrides.summary || {})
+    }
+  }))
+}
+
 async function writeManifestEvidenceFile(rootDir, overrides = {}) {
   const sources = await writePoiSourceFiles(rootDir)
   return writeJson(rootDir, 'qa/xicheng-poi-manifest-evidence.json', manifestEvidence({
@@ -223,7 +252,7 @@ afterEach(async () => {
 describe('xicheng release evidence package gate', () => {
   test('accepts a complete production release evidence package and writes package evidence', async () => {
     const rootDir = await createTempRoot()
-    const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
     const manifestPath = await writeManifestEvidenceFile(rootDir)
     const seedPath = await writeSeedEvidenceFile(rootDir)
     const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
@@ -263,7 +292,7 @@ describe('xicheng release evidence package gate', () => {
 
   test('fails closed when POI evidence was generated before field evidence gates existed', async () => {
     const rootDir = await createTempRoot()
-    const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
     const manifestPath = await writeManifestEvidenceFile(rootDir, {
       checks: [
         { name: 'manifest-shape', ok: true },
@@ -310,7 +339,7 @@ describe('xicheng release evidence package gate', () => {
 
   test('fails closed when release evidence was generated before vector embedding gate existed', async () => {
     const rootDir = await createTempRoot()
-    const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence({
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
       summary: {
         totalChecks: 10,
         passedChecks: 10
@@ -327,7 +356,7 @@ describe('xicheng release evidence package gate', () => {
         { name: 'xicheng-production-poi', ok: true },
         { name: 'xicheng-source-license', ok: true }
       ]
-    }))
+    })
     const manifestPath = await writeManifestEvidenceFile(rootDir)
     const seedPath = await writeSeedEvidenceFile(rootDir)
     const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
@@ -347,9 +376,39 @@ describe('xicheng release evidence package gate', () => {
     expect(report.blockers.join('\n')).toContain('release evidence must include vector-embedding-runtime')
   })
 
+  test('fails closed when release evidence lacks Yudao baseline hash metadata', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
+      summary: {
+        yudaoBaselineSqlFile: undefined,
+        yudaoBaselineSqlSha256: undefined
+      }
+    })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+    const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath,
+      '--evidence-file', 'tmp/xicheng-release-evidence-package.json'
+    ])
+
+    expect(result.status).toBe(1)
+    const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
+    expect(evidence.status).toBe('NOT_READY')
+    expect(evidence.blockers.join('\n')).toContain('release evidence yudaoBaselineSqlSha256 must be a sha256 hex digest')
+    expect(evidence.blockers.join('\n')).toContain('release evidence yudaoBaselineSqlFile is required')
+  })
+
   test('fails closed when POI source hash metadata is missing from package inputs', async () => {
     const rootDir = await createTempRoot()
-    const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
     const manifestPath = await writeManifestEvidenceFile(rootDir)
     const seedPath = await writeSeedEvidenceFile(rootDir, {
       summary: {
@@ -377,7 +436,7 @@ describe('xicheng release evidence package gate', () => {
 
   test('fails closed when POI evidence source hash does not match package input source file', async () => {
     const rootDir = await createTempRoot()
-    const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
     const manifestPath = await writeManifestEvidenceFile(rootDir, {
       summary: {
         manifestSha256: '0'.repeat(64)
@@ -405,7 +464,7 @@ describe('xicheng release evidence package gate', () => {
 
   test('fails closed when production APP readiness evidence comes from a local HTTP server', async () => {
     const rootDir = await createTempRoot()
-    const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
     const manifestPath = await writeManifestEvidenceFile(rootDir)
     const seedPath = await writeSeedEvidenceFile(rootDir)
     const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence({
@@ -434,7 +493,7 @@ describe('xicheng release evidence package gate', () => {
 
   test('fails closed when APP readiness evidence lacks platform artifact type or tenant id', async () => {
     const rootDir = await createTempRoot()
-    const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
     const manifestPath = await writeManifestEvidenceFile(rootDir)
     const seedPath = await writeSeedEvidenceFile(rootDir)
     const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence({
@@ -464,7 +523,7 @@ describe('xicheng release evidence package gate', () => {
 
   test('fails closed when package input evidence is missing checkedAt timestamp', async () => {
     const rootDir = await createTempRoot()
-    const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
     const manifestPath = await writeManifestEvidenceFile(rootDir)
     const seedPath = await writeSeedEvidenceFile(rootDir, {
       checkedAt: undefined
@@ -490,7 +549,7 @@ describe('xicheng release evidence package gate', () => {
 
   test('fails closed when package input evidence is older than the allowed freshness window', async () => {
     const rootDir = await createTempRoot()
-    const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
     const manifestPath = await writeManifestEvidenceFile(rootDir, {
       checkedAt: staleCheckedAt()
     })
@@ -516,11 +575,11 @@ describe('xicheng release evidence package gate', () => {
 
   test('fails closed for incomplete APP evidence or raw secret-like values', async () => {
     const rootDir = await createTempRoot()
-    const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence({
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
       leakedConfig: {
         MYSQL_PASSWORD: 'prod-db-password'
       }
-    }))
+    })
     const manifestPath = await writeManifestEvidenceFile(rootDir)
     const seedPath = await writeSeedEvidenceFile(rootDir)
     const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence({
@@ -550,7 +609,7 @@ describe('xicheng release evidence package gate', () => {
 
   test('rejects package evidence output paths outside qa tmp or workbench', async () => {
     const rootDir = await createTempRoot()
-    const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
     const manifestPath = await writeManifestEvidenceFile(rootDir)
     const seedPath = await writeSeedEvidenceFile(rootDir)
     const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())

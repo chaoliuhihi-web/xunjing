@@ -287,10 +287,14 @@ function resolveBaselineSqlPath(rootDir, yudaoBaselineSqlPath) {
 async function checkFullYudaoBaseline(rootDir, yudaoBaselineSqlPath) {
   const baselinePath = resolveBaselineSqlPath(rootDir, yudaoBaselineSqlPath)
   const blockers = []
+  const summary = {
+    yudaoBaselineSqlFile: baselinePath
+  }
   if (!isRegularNonEmptySql(baselinePath)) {
     blockers.push(`complete Yudao baseline SQL is missing or not a regular SQL file: ${baselinePath}`)
   } else {
     const sql = await readTextIfExists(baselinePath)
+    summary.yudaoBaselineSqlSha256 = sha256(sql)
     for (const snippet of [
       'system_users',
       'system_tenant',
@@ -303,14 +307,17 @@ async function checkFullYudaoBaseline(rootDir, yudaoBaselineSqlPath) {
       }
     }
   }
-  return check(
-    'full-yudao-baseline',
-    blockers.length === 0,
-    blockers.length === 0
-      ? `Complete Yudao baseline SQL is present: ${baselinePath}`
-      : blockers.join('; '),
-    blockers
-  )
+  return {
+    ...check(
+      'full-yudao-baseline',
+      blockers.length === 0,
+      blockers.length === 0
+        ? `Complete Yudao baseline SQL is present: ${baselinePath}`
+        : blockers.join('; '),
+      blockers
+    ),
+    summary
+  }
 }
 
 async function loadEvidenceInput(rootDir, evidencePath) {
@@ -673,6 +680,7 @@ function resolveEvidenceFile(rootDir, evidenceFile) {
 }
 
 function buildReleaseEvidence(result) {
+  const baselineSummary = result.checks.find((item) => item.name === 'full-yudao-baseline')?.summary || {}
   return {
     artifactType: 'xicheng-yudao-release-readiness',
     summary: {
@@ -681,7 +689,8 @@ function buildReleaseEvidence(result) {
       totalChecks: result.checks.length,
       passedChecks: result.checks.filter((item) => item.ok).length,
       failedChecks: result.checks.filter((item) => !item.ok).length,
-      blockerCount: result.blockers.length
+      blockerCount: result.blockers.length,
+      ...baselineSummary
     },
     ...result
   }

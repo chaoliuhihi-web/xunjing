@@ -216,7 +216,37 @@ async function checkEvidenceSourceHash(rootDir, evidence, label, fileField, hash
   return blockers
 }
 
-function checkReleaseEvidence(ref, stage, freshnessOptions) {
+async function checkReleaseBaselineHash(evidence) {
+  const blockers = []
+  const summary = summaryOf(evidence)
+  const sourcePath = summary.yudaoBaselineSqlFile
+  const expectedSha256 = summary.yudaoBaselineSqlSha256
+
+  if (!/^[a-f0-9]{64}$/.test(String(expectedSha256 || ''))) {
+    blockers.push('release evidence yudaoBaselineSqlSha256 must be a sha256 hex digest')
+  }
+  if (!sourcePath || String(sourcePath).trim().length === 0) {
+    blockers.push('release evidence yudaoBaselineSqlFile is required')
+  }
+  if (blockers.length > 0) {
+    return blockers
+  }
+
+  const resolvedSource = path.isAbsolute(sourcePath)
+    ? path.resolve(sourcePath)
+    : path.resolve(process.cwd(), sourcePath)
+  try {
+    const sourceText = await readFile(resolvedSource, 'utf8')
+    if (sha256(sourceText) !== expectedSha256) {
+      blockers.push('release evidence yudaoBaselineSqlSha256 must match yudaoBaselineSqlFile content')
+    }
+  } catch (error) {
+    blockers.push(`release evidence yudaoBaselineSqlFile cannot be read: ${error.message}`)
+  }
+  return blockers
+}
+
+async function checkReleaseEvidence(ref, stage, freshnessOptions) {
   const blockers = []
   if (ref.error) {
     blockers.push(ref.error)
@@ -244,6 +274,7 @@ function checkReleaseEvidence(ref, stage, freshnessOptions) {
   if (Number(summary.failedChecks) !== 0 || Number(summary.blockerCount) !== 0) {
     blockers.push('release evidence summary must have zero failed checks and zero blockers')
   }
+  blockers.push(...await checkReleaseBaselineHash(evidence))
   blockers.push(...checkEvidenceChecks(evidence, requiredReleaseChecks, 'release'))
   if (blockersOf(evidence).length > 0) {
     blockers.push(`release evidence contains blockers: ${blockersOf(evidence).join('; ')}`)
@@ -432,7 +463,7 @@ export async function verifyXichengReleaseEvidencePackage({
     maxEvidenceAgeMs: maxEvidenceAgeHours * 60 * 60 * 1000
   }
   const checks = [
-    checkReleaseEvidence(releaseRef, normalizedStage, freshnessOptions),
+    await checkReleaseEvidence(releaseRef, normalizedStage, freshnessOptions),
     await checkManifestEvidence(manifestRef, rootDir, freshnessOptions),
     await checkSeedEvidence(seedRef, rootDir, freshnessOptions),
     checkAppReadinessEvidence(appRef, normalizedStage, freshnessOptions),
