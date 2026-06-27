@@ -316,6 +316,7 @@ function appReadinessEvidence(overrides = {}) {
         ok: true,
         summary: {
           endpoint: '/app-api/xunjing/scan/resolve',
+          tenantId: '1',
           packageCode: 'XICHENG-MAP-001',
           sceneCode: 'QR-XICHENG-MAP-001',
           targetPath: '/pages/map/detail?packageCode=XICHENG-MAP-001&sceneCode=QR-XICHENG-MAP-001'
@@ -326,6 +327,7 @@ function appReadinessEvidence(overrides = {}) {
         ok: true,
         summary: {
           endpoint: '/app-api/xunjing/resource/events',
+          tenantId: '1',
           packageCode: 'XICHENG-MAP-001',
           sceneCode: 'xicheng-ai-guide',
           eventType: 'ERROR_FEEDBACK',
@@ -371,6 +373,7 @@ function appReadinessEvidence(overrides = {}) {
         ok: true,
         summary: {
           endpoint: '/app-api/xunjing/triggers/resolve',
+          tenantId: '1',
           packageCode: 'XICHENG-MAP-001',
           regionCode: 'beijing-xicheng',
           poiCode: 'xicheng-baitasi',
@@ -386,6 +389,7 @@ function appReadinessEvidence(overrides = {}) {
         ok: true,
         summary: {
           endpoint: '/app-api/xunjing/triggers/resolve',
+          tenantId: '1',
           packageCode: 'XICHENG-MAP-001',
           regionCode: 'beijing-xicheng',
           poiCode: 'xicheng-gongwangfu',
@@ -401,6 +405,7 @@ function appReadinessEvidence(overrides = {}) {
         ok: true,
         summary: {
           endpoint: '/app-api/xunjing/triggers/resolve',
+          tenantId: '1',
           packageCode: 'XICHENG-MAP-001',
           regionCode: 'beijing-xicheng',
           poiCode: 'xicheng-planetarium',
@@ -1282,6 +1287,42 @@ describe('xicheng release evidence package gate', () => {
     expect(evidence.status).toBe('NOT_READY')
     expect(evidence.blockers.join('\n')).toContain('app readiness evidence check live-xicheng-ai-chat-sourced summary.tenantId must be 1')
     expect(evidence.blockers.join('\n')).toContain('app readiness evidence check live-xicheng-ai-chat-blocked summary.tenantId must be 1')
+  })
+
+  test('fails closed when APP route readiness summaries do not prove tenant context', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const workbookPath = path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json')
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appEvidence = appReadinessEvidence()
+    for (const check of appEvidence.checks.filter((item) => {
+      return item.name === 'live-xicheng-scan-resolve' ||
+        item.name === 'live-xicheng-error-feedback' ||
+        item.name.startsWith('live-xicheng-trigger-')
+    })) {
+      delete check.summary.tenantId
+    }
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appEvidence)
+    const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-workbook-evidence', workbookPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath,
+      '--evidence-file', 'tmp/xicheng-release-evidence-package.json'
+    ])
+
+    expect(result.status).toBe(1)
+    const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
+    expect(evidence.status).toBe('NOT_READY')
+    expect(evidence.blockers.join('\n')).toContain('app readiness evidence check live-xicheng-scan-resolve summary.tenantId must be 1')
+    expect(evidence.blockers.join('\n')).toContain('app readiness evidence check live-xicheng-error-feedback summary.tenantId must be 1')
+    expect(evidence.blockers.join('\n')).toContain('app readiness evidence check live-xicheng-trigger-baitasi summary.tenantId must be 1')
   })
 
   test('fails closed when package input evidence is missing checkedAt timestamp', async () => {

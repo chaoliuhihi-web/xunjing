@@ -589,6 +589,7 @@ async function checkLiveXichengScanResolve(baseUrl, fetchImpl, tenantId) {
   }
   return pass('live-xicheng-scan-resolve', 'Xicheng QR scene resolves to the APP target path', {
     endpoint: '/app-api/xunjing/scan/resolve',
+    tenantId: String(tenantId),
     packageCode: json.data.packageCode,
     sceneCode: json.data.sceneCode,
     targetPath: json.data.targetPath
@@ -622,6 +623,7 @@ async function checkLiveXichengErrorFeedback(baseUrl, fetchImpl, tenantId) {
   }
   return pass('live-xicheng-error-feedback', 'Xicheng APP error feedback event is accepted with package attribution', {
     endpoint: '/app-api/xunjing/resource/events',
+    tenantId: String(tenantId),
     packageCode: 'XICHENG-MAP-001',
     sceneCode: 'xicheng-ai-guide',
     eventType: 'ERROR_FEEDBACK',
@@ -657,6 +659,7 @@ async function checkLiveXichengTrigger(baseUrl, fetchImpl, tenantId, smokeCase) 
   }
   return pass(smokeCase.name, smokeCase.detail, {
     endpoint: '/app-api/xunjing/triggers/resolve',
+    tenantId: String(tenantId),
     packageCode: json.data.packageCode,
     regionCode: json.data.regionCode,
     poiCode: json.data.poiCode,

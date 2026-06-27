@@ -259,11 +259,17 @@ function checkAppReadinessCheckSummaries(evidence, expectedTenantId) {
 
   const scanSummary = summaryOfCheck('live-xicheng-scan-resolve')
   checkSummaryEquals(scanSummary, 'endpoint', '/app-api/xunjing/scan/resolve', 'app readiness evidence check live-xicheng-scan-resolve', blockers)
+  if (hasText(expectedTenantId)) {
+    checkSummaryEquals(scanSummary, 'tenantId', expectedTenantId, 'app readiness evidence check live-xicheng-scan-resolve', blockers)
+  }
   checkSummaryEquals(scanSummary, 'packageCode', expectedXichengPackageCode, 'app readiness evidence check live-xicheng-scan-resolve', blockers)
   checkSummaryEquals(scanSummary, 'sceneCode', 'QR-XICHENG-MAP-001', 'app readiness evidence check live-xicheng-scan-resolve', blockers)
 
   const errorSummary = summaryOfCheck('live-xicheng-error-feedback')
   checkSummaryEquals(errorSummary, 'endpoint', '/app-api/xunjing/resource/events', 'app readiness evidence check live-xicheng-error-feedback', blockers)
+  if (hasText(expectedTenantId)) {
+    checkSummaryEquals(errorSummary, 'tenantId', expectedTenantId, 'app readiness evidence check live-xicheng-error-feedback', blockers)
+  }
   checkSummaryEquals(errorSummary, 'packageCode', expectedXichengPackageCode, 'app readiness evidence check live-xicheng-error-feedback', blockers)
   checkSummaryEquals(errorSummary, 'eventType', 'ERROR_FEEDBACK', 'app readiness evidence check live-xicheng-error-feedback', blockers)
   checkSummaryPositiveNumber(errorSummary, 'eventId', 'app readiness evidence check live-xicheng-error-feedback', blockers)
@@ -309,6 +315,9 @@ function checkAppReadinessCheckSummaries(evidence, expectedTenantId) {
   ]) {
     const triggerSummary = summaryOfCheck(name)
     checkSummaryEquals(triggerSummary, 'endpoint', '/app-api/xunjing/triggers/resolve', `app readiness evidence check ${name}`, blockers)
+    if (hasText(expectedTenantId)) {
+      checkSummaryEquals(triggerSummary, 'tenantId', expectedTenantId, `app readiness evidence check ${name}`, blockers)
+    }
     checkSummaryEquals(triggerSummary, 'packageCode', expectedXichengPackageCode, `app readiness evidence check ${name}`, blockers)
     checkSummaryEquals(triggerSummary, 'regionCode', expectedXichengRegionCode, `app readiness evidence check ${name}`, blockers)
     checkSummaryEquals(triggerSummary, 'poiCode', poiCode, `app readiness evidence check ${name}`, blockers)

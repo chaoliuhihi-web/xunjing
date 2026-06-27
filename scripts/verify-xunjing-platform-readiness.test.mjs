@@ -518,6 +518,7 @@ describe('xunjing platform readiness verifier', () => {
     })
     expect(checkByName(result, 'live-xicheng-trigger-baitasi')?.summary).toMatchObject({
       endpoint: '/app-api/xunjing/triggers/resolve',
+      tenantId: '1',
       packageCode: 'XICHENG-MAP-001',
       regionCode: 'beijing-xicheng',
       poiCode: 'xicheng-baitasi',
@@ -529,6 +530,7 @@ describe('xunjing platform readiness verifier', () => {
     expect(checkByName(result, 'live-xicheng-trigger-baitasi')?.summary.confidence).toBeGreaterThanOrEqual(0.85)
     expect(checkByName(result, 'live-xicheng-trigger-gongwangfu')?.summary).toMatchObject({
       endpoint: '/app-api/xunjing/triggers/resolve',
+      tenantId: '1',
       packageCode: 'XICHENG-MAP-001',
       poiCode: 'xicheng-gongwangfu',
       poiName: '恭王府',
@@ -537,6 +539,7 @@ describe('xunjing platform readiness verifier', () => {
     })
     expect(checkByName(result, 'live-xicheng-trigger-planetarium')?.summary).toMatchObject({
       endpoint: '/app-api/xunjing/triggers/resolve',
+      tenantId: '1',
       packageCode: 'XICHENG-MAP-001',
       poiCode: 'xicheng-planetarium',
       poiName: '北京天文馆',
@@ -562,11 +565,13 @@ describe('xunjing platform readiness verifier', () => {
     })
     expect(checkByName(result, 'live-xicheng-scan-resolve')?.summary).toMatchObject({
       endpoint: '/app-api/xunjing/scan/resolve',
+      tenantId: '1',
       packageCode: 'XICHENG-MAP-001',
       sceneCode: 'QR-XICHENG-MAP-001'
     })
     expect(checkByName(result, 'live-xicheng-error-feedback')?.summary).toMatchObject({
       endpoint: '/app-api/xunjing/resource/events',
+      tenantId: '1',
       packageCode: 'XICHENG-MAP-001',
       eventType: 'ERROR_FEEDBACK',
       eventId: 2001
