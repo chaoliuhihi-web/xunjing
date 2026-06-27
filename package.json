@@ -16,6 +16,7 @@
     "xunjing:platform:verify": "node scripts/verify-xunjing-platform-readiness.mjs",
     "xunjing:platform:verify:static": "node scripts/verify-xunjing-platform-readiness.mjs --static",
     "xunjing:yudao:release:gate": "node scripts/verify-xicheng-yudao-release-readiness.mjs",
+    "xunjing:xicheng:poi:review:pack": "node scripts/create-xicheng-poi-production-review-pack.mjs",
     "xunjing:xicheng:poi:manifest:template": "node scripts/create-xicheng-poi-production-manifest-template.mjs",
     "xunjing:xicheng:poi:workbook:gate": "node scripts/verify-xicheng-poi-review-workbook.mjs",
     "xunjing:xicheng:poi:manifest:from-workbook": "node scripts/build-xicheng-poi-production-manifest-from-workbook.mjs",
