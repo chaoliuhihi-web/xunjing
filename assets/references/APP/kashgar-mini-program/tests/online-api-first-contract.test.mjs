@@ -74,16 +74,17 @@ for (const required of [
   "apiPath: 'app-api/xunjing/resource/package'",
   "apiPath: 'app-api/xunjing/resource/events'",
   'buildYudaoAppApiUrl(XUNJING_AI_CONFIG.apiPath)',
-  'buildYudaoAppApiUrl(XUNJING_RESOURCE_CONFIG.apiPath)',
-  'buildYudaoAppApiUrl(XUNJING_EVENT_CONFIG.apiPath)',
+  'buildYudaoAppApiUrl(resourceConfig.apiPath)',
+  'buildYudaoAppApiUrl(eventConfig.apiPath)',
   "'tenant-id': XUNJING_AI_CONFIG.tenantId",
-  "'tenant-id': XUNJING_RESOURCE_CONFIG.tenantId",
-  "'tenant-id': XUNJING_EVENT_CONFIG.tenantId",
+  "'tenant-id': resourceConfig.tenantId",
+  "'tenant-id': eventConfig.tenantId",
   'packageCode: XUNJING_AI_CONFIG.packageCode',
-  'packageCode: XUNJING_RESOURCE_CONFIG.packageCode',
-  'packageCode: XUNJING_EVENT_CONFIG.packageCode',
+  'packageCode: resourceConfig.packageCode',
+  'packageCode: eventConfig.packageCode',
   "sceneCode: XUNJING_AI_CONFIG.sceneCode",
   "sourceChannel: XUNJING_AI_CONFIG.sourceChannel",
+  'sourceChannel: eventConfig.sourceChannel',
   'question'
 ]) {
   assert.ok(aiGuidePage.includes(required), `AI guide should call the Yudao APP AI proxy: ${required}`)

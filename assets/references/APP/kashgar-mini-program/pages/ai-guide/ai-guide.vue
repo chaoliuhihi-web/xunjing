@@ -709,6 +709,35 @@ const getXichengContextSources = () => {
 	return Array.isArray(context.sources) ? context.sources : []
 }
 
+const getActiveXunjingResourceConfig = (context = xichengAiContext.value) => {
+	if (hasXichengAiContext(context)) {
+		return {
+			...XUNJING_RESOURCE_CONFIG,
+			packageCode: context.packageCode || XICHENG_REGION_CONFIG.packageCode,
+			tenantId: XICHENG_REGION_CONFIG.tenantId,
+			sourceChannel: XICHENG_REGION_CONFIG.sourceChannel
+		}
+	}
+	return XUNJING_RESOURCE_CONFIG
+}
+
+const getActiveXunjingEventConfig = (context = xichengAiContext.value) => {
+	if (hasXichengAiContext(context)) {
+		return {
+			...XUNJING_EVENT_CONFIG,
+			packageCode: context.packageCode || XICHENG_REGION_CONFIG.packageCode,
+			tenantId: XICHENG_REGION_CONFIG.tenantId,
+			sourceChannel: XICHENG_REGION_CONFIG.sourceChannel
+		}
+	}
+	return XUNJING_EVENT_CONFIG
+}
+
+const getXunjingPackageDetailScope = (context = xichengAiContext.value) => {
+	const resourceConfig = getActiveXunjingResourceConfig(context)
+	return `${resourceConfig.tenantId}:${resourceConfig.packageCode}`
+}
+
 const buildXichengContextQuestion = (question = '', context = xichengAiContext.value) => {
 	if (!hasXichengAiContext(context)) {
 		return question
@@ -732,16 +761,17 @@ const getYudaoCommonResultPayload = (res) => {
 	return body && body.data && typeof body.data === 'object' ? body.data : body
 }
 
-const requestXunjingPackageDetail = () => {
+const requestXunjingPackageDetail = (context = xichengAiContext.value) => {
+	const resourceConfig = getActiveXunjingResourceConfig(context)
 	return new Promise((resolve, reject) => {
 		uni.request({
-			url: buildYudaoAppApiUrl(XUNJING_RESOURCE_CONFIG.apiPath),
+			url: buildYudaoAppApiUrl(resourceConfig.apiPath),
 			method: 'GET',
 			data: {
-				packageCode: XUNJING_RESOURCE_CONFIG.packageCode
+				packageCode: resourceConfig.packageCode
 			},
 			header: {
-				'tenant-id': XUNJING_RESOURCE_CONFIG.tenantId
+				'tenant-id': resourceConfig.tenantId
 			},
 			success: (res) => {
 				if (res && res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
@@ -759,19 +789,20 @@ const requestXunjingPackageDetail = () => {
 	})
 }
 
-const requestXunjingResourceEvent = ({ eventType = 'VIEW', payload = {} } = {}) => {
+const requestXunjingResourceEvent = ({ eventType = 'VIEW', payload = {}, context = xichengAiContext.value } = {}) => {
+	const eventConfig = getActiveXunjingEventConfig(context)
 	return new Promise((resolve, reject) => {
 		uni.request({
-			url: buildYudaoAppApiUrl(XUNJING_EVENT_CONFIG.apiPath),
+			url: buildYudaoAppApiUrl(eventConfig.apiPath),
 			method: 'POST',
 			header: {
 				'Content-Type': 'application/json',
-				'tenant-id': XUNJING_EVENT_CONFIG.tenantId
+				'tenant-id': eventConfig.tenantId
 			},
 			data: {
-				packageCode: XUNJING_EVENT_CONFIG.packageCode,
+				packageCode: eventConfig.packageCode,
 				eventType,
-				sourceChannel: XUNJING_EVENT_CONFIG.sourceChannel,
+				sourceChannel: eventConfig.sourceChannel,
 				userTraceId: getUserTraceId(),
 				payloadJson: JSON.stringify(payload)
 			},
@@ -827,17 +858,19 @@ const applyXunjingPackageDetail = (detail) => {
 	return true
 }
 
-let xunjingPackageDetailRequested = false
-const loadXunjingPackageDetail = async () => {
-	if (xunjingPackageDetailRequested) {
+let xunjingPackageDetailRequestedScope = ''
+const loadXunjingPackageDetail = async (context = xichengAiContext.value) => {
+	const packageScope = getXunjingPackageDetailScope(context)
+	if (xunjingPackageDetailRequestedScope === packageScope) {
 		return
 	}
-	xunjingPackageDetailRequested = true
+	xunjingPackageDetailRequestedScope = packageScope
 	try {
-		const detail = await requestXunjingPackageDetail()
+		const detail = await requestXunjingPackageDetail(context)
 		applyXunjingPackageDetail(detail)
 	} catch (error) {
-		console.warn('星河寻境资源包接口暂不可用，继续使用本地喀什内容:', error && (error.errMsg || error.message) ? (error.errMsg || error.message) : error)
+		const fallbackCity = hasXichengAiContext(context) ? '西城' : '喀什'
+		console.warn(`星河寻境资源包接口暂不可用，继续使用本地${fallbackCity}内容:`, error && (error.errMsg || error.message) ? (error.errMsg || error.message) : error)
 	}
 }
 
@@ -2004,7 +2037,7 @@ onShow(() => {
 
 onLoad((options = {}) => {
 	const context = applyXichengAiContext(options)
-	loadXunjingPackageDetail()
+	loadXunjingPackageDetail(context)
 	recordXunjingResourceEvent({
 		eventType: 'VIEW',
 		payload: {

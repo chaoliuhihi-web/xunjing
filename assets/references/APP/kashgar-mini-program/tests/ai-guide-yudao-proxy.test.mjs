@@ -39,14 +39,14 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /const requestXunjingPackageDetail\s*=\s*\(\)[\s\S]*uni\.request\(\{[\s\S]*url:\s*buildYudaoAppApiUrl\(XUNJING_RESOURCE_CONFIG\.apiPath\)[\s\S]*method:\s*'GET'[\s\S]*packageCode:\s*XUNJING_RESOURCE_CONFIG\.packageCode[\s\S]*'tenant-id':\s*XUNJING_RESOURCE_CONFIG\.tenantId/,
-  'AI guide should fetch public package detail from the Yudao APP API with tenant-id and packageCode'
+  /const requestXunjingPackageDetail\s*=\s*\(context = xichengAiContext\.value\)[\s\S]*const resourceConfig = getActiveXunjingResourceConfig\(context\)[\s\S]*uni\.request\(\{[\s\S]*url:\s*buildYudaoAppApiUrl\(resourceConfig\.apiPath\)[\s\S]*method:\s*'GET'[\s\S]*packageCode:\s*resourceConfig\.packageCode[\s\S]*'tenant-id':\s*resourceConfig\.tenantId/,
+  'AI guide should fetch public package detail from the Yudao APP API with active packageCode and tenant-id'
 )
 
 assert.match(
   aiGuide,
-  /const requestXunjingResourceEvent\s*=\s*\(\{ eventType = 'VIEW', payload = \{\} \} = \{\}\)[\s\S]*uni\.request\(\{[\s\S]*url:\s*buildYudaoAppApiUrl\(XUNJING_EVENT_CONFIG\.apiPath\)[\s\S]*method:\s*'POST'[\s\S]*'tenant-id':\s*XUNJING_EVENT_CONFIG\.tenantId[\s\S]*packageCode:\s*XUNJING_EVENT_CONFIG\.packageCode[\s\S]*eventType[\s\S]*payloadJson:\s*JSON\.stringify\(payload\)/,
-  'AI guide should post Yudao resource events with tenant-id, packageCode, eventType, sourceChannel, userTraceId, and payloadJson'
+  /const requestXunjingResourceEvent\s*=\s*\(\{ eventType = 'VIEW', payload = \{\}, context = xichengAiContext\.value \} = \{\}\)[\s\S]*const eventConfig = getActiveXunjingEventConfig\(context\)[\s\S]*uni\.request\(\{[\s\S]*url:\s*buildYudaoAppApiUrl\(eventConfig\.apiPath\)[\s\S]*method:\s*'POST'[\s\S]*'tenant-id':\s*eventConfig\.tenantId[\s\S]*packageCode:\s*eventConfig\.packageCode[\s\S]*eventType[\s\S]*sourceChannel:\s*eventConfig\.sourceChannel[\s\S]*payloadJson:\s*JSON\.stringify\(payload\)/,
+  'AI guide should post Yudao resource events with active tenant-id, packageCode, eventType, sourceChannel, userTraceId, and payloadJson'
 )
 
 assert.match(
@@ -63,13 +63,13 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /const loadXunjingPackageDetail\s*=\s*async\s*\(\)[\s\S]*requestXunjingPackageDetail\(\)[\s\S]*applyXunjingPackageDetail\(detail\)[\s\S]*catch/,
-  'AI guide should load package detail non-blockingly and keep local content on gateway failures'
+  /const loadXunjingPackageDetail\s*=\s*async\s*\(context = xichengAiContext\.value\)[\s\S]*requestXunjingPackageDetail\(context\)[\s\S]*applyXunjingPackageDetail\(detail\)[\s\S]*catch/,
+  'AI guide should load active package detail non-blockingly and keep local content on gateway failures'
 )
 
 assert.match(
   aiGuide,
-  /onLoad\(\(options = \{\}\) => \{[\s\S]*loadXunjingPackageDetail\(\)[\s\S]*recordXunjingResourceEvent\(\{[\s\S]*eventType:\s*'VIEW'[\s\S]*page:\s*'ai-guide'/,
+  /onLoad\(\(options = \{\}\) => \{[\s\S]*const context = applyXichengAiContext\(options\)[\s\S]*loadXunjingPackageDetail\(context\)[\s\S]*recordXunjingResourceEvent\(\{[\s\S]*eventType:\s*'VIEW'[\s\S]*page:\s*'ai-guide'/,
   'AI guide should start public package loading and record a non-blocking page view during page load'
 )
 
