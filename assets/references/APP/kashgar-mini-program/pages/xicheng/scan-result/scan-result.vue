@@ -187,6 +187,8 @@ export default {
 				sources: this.sourceList,
 				capturedAt: new Date().toISOString()
 			}
+			const checkinEvent = this.createRouteCheckinEvent(material)
+			this.persistRouteCheckinEvent(checkinEvent)
 			const materials = Array.isArray(existingMaterials) ? existingMaterials : []
 			uni.setStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey, [
 				material,
@@ -195,6 +197,30 @@ export default {
 			uni.navigateTo({
 				url: `/pages/xicheng/travelogue/travelogue?mode=record&autoStart=1&regionCode=${encodeURIComponent(this.result.regionCode)}&poiCode=${encodeURIComponent(this.result.poiCode || '')}&poiName=${encodeURIComponent(this.result.poiName || '')}&companionName=${encodeURIComponent(this.result.companionName)}`
 			})
+		},
+		createRouteCheckinEvent(material) {
+			return {
+				checkinId: `checkin-${Date.now()}`,
+				checkinType: 'recognition-poi',
+				checkinLabel: '打卡事件',
+				regionCode: material.regionCode,
+				packageCode: material.packageCode,
+				routeTitle: this.recommendedRoute && this.recommendedRoute.title ? this.recommendedRoute.title : '西城 Citywalk',
+				poiCode: material.poiCode,
+				poiName: material.poiName,
+				sourceLabel: material.sourceLabel,
+				confidence: material.confidence,
+				sources: material.sources,
+				checkedInAt: material.capturedAt
+			}
+		},
+		persistRouteCheckinEvent(checkinEvent) {
+			const existingCheckins = uni.getStorageSync(XICHENG_REGION_CONFIG.checkinStorageKey)
+			const checkins = Array.isArray(existingCheckins) ? existingCheckins : []
+			uni.setStorageSync(XICHENG_REGION_CONFIG.checkinStorageKey, [
+				checkinEvent,
+				...checkins
+			].slice(0, 80))
 		}
 	}
 }

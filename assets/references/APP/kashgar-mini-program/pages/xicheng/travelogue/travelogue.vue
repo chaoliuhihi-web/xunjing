@@ -109,6 +109,24 @@
 
 		<view class="section-card">
 			<view class="section-head">
+				<text class="section-title">路线打卡</text>
+				<text class="section-badge">{{ checkinCount }} 个打卡事件</text>
+			</view>
+			<view v-if="routeCheckins.length > 0">
+				<view
+					v-for="checkin in routeCheckins.slice(0, 5)"
+					:key="checkin.checkinId"
+					class="checkin-row"
+				>
+					<text class="material-title">{{ checkin.poiName || '西城文化点' }}</text>
+					<text class="material-meta">{{ createCheckinEventLabel(checkin) }}</text>
+				</view>
+			</view>
+			<text v-else class="empty-copy">从识别结果页点击“开始记录”后，会生成可审核的路线打卡事件。</text>
+		</view>
+
+		<view class="section-card">
+			<view class="section-head">
 				<text class="section-title">旅行素材盒</text>
 				<text class="section-badge">{{ materials.length > 0 ? '已记录' : '待补充' }}</text>
 			</view>
@@ -343,6 +361,7 @@ export default {
 			studyTaskEvidence: [],
 			studyTaskDrafts: [],
 			badgeAwards: [],
+			routeCheckins: [],
 			recordingSession: createEmptyRecordingSession()
 		}
 	},
@@ -376,6 +395,9 @@ export default {
 		},
 		badgeAwardCount() {
 			return this.badgeAwards.length
+		},
+		checkinCount() {
+			return this.routeCheckins.length
 		},
 		completedStudyTaskEvidence() {
 			return this.studyTaskEvidence.filter(evidence => evidence && evidence.completedAt)
@@ -416,6 +438,7 @@ export default {
 				workCount: this.draft ? 1 : 0,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
 				badgeAwardCount: this.badgeAwardCount,
+				checkinCount: this.checkinCount,
 				shareCount: this.shareArtifacts.length,
 				misTriggerCount: this.misTriggerCount,
 				optimizationSuggestions: this.createOptimizationSuggestions(),
@@ -482,6 +505,7 @@ export default {
 			const storedRecordingSession = uni.getStorageSync(XICHENG_REGION_CONFIG.recordingStorageKey)
 			const storedStudyTaskEvidence = uni.getStorageSync(XICHENG_REGION_CONFIG.studyTaskStorageKey)
 			const storedBadgeAwards = uni.getStorageSync(XICHENG_REGION_CONFIG.badgeAwardStorageKey)
+			const storedCheckins = uni.getStorageSync(XICHENG_REGION_CONFIG.checkinStorageKey)
 			const materials = Array.isArray(storedMaterials) ? storedMaterials : []
 			this.importedRoute = importedRoute && importedRoute.stops ? importedRoute : null
 			this.reviewSubmission = Array.isArray(storedReviewSubmissions) && storedReviewSubmissions.length > 0
@@ -490,6 +514,7 @@ export default {
 			this.shareArtifacts = Array.isArray(storedShareAssets) ? storedShareAssets : []
 			this.studyTaskEvidence = Array.isArray(storedStudyTaskEvidence) ? storedStudyTaskEvidence : []
 			this.badgeAwards = Array.isArray(storedBadgeAwards) ? storedBadgeAwards : []
+			this.routeCheckins = Array.isArray(storedCheckins) ? storedCheckins : []
 			this.studyTaskDrafts = this.parentChildTasks.map((_, index) => {
 				const evidence = this.getStudyTaskEvidence(index)
 				return evidence && evidence.answerText ? evidence.answerText : ''
@@ -731,6 +756,10 @@ export default {
 			uni.setStorageSync(XICHENG_REGION_CONFIG.badgeAwardStorageKey, this.badgeAwards)
 			this.saveDraft({ silent: true })
 		},
+		createCheckinEventLabel(checkin = {}) {
+			const checkinEventLabel = `${checkin.checkinType || '打卡事件'} · ${checkin.routeTitle || '西城 Citywalk'} · ${this.formatArtifactTime(checkin.checkedInAt)}`
+			return checkinEventLabel
+		},
 		addRemarkMaterial() {
 			if (!this.remarkInput.trim()) {
 				uni.showToast({
@@ -840,6 +869,8 @@ export default {
 				reviewSubmission: this.reviewSubmission,
 				shareArtifacts: this.shareArtifacts,
 				recordingSession: this.recordingSession,
+				routeCheckins: this.routeCheckins,
+				checkinCount: this.checkinCount,
 				studyTaskEvidence: this.studyTaskEvidence,
 				badgeAwards: this.badgeAwards,
 				activeBadgeAward: this.activeBadgeAward,
@@ -905,6 +936,8 @@ export default {
 				stayPointCount: this.stayPointCount,
 				photoMaterialCount: this.photoMaterialCount,
 				remarkMaterialCount: this.remarkMaterialCount,
+				routeCheckins: this.routeCheckins,
+				checkinCount: this.checkinCount,
 				studyTaskEvidence: this.studyTaskEvidence,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
 				badgeAwards: this.badgeAwards,
@@ -943,6 +976,8 @@ export default {
 				stayPointCount: this.stayPointCount,
 				photoMaterialCount: this.photoMaterialCount,
 				remarkMaterialCount: this.remarkMaterialCount,
+				routeCheckins: this.routeCheckins,
+				checkinCount: this.checkinCount,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
 				studyTaskEvidence: this.completedStudyTaskEvidence,
 				activeBadgeAward: this.activeBadgeAward,
@@ -1333,6 +1368,7 @@ export default {
 }
 
 .material-row,
+.checkin-row,
 .task-row {
 	margin-top: 18rpx;
 	padding: 20rpx;
