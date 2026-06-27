@@ -207,6 +207,128 @@ export function importPoiTemplatesFromLocalSeedSql(sql) {
     .filter((poi) => poi.poiCode.startsWith('xicheng-'))
 }
 
+function hasText(value) {
+  return String(value || '').trim().length > 0
+}
+
+function isStatus(value, expected) {
+  return String(value || '').trim().toUpperCase() === expected
+}
+
+function collectMissingReviewFields(poi) {
+  const missing = []
+  const source = poi.source || {}
+  const trigger = poi.trigger || {}
+  const fieldEvidence = poi.fieldEvidence || {}
+  const content = poi.content || {}
+  const audit = poi.audit || {}
+
+  for (const field of ['poiCode', 'name', 'displayName', 'category', 'address']) {
+    if (!hasText(poi[field])) {
+      missing.push(field)
+    }
+  }
+  if (!Array.isArray(poi.aliases) || poi.aliases.filter(hasText).length < 2) {
+    missing.push('aliases>=2')
+  }
+  if (!Number.isFinite(Number(poi.latitude))) {
+    missing.push('latitude')
+  }
+  if (!Number.isFinite(Number(poi.longitude))) {
+    missing.push('longitude')
+  }
+  if (!hasText(source.sourceUrl)) {
+    missing.push('source.sourceUrl')
+  }
+  if (!hasText(source.licenseEvidenceRef)) {
+    missing.push('source.licenseEvidenceRef')
+  }
+  if (!hasText(source.licenseReviewedBy)) {
+    missing.push('source.licenseReviewedBy')
+  }
+  if (!hasText(source.licenseReviewedAt)) {
+    missing.push('source.licenseReviewedAt')
+  }
+  if (!Array.isArray(trigger.ocrKeywords) || trigger.ocrKeywords.filter(hasText).length < 2) {
+    missing.push('trigger.ocrKeywords>=2')
+  }
+  if (!Array.isArray(trigger.photoLabels) || trigger.photoLabels.filter(hasText).length < 2) {
+    missing.push('trigger.photoLabels>=2')
+  }
+  if (!Array.isArray(fieldEvidence.evidenceRefs) || fieldEvidence.evidenceRefs.filter(hasText).length < 1) {
+    missing.push('fieldEvidence.evidenceRefs')
+  }
+  if (!hasText(fieldEvidence.verifiedBy)) {
+    missing.push('fieldEvidence.verifiedBy')
+  }
+  if (!hasText(fieldEvidence.verifiedAt)) {
+    missing.push('fieldEvidence.verifiedAt')
+  }
+  if (!hasText(content.shortIntro)) {
+    missing.push('content.shortIntro')
+  }
+  if (!Array.isArray(content.recommendedQuestions) || content.recommendedQuestions.filter(hasText).length < 3) {
+    missing.push('content.recommendedQuestions>=3')
+  }
+  if (!isStatus(audit.reviewStatus, 'APPROVED')) {
+    missing.push('audit.reviewStatus=APPROVED')
+  }
+  if (!isStatus(audit.geoStatus, 'APPROVED')) {
+    missing.push('audit.geoStatus=APPROVED')
+  }
+  if (!isStatus(audit.licenseStatus, 'APPROVED')) {
+    missing.push('audit.licenseStatus=APPROVED')
+  }
+  if (!isStatus(audit.status, 'PUBLISHED')) {
+    missing.push('audit.status=PUBLISHED')
+  }
+  if (!hasText(audit.reviewedBy)) {
+    missing.push('audit.reviewedBy')
+  }
+  if (!hasText(audit.reviewedAt)) {
+    missing.push('audit.reviewedAt')
+  }
+  return missing
+}
+
+function csvCell(value) {
+  const text = String(value ?? '')
+  return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
+}
+
+export function buildPoiReviewChecklistCsv(manifest) {
+  const header = [
+    'poiCode',
+    'name',
+    'category',
+    'sourceUrl',
+    'reviewStatus',
+    'geoStatus',
+    'licenseStatus',
+    'photoEvidenceStatus',
+    'triggerSmokeStatus',
+    'missingFields'
+  ]
+  const rows = (Array.isArray(manifest.pois) ? manifest.pois : []).map((poi) => {
+    const source = poi.source || {}
+    const fieldEvidence = poi.fieldEvidence || {}
+    const audit = poi.audit || {}
+    return [
+      poi.poiCode,
+      poi.name,
+      poi.category,
+      source.sourceUrl,
+      audit.reviewStatus,
+      audit.geoStatus,
+      audit.licenseStatus,
+      fieldEvidence.photoEvidenceStatus,
+      fieldEvidence.triggerSmokeStatus,
+      collectMissingReviewFields(poi).join('|')
+    ].map(csvCell).join(',')
+  })
+  return `${[header.join(','), ...rows].join('\n')}\n`
+}
+
 function slotId(index) {
   return String(index + 1).padStart(3, '0')
 }
@@ -308,9 +430,13 @@ export async function writeXichengPoiProductionManifestTemplate({
   rootDir = process.cwd(),
   outputFile,
   count = defaultPoiSlotCount,
-  seedSqlFile
+  seedSqlFile,
+  reviewChecklistFile
 } = {}) {
   const resolvedOutputFile = resolveOutputFile(rootDir, outputFile)
+  const resolvedReviewChecklistFile = reviewChecklistFile
+    ? resolveOutputFile(rootDir, reviewChecklistFile)
+    : undefined
   const resolvedSeedSqlFile = seedSqlFile ? path.resolve(seedSqlFile) : undefined
   const seedPois = resolvedSeedSqlFile
     ? importPoiTemplatesFromLocalSeedSql(await readFile(resolvedSeedSqlFile, 'utf8'))
@@ -322,6 +448,10 @@ export async function writeXichengPoiProductionManifestTemplate({
   })
   await mkdir(path.dirname(resolvedOutputFile), { recursive: true })
   await writeFile(resolvedOutputFile, `${JSON.stringify(manifest, null, 2)}\n`)
+  if (resolvedReviewChecklistFile) {
+    await mkdir(path.dirname(resolvedReviewChecklistFile), { recursive: true })
+    await writeFile(resolvedReviewChecklistFile, buildPoiReviewChecklistCsv(manifest))
+  }
   return {
     artifactType,
     ok: true,
@@ -329,6 +459,12 @@ export async function writeXichengPoiProductionManifestTemplate({
     checkedAt: new Date().toISOString(),
     summary: {
       outputFile: resolvedOutputFile,
+      ...(resolvedReviewChecklistFile
+        ? {
+            reviewChecklistFile: resolvedReviewChecklistFile,
+            checklistRows: manifest.pois.length
+          }
+        : {}),
       poiSlots: manifest.pois.length,
       importedPoiCount: seedPois.length,
       todoPoiSlots: manifest.pois.length - seedPois.length,
@@ -344,7 +480,8 @@ async function runCli() {
     rootDir: path.resolve(readArgValue(args, '--root') || process.cwd()),
     outputFile: readArgValue(args, '--output'),
     count: readArgValue(args, '--count') || defaultPoiSlotCount,
-    seedSqlFile: readArgValue(args, '--seed-sql')
+    seedSqlFile: readArgValue(args, '--seed-sql'),
+    reviewChecklistFile: readArgValue(args, '--review-checklist')
   })
   console.log(JSON.stringify(report, null, 2))
 }
