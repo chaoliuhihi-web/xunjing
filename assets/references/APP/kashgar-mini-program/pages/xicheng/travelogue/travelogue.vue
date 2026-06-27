@@ -298,7 +298,7 @@
 			<text class="section-desc">分享产物：{{ opsReport.shareAssetCount }}</text>
 			<text class="section-desc">路线完成：{{ opsReport.routeCompletionRate }}% · 分享数：{{ opsReport.shareCount }}</text>
 			<text class="section-desc">热门 POI：{{ opsReport.hotPoiLabel }}</text>
-			<text class="section-desc">误触发：{{ opsReport.misTriggerCount }}</text>
+			<text class="section-desc">误触发：{{ opsReport.misTriggerCount }} · 识别反馈：{{ opsReport.recognitionFeedbackCount }}</text>
 			<text class="section-desc">优化建议：{{ opsReport.optimizationSuggestionText }}</text>
 			<text class="section-desc">上线后可替换为后端真实城市运营报告。</text>
 		</view>
@@ -382,6 +382,7 @@ export default {
 			badgeAwards: [],
 			routeCheckins: [],
 			inspirationImports: [],
+			recognitionFeedbacks: [],
 			recordingSession: createEmptyRecordingSession()
 		}
 	},
@@ -422,6 +423,9 @@ export default {
 		inspirationImportCount() {
 			return this.inspirationImports.length
 		},
+		recognitionFeedbackCount() {
+			return this.recognitionFeedbacks.length
+		},
 		completedStudyTaskEvidence() {
 			return this.studyTaskEvidence.filter(evidence => evidence && evidence.completedAt)
 		},
@@ -440,12 +444,14 @@ export default {
 			]
 		},
 		misTriggerCount() {
-			return this.materials.filter(material => {
+			const explicitFeedbackCount = this.recognitionFeedbacks.filter(feedback => feedback && feedback.misTrigger).length
+			const lowConfidenceMaterialCount = this.materials.filter(material => {
 				const confidence = material && material.triggerConfidence !== undefined
 					? Number(material.triggerConfidence)
 					: 0
 				return confidence > 0 && confidence < 0.6
 			}).length
+			return explicitFeedbackCount + lowConfidenceMaterialCount
 		},
 		opsReport() {
 			const hotPois = this.createHotPoiRanking()
@@ -463,6 +469,7 @@ export default {
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
 				badgeAwardCount: this.badgeAwardCount,
 				checkinCount: this.checkinCount,
+				recognitionFeedbackCount: this.recognitionFeedbackCount,
 				shareCount: this.shareArtifacts.length,
 				misTriggerCount: this.misTriggerCount,
 				optimizationSuggestions: this.createOptimizationSuggestions(),
@@ -531,6 +538,7 @@ export default {
 			const storedBadgeAwards = uni.getStorageSync(XICHENG_REGION_CONFIG.badgeAwardStorageKey)
 			const storedCheckins = uni.getStorageSync(XICHENG_REGION_CONFIG.checkinStorageKey)
 			const storedInspirationImports = uni.getStorageSync(XICHENG_REGION_CONFIG.inspirationImportStorageKey)
+			const storedRecognitionFeedbacks = uni.getStorageSync(XICHENG_REGION_CONFIG.recognitionFeedbackStorageKey)
 			const materials = Array.isArray(storedMaterials) ? storedMaterials : []
 			this.importedRoute = importedRoute && importedRoute.stops ? importedRoute : null
 			this.reviewSubmission = Array.isArray(storedReviewSubmissions) && storedReviewSubmissions.length > 0
@@ -541,6 +549,7 @@ export default {
 			this.badgeAwards = Array.isArray(storedBadgeAwards) ? storedBadgeAwards : []
 			this.routeCheckins = Array.isArray(storedCheckins) ? storedCheckins : []
 			this.inspirationImports = Array.isArray(storedInspirationImports) ? storedInspirationImports : []
+			this.recognitionFeedbacks = Array.isArray(storedRecognitionFeedbacks) ? storedRecognitionFeedbacks : []
 			this.studyTaskDrafts = this.parentChildTasks.map((_, index) => {
 				const evidence = this.getStudyTaskEvidence(index)
 				return evidence && evidence.answerText ? evidence.answerText : ''
@@ -899,6 +908,8 @@ export default {
 				checkinCount: this.checkinCount,
 				inspirationImports: this.inspirationImports,
 				inspirationImportCount: this.inspirationImportCount,
+				recognitionFeedbacks: this.recognitionFeedbacks,
+				recognitionFeedbackCount: this.recognitionFeedbackCount,
 				studyTaskEvidence: this.studyTaskEvidence,
 				badgeAwards: this.badgeAwards,
 				activeBadgeAward: this.activeBadgeAward,
@@ -968,6 +979,8 @@ export default {
 				checkinCount: this.checkinCount,
 				inspirationImports: this.inspirationImports,
 				inspirationImportCount: this.inspirationImportCount,
+				recognitionFeedbacks: this.recognitionFeedbacks,
+				recognitionFeedbackCount: this.recognitionFeedbackCount,
 				studyTaskEvidence: this.studyTaskEvidence,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
 				badgeAwards: this.badgeAwards,
@@ -1012,6 +1025,7 @@ export default {
 				studyTaskEvidence: this.completedStudyTaskEvidence,
 				activeBadgeAward: this.activeBadgeAward,
 				badgeAwardCount: this.badgeAwardCount,
+				recognitionFeedbackCount: this.recognitionFeedbackCount,
 				sourceCount: this.sourceCount,
 				badgeName: this.badgeName,
 				passportProgress: this.passportProgress,

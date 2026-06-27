@@ -65,6 +65,26 @@
 			<text v-else class="source-empty">暂无已审核来源，小京会按后台审核状态回答。</text>
 		</view>
 
+		<view class="feedback-card">
+			<view class="section-head">
+				<text class="section-title">识别反馈</text>
+				<text class="section-badge">{{ recognitionFeedback ? recognitionFeedback.feedbackLabel : '待反馈' }}</text>
+			</view>
+			<textarea
+				v-model="feedbackNote"
+				class="feedback-input"
+				placeholder="可补充正确地点、展牌文字或现场线索"
+				auto-height
+			/>
+			<view class="feedback-actions">
+				<button class="ghost-button" @click="submitRecognitionFeedback('correct')">识别准确</button>
+				<button class="ghost-button danger-button" @click="submitRecognitionFeedback('wrong')">识别有误</button>
+			</view>
+			<text v-if="recognitionFeedback" class="source-empty">
+				已记录为{{ recognitionFeedback.reviewStatus }}反馈，运营可用于 POI 纠错。
+			</text>
+		</view>
+
 		<view class="bottom-actions">
 			<button class="primary-button" @click="askXiaojing()">问问小京</button>
 			<button class="ghost-button" @click="startRecording">开始记录</button>
@@ -121,7 +141,9 @@ const normalizeResult = (result = {}) => ({
 export default {
 	data() {
 		return {
-			result: normalizeResult()
+			result: normalizeResult(),
+			feedbackNote: '',
+			recognitionFeedback: null
 		}
 	},
 	computed: {
@@ -156,6 +178,7 @@ export default {
 			source: options.source || (cached && cached.source) || '',
 			poiCode: options.poiCode || (cached && cached.poiCode) || ''
 		})
+		this.loadRecognitionFeedback()
 	},
 	methods: {
 		askXiaojing(question = '') {
@@ -185,6 +208,7 @@ export default {
 				confidence: this.result.confidence || 0,
 				routeRecommendation: this.recommendedRoute,
 				sources: this.sourceList,
+				recognitionFeedback: this.recognitionFeedback,
 				capturedAt: new Date().toISOString()
 			}
 			const checkinEvent = this.createRouteCheckinEvent(material)
@@ -221,6 +245,54 @@ export default {
 				checkinEvent,
 				...checkins
 			].slice(0, 80))
+		},
+		loadRecognitionFeedback() {
+			const existingFeedbacks = uni.getStorageSync(XICHENG_REGION_CONFIG.recognitionFeedbackStorageKey)
+			const feedbacks = Array.isArray(existingFeedbacks) ? existingFeedbacks : []
+			this.recognitionFeedback = feedbacks.find(feedback => {
+				return feedback
+					&& feedback.poiCode === this.result.poiCode
+					&& feedback.source === this.result.source
+			}) || null
+		},
+		submitRecognitionFeedback(feedbackType = 'correct') {
+			const feedback = this.createRecognitionFeedback(feedbackType)
+			this.persistRecognitionFeedback(feedback)
+			this.recognitionFeedback = feedback
+			this.feedbackNote = ''
+			uni.showToast({
+				title: '识别反馈已记录',
+				icon: 'none'
+			})
+		},
+		createRecognitionFeedback(feedbackType = 'correct') {
+			const createdAt = new Date().toISOString()
+			return {
+				feedbackId: `feedback-${Date.now()}`,
+				feedbackType,
+				feedbackLabel: feedbackType === 'wrong' ? '识别有误' : '识别准确',
+				regionCode: this.result.regionCode,
+				packageCode: this.result.packageCode,
+				poiCode: this.result.poiCode,
+				poiName: this.result.poiName,
+				confidence: this.result.confidence,
+				source: this.result.source || '',
+				sourceLabel: this.result.sourceLabel,
+				sources: this.sourceList,
+				feedbackNote: this.feedbackNote.trim(),
+				misTrigger: feedbackType === 'wrong',
+				reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
+				publishStatus: 'private',
+				createdAt
+			}
+		},
+		persistRecognitionFeedback(feedback) {
+			const existingFeedbacks = uni.getStorageSync(XICHENG_REGION_CONFIG.recognitionFeedbackStorageKey)
+			const feedbacks = Array.isArray(existingFeedbacks) ? existingFeedbacks : []
+			uni.setStorageSync(XICHENG_REGION_CONFIG.recognitionFeedbackStorageKey, [
+				feedback,
+				...feedbacks
+			].slice(0, 80))
 		}
 	}
 }
@@ -238,7 +310,8 @@ export default {
 .result-card,
 .question-card,
 .route-card,
-.source-card {
+.source-card,
+.feedback-card {
 	padding: 32rpx;
 	border-radius: 8rpx;
 	background: #FFFFFF;
@@ -291,6 +364,10 @@ export default {
 }
 
 .source-card {
+	margin-top: 28rpx;
+}
+
+.feedback-card {
 	margin-top: 28rpx;
 }
 
@@ -385,6 +462,30 @@ export default {
 	margin-top: 8rpx;
 	font-size: 24rpx;
 	color: #667085;
+}
+
+.feedback-input {
+	width: 100%;
+	min-height: 112rpx;
+	margin-top: 20rpx;
+	padding: 20rpx;
+	box-sizing: border-box;
+	border-radius: 8rpx;
+	background: #F2F4F7;
+	font-size: 26rpx;
+	color: #344054;
+}
+
+.feedback-actions {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16rpx;
+	margin-top: 18rpx;
+}
+
+.danger-button {
+	color: #B42318;
+	background: #FFF5F5;
 }
 
 .bottom-actions {
