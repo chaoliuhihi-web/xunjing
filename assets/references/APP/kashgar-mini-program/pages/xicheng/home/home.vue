@@ -18,6 +18,20 @@
 			<text class="inspiration-action">生成路线</text>
 		</view>
 
+		<view v-if="recentRecognition" class="recent-panel">
+			<view class="recent-copy">
+				<text class="recent-kicker">最近识别</text>
+				<text class="recent-title">{{ recentRecognition.poiName || '西城文化点' }}</text>
+				<text class="recent-desc">
+					{{ recentRecognition.sourceLabel || '识别结果' }} · 置信度 {{ recentRecognitionConfidence }}%
+				</text>
+			</view>
+			<view class="recent-actions">
+				<button class="primary-button" @click="continueRecentRecognitionWithXiaojing">继续问小京</button>
+				<button class="ghost-button" @click="openRecentRecognition">查看识别结果</button>
+			</view>
+		</view>
+
 		<view class="quick-grid">
 			<view class="quick-card" @click="startScanRecognition">
 				<text class="quick-title">扫一扫</text>
@@ -112,15 +126,31 @@ export default {
 			currentLocation: null,
 			textRecognitionInput: '',
 			recognizing: false,
-			lastError: ''
+			lastError: '',
+			recentRecognition: null
+		}
+	},
+	computed: {
+		recentRecognitionConfidence() {
+			return Math.round(Number(this.recentRecognition && this.recentRecognition.confidence ? this.recentRecognition.confidence : 0) * 100)
 		}
 	},
 	onLoad() {
 		this.prepareLocation()
+		this.loadRecentRecognition()
+	},
+	onShow() {
+		this.loadRecentRecognition()
 	},
 	methods: {
 		async prepareLocation() {
 			this.currentLocation = await requestCurrentLocationForTrigger()
+		},
+		loadRecentRecognition() {
+			const cached = uni.getStorageSync(XICHENG_REGION_CONFIG.storageKey)
+			this.recentRecognition = cached && typeof cached === 'object' && (cached.poiCode || cached.poiName)
+				? cached
+				: null
 		},
 		async resolveTextAndOpenResult(text = '', source = 'ocr') {
 			if (this.recognizing) return
@@ -220,8 +250,31 @@ export default {
 				companionName: this.region.companionName
 			}
 			uni.setStorageSync(this.region.storageKey, result)
+			this.recentRecognition = result
 			uni.navigateTo({
 				url: `/pages/xicheng/scan-result/scan-result?source=${encodeURIComponent(source)}&poiCode=${encodeURIComponent(result.poiCode || '')}`
+			})
+		},
+		openRecentRecognition() {
+			if (!this.recentRecognition) return
+			uni.navigateTo({
+				url: `/pages/xicheng/scan-result/scan-result?source=${encodeURIComponent(this.recentRecognition.source || '')}&poiCode=${encodeURIComponent(this.recentRecognition.poiCode || '')}`
+			})
+		},
+		continueRecentRecognitionWithXiaojing() {
+			if (!this.recentRecognition) return
+			const prompt = this.recentRecognition.poiName ? `讲讲${this.recentRecognition.poiName}` : '讲讲这个西城文化点'
+			const query = [
+				`question=${encodeURIComponent(prompt)}`,
+				`regionCode=${encodeURIComponent(this.recentRecognition.regionCode || this.region.regionCode)}`,
+				`packageCode=${encodeURIComponent(this.recentRecognition.packageCode || this.region.packageCode)}`,
+				`poiCode=${encodeURIComponent(this.recentRecognition.poiCode || '')}`,
+				`poiName=${encodeURIComponent(this.recentRecognition.poiName || '')}`,
+				`companionName=${encodeURIComponent(this.recentRecognition.companionName || this.region.companionName)}`,
+				`confidence=${encodeURIComponent(String(this.recentRecognition.confidence || ''))}`
+			].join('&')
+			uni.navigateTo({
+				url: `/pages/ai-guide/ai-guide?${query}`
 			})
 		},
 		askXiaojing() {
@@ -368,6 +421,47 @@ export default {
 .text-recognition-panel .primary-button {
 	margin-top: 20rpx;
 	width: 100%;
+}
+
+.recent-panel {
+	margin-top: 28rpx;
+	padding: 28rpx;
+	border-radius: 8rpx;
+	background: #FFFFFF;
+	box-shadow: 0 12rpx 36rpx rgba(31, 41, 51, 0.08);
+}
+
+.recent-copy {
+	min-width: 0;
+}
+
+.recent-kicker {
+	display: block;
+	font-size: 24rpx;
+	line-height: 1.5;
+	color: #1F6E5A;
+}
+
+.recent-title {
+	display: block;
+	margin-top: 8rpx;
+	font-size: 34rpx;
+	font-weight: 700;
+	color: #122033;
+}
+
+.recent-desc {
+	display: block;
+	margin-top: 8rpx;
+	font-size: 24rpx;
+	line-height: 1.55;
+	color: #667085;
+}
+
+.recent-actions {
+	display: flex;
+	gap: 20rpx;
+	margin-top: 24rpx;
 }
 
 .quick-grid,
