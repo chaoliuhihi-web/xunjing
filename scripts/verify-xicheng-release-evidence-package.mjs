@@ -100,10 +100,12 @@ async function loadJsonFile(rootDir, filePath, label) {
     ? path.resolve(filePath)
     : path.resolve(resolvedRoot, filePath)
   try {
+    const text = await readFile(resolvedPath, 'utf8')
     return {
       label,
       path: resolvedPath,
-      data: JSON.parse(await readFile(resolvedPath, 'utf8')),
+      data: JSON.parse(text),
+      sha256: sha256(text),
       error: undefined
     }
   } catch (error) {
@@ -757,6 +759,12 @@ export async function verifyXichengReleaseEvidencePackage({
       poiManifest: manifestRef.path,
       poiSeed: seedRef.path,
       appReadiness: appRef.path
+    },
+    evidenceFileSha256: {
+      release: releaseRef.sha256,
+      poiManifest: manifestRef.sha256,
+      poiSeed: seedRef.sha256,
+      appReadiness: appRef.sha256
     },
     checks,
     blockers

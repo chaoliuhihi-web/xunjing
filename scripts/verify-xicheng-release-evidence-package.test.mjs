@@ -396,6 +396,16 @@ describe('xicheng release evidence package gate', () => {
       reviewBatchCode: 'xicheng-p0-poi-review-20260627',
       blockerCount: 0
     })
+    const releaseEvidenceText = await readFile(releasePath, 'utf8')
+    const manifestEvidenceText = await readFile(manifestPath, 'utf8')
+    const seedEvidenceText = await readFile(seedPath, 'utf8')
+    const appEvidenceText = await readFile(appPath, 'utf8')
+    expect(report.evidenceFileSha256).toMatchObject({
+      release: sha256(releaseEvidenceText),
+      poiManifest: sha256(manifestEvidenceText),
+      poiSeed: sha256(seedEvidenceText),
+      appReadiness: sha256(appEvidenceText)
+    })
     expect(report.checks.map((check) => check.name)).toEqual([
       'release-gate-evidence',
       'poi-manifest-evidence',
@@ -1023,5 +1033,6 @@ describe('xicheng release evidence package gate', () => {
     expect(deployDoc).toContain('check.summary.logId')
     expect(deployDoc).toContain('check.summary.sourceCount')
     expect(deployDoc).toContain('check.summary.confidence')
+    expect(deployDoc).toContain('evidenceFileSha256')
   })
 })
