@@ -20,6 +20,12 @@ for (const required of [
   'captureLocation',
   'exifLocation',
   'nearestTrackPoint',
+  '隐藏地点',
+  '删除素材',
+  'hideMaterialLocation',
+  'deleteJourneyMaterial',
+  'locationHidden',
+  'publicLocationLabel',
   'refreshDraftFromEvidence'
 ]) {
   assert.ok(travelogue.includes(required), `Travelogue should support field evidence input ${required}`)
@@ -59,6 +65,30 @@ assert.match(
   travelogue,
   /findNearestTrackPoint\(capturedAt = ''\)[\s\S]*this\.recordingSession\.trackPoints[\s\S]*Math\.abs\(new Date\(pointTime\)\.getTime\(\) - capturedTime\)[\s\S]*trackSessionId:\s*this\.recordingSession\.sessionId/,
   'Photo evidence should match the nearest recorded track point by time and include the recording session id'
+)
+
+assert.match(
+  travelogue,
+  /@click="hideMaterialLocation\(index\)"/,
+  'Each journey material should expose a hide-location action'
+)
+
+assert.match(
+  travelogue,
+  /hideMaterialLocation\(index\)[\s\S]*locationHidden:\s*true[\s\S]*publicLocationLabel[\s\S]*this\.persistJourneyMaterials\(\)[\s\S]*this\.refreshDraftFromEvidence\(\)/,
+  'Hiding a material location should mark it hidden, keep only an approximate public label, persist materials, and refresh the draft'
+)
+
+assert.match(
+  travelogue,
+  /@click="deleteJourneyMaterial\(index\)"/,
+  'Each journey material should expose a delete action'
+)
+
+assert.match(
+  travelogue,
+  /deleteJourneyMaterial\(index\)[\s\S]*this\.materials\.filter\(\(_, materialIndex\) => materialIndex !== index\)[\s\S]*this\.persistJourneyMaterials\(\)[\s\S]*this\.refreshDraftFromEvidence\(\)/,
+  'Deleting a material should remove it from the local material box, persist, and refresh the draft'
 )
 
 assert.match(

@@ -116,7 +116,12 @@
 					<text class="material-title">{{ material.poiName || '西城文化点' }}</text>
 					<text class="material-meta">{{ material.sourceLabel || '识别素材' }} · {{ material.capturedAt || '刚刚' }}</text>
 					<text v-if="material.remarkText" class="material-meta">{{ material.remarkText }}</text>
+					<text v-if="material.locationHidden" class="material-meta">地点已隐藏 · {{ material.publicLocationLabel || '西城街区一带' }}</text>
 					<image v-if="material.imagePath" class="material-image" :src="material.imagePath" mode="aspectFill" />
+					<view class="material-actions">
+						<button class="mini-button" :disabled="material.locationHidden" @click="hideMaterialLocation(index)">隐藏地点</button>
+						<button class="mini-button danger-mini-button" @click="deleteJourneyMaterial(index)">删除素材</button>
+					</view>
 				</view>
 			</view>
 			<text v-else class="empty-copy">从识别结果页点击“开始记录”后，POI、来源和识别置信度会进入这里。</text>
@@ -438,6 +443,46 @@ export default {
 		},
 		persistJourneyMaterials() {
 			uni.setStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey, this.materials.slice(0, 50))
+		},
+		createPublicLocationLabel(material = {}) {
+			if (material.poiName && !['现场照片', '现场备注'].includes(material.poiName)) {
+				return `${material.poiName}附近`
+			}
+			if (material.sourceLabel) {
+				return `${material.sourceLabel}附近`
+			}
+			return '西城街区一带'
+		},
+		hideMaterialLocation(index) {
+			const material = this.materials[index]
+			if (!material) return
+			const publicLocationLabel = this.createPublicLocationLabel(material)
+			this.materials = this.materials.map((item, materialIndex) => materialIndex === index
+				? {
+					...item,
+					locationHidden: true,
+					publicLocationLabel,
+					captureLocation: null,
+					exifLocation: null,
+					nearestTrackPoint: null
+				}
+				: item)
+			this.persistJourneyMaterials()
+			this.refreshDraftFromEvidence()
+			uni.showToast({
+				title: '地点已隐藏',
+				icon: 'none'
+			})
+		},
+		deleteJourneyMaterial(index) {
+			if (index < 0 || index >= this.materials.length) return
+			this.materials = this.materials.filter((_, materialIndex) => materialIndex !== index)
+			this.persistJourneyMaterials()
+			this.refreshDraftFromEvidence()
+			uni.showToast({
+				title: '素材已删除',
+				icon: 'none'
+			})
 		},
 		refreshDraftFromEvidence() {
 			this.draft = createXichengTravelogueDraft({
@@ -968,6 +1013,28 @@ export default {
 	margin-top: 16rpx;
 	border-radius: 8rpx;
 	background: #E8ECE7;
+}
+
+.material-actions {
+	display: flex;
+	gap: 12rpx;
+	margin-top: 16rpx;
+}
+
+.mini-button {
+	height: 56rpx;
+	line-height: 56rpx;
+	margin: 0;
+	padding: 0 20rpx;
+	border-radius: 8rpx;
+	background: #E8ECE7;
+	color: #1F6E5A;
+	font-size: 24rpx;
+}
+
+.danger-mini-button {
+	background: #FEE4E2;
+	color: #B42318;
 }
 
 .remark-input {
