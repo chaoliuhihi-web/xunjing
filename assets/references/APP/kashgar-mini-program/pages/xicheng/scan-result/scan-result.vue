@@ -124,6 +124,42 @@ const normalizeSuggestedQuestions = (result = {}) => {
 	return XICHENG_SUGGESTED_QUESTIONS
 }
 
+const decodeRouteValue = (value = '') => {
+	try {
+		return decodeURIComponent(String(value || ''))
+	} catch (error) {
+		return String(value || '')
+	}
+}
+
+const normalizeRouteOptions = (options = {}) => ({
+	source: decodeRouteValue(options.source),
+	regionCode: decodeRouteValue(options.regionCode),
+	packageCode: decodeRouteValue(options.packageCode),
+	poiCode: decodeRouteValue(options.poiCode),
+	poiName: decodeRouteValue(options.poiName),
+	companionName: decodeRouteValue(options.companionName)
+})
+
+const selectCachedRecognitionForRoute = (cached = {}, options = {}) => {
+	if (!cached || typeof cached !== 'object') {
+		return null
+	}
+	const routePoiCode = decodeRouteValue(options.poiCode)
+	if (routePoiCode && cached.poiCode !== routePoiCode) {
+		return null
+	}
+	const routePoiName = decodeRouteValue(options.poiName)
+	if (routePoiName && cached.poiName !== routePoiName) {
+		return null
+	}
+	const routeRegionCode = decodeRouteValue(options.regionCode)
+	if (routeRegionCode && cached.regionCode && cached.regionCode !== routeRegionCode) {
+		return null
+	}
+	return cached
+}
+
 const normalizeResult = (result = {}) => ({
 	...XICHENG_EMPTY_RECOGNITION_RESULT,
 	...result,
@@ -173,10 +209,16 @@ export default {
 	},
 	onLoad(options = {}) {
 		const cached = uni.getStorageSync(XICHENG_REGION_CONFIG.storageKey)
+		const routeOptions = normalizeRouteOptions(options)
+		const selectedCached = selectCachedRecognitionForRoute(cached, options)
 		this.result = normalizeResult({
-			...(cached && typeof cached === 'object' ? cached : {}),
-			source: options.source || (cached && cached.source) || '',
-			poiCode: options.poiCode || (cached && cached.poiCode) || ''
+			...(selectedCached || {}),
+			source: routeOptions.source || (selectedCached && selectedCached.source) || '',
+			regionCode: routeOptions.regionCode || (selectedCached && selectedCached.regionCode) || XICHENG_REGION_CONFIG.regionCode,
+			packageCode: routeOptions.packageCode || (selectedCached && selectedCached.packageCode) || XICHENG_REGION_CONFIG.packageCode,
+			poiCode: routeOptions.poiCode || (selectedCached && selectedCached.poiCode) || '',
+			poiName: routeOptions.poiName || (selectedCached && selectedCached.poiName) || XICHENG_EMPTY_RECOGNITION_RESULT.poiName,
+			companionName: routeOptions.companionName || (selectedCached && selectedCached.companionName) || XICHENG_REGION_CONFIG.companionName
 		})
 		this.loadRecognitionFeedback()
 	},
