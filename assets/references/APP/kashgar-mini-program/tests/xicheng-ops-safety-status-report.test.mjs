@@ -8,11 +8,13 @@ const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelog
 const computedBlock = travelogue.match(/computed:\s*\{[\s\S]*?\n\t\},\n\tonLoad/)?.[0] || ''
 const methodsBlock = travelogue.match(/methods:\s*\{[\s\S]*?\n\t\}\n\}/)?.[0] || ''
 const opsReportBlock = travelogue.match(/opsReport\(\)[\s\S]*?\n\t\t\},\n\t\troutePointCount/)?.[0] || ''
+const saveDraftBlock = travelogue.match(/saveDraft\(\{ silent = false \} = \{\}\)[\s\S]*?\n\t\t\},\n\t\tgeneratePoster/)?.[0] || ''
 const reviewPackageBlock = travelogue.match(/submitReviewPackage\(\)[\s\S]*?\n\t\t\},\n\t\tcreateShareArtifact/)?.[0] || ''
 
 assert.ok(computedBlock, 'Travelogue page should expose computed properties')
 assert.ok(methodsBlock, 'Travelogue page should expose methods')
 assert.ok(opsReportBlock, 'Travelogue page should expose opsReport')
+assert.ok(saveDraftBlock, 'Travelogue page should persist local journey drafts')
 assert.ok(reviewPackageBlock, 'Travelogue page should expose submitReviewPackage')
 
 for (const required of [
@@ -35,6 +37,7 @@ for (const required of [
   'safetyUnavailableCount: this.safetyUnavailableCount'
 ]) {
   assert.ok(opsReportBlock.includes(required), `Ops report should include ${required}`)
+  assert.ok(saveDraftBlock.includes(required), `Saved journey draft should include ${required}`)
   assert.ok(reviewPackageBlock.includes(required), `Review package should include ${required}`)
 }
 
