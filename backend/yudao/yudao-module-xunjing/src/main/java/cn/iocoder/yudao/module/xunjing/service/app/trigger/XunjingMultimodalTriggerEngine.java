@@ -5,6 +5,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.Multimodal
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PhotoMetaReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.SourceRespVO;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
@@ -25,23 +26,43 @@ public class XunjingMultimodalTriggerEngine {
             new PoiProfile("xicheng-baitasi", "妙应寺白塔",
                     List.of("妙应寺白塔", "妙应寺", "白塔寺", "白塔寺东夹道", "白塔"),
                     List.of("white_pagoda", "pagoda", "temple", "temple_gate", "baitasi", "miaoying_temple"),
-                    39.923100D, 116.357260D, 220D, "白塔寺片区的北京城市更新和元代白塔文化节点。"),
+                    39.923100D, 116.357260D, 220D, "白塔寺片区的北京城市更新和元代白塔文化节点。",
+                    List.of("给我讲讲妙应寺白塔的来历。", "白塔寺片区适合怎么 Citywalk？", "这里有哪些适合拍照的角度？"),
+                    List.of(new SourceProfile("妙应寺白塔", "西城区文旅公开资料",
+                            "https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/",
+                            "妙应寺白塔是西城白塔寺片区的重要历史文化地标。"))),
             new PoiProfile("xicheng-emperors-temple", "历代帝王庙",
                     List.of("历代帝王庙", "帝王庙", "帝王庙大街"),
                     List.of("imperial_temple", "temple", "paifang", "beijing_architecture"),
-                    39.918930D, 116.365870D, 180D, "明清皇家礼制和北京中轴文化延展的重要观察点。"),
+                    39.918930D, 116.365870D, 180D, "明清皇家礼制和北京中轴文化延展的重要观察点。",
+                    List.of("历代帝王庙为什么重要？", "从这里下一站推荐去哪？", "适合亲子研学怎么讲？"),
+                    List.of(new SourceProfile("历代帝王庙", "西城区文旅公开资料",
+                            "https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/",
+                            "历代帝王庙是理解北京礼制文化和历史街区的重要点位。"))),
             new PoiProfile("xicheng-beihai-park", "北海公园",
                     List.of("北海公园", "北海", "琼华岛", "北海白塔"),
                     List.of("lake", "imperial_garden", "white_tower", "park", "beihai"),
-                    39.925450D, 116.389020D, 520D, "皇家园林、白塔和水岸空间共同构成的北京文化地标。"),
+                    39.925450D, 116.389020D, 520D, "皇家园林、白塔和水岸空间共同构成的北京文化地标。",
+                    List.of("北海公园有哪些必看点？", "北海白塔和妙应寺白塔有什么区别？", "适合半日游怎么走？"),
+                    List.of(new SourceProfile("北海公园", "西城区文旅公开资料",
+                            "https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/",
+                            "北海公园是西城核心皇家园林文旅点位。"))),
             new PoiProfile("xicheng-shichahai", "什刹海",
                     List.of("什刹海", "后海", "前海", "西海", "烟袋斜街"),
                     List.of("lake", "hutong", "waterfront", "old_beijing", "shichahai"),
-                    39.940310D, 116.386390D, 650D, "胡同、水系和市井生活交织的老北京漫游片区。"),
+                    39.940310D, 116.386390D, 650D, "胡同、水系和市井生活交织的老北京漫游片区。",
+                    List.of("什刹海适合怎么逛？", "这里有哪些老北京故事？", "附近下一站推荐哪里？"),
+                    List.of(new SourceProfile("什刹海", "西城区文旅公开资料",
+                            "https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/",
+                            "什刹海是胡同、水系和城市漫步结合的代表片区。"))),
             new PoiProfile("xicheng-dashilar", "大栅栏",
                     List.of("大栅栏", "前门大栅栏", "杨梅竹斜街", "北京坊"),
                     List.of("hutong", "shop_sign", "old_beijing", "qianmen", "dashilar"),
-                    39.894380D, 116.393660D, 360D, "老字号、商业街巷和近代城市生活的西城代表片区。")
+                    39.894380D, 116.393660D, 360D, "老字号、商业街巷和近代城市生活的西城代表片区。",
+                    List.of("大栅栏有哪些老字号？", "这条街适合怎么拍照？", "附近适合亲子观察什么？"),
+                    List.of(new SourceProfile("大栅栏", "西城区文旅公开资料",
+                            "https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/",
+                            "大栅栏是老字号、商业街巷和北京近代城市生活的代表片区。")))
     );
 
     @Resource
@@ -50,7 +71,7 @@ public class XunjingMultimodalTriggerEngine {
     public MultimodalTriggerRespVO resolve(MultimodalTriggerReqVO reqVO) {
         MultimodalTriggerReqVO safeReqVO = visionRecognitionService.enrich(
                 reqVO == null ? new MultimodalTriggerReqVO() : reqVO);
-        String regionCode = defaultIfBlank(safeReqVO.getRegionCode(), REGION_XICHENG);
+        String regionCode = normalizeRegionCode(safeReqVO.getRegionCode());
         List<PoiProfile> poiProfiles = REGION_XICHENG.equals(regionCode) ? XICHENG_POIS : List.of();
 
         List<MatchScore> matches = poiProfiles.stream()
@@ -78,6 +99,8 @@ public class XunjingMultimodalTriggerEngine {
         respVO.setRequiresUserConfirm(!autoTrigger);
         respVO.setReason(buildReason(best.signals(), autoTrigger));
         respVO.setTargetPath(buildTargetPath(intent, regionCode, best.poi().code(), !autoTrigger));
+        respVO.setSuggestedQuestions(best.poi().suggestedQuestions());
+        respVO.setSources(toSources(best.poi()));
         respVO.setCandidates(matches.stream()
                 .map(match -> toCandidate(match, intent, regionCode))
                 .toList());
@@ -133,6 +156,8 @@ public class XunjingMultimodalTriggerEngine {
         candidate.setDistanceMeters(match.distanceMeters() == null ? null : round1(match.distanceMeters()));
         candidate.setSummary(match.poi().summary());
         candidate.setTargetPath(buildTargetPath(intent, regionCode, match.poi().code(), true));
+        candidate.setSuggestedQuestions(match.poi().suggestedQuestions());
+        candidate.setSources(toSources(match.poi()));
         candidate.setMatchedSignals(match.signals());
         return candidate;
     }
@@ -147,8 +172,24 @@ public class XunjingMultimodalTriggerEngine {
         respVO.setRequiresUserConfirm(true);
         respVO.setReason("定位、文字和图片信号不足，进入问问小京。");
         respVO.setTargetPath("/pages/ai-chat/index?regionCode=" + regionCode);
+        respVO.setSuggestedQuestions(List.of("我在西城附近，有什么值得看的地方？", "我可以拍什么让小京识别？"));
+        respVO.setSources(List.of());
         respVO.setCandidates(List.of());
         return respVO;
+    }
+
+    private List<SourceRespVO> toSources(PoiProfile poi) {
+        return poi.sources().stream()
+                .map(source -> {
+                    SourceRespVO respVO = new SourceRespVO();
+                    respVO.setTitle(source.title());
+                    respVO.setSourceType(source.sourceType());
+                    respVO.setSourceUrl(source.sourceUrl());
+                    respVO.setContentDigest(source.contentDigest());
+                    respVO.setScore(0.90D);
+                    return respVO;
+                })
+                .toList();
     }
 
     private String detectIntent(MultimodalTriggerReqVO reqVO) {
@@ -288,6 +329,15 @@ public class XunjingMultimodalTriggerEngine {
         return hasText(value) ? value.trim() : fallback;
     }
 
+    private String normalizeRegionCode(String regionCode) {
+        String normalized = defaultIfBlank(regionCode, REGION_XICHENG).trim();
+        String compact = normalized.toLowerCase(Locale.ROOT).replace("_", "-");
+        if ("xicheng".equals(compact) || "beijing-xicheng".equals(compact)) {
+            return REGION_XICHENG;
+        }
+        return normalized;
+    }
+
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
     }
@@ -301,7 +351,11 @@ public class XunjingMultimodalTriggerEngine {
     }
 
     private record PoiProfile(String code, String name, List<String> aliases, List<String> visualLabels,
-                              double latitude, double longitude, double radiusMeters, String summary) {
+                              double latitude, double longitude, double radiusMeters, String summary,
+                              List<String> suggestedQuestions, List<SourceProfile> sources) {
+    }
+
+    private record SourceProfile(String title, String sourceType, String sourceUrl, String contentDigest) {
     }
 
     private record MatchScore(PoiProfile poi, double confidence, Double distanceMeters, List<String> signals) {

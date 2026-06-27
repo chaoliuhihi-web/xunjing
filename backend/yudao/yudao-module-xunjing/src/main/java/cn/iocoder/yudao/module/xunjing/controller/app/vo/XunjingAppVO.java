@@ -31,6 +31,10 @@ public class XunjingAppVO {
         private String qrSceneCode;
         private String sourceChannel;
         private String userTraceId;
+        private String regionCode;
+        private String poiCode;
+        private String poiName;
+        private String routeId;
     }
 
     @Data
@@ -90,6 +94,8 @@ public class XunjingAppVO {
         private Boolean requiresUserConfirm;
         private String reason;
         private String targetPath;
+        private List<String> suggestedQuestions;
+        private List<SourceRespVO> sources;
         private List<MultimodalCandidateRespVO> candidates;
     }
 
@@ -101,6 +107,8 @@ public class XunjingAppVO {
         private Double distanceMeters;
         private String summary;
         private String targetPath;
+        private List<String> suggestedQuestions;
+        private List<SourceRespVO> sources;
         private List<String> matchedSignals;
     }
 

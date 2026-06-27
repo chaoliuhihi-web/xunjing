@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.xunjing.service.app;
 
 import cn.iocoder.yudao.framework.test.core.ut.BaseDbUnitTest;
+import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
@@ -319,6 +320,27 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerAcceptsXichengAliasAndReturnsSourcesAndQuestions() {
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setRegionCode("XICHENG");
+        reqVO.setOcrText("妙应寺白塔入口");
+        reqVO.setLocation(location("39.923100", "116.357260", 18));
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("beijing-xicheng", respVO.getRegionCode());
+        assertEquals("xicheng-baitasi", respVO.getPoiCode());
+        assertEquals("妙应寺白塔", respVO.getPoiName());
+        assertFalse(respVO.getSuggestedQuestions().isEmpty());
+        assertTrue(respVO.getSuggestedQuestions().contains("给我讲讲妙应寺白塔的来历。"));
+        assertFalse(respVO.getSources().isEmpty());
+        assertEquals("妙应寺白塔", respVO.getSources().get(0).getTitle());
+        assertTrue(respVO.getSources().get(0).getSourceUrl().contains("bjxch.gov.cn"));
+        assertFalse(respVO.getCandidates().get(0).getSuggestedQuestions().isEmpty());
+        assertFalse(respVO.getCandidates().get(0).getSources().isEmpty());
+    }
+
+    @Test
     public void testResolveMultimodalTriggerUsesAliasAndRadiusForXichengRouteIntent() {
         MultimodalTriggerReqVO reqVO = multimodalReq();
         reqVO.setText("我在历代帝王庙，下一站去哪");
@@ -468,6 +490,48 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testAnswerRecordsXichengPoiContextAndUsesReviewedSources() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        consoleService.addKnowledgeDocument(xichengUnrelatedKnowledgeReq(packageId));
+        consoleService.addKnowledgeDocument(xichengBaitasiKnowledgeReq(packageId));
+
+        RagChatReqVO reqVO = xichengRagReq();
+        reqVO.setRegionCode("beijing-xicheng");
+        reqVO.setPoiCode("xicheng-baitasi");
+        reqVO.setPoiName("妙应寺白塔");
+        RagChatRespVO answer = appService.answer(reqVO);
+
+        assertEquals("PASSED", answer.getSafetyStatus());
+        assertFalse(answer.getSources().isEmpty());
+        assertEquals("妙应寺白塔权威讲解稿", answer.getSources().get(0).getTitle());
+        assertTrue(answer.getAnswer().contains("妙应寺白塔"));
+
+        List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType()));
+        assertEquals(1, events.size());
+        assertTrue(events.get(0).getPayloadJson().contains("\"regionCode\":\"beijing-xicheng\""));
+        assertTrue(events.get(0).getPayloadJson().contains("\"poiCode\":\"xicheng-baitasi\""));
+        assertTrue(events.get(0).getPayloadJson().contains("\"poiName\":\"妙应寺白塔\""));
+    }
+
+    @Test
+    public void testAnswerBlocksWhenNoReviewedSourcesForXichengPoi() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+
+        RagChatRespVO answer = appService.answer(xichengRagReq());
+
+        assertEquals("BLOCKED", answer.getSafetyStatus());
+        assertTrue(answer.getAnswer().contains("没有找到已审核"));
+        assertTrue(answer.getSources().isEmpty());
+    }
+
+    @Test
     public void testAnswerUsesYudaoAiKnowledgeSegmentsWhenPackageBound() {
         Long projectId = consoleService.createProject(projectReq());
         Long schoolId = consoleService.createSchool(schoolReq());
@@ -588,6 +652,40 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         return reqVO;
     }
 
+    private ProjectCreateReqVO xichengProjectReq() {
+        ProjectCreateReqVO reqVO = new ProjectCreateReqVO();
+        reqVO.setCode("XICHENG-2026-P0");
+        reqVO.setName("星河寻境·西城 AI 旅伴真实试运营版");
+        reqVO.setRegionName("北京西城");
+        reqVO.setPhase("P0");
+        return reqVO;
+    }
+
+    private SchoolCreateReqVO xichengSchoolReq() {
+        SchoolCreateReqVO reqVO = new SchoolCreateReqVO();
+        reqVO.setName("西城试运营样板");
+        reqVO.setRegionName("北京西城");
+        return reqVO;
+    }
+
+    private ResourcePackageCreateReqVO xichengPackageReq(Long projectId, Long schoolId) {
+        return packageReq(projectId, schoolId, "XICHENG-MAP-001", "西城 AI 旅伴地图",
+                XunjingEnums.ResourceType.MAP.getType());
+    }
+
+    private RagChatReqVO xichengRagReq() {
+        RagChatReqVO reqVO = new RagChatReqVO();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setQuestion("给我讲讲妙应寺白塔为什么值得看。");
+        reqVO.setSceneCode("xicheng-ai-guide");
+        reqVO.setSourceChannel("xicheng-app");
+        reqVO.setUserTraceId("trace-xicheng-chat-001");
+        reqVO.setRegionCode("beijing-xicheng");
+        reqVO.setPoiCode("xicheng-baitasi");
+        reqVO.setPoiName("妙应寺白塔");
+        return reqVO;
+    }
+
     private KnowledgeDocumentCreateReqVO approvedKnowledgeReq(Long packageId) {
         KnowledgeDocumentCreateReqVO reqVO = new KnowledgeDocumentCreateReqVO();
         reqVO.setPackageId(packageId);
@@ -607,6 +705,32 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         reqVO.setContentDigest("这段内容不应该进入公开问答。");
         reqVO.setReviewStatus(XunjingEnums.ReviewStatus.PENDING.getStatus());
         reqVO.setVectorStatus(XunjingEnums.VectorStatus.PENDING.getStatus());
+        return reqVO;
+    }
+
+    private KnowledgeDocumentCreateReqVO xichengBaitasiKnowledgeReq(Long packageId) {
+        KnowledgeDocumentCreateReqVO reqVO = new KnowledgeDocumentCreateReqVO();
+        reqVO.setPackageId(packageId);
+        reqVO.setTitle("妙应寺白塔权威讲解稿");
+        reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
+        reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/baitasi");
+        reqVO.setContentDigest("妙应寺白塔是北京西城重要的历史文化地标，适合作为白塔寺片区 Citywalk 的讲解起点。");
+        reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
+        reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
+        reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());
+        return reqVO;
+    }
+
+    private KnowledgeDocumentCreateReqVO xichengUnrelatedKnowledgeReq(Long packageId) {
+        KnowledgeDocumentCreateReqVO reqVO = new KnowledgeDocumentCreateReqVO();
+        reqVO.setPackageId(packageId);
+        reqVO.setTitle("北海公园权威讲解稿");
+        reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
+        reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/beihai");
+        reqVO.setContentDigest("北海公园是北京西城重要的皇家园林，适合进行半日游览。");
+        reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
+        reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
+        reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());
         return reqVO;
     }
 
