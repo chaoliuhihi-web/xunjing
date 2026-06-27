@@ -21,6 +21,34 @@
 			</view>
 		</view>
 
+		<view class="section-card">
+			<view class="section-head">
+				<text class="section-title">记录会话</text>
+				<text class="section-badge">{{ recordingStatusText }}</text>
+			</view>
+			<text class="section-desc">主动开始后采集前台位置点，用于游记足迹、路线复盘和停留点摘要。</text>
+			<view class="report-grid">
+				<view>
+					<text class="report-value">{{ routePointCount }}</text>
+					<text class="report-label">轨迹点</text>
+				</view>
+				<view>
+					<text class="report-value">{{ recordingSession.stayPoints.length }}</text>
+					<text class="report-label">停留点</text>
+				</view>
+				<view>
+					<text class="report-value">{{ recordingSession.startedAt ? formatArtifactTime(recordingSession.startedAt) : '--' }}</text>
+					<text class="report-label">开始日期</text>
+				</view>
+			</view>
+			<view class="recording-actions">
+				<button class="primary-button" :disabled="recordingSession.status === 'recording'" @click="startRecordingSession">开始记录</button>
+				<button class="ghost-button" :disabled="recordingSession.status !== 'recording'" @click="captureTrackPoint('manual')">补记位置</button>
+				<button class="ghost-button" :disabled="recordingSession.status !== 'recording'" @click="pauseRecordingSession">暂停</button>
+				<button class="ghost-button" :disabled="recordingSession.status === 'idle' || recordingSession.status === 'finished'" @click="finishRecordingSession">结束</button>
+			</view>
+		</view>
+
 		<view v-if="importedRoute" class="section-card">
 			<view class="section-head">
 				<text class="section-title">灵感导入路线</text>
@@ -187,23 +215,41 @@
 
 <script>
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
+import { requestCurrentLocationForTrigger } from '@/request/xunjing/trigger.js'
 
 export const createXichengTravelogueDraft = ({
 	materials = [],
 	parentChildTasks = XICHENG_REGION_CONFIG.parentChildTasks,
-	routeRecommendation = null
+	routeRecommendation = null,
+	recordingSession = null
 } = {}) => {
 	const poiNames = Array.from(new Set(
 		materials
 			.map(material => material && material.poiName ? material.poiName : '')
 			.filter(Boolean)
 	))
+	const routePointCount = recordingSession && Array.isArray(recordingSession.trackPoints)
+		? recordingSession.trackPoints.length
+		: 0
 	const routeText = routeRecommendation && routeRecommendation.title
 		? routeRecommendation.title
 		: poiNames.length > 0 ? poiNames.join('、') : '白塔寺、西四街巷、什刹海'
 	const taskText = parentChildTasks.length > 0 ? parentChildTasks.slice(0, 2).join('；') : '完成现场观察'
-	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒，我们沿途完成了${taskText}。这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
+	const trackText = routePointCount > 0 ? `本次主动记录了 ${routePointCount} 个前台位置点，` : ''
+	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒，${trackText}我们沿途完成了${taskText}。这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
 }
+
+const createEmptyRecordingSession = () => ({
+	sessionId: '',
+	regionCode: XICHENG_REGION_CONFIG.regionCode,
+	packageCode: XICHENG_REGION_CONFIG.packageCode,
+	status: 'idle',
+	startedAt: '',
+	pausedAt: '',
+	finishedAt: '',
+	trackPoints: [],
+	stayPoints: []
+})
 
 export default {
 	data() {
@@ -218,7 +264,8 @@ export default {
 			posterStatus: '未生成',
 			pdfStatus: '未生成',
 			reviewSubmission: null,
-			shareArtifacts: []
+			shareArtifacts: [],
+			recordingSession: createEmptyRecordingSession()
 		}
 	},
 	computed: {
@@ -251,8 +298,20 @@ export default {
 				reviewStatus: this.reviewText,
 				posterStatus: this.posterStatus,
 				pdfStatus: this.pdfStatus,
-				shareAssetCount: this.shareArtifacts.length
+				shareAssetCount: this.shareArtifacts.length,
+				routePointCount: this.routePointCount,
+				recordingStatus: this.recordingStatusText
 			}
+		},
+		routePointCount() {
+			return Array.isArray(this.recordingSession.trackPoints) ? this.recordingSession.trackPoints.length : 0
+		},
+		recordingStatusText() {
+			const status = this.recordingSession.status
+			if (status === 'recording') return '记录中'
+			if (status === 'paused') return '已暂停'
+			if (status === 'finished') return '已结束'
+			return '待开始'
 		},
 		recognizedRoute() {
 			const routeMaterial = this.materials.find(material => material && material.routeRecommendation)
@@ -279,12 +338,21 @@ export default {
 			const importedRoute = uni.getStorageSync(XICHENG_REGION_CONFIG.inspirationStorageKey)
 			const storedReviewSubmissions = uni.getStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey)
 			const storedShareAssets = uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey)
+			const storedRecordingSession = uni.getStorageSync(XICHENG_REGION_CONFIG.recordingStorageKey)
 			const materials = Array.isArray(storedMaterials) ? storedMaterials : []
 			this.importedRoute = importedRoute && importedRoute.stops ? importedRoute : null
 			this.reviewSubmission = Array.isArray(storedReviewSubmissions) && storedReviewSubmissions.length > 0
 				? storedReviewSubmissions[0]
 				: null
 			this.shareArtifacts = Array.isArray(storedShareAssets) ? storedShareAssets : []
+			this.recordingSession = storedRecordingSession && Array.isArray(storedRecordingSession.trackPoints)
+				? {
+					...createEmptyRecordingSession(),
+					...storedRecordingSession,
+					trackPoints: storedRecordingSession.trackPoints,
+					stayPoints: Array.isArray(storedRecordingSession.stayPoints) ? storedRecordingSession.stayPoints : []
+				}
+				: createEmptyRecordingSession()
 			const routePoiName = options.poiName ? decodeURIComponent(options.poiName) : ''
 			if (routePoiName && !materials.some(material => material && material.poiName === routePoiName)) {
 				materials.unshift({
@@ -305,7 +373,8 @@ export default {
 				: createXichengTravelogueDraft({
 					materials: this.materials,
 					parentChildTasks: this.parentChildTasks,
-					routeRecommendation: this.recognizedRoute
+					routeRecommendation: this.recognizedRoute,
+					recordingSession: this.recordingSession
 				})
 			this.reviewText = cachedDraft && cachedDraft.reviewText ? cachedDraft.reviewText : this.reviewText
 			this.posterStatus = cachedDraft && cachedDraft.posterStatus ? cachedDraft.posterStatus : this.posterStatus
@@ -320,6 +389,7 @@ export default {
 				recognizedRoute: this.recognizedRoute,
 				reviewSubmission: this.reviewSubmission,
 				shareArtifacts: this.shareArtifacts,
+				recordingSession: this.recordingSession,
 				reviewText: this.reviewText,
 				posterStatus: this.posterStatus,
 				pdfStatus: this.pdfStatus,
@@ -377,6 +447,8 @@ export default {
 				draft: this.draft,
 				materials: this.materials,
 				recognizedRoute: this.recognizedRoute,
+				recordingSession: this.recordingSession,
+				routePointCount: this.routePointCount,
 				reviewStatus: this.reviewText,
 				submittedAt,
 				materialCount: this.materialCount,
@@ -419,6 +491,75 @@ export default {
 				...(Array.isArray(existingArtifacts) ? existingArtifacts : [])
 			].slice(0, 20)
 			uni.setStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey, this.shareArtifacts)
+		},
+		saveRecordingSession() {
+			uni.setStorageSync(XICHENG_REGION_CONFIG.recordingStorageKey, this.recordingSession)
+			this.saveDraft({ silent: true })
+		},
+		async startRecordingSession() {
+			const startedAt = new Date().toISOString()
+			this.recordingSession = {
+				...createEmptyRecordingSession(),
+				sessionId: `recording-${Date.now()}`,
+				status: 'recording',
+				startedAt,
+				trackPoints: [],
+				stayPoints: []
+			}
+			this.saveRecordingSession()
+			await this.captureTrackPoint('start')
+			uni.showToast({
+				title: '已开始记录',
+				icon: 'none'
+			})
+		},
+		pauseRecordingSession() {
+			if (this.recordingSession.status !== 'recording') return
+			this.recordingSession = {
+				...this.recordingSession,
+				status: 'paused',
+				pausedAt: new Date().toISOString()
+			}
+			this.saveRecordingSession()
+			uni.showToast({
+				title: '记录已暂停',
+				icon: 'none'
+			})
+		},
+		async finishRecordingSession() {
+			if (this.recordingSession.status === 'idle' || this.recordingSession.status === 'finished') return
+			await this.captureTrackPoint('finish')
+			this.recordingSession = {
+				...this.recordingSession,
+				status: 'finished',
+				finishedAt: new Date().toISOString()
+			}
+			this.saveRecordingSession()
+			uni.showToast({
+				title: '记录已结束',
+				icon: 'none'
+			})
+		},
+		async captureTrackPoint(pointType = 'manual') {
+			if (this.recordingSession.status === 'idle' || this.recordingSession.status === 'finished') return
+			const location = await requestCurrentLocationForTrigger()
+			const capturedAt = new Date().toISOString()
+			const point = {
+				pointType,
+				capturedAt,
+				latitude: location && location.latitude !== undefined ? Number(location.latitude) : null,
+				longitude: location && location.longitude !== undefined ? Number(location.longitude) : null,
+				coordType: location && location.coordType ? location.coordType : 'gcj02',
+				accuracyMeters: location && location.accuracyMeters !== undefined ? Number(location.accuracyMeters) : 0
+			}
+			this.recordingSession = {
+				...this.recordingSession,
+				trackPoints: [
+					...(Array.isArray(this.recordingSession.trackPoints) ? this.recordingSession.trackPoints : []),
+					point
+				]
+			}
+			this.saveRecordingSession()
 		},
 		formatArtifactTime(createdAt) {
 			return String(createdAt || '').slice(0, 10)
