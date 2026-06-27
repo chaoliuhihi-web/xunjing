@@ -111,6 +111,7 @@ const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
 	suggestedQuestions: XICHENG_SUGGESTED_QUESTIONS,
 	routeRecommendation: null,
 	recommendedRoute: null,
+	safetyStatus: '',
 	sources: []
 })
 
@@ -138,7 +139,8 @@ const normalizeRouteOptions = (options = {}) => ({
 	packageCode: decodeRouteValue(options.packageCode),
 	poiCode: decodeRouteValue(options.poiCode),
 	poiName: decodeRouteValue(options.poiName),
-	companionName: decodeRouteValue(options.companionName)
+	companionName: decodeRouteValue(options.companionName),
+	safetyStatus: decodeRouteValue(options.safetyStatus)
 })
 
 const selectCachedRecognitionForRoute = (cached = {}, options = {}) => {
@@ -171,6 +173,7 @@ const normalizeResult = (result = {}) => ({
 	recommendedQuestions: normalizeSuggestedQuestions(result),
 	routeRecommendation: result.routeRecommendation || result.recommendedRoute || null,
 	recommendedRoute: result.routeRecommendation || result.recommendedRoute || null,
+	safetyStatus: result.safetyStatus || '',
 	sources: Array.isArray(result.sources) ? result.sources : []
 })
 
@@ -218,7 +221,8 @@ export default {
 			packageCode: routeOptions.packageCode || (selectedCached && selectedCached.packageCode) || XICHENG_REGION_CONFIG.packageCode,
 			poiCode: routeOptions.poiCode || (selectedCached && selectedCached.poiCode) || '',
 			poiName: routeOptions.poiName || (selectedCached && selectedCached.poiName) || XICHENG_EMPTY_RECOGNITION_RESULT.poiName,
-			companionName: routeOptions.companionName || (selectedCached && selectedCached.companionName) || XICHENG_REGION_CONFIG.companionName
+			companionName: routeOptions.companionName || (selectedCached && selectedCached.companionName) || XICHENG_REGION_CONFIG.companionName,
+			safetyStatus: routeOptions.safetyStatus || (selectedCached && selectedCached.safetyStatus) || ''
 		})
 		this.loadRecognitionFeedback()
 	},
@@ -232,7 +236,8 @@ export default {
 				`poiCode=${encodeURIComponent(this.result.poiCode || '')}`,
 				`poiName=${encodeURIComponent(this.result.poiName || '')}`,
 				`companionName=${encodeURIComponent(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}`,
-				`confidence=${encodeURIComponent(String(this.result.confidence || ''))}`
+				`confidence=${encodeURIComponent(String(this.result.confidence || ''))}`,
+				`safetyStatus=${encodeURIComponent(this.result.safetyStatus || '')}`
 			].join('&')
 			uni.navigateTo({
 				url: `/pages/ai-guide/ai-guide?${query}`

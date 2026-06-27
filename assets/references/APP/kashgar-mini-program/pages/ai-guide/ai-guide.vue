@@ -470,6 +470,7 @@ const xichengAiContext = ref({
 	companionName: '',
 	confidence: '',
 	sourceLabel: '',
+	safetyStatus: '',
 	sources: []
 })
 
@@ -637,7 +638,8 @@ const normalizeXichengAiContext = (options = {}) => ({
 	poiCode: decodeRouteValue(options.poiCode),
 	poiName: decodeRouteValue(options.poiName),
 	companionName: decodeRouteValue(options.companionName),
-	confidence: decodeRouteValue(options.confidence)
+	confidence: decodeRouteValue(options.confidence),
+	safetyStatus: decodeRouteValue(options.safetyStatus)
 })
 
 const createEmptyXichengRecognitionContext = () => ({
@@ -645,6 +647,7 @@ const createEmptyXichengRecognitionContext = () => ({
 	poiName: '',
 	confidence: '',
 	sourceLabel: '',
+	safetyStatus: '',
 	sources: []
 })
 
@@ -663,6 +666,7 @@ const loadCachedXichengRecognitionContext = (context = {}) => {
 		poiName: cached.poiName || '',
 		confidence: cached.confidence || '',
 		sourceLabel: cached.sourceLabel || '',
+		safetyStatus: cached.safetyStatus || '',
 		sources: Array.isArray(cached.sources) ? cached.sources : []
 	}
 }
@@ -678,6 +682,7 @@ const applyXichengAiContext = (options = {}) => {
 			companionName: '',
 			confidence: '',
 			sourceLabel: '',
+			safetyStatus: '',
 			sources: []
 		}
 		return xichengAiContext.value
@@ -691,6 +696,7 @@ const applyXichengAiContext = (options = {}) => {
 		companionName: context.companionName || XICHENG_REGION_CONFIG.companionName,
 		confidence: context.confidence || cachedRecognition.confidence,
 		sourceLabel: cachedRecognition.sourceLabel,
+		safetyStatus: context.safetyStatus || cachedRecognition.safetyStatus,
 		sources: cachedRecognition.sources
 	}
 	return xichengAiContext.value
@@ -985,6 +991,7 @@ const requestXunjingAiChat = (question) => {
 		requestPayload.poiName = context.poiName
 		requestPayload.companionName = context.companionName || XICHENG_REGION_CONFIG.companionName
 		requestPayload.recognitionConfidence = context.confidence || ''
+		requestPayload.safetyStatus = context.safetyStatus || ''
 	}
 	const pendingRequest = new Promise((resolve, reject) => {
 		requestTask = uni.request({
