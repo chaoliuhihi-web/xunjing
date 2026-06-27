@@ -192,7 +192,7 @@
 				class="material-row"
 			>
 				<text class="material-title">{{ artifact.title }}</text>
-				<text class="material-meta">{{ artifact.assetLabel }} · {{ formatArtifactTime(artifact.createdAt) }}</text>
+				<text class="material-meta">{{ artifact.assetLabel }} · {{ artifact.visibilityLabel || '待审核 · 未公开' }} · {{ formatArtifactTime(artifact.createdAt) }}</text>
 			</view>
 		</view>
 
@@ -736,6 +736,10 @@ export default {
 				sourceCount: this.sourceCount,
 				badgeName: this.badgeName,
 				passportProgress: this.passportProgress,
+				auditRequired: true,
+				reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
+				publishStatus: 'private',
+				visibilityLabel: '待审核 · 未公开',
 				posterStatus: this.posterStatus,
 				pdfStatus: this.pdfStatus,
 				createdAt

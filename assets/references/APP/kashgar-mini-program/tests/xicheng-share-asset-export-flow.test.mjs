@@ -24,6 +24,9 @@ for (const required of [
   'assetLabel',
   'draftExcerpt',
   'passportProgress',
+  'auditRequired',
+  'publishStatus',
+  'visibilityLabel',
   'shareAssetCount',
   'formatArtifactTime'
 ]) {
@@ -58,6 +61,18 @@ assert.match(
   travelogue,
   /submitReviewPackage\(\)[\s\S]*shareArtifacts:\s*this\.shareArtifacts/,
   'review submission package should include generated share assets'
+)
+
+assert.match(
+  travelogue,
+  /createShareArtifact\(assetType\)[\s\S]*auditRequired:\s*true[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'[\s\S]*visibilityLabel:\s*'待审核 · 未公开'/,
+  'Generated poster and PDF assets should default to audit-required private visibility'
+)
+
+assert.match(
+  travelogue,
+  /artifact\.assetLabel[\s\S]*artifact\.visibilityLabel/,
+  'Share artifact list should show audit visibility so operators know generated works are not public'
 )
 
 assert.doesNotMatch(
