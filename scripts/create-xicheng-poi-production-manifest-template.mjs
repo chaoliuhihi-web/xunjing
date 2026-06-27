@@ -3,6 +3,7 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const artifactType = 'xicheng-poi-production-manifest-template'
+const reviewPacketArtifactType = 'xicheng-poi-production-review-packet'
 const allowedOutputDirs = new Set(['qa', 'tmp', 'workbench'])
 const defaultPoiSlotCount = 80
 
@@ -416,6 +417,69 @@ export function buildPoiReviewWorkbookCsv(manifest) {
   return `${[header.join(','), ...rows].join('\n')}\n`
 }
 
+function relativePathForCommand(rootDir, resolvedFile) {
+  if (!resolvedFile) {
+    return undefined
+  }
+  const relativePath = path.relative(path.resolve(rootDir), path.resolve(resolvedFile))
+  return relativePath && !relativePath.startsWith('..') && !path.isAbsolute(relativePath)
+    ? relativePath.split(path.sep).join('/')
+    : path.resolve(resolvedFile)
+}
+
+function buildReviewPacket({
+  rootDir,
+  manifest,
+  outputFile,
+  reviewChecklistFile,
+  reviewWorkbookFile
+}) {
+  const manifestPath = relativePathForCommand(rootDir, outputFile)
+  const checklistPath = relativePathForCommand(rootDir, reviewChecklistFile)
+  const workbookPath = relativePathForCommand(rootDir, reviewWorkbookFile)
+  const productionManifestPath = 'workbench/xicheng-production-pois.json'
+  const productionSeedPath = 'workbench/xicheng-poi-production-seed.sql'
+
+  return {
+    artifactType: reviewPacketArtifactType,
+    ok: false,
+    status: 'REVIEW_DATA_REQUIRED',
+    checkedAt: new Date().toISOString(),
+    summary: {
+      poiSlots: manifest.pois.length,
+      importedPoiCount: manifest.seedSource?.importedPoiCount || 0,
+      todoPoiSlots: manifest.pois.filter((poi) => String(poi.poiCode || '').startsWith('TODO-')).length,
+      productionReady: manifest.productionReady === true,
+      manifestFile: outputFile,
+      ...(reviewChecklistFile ? { reviewChecklistFile } : {}),
+      ...(reviewWorkbookFile ? { reviewWorkbookFile } : {})
+    },
+    draftFiles: {
+      manifestFile: manifestPath,
+      reviewChecklistFile: checklistPath,
+      reviewWorkbookFile: workbookPath
+    },
+    requiredEvidenceFiles: {
+      workbookEvidenceFile: 'qa/xicheng-poi-review-workbook-evidence.json',
+      manifestEvidenceFile: 'qa/xicheng-poi-manifest-evidence.json',
+      seedGenerationEvidenceFile: 'qa/xicheng-poi-production-seed-generation-evidence.json',
+      seedEvidenceFile: 'qa/xicheng-poi-production-seed-evidence.json'
+    },
+    nextCommands: [
+      `npm run xunjing:xicheng:poi:workbook:gate -- --workbook ${workbookPath || 'workbench/xicheng-production-pois.review-workbook.csv'} --evidence-file qa/xicheng-poi-review-workbook-evidence.json`,
+      `npm run xunjing:xicheng:poi:manifest:from-workbook -- --workbook ${workbookPath || 'workbench/xicheng-production-pois.review-workbook.csv'} --output ${productionManifestPath} --production-ready --batch-code xicheng-p0-poi-review-YYYYMMDD --data-owner xicheng-cultural-tourism-review-team --source-compiled-by xicheng-source-compiler --source-compiled-at YYYY-MM-DD --reviewed-by xicheng-production-reviewer --reviewed-at YYYY-MM-DD --evidence-package-ref oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-YYYYMMDD.zip`,
+      `npm run xunjing:xicheng:poi:manifest:gate -- --manifest ${productionManifestPath} --evidence-file qa/xicheng-poi-manifest-evidence.json`,
+      `npm run xunjing:xicheng:poi:seed:generate -- --manifest ${productionManifestPath} --output ${productionSeedPath} --evidence-file qa/xicheng-poi-production-seed-generation-evidence.json`,
+      `npm run xunjing:xicheng:poi:seed:verify -- --sql ${productionSeedPath} --evidence-file qa/xicheng-poi-production-seed-evidence.json`
+    ],
+    blockers: [
+      'review workbook still contains TODO or REVIEW_REQUIRED placeholders',
+      'production manifest must pass xunjing:xicheng:poi:manifest:gate',
+      'production seed SQL must pass xunjing:xicheng:poi:seed:verify'
+    ]
+  }
+}
+
 function slotId(index) {
   return String(index + 1).padStart(3, '0')
 }
@@ -519,7 +583,8 @@ export async function writeXichengPoiProductionManifestTemplate({
   count = defaultPoiSlotCount,
   seedSqlFile,
   reviewChecklistFile,
-  reviewWorkbookFile
+  reviewWorkbookFile,
+  reviewPacketFile
 } = {}) {
   const resolvedOutputFile = resolveOutputFile(rootDir, outputFile)
   const resolvedReviewChecklistFile = reviewChecklistFile
@@ -527,6 +592,9 @@ export async function writeXichengPoiProductionManifestTemplate({
     : undefined
   const resolvedReviewWorkbookFile = reviewWorkbookFile
     ? resolveOutputFile(rootDir, reviewWorkbookFile)
+    : undefined
+  const resolvedReviewPacketFile = reviewPacketFile
+    ? resolveOutputFile(rootDir, reviewPacketFile)
     : undefined
   const resolvedSeedSqlFile = seedSqlFile ? path.resolve(seedSqlFile) : undefined
   const seedPois = resolvedSeedSqlFile
@@ -547,6 +615,16 @@ export async function writeXichengPoiProductionManifestTemplate({
     await mkdir(path.dirname(resolvedReviewWorkbookFile), { recursive: true })
     await writeFile(resolvedReviewWorkbookFile, buildPoiReviewWorkbookCsv(manifest))
   }
+  if (resolvedReviewPacketFile) {
+    await mkdir(path.dirname(resolvedReviewPacketFile), { recursive: true })
+    await writeFile(resolvedReviewPacketFile, `${JSON.stringify(buildReviewPacket({
+      rootDir,
+      manifest,
+      outputFile: resolvedOutputFile,
+      reviewChecklistFile: resolvedReviewChecklistFile,
+      reviewWorkbookFile: resolvedReviewWorkbookFile
+    }), null, 2)}\n`)
+  }
   return {
     artifactType,
     ok: true,
@@ -566,6 +644,11 @@ export async function writeXichengPoiProductionManifestTemplate({
             workbookRows: manifest.pois.length
           }
         : {}),
+      ...(resolvedReviewPacketFile
+        ? {
+            reviewPacketFile: resolvedReviewPacketFile
+          }
+        : {}),
       poiSlots: manifest.pois.length,
       importedPoiCount: seedPois.length,
       todoPoiSlots: manifest.pois.length - seedPois.length,
@@ -583,7 +666,8 @@ async function runCli() {
     count: readArgValue(args, '--count') || defaultPoiSlotCount,
     seedSqlFile: readArgValue(args, '--seed-sql'),
     reviewChecklistFile: readArgValue(args, '--review-checklist'),
-    reviewWorkbookFile: readArgValue(args, '--review-workbook')
+    reviewWorkbookFile: readArgValue(args, '--review-workbook'),
+    reviewPacketFile: readArgValue(args, '--review-packet')
   })
   console.log(JSON.stringify(report, null, 2))
 }
