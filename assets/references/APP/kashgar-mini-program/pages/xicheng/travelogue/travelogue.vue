@@ -47,6 +47,7 @@
 				<button class="ghost-button" :disabled="recordingSession.status !== 'recording'" @click="markStayPoint">标记停留</button>
 				<button class="ghost-button" :disabled="recordingSession.status !== 'recording'" @click="pauseRecordingSession">暂停</button>
 				<button class="ghost-button" :disabled="recordingSession.status === 'idle' || recordingSession.status === 'finished'" @click="finishRecordingSession">结束</button>
+				<button class="ghost-button danger-button" :disabled="recordingSession.status === 'idle' && routePointCount === 0 && stayPointCount === 0" @click="deleteRecordingSession">删除记录</button>
 			</view>
 		</view>
 
@@ -668,6 +669,25 @@ export default {
 				icon: 'none'
 			})
 		},
+		deleteRecordingSession() {
+			if (this.recordingSession.status === 'idle' && this.routePointCount === 0 && this.stayPointCount === 0) return
+			uni.showModal({
+				title: '删除记录',
+				content: '将清除本次轨迹点和停留点，但不会删除素材盒和已保存草稿。',
+				confirmText: '删除',
+				confirmColor: '#B42318',
+				success: (res) => {
+					if (!res.confirm) return
+					uni.removeStorageSync(XICHENG_REGION_CONFIG.recordingStorageKey)
+					this.recordingSession = createEmptyRecordingSession()
+					this.refreshDraftFromEvidence()
+					uni.showToast({
+						title: '记录已删除',
+						icon: 'none'
+					})
+				}
+			})
+		},
 		async captureTrackPoint(pointType = 'manual') {
 			if (this.recordingSession.status === 'idle' || this.recordingSession.status === 'finished') return
 			const location = await requestCurrentLocationForTrigger()
@@ -974,5 +994,10 @@ export default {
 .ghost-button {
 	background: #E8ECE7;
 	color: #1F6E5A;
+}
+
+.danger-button {
+	background: #FEE4E2;
+	color: #B42318;
 }
 </style>

@@ -21,6 +21,7 @@ for (const required of [
   'startRecordingSession',
   'pauseRecordingSession',
   'finishRecordingSession',
+  'deleteRecordingSession',
   'captureTrackPoint',
   'requestCurrentLocationForTrigger',
   'recordingStorageKey',
@@ -54,6 +55,18 @@ assert.match(
   travelogue,
   /finishRecordingSession\(\)[\s\S]*this\.captureTrackPoint\('finish'\)[\s\S]*status:\s*'finished'[\s\S]*finishedAt/,
   'Finishing a recording session should capture the final point and close the session'
+)
+
+assert.match(
+  travelogue,
+  /@click="deleteRecordingSession"/,
+  'Recording controls should expose an explicit delete-recording entry for privacy and acceptance'
+)
+
+assert.match(
+  travelogue,
+  /deleteRecordingSession\(\)[\s\S]*uni\.showModal\([\s\S]*删除记录[\s\S]*uni\.removeStorageSync\(XICHENG_REGION_CONFIG\.recordingStorageKey\)[\s\S]*createEmptyRecordingSession\(\)[\s\S]*refreshDraftFromEvidence\(\)/,
+  'Deleting a recording session should confirm with the user, clear local recording storage, reset the session, and refresh draft evidence'
 )
 
 assert.match(
