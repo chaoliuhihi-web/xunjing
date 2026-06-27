@@ -333,7 +333,7 @@ export default {
 		this.loadJourney(options)
 	},
 	methods: {
-		loadJourney(options = {}) {
+		async loadJourney(options = {}) {
 			const storedMaterials = uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey)
 			const importedRoute = uni.getStorageSync(XICHENG_REGION_CONFIG.inspirationStorageKey)
 			const storedReviewSubmissions = uni.getStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey)
@@ -368,18 +368,26 @@ export default {
 			}
 			this.materials = materials
 			const cachedDraft = uni.getStorageSync(XICHENG_REGION_CONFIG.journeyStorageKey)
-			this.draft = cachedDraft && cachedDraft.draft
-				? cachedDraft.draft
-				: createXichengTravelogueDraft({
-					materials: this.materials,
-					parentChildTasks: this.parentChildTasks,
-					routeRecommendation: this.recognizedRoute,
-					recordingSession: this.recordingSession
-				})
+				this.draft = cachedDraft && cachedDraft.draft
+					? cachedDraft.draft
+					: createXichengTravelogueDraft({
+						materials: this.materials,
+						parentChildTasks: this.parentChildTasks,
+						routeRecommendation: this.recognizedRoute,
+						recordingSession: this.recordingSession
+					})
 			this.reviewText = cachedDraft && cachedDraft.reviewText ? cachedDraft.reviewText : this.reviewText
 			this.posterStatus = cachedDraft && cachedDraft.posterStatus ? cachedDraft.posterStatus : this.posterStatus
 			this.pdfStatus = cachedDraft && cachedDraft.pdfStatus ? cachedDraft.pdfStatus : this.pdfStatus
 			this.saveDraft({ silent: true })
+			if (this.shouldAutoStartRecording(options)) {
+				await this.startRecordingSession()
+			}
+		},
+		shouldAutoStartRecording(options = {}) {
+			return options.mode === 'record'
+				&& options.autoStart === '1'
+				&& this.recordingSession.status !== 'recording'
 		},
 		saveDraft({ silent = false } = {}) {
 			const payload = {

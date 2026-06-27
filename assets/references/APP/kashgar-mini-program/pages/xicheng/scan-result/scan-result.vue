@@ -193,7 +193,7 @@ export default {
 				...materials
 			].slice(0, 50))
 			uni.navigateTo({
-				url: `/pages/xicheng/travelogue/travelogue?mode=record&regionCode=${encodeURIComponent(this.result.regionCode)}&poiCode=${encodeURIComponent(this.result.poiCode || '')}&poiName=${encodeURIComponent(this.result.poiName || '')}&companionName=${encodeURIComponent(this.result.companionName)}`
+				url: `/pages/xicheng/travelogue/travelogue?mode=record&autoStart=1&regionCode=${encodeURIComponent(this.result.regionCode)}&poiCode=${encodeURIComponent(this.result.poiCode || '')}&poiName=${encodeURIComponent(this.result.poiName || '')}&companionName=${encodeURIComponent(this.result.companionName)}`
 			})
 		}
 	}

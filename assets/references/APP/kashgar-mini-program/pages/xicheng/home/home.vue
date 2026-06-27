@@ -284,7 +284,7 @@ export default {
 		},
 		openXichengTravelogue(mode = 'record') {
 			uni.navigateTo({
-				url: `/pages/xicheng/travelogue/travelogue?mode=${encodeURIComponent(mode)}&regionCode=${encodeURIComponent(this.region.regionCode)}`
+				url: `/pages/xicheng/travelogue/travelogue?mode=${encodeURIComponent(mode)}&autoStart=${encodeURIComponent(mode === 'record' ? '1' : '')}&regionCode=${encodeURIComponent(this.region.regionCode)}`
 			})
 		},
 		openXichengInspiration() {
