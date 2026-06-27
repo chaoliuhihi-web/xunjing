@@ -679,6 +679,7 @@ export default {
 				success: (res) => {
 					if (!res.confirm) return
 					XICHENG_REGION_CONFIG.privacyClearStorageKeys.forEach(key => uni.removeStorageSync(key))
+					this.clearXichengAiGuideCaches()
 					this.resetXichengLocalState()
 					uni.showToast({
 						title: '西城本地数据已清除',
@@ -686,6 +687,13 @@ export default {
 					})
 				}
 			})
+		},
+		clearXichengAiGuideCaches() {
+			const storageInfo = uni.getStorageInfoSync ? uni.getStorageInfoSync() : {}
+			const keys = Array.isArray(storageInfo.keys) ? storageInfo.keys : []
+			keys
+				.filter(key => XICHENG_REGION_CONFIG.privacyClearStorageKeyPrefixes.some(prefix => String(key).startsWith(prefix)))
+				.forEach(key => uni.removeStorageSync(key))
 		},
 		resetXichengLocalState() {
 			this.materials = []
