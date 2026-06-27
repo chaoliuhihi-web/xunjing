@@ -255,6 +255,7 @@ export default {
 				confidence: this.result.confidence || 0,
 				routeRecommendation: this.recommendedRoute,
 				sources: this.sourceList,
+				safetyStatus: this.result.safetyStatus || '',
 				recognitionFeedback: this.recognitionFeedback,
 				capturedAt: new Date().toISOString()
 			}
@@ -282,6 +283,7 @@ export default {
 				sourceLabel: material.sourceLabel,
 				confidence: material.confidence,
 				sources: material.sources,
+				safetyStatus: material.safetyStatus || '',
 				checkedInAt: material.capturedAt
 			}
 		},
@@ -326,6 +328,7 @@ export default {
 				source: this.result.source || '',
 				sourceLabel: this.result.sourceLabel,
 				sources: this.sourceList,
+				safetyStatus: this.result.safetyStatus || '',
 				feedbackNote: this.feedbackNote.trim(),
 				misTrigger: feedbackType === 'wrong',
 				reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
