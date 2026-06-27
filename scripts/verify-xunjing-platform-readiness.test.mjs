@@ -322,6 +322,7 @@ describe('xunjing platform readiness verifier', () => {
     })
 
     expect(result.ok).toBe(true)
+    expect(result.artifactType).toBe('xunjing-platform-readiness')
     expect(result.summary).toMatchObject({
       baseUrl,
       tenantId: '1',
@@ -360,6 +361,7 @@ describe('xunjing platform readiness verifier', () => {
     })
 
     expect(result.ok).toBe(true)
+    expect(result.artifactType).toBe('xunjing-platform-readiness')
     expect(result.checks.map((check) => check.name)).toEqual([
       'static-files',
       'sql-schema',

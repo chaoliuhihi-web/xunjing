@@ -184,6 +184,7 @@ function seedEvidence(overrides = {}) {
 
 function appReadinessEvidence(overrides = {}) {
   return mergeEvidence({
+    artifactType: 'xunjing-platform-readiness',
     ok: true,
     checkedAt: freshCheckedAt(),
     summary: {
@@ -429,6 +430,36 @@ describe('xicheng release evidence package gate', () => {
     expect(evidence.blockers.join('\n')).toContain('app readiness evidence baseUrl must be a non-local HTTPS URL for production')
   })
 
+  test('fails closed when APP readiness evidence lacks platform artifact type or tenant id', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence({
+      artifactType: undefined,
+      summary: {
+        tenantId: undefined
+      }
+    }))
+    const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath,
+      '--evidence-file', 'tmp/xicheng-release-evidence-package.json'
+    ])
+
+    expect(result.status).toBe(1)
+    const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
+    expect(evidence.status).toBe('NOT_READY')
+    expect(evidence.blockers.join('\n')).toContain('app readiness evidence artifactType must be xunjing-platform-readiness')
+    expect(evidence.blockers.join('\n')).toContain('app readiness evidence tenantId is required')
+  })
+
   test('fails closed when package input evidence is missing checkedAt timestamp', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence())
@@ -544,5 +575,7 @@ describe('xicheng release evidence package gate', () => {
     )
     expect(deployDoc).toContain('npm run xunjing:xicheng:release:evidence:package')
     expect(deployDoc).toContain('XICHENG_RELEASE_EVIDENCE_PACKAGE_READY')
+    expect(deployDoc).toContain('xunjing-platform-readiness')
+    expect(deployDoc).toContain('summary.tenantId')
   })
 })

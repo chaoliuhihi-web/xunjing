@@ -908,6 +908,7 @@ export async function verifyXunjingPlatformReadiness({
   }
 
   return {
+    artifactType: 'xunjing-platform-readiness',
     ok: checks.every((check) => check.ok),
     checkedAt: new Date().toISOString(),
     summary: {

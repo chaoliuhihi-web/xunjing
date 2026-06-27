@@ -334,9 +334,16 @@ function checkAppReadinessEvidence(ref, stage, freshnessOptions) {
   const evidence = ref.data || {}
   const summary = summaryOf(evidence)
   const baseUrl = summary.baseUrl || evidence.baseUrl
+  const tenantId = String(summary.tenantId || evidence.tenantId || '').trim()
+  if (evidence.artifactType !== 'xunjing-platform-readiness') {
+    blockers.push('app readiness evidence artifactType must be xunjing-platform-readiness')
+  }
   blockers.push(...checkEvidenceTimestamp(evidence, 'app readiness', freshnessOptions))
   if (evidence.ok !== true) {
     blockers.push('app readiness evidence ok must be true')
+  }
+  if (!tenantId) {
+    blockers.push('app readiness evidence tenantId is required')
   }
   if (!isNonLocalHttpsUrl(baseUrl)) {
     blockers.push(`app readiness evidence baseUrl must be a non-local HTTPS URL for ${stage}`)
