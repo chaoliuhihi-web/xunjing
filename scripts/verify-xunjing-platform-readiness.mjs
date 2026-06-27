@@ -91,6 +91,9 @@ const xichengTriggerSmokeCases = [
   }
 ]
 
+const xichengLocalCandidatePoiFloor = 24
+const xichengProductionPoiTarget = 80
+
 function pass(name, detail) {
   return { name, ok: true, detail }
 }
@@ -208,10 +211,106 @@ async function checkXichengSeedData(rootDir) {
     assertContains(seed, snippet, 'xunjing-seed-xicheng-p0.sql')
   }
   const poiCount = seed.match(/"poiId":"xicheng-/g)?.length ?? 0
-  if (poiCount < 24) {
-    throw new Error(`xunjing-seed-xicheng-p0.sql must include at least 24 local-candidate POIs; found ${poiCount}`)
+  if (poiCount < xichengLocalCandidatePoiFloor) {
+    throw new Error(
+      `xunjing-seed-xicheng-p0.sql must include at least ${xichengLocalCandidatePoiFloor} local-candidate POIs; found ${poiCount}`
+    )
   }
   return pass('xicheng-seed-data', 'Xicheng P0 local-candidate POI, source and gate seed data is present')
+}
+
+function extractXichengPoiSeedRows(seed) {
+  return seed
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("(@map_package_id, 'xicheng-"))
+}
+
+function assertXichengPoiSeedRow(row) {
+  const poiCode = row.match(/'(?<poiCode>xicheng-[^']+)'/)?.groups?.poiCode
+  if (!poiCode) {
+    throw new Error(`Xicheng POI seed row is missing poi_code: ${row}`)
+  }
+
+  const aliasesMatch = row.match(/'(?<aliases>\[[^']+\])',\s*'(?<category>[^']+)',\s*'P0'/)
+  if (!aliasesMatch) {
+    throw new Error(`Xicheng POI seed row ${poiCode} is missing aliases_json, category or P0 level`)
+  }
+
+  let aliases
+  try {
+    aliases = JSON.parse(aliasesMatch.groups.aliases)
+  } catch {
+    throw new Error(`Xicheng POI seed row ${poiCode} has invalid aliases_json`)
+  }
+  if (!Array.isArray(aliases) || aliases.length < 2) {
+    throw new Error(`Xicheng POI seed row ${poiCode} must include at least two aliases`)
+  }
+
+  const coordMatch = row.match(/,\s*(?<latitude>\d{2}\.\d+),\s*(?<longitude>\d{3}\.\d+),\s*'GCJ02'/)
+  const latitude = Number(coordMatch?.groups?.latitude)
+  const longitude = Number(coordMatch?.groups?.longitude)
+  if (!coordMatch || latitude < 39 || latitude > 41 || longitude < 115 || longitude > 117) {
+    throw new Error(`Xicheng POI seed row ${poiCode} must include Beijing GCJ02 coordinates`)
+  }
+
+  for (const snippet of [
+    "'beijing-xicheng'",
+    "'sourceUrl',@xicheng_source_url",
+    "'licenseStatus','REVIEW_REQUIRED'",
+    '"gpsRadiusMeters":',
+    '"ocrKeywords":[',
+    '"photoLabels":[',
+    '"minConfidence":0.85',
+    `"poiId":"${poiCode}"`,
+    '"regionCode":"beijing-xicheng"',
+    '"packageCode":"XICHENG-MAP-001"',
+    '"reviewStatus":"APPROVED"',
+    '"geoStatus":"REVIEW_REQUIRED"',
+    '"licenseStatus":"REVIEW_REQUIRED"',
+    '"shortIntro":"',
+    '"recommendedQuestions":[',
+    "'APPROVED', 'REVIEW_REQUIRED', 'REVIEW_REQUIRED', 'PUBLISHED'"
+  ]) {
+    assertContains(row, snippet, `xunjing-seed-xicheng-p0.sql ${poiCode}`)
+  }
+
+  return {
+    poiCode,
+    category: aliasesMatch.groups.category
+  }
+}
+
+async function checkXichengPoiSeedQuality(rootDir) {
+  const seed = await readText(rootDir, 'backend/yudao/sql/mysql/xunjing-seed-xicheng-p0.sql')
+  const poiRows = extractXichengPoiSeedRows(seed)
+  if (poiRows.length < xichengLocalCandidatePoiFloor) {
+    throw new Error(
+      `xunjing-seed-xicheng-p0.sql must include at least ${xichengLocalCandidatePoiFloor} maintainable POI rows; found ${poiRows.length}`
+    )
+  }
+
+  const seenPoiCodes = new Set()
+  const categories = new Set()
+  for (const row of poiRows) {
+    const { poiCode, category } = assertXichengPoiSeedRow(row)
+    if (seenPoiCodes.has(poiCode)) {
+      throw new Error(`xunjing-seed-xicheng-p0.sql contains duplicated POI code ${poiCode}`)
+    }
+    seenPoiCodes.add(poiCode)
+    categories.add(category)
+  }
+  if (categories.size < 8) {
+    throw new Error(`xunjing-seed-xicheng-p0.sql must cover at least 8 POI categories; found ${categories.size}`)
+  }
+  assertContains(seed, `"poiSeedCount":${poiRows.length}`, 'xunjing-seed-xicheng-p0.sql')
+  assertContains(seed, `"targetP0PoiCount":${xichengProductionPoiTarget}`, 'xunjing-seed-xicheng-p0.sql')
+  assertContains(seed, '"productionReady":false', 'xunjing-seed-xicheng-p0.sql')
+
+  return pass(
+    'xicheng-poi-seed-quality',
+    `Xicheng seed has ${poiRows.length}/${xichengProductionPoiTarget} local-candidate POIs with aliases, coordinates, triggers, sources and audit status`
+  )
 }
 
 async function checkXichengTriggerBackend(rootDir) {
@@ -689,6 +788,7 @@ export async function verifyXunjingPlatformReadiness({
   checks.push(await checkSqlSchema(rootDir))
   checks.push(await checkSeedData(rootDir))
   checks.push(await checkXichengSeedData(rootDir))
+  checks.push(await checkXichengPoiSeedQuality(rootDir))
   checks.push(await checkXichengTriggerBackend(rootDir))
   checks.push(await checkXichengAiSourceGuardBackend(rootDir))
   checks.push(await checkAdminUiContract(rootDir))

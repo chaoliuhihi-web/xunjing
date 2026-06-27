@@ -11,6 +11,13 @@ async function readText(path) {
   return await readFile(resolve(rootDir, path), 'utf8')
 }
 
+function xichengPoiSeedRows(seed) {
+  return seed
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("(@map_package_id, 'xicheng-"))
+}
+
 describe('xicheng backend launch readiness', () => {
   test('gates Xicheng P0 backend launch seed and verifier coverage', async () => {
     expect(existsSync(resolve(rootDir, xichengSeedPath))).toBe(true)
@@ -27,6 +34,8 @@ describe('xicheng backend launch readiness', () => {
 
     expect(verifier).toContain('xunjing-seed-xicheng-p0.sql')
     expect(verifier).toContain('xicheng-seed-data')
+    expect(verifier).toContain('checkXichengPoiSeedQuality')
+    expect(verifier).toContain('xicheng-poi-seed-quality')
     expect(verifier).toContain('xicheng-trigger-backend')
     expect(verifier).toContain('xicheng-ai-source-guard-backend')
     expect(verifier).toContain('includeXichengAppCheck')
@@ -68,7 +77,24 @@ describe('xicheng backend launch readiness', () => {
       expect(seed).toContain(snippet)
     }
 
+    const poiRows = xichengPoiSeedRows(seed)
+    expect(poiRows).toHaveLength(24)
     expect(seed.match(/"poiId":"xicheng-/g) ?? []).toHaveLength(24)
+    for (const row of poiRows) {
+      const poiCode = row.match(/'(?<poiCode>xicheng-[^']+)'/)?.groups?.poiCode
+      expect(poiCode).toBeTruthy()
+      expect(row).toContain("'beijing-xicheng'")
+      expect(row).toContain("'P0'")
+      expect(row).toContain("'GCJ02'")
+      expect(row).toContain("'sourceUrl',@xicheng_source_url")
+      expect(row).toContain('"gpsRadiusMeters":')
+      expect(row).toContain('"ocrKeywords":[')
+      expect(row).toContain('"photoLabels":[')
+      expect(row).toContain(`"poiId":"${poiCode}"`)
+      expect(row).toContain('"shortIntro":"')
+      expect(row).toContain('"recommendedQuestions":[')
+      expect(row).toContain("'APPROVED', 'REVIEW_REQUIRED', 'REVIEW_REQUIRED', 'PUBLISHED'")
+    }
     expect(seed).toContain('INSERT INTO `xunjing_poi`')
     expect(seed).toContain('INSERT INTO `xunjing_knowledge_document`')
     expect(seed).toContain('INSERT INTO `xunjing_ai_eval_case`')
