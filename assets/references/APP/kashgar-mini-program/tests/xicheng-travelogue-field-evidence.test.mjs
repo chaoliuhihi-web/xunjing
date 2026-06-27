@@ -15,6 +15,11 @@ for (const required of [
   'remarkMaterialCount',
   'addRemarkMaterial',
   'addPhotoMaterial',
+  'photoId',
+  'takenAt',
+  'captureLocation',
+  'exifLocation',
+  'nearestTrackPoint',
   'refreshDraftFromEvidence'
 ]) {
   assert.ok(travelogue.includes(required), `Travelogue should support field evidence input ${required}`)
@@ -46,6 +51,18 @@ assert.match(
 
 assert.match(
   travelogue,
+  /addPhotoMaterial\(\)[\s\S]*requestCurrentLocationForTrigger\(\)[\s\S]*captureLocation:\s*this\.normalizeCaptureLocationForMaterial\(captureLocation\)[\s\S]*nearestTrackPoint:\s*this\.findNearestTrackPoint\(takenAt\)/,
+  'Adding a photo should bind the photo material to capture-time location and the nearest track point'
+)
+
+assert.match(
+  travelogue,
+  /findNearestTrackPoint\(capturedAt = ''\)[\s\S]*this\.recordingSession\.trackPoints[\s\S]*Math\.abs\(new Date\(pointTime\)\.getTime\(\) - capturedTime\)[\s\S]*trackSessionId:\s*this\.recordingSession\.sessionId/,
+  'Photo evidence should match the nearest recorded track point by time and include the recording session id'
+)
+
+assert.match(
+  travelogue,
   /refreshDraftFromEvidence\(\)[\s\S]*createXichengTravelogueDraft\(\{[\s\S]*materials:\s*this\.materials[\s\S]*recordingSession:\s*this\.recordingSession/,
   'Refreshing the draft should rebuild it from materials and the recording session'
 )
@@ -70,6 +87,6 @@ assert.match(
 
 assert.doesNotMatch(
   travelogue,
-  /\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
-  'Field evidence MVP should stay local and avoid client-side secrets or new backend calls'
+  /background-location|startLocationUpdateBackground|\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
+  'Field evidence MVP should stay local and avoid background location, client-side secrets, or new backend calls'
 )

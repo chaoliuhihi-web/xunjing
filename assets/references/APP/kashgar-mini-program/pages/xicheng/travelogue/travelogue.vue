@@ -475,15 +475,52 @@ export default {
 				icon: 'none'
 			})
 		},
+		normalizeCaptureLocationForMaterial(location = null) {
+			if (!location) return null
+			return {
+				latitude: location.latitude !== undefined ? Number(location.latitude) : null,
+				longitude: location.longitude !== undefined ? Number(location.longitude) : null,
+				coordType: location.coordType || 'gcj02',
+				accuracyMeters: location.accuracyMeters !== undefined ? Number(location.accuracyMeters) : 0
+			}
+		},
+		findNearestTrackPoint(capturedAt = '') {
+			const trackPoints = Array.isArray(this.recordingSession.trackPoints) ? this.recordingSession.trackPoints : []
+			const capturedTime = new Date(capturedAt).getTime()
+			if (!Number.isFinite(capturedTime) || trackPoints.length === 0) return null
+			const nearest = trackPoints.reduce((best, point) => {
+				const pointTime = point.recordedAt || point.capturedAt || ''
+				const diffMs = Math.abs(new Date(pointTime).getTime() - capturedTime)
+				if (!Number.isFinite(diffMs)) return best
+				if (!best || diffMs < best.diffMs) {
+					return { point, diffMs }
+				}
+				return best
+			}, null)
+			if (!nearest) return null
+			return {
+				trackSessionId: this.recordingSession.sessionId,
+				pointType: nearest.point.pointType || 'manual',
+				capturedAt: nearest.point.capturedAt || nearest.point.recordedAt || '',
+				latitude: nearest.point.latitude,
+				longitude: nearest.point.longitude,
+				coordType: nearest.point.coordType || 'gcj02',
+				accuracyMeters: nearest.point.accuracyMeters || 0,
+				diffMs: nearest.diffMs
+			}
+		},
 		addPhotoMaterial() {
 			uni.chooseImage({
 				count: 1,
 				sizeType: ['compressed'],
 				sourceType: ['camera', 'album'],
-				success: (res) => {
+				success: async (res) => {
 					const filePath = res.tempFilePaths && res.tempFilePaths[0] ? res.tempFilePaths[0] : ''
 					if (!filePath) return
+					const takenAt = new Date().toISOString()
+					const captureLocation = await requestCurrentLocationForTrigger()
 					const material = {
+						photoId: `photo-${Date.now()}`,
 						type: 'photo',
 						regionCode: XICHENG_REGION_CONFIG.regionCode,
 						packageCode: XICHENG_REGION_CONFIG.packageCode,
@@ -491,8 +528,14 @@ export default {
 						poiName: '现场照片',
 						sourceLabel: '补充照片',
 						imagePath: filePath,
+						localFileId: filePath,
+						objectKey: '',
+						takenAt,
+						exifLocation: null,
+						captureLocation: this.normalizeCaptureLocationForMaterial(captureLocation),
+						nearestTrackPoint: this.findNearestTrackPoint(takenAt),
 						sources: [],
-						capturedAt: new Date().toISOString()
+						capturedAt: takenAt
 					}
 					this.materials = [material, ...this.materials].slice(0, 50)
 					this.persistJourneyMaterials()
