@@ -23,6 +23,28 @@
 			}
 		},
 		{
+			"path": "pages/xicheng/home/home",
+			"style": {
+				"navigationBarTitleText": "西城AI旅伴",
+				"navigationStyle": "custom",
+				"mp-weixin": {
+					"navigationStyle": "custom",
+					"homeButton": false
+				}
+			}
+		},
+		{
+			"path": "pages/xicheng/scan-result/scan-result",
+			"style": {
+				"navigationBarTitleText": "识别结果",
+				"navigationStyle": "custom",
+				"mp-weixin": {
+					"navigationStyle": "custom",
+					"homeButton": false
+				}
+			}
+		},
+		{
 			"path": "pages/banner/banner",
 			"style": {
 				"navigationBarTitleText": "详情",

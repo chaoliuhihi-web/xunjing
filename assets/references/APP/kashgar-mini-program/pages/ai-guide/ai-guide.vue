@@ -302,6 +302,7 @@ import CustomNav from '@/components/custom-nav/custom-nav.vue'
 import TabBar from '@/components/tab-bar/tab-bar.vue'
 import config from '@/request/config.js'
 import { resolveXunjingPhotoTrigger } from '@/request/xunjingMultimodal.js'
+import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 
 const UrlImg = config.UrlImg
 const BG_IMAGE = 'https://www.neoxiake.com//upload/admin/20260527/f0405d5a04cbe38494795727956523d4.png'
@@ -446,6 +447,14 @@ const conversationId = ref('')
 const isStreaming = ref(false)
 const navBarHeight = ref(44)
 const chatListPaddingTop = computed(() => `${navBarHeight.value + 10}px`)
+const xichengAiContext = ref({
+	regionCode: '',
+	packageCode: '',
+	poiCode: '',
+	poiName: '',
+	companionName: '',
+	confidence: ''
+})
 
 const handleNavHeight = (height) => {
 	if (height && Number(height) > 0) {
@@ -471,7 +480,9 @@ const createMessageId = () => `msg_${Date.now()}_${messageSeed++}`
 const createWelcomeMessage = () => ({
 	id: createMessageId(),
 	role: 'assistant',
-	content: '您好！我是AI小导游，有什么可以帮助您的吗？',
+	content: hasXichengAiContext()
+		? `你好，我是${xichengAiContext.value.companionName || XICHENG_REGION_CONFIG.companionName}，可以继续帮你讲解西城文化点、推荐路线或生成游记草稿。`
+		: '您好！我是AI小导游，有什么可以帮助您的吗？',
 	images: [],
 	followUps: [],
 	isPending: false,
@@ -560,6 +571,64 @@ const getUserTraceId = () => {
 		return `openid_${openid}`
 	}
 	return getUserId()
+}
+
+const decodeRouteValue = (value = '') => {
+	try {
+		return decodeURIComponent(String(value || ''))
+	} catch (error) {
+		return String(value || '')
+	}
+}
+
+const normalizeXichengAiContext = (options = {}) => ({
+	regionCode: decodeRouteValue(options.regionCode),
+	packageCode: decodeRouteValue(options.packageCode),
+	poiCode: decodeRouteValue(options.poiCode),
+	poiName: decodeRouteValue(options.poiName),
+	companionName: decodeRouteValue(options.companionName),
+	confidence: decodeRouteValue(options.confidence)
+})
+
+const applyXichengAiContext = (options = {}) => {
+	const context = normalizeXichengAiContext(options)
+	if (context.regionCode !== XICHENG_REGION_CONFIG.regionCode && !context.poiCode && !context.poiName) {
+		xichengAiContext.value = {
+			regionCode: '',
+			packageCode: '',
+			poiCode: '',
+			poiName: '',
+			companionName: '',
+			confidence: ''
+		}
+		return xichengAiContext.value
+	}
+	xichengAiContext.value = {
+		regionCode: context.regionCode || XICHENG_REGION_CONFIG.regionCode,
+		packageCode: context.packageCode || XICHENG_REGION_CONFIG.packageCode,
+		poiCode: context.poiCode,
+		poiName: context.poiName,
+		companionName: context.companionName || XICHENG_REGION_CONFIG.companionName,
+		confidence: context.confidence
+	}
+	return xichengAiContext.value
+}
+
+const hasXichengAiContext = (context = xichengAiContext.value) => (
+	context && (
+		context.regionCode === XICHENG_REGION_CONFIG.regionCode
+		|| Boolean(context.poiCode)
+		|| Boolean(context.poiName)
+	)
+)
+
+const buildXichengContextQuestion = (question = '', context = xichengAiContext.value) => {
+	if (!hasXichengAiContext(context)) {
+		return question
+	}
+	const poiText = context.poiName ? `识别地点：${context.poiName}。` : ''
+	const confidenceText = context.confidence ? `识别置信度：${context.confidence}。` : ''
+	return `你是${context.companionName || XICHENG_REGION_CONFIG.companionName}，服务北京西城试运营路线。${poiText}${confidenceText}用户问题：${question}`
 }
 
 const buildYudaoAppApiUrl = (path) => {
@@ -725,6 +794,37 @@ const createLocalKashgarAiFallback = (question = '') => {
 	}
 }
 
+const createLocalXichengAiFallback = (question = '', context = {}) => {
+	const poiName = context.poiName || '西城文化点'
+	const normalizedQuestion = String(question || '').trim()
+	const topic = normalizedQuestion.includes('路线') || normalizedQuestion.includes('攻略')
+		? '路线'
+		: normalizedQuestion.includes('游记') || normalizedQuestion.includes('记录')
+			? '游记'
+			: '讲解'
+	const answer = topic === '路线'
+		? `我是${context.companionName || XICHENG_REGION_CONFIG.companionName}。先按西城试运营资料为你推荐：从${poiName}出发，可以串联周边历史街巷、博物馆或水系空间，控制在 1.5 到 2.5 小时，适合边走边听讲解并完成路线护照打卡。`
+		: topic === '游记'
+			? `我是${context.companionName || XICHENG_REGION_CONFIG.companionName}。我可以先把${poiName}作为今天的游记素材，补上识别地点、讲解要点、亲子观察任务和分享海报标题，后续再合并路线记录生成草稿。`
+			: `我是${context.companionName || XICHENG_REGION_CONFIG.companionName}。先按西城本地导览资料讲解：${poiName}可以从历史沿革、建筑细节、街区生活和亲子研学观察四个角度来听。现场可以先看门头、碑刻或说明牌，再继续问我“下一站去哪”。`
+	return {
+		fallback: true,
+		answer,
+		sources: [],
+		followUps: [
+			`讲讲${poiName}`,
+			`从${poiName}出发推荐路线`,
+			`把${poiName}写进游记草稿`
+		]
+	}
+}
+
+const createLocalXunjingAiFallback = (question = '', context = xichengAiContext.value) => {
+	return hasXichengAiContext(context)
+		? createLocalXichengAiFallback(question, context)
+		: createLocalKashgarAiFallback(question)
+}
+
 const createSourceFollowUps = (sources = []) => sources
 	.filter(source => source && source.title)
 	.slice(0, 3)
@@ -732,6 +832,24 @@ const createSourceFollowUps = (sources = []) => sources
 
 const requestXunjingAiChat = (question) => {
 	let requestTask = null
+	const context = xichengAiContext.value || {}
+	const requestQuestion = buildXichengContextQuestion(question, context)
+	const requestPayload = {
+		packageCode: XUNJING_AI_CONFIG.packageCode,
+		question: requestQuestion,
+		sceneCode: XUNJING_AI_CONFIG.sceneCode,
+		sourceChannel: XUNJING_AI_CONFIG.sourceChannel,
+		userTraceId: getUserTraceId()
+	}
+	if (hasXichengAiContext(context)) {
+		requestPayload.packageCode = context.packageCode || XICHENG_REGION_CONFIG.packageCode
+		requestPayload.regionCode = context.regionCode || XICHENG_REGION_CONFIG.regionCode
+		requestPayload.sceneCode = XICHENG_REGION_CONFIG.aiSceneCode
+		requestPayload.poiCode = context.poiCode
+		requestPayload.poiName = context.poiName
+		requestPayload.companionName = context.companionName || XICHENG_REGION_CONFIG.companionName
+		requestPayload.recognitionConfidence = context.confidence || ''
+	}
 	const pendingRequest = new Promise((resolve, reject) => {
 		requestTask = uni.request({
 			url: buildYudaoAppApiUrl(XUNJING_AI_CONFIG.apiPath),
@@ -740,17 +858,11 @@ const requestXunjingAiChat = (question) => {
 				'Content-Type': 'application/json',
 				'tenant-id': XUNJING_AI_CONFIG.tenantId
 			},
-			data: {
-				packageCode: XUNJING_AI_CONFIG.packageCode,
-				question,
-				sceneCode: XUNJING_AI_CONFIG.sceneCode,
-				sourceChannel: XUNJING_AI_CONFIG.sourceChannel,
-				userTraceId: getUserTraceId()
-			},
+			data: requestPayload,
 			success: (res) => {
 				if (res && res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
 					resolve({
-						...createLocalKashgarAiFallback(question),
+						...createLocalXunjingAiFallback(question, context),
 						statusCode: res && res.statusCode,
 						fallback: true
 					})
@@ -760,7 +872,7 @@ const requestXunjingAiChat = (question) => {
 					resolve(normalizeXunjingAiResponse(res))
 				} catch (error) {
 					resolve({
-						...createLocalKashgarAiFallback(question),
+						...createLocalXunjingAiFallback(question, context),
 						errorMessage: error && error.message ? error.message : '',
 						fallback: true
 					})
@@ -772,7 +884,7 @@ const requestXunjingAiChat = (question) => {
 					return
 				}
 				resolve({
-					...createLocalKashgarAiFallback(question),
+					...createLocalXunjingAiFallback(question, context),
 					errorMessage: error && (error.errMsg || error.message) ? (error.errMsg || error.message) : '',
 					fallback: true
 				})
@@ -1717,7 +1829,9 @@ const sendMessage = async () => {
 				questionLength: userMessage.length,
 				fallback: Boolean(aiResult && aiResult.fallback),
 				sourceCount: aiResult && Array.isArray(aiResult.sources) ? aiResult.sources.length : 0,
-				followUpCount: aiResult && Array.isArray(aiResult.followUps) ? aiResult.followUps.length : 0
+				followUpCount: aiResult && Array.isArray(aiResult.followUps) ? aiResult.followUps.length : 0,
+				regionCode: xichengAiContext.value.regionCode || '',
+				poiCode: xichengAiContext.value.poiCode || ''
 			}
 		})
 		speakVisibleAssistantReply(assistantMessage, aiResult.answer)
@@ -1764,17 +1878,26 @@ onShow(() => {
 })
 
 onLoad((options = {}) => {
+	const context = applyXichengAiContext(options)
 	loadXunjingPackageDetail()
 	recordXunjingResourceEvent({
 		eventType: 'VIEW',
 		payload: {
 			page: 'ai-guide',
 			entryMode: options.mode || '',
-			hasInitialQuestion: Boolean(options.question)
+			hasInitialQuestion: Boolean(options.question),
+			regionCode: context.regionCode || '',
+			poiCode: context.poiCode || ''
 		}
 	})
 	if (KASHGAR_DIARY_GENERATOR_ENABLED && options.mode === 'diary') {
 		openKashgarDiaryGenerator()
+		return
+	}
+	if (hasXichengAiContext(context) && !options.question) {
+		showKashgarDiaryGenerator.value = false
+		showAiCompanionHome.value = false
+		setWelcomeMessage()
 		return
 	}
 	if (!options.question) return
