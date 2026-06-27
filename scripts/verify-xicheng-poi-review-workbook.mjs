@@ -10,6 +10,7 @@ const artifactType = 'xicheng-poi-review-workbook-readiness'
 const readyStatus = 'XICHENG_POI_REVIEW_WORKBOOK_READY'
 const defaultMinPoiCount = 80
 const allowedEvidenceDirs = new Set(['qa', 'tmp', 'workbench'])
+const placeholderPattern = /\b(?:TODO|TBD|PLACEHOLDER|REVIEW_REQUIRED)\b|待补|待复核/i
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex')
@@ -303,8 +304,11 @@ function collectStrings(value, output = []) {
   return output
 }
 
+function containsPlaceholderValue(value) {
+  return collectStrings(value).some((item) => placeholderPattern.test(item))
+}
+
 function checkNoPlaceholderCells(pois) {
-  const placeholderPattern = /\b(?:TODO|TBD|PLACEHOLDER|REVIEW_REQUIRED)\b|待补|待复核/i
   const placeholderCount = collectStrings(pois).filter((value) => placeholderPattern.test(value)).length
   const blockers = placeholderCount > 0
     ? [`workbook contains placeholder review values (${placeholderCount})`]
@@ -312,6 +316,74 @@ function checkNoPlaceholderCells(pois) {
   return {
     ...check('no-placeholder-cells', blockers),
     summary: { placeholderCount }
+  }
+}
+
+function isWorkbookPoiRowReady(poi) {
+  const source = poi.source || {}
+  const trigger = poi.trigger || {}
+  const fieldEvidence = poi.fieldEvidence || {}
+  const content = poi.content || {}
+  const audit = poi.audit || {}
+  const radius = Number(trigger.gpsRadiusMeters)
+  const minConfidence = Number(trigger.minConfidence)
+
+  return /^xicheng-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(String(poi.poiCode || '')) &&
+    ['name', 'displayName', 'category', 'address'].every((field) => hasText(poi[field])) &&
+    poi.priority === 'P0' &&
+    hasMinArray(poi.aliases, 2) &&
+    hasText(source.sourceTitle) &&
+    isHttpsUrl(source.sourceUrl) &&
+    ['OFFICIAL', 'OFFICIAL_PUBLIC', 'AUTHORIZED', 'PARTNER'].includes(String(source.sourceType || '').toUpperCase()) &&
+    isApproved(source.licenseStatus) &&
+    isEvidenceRef(source.licenseEvidenceRef) &&
+    hasText(source.licenseReviewedBy) &&
+    hasText(source.licenseReviewedAt) &&
+    poi.coordType === 'GCJ02' &&
+    Number.isFinite(Number(poi.latitude)) &&
+    Number(poi.latitude) >= 39 &&
+    Number(poi.latitude) <= 41 &&
+    Number.isFinite(Number(poi.longitude)) &&
+    Number(poi.longitude) >= 115 &&
+    Number(poi.longitude) <= 117 &&
+    Number.isFinite(radius) &&
+    radius >= 50 &&
+    radius <= 800 &&
+    hasMinArray(trigger.ocrKeywords, 2) &&
+    hasMinArray(trigger.photoLabels, 2) &&
+    Number.isFinite(minConfidence) &&
+    minConfidence >= 0.8 &&
+    minConfidence <= 1 &&
+    isApproved(fieldEvidence.photoEvidenceStatus) &&
+    isPassed(fieldEvidence.triggerSmokeStatus) &&
+    Array.isArray(fieldEvidence.evidenceRefs) &&
+    fieldEvidence.evidenceRefs.length > 0 &&
+    fieldEvidence.evidenceRefs.every((ref) => isEvidenceRef(ref)) &&
+    hasText(fieldEvidence.verifiedBy) &&
+    hasText(fieldEvidence.verifiedAt) &&
+    String(content.shortIntro || '').trim().length >= 20 &&
+    hasMinArray(content.recommendedQuestions, 3) &&
+    ['reviewStatus', 'geoStatus', 'licenseStatus'].every((field) => isApproved(audit[field])) &&
+    isPublished(audit.status) &&
+    hasText(audit.reviewedBy) &&
+    hasText(audit.reviewedAt) &&
+    !containsPlaceholderValue(poi)
+}
+
+function summarizeWorkbookPoiRows(pois) {
+  const pendingPoiCodes = []
+  let workbookReadyPoiCount = 0
+  pois.forEach((poi, index) => {
+    if (isWorkbookPoiRowReady(poi)) {
+      workbookReadyPoiCount += 1
+    } else {
+      pendingPoiCodes.push(poiLabel(poi, index))
+    }
+  })
+  return {
+    workbookReadyPoiCount,
+    workbookPendingPoiCount: pendingPoiCodes.length,
+    pendingPoiCodes
   }
 }
 
@@ -378,6 +450,7 @@ export async function verifyXichengPoiReviewWorkbook({
   const blockers = checks.flatMap((item) => item.blockers || [])
   const ok = checks.every((item) => item.ok)
   const categories = new Set(pois.map((poi) => poi.category).filter(hasText))
+  const poiRowSummary = summarizeWorkbookPoiRows(pois)
   const blockerBreakdown = checks.map((item) => ({
     name: item.name,
     ok: item.ok,
@@ -400,6 +473,7 @@ export async function verifyXichengPoiReviewWorkbook({
       passedCheckCount: checks.filter((item) => item.ok).length,
       failedCheckCount: checks.filter((item) => !item.ok).length,
       blockerCount: blockers.length,
+      ...poiRowSummary,
       blockerBreakdown
     },
     checks,

@@ -167,7 +167,10 @@ describe('xicheng POI review workbook readiness gate', () => {
         workbookRows: 80,
         minPoiCount: 80,
         categoryCount: 8,
-        placeholderCount: 0
+        placeholderCount: 0,
+        workbookReadyPoiCount: 80,
+        workbookPendingPoiCount: 0,
+        pendingPoiCodes: []
       }
     })
     expect(report.checks.map((check) => check.name)).toEqual([
@@ -208,7 +211,10 @@ describe('xicheng POI review workbook readiness gate', () => {
       totalCheckCount: 8,
       passedCheckCount: 3,
       failedCheckCount: 5,
-      blockerCount: 6
+      blockerCount: 6,
+      workbookReadyPoiCount: 79,
+      workbookPendingPoiCount: 1,
+      pendingPoiCodes: ['TODO-xicheng-poi-080']
     })
     expect(report.summary.blockerBreakdown).toEqual([
       { name: 'workbook-file', ok: true, blockerCount: 0 },
@@ -237,6 +243,8 @@ describe('xicheng POI review workbook readiness gate', () => {
     expect(deployDoc).toContain('XICHENG_POI_REVIEW_WORKBOOK_READY')
     expect(deployDoc).toContain('xicheng-poi-review-workbook-evidence.json')
     expect(deployDoc).toContain('blockerBreakdown')
+    expect(deployDoc).toContain('workbookReadyPoiCount')
     expect(statusDoc).toContain('blockerBreakdown')
+    expect(statusDoc).toContain('workbookReadyPoiCount')
   })
 })
