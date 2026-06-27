@@ -582,14 +582,21 @@ async function checkXichengProductionPoiEvidence({
     details.push(`seed=${seedEvidence.path}`)
   }
 
-  return check(
-    'xicheng-production-poi-evidence',
-    blockers.length === 0,
-    blockers.length === 0
-      ? `Xicheng production POI manifest and seed evidence are ready: ${details.join(', ')}`
-      : blockers.join('; '),
-    blockers
-  )
+  return {
+    ...check(
+      'xicheng-production-poi-evidence',
+      blockers.length === 0,
+      blockers.length === 0
+        ? `Xicheng production POI manifest and seed evidence are ready: ${details.join(', ')}`
+        : blockers.join('; '),
+      blockers
+    ),
+    summary: {
+      manifestEvidenceFile: manifestEvidence.path,
+      seedEvidenceFile: seedEvidence.path,
+      productionPoiSeedSqlFile: evidenceSummary(seedEvidence.data).sqlFile
+    }
+  }
 }
 
 function extractXichengPoiRows(seed) {
@@ -599,9 +606,39 @@ function extractXichengPoiRows(seed) {
     .filter((line) => line.startsWith("(@map_package_id, 'xicheng-"))
 }
 
-async function checkXichengProductionPoi(rootDir) {
-  const seedPath = path.join(rootDir, 'backend/yudao/sql/mysql/xunjing-seed-xicheng-p0.sql')
-  const seed = await readTextIfExists(seedPath)
+function resolveXichengSeedSqlPath(rootDir, seedSqlPath) {
+  if (!hasValue(seedSqlPath)) {
+    return path.join(rootDir, 'backend/yudao/sql/mysql/xunjing-seed-xicheng-p0.sql')
+  }
+  return path.isAbsolute(seedSqlPath)
+    ? path.resolve(seedSqlPath)
+    : path.resolve(rootDir, seedSqlPath)
+}
+
+async function readXichengSeed(rootDir, seedSqlPath) {
+  const seedPath = resolveXichengSeedSqlPath(rootDir, seedSqlPath)
+  return {
+    seedPath,
+    seed: await readTextIfExists(seedPath)
+  }
+}
+
+function xichengSeedCheck(name, blockers, seedPath, readyDetail) {
+  return {
+    ...check(
+      name,
+      blockers.length === 0,
+      blockers.length === 0 ? readyDetail : blockers.join('; '),
+      blockers
+    ),
+    summary: {
+      xichengPoiSeedSqlFile: seedPath
+    }
+  }
+}
+
+async function checkXichengProductionPoi(rootDir, seedSqlPath) {
+  const { seedPath, seed } = await readXichengSeed(rootDir, seedSqlPath)
   const rows = extractXichengPoiRows(seed)
   const blockers = []
   if (rows.length < productionPoiTarget) {
@@ -613,19 +650,16 @@ async function checkXichengProductionPoi(rootDir) {
   if (!seed.includes('"productionReady":true')) {
     blockers.push('xicheng seed must declare productionReady=true before production')
   }
-  return check(
+  return xichengSeedCheck(
     'xicheng-production-poi',
-    blockers.length === 0,
-    blockers.length === 0
-      ? `Xicheng POI seed has ${rows.length}/${productionPoiTarget} production-ready POIs`
-      : blockers.join('; '),
-    blockers
+    blockers,
+    seedPath,
+    `Xicheng POI seed is production-ready: ${seedPath} (${rows.length}/${productionPoiTarget})`
   )
 }
 
-async function checkXichengSourceLicense(rootDir) {
-  const seedPath = path.join(rootDir, 'backend/yudao/sql/mysql/xunjing-seed-xicheng-p0.sql')
-  const seed = await readTextIfExists(seedPath)
+async function checkXichengSourceLicense(rootDir, seedSqlPath) {
+  const { seedPath, seed } = await readXichengSeed(rootDir, seedSqlPath)
   const rows = extractXichengPoiRows(seed)
   const blockers = []
 
@@ -640,13 +674,11 @@ async function checkXichengSourceLicense(rootDir) {
     blockers.push('Xicheng seed must create POI-level approved source documents')
   }
 
-  return check(
+  return xichengSeedCheck(
     'xicheng-source-license',
-    blockers.length === 0,
-    blockers.length === 0
-      ? 'Every Xicheng POI row is fully approved and has POI-level source generation'
-      : blockers.join('; '),
-    blockers
+    blockers,
+    seedPath,
+    `Every Xicheng POI row in ${seedPath} is fully approved and has POI-level source generation`
   )
 }
 
@@ -669,6 +701,15 @@ export async function verifyXichengYudaoReleaseReadiness({
     now,
     maxEvidenceAgeMs: maxEvidenceAgeHours * 60 * 60 * 1000
   }
+  const productionPoiEvidenceCheck = await checkXichengProductionPoiEvidence({
+    rootDir,
+    poiManifestEvidencePath,
+    poiSeedEvidencePath,
+    freshnessOptions
+  })
+  const productionPoiSeedSqlPath = productionPoiEvidenceCheck.ok
+    ? productionPoiEvidenceCheck.summary?.productionPoiSeedSqlFile
+    : undefined
 
   const checks = [
     checkRuntimeEnv(env, normalizedStage),
@@ -679,14 +720,9 @@ export async function verifyXichengYudaoReleaseReadiness({
     checkVisionOcrService(env),
     checkObjectStorage(env),
     await checkFullYudaoBaseline(rootDir, yudaoBaselineSqlPath || env.YUDAO_BASELINE_SQL),
-    await checkXichengProductionPoiEvidence({
-      rootDir,
-      poiManifestEvidencePath,
-      poiSeedEvidencePath,
-      freshnessOptions
-    }),
-    await checkXichengProductionPoi(rootDir),
-    await checkXichengSourceLicense(rootDir)
+    productionPoiEvidenceCheck,
+    await checkXichengProductionPoi(rootDir, productionPoiSeedSqlPath),
+    await checkXichengSourceLicense(rootDir, productionPoiSeedSqlPath)
   ]
   const blockers = checks.flatMap((item) => item.blockers || [])
   const ok = checks.every((item) => item.ok)

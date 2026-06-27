@@ -119,6 +119,12 @@ async function createProductionReadyFixture() {
     ].join('\n')
   )
 
+  await writeFile(path.join(sqlDir, 'xunjing-seed-xicheng-p0.sql'), productionSeedSql())
+
+  return rootDir
+}
+
+function productionSeedSql() {
   const poiRows = Array.from({ length: 80 }, (_, index) => {
     const suffix = String(index + 1).padStart(3, '0')
     const code = `xicheng-prod-poi-${suffix}`
@@ -131,18 +137,13 @@ async function createProductionReadyFixture() {
     ].join('')
   }).join(',\n')
 
-  await writeFile(
-    path.join(sqlDir, 'xunjing-seed-xicheng-p0.sql'),
-    [
-      'SET @xicheng_source_url := "https://www.bjxch.gov.cn/reviewed-source";',
-      'INSERT INTO `xunjing_poi` VALUES',
-      `${poiRows};`,
-      'INSERT INTO `xunjing_resource_package` (`readiness_json`) VALUES (\'{"p0Ready":true,"productionReady":true,"regionCode":"beijing-xicheng","packageCode":"XICHENG-MAP-001","poiSeedCount":80,"targetP0PoiCount":80}\');',
-      "INSERT INTO `xunjing_knowledge_document` (`title`, `source_url`, `review_status`, `index_status`) SELECT CONCAT(`name`, ' POI production source'), CONCAT(@xicheng_source_url, '#', `poi_code`), 'APPROVED', 'INDEXED' FROM `xunjing_poi`;"
-    ].join('\n')
-  )
-
-  return rootDir
+  return [
+    'SET @xicheng_source_url := "https://www.bjxch.gov.cn/reviewed-source";',
+    'INSERT INTO `xunjing_poi` VALUES',
+    `${poiRows};`,
+    'INSERT INTO `xunjing_resource_package` (`readiness_json`) VALUES (\'{"p0Ready":true,"productionReady":true,"regionCode":"beijing-xicheng","packageCode":"XICHENG-MAP-001","poiSeedCount":80,"targetP0PoiCount":80}\');',
+    "INSERT INTO `xunjing_knowledge_document` (`title`, `source_url`, `review_status`, `index_status`) SELECT CONCAT(`name`, ' POI production source'), CONCAT(@xicheng_source_url, '#', `poi_code`), 'APPROVED', 'INDEXED' FROM `xunjing_poi`;"
+  ].join('\n')
 }
 
 async function writeEnvFile(rootDir, env) {
@@ -171,12 +172,7 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
     targetP0PoiCount: 80,
     pois: Array.from({ length: 80 }, (_, index) => ({ poiCode: `xicheng-prod-poi-${String(index + 1).padStart(3, '0')}` }))
   }, null, 2)}\n`
-  const seedSource = [
-    '/* Generated from reviewed Xicheng POI production manifest. */',
-    'INSERT INTO `xunjing_poi` VALUES',
-    Array.from({ length: 80 }, (_, index) => `(@map_package_id, 'xicheng-prod-poi-${String(index + 1).padStart(3, '0')}')`).join(',\n'),
-    ';'
-  ].join('\n')
+  const seedSource = overrides.seedSource || productionSeedSql()
   await writeFile(manifestSourcePath, manifestSource)
   await writeFile(seedSourcePath, seedSource)
   const manifestEvidence = mergeEvidence({
@@ -336,6 +332,34 @@ describe('xicheng Yudao release readiness gate', () => {
       yudaoBaselineSqlFile: externalBaselinePath,
       yudaoBaselineSqlSha256: sha256(await readFile(externalBaselinePath, 'utf8'))
     })
+  })
+
+  test('uses the production POI seed SQL referenced by seed evidence instead of forcing the local candidate seed', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const localCandidateSeedPath = path.join(rootDir, 'backend/yudao/sql/mysql/xunjing-seed-xicheng-p0.sql')
+    await writeFile(
+      localCandidateSeedPath,
+      [
+        'INSERT INTO `xunjing_poi` VALUES',
+        "(@map_package_id, 'xicheng-local-candidate-001', 'beijing-xicheng', 'Local Candidate', 'Local Candidate', '[]', 'museum', 'P0', 'Beijing Xicheng', 39.9000000, 116.3000000, 'GCJ02', JSON_OBJECT('licenseStatus','REVIEW_REQUIRED'), '{}', '{\"productionReady\":false,\"targetP0PoiCount\":80}', 'APPROVED', 'REVIEW_REQUIRED', 'REVIEW_REQUIRED', 'PUBLISHED', 'admin', NOW(), 'admin', NOW(), b'0', @tenant_id);"
+      ].join('\n')
+    )
+    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir, {
+      seedSource: productionSeedSql()
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.status).toBe('PRODUCTION_READY_CANDIDATE')
+    expect(result.checks.find((check) => check.name === 'xicheng-production-poi')?.ok).toBe(true)
+    expect(result.checks.find((check) => check.name === 'xicheng-source-license')?.ok).toBe(true)
   })
 
   test('fails closed when reviewed POI manifest and seed evidence are missing', async () => {
@@ -724,6 +748,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(deployDoc).toContain('DASHSCOPE_EMBEDDING_ENABLED')
     expect(deployDoc).toContain('--yudao-baseline-sql')
     expect(deployDoc).toContain('YUDAO_BASELINE_SQL')
+    expect(deployDoc).toContain('seed evidence 的 `summary.sqlFile`')
   })
 
   test('fails closed when production vector store or embedding runtime is disabled', async () => {
