@@ -254,13 +254,96 @@ function appReadinessEvidence(overrides = {}) {
       xichengPackageCode: 'XICHENG-MAP-001'
     },
     checks: [
-      { name: 'live-xicheng-scan-resolve', ok: true },
-      { name: 'live-xicheng-error-feedback', ok: true },
-      { name: 'live-xicheng-ai-chat-sourced', ok: true },
-      { name: 'live-xicheng-ai-chat-blocked', ok: true },
-      { name: 'live-xicheng-trigger-baitasi', ok: true },
-      { name: 'live-xicheng-trigger-gongwangfu', ok: true },
-      { name: 'live-xicheng-trigger-planetarium', ok: true }
+      {
+        name: 'live-xicheng-scan-resolve',
+        ok: true,
+        summary: {
+          endpoint: '/app-api/xunjing/scan/resolve',
+          packageCode: 'XICHENG-MAP-001',
+          sceneCode: 'QR-XICHENG-MAP-001',
+          targetPath: '/pages/map/detail?packageCode=XICHENG-MAP-001&sceneCode=QR-XICHENG-MAP-001'
+        }
+      },
+      {
+        name: 'live-xicheng-error-feedback',
+        ok: true,
+        summary: {
+          endpoint: '/app-api/xunjing/resource/events',
+          packageCode: 'XICHENG-MAP-001',
+          sceneCode: 'xicheng-ai-guide',
+          eventType: 'ERROR_FEEDBACK',
+          eventId: 2001
+        }
+      },
+      {
+        name: 'live-xicheng-ai-chat-sourced',
+        ok: true,
+        summary: {
+          endpoint: '/app-api/xunjing/ai/chat',
+          regionCode: 'beijing-xicheng',
+          packageCode: 'XICHENG-MAP-001',
+          sceneCode: 'xicheng-ai-guide',
+          poiCode: 'xicheng-baitasi',
+          poiName: '妙应寺白塔',
+          safetyStatus: 'PASSED',
+          sourceCount: 1,
+          logId: 2101
+        }
+      },
+      {
+        name: 'live-xicheng-ai-chat-blocked',
+        ok: true,
+        summary: {
+          endpoint: '/app-api/xunjing/ai/chat',
+          regionCode: 'beijing-xicheng',
+          packageCode: 'XICHENG-MAP-001',
+          sceneCode: 'xicheng-ai-guide',
+          poiCode: 'xicheng-source-guard-negative',
+          poiName: '来源门禁测试点位',
+          safetyStatus: 'BLOCKED',
+          sourceCount: 0,
+          logId: 2102
+        }
+      },
+      {
+        name: 'live-xicheng-trigger-baitasi',
+        ok: true,
+        summary: {
+          endpoint: '/app-api/xunjing/triggers/resolve',
+          regionCode: 'beijing-xicheng',
+          poiCode: 'xicheng-baitasi',
+          poiName: '妙应寺白塔',
+          confidence: 0.92,
+          requiresUserConfirm: false,
+          sourceCount: 1
+        }
+      },
+      {
+        name: 'live-xicheng-trigger-gongwangfu',
+        ok: true,
+        summary: {
+          endpoint: '/app-api/xunjing/triggers/resolve',
+          regionCode: 'beijing-xicheng',
+          poiCode: 'xicheng-gongwangfu',
+          poiName: '恭王府',
+          confidence: 0.92,
+          requiresUserConfirm: false,
+          sourceCount: 1
+        }
+      },
+      {
+        name: 'live-xicheng-trigger-planetarium',
+        ok: true,
+        summary: {
+          endpoint: '/app-api/xunjing/triggers/resolve',
+          regionCode: 'beijing-xicheng',
+          poiCode: 'xicheng-planetarium',
+          poiName: '北京天文馆',
+          confidence: 0.92,
+          requiresUserConfirm: false,
+          sourceCount: 1
+        }
+      }
     ],
   }, overrides)
 }
@@ -781,6 +864,42 @@ describe('xicheng release evidence package gate', () => {
     expect(evidence.blockers.join('\n')).toContain('app readiness evidence includeXichengTriggerCheck must be true')
   })
 
+  test('fails closed when APP readiness evidence lacks live check audit summaries', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence({
+      checks: [
+        { name: 'live-xicheng-scan-resolve', ok: true },
+        { name: 'live-xicheng-error-feedback', ok: true },
+        { name: 'live-xicheng-ai-chat-sourced', ok: true },
+        { name: 'live-xicheng-ai-chat-blocked', ok: true },
+        { name: 'live-xicheng-trigger-baitasi', ok: true },
+        { name: 'live-xicheng-trigger-gongwangfu', ok: true },
+        { name: 'live-xicheng-trigger-planetarium', ok: true }
+      ]
+    }))
+    const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath,
+      '--evidence-file', 'tmp/xicheng-release-evidence-package.json'
+    ])
+
+    expect(result.status).toBe(1)
+    const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
+    expect(evidence.status).toBe('NOT_READY')
+    expect(evidence.blockers.join('\n')).toContain('app readiness evidence check live-xicheng-scan-resolve summary is required')
+    expect(evidence.blockers.join('\n')).toContain('app readiness evidence check live-xicheng-ai-chat-sourced summary.logId is required')
+    expect(evidence.blockers.join('\n')).toContain('app readiness evidence check live-xicheng-trigger-baitasi summary.confidence must be at least 0.85')
+  })
+
   test('fails closed when package input evidence is missing checkedAt timestamp', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeReleaseEvidenceFile(rootDir)
@@ -901,5 +1020,8 @@ describe('xicheng release evidence package gate', () => {
     expect(deployDoc).toContain('summary.staticOnly=false')
     expect(deployDoc).toContain('summary.includeXichengAppCheck=true')
     expect(deployDoc).toContain('summary.includeXichengTriggerCheck=true')
+    expect(deployDoc).toContain('check.summary.logId')
+    expect(deployDoc).toContain('check.summary.sourceCount')
+    expect(deployDoc).toContain('check.summary.confidence')
   })
 })

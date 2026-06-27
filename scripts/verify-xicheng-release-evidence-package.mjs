@@ -213,6 +213,82 @@ function checkEvidenceChecks(evidence, requiredChecks, label) {
   return blockers
 }
 
+function checkSummaryEquals(summary, field, expected, label, blockers) {
+  if (summary?.[field] !== expected) {
+    blockers.push(`${label} summary.${field} must be ${expected}`)
+  }
+}
+
+function checkSummaryPositiveNumber(summary, field, label, blockers) {
+  if (!Number.isFinite(Number(summary?.[field])) || Number(summary[field]) <= 0) {
+    blockers.push(`${label} summary.${field} is required`)
+  }
+}
+
+function checkAppReadinessCheckSummaries(evidence) {
+  const blockers = []
+  const checks = Array.isArray(evidence?.checks) ? evidence.checks : []
+  const byName = new Map(checks.map((item) => [item.name, item]))
+  const summaryOfCheck = (name) => {
+    const summary = byName.get(name)?.summary
+    if (!summary || typeof summary !== 'object') {
+      blockers.push(`app readiness evidence check ${name} summary is required`)
+      return {}
+    }
+    return summary
+  }
+
+  const scanSummary = summaryOfCheck('live-xicheng-scan-resolve')
+  checkSummaryEquals(scanSummary, 'endpoint', '/app-api/xunjing/scan/resolve', 'app readiness evidence check live-xicheng-scan-resolve', blockers)
+  checkSummaryEquals(scanSummary, 'packageCode', expectedXichengPackageCode, 'app readiness evidence check live-xicheng-scan-resolve', blockers)
+  checkSummaryEquals(scanSummary, 'sceneCode', 'QR-XICHENG-MAP-001', 'app readiness evidence check live-xicheng-scan-resolve', blockers)
+
+  const errorSummary = summaryOfCheck('live-xicheng-error-feedback')
+  checkSummaryEquals(errorSummary, 'endpoint', '/app-api/xunjing/resource/events', 'app readiness evidence check live-xicheng-error-feedback', blockers)
+  checkSummaryEquals(errorSummary, 'packageCode', expectedXichengPackageCode, 'app readiness evidence check live-xicheng-error-feedback', blockers)
+  checkSummaryEquals(errorSummary, 'eventType', 'ERROR_FEEDBACK', 'app readiness evidence check live-xicheng-error-feedback', blockers)
+  checkSummaryPositiveNumber(errorSummary, 'eventId', 'app readiness evidence check live-xicheng-error-feedback', blockers)
+
+  const sourcedSummary = summaryOfCheck('live-xicheng-ai-chat-sourced')
+  checkSummaryEquals(sourcedSummary, 'endpoint', '/app-api/xunjing/ai/chat', 'app readiness evidence check live-xicheng-ai-chat-sourced', blockers)
+  checkSummaryEquals(sourcedSummary, 'regionCode', expectedXichengRegionCode, 'app readiness evidence check live-xicheng-ai-chat-sourced', blockers)
+  checkSummaryEquals(sourcedSummary, 'packageCode', expectedXichengPackageCode, 'app readiness evidence check live-xicheng-ai-chat-sourced', blockers)
+  checkSummaryEquals(sourcedSummary, 'poiCode', 'xicheng-baitasi', 'app readiness evidence check live-xicheng-ai-chat-sourced', blockers)
+  if (!['PASS', 'PASSED'].includes(String(sourcedSummary.safetyStatus || ''))) {
+    blockers.push('app readiness evidence check live-xicheng-ai-chat-sourced summary.safetyStatus must be PASSED')
+  }
+  checkSummaryPositiveNumber(sourcedSummary, 'sourceCount', 'app readiness evidence check live-xicheng-ai-chat-sourced', blockers)
+  checkSummaryPositiveNumber(sourcedSummary, 'logId', 'app readiness evidence check live-xicheng-ai-chat-sourced', blockers)
+
+  const blockedSummary = summaryOfCheck('live-xicheng-ai-chat-blocked')
+  checkSummaryEquals(blockedSummary, 'endpoint', '/app-api/xunjing/ai/chat', 'app readiness evidence check live-xicheng-ai-chat-blocked', blockers)
+  checkSummaryEquals(blockedSummary, 'regionCode', expectedXichengRegionCode, 'app readiness evidence check live-xicheng-ai-chat-blocked', blockers)
+  checkSummaryEquals(blockedSummary, 'packageCode', expectedXichengPackageCode, 'app readiness evidence check live-xicheng-ai-chat-blocked', blockers)
+  checkSummaryEquals(blockedSummary, 'poiCode', 'xicheng-source-guard-negative', 'app readiness evidence check live-xicheng-ai-chat-blocked', blockers)
+  checkSummaryEquals(blockedSummary, 'safetyStatus', 'BLOCKED', 'app readiness evidence check live-xicheng-ai-chat-blocked', blockers)
+  if (Number(blockedSummary.sourceCount) !== 0) {
+    blockers.push('app readiness evidence check live-xicheng-ai-chat-blocked summary.sourceCount must be 0')
+  }
+  checkSummaryPositiveNumber(blockedSummary, 'logId', 'app readiness evidence check live-xicheng-ai-chat-blocked', blockers)
+
+  for (const [name, poiCode] of [
+    ['live-xicheng-trigger-baitasi', 'xicheng-baitasi'],
+    ['live-xicheng-trigger-gongwangfu', 'xicheng-gongwangfu'],
+    ['live-xicheng-trigger-planetarium', 'xicheng-planetarium']
+  ]) {
+    const triggerSummary = summaryOfCheck(name)
+    checkSummaryEquals(triggerSummary, 'endpoint', '/app-api/xunjing/triggers/resolve', `app readiness evidence check ${name}`, blockers)
+    checkSummaryEquals(triggerSummary, 'regionCode', expectedXichengRegionCode, `app readiness evidence check ${name}`, blockers)
+    checkSummaryEquals(triggerSummary, 'poiCode', poiCode, `app readiness evidence check ${name}`, blockers)
+    if (!Number.isFinite(Number(triggerSummary.confidence)) || Number(triggerSummary.confidence) < 0.85) {
+      blockers.push(`app readiness evidence check ${name} summary.confidence must be at least 0.85`)
+    }
+    checkSummaryPositiveNumber(triggerSummary, 'sourceCount', `app readiness evidence check ${name}`, blockers)
+  }
+
+  return blockers
+}
+
 function checkReviewBatchSummary(summary, label) {
   const blockers = []
   if (!/^xicheng-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(String(summary.reviewBatchCode || ''))) {
@@ -488,6 +564,7 @@ function checkAppReadinessEvidence(ref, stage, freshnessOptions) {
     blockers.push('app readiness evidence xichengPackageCode must be XICHENG-MAP-001')
   }
   blockers.push(...checkEvidenceChecks(evidence, requiredAppReadinessChecks, 'app readiness'))
+  blockers.push(...checkAppReadinessCheckSummaries(evidence))
   const failedChecks = Array.isArray(evidence.checks)
     ? evidence.checks.filter((item) => item.ok !== true)
     : []

@@ -96,8 +96,8 @@ const xichengTriggerSmokeCases = [
 const xichengLocalCandidatePoiFloor = 24
 const xichengProductionPoiTarget = 80
 
-function pass(name, detail) {
-  return { name, ok: true, detail }
+function pass(name, detail, summary) {
+  return summary === undefined ? { name, ok: true, detail } : { name, ok: true, detail, summary }
 }
 
 function requireValue(env, key) {
@@ -584,7 +584,12 @@ async function checkLiveXichengScanResolve(baseUrl, fetchImpl, tenantId) {
   ) {
     throw new Error('scan resolve endpoint did not return the Xicheng map target')
   }
-  return pass('live-xicheng-scan-resolve', 'Xicheng QR scene resolves to the APP target path')
+  return pass('live-xicheng-scan-resolve', 'Xicheng QR scene resolves to the APP target path', {
+    endpoint: '/app-api/xunjing/scan/resolve',
+    packageCode: json.data.packageCode,
+    sceneCode: json.data.sceneCode,
+    targetPath: json.data.targetPath
+  })
 }
 
 async function checkLiveXichengErrorFeedback(baseUrl, fetchImpl, tenantId) {
@@ -612,7 +617,13 @@ async function checkLiveXichengErrorFeedback(baseUrl, fetchImpl, tenantId) {
   if (json.code !== 0 || !json.data) {
     throw new Error('/app-api/xunjing/resource/events did not record Xicheng ERROR_FEEDBACK')
   }
-  return pass('live-xicheng-error-feedback', 'Xicheng APP error feedback event is accepted with package attribution')
+  return pass('live-xicheng-error-feedback', 'Xicheng APP error feedback event is accepted with package attribution', {
+    endpoint: '/app-api/xunjing/resource/events',
+    packageCode: 'XICHENG-MAP-001',
+    sceneCode: 'xicheng-ai-guide',
+    eventType: 'ERROR_FEEDBACK',
+    eventId: json.data
+  })
 }
 
 async function checkLiveXichengTrigger(baseUrl, fetchImpl, tenantId, smokeCase) {
@@ -639,7 +650,16 @@ async function checkLiveXichengTrigger(baseUrl, fetchImpl, tenantId, smokeCase) 
   if (!Array.isArray(json.data.sources) || json.data.sources.length === 0) {
     throw new Error(`/app-api/xunjing/triggers/resolve did not return sources for ${smokeCase.poiCode}`)
   }
-  return pass(smokeCase.name, smokeCase.detail)
+  return pass(smokeCase.name, smokeCase.detail, {
+    endpoint: '/app-api/xunjing/triggers/resolve',
+    regionCode: json.data.regionCode,
+    poiCode: json.data.poiCode,
+    poiName: json.data.poiName,
+    confidence: Number(json.data.confidence),
+    requiresUserConfirm: json.data.requiresUserConfirm,
+    sourceCount: json.data.sources.length,
+    targetPath: json.data.targetPath
+  })
 }
 
 async function checkLiveXichengAiChatSourced(baseUrl, fetchImpl, tenantId) {
@@ -676,7 +696,17 @@ async function checkLiveXichengAiChatSourced(baseUrl, fetchImpl, tenantId) {
   if (!json.data.logId) {
     throw new Error('/app-api/xunjing/ai/chat did not return logId for Xicheng POI answer')
   }
-  return pass('live-xicheng-ai-chat-sourced', 'Xicheng AI chat returns a safe answer with matching POI sources')
+  return pass('live-xicheng-ai-chat-sourced', 'Xicheng AI chat returns a safe answer with matching POI sources', {
+    endpoint: '/app-api/xunjing/ai/chat',
+    regionCode: 'beijing-xicheng',
+    packageCode: 'XICHENG-MAP-001',
+    sceneCode: 'xicheng-ai-guide',
+    poiCode: 'xicheng-baitasi',
+    poiName: '妙应寺白塔',
+    safetyStatus: json.data.safetyStatus,
+    sourceCount: json.data.sources.length,
+    logId: json.data.logId
+  })
 }
 
 async function checkLiveXichengAiChatBlocked(baseUrl, fetchImpl, tenantId) {
@@ -706,7 +736,17 @@ async function checkLiveXichengAiChatBlocked(baseUrl, fetchImpl, tenantId) {
   ) {
     throw new Error('/app-api/xunjing/ai/chat did not block Xicheng POI answer without matching sources')
   }
-  return pass('live-xicheng-ai-chat-blocked', 'Xicheng AI chat blocks when no matching POI source is available')
+  return pass('live-xicheng-ai-chat-blocked', 'Xicheng AI chat blocks when no matching POI source is available', {
+    endpoint: '/app-api/xunjing/ai/chat',
+    regionCode: 'beijing-xicheng',
+    packageCode: 'XICHENG-MAP-001',
+    sceneCode: 'xicheng-ai-guide',
+    poiCode: 'xicheng-source-guard-negative',
+    poiName: '来源门禁测试点位',
+    safetyStatus: json.data.safetyStatus,
+    sourceCount: Array.isArray(json.data.sources) ? json.data.sources.length : 0,
+    logId: json.data.logId
+  })
 }
 
 async function fetchLiveResourcePackageData(baseUrl, fetchImpl, tenantId) {

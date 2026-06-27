@@ -80,6 +80,10 @@ function assertXichengTriggerPayload(payload, expectedPoiCode) {
   expect(payload.imageLabels).toContain('planetarium')
 }
 
+function checkByName(result, name) {
+  return result.checks.find((check) => check.name === name)
+}
+
 async function readJsonBody(req) {
   let body = ''
   req.on('data', (chunk) => {
@@ -489,9 +493,27 @@ describe('xunjing platform readiness verifier', () => {
       xichengRegionCode: 'beijing-xicheng',
       xichengPackageCode: 'XICHENG-MAP-001'
     })
-    expect(result.checks.map((check) => check.name)).toContain('live-xicheng-trigger-baitasi')
-    expect(result.checks.map((check) => check.name)).toContain('live-xicheng-trigger-gongwangfu')
-    expect(result.checks.map((check) => check.name)).toContain('live-xicheng-trigger-planetarium')
+    expect(checkByName(result, 'live-xicheng-trigger-baitasi')?.summary).toMatchObject({
+      endpoint: '/app-api/xunjing/triggers/resolve',
+      regionCode: 'beijing-xicheng',
+      poiCode: 'xicheng-baitasi',
+      poiName: '妙应寺白塔',
+      requiresUserConfirm: false,
+      sourceCount: 1
+    })
+    expect(checkByName(result, 'live-xicheng-trigger-baitasi')?.summary.confidence).toBeGreaterThanOrEqual(0.85)
+    expect(checkByName(result, 'live-xicheng-trigger-gongwangfu')?.summary).toMatchObject({
+      endpoint: '/app-api/xunjing/triggers/resolve',
+      poiCode: 'xicheng-gongwangfu',
+      poiName: '恭王府',
+      sourceCount: 1
+    })
+    expect(checkByName(result, 'live-xicheng-trigger-planetarium')?.summary).toMatchObject({
+      endpoint: '/app-api/xunjing/triggers/resolve',
+      poiCode: 'xicheng-planetarium',
+      poiName: '北京天文馆',
+      sourceCount: 1
+    })
   })
 
   test('runs live Xicheng scan and AI source guard checks when requested', async () => {
@@ -509,10 +531,34 @@ describe('xunjing platform readiness verifier', () => {
       xichengRegionCode: 'beijing-xicheng',
       xichengPackageCode: 'XICHENG-MAP-001'
     })
-    expect(result.checks.map((check) => check.name)).toContain('live-xicheng-scan-resolve')
-    expect(result.checks.map((check) => check.name)).toContain('live-xicheng-error-feedback')
-    expect(result.checks.map((check) => check.name)).toContain('live-xicheng-ai-chat-sourced')
-    expect(result.checks.map((check) => check.name)).toContain('live-xicheng-ai-chat-blocked')
+    expect(checkByName(result, 'live-xicheng-scan-resolve')?.summary).toMatchObject({
+      endpoint: '/app-api/xunjing/scan/resolve',
+      packageCode: 'XICHENG-MAP-001',
+      sceneCode: 'QR-XICHENG-MAP-001'
+    })
+    expect(checkByName(result, 'live-xicheng-error-feedback')?.summary).toMatchObject({
+      endpoint: '/app-api/xunjing/resource/events',
+      packageCode: 'XICHENG-MAP-001',
+      eventType: 'ERROR_FEEDBACK',
+      eventId: 2001
+    })
+    expect(checkByName(result, 'live-xicheng-ai-chat-sourced')?.summary).toMatchObject({
+      endpoint: '/app-api/xunjing/ai/chat',
+      regionCode: 'beijing-xicheng',
+      poiCode: 'xicheng-baitasi',
+      poiName: '妙应寺白塔',
+      safetyStatus: 'PASSED',
+      sourceCount: 1,
+      logId: 2101
+    })
+    expect(checkByName(result, 'live-xicheng-ai-chat-blocked')?.summary).toMatchObject({
+      endpoint: '/app-api/xunjing/ai/chat',
+      regionCode: 'beijing-xicheng',
+      poiCode: 'xicheng-source-guard-negative',
+      safetyStatus: 'BLOCKED',
+      sourceCount: 0,
+      logId: 2102
+    })
   })
 
   test('rejects environment values that reuse the upstream XingheAI runtime', async () => {
