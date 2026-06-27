@@ -26,6 +26,10 @@ for (const required of [
   'deleteJourneyMaterial',
   'locationHidden',
   'publicLocationLabel',
+  '修正 POI',
+  'correctMaterialPoi',
+  'poiCorrected',
+  'poiCorrection',
   'refreshDraftFromEvidence'
 ]) {
   assert.ok(travelogue.includes(required), `Travelogue should support field evidence input ${required}`)
@@ -89,6 +93,18 @@ assert.match(
   travelogue,
   /deleteJourneyMaterial\(index\)[\s\S]*this\.materials\.filter\(\(_, materialIndex\) => materialIndex !== index\)[\s\S]*this\.persistJourneyMaterials\(\)[\s\S]*this\.refreshDraftFromEvidence\(\)/,
   'Deleting a material should remove it from the local material box, persist, and refresh the draft'
+)
+
+assert.match(
+  travelogue,
+  /<picker[\s\S]*:range="officialPoiNames"[\s\S]*@change="correctMaterialPoi\(index, \$event\)"[\s\S]*修正 POI[\s\S]*<\/picker>/,
+  'Each journey material should expose an official POI picker for correcting attribution'
+)
+
+assert.match(
+  travelogue,
+  /correctMaterialPoi\(index, event\)[\s\S]*this\.officialPois\[selectedIndex\][\s\S]*poiCode:\s*poi\.poiCode[\s\S]*poiName:\s*poi\.poiName[\s\S]*poiCorrected:\s*true[\s\S]*poiCorrection:[\s\S]*this\.persistJourneyMaterials\(\)[\s\S]*this\.refreshDraftFromEvidence\(\)/,
+  'Correcting POI attribution should store the official POI, mark the material as user-corrected, persist, and refresh the draft'
 )
 
 assert.match(

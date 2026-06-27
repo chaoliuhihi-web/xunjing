@@ -119,6 +119,9 @@
 					<text v-if="material.locationHidden" class="material-meta">地点已隐藏 · {{ material.publicLocationLabel || '西城街区一带' }}</text>
 					<image v-if="material.imagePath" class="material-image" :src="material.imagePath" mode="aspectFill" />
 					<view class="material-actions">
+						<picker class="mini-picker" :range="officialPoiNames" @change="correctMaterialPoi(index, $event)">
+							<text class="mini-button picker-button">修正 POI</text>
+						</picker>
 						<button class="mini-button" :disabled="material.locationHidden" @click="hideMaterialLocation(index)">隐藏地点</button>
 						<button class="mini-button danger-mini-button" @click="deleteJourneyMaterial(index)">删除素材</button>
 					</view>
@@ -242,7 +245,7 @@
 </template>
 
 <script>
-import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
+import { XICHENG_OFFICIAL_POIS, XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import { requestCurrentLocationForTrigger } from '@/request/xunjing/trigger.js'
 
 export const createXichengTravelogueDraft = ({
@@ -294,6 +297,7 @@ export default {
 	data() {
 		return {
 			region: XICHENG_REGION_CONFIG,
+			officialPois: XICHENG_OFFICIAL_POIS,
 			routePassport: XICHENG_REGION_CONFIG.routePassport,
 			parentChildTasks: XICHENG_REGION_CONFIG.parentChildTasks,
 			materials: [],
@@ -357,6 +361,9 @@ export default {
 		},
 		remarkMaterialCount() {
 			return this.materials.filter(material => material && material.type === 'remark').length
+		},
+		officialPoiNames() {
+			return this.officialPois.map(poi => poi.poiName)
 		},
 		recordingStatusText() {
 			const status = this.recordingSession.status
@@ -481,6 +488,38 @@ export default {
 			this.refreshDraftFromEvidence()
 			uni.showToast({
 				title: '素材已删除',
+				icon: 'none'
+			})
+		},
+		correctMaterialPoi(index, event) {
+			const material = this.materials[index]
+			const selectedIndex = Number(event && event.detail ? event.detail.value : -1)
+			const poi = this.officialPois[selectedIndex]
+			if (!material || !poi) return
+			const previousPoiCode = material.poiCode || ''
+			const previousPoiName = material.poiName || ''
+			const correctedAt = new Date().toISOString()
+			this.materials = this.materials.map((item, materialIndex) => materialIndex === index
+				? {
+					...item,
+					poiCode: poi.poiCode,
+					poiName: poi.poiName,
+					poiCorrected: true,
+					poiCorrection: {
+						correctionSource: 'user-picker',
+						previousPoiCode,
+						previousPoiName,
+						poiCode: poi.poiCode,
+						poiName: poi.poiName,
+						correctedAt
+					},
+					publicLocationLabel: item.locationHidden ? `${poi.poiName}附近` : item.publicLocationLabel
+				}
+				: item)
+			this.persistJourneyMaterials()
+			this.refreshDraftFromEvidence()
+			uni.showToast({
+				title: 'POI 已修正',
 				icon: 'none'
 			})
 		},
@@ -1017,11 +1056,19 @@ export default {
 
 .material-actions {
 	display: flex;
+	flex-wrap: wrap;
 	gap: 12rpx;
 	margin-top: 16rpx;
 }
 
+.mini-picker {
+	display: inline-flex;
+}
+
 .mini-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	height: 56rpx;
 	line-height: 56rpx;
 	margin: 0;
@@ -1030,6 +1077,10 @@ export default {
 	background: #E8ECE7;
 	color: #1F6E5A;
 	font-size: 24rpx;
+}
+
+.picker-button {
+	box-sizing: border-box;
 }
 
 .danger-mini-button {
