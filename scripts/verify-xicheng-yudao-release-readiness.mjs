@@ -311,6 +311,15 @@ function resolveBaselineSqlPath(rootDir, yudaoBaselineSqlPath) {
     : path.resolve(rootDir, yudaoBaselineSqlPath)
 }
 
+function resolveYudaoServerJarPath(rootDir, yudaoServerJarPath) {
+  if (!hasValue(yudaoServerJarPath)) {
+    return path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar')
+  }
+  return path.isAbsolute(yudaoServerJarPath)
+    ? path.resolve(yudaoServerJarPath)
+    : path.resolve(rootDir, yudaoServerJarPath)
+}
+
 async function checkFullYudaoBaseline(rootDir, yudaoBaselineSqlPath) {
   const baselinePath = resolveBaselineSqlPath(rootDir, yudaoBaselineSqlPath)
   const blockers = []
@@ -340,6 +349,43 @@ async function checkFullYudaoBaseline(rootDir, yudaoBaselineSqlPath) {
       blockers.length === 0,
       blockers.length === 0
         ? `Complete Yudao baseline SQL is present: ${baselinePath}`
+        : blockers.join('; '),
+      blockers
+    ),
+    summary
+  }
+}
+
+async function checkYudaoServerArtifact(rootDir, yudaoServerJarPath) {
+  const jarPath = resolveYudaoServerJarPath(rootDir, yudaoServerJarPath)
+  const blockers = []
+  const summary = {
+    yudaoServerJarFile: jarPath
+  }
+  if (!existsSync(jarPath)) {
+    blockers.push(`Yudao server jar is missing or empty: ${jarPath}`)
+  } else {
+    const stat = statSync(jarPath)
+    if (!stat.isFile() || stat.size <= 0) {
+      blockers.push(`Yudao server jar is missing or empty: ${jarPath}`)
+    } else if (!jarPath.endsWith('.jar')) {
+      blockers.push(`Yudao server artifact must be a .jar file: ${jarPath}`)
+    } else {
+      const bytes = await readFile(jarPath)
+      if (bytes.length < 4 || bytes[0] !== 0x50 || bytes[1] !== 0x4b) {
+        blockers.push(`Yudao server artifact must be a jar/zip binary: ${jarPath}`)
+      } else {
+        summary.yudaoServerJarSizeBytes = stat.size
+        summary.yudaoServerJarSha256 = sha256(bytes)
+      }
+    }
+  }
+  return {
+    ...check(
+      'yudao-server-artifact',
+      blockers.length === 0,
+      blockers.length === 0
+        ? `Deployable Yudao server jar is present: ${jarPath}`
         : blockers.join('; '),
       blockers
     ),
@@ -687,6 +733,7 @@ export async function verifyXichengYudaoReleaseReadiness({
   rootDir = process.cwd(),
   stage = 'production',
   yudaoBaselineSqlPath,
+  yudaoServerJarPath,
   poiManifestEvidencePath,
   poiSeedEvidencePath,
   maxEvidenceAgeHours = defaultMaxEvidenceAgeHours,
@@ -720,6 +767,7 @@ export async function verifyXichengYudaoReleaseReadiness({
     checkVisionOcrService(env),
     checkObjectStorage(env),
     await checkFullYudaoBaseline(rootDir, yudaoBaselineSqlPath || env.YUDAO_BASELINE_SQL),
+    await checkYudaoServerArtifact(rootDir, yudaoServerJarPath || env.YUDAO_SERVER_JAR),
     productionPoiEvidenceCheck,
     await checkXichengProductionPoi(rootDir, productionPoiSeedSqlPath),
     await checkXichengSourceLicense(rootDir, productionPoiSeedSqlPath)
@@ -763,6 +811,7 @@ function resolveEvidenceFile(rootDir, evidenceFile) {
 
 function buildReleaseEvidence(result) {
   const baselineSummary = result.checks.find((item) => item.name === 'full-yudao-baseline')?.summary || {}
+  const serverArtifactSummary = result.checks.find((item) => item.name === 'yudao-server-artifact')?.summary || {}
   return {
     artifactType: 'xicheng-yudao-release-readiness',
     summary: {
@@ -772,7 +821,8 @@ function buildReleaseEvidence(result) {
       passedChecks: result.checks.filter((item) => item.ok).length,
       failedChecks: result.checks.filter((item) => !item.ok).length,
       blockerCount: result.blockers.length,
-      ...baselineSummary
+      ...baselineSummary,
+      ...serverArtifactSummary
     },
     ...result
   }
@@ -812,6 +862,7 @@ async function runCli() {
     rootDir,
     stage: readArgValue(args, '--stage') || process.env.XUNJING_RELEASE_STAGE || 'production',
     yudaoBaselineSqlPath: readArgValue(args, '--yudao-baseline-sql') || env.YUDAO_BASELINE_SQL,
+    yudaoServerJarPath: readArgValue(args, '--yudao-server-jar') || env.YUDAO_SERVER_JAR,
     poiManifestEvidencePath: readArgValue(args, '--poi-manifest-evidence') ||
       process.env.XICHENG_POI_MANIFEST_EVIDENCE,
     poiSeedEvidencePath: readArgValue(args, '--poi-seed-evidence') ||

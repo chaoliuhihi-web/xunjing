@@ -120,8 +120,16 @@ async function createProductionReadyFixture() {
   )
 
   await writeFile(path.join(sqlDir, 'xunjing-seed-xicheng-p0.sql'), productionSeedSql())
+  await writeYudaoServerJar(rootDir)
 
   return rootDir
+}
+
+async function writeYudaoServerJar(rootDir, relativePath = 'backend/yudao/yudao-server/target/yudao-server.jar') {
+  const jarPath = path.join(rootDir, relativePath)
+  await mkdir(path.dirname(jarPath), { recursive: true })
+  await writeFile(jarPath, 'PK\u0003\u0004xicheng-yudao-server-build-artifact\n')
+  return jarPath
 }
 
 function productionSeedSql() {
@@ -237,6 +245,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(result.ok).toBe(false)
     expect(result.status).toBe('NOT_READY')
     expect(result.checks.find((check) => check.name === 'full-yudao-baseline')?.ok).toBe(false)
+    expect(result.checks.map((check) => check.name)).toContain('yudao-server-artifact')
     expect(result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')?.ok).toBe(false)
     expect(result.checks.find((check) => check.name === 'xicheng-production-poi')?.detail).toContain('24/80')
     expect(result.checks.find((check) => check.name === 'xicheng-source-license')?.ok).toBe(false)
@@ -291,10 +300,58 @@ describe('xicheng Yudao release readiness gate', () => {
       'vision-ocr-service',
       'object-storage',
       'full-yudao-baseline',
+      'yudao-server-artifact',
       'xicheng-production-poi-evidence',
       'xicheng-production-poi',
       'xicheng-source-license'
     ])
+  })
+
+  test('fails closed when the deployable Yudao server jar artifact is missing', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const yudaoServerJarPath = path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar')
+    await rm(yudaoServerJarPath, { force: true })
+    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const artifactCheck = result.checks.find((check) => check.name === 'yudao-server-artifact')
+    expect(artifactCheck?.ok).toBe(false)
+    expect(artifactCheck?.blockers.join('\n')).toContain('Yudao server jar is missing or empty')
+  })
+
+  test('accepts an external Yudao server jar artifact path for release evidence', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const defaultJarPath = path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar')
+    const externalJarPath = await writeYudaoServerJar(rootDir, 'tmp/artifacts/yudao-server.jar')
+    await rm(defaultJarPath, { force: true })
+    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      yudaoServerJarPath: externalJarPath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(true)
+    const artifactCheck = result.checks.find((check) => check.name === 'yudao-server-artifact')
+    expect(artifactCheck?.ok).toBe(true)
+    expect(artifactCheck?.detail).toContain(externalJarPath)
+    expect(artifactCheck?.summary).toMatchObject({
+      yudaoServerJarFile: externalJarPath,
+      yudaoServerJarSha256: sha256(await readFile(externalJarPath, 'utf8'))
+    })
   })
 
   test('accepts a verified external Yudao baseline SQL path without committing the baseline', async () => {
@@ -660,7 +717,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidence.summary).toMatchObject({
       stage: 'production',
       status: 'NOT_READY',
-      totalChecks: 11
+      totalChecks: 12
     })
     expect(evidence.blockers.join('\n')).toContain('SPRING_PROFILES_ACTIVE must be production')
     expect(JSON.stringify(evidence)).not.toContain('prod-db-password')
@@ -694,6 +751,7 @@ describe('xicheng Yudao release readiness gate', () => {
       '--stage', 'production',
       '--env-file', envPath,
       '--yudao-baseline-sql', externalBaselinePath,
+      '--yudao-server-jar', path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar'),
       '--poi-manifest-evidence', manifestEvidencePath,
       '--poi-seed-evidence', seedEvidencePath,
       '--evidence-file', evidenceRelativePath
@@ -707,7 +765,8 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidence.status).toBe('PRODUCTION_READY_CANDIDATE')
     expect(evidence.summary).toMatchObject({
       yudaoBaselineSqlFile: externalBaselinePath,
-      yudaoBaselineSqlSha256: sha256(await readFile(externalBaselinePath, 'utf8'))
+      yudaoBaselineSqlSha256: sha256(await readFile(externalBaselinePath, 'utf8')),
+      yudaoServerJarFile: path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar')
     })
     expect(evidence.checks.find((check) => check.name === 'full-yudao-baseline')?.detail).toContain(externalBaselinePath)
   })
@@ -748,6 +807,8 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(deployDoc).toContain('DASHSCOPE_EMBEDDING_ENABLED')
     expect(deployDoc).toContain('--yudao-baseline-sql')
     expect(deployDoc).toContain('YUDAO_BASELINE_SQL')
+    expect(deployDoc).toContain('--yudao-server-jar')
+    expect(deployDoc).toContain('YUDAO_SERVER_JAR')
     expect(deployDoc).toContain('seed evidence 的 `summary.sqlFile`')
   })
 

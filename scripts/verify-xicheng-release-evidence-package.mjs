@@ -19,6 +19,7 @@ const requiredReleaseChecks = [
   'vision-ocr-service',
   'object-storage',
   'full-yudao-baseline',
+  'yudao-server-artifact',
   'xicheng-production-poi-evidence',
   'xicheng-production-poi',
   'xicheng-source-license'
@@ -289,6 +290,43 @@ async function checkReleaseBaselineHash(evidence) {
   return blockers
 }
 
+async function checkReleaseServerArtifactHash(evidence) {
+  const blockers = []
+  const summary = summaryOf(evidence)
+  const sourcePath = summary.yudaoServerJarFile
+  const expectedSha256 = summary.yudaoServerJarSha256
+  const expectedSize = Number(summary.yudaoServerJarSizeBytes)
+
+  if (!/^[a-f0-9]{64}$/.test(String(expectedSha256 || ''))) {
+    blockers.push('release evidence yudaoServerJarSha256 must be a sha256 hex digest')
+  }
+  if (!sourcePath || String(sourcePath).trim().length === 0) {
+    blockers.push('release evidence yudaoServerJarFile is required')
+  }
+  if (!Number.isFinite(expectedSize) || expectedSize <= 0) {
+    blockers.push('release evidence yudaoServerJarSizeBytes must be a positive number')
+  }
+  if (blockers.length > 0) {
+    return blockers
+  }
+
+  const resolvedSource = path.isAbsolute(sourcePath)
+    ? path.resolve(sourcePath)
+    : path.resolve(process.cwd(), sourcePath)
+  try {
+    const sourceBytes = await readFile(resolvedSource)
+    if (sha256(sourceBytes) !== expectedSha256) {
+      blockers.push('release evidence yudaoServerJarSha256 must match yudaoServerJarFile content')
+    }
+    if (sourceBytes.length !== expectedSize) {
+      blockers.push('release evidence yudaoServerJarSizeBytes must match yudaoServerJarFile size')
+    }
+  } catch (error) {
+    blockers.push(`release evidence yudaoServerJarFile cannot be read: ${error.message}`)
+  }
+  return blockers
+}
+
 async function checkReleaseEvidence(ref, stage, freshnessOptions) {
   const blockers = []
   if (ref.error) {
@@ -318,6 +356,7 @@ async function checkReleaseEvidence(ref, stage, freshnessOptions) {
     blockers.push('release evidence summary must have zero failed checks and zero blockers')
   }
   blockers.push(...await checkReleaseBaselineHash(evidence))
+  blockers.push(...await checkReleaseServerArtifactHash(evidence))
   blockers.push(...checkEvidenceChecks(evidence, requiredReleaseChecks, 'release'))
   if (blockersOf(evidence).length > 0) {
     blockers.push(`release evidence contains blockers: ${blockersOf(evidence).join('; ')}`)

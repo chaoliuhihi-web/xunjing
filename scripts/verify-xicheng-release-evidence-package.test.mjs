@@ -87,13 +87,29 @@ async function writeYudaoBaselineFile(rootDir) {
   }
 }
 
+async function writeYudaoServerJarFile(rootDir) {
+  const jarFile = path.join(rootDir, 'tmp/artifacts/yudao-server.jar')
+  const jarSource = 'PK\u0003\u0004xicheng-yudao-server-build-artifact\n'
+  await mkdir(path.dirname(jarFile), { recursive: true })
+  await writeFile(jarFile, jarSource)
+  return {
+    jarFile,
+    jarSha256: sha256(jarSource),
+    jarSizeBytes: Buffer.byteLength(jarSource)
+  }
+}
+
 async function writeReleaseEvidenceFile(rootDir, overrides = {}) {
   const baseline = await writeYudaoBaselineFile(rootDir)
+  const serverJar = await writeYudaoServerJarFile(rootDir)
   return writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence({
     ...overrides,
     summary: {
       yudaoBaselineSqlFile: baseline.baselineFile,
       yudaoBaselineSqlSha256: baseline.baselineSha256,
+      yudaoServerJarFile: serverJar.jarFile,
+      yudaoServerJarSha256: serverJar.jarSha256,
+      yudaoServerJarSizeBytes: serverJar.jarSizeBytes,
       ...(overrides.summary || {})
     }
   }))
@@ -133,8 +149,8 @@ function releaseEvidence(overrides = {}) {
     summary: {
       stage: 'production',
       status: 'PRODUCTION_READY_CANDIDATE',
-      totalChecks: 11,
-      passedChecks: 11,
+      totalChecks: 12,
+      passedChecks: 12,
       failedChecks: 0,
       blockerCount: 0
     },
@@ -147,6 +163,7 @@ function releaseEvidence(overrides = {}) {
       { name: 'vision-ocr-service', ok: true },
       { name: 'object-storage', ok: true },
       { name: 'full-yudao-baseline', ok: true },
+      { name: 'yudao-server-artifact', ok: true },
       { name: 'xicheng-production-poi-evidence', ok: true },
       { name: 'xicheng-production-poi', ok: true },
       { name: 'xicheng-source-license', ok: true }
@@ -449,6 +466,49 @@ describe('xicheng release evidence package gate', () => {
     const report = JSON.parse(result.stdout)
     expect(report.status).toBe('NOT_READY')
     expect(report.blockers.join('\n')).toContain('release evidence must include vector-embedding-runtime')
+  })
+
+  test('fails closed when release evidence lacks deployable Yudao server jar metadata', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
+      summary: {
+        yudaoServerJarFile: undefined,
+        yudaoServerJarSha256: undefined,
+        yudaoServerJarSizeBytes: undefined
+      },
+      checks: [
+        { name: 'runtime-env', ok: true },
+        { name: 'vector-embedding-runtime', ok: true },
+        { name: 'https-app-api-domain', ok: true },
+        { name: 'real-wechat-app', ok: true },
+        { name: 'real-ai-provider', ok: true },
+        { name: 'vision-ocr-service', ok: true },
+        { name: 'object-storage', ok: true },
+        { name: 'full-yudao-baseline', ok: true },
+        { name: 'xicheng-production-poi-evidence', ok: true },
+        { name: 'xicheng-production-poi', ok: true },
+        { name: 'xicheng-source-license', ok: true }
+      ]
+    })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.blockers.join('\n')).toContain('release evidence must include yudao-server-artifact')
+    expect(report.blockers.join('\n')).toContain('release evidence yudaoServerJarSha256 must be a sha256 hex digest')
+    expect(report.blockers.join('\n')).toContain('release evidence yudaoServerJarFile is required')
   })
 
   test('fails closed when APP, manifest and seed evidence do not describe the same Xicheng batch', async () => {
