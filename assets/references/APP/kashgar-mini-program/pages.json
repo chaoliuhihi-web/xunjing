@@ -56,6 +56,17 @@
 			}
 		},
 		{
+			"path": "pages/xicheng/inspiration/inspiration",
+			"style": {
+				"navigationBarTitleText": "导入灵感",
+				"navigationStyle": "custom",
+				"mp-weixin": {
+					"navigationStyle": "custom",
+					"homeButton": false
+				}
+			}
+		},
+		{
 			"path": "pages/xicheng/material-box/material-box",
 			"style": {
 				"navigationBarTitleText": "旅行素材盒",

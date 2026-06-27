@@ -59,6 +59,9 @@ import {
 	submitXichengCheckin
 } from '@/request/xunjing/route.js'
 import {
+	XICHENG_GENERATED_ROUTE_STORAGE_KEY
+} from '@/request/xunjing/inspiration.js'
+import {
 	appendXichengMaterialEvent,
 	startXichengTrackSession
 } from '@/request/xunjing/track.js'
@@ -72,8 +75,21 @@ export default {
 		}
 	},
 	async onLoad(options = {}) {
+		const routeId = decodeURIComponent(options.routeId || '')
+		const source = decodeURIComponent(options.source || '')
 		this.poiCode = decodeURIComponent(options.poiCode || XICHENG_DEFAULT_ROUTE.startPoiCode)
 		this.poiName = decodeURIComponent(options.poiName || '')
+		const generatedRoute = uni.getStorageSync(XICHENG_GENERATED_ROUTE_STORAGE_KEY) || {}
+		if (generatedRoute.routeId && (generatedRoute.routeId === routeId || source === 'inspiration')) {
+			this.route = {
+				...XICHENG_DEFAULT_ROUTE,
+				...generatedRoute,
+				passportTasks: generatedRoute.passportTasks || XICHENG_DEFAULT_ROUTE.passportTasks,
+				badges: generatedRoute.badges || XICHENG_DEFAULT_ROUTE.badges
+			}
+			this.poiCode = this.route.startPoiCode || this.poiCode
+			return
+		}
 		this.route = await getXichengRouteRecommendation({
 			poiCode: this.poiCode,
 			poiName: this.poiName

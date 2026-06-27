@@ -41,6 +41,53 @@ export const XICHENG_RECOMMENDED_QUESTIONS = Object.freeze([
 	'把这个点写进我的游记草稿'
 ])
 
+export const XICHENG_OFFICIAL_POI_FIXTURES = Object.freeze([
+	{
+		poiCode: 'xicheng-baitasi',
+		poiName: '白塔寺',
+		aliases: ['妙应寺白塔', '白塔寺', '白塔'],
+		category: '文博古建',
+		officialPoiOnly: true,
+		latitude: 39.9231,
+		longitude: 116.35726
+	},
+	{
+		poiCode: 'xicheng-diwangmiao',
+		poiName: '历代帝王庙',
+		aliases: ['历代帝王庙', '帝王庙'],
+		category: '文博古建',
+		officialPoiOnly: true,
+		latitude: 39.92396,
+		longitude: 116.36436
+	},
+	{
+		poiCode: 'xicheng-shichahai',
+		poiName: '什刹海',
+		aliases: ['什刹海', '后海', '前海'],
+		category: '城市漫步',
+		officialPoiOnly: true,
+		latitude: 39.9401,
+		longitude: 116.3802
+	},
+	{
+		poiCode: 'xicheng-beihai',
+		poiName: '北海公园',
+		aliases: ['北海', '北海公园', '琼华岛'],
+		category: '公园水系',
+		officialPoiOnly: true,
+		latitude: 39.9255,
+		longitude: 116.3899
+	}
+])
+
+export const XICHENG_INSPIRATION_IMPORT_CONFIG = Object.freeze({
+	inspirationImport: true,
+	officialPoiOnly: true,
+	supportedSources: ['小红书', '公众号', '图片', '文字'],
+	doNotStoreThirdPartyRawContent: true,
+	disclaimer: '首版只提取地点、偏好和路线意图，不抓取第三方平台原文，不复制小红书、公众号正文和图片。'
+})
+
 export const XICHENG_DEFAULT_ROUTE = Object.freeze({
 	routeId: 'xicheng-baitasi-culture-walk',
 	title: '白塔寺文化 Citywalk',

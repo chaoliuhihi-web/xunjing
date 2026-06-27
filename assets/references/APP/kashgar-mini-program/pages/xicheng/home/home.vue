@@ -44,6 +44,14 @@
 			<text class="route-arrow">进入</text>
 		</view>
 
+		<view class="inspiration-card" @click="openInspirationImport">
+			<view>
+				<text class="ops-title">一键抄作业</text>
+				<text class="ops-desc">导入灵感，AI 提取地点后匹配官方 POI 并生成可走路线</text>
+			</view>
+			<text class="route-arrow">导入灵感</text>
+		</view>
+
 		<view class="ops-section">
 			<view class="ops-card" @click="openPassport">
 				<text class="ops-title">{{ routePassport.title }}</text>
@@ -179,6 +187,11 @@ export default {
 				url: `/pages/xicheng/route-detail/route-detail?routeId=${encodeURIComponent(this.defaultRoute.routeId)}&poiCode=${encodeURIComponent(this.defaultRoute.startPoiCode)}`
 			})
 		},
+		openInspirationImport() {
+			uni.navigateTo({
+				url: '/pages/xicheng/inspiration/inspiration'
+			})
+		},
 		openMaterialBox() {
 			uni.navigateTo({
 				url: `/pages/xicheng/material-box/material-box?routeId=${encodeURIComponent(this.defaultRoute.routeId)}`
@@ -272,7 +285,8 @@ export default {
 
 .quick-card,
 .ops-card,
-.route-card {
+.route-card,
+.inspiration-card {
 	min-height: 150rpx;
 	padding: 24rpx;
 	border-radius: 8rpx;
@@ -280,12 +294,18 @@ export default {
 	box-sizing: border-box;
 }
 
-.route-card {
+.route-card,
+.inspiration-card {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	margin-top: 28rpx;
 	min-height: 132rpx;
+}
+
+.inspiration-card {
+	background: #FDF9E7;
+	border: 1px solid #E7D79A;
 }
 
 .route-arrow {
