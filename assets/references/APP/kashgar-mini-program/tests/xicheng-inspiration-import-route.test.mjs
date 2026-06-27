@@ -68,6 +68,30 @@ assert.match(
 
 assert.match(
   inspiration,
+  /const route = \{[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel/,
+  'Inspiration route should persist Xicheng package and source channel for route passport attribution'
+)
+
+assert.match(
+  inspiration,
+  /route\.stops\.map\(stop => \(\{[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode/,
+  'Inspiration route POI materials should carry packageCode for review and operations attribution'
+)
+
+assert.match(
+  inspiration,
+  /type:\s*'inspiration-image'[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode/,
+  'Inspiration image material should carry packageCode for review and operations attribution'
+)
+
+assert.match(
+  inspiration,
+  /openTravelogue\(\)[\s\S]*regionCode=\$\{encodeURIComponent\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeURIComponent\(this\.region\.packageCode\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.region\.companionName\)\}/,
+  'Inspiration openTravelogue should preserve package and companion context'
+)
+
+assert.match(
+  inspiration,
   /extractXichengPoiMatches\s*=\s*\(text = ''[\s\S]*XICHENG_OFFICIAL_POIS[\s\S]*poi\.aliases[\s\S]*includes/,
   'Inspiration page should extract route candidates by matching text against official Xicheng POI aliases'
 )

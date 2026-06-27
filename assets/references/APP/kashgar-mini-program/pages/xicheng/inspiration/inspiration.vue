@@ -138,6 +138,8 @@ export default {
 				rawTextExcerpt: this.createInspirationTextExcerpt(this.rawText),
 				imagePath: this.imagePath,
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
+				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
 				sourceLabel: '灵感导入路线',
 				updatedAt: new Date().toISOString()
 			}
@@ -150,6 +152,7 @@ export default {
 				: route.stops.map(stop => ({
 					type: 'inspiration-poi',
 					regionCode: XICHENG_REGION_CONFIG.regionCode,
+					packageCode: XICHENG_REGION_CONFIG.packageCode,
 					poiCode: stop.poiCode,
 					poiName: stop.poiName,
 					sourceLabel: '灵感导入路线',
@@ -160,6 +163,7 @@ export default {
 				? [{
 					type: 'inspiration-image',
 					regionCode: XICHENG_REGION_CONFIG.regionCode,
+					packageCode: XICHENG_REGION_CONFIG.packageCode,
 					poiCode: '',
 					poiName: '攻略图片',
 					imagePath: this.imagePath,
@@ -216,7 +220,7 @@ export default {
 		openTravelogue() {
 			this.saveInspirationRoute({ silent: true })
 			uni.navigateTo({
-				url: `/pages/xicheng/travelogue/travelogue?mode=route&regionCode=${encodeURIComponent(this.region.regionCode)}`
+				url: `/pages/xicheng/travelogue/travelogue?mode=route&regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&companionName=${encodeURIComponent(this.region.companionName)}`
 			})
 		}
 	}
