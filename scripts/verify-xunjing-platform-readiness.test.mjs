@@ -322,6 +322,13 @@ describe('xunjing platform readiness verifier', () => {
     })
 
     expect(result.ok).toBe(true)
+    expect(result.summary).toMatchObject({
+      baseUrl,
+      tenantId: '1',
+      staticOnly: false,
+      includeAiCheck: true,
+      includeWriteCheck: true
+    })
     expect(result.checks.map((check) => check.name)).toEqual([
       'static-files',
       'sql-schema',
