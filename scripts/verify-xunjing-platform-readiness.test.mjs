@@ -63,6 +63,7 @@ function stagingEnv(overrides = {}) {
 }
 
 function assertXichengTriggerPayload(payload, expectedPoiCode) {
+  expect(payload.packageCode).toBe('XICHENG-MAP-001')
   expect(payload.regionCode).toBe('beijing-xicheng')
   expect(payload.userTraceId).toBe(`platform-readiness-${expectedPoiCode}`)
   expect(payload.location).toBeTruthy()
@@ -210,12 +211,13 @@ async function startPlatformFixture() {
       res.end(JSON.stringify({
         code: 0,
         data: {
+          packageCode: 'XICHENG-MAP-001',
           regionCode: 'beijing-xicheng',
           poiCode: expectedPoiCode,
           poiName,
           confidence: 0.92,
           requiresUserConfirm: false,
-          targetPath: `/pages/ai-guide/detail?regionCode=beijing-xicheng&poiCode=${expectedPoiCode}`,
+          targetPath: `/pages/ai-guide/detail?regionCode=beijing-xicheng&poiCode=${expectedPoiCode}&packageCode=XICHENG-MAP-001`,
           suggestedQuestions: [`给我讲讲${poiName}。`],
           sources: [{ title: poiName, sourceType: 'OFFICIAL_PUBLIC' }]
         }
@@ -495,24 +497,30 @@ describe('xunjing platform readiness verifier', () => {
     })
     expect(checkByName(result, 'live-xicheng-trigger-baitasi')?.summary).toMatchObject({
       endpoint: '/app-api/xunjing/triggers/resolve',
+      packageCode: 'XICHENG-MAP-001',
       regionCode: 'beijing-xicheng',
       poiCode: 'xicheng-baitasi',
       poiName: '妙应寺白塔',
       requiresUserConfirm: false,
-      sourceCount: 1
+      sourceCount: 1,
+      targetPath: '/pages/ai-guide/detail?regionCode=beijing-xicheng&poiCode=xicheng-baitasi&packageCode=XICHENG-MAP-001'
     })
     expect(checkByName(result, 'live-xicheng-trigger-baitasi')?.summary.confidence).toBeGreaterThanOrEqual(0.85)
     expect(checkByName(result, 'live-xicheng-trigger-gongwangfu')?.summary).toMatchObject({
       endpoint: '/app-api/xunjing/triggers/resolve',
+      packageCode: 'XICHENG-MAP-001',
       poiCode: 'xicheng-gongwangfu',
       poiName: '恭王府',
-      sourceCount: 1
+      sourceCount: 1,
+      targetPath: '/pages/ai-guide/detail?regionCode=beijing-xicheng&poiCode=xicheng-gongwangfu&packageCode=XICHENG-MAP-001'
     })
     expect(checkByName(result, 'live-xicheng-trigger-planetarium')?.summary).toMatchObject({
       endpoint: '/app-api/xunjing/triggers/resolve',
+      packageCode: 'XICHENG-MAP-001',
       poiCode: 'xicheng-planetarium',
       poiName: '北京天文馆',
-      sourceCount: 1
+      sourceCount: 1,
+      targetPath: '/pages/ai-guide/detail?regionCode=beijing-xicheng&poiCode=xicheng-planetarium&packageCode=XICHENG-MAP-001'
     })
   })
 

@@ -367,12 +367,14 @@ function appReadinessEvidence(overrides = {}) {
         ok: true,
         summary: {
           endpoint: '/app-api/xunjing/triggers/resolve',
+          packageCode: 'XICHENG-MAP-001',
           regionCode: 'beijing-xicheng',
           poiCode: 'xicheng-baitasi',
           poiName: '妙应寺白塔',
           confidence: 0.92,
           requiresUserConfirm: false,
-          sourceCount: 1
+          sourceCount: 1,
+          targetPath: '/pages/ai-guide/detail?regionCode=beijing-xicheng&poiCode=xicheng-baitasi&packageCode=XICHENG-MAP-001'
         }
       },
       {
@@ -380,12 +382,14 @@ function appReadinessEvidence(overrides = {}) {
         ok: true,
         summary: {
           endpoint: '/app-api/xunjing/triggers/resolve',
+          packageCode: 'XICHENG-MAP-001',
           regionCode: 'beijing-xicheng',
           poiCode: 'xicheng-gongwangfu',
           poiName: '恭王府',
           confidence: 0.92,
           requiresUserConfirm: false,
-          sourceCount: 1
+          sourceCount: 1,
+          targetPath: '/pages/ai-guide/detail?regionCode=beijing-xicheng&poiCode=xicheng-gongwangfu&packageCode=XICHENG-MAP-001'
         }
       },
       {
@@ -393,12 +397,14 @@ function appReadinessEvidence(overrides = {}) {
         ok: true,
         summary: {
           endpoint: '/app-api/xunjing/triggers/resolve',
+          packageCode: 'XICHENG-MAP-001',
           regionCode: 'beijing-xicheng',
           poiCode: 'xicheng-planetarium',
           poiName: '北京天文馆',
           confidence: 0.92,
           requiresUserConfirm: false,
-          sourceCount: 1
+          sourceCount: 1,
+          targetPath: '/pages/ai-guide/detail?regionCode=beijing-xicheng&poiCode=xicheng-planetarium&packageCode=XICHENG-MAP-001'
         }
       }
     ],
@@ -1118,6 +1124,38 @@ describe('xicheng release evidence package gate', () => {
     expect(evidence.blockers.join('\n')).toContain('app readiness evidence check live-xicheng-trigger-baitasi summary.confidence must be at least 0.85')
   })
 
+  test('fails closed when APP trigger readiness summaries lack package context', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const workbookPath = path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json')
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appEvidence = appReadinessEvidence()
+    for (const check of appEvidence.checks.filter((item) => item.name.startsWith('live-xicheng-trigger-'))) {
+      delete check.summary.packageCode
+      delete check.summary.targetPath
+    }
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appEvidence)
+    const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-workbook-evidence', workbookPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath,
+      '--evidence-file', 'tmp/xicheng-release-evidence-package.json'
+    ])
+
+    expect(result.status).toBe(1)
+    const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
+    expect(evidence.status).toBe('NOT_READY')
+    expect(evidence.blockers.join('\n')).toContain('app readiness evidence check live-xicheng-trigger-baitasi summary.packageCode must be XICHENG-MAP-001')
+    expect(evidence.blockers.join('\n')).toContain('app readiness evidence check live-xicheng-trigger-baitasi summary.targetPath must include packageCode=XICHENG-MAP-001')
+  })
+
   test('fails closed when package input evidence is missing checkedAt timestamp', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeReleaseEvidenceFile(rootDir)
@@ -1241,6 +1279,9 @@ describe('xicheng release evidence package gate', () => {
     expect(deployDoc).toContain('check.summary.logId')
     expect(deployDoc).toContain('check.summary.sourceCount')
     expect(deployDoc).toContain('check.summary.confidence')
+    expect(deployDoc).toContain('check.summary.packageCode')
+    expect(deployDoc).toContain('check.summary.targetPath')
+    expect(deployDoc).toContain('packageCode=XICHENG-MAP-001')
     expect(deployDoc).toContain('evidenceFileSha256')
     expect(deployDoc).toContain('summary.poiWorkbookEvidenceFile')
   })

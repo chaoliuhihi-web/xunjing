@@ -40,6 +40,7 @@ const xichengTriggerSmokeCases = [
     poiCode: 'xicheng-baitasi',
     poiName: '妙应寺白塔',
     payload: {
+      packageCode: 'XICHENG-MAP-001',
       regionCode: 'beijing-xicheng',
       ocrText: '妙应寺白塔入口',
       text: '我在白塔寺附近，想听讲解',
@@ -59,6 +60,7 @@ const xichengTriggerSmokeCases = [
     poiCode: 'xicheng-gongwangfu',
     poiName: '恭王府',
     payload: {
+      packageCode: 'XICHENG-MAP-001',
       regionCode: 'beijing-xicheng',
       ocrText: '恭王府博物馆入口',
       text: '我在恭王府，开始讲解',
@@ -78,6 +80,7 @@ const xichengTriggerSmokeCases = [
     poiCode: 'xicheng-planetarium',
     poiName: '北京天文馆',
     payload: {
+      packageCode: 'XICHENG-MAP-001',
       regionCode: 'beijing-xicheng',
       ocrText: '北京天文馆',
       text: '孩子想看天文馆讲解',
@@ -638,12 +641,14 @@ async function checkLiveXichengTrigger(baseUrl, fetchImpl, tenantId, smokeCase) 
   )
   if (
     json.code !== 0 ||
+    json.data?.packageCode !== 'XICHENG-MAP-001' ||
     json.data?.regionCode !== 'beijing-xicheng' ||
     json.data?.poiCode !== smokeCase.poiCode ||
     json.data?.poiName !== smokeCase.poiName ||
     Number(json.data?.confidence || 0) < 0.85 ||
     json.data?.requiresUserConfirm !== false ||
-    !String(json.data?.targetPath || '').includes(`poiCode=${smokeCase.poiCode}`)
+    !String(json.data?.targetPath || '').includes(`poiCode=${smokeCase.poiCode}`) ||
+    !String(json.data?.targetPath || '').includes('packageCode=XICHENG-MAP-001')
   ) {
     throw new Error(`/app-api/xunjing/triggers/resolve did not resolve ${smokeCase.poiCode}`)
   }
@@ -652,6 +657,7 @@ async function checkLiveXichengTrigger(baseUrl, fetchImpl, tenantId, smokeCase) 
   }
   return pass(smokeCase.name, smokeCase.detail, {
     endpoint: '/app-api/xunjing/triggers/resolve',
+    packageCode: json.data.packageCode,
     regionCode: json.data.regionCode,
     poiCode: json.data.poiCode,
     poiName: json.data.poiName,

@@ -238,6 +238,12 @@ function checkSummaryPositiveNumber(summary, field, label, blockers) {
   }
 }
 
+function checkSummaryContains(summary, field, expectedSnippet, label, blockers) {
+  if (!String(summary?.[field] || '').includes(expectedSnippet)) {
+    blockers.push(`${label} summary.${field} must include ${expectedSnippet}`)
+  }
+}
+
 function checkAppReadinessCheckSummaries(evidence) {
   const blockers = []
   const checks = Array.isArray(evidence?.checks) ? evidence.checks : []
@@ -291,8 +297,11 @@ function checkAppReadinessCheckSummaries(evidence) {
   ]) {
     const triggerSummary = summaryOfCheck(name)
     checkSummaryEquals(triggerSummary, 'endpoint', '/app-api/xunjing/triggers/resolve', `app readiness evidence check ${name}`, blockers)
+    checkSummaryEquals(triggerSummary, 'packageCode', expectedXichengPackageCode, `app readiness evidence check ${name}`, blockers)
     checkSummaryEquals(triggerSummary, 'regionCode', expectedXichengRegionCode, `app readiness evidence check ${name}`, blockers)
     checkSummaryEquals(triggerSummary, 'poiCode', poiCode, `app readiness evidence check ${name}`, blockers)
+    checkSummaryContains(triggerSummary, 'targetPath', `poiCode=${poiCode}`, `app readiness evidence check ${name}`, blockers)
+    checkSummaryContains(triggerSummary, 'targetPath', `packageCode=${expectedXichengPackageCode}`, `app readiness evidence check ${name}`, blockers)
     if (!Number.isFinite(Number(triggerSummary.confidence)) || Number(triggerSummary.confidence) < 0.85) {
       blockers.push(`app readiness evidence check ${name} summary.confidence must be at least 0.85`)
     }
