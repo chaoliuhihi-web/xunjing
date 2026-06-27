@@ -19,6 +19,7 @@ export const XICHENG_REGION_CONFIG = Object.freeze({
 	shareAssetStorageKey: 'xicheng:shareAssets',
 	recordingStorageKey: 'xicheng:recordingSession',
 	studyTaskStorageKey: 'xicheng:studyTaskEvidence',
+	badgeAwardStorageKey: 'xicheng:badgeAwards',
 	reviewStatus: {
 		draft: '草稿',
 		pending: '待审核',

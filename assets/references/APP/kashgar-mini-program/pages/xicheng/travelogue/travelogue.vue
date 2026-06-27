@@ -100,6 +100,11 @@
 				<view class="progress-fill" :style="{ width: `${passportProgress}%` }"></view>
 			</view>
 			<text class="badge-copy">西城印章会随打卡素材自动累积，完成后可用于分享海报和 PDF纪念册。</text>
+			<view v-if="activeBadgeAward" class="badge-award-box">
+				<text class="badge-award-title">徽章达成记录</text>
+				<text class="badge-award-copy">{{ activeBadgeAward.badgeName }} · {{ formatArtifactTime(activeBadgeAward.awardedAt) }}</text>
+			</view>
+			<button v-else class="ghost-button badge-claim-button" :disabled="!badgeUnlocked" @click="claimRouteBadge">领取徽章</button>
 		</view>
 
 		<view class="section-card">
@@ -337,6 +342,7 @@ export default {
 			remarkInput: '',
 			studyTaskEvidence: [],
 			studyTaskDrafts: [],
+			badgeAwards: [],
 			recordingSession: createEmptyRecordingSession()
 		}
 	},
@@ -361,6 +367,15 @@ export default {
 		},
 		badgeName() {
 			return `${this.routePassport.badgePrefix || '西城印章'} · Citywalk`
+		},
+		routeBadgeCode() {
+			return `${XICHENG_REGION_CONFIG.regionCode}:route-passport:citywalk`
+		},
+		activeBadgeAward() {
+			return this.badgeAwards.find(award => award && award.badgeCode === this.routeBadgeCode) || null
+		},
+		badgeAwardCount() {
+			return this.badgeAwards.length
 		},
 		completedStudyTaskEvidence() {
 			return this.studyTaskEvidence.filter(evidence => evidence && evidence.completedAt)
@@ -400,6 +415,7 @@ export default {
 				sourceCount: this.sourceCount,
 				workCount: this.draft ? 1 : 0,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
+				badgeAwardCount: this.badgeAwardCount,
 				shareCount: this.shareArtifacts.length,
 				misTriggerCount: this.misTriggerCount,
 				optimizationSuggestions: this.createOptimizationSuggestions(),
@@ -465,6 +481,7 @@ export default {
 			const storedShareAssets = uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey)
 			const storedRecordingSession = uni.getStorageSync(XICHENG_REGION_CONFIG.recordingStorageKey)
 			const storedStudyTaskEvidence = uni.getStorageSync(XICHENG_REGION_CONFIG.studyTaskStorageKey)
+			const storedBadgeAwards = uni.getStorageSync(XICHENG_REGION_CONFIG.badgeAwardStorageKey)
 			const materials = Array.isArray(storedMaterials) ? storedMaterials : []
 			this.importedRoute = importedRoute && importedRoute.stops ? importedRoute : null
 			this.reviewSubmission = Array.isArray(storedReviewSubmissions) && storedReviewSubmissions.length > 0
@@ -472,6 +489,7 @@ export default {
 				: null
 			this.shareArtifacts = Array.isArray(storedShareAssets) ? storedShareAssets : []
 			this.studyTaskEvidence = Array.isArray(storedStudyTaskEvidence) ? storedStudyTaskEvidence : []
+			this.badgeAwards = Array.isArray(storedBadgeAwards) ? storedBadgeAwards : []
 			this.studyTaskDrafts = this.parentChildTasks.map((_, index) => {
 				const evidence = this.getStudyTaskEvidence(index)
 				return evidence && evidence.answerText ? evidence.answerText : ''
@@ -679,6 +697,40 @@ export default {
 				}
 			})
 		},
+		claimRouteBadge() {
+			if (!this.badgeUnlocked || this.activeBadgeAward) return
+			const award = this.createRouteBadgeAward()
+			this.persistRouteBadgeAward(award)
+			uni.showToast({
+				title: '徽章已领取',
+				icon: 'none'
+			})
+		},
+		createRouteBadgeAward() {
+			const awardedAt = new Date().toISOString()
+			return {
+				awardId: `badge-${Date.now()}`,
+				badgeCode: this.routeBadgeCode,
+				badgeName: this.badgeName,
+				routePassportTitle: this.routePassport.title,
+				regionCode: XICHENG_REGION_CONFIG.regionCode,
+				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				passportProgress: this.passportProgress,
+				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
+				awardedAt,
+				reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
+				publishStatus: 'private'
+			}
+		},
+		persistRouteBadgeAward(award) {
+			const existingAwards = this.badgeAwards.filter(item => item && item.badgeCode !== award.badgeCode)
+			this.badgeAwards = [
+				award,
+				...existingAwards
+			].slice(0, 20)
+			uni.setStorageSync(XICHENG_REGION_CONFIG.badgeAwardStorageKey, this.badgeAwards)
+			this.saveDraft({ silent: true })
+		},
 		addRemarkMaterial() {
 			if (!this.remarkInput.trim()) {
 				uni.showToast({
@@ -789,6 +841,8 @@ export default {
 				shareArtifacts: this.shareArtifacts,
 				recordingSession: this.recordingSession,
 				studyTaskEvidence: this.studyTaskEvidence,
+				badgeAwards: this.badgeAwards,
+				activeBadgeAward: this.activeBadgeAward,
 				reviewText: this.reviewText,
 				posterStatus: this.posterStatus,
 				pdfStatus: this.pdfStatus,
@@ -853,6 +907,9 @@ export default {
 				remarkMaterialCount: this.remarkMaterialCount,
 				studyTaskEvidence: this.studyTaskEvidence,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
+				badgeAwards: this.badgeAwards,
+				activeBadgeAward: this.activeBadgeAward,
+				badgeAwardCount: this.badgeAwardCount,
 				reviewStatus: this.reviewText,
 				submittedAt,
 				materialCount: this.materialCount,
@@ -888,6 +945,8 @@ export default {
 				remarkMaterialCount: this.remarkMaterialCount,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
 				studyTaskEvidence: this.completedStudyTaskEvidence,
+				activeBadgeAward: this.activeBadgeAward,
+				badgeAwardCount: this.badgeAwardCount,
 				sourceCount: this.sourceCount,
 				badgeName: this.badgeName,
 				passportProgress: this.passportProgress,
@@ -1248,6 +1307,29 @@ export default {
 
 .badge-copy {
 	margin-top: 16rpx;
+}
+
+.badge-award-box {
+	margin-top: 18rpx;
+	padding: 18rpx;
+	border-radius: 8rpx;
+	background: #EEF5F1;
+}
+
+.badge-award-title,
+.badge-award-copy {
+	display: block;
+	font-size: 24rpx;
+	line-height: 1.5;
+	color: #1F6E5A;
+}
+
+.badge-award-title {
+	font-weight: 700;
+}
+
+.badge-claim-button {
+	margin-top: 18rpx;
 }
 
 .material-row,
