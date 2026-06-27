@@ -7,6 +7,29 @@ import { loadEnvFile } from './verify-xunjing-platform-readiness.mjs'
 const productionPoiTarget = 80
 const allowedEvidenceDirs = new Set(['qa', 'tmp', 'workbench'])
 
+const requiredManifestEvidenceChecks = [
+  'manifest-shape',
+  'manifest-production-flags',
+  'poi-count',
+  'poi-identity',
+  'poi-coordinates',
+  'poi-triggers',
+  'poi-source-license',
+  'poi-field-evidence',
+  'poi-content',
+  'poi-audit'
+]
+
+const requiredSeedEvidenceChecks = [
+  'sql-file',
+  'seed-shape',
+  'poi-count',
+  'poi-approval',
+  'production-metrics',
+  'field-evidence',
+  'source-documents'
+]
+
 const requiredProductionEnvKeys = [
   'SPRING_PROFILES_ACTIVE',
   'XUNJING_TENANT_ID',
@@ -276,6 +299,21 @@ function evidenceSummary(evidence) {
     : {}
 }
 
+function checkEvidenceChecks(evidence, requiredChecks, label) {
+  const blockers = []
+  const checks = Array.isArray(evidence?.checks) ? evidence.checks : []
+  const byName = new Map(checks.map((item) => [item.name, item]))
+  requiredChecks.forEach((name) => {
+    const item = byName.get(name)
+    if (!item) {
+      blockers.push(`${label} evidence must include ${name}`)
+    } else if (item.ok !== true) {
+      blockers.push(`${label} evidence check ${name} must be ok`)
+    }
+  })
+  return blockers
+}
+
 function validateManifestEvidence(ref) {
   const blockers = []
   if (!ref.path) {
@@ -310,6 +348,7 @@ function validateManifestEvidence(ref) {
   if (summary.productionReady !== true) {
     blockers.push('manifest evidence productionReady must be true')
   }
+  blockers.push(...checkEvidenceChecks(evidence, requiredManifestEvidenceChecks, 'manifest'))
   if (!hasNoEvidenceBlockers(evidence)) {
     blockers.push(`manifest evidence contains blockers: ${evidence.blockers.join('; ')}`)
   }
@@ -346,6 +385,7 @@ function validateSeedEvidence(ref) {
   if (summary.productionReady !== true) {
     blockers.push('seed evidence productionReady must be true')
   }
+  blockers.push(...checkEvidenceChecks(evidence, requiredSeedEvidenceChecks, 'seed'))
   if (!hasNoEvidenceBlockers(evidence)) {
     blockers.push(`seed evidence contains blockers: ${evidence.blockers.join('; ')}`)
   }
