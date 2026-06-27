@@ -21,6 +21,24 @@
 			</view>
 		</view>
 
+		<view v-if="importedRoute" class="section-card">
+			<view class="section-head">
+				<text class="section-title">灵感导入路线</text>
+				<text class="section-badge">{{ importedRoute.durationText || '待出发' }}</text>
+			</view>
+			<text class="route-title">{{ importedRoute.title }}</text>
+			<text class="section-desc">{{ importedRoute.summary }}</text>
+			<view class="route-steps">
+				<text
+					v-for="(stop, index) in importedRoute.stops"
+					:key="stop.poiCode"
+					class="route-stop"
+				>
+					{{ index + 1 }}. {{ stop.poiName }}
+				</text>
+			</view>
+		</view>
+
 		<view class="section-card">
 			<view class="section-head">
 				<text class="section-title">路线护照</text>
@@ -132,6 +150,7 @@ export default {
 			routePassport: XICHENG_REGION_CONFIG.routePassport,
 			parentChildTasks: XICHENG_REGION_CONFIG.parentChildTasks,
 			materials: [],
+			importedRoute: null,
 			draft: '',
 			reviewText: XICHENG_REGION_CONFIG.reviewStatus.draft,
 			posterStatus: '未生成',
@@ -177,7 +196,9 @@ export default {
 	methods: {
 		loadJourney(options = {}) {
 			const storedMaterials = uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey)
+			const importedRoute = uni.getStorageSync(XICHENG_REGION_CONFIG.inspirationStorageKey)
 			const materials = Array.isArray(storedMaterials) ? storedMaterials : []
+			this.importedRoute = importedRoute && importedRoute.stops ? importedRoute : null
 			const routePoiName = options.poiName ? decodeURIComponent(options.poiName) : ''
 			if (routePoiName && !materials.some(material => material && material.poiName === routePoiName)) {
 				materials.unshift({
@@ -384,6 +405,28 @@ export default {
 	font-size: 28rpx;
 	font-weight: 700;
 	color: #1F2933;
+}
+
+.route-title {
+	display: block;
+	margin-top: 18rpx;
+	font-size: 28rpx;
+	font-weight: 700;
+	color: #1F2933;
+}
+
+.route-steps {
+	margin-top: 18rpx;
+}
+
+.route-stop {
+	display: block;
+	margin-top: 12rpx;
+	padding: 18rpx;
+	border-radius: 8rpx;
+	background: #F2F4F7;
+	font-size: 26rpx;
+	color: #344054;
 }
 
 .material-meta {

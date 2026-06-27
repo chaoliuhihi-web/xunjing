@@ -13,6 +13,7 @@ export const XICHENG_REGION_CONFIG = Object.freeze({
 	storageKey: 'xicheng:lastRecognitionResult',
 	materialsStorageKey: 'xicheng:journeyMaterials',
 	journeyStorageKey: 'xicheng:journeyDraft',
+	inspirationStorageKey: 'xicheng:inspirationRoute',
 	localOpsReportKey: 'xicheng:localOpsReport',
 	reviewStatus: {
 		draft: '草稿',
@@ -36,6 +37,44 @@ export const XICHENG_REGION_CONFIG = Object.freeze({
 		auditStatus: 'pending'
 	}
 })
+
+export const XICHENG_OFFICIAL_POIS = Object.freeze([
+	{
+		poiCode: 'xicheng-baitasi',
+		poiName: '白塔寺',
+		aliases: ['白塔寺', '妙应寺', '白塔', '阜成门内'],
+		theme: '寺庙建筑',
+		durationText: '40分钟'
+	},
+	{
+		poiCode: 'xicheng-imperial-temple',
+		poiName: '历代帝王庙',
+		aliases: ['历代帝王庙', '帝王庙', '阜成门'],
+		theme: '礼制文化',
+		durationText: '35分钟'
+	},
+	{
+		poiCode: 'xicheng-shichahai',
+		poiName: '什刹海',
+		aliases: ['什刹海', '后海', '前海', '西海'],
+		theme: '水系胡同',
+		durationText: '50分钟'
+	},
+	{
+		poiCode: 'xicheng-beihai',
+		poiName: '北海公园',
+		aliases: ['北海', '北海公园', '琼华岛'],
+		theme: '皇家园林',
+		durationText: '60分钟'
+	},
+	{
+		poiCode: 'xicheng-dashilar',
+		poiName: '大栅栏',
+		aliases: ['大栅栏', '前门', '廊房头条'],
+		theme: '老字号街区',
+		durationText: '45分钟'
+	}
+])
 
 export const XICHENG_HOME_ACTIONS = Object.freeze([
 	{ key: 'scan', title: '扫一扫', subtitle: '二维码 / 牌匾 / 门票', source: 'scan' },

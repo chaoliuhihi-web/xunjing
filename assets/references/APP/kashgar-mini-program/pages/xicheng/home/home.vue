@@ -10,6 +10,14 @@
 			</view>
 		</view>
 
+		<view class="inspiration-panel" @click="openXichengInspiration">
+			<view>
+				<text class="inspiration-title">一键导入灵感</text>
+				<text class="inspiration-desc">粘贴攻略文字或地点清单，AI 提取地点并匹配官方 POI。</text>
+			</view>
+			<text class="inspiration-action">生成路线</text>
+		</view>
+
 		<view class="quick-grid">
 			<view class="quick-card" @click="startScanRecognition">
 				<text class="quick-title">扫一扫</text>
@@ -175,6 +183,11 @@ export default {
 			uni.navigateTo({
 				url: `/pages/xicheng/travelogue/travelogue?mode=${encodeURIComponent(mode)}&regionCode=${encodeURIComponent(this.region.regionCode)}`
 			})
+		},
+		openXichengInspiration() {
+			uni.navigateTo({
+				url: `/pages/xicheng/inspiration/inspiration?regionCode=${encodeURIComponent(this.region.regionCode)}`
+			})
 		}
 	}
 }
@@ -242,6 +255,43 @@ export default {
 .ghost-button {
 	background: #EEF5F1;
 	color: #1F6E5A;
+}
+
+.inspiration-panel {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 20rpx;
+	margin-top: 28rpx;
+	padding: 28rpx;
+	border-radius: 8rpx;
+	background: #122033;
+	color: #FFFFFF;
+	box-shadow: 0 12rpx 36rpx rgba(31, 41, 51, 0.12);
+}
+
+.inspiration-title {
+	display: block;
+	font-size: 32rpx;
+	font-weight: 700;
+}
+
+.inspiration-desc {
+	display: block;
+	margin-top: 10rpx;
+	font-size: 24rpx;
+	line-height: 1.55;
+	color: rgba(255, 255, 255, 0.76);
+}
+
+.inspiration-action {
+	flex-shrink: 0;
+	padding: 12rpx 18rpx;
+	border-radius: 8rpx;
+	background: #F2C94C;
+	font-size: 24rpx;
+	font-weight: 700;
+	color: #122033;
 }
 
 .quick-grid,
