@@ -2060,7 +2060,7 @@ onLoad((options = {}) => {
 	}
 	if (!options.question) return
 	showAiCompanionHome.value = false
-	sendInitialQuestion(decodeURIComponent(options.question))
+	sendInitialQuestion(decodeRouteValue(options.question))
 })
 
 onReady(() => {
