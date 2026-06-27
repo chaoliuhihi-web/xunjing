@@ -105,6 +105,46 @@ async function writeEnvFile(rootDir, env) {
   return envPath
 }
 
+async function writeProductionPoiEvidence(rootDir, overrides = {}) {
+  const manifestEvidencePath = path.join(rootDir, 'qa/xicheng-poi-manifest-evidence.json')
+  const seedEvidencePath = path.join(rootDir, 'qa/xicheng-poi-production-seed-evidence.json')
+  await mkdir(path.dirname(manifestEvidencePath), { recursive: true })
+  const manifestEvidence = {
+    artifactType: 'xicheng-poi-production-manifest-readiness',
+    ok: true,
+    status: 'PRODUCTION_POI_MANIFEST_READY',
+    summary: {
+      regionCode: 'beijing-xicheng',
+      packageCode: 'XICHENG-MAP-001',
+      totalPoiCount: 80,
+      targetPoiCount: 80,
+      productionReady: true
+    },
+    checks: [],
+    blockers: [],
+    ...overrides.manifest
+  }
+  const seedEvidence = {
+    artifactType: 'xicheng-poi-production-seed-readiness',
+    ok: true,
+    status: 'PRODUCTION_POI_SEED_READY',
+    summary: {
+      sqlFile: path.join(rootDir, 'workbench/xicheng-poi-production-seed.sql'),
+      poiCount: 80,
+      minPoiCount: 80,
+      productionReady: true,
+      poiSeedCount: 80,
+      targetP0PoiCount: 80
+    },
+    checks: [],
+    blockers: [],
+    ...overrides.seed
+  }
+  await writeFile(manifestEvidencePath, `${JSON.stringify(manifestEvidence, null, 2)}\n`)
+  await writeFile(seedEvidencePath, `${JSON.stringify(seedEvidence, null, 2)}\n`)
+  return { manifestEvidencePath, seedEvidencePath }
+}
+
 afterEach(async () => {
   while (tempDirs.length > 0) {
     await rm(tempDirs.pop(), { recursive: true, force: true })
@@ -122,10 +162,12 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(result.ok).toBe(false)
     expect(result.status).toBe('NOT_READY')
     expect(result.checks.find((check) => check.name === 'full-yudao-baseline')?.ok).toBe(false)
+    expect(result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')?.ok).toBe(false)
     expect(result.checks.find((check) => check.name === 'xicheng-production-poi')?.detail).toContain('24/80')
     expect(result.checks.find((check) => check.name === 'xicheng-source-license')?.ok).toBe(false)
     expect(result.blockers).toEqual(expect.arrayContaining([
       expect.stringContaining('complete Yudao baseline'),
+      expect.stringContaining('POI manifest evidence is required'),
       expect.stringContaining('80 reviewed Xicheng POIs')
     ]))
   })
@@ -152,11 +194,14 @@ describe('xicheng Yudao release readiness gate', () => {
 
   test('returns production candidate only when env, full baseline and 80 approved POIs are present', async () => {
     const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
 
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
       rootDir,
-      stage: 'production'
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
     })
 
     expect(result.ok).toBe(true)
@@ -170,9 +215,59 @@ describe('xicheng Yudao release readiness gate', () => {
       'vision-ocr-service',
       'object-storage',
       'full-yudao-baseline',
+      'xicheng-production-poi-evidence',
       'xicheng-production-poi',
       'xicheng-source-license'
     ])
+  })
+
+  test('fails closed when reviewed POI manifest and seed evidence are missing', async () => {
+    const rootDir = await createProductionReadyFixture()
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production'
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(evidenceCheck?.ok).toBe(false)
+    expect(evidenceCheck?.blockers).toEqual([
+      'POI manifest evidence is required before production release',
+      'POI seed SQL evidence is required before production release'
+    ])
+  })
+
+  test('fails closed when production POI evidence is not ready', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir, {
+      seed: {
+        ok: false,
+        status: 'NOT_READY',
+        blockers: ['80 production POI seed rows required; found 1/80'],
+        summary: {
+          poiCount: 1,
+          productionReady: false
+        }
+      }
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(evidenceCheck?.ok).toBe(false)
+    expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence status must be PRODUCTION_POI_SEED_READY')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('seed evidence must prove at least 80 production POIs')
   })
 
   test('writes a secret-safe release evidence file even when production is not ready', async () => {
@@ -204,7 +299,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidence.summary).toMatchObject({
       stage: 'production',
       status: 'NOT_READY',
-      totalChecks: 9
+      totalChecks: 10
     })
     expect(evidence.blockers.join('\n')).toContain('SPRING_PROFILES_ACTIVE must be production')
     expect(JSON.stringify(evidence)).not.toContain('prod-db-password')
@@ -214,12 +309,15 @@ describe('xicheng Yudao release readiness gate', () => {
   test('rejects release evidence paths outside qa tmp or workbench', async () => {
     const rootDir = await createProductionReadyFixture()
     const envPath = await writeEnvFile(rootDir, productionEnv())
+    const { manifestEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
 
     const result = spawnSync(process.execPath, [
       path.resolve('scripts/verify-xicheng-yudao-release-readiness.mjs'),
       '--root', rootDir,
       '--stage', 'production',
       '--env-file', envPath,
+      '--poi-manifest-evidence', manifestEvidencePath,
+      '--poi-seed-evidence', seedEvidencePath,
       '--evidence-file', 'release-evidence.json'
     ], {
       cwd: process.cwd(),

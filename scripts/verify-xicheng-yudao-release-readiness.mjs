@@ -243,6 +243,146 @@ async function checkFullYudaoBaseline(rootDir) {
   )
 }
 
+async function loadEvidenceInput(rootDir, evidencePath) {
+  if (!evidencePath) {
+    return { path: undefined, data: undefined, error: undefined }
+  }
+  const resolvedRoot = path.resolve(rootDir)
+  const resolvedPath = path.isAbsolute(evidencePath)
+    ? path.resolve(evidencePath)
+    : path.resolve(resolvedRoot, evidencePath)
+  try {
+    return {
+      path: resolvedPath,
+      data: JSON.parse(await readFile(resolvedPath, 'utf8')),
+      error: undefined
+    }
+  } catch (error) {
+    return {
+      path: resolvedPath,
+      data: undefined,
+      error: error.message
+    }
+  }
+}
+
+function hasNoEvidenceBlockers(evidence) {
+  return !Array.isArray(evidence?.blockers) || evidence.blockers.length === 0
+}
+
+function evidenceSummary(evidence) {
+  return evidence && typeof evidence.summary === 'object' && evidence.summary !== null
+    ? evidence.summary
+    : {}
+}
+
+function validateManifestEvidence(ref) {
+  const blockers = []
+  if (!ref.path) {
+    return ['POI manifest evidence is required before production release']
+  }
+  if (ref.error) {
+    return [`POI manifest evidence cannot be read: ${ref.error}`]
+  }
+  const evidence = ref.data || {}
+  const summary = evidenceSummary(evidence)
+  if (evidence.artifactType !== 'xicheng-poi-production-manifest-readiness') {
+    blockers.push('manifest evidence artifactType must be xicheng-poi-production-manifest-readiness')
+  }
+  if (evidence.ok !== true) {
+    blockers.push('manifest evidence ok must be true')
+  }
+  if (evidence.status !== 'PRODUCTION_POI_MANIFEST_READY') {
+    blockers.push('manifest evidence status must be PRODUCTION_POI_MANIFEST_READY')
+  }
+  if (summary.regionCode !== 'beijing-xicheng') {
+    blockers.push('manifest evidence regionCode must be beijing-xicheng')
+  }
+  if (summary.packageCode !== 'XICHENG-MAP-001') {
+    blockers.push('manifest evidence packageCode must be XICHENG-MAP-001')
+  }
+  if (Number(summary.totalPoiCount) < productionPoiTarget) {
+    blockers.push(`manifest evidence must prove at least ${productionPoiTarget} production POIs`)
+  }
+  if (Number(summary.targetPoiCount) < productionPoiTarget) {
+    blockers.push(`manifest evidence targetPoiCount must be at least ${productionPoiTarget}`)
+  }
+  if (summary.productionReady !== true) {
+    blockers.push('manifest evidence productionReady must be true')
+  }
+  if (!hasNoEvidenceBlockers(evidence)) {
+    blockers.push(`manifest evidence contains blockers: ${evidence.blockers.join('; ')}`)
+  }
+  return blockers
+}
+
+function validateSeedEvidence(ref) {
+  const blockers = []
+  if (!ref.path) {
+    return ['POI seed SQL evidence is required before production release']
+  }
+  if (ref.error) {
+    return [`POI seed SQL evidence cannot be read: ${ref.error}`]
+  }
+  const evidence = ref.data || {}
+  const summary = evidenceSummary(evidence)
+  const poiCount = Number(summary.poiCount ?? summary.poiSeedCount)
+  const targetCount = Number(summary.targetP0PoiCount ?? summary.minPoiCount)
+  if (evidence.artifactType !== 'xicheng-poi-production-seed-readiness') {
+    blockers.push('seed evidence artifactType must be xicheng-poi-production-seed-readiness')
+  }
+  if (evidence.ok !== true) {
+    blockers.push('seed evidence ok must be true')
+  }
+  if (evidence.status !== 'PRODUCTION_POI_SEED_READY') {
+    blockers.push('seed evidence status must be PRODUCTION_POI_SEED_READY')
+  }
+  if (!Number.isFinite(poiCount) || poiCount < productionPoiTarget) {
+    blockers.push(`seed evidence must prove at least ${productionPoiTarget} production POIs`)
+  }
+  if (!Number.isFinite(targetCount) || targetCount < productionPoiTarget) {
+    blockers.push(`seed evidence targetP0PoiCount must be at least ${productionPoiTarget}`)
+  }
+  if (summary.productionReady !== true) {
+    blockers.push('seed evidence productionReady must be true')
+  }
+  if (!hasNoEvidenceBlockers(evidence)) {
+    blockers.push(`seed evidence contains blockers: ${evidence.blockers.join('; ')}`)
+  }
+  return blockers
+}
+
+async function checkXichengProductionPoiEvidence({
+  rootDir,
+  poiManifestEvidencePath,
+  poiSeedEvidencePath
+}) {
+  const [manifestEvidence, seedEvidence] = await Promise.all([
+    loadEvidenceInput(rootDir, poiManifestEvidencePath),
+    loadEvidenceInput(rootDir, poiSeedEvidencePath)
+  ])
+  const blockers = [
+    ...validateManifestEvidence(manifestEvidence),
+    ...validateSeedEvidence(seedEvidence)
+  ]
+  const details = []
+  if (manifestEvidence.path) {
+    details.push(`manifest=${manifestEvidence.path}`)
+  }
+  if (seedEvidence.path) {
+    details.push(`seed=${seedEvidence.path}`)
+  }
+
+  return check(
+    'xicheng-production-poi-evidence',
+    blockers.length === 0,
+    blockers.length === 0
+      ? `Xicheng production POI manifest and seed evidence are ready: ${details.join(', ')}`
+      : blockers.join('; '),
+    blockers
+  )
+}
+
 function extractXichengPoiRows(seed) {
   return seed
     .split(/\r?\n/)
@@ -304,7 +444,9 @@ async function checkXichengSourceLicense(rootDir) {
 export async function verifyXichengYudaoReleaseReadiness({
   env = process.env,
   rootDir = process.cwd(),
-  stage = 'production'
+  stage = 'production',
+  poiManifestEvidencePath,
+  poiSeedEvidencePath
 } = {}) {
   const normalizedStage = String(stage || 'production').toLowerCase()
   if (!['production', 'staging'].includes(normalizedStage)) {
@@ -319,6 +461,11 @@ export async function verifyXichengYudaoReleaseReadiness({
     checkVisionOcrService(env),
     checkObjectStorage(env),
     await checkFullYudaoBaseline(rootDir),
+    await checkXichengProductionPoiEvidence({
+      rootDir,
+      poiManifestEvidencePath,
+      poiSeedEvidencePath
+    }),
     await checkXichengProductionPoi(rootDir),
     await checkXichengSourceLicense(rootDir)
   ]
@@ -405,7 +552,11 @@ async function runCli() {
   const result = await verifyXichengYudaoReleaseReadiness({
     env,
     rootDir,
-    stage: readArgValue(args, '--stage') || process.env.XUNJING_RELEASE_STAGE || 'production'
+    stage: readArgValue(args, '--stage') || process.env.XUNJING_RELEASE_STAGE || 'production',
+    poiManifestEvidencePath: readArgValue(args, '--poi-manifest-evidence') ||
+      process.env.XICHENG_POI_MANIFEST_EVIDENCE,
+    poiSeedEvidencePath: readArgValue(args, '--poi-seed-evidence') ||
+      process.env.XICHENG_POI_SEED_EVIDENCE
   })
   await writeReleaseEvidence({
     rootDir,
