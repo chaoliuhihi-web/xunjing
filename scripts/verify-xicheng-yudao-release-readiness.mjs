@@ -1,10 +1,11 @@
 import { existsSync, statSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { loadEnvFile } from './verify-xunjing-platform-readiness.mjs'
 
 const productionPoiTarget = 80
+const allowedEvidenceDirs = new Set(['qa', 'tmp', 'workbench'])
 
 const requiredProductionEnvKeys = [
   'SPRING_PROFILES_ACTIVE',
@@ -336,6 +337,51 @@ export async function verifyXichengYudaoReleaseReadiness({
   }
 }
 
+function resolveEvidenceFile(rootDir, evidenceFile) {
+  if (!evidenceFile) {
+    return undefined
+  }
+  const resolvedRoot = path.resolve(rootDir)
+  const resolvedFile = path.isAbsolute(evidenceFile)
+    ? path.resolve(evidenceFile)
+    : path.resolve(resolvedRoot, evidenceFile)
+  const relativePath = path.relative(resolvedRoot, resolvedFile)
+  const [topLevelDir] = relativePath.split(path.sep)
+  if (
+    !relativePath ||
+    relativePath.startsWith('..') ||
+    path.isAbsolute(relativePath) ||
+    !allowedEvidenceDirs.has(topLevelDir)
+  ) {
+    throw new Error('evidence file must be under qa/, tmp/ or workbench/')
+  }
+  return resolvedFile
+}
+
+function buildReleaseEvidence(result) {
+  return {
+    artifactType: 'xicheng-yudao-release-readiness',
+    summary: {
+      stage: result.stage,
+      status: result.status,
+      totalChecks: result.checks.length,
+      passedChecks: result.checks.filter((item) => item.ok).length,
+      failedChecks: result.checks.filter((item) => !item.ok).length,
+      blockerCount: result.blockers.length
+    },
+    ...result
+  }
+}
+
+async function writeReleaseEvidence({ rootDir, evidenceFile, result }) {
+  const resolvedFile = resolveEvidenceFile(rootDir, evidenceFile)
+  if (!resolvedFile) {
+    return
+  }
+  await mkdir(path.dirname(resolvedFile), { recursive: true })
+  await writeFile(resolvedFile, `${JSON.stringify(buildReleaseEvidence(result), null, 2)}\n`)
+}
+
 function readArgValue(args, name) {
   const equalPrefix = `${name}=`
   const equalArg = args.find((arg) => arg.startsWith(equalPrefix))
@@ -351,14 +397,20 @@ function readArgValue(args, name) {
 
 async function runCli() {
   const args = process.argv.slice(2)
+  const rootDir = path.resolve(readArgValue(args, '--root') || process.cwd())
   const envFile = readArgValue(args, '--env-file') || process.env.XUNJING_ENV_FILE
   const env = envFile
     ? { ...process.env, ...await loadEnvFile(envFile) }
     : process.env
   const result = await verifyXichengYudaoReleaseReadiness({
     env,
-    rootDir: readArgValue(args, '--root') || process.cwd(),
+    rootDir,
     stage: readArgValue(args, '--stage') || process.env.XUNJING_RELEASE_STAGE || 'production'
+  })
+  await writeReleaseEvidence({
+    rootDir,
+    evidenceFile: readArgValue(args, '--evidence-file') || readArgValue(args, '--output'),
+    result
   })
   console.log(JSON.stringify(result, null, 2))
   if (!result.ok) {

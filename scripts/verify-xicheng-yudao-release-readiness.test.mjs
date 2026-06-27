@@ -1,4 +1,5 @@
 import { mkdtemp, mkdir, rm, writeFile, readFile } from 'node:fs/promises'
+import { spawnSync } from 'node:child_process'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, test } from 'vitest'
@@ -92,6 +93,18 @@ async function createProductionReadyFixture() {
   return rootDir
 }
 
+async function writeEnvFile(rootDir, env) {
+  const envPath = path.join(rootDir, 'tmp/release.env')
+  await mkdir(path.dirname(envPath), { recursive: true })
+  await writeFile(
+    envPath,
+    Object.entries(env)
+      .map(([key, value]) => `${key}=${value}`)
+      .join('\n')
+  )
+  return envPath
+}
+
 afterEach(async () => {
   while (tempDirs.length > 0) {
     await rm(tempDirs.pop(), { recursive: true, force: true })
@@ -160,6 +173,61 @@ describe('xicheng Yudao release readiness gate', () => {
       'xicheng-production-poi',
       'xicheng-source-license'
     ])
+  })
+
+  test('writes a secret-safe release evidence file even when production is not ready', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const envPath = await writeEnvFile(rootDir, productionEnv({
+      SPRING_PROFILES_ACTIVE: 'local',
+      XUNJING_APP_API_BASE_URL: 'http://127.0.0.1:48080',
+      WX_MINIAPP_APPID: 'replace-with-real-miniapp-appid',
+      XUNJING_VISION_API_KEY: 'replace-with-real-vision-key'
+    }))
+    const evidenceRelativePath = 'tmp/xicheng-yudao-release-evidence.json'
+    const evidencePath = path.join(rootDir, evidenceRelativePath)
+
+    const result = spawnSync(process.execPath, [
+      path.resolve('scripts/verify-xicheng-yudao-release-readiness.mjs'),
+      '--root', rootDir,
+      '--stage', 'production',
+      '--env-file', envPath,
+      '--evidence-file', evidenceRelativePath
+    ], {
+      cwd: process.cwd(),
+      encoding: 'utf8'
+    })
+
+    expect(result.status).toBe(1)
+    const evidence = JSON.parse(await readFile(evidencePath, 'utf8'))
+    expect(evidence.artifactType).toBe('xicheng-yudao-release-readiness')
+    expect(evidence.status).toBe('NOT_READY')
+    expect(evidence.summary).toMatchObject({
+      stage: 'production',
+      status: 'NOT_READY',
+      totalChecks: 9
+    })
+    expect(evidence.blockers.join('\n')).toContain('SPRING_PROFILES_ACTIVE must be production')
+    expect(JSON.stringify(evidence)).not.toContain('prod-db-password')
+    expect(JSON.stringify(evidence)).not.toContain('replace-with-real-vision-key')
+  })
+
+  test('rejects release evidence paths outside qa tmp or workbench', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const envPath = await writeEnvFile(rootDir, productionEnv())
+
+    const result = spawnSync(process.execPath, [
+      path.resolve('scripts/verify-xicheng-yudao-release-readiness.mjs'),
+      '--root', rootDir,
+      '--stage', 'production',
+      '--env-file', envPath,
+      '--evidence-file', 'release-evidence.json'
+    ], {
+      cwd: process.cwd(),
+      encoding: 'utf8'
+    })
+
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('evidence file must be under qa/, tmp/ or workbench/')
   })
 
   test('is documented as an npm release gate without storing secrets', async () => {
