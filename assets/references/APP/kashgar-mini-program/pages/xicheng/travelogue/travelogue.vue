@@ -112,9 +112,29 @@
 				>
 					<text class="material-title">{{ material.poiName || '西城文化点' }}</text>
 					<text class="material-meta">{{ material.sourceLabel || '识别素材' }} · {{ material.capturedAt || '刚刚' }}</text>
+					<text v-if="material.remarkText" class="material-meta">{{ material.remarkText }}</text>
+					<image v-if="material.imagePath" class="material-image" :src="material.imagePath" mode="aspectFill" />
 				</view>
 			</view>
 			<text v-else class="empty-copy">从识别结果页点击“开始记录”后，POI、来源和识别置信度会进入这里。</text>
+		</view>
+
+		<view class="section-card">
+			<view class="section-head">
+				<text class="section-title">现场备注</text>
+				<text class="section-badge">照片 {{ photoMaterialCount }} · 备注 {{ remarkMaterialCount }}</text>
+			</view>
+			<text class="section-desc">把现场观察、同行感受和补充照片加入素材盒，游记草稿会一起引用。</text>
+			<textarea
+				v-model="remarkInput"
+				class="remark-input"
+				maxlength="240"
+				placeholder="记录现场观察、亲子问答或同行感受"
+			/>
+			<view class="evidence-actions">
+				<button class="primary-button" @click="addRemarkMaterial">添加备注</button>
+				<button class="ghost-button" @click="addPhotoMaterial">补充照片</button>
+			</view>
 		</view>
 
 		<view class="section-card">
@@ -235,8 +255,15 @@ export const createXichengTravelogueDraft = ({
 		? routeRecommendation.title
 		: poiNames.length > 0 ? poiNames.join('、') : '白塔寺、西四街巷、什刹海'
 	const taskText = parentChildTasks.length > 0 ? parentChildTasks.slice(0, 2).join('；') : '完成现场观察'
+	const photoCount = materials.filter(material => material && material.type === 'photo').length
+	const remarkTexts = materials
+		.map(material => material && material.remarkText ? material.remarkText : '')
+		.filter(Boolean)
+		.slice(0, 2)
 	const trackText = routePointCount > 0 ? `本次主动记录了 ${routePointCount} 个前台位置点，` : ''
-	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒，${trackText}我们沿途完成了${taskText}。这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
+	const photoText = photoCount > 0 ? `现场补充了 ${photoCount} 张照片，` : ''
+	const remarkText = remarkTexts.length > 0 ? `用户备注提到：${remarkTexts.join('；')}。` : ''
+	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒，${trackText}${photoText}我们沿途完成了${taskText}。${remarkText}这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
 }
 
 const createEmptyRecordingSession = () => ({
@@ -265,6 +292,7 @@ export default {
 			pdfStatus: '未生成',
 			reviewSubmission: null,
 			shareArtifacts: [],
+			remarkInput: '',
 			recordingSession: createEmptyRecordingSession()
 		}
 	},
@@ -300,11 +328,19 @@ export default {
 				pdfStatus: this.pdfStatus,
 				shareAssetCount: this.shareArtifacts.length,
 				routePointCount: this.routePointCount,
+				photoMaterialCount: this.photoMaterialCount,
+				remarkMaterialCount: this.remarkMaterialCount,
 				recordingStatus: this.recordingStatusText
 			}
 		},
 		routePointCount() {
 			return Array.isArray(this.recordingSession.trackPoints) ? this.recordingSession.trackPoints.length : 0
+		},
+		photoMaterialCount() {
+			return this.materials.filter(material => material && material.type === 'photo').length
+		},
+		remarkMaterialCount() {
+			return this.materials.filter(material => material && material.type === 'remark').length
 		},
 		recordingStatusText() {
 			const status = this.recordingSession.status
@@ -368,14 +404,14 @@ export default {
 			}
 			this.materials = materials
 			const cachedDraft = uni.getStorageSync(XICHENG_REGION_CONFIG.journeyStorageKey)
-				this.draft = cachedDraft && cachedDraft.draft
-					? cachedDraft.draft
-					: createXichengTravelogueDraft({
-						materials: this.materials,
-						parentChildTasks: this.parentChildTasks,
-						routeRecommendation: this.recognizedRoute,
-						recordingSession: this.recordingSession
-					})
+			this.draft = cachedDraft && cachedDraft.draft
+				? cachedDraft.draft
+				: createXichengTravelogueDraft({
+					materials: this.materials,
+					parentChildTasks: this.parentChildTasks,
+					routeRecommendation: this.recognizedRoute,
+					recordingSession: this.recordingSession
+				})
 			this.reviewText = cachedDraft && cachedDraft.reviewText ? cachedDraft.reviewText : this.reviewText
 			this.posterStatus = cachedDraft && cachedDraft.posterStatus ? cachedDraft.posterStatus : this.posterStatus
 			this.pdfStatus = cachedDraft && cachedDraft.pdfStatus ? cachedDraft.pdfStatus : this.pdfStatus
@@ -388,6 +424,75 @@ export default {
 			return options.mode === 'record'
 				&& options.autoStart === '1'
 				&& this.recordingSession.status !== 'recording'
+		},
+		persistJourneyMaterials() {
+			uni.setStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey, this.materials.slice(0, 50))
+		},
+		refreshDraftFromEvidence() {
+			this.draft = createXichengTravelogueDraft({
+				materials: this.materials,
+				parentChildTasks: this.parentChildTasks,
+				routeRecommendation: this.recognizedRoute,
+				recordingSession: this.recordingSession
+			})
+			this.saveDraft({ silent: true })
+		},
+		addRemarkMaterial() {
+			if (!this.remarkInput.trim()) {
+				uni.showToast({
+					title: '请输入现场备注',
+					icon: 'none'
+				})
+				return
+			}
+			const material = {
+				type: 'remark',
+				regionCode: XICHENG_REGION_CONFIG.regionCode,
+				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				poiCode: '',
+				poiName: '现场备注',
+				sourceLabel: '用户备注',
+				remarkText: this.remarkInput.trim(),
+				sources: [],
+				capturedAt: new Date().toISOString()
+			}
+			this.materials = [material, ...this.materials].slice(0, 50)
+			this.remarkInput = ''
+			this.persistJourneyMaterials()
+			this.refreshDraftFromEvidence()
+			uni.showToast({
+				title: '备注已加入素材盒',
+				icon: 'none'
+			})
+		},
+		addPhotoMaterial() {
+			uni.chooseImage({
+				count: 1,
+				sizeType: ['compressed'],
+				sourceType: ['camera', 'album'],
+				success: (res) => {
+					const filePath = res.tempFilePaths && res.tempFilePaths[0] ? res.tempFilePaths[0] : ''
+					if (!filePath) return
+					const material = {
+						type: 'photo',
+						regionCode: XICHENG_REGION_CONFIG.regionCode,
+						packageCode: XICHENG_REGION_CONFIG.packageCode,
+						poiCode: '',
+						poiName: '现场照片',
+						sourceLabel: '补充照片',
+						imagePath: filePath,
+						sources: [],
+						capturedAt: new Date().toISOString()
+					}
+					this.materials = [material, ...this.materials].slice(0, 50)
+					this.persistJourneyMaterials()
+					this.refreshDraftFromEvidence()
+					uni.showToast({
+						title: '照片已加入素材盒',
+						icon: 'none'
+					})
+				}
+			})
 		},
 		saveDraft({ silent = false } = {}) {
 			const payload = {
@@ -457,6 +562,8 @@ export default {
 				recognizedRoute: this.recognizedRoute,
 				recordingSession: this.recordingSession,
 				routePointCount: this.routePointCount,
+				photoMaterialCount: this.photoMaterialCount,
+				remarkMaterialCount: this.remarkMaterialCount,
 				reviewStatus: this.reviewText,
 				submittedAt,
 				materialCount: this.materialCount,
@@ -484,6 +591,8 @@ export default {
 				routeTitle,
 				draftExcerpt: String(this.draft || '').slice(0, 80),
 				materialCount: this.materialCount,
+				photoMaterialCount: this.photoMaterialCount,
+				remarkMaterialCount: this.remarkMaterialCount,
 				sourceCount: this.sourceCount,
 				badgeName: this.badgeName,
 				passportProgress: this.passportProgress,
@@ -734,6 +843,35 @@ export default {
 }
 
 .material-meta {
+	margin-top: 8rpx;
+}
+
+.material-image {
+	display: block;
+	width: 100%;
+	height: 220rpx;
+	margin-top: 16rpx;
+	border-radius: 8rpx;
+	background: #E8ECE7;
+}
+
+.remark-input {
+	width: 100%;
+	min-height: 160rpx;
+	margin-top: 20rpx;
+	padding: 20rpx;
+	border-radius: 8rpx;
+	background: #F9FAFB;
+	box-sizing: border-box;
+	font-size: 26rpx;
+	line-height: 1.6;
+	color: #1F2933;
+}
+
+.evidence-actions {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16rpx;
 	margin-top: 8rpx;
 }
 
