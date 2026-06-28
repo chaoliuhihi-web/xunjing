@@ -8,10 +8,12 @@ const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelog
 for (const required of [
   'sanitizeMaterialForPublicShare',
   'sanitizeStudyTaskEvidenceForPublicShare',
+  'sanitizeRouteCheckinForPublicShare',
   'createPublicCandidateConfirmationSummary',
   'createPublicRecordingSummary',
   'publicMaterials',
   'publicStudyTaskEvidence',
+  'publicRouteCheckins',
   'publicCandidateConfirmationSummary',
   'publicRecordingSummary',
   "shareLocationPrecision: 'poi_area'",
@@ -57,6 +59,29 @@ assert.doesNotMatch(
   'Public study-task evidence sanitizer should not expose raw photo paths or exact location metadata'
 )
 
+const routeCheckinSanitizeBlock = travelogue.match(/sanitizeRouteCheckinForPublicShare\(checkin = \{\}\)[\s\S]*?\n\t\t\},\n\t\tcreatePublicCandidateConfirmationSummary/)?.[0] || ''
+assert.ok(routeCheckinSanitizeBlock, 'Travelogue should expose a bounded public route check-in sanitizer for share exports')
+
+for (const required of [
+  'checkinId: checkin.checkinId ||',
+  'checkinType: checkin.checkinType ||',
+  'checkinLabel: checkin.checkinLabel ||',
+  'routeTitle: checkin.routeTitle ||',
+  'poiCode: checkin.poiCode ||',
+  'poiName: checkin.poiName ||',
+  'sourceLabel: checkin.sourceLabel ||',
+  'safetyStatus: checkin.safetyStatus ||',
+  'checkedInAt: checkin.checkedInAt ||'
+]) {
+  assert.ok(routeCheckinSanitizeBlock.includes(required), `Public route check-in sanitizer should preserve safe field ${required}`)
+}
+
+assert.doesNotMatch(
+  routeCheckinSanitizeBlock,
+  /sources|candidateConfirmationAudit|candidatePoiCodes|candidatePoiNames|selectedCandidateConfidence|reviewedSourceCount|captureLocation|exifLocation|nearestTrackPoint|latitude|longitude/,
+  'Public route check-in sanitizer should not expose reviewed sources, raw candidate audits, confidence, source counts, or exact location metadata'
+)
+
 const candidateSummaryBlock = travelogue.match(/createPublicCandidateConfirmationSummary\(\)[\s\S]*?\n\t\t\},\n\t\tcreatePublicRecordingSummary/)?.[0] || ''
 assert.ok(candidateSummaryBlock, 'Travelogue should expose a bounded public candidate-confirmation summary for share exports')
 
@@ -76,12 +101,12 @@ assert.doesNotMatch(
 
 assert.match(
   travelogue,
-  /createShareArtifact\(assetType\)[\s\S]*publicMaterials:\s*this\.materials\.map\(material => this\.sanitizeMaterialForPublicShare\(material\)\)[\s\S]*publicStudyTaskEvidence:\s*this\.completedStudyTaskEvidence\.map\(evidence => this\.sanitizeStudyTaskEvidenceForPublicShare\(evidence\)\)[\s\S]*publicCandidateConfirmationSummary:\s*this\.createPublicCandidateConfirmationSummary\(\)[\s\S]*publicRecordingSummary:\s*this\.createPublicRecordingSummary\(\)[\s\S]*privacy:\s*\{[\s\S]*shareLocationPrecision:\s*'poi_area'[\s\S]*exactCoordinatesHidden:\s*true/,
-  'Generated poster and PDF assets should include only sanitized public materials, study evidence, candidate confirmation summary, and recording summary'
+  /createShareArtifact\(assetType\)[\s\S]*publicMaterials:\s*this\.materials\.map\(material => this\.sanitizeMaterialForPublicShare\(material\)\)[\s\S]*publicStudyTaskEvidence:\s*this\.completedStudyTaskEvidence\.map\(evidence => this\.sanitizeStudyTaskEvidenceForPublicShare\(evidence\)\)[\s\S]*publicRouteCheckins:\s*this\.routeCheckins\.map\(checkin => this\.sanitizeRouteCheckinForPublicShare\(checkin\)\)[\s\S]*publicCandidateConfirmationSummary:\s*this\.createPublicCandidateConfirmationSummary\(\)[\s\S]*publicRecordingSummary:\s*this\.createPublicRecordingSummary\(\)[\s\S]*privacy:\s*\{[\s\S]*shareLocationPrecision:\s*'poi_area'[\s\S]*exactCoordinatesHidden:\s*true/,
+  'Generated poster and PDF assets should include only sanitized public materials, study evidence, route check-ins, candidate confirmation summary, and recording summary'
 )
 
 assert.doesNotMatch(
   travelogue.match(/createShareArtifact\(assetType\)[\s\S]*?\n\t\t\},\n\t\tcreatePosterTemplate/)?.[0] || '',
-  /materials:\s*this\.materials|studyTaskEvidence:\s*this\.completedStudyTaskEvidence|candidateConfirmationAudits:\s*this\.candidateConfirmationAudits|recordingSession:\s*this\.recordingSession|trackPoints:\s*this\.recordingSession\.trackPoints|stayPoints:\s*this\.recordingSession\.stayPoints/,
-  'Share assets should not embed raw materials, raw study-task evidence, raw candidate audits, full recording sessions, or exact track arrays'
+  /materials:\s*this\.materials|studyTaskEvidence:\s*this\.completedStudyTaskEvidence|routeCheckins:\s*this\.routeCheckins|candidateConfirmationAudits:\s*this\.candidateConfirmationAudits|recordingSession:\s*this\.recordingSession|trackPoints:\s*this\.recordingSession\.trackPoints|stayPoints:\s*this\.recordingSession\.stayPoints/,
+  'Share assets should not embed raw materials, raw study-task evidence, raw route check-ins, raw candidate audits, full recording sessions, or exact track arrays'
 )

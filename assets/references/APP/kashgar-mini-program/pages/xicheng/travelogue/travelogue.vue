@@ -1610,6 +1610,19 @@ export default {
 				completedAt: evidence.completedAt || ''
 			}
 		},
+		sanitizeRouteCheckinForPublicShare(checkin = {}) {
+			return {
+				checkinId: checkin.checkinId || '',
+				checkinType: checkin.checkinType || '',
+				checkinLabel: checkin.checkinLabel || '',
+				routeTitle: checkin.routeTitle || '',
+				poiCode: checkin.poiCode || '',
+				poiName: checkin.poiName || '',
+				sourceLabel: checkin.sourceLabel || '',
+				safetyStatus: checkin.safetyStatus || '',
+				checkedInAt: checkin.checkedInAt || ''
+			}
+		},
 		createPublicCandidateConfirmationSummary() {
 			const confirmedPoiNames = this.candidateConfirmationAudits
 				.map(audit => audit && audit.selectedCandidatePoiName ? audit.selectedCandidatePoiName : '')
@@ -1652,6 +1665,7 @@ export default {
 				routeTitle,
 				publicMaterials: this.materials.map(material => this.sanitizeMaterialForPublicShare(material)),
 				publicStudyTaskEvidence: this.completedStudyTaskEvidence.map(evidence => this.sanitizeStudyTaskEvidenceForPublicShare(evidence)),
+				publicRouteCheckins: this.routeCheckins.map(checkin => this.sanitizeRouteCheckinForPublicShare(checkin)),
 				publicCandidateConfirmationSummary: this.createPublicCandidateConfirmationSummary(),
 				publicRecordingSummary: this.createPublicRecordingSummary(),
 				qualityReport: this.qualityReport,
@@ -1669,7 +1683,6 @@ export default {
 				stayPointCount: this.stayPointCount,
 				photoMaterialCount: this.photoMaterialCount,
 				remarkMaterialCount: this.remarkMaterialCount,
-				routeCheckins: this.routeCheckins,
 				checkinCount: this.checkinCount,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
 				activeBadgeAward: this.activeBadgeAward,

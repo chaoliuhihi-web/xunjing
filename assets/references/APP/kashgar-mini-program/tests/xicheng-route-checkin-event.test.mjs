@@ -105,8 +105,8 @@ assert.match(
 
 assert.match(
   travelogue,
-  /createShareArtifact\(assetType\)[\s\S]*routeCheckins:\s*this\.routeCheckins[\s\S]*checkinCount:\s*this\.checkinCount/,
-  'Poster and PDF assets should include route check-in events'
+  /createShareArtifact\(assetType\)[\s\S]*publicRouteCheckins:\s*this\.routeCheckins\.map\(checkin => this\.sanitizeRouteCheckinForPublicShare\(checkin\)\)[\s\S]*checkinCount:\s*this\.checkinCount/,
+  'Poster and PDF assets should include sanitized public route check-in events'
 )
 
 assert.match(
