@@ -73,6 +73,7 @@ describe('project structure contract', () => {
 
     for (const required of [
       'qa/app-kashgar/',
+      'qa/*evidence*.json',
       '/kashgar-*',
       '/*-comparison.png',
       '/reference-contact-sheet.png'

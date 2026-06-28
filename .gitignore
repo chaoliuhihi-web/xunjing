@@ -32,6 +32,8 @@ test-results/
 
 # Local QA evidence belongs under qa/, never repository root
 qa/app-kashgar/
+qa/*evidence*.json
+qa/*release*.json
 /*.png
 /*.jpg
 /*.jpeg
