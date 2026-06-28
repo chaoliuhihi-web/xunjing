@@ -108,6 +108,12 @@ assert.match(
 
 assert.match(
   saveRouteBlock,
+  /if \(!includeImageOnly\) \{[\s\S]*this\.matchedPois = extractXichengPoiMatches\(this\.rawText\)[\s\S]*if \(this\.matchedPois\.length === 0\) \{[\s\S]*this\.showInspirationRouteUnavailable\(\)[\s\S]*return false[\s\S]*this\.route = buildXichengWalkRoute\(this\.matchedPois\)[\s\S]*\}/,
+  'Saving an inspiration route should re-match current text and fail closed when no official POI is matched'
+)
+
+assert.match(
+  saveRouteBlock,
   /if \(!includeImageOnly\) \{[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.inspirationStorageKey, route\)[\s\S]*\}[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.materialsStorageKey/,
   'Image-only inspiration upload should not persist an active route until text extraction or POI confirmation has produced a route'
 )
@@ -132,8 +138,8 @@ assert.match(
 
 assert.match(
   openTravelogueBlock,
-  /regionCode=\$\{encodeURIComponent\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeURIComponent\(this\.region\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeURIComponent\(this\.region\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeURIComponent\(this\.region\.sourceChannel\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.region\.companionName\)\}/,
-  'Inspiration openTravelogue should preserve package, scene, source channel, and companion context'
+  /const saved = this\.saveInspirationRoute\(\{ silent: true \}\)[\s\S]*if \(!saved\) return[\s\S]*regionCode=\$\{encodeURIComponent\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeURIComponent\(this\.region\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeURIComponent\(this\.region\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeURIComponent\(this\.region\.sourceChannel\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.region\.companionName\)\}/,
+  'Inspiration openTravelogue should only navigate after a route is saved and preserve package, scene, source channel, and companion context'
 )
 
 assert.match(
