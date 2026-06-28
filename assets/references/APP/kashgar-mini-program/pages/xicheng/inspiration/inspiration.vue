@@ -95,7 +95,15 @@ export const extractXichengPoiMatches = (text = '') => {
 }
 
 export const buildXichengWalkRoute = (pois = []) => {
-	const stops = pois.length > 0 ? pois : XICHENG_OFFICIAL_POIS.slice(0, 3)
+	if (pois.length === 0) {
+		return {
+			title: '待匹配官方 POI',
+			stops: [],
+			durationText: '待匹配',
+			summary: '先匹配西城官方 POI 后再生成可走路线，避免把未确认地点加入路线护照。'
+		}
+	}
+	const stops = pois
 	const title = stops.length > 0
 		? stops.map(stop => stop.poiName).join(' - ')
 		: '西城 Citywalk'

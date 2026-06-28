@@ -119,6 +119,18 @@ assert.match(
 )
 
 assert.match(
+  inspiration,
+  /buildXichengWalkRoute\s*=\s*\(pois = \[\]\) => \{[\s\S]*if \(pois\.length === 0\) \{[\s\S]*title:\s*'待匹配官方 POI'[\s\S]*stops:\s*\[\][\s\S]*durationText:\s*'待匹配'[\s\S]*先匹配西城官方 POI 后再生成可走路线/,
+  'Inspiration route builder should not display a default route when imported text has no official POI matches'
+)
+
+assert.doesNotMatch(
+  inspiration,
+  /pois\.length > 0 \? pois : XICHENG_OFFICIAL_POIS\.slice\(0, 3\)/,
+  'Inspiration route builder should not fall back to the first official POIs when imported text has no matches'
+)
+
+assert.match(
   saveRouteBlock,
   /if \(!includeImageOnly\) \{[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.inspirationStorageKey, route\)[\s\S]*\}[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.materialsStorageKey/,
   'Image-only inspiration upload should not persist an active route until text extraction or POI confirmation has produced a route'
