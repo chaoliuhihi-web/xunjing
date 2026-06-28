@@ -1684,6 +1684,9 @@ export default {
 			const publicRouteCheckins = this.routeCheckins
 				.filter(checkin => this.hasReviewableRouteCheckinEvidence(checkin))
 				.map(checkin => this.sanitizeRouteCheckinForPublicShare(checkin))
+			const publicMaterials = this.materials
+				.filter(material => hasReviewableMaterialEvidence(material))
+				.map(material => this.sanitizeMaterialForPublicShare(material))
 			return {
 				assetId: `${assetType}-${Date.now()}`,
 				assetType,
@@ -1695,14 +1698,13 @@ export default {
 				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
 				companionName: XICHENG_REGION_CONFIG.companionName,
 				routeTitle,
-				publicMaterials: this.materials
-					.filter(material => hasReviewableMaterialEvidence(material))
-					.map(material => this.sanitizeMaterialForPublicShare(material)),
+				publicMaterials,
 				publicStudyTaskEvidence: this.completedStudyTaskEvidence.map(evidence => this.sanitizeStudyTaskEvidenceForPublicShare(evidence)),
 				publicRouteCheckins,
 				publicCandidateConfirmationSummary: this.createPublicCandidateConfirmationSummary(),
 				publicRecordingSummary: this.createPublicRecordingSummary(),
 				checkinCount: publicRouteCheckins.length,
+				materialCount: publicMaterials.length,
 				qualityReport: this.qualityReport,
 				filteredTrackPointCount: this.filteredTrackPointCount,
 				privacy: {
@@ -1714,7 +1716,6 @@ export default {
 				templateLabel: assetType === 'pdf' ? 'PDF固定模板：封面、路线地图、照片时间线、游记正文、知识卡片、徽章页' : '分享海报固定模板',
 				templateSections: assetType === 'pdf' ? this.createMemorialPdfTemplate(routeTitle, createdAt) : this.createPosterTemplate(routeTitle),
 				draftExcerpt: String(this.draft || '').slice(0, 80),
-				materialCount: this.materialCount,
 				stayPointCount: this.stayPointCount,
 				photoMaterialCount: this.photoMaterialCount,
 				remarkMaterialCount: this.remarkMaterialCount,
