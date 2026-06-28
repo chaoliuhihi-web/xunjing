@@ -65,6 +65,14 @@ const requiredVisionOcrEvidenceChecks = [
   'secret-redaction'
 ]
 
+const requiredObjectStorageEvidenceChecks = [
+  'object-storage-request',
+  'object-storage-write',
+  'object-storage-read',
+  'object-storage-delete',
+  'secret-redaction'
+]
+
 const secretEvidenceKeys = [
   'MYSQL_PASSWORD',
   'REDIS_PASSWORD',
@@ -576,6 +584,106 @@ function checkObjectStorage(env) {
       : `Missing, placeholder or local object storage env: ${blockers.join(', ')}`,
     blockers.map((key) => `${key} must be configured for production uploads`)
   )
+}
+
+function objectStorageExpectedEndpoint(env) {
+  try {
+    const value = String(env.OSS_ENDPOINT || '').trim()
+    return new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`)
+  } catch {
+    return undefined
+  }
+}
+
+async function checkObjectStorageEvidence({ rootDir, objectStorageEvidencePath, env, freshnessOptions }) {
+  const envCheck = checkObjectStorage(env)
+  const blockers = [...(envCheck.blockers || [])]
+  const expectedEndpoint = objectStorageExpectedEndpoint(env)
+  const expectedPrefix = String(env.OSS_PREFIX || '').trim()
+  const expectedBucket = String(env.OSS_BUCKET || '').trim()
+  const ref = await loadEvidenceInput(rootDir, objectStorageEvidencePath)
+
+  if (!ref.path) {
+    blockers.push('Object storage smoke evidence is required before production release')
+  } else if (ref.error) {
+    blockers.push(`Object storage smoke evidence cannot be read: ${ref.error}`)
+  } else {
+    const evidence = ref.data || {}
+    const summary = evidenceSummary(evidence)
+    if (evidence.artifactType !== 'xicheng-object-storage-smoke') {
+      blockers.push('Object storage smoke evidence artifactType must be xicheng-object-storage-smoke')
+    }
+    blockers.push(...checkEvidenceTimestamp(evidence, 'Object storage smoke', freshnessOptions))
+    if (evidence.ok !== true) {
+      blockers.push('Object storage smoke evidence ok must be true')
+    }
+    if (evidence.status !== 'XICHENG_OBJECT_STORAGE_SMOKE_READY') {
+      blockers.push('Object storage smoke evidence status must be XICHENG_OBJECT_STORAGE_SMOKE_READY')
+    }
+    if (expectedEndpoint && String(summary.endpointHost || '') !== expectedEndpoint.host) {
+      blockers.push('Object storage smoke evidence endpointHost must match OSS_ENDPOINT host')
+    }
+    if (hasValue(expectedBucket) && String(summary.bucket || '') !== expectedBucket) {
+      blockers.push('Object storage smoke evidence bucket must match OSS_BUCKET')
+    }
+    if (hasValue(expectedPrefix) && String(summary.prefix || '') !== expectedPrefix) {
+      blockers.push('Object storage smoke evidence prefix must match OSS_PREFIX')
+    }
+    if (!/^[a-f0-9]{64}$/.test(String(summary.objectKeySha256 || ''))) {
+      blockers.push('Object storage smoke evidence objectKeySha256 must be a sha256 hex digest')
+    }
+    if (Number(summary.putHttpStatus || 0) < 200 || Number(summary.putHttpStatus || 0) >= 300) {
+      blockers.push('Object storage smoke evidence putHttpStatus must be 2xx')
+    }
+    if (Number(summary.getHttpStatus || 0) < 200 || Number(summary.getHttpStatus || 0) >= 300) {
+      blockers.push('Object storage smoke evidence getHttpStatus must be 2xx')
+    }
+    if (![200, 202, 204].includes(Number(summary.deleteHttpStatus || 0))) {
+      blockers.push('Object storage smoke evidence deleteHttpStatus must be 200, 202 or 204')
+    }
+    if (summary.readBackMatches !== true) {
+      blockers.push('Object storage smoke evidence readBackMatches must be true')
+    }
+    if (summary.deleted !== true) {
+      blockers.push('Object storage smoke evidence deleted must be true')
+    }
+    blockers.push(...checkEvidenceChecks(evidence, requiredObjectStorageEvidenceChecks, 'Object storage smoke'))
+    const leakedKeys = evidenceSecretLeaks(evidence, env)
+    if (leakedKeys.length > 0) {
+      blockers.push(`Object storage smoke evidence must not contain secret values: ${leakedKeys.join(', ')}`)
+    }
+    if (!hasNoEvidenceBlockers(evidence)) {
+      blockers.push(`Object storage smoke evidence contains blockers: ${evidence.blockers.join('; ')}`)
+    }
+  }
+
+  return {
+    ...check(
+      'object-storage',
+      blockers.length === 0,
+      blockers.length === 0
+        ? `Object storage write/read/delete smoke evidence is ready: ${ref.path}`
+        : blockers.join('; '),
+      blockers
+    ),
+    summary: {
+      objectStorageEvidenceFile: ref.path,
+      objectStorageCheckedAt: ref.data?.checkedAt,
+      objectStorageProviderSmokeCheckedAt: evidenceSummary(ref.data).providerSmokeCheckedAt,
+      objectStorageProviderSmokeHost: evidenceSummary(ref.data).endpointHost,
+      objectStorageRequestHost: evidenceSummary(ref.data).requestHost,
+      objectStorageBucket: evidenceSummary(ref.data).bucket,
+      objectStoragePrefix: evidenceSummary(ref.data).prefix,
+      objectStorageObjectKeySha256: evidenceSummary(ref.data).objectKeySha256,
+      objectStorageRegion: evidenceSummary(ref.data).region,
+      objectStoragePathStyle: evidenceSummary(ref.data).pathStyle,
+      objectStoragePutHttpStatus: evidenceSummary(ref.data).putHttpStatus,
+      objectStorageGetHttpStatus: evidenceSummary(ref.data).getHttpStatus,
+      objectStorageDeleteHttpStatus: evidenceSummary(ref.data).deleteHttpStatus,
+      objectStorageReadBackMatches: evidenceSummary(ref.data).readBackMatches,
+      objectStorageDeleted: evidenceSummary(ref.data).deleted
+    }
+  }
 }
 
 async function readTextIfExists(filePath) {
@@ -1206,6 +1314,7 @@ export async function verifyXichengYudaoReleaseReadiness({
   yudaoServerJarPath,
   aiBootstrapEvidencePath,
   visionOcrEvidencePath,
+  objectStorageEvidencePath,
   poiManifestEvidencePath,
   poiWorkbookEvidencePath,
   poiSeedEvidencePath,
@@ -1252,7 +1361,12 @@ export async function verifyXichengYudaoReleaseReadiness({
       env,
       freshnessOptions
     }),
-    checkObjectStorage(env),
+    await checkObjectStorageEvidence({
+      rootDir,
+      objectStorageEvidencePath,
+      env,
+      freshnessOptions
+    }),
     await checkFullYudaoBaseline(rootDir, yudaoBaselineSqlPath || env.YUDAO_BASELINE_SQL),
     await checkYudaoServerArtifact(rootDir, yudaoServerJarPath || env.YUDAO_SERVER_JAR),
     productionPoiEvidenceCheck,
@@ -1302,6 +1416,7 @@ function buildReleaseEvidence(result) {
   const appApiDomainSummary = result.checks.find((item) => item.name === 'https-app-api-domain')?.summary || {}
   const aiBootstrapSummary = result.checks.find((item) => item.name === 'yudao-ai-model-bootstrap')?.summary || {}
   const visionOcrSummary = result.checks.find((item) => item.name === 'vision-ocr-service')?.summary || {}
+  const objectStorageSummary = result.checks.find((item) => item.name === 'object-storage')?.summary || {}
   const baselineSummary = result.checks.find((item) => item.name === 'full-yudao-baseline')?.summary || {}
   const serverArtifactSummary = result.checks.find((item) => item.name === 'yudao-server-artifact')?.summary || {}
   const productionPoiEvidenceSummary = result.checks.find((item) => item.name === 'xicheng-production-poi-evidence')?.summary || {}
@@ -1318,6 +1433,7 @@ function buildReleaseEvidence(result) {
       ...appApiDomainSummary,
       ...aiBootstrapSummary,
       ...visionOcrSummary,
+      ...objectStorageSummary,
       ...baselineSummary,
       ...serverArtifactSummary,
       ...productionPoiEvidenceSummary,
@@ -1366,6 +1482,8 @@ async function runCli() {
       env.YUDAO_AI_BOOTSTRAP_EVIDENCE,
     visionOcrEvidencePath: readArgValue(args, '--vision-ocr-evidence') ||
       env.XICHENG_VISION_OCR_EVIDENCE,
+    objectStorageEvidencePath: readArgValue(args, '--object-storage-evidence') ||
+      env.XICHENG_OBJECT_STORAGE_EVIDENCE,
     poiManifestEvidencePath: readArgValue(args, '--poi-manifest-evidence') ||
       process.env.XICHENG_POI_MANIFEST_EVIDENCE,
     poiWorkbookEvidencePath: readArgValue(args, '--poi-workbook-evidence') ||

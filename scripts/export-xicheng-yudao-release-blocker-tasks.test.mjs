@@ -46,8 +46,8 @@ describe('xicheng Yudao release blocker task export', () => {
       checkedAt: '2026-06-28T00:00:00.000Z',
       summary: {
         stage: 'production',
-        failedChecks: 5,
-        blockerCount: 5
+        failedChecks: 6,
+        blockerCount: 6
       },
       checks: [
         {
@@ -80,6 +80,13 @@ describe('xicheng Yudao release blocker task export', () => {
           ]
         },
         {
+          name: 'object-storage',
+          ok: false,
+          blockers: [
+            'Object storage smoke evidence is required before production release'
+          ]
+        },
+        {
           name: 'xicheng-production-poi-evidence',
           ok: false,
           blockers: [
@@ -99,6 +106,7 @@ describe('xicheng Yudao release blocker task export', () => {
         'WX_MINIAPP_APPID must be configured with a real value',
         'Yudao AI bootstrap evidence is required before production release',
         'Vision OCR smoke evidence is required before production release',
+        'Object storage smoke evidence is required before production release',
         'POI manifest evidence is required before production release',
         'POI workbook evidence is required before production release'
       ]
@@ -120,13 +128,14 @@ describe('xicheng Yudao release blocker task export', () => {
       summary: {
         sourceEvidenceFile: releaseEvidencePath,
         outputFile,
-        failedCheckCount: 5,
-        taskCount: 9,
+        failedCheckCount: 6,
+        taskCount: 10,
         ownerLaneCounts: {
           'platform-ops': 3,
           'app-ops': 1,
           'ai-platform': 1,
           'vision-ocr': 1,
+          'storage-ops': 1,
           'poi-data': 3
         }
       }
@@ -140,6 +149,7 @@ describe('xicheng Yudao release blocker task export', () => {
     expect(csv).toContain(`real-wechat-app,1,WX_MINIAPP_APPID must be configured with a real value,app-ops,Configure real WeChat MP and Mini Program credentials outside Git.,Release gate real-wechat-app check passes using production secret store values.,${releaseGateCommand},TODO,${releaseEvidencePath}`)
     expect(csv).toContain(`yudao-ai-model-bootstrap,1,Yudao AI bootstrap evidence is required before production release,ai-platform,Run the Yudao AI model bootstrap against production or preprod MySQL and provide its secret-safe evidence file.,Release evidence records aiBootstrapEvidenceFile and aiBootstrapModel from YUDAO_AI_MODEL_BOOTSTRAPPED evidence.,npm run xunjing:ai:bootstrap -- --env-file /secure/path/production.env --evidence-file qa/xicheng-yudao-ai-bootstrap-evidence.json,TODO,${releaseEvidencePath}`)
     expect(csv).toContain(`vision-ocr-service,1,Vision OCR smoke evidence is required before production release,vision-ocr,Run the Xicheng OCR/vision provider smoke and provide its secret-safe evidence file.,Release evidence records visionOcrEvidenceFile and provider smoke metadata from XICHENG_VISION_OCR_SMOKE_READY evidence.,npm run xunjing:vision:smoke -- --env-file /secure/path/production.env --image-url https://your-cdn.example.com/xicheng/smoke/baitasi-test-card.jpg --evidence-file qa/xicheng-vision-ocr-smoke-evidence.json,TODO,${releaseEvidencePath}`)
+    expect(csv).toContain(`object-storage,1,Object storage smoke evidence is required before production release,storage-ops,Run the Xicheng object storage write/read/delete smoke and provide its secret-safe evidence file.,Release evidence records objectStorageEvidenceFile and write/read/delete metadata from XICHENG_OBJECT_STORAGE_SMOKE_READY evidence.,npm run xunjing:storage:smoke -- --env-file /secure/path/production.env --evidence-file qa/xicheng-object-storage-smoke-evidence.json,TODO,${releaseEvidencePath}`)
     expect(csv).toContain(`xicheng-production-poi-evidence,1,POI manifest evidence is required before production release,poi-data,Generate production POI manifest evidence from the reviewed 80-row workbook.,Manifest gate outputs PRODUCTION_POI_MANIFEST_READY with review batch and source workbook hashes.,npm run xunjing:xicheng:poi:manifest:gate -- --manifest workbench/xicheng-production-pois.json --evidence-file qa/xicheng-poi-manifest-evidence.json,TODO,${releaseEvidencePath}`)
     expect(csv).toContain(`xicheng-production-poi-evidence,2,POI workbook evidence is required before production release,poi-data,Generate reviewed POI workbook evidence from 80 approved Xicheng POIs.,Workbook gate outputs XICHENG_POI_REVIEW_WORKBOOK_READY with pendingPoiTasks empty.,npm run xunjing:xicheng:poi:workbook:gate -- --workbook workbench/xicheng-production-pois.review-workbook.csv --evidence-file qa/xicheng-poi-review-workbook-evidence.json,TODO,${releaseEvidencePath}`)
     expect(csv).toContain(`xicheng-production-poi-evidence,3,POI seed SQL evidence is required before production release,poi-data,Generate and verify production POI seed SQL from the approved manifest.,Seed verify outputs PRODUCTION_POI_SEED_READY with sqlFile and sqlSha256.,npm run xunjing:xicheng:poi:seed:verify -- --sql workbench/xicheng-poi-production-seed.sql --evidence-file qa/xicheng-poi-production-seed-evidence.json,TODO,${releaseEvidencePath}`)

@@ -52,6 +52,13 @@ const requiredVisionOcrEvidenceChecks = [
   'vision-provider-smoke',
   'secret-redaction'
 ]
+const requiredObjectStorageEvidenceChecks = [
+  'object-storage-request',
+  'object-storage-write',
+  'object-storage-read',
+  'object-storage-delete',
+  'secret-redaction'
+]
 
 function passedChecks(names) {
   return names.map((name) => ({ name, ok: true, detail: `${name} passed`, blockers: [] }))
@@ -350,6 +357,38 @@ async function writeVisionOcrEvidence(rootDir, overrides = {}) {
   return evidencePath
 }
 
+async function writeObjectStorageEvidence(rootDir, overrides = {}) {
+  const evidencePath = path.join(rootDir, 'qa/xicheng-object-storage-smoke-evidence.json')
+  await mkdir(path.dirname(evidencePath), { recursive: true })
+  const evidence = mergeEvidence({
+    artifactType: 'xicheng-object-storage-smoke',
+    ok: true,
+    status: 'XICHENG_OBJECT_STORAGE_SMOKE_READY',
+    checkedAt: freshCheckedAt(),
+    summary: {
+      providerSmokeCheckedAt: freshCheckedAt(),
+      endpointHost: 'oss-cn-beijing.aliyuncs.com',
+      requestHost: 'oss-cn-beijing.aliyuncs.com',
+      bucket: 'xinghe-xunjing-prod',
+      prefix: 'xinghe-xunjing/production/',
+      objectKeySha256: 'a'.repeat(64),
+      region: 'cn-beijing',
+      pathStyle: true,
+      putHttpStatus: 200,
+      getHttpStatus: 200,
+      deleteHttpStatus: 204,
+      readBackMatches: true,
+      deleted: true,
+      contentSha256: 'b'.repeat(64),
+      providerSmokeLatencyMs: 77
+    },
+    checks: passedChecks(requiredObjectStorageEvidenceChecks),
+    blockers: []
+  }, overrides)
+  await writeFile(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`)
+  return evidencePath
+}
+
 afterEach(async () => {
   while (tempDirs.length > 0) {
     await rm(tempDirs.pop(), { recursive: true, force: true })
@@ -373,6 +412,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(result.checks.find((check) => check.name === 'xicheng-source-license')?.ok).toBe(false)
     expect(result.blockers).toEqual(expect.arrayContaining([
       expect.stringContaining('Vision OCR smoke evidence is required'),
+      expect.stringContaining('Object storage smoke evidence is required'),
       expect.stringContaining('POI manifest evidence is required'),
       expect.stringContaining('xicheng seed must declare productionReady=true'),
       expect.stringContaining('80 Xicheng POI rows are not fully approved')
@@ -404,6 +444,7 @@ describe('xicheng Yudao release readiness gate', () => {
     const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
     const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
     const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
 
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
@@ -411,6 +452,7 @@ describe('xicheng Yudao release readiness gate', () => {
       stage: 'production',
       aiBootstrapEvidencePath,
       visionOcrEvidencePath,
+      objectStorageEvidencePath,
       poiManifestEvidencePath: manifestEvidencePath,
       poiWorkbookEvidencePath: workbookEvidencePath,
       poiSeedEvidencePath: seedEvidencePath
@@ -432,6 +474,11 @@ describe('xicheng Yudao release readiness gate', () => {
       visionOcrEvidenceFile: visionOcrEvidencePath,
       visionOcrModel: 'xunjing-ocr-vision-prod',
       visionOcrProviderSmokeHost: 'vision.xingheai.net'
+    })
+    expect(result.checks.find((check) => check.name === 'object-storage')?.summary).toMatchObject({
+      objectStorageEvidenceFile: objectStorageEvidencePath,
+      objectStorageBucket: 'xinghe-xunjing-prod',
+      objectStorageProviderSmokeHost: 'oss-cn-beijing.aliyuncs.com'
     })
     expect(result.checks.map((check) => check.name)).toEqual([
       'release-source-revision',
@@ -543,6 +590,7 @@ describe('xicheng Yudao release readiness gate', () => {
     const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
     const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
     const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
 
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
@@ -551,6 +599,7 @@ describe('xicheng Yudao release readiness gate', () => {
       yudaoServerJarPath: externalJarPath,
       aiBootstrapEvidencePath,
       visionOcrEvidencePath,
+      objectStorageEvidencePath,
       poiManifestEvidencePath: manifestEvidencePath,
       poiWorkbookEvidencePath: workbookEvidencePath,
       poiSeedEvidencePath: seedEvidencePath
@@ -585,6 +634,7 @@ describe('xicheng Yudao release readiness gate', () => {
     const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
     const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
     const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
 
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
@@ -593,6 +643,7 @@ describe('xicheng Yudao release readiness gate', () => {
       yudaoBaselineSqlPath: externalBaselinePath,
       aiBootstrapEvidencePath,
       visionOcrEvidencePath,
+      objectStorageEvidencePath,
       poiManifestEvidencePath: manifestEvidencePath,
       poiWorkbookEvidencePath: workbookEvidencePath,
       poiSeedEvidencePath: seedEvidencePath
@@ -662,6 +713,7 @@ describe('xicheng Yudao release readiness gate', () => {
     })
     const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
     const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
 
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
@@ -669,6 +721,7 @@ describe('xicheng Yudao release readiness gate', () => {
       stage: 'production',
       aiBootstrapEvidencePath,
       visionOcrEvidencePath,
+      objectStorageEvidencePath,
       poiManifestEvidencePath: manifestEvidencePath,
       poiWorkbookEvidencePath: workbookEvidencePath,
       poiSeedEvidencePath: seedEvidencePath
@@ -1156,6 +1209,7 @@ describe('xicheng Yudao release readiness gate', () => {
     const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
     const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
     const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
     const evidenceRelativePath = 'qa/xicheng-yudao-release-evidence.json'
     const evidencePath = path.join(rootDir, evidenceRelativePath)
 
@@ -1168,6 +1222,7 @@ describe('xicheng Yudao release readiness gate', () => {
       '--yudao-server-jar', path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar'),
       '--ai-bootstrap-evidence', aiBootstrapEvidencePath,
       '--vision-ocr-evidence', visionOcrEvidencePath,
+      '--object-storage-evidence', objectStorageEvidencePath,
       '--poi-manifest-evidence', manifestEvidencePath,
       '--poi-workbook-evidence', workbookEvidencePath,
       '--poi-seed-evidence', seedEvidencePath,
@@ -1189,6 +1244,9 @@ describe('xicheng Yudao release readiness gate', () => {
       visionOcrEvidenceFile: visionOcrEvidencePath,
       visionOcrModel: 'xunjing-ocr-vision-prod',
       visionOcrProviderSmokeHost: 'vision.xingheai.net',
+      objectStorageEvidenceFile: objectStorageEvidencePath,
+      objectStorageBucket: 'xinghe-xunjing-prod',
+      objectStorageProviderSmokeHost: 'oss-cn-beijing.aliyuncs.com',
       manifestEvidenceFile: manifestEvidencePath,
       workbookEvidenceFile: workbookEvidencePath,
       seedEvidenceFile: seedEvidencePath,
@@ -1217,6 +1275,7 @@ describe('xicheng Yudao release readiness gate', () => {
     const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
     const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
     const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
     const gitCommit = initCleanGitRepo(rootDir)
     const evidenceRelativePath = 'qa/xicheng-yudao-release-evidence.json'
     const evidencePath = path.join(rootDir, evidenceRelativePath)
@@ -1228,6 +1287,7 @@ describe('xicheng Yudao release readiness gate', () => {
       '--env-file', envPath,
       '--ai-bootstrap-evidence', aiBootstrapEvidencePath,
       '--vision-ocr-evidence', visionOcrEvidencePath,
+      '--object-storage-evidence', objectStorageEvidencePath,
       '--poi-manifest-evidence', manifestEvidencePath,
       '--poi-workbook-evidence', workbookEvidencePath,
       '--poi-seed-evidence', seedEvidencePath,

@@ -88,6 +88,11 @@ const checkTaskInstructions = {
     requiredEvidence: 'Release evidence records aiBootstrapEvidenceFile and aiBootstrapModel from YUDAO_AI_MODEL_BOOTSTRAPPED evidence.',
     verificationCommand: 'npm run xunjing:ai:bootstrap -- --env-file /secure/path/production.env --evidence-file qa/xicheng-yudao-ai-bootstrap-evidence.json'
   },
+  'object-storage': {
+    taskDetail: 'Run the Xicheng object storage write/read/delete smoke and provide its secret-safe evidence file.',
+    requiredEvidence: 'Release evidence records objectStorageEvidenceFile and write/read/delete metadata from XICHENG_OBJECT_STORAGE_SMOKE_READY evidence.',
+    verificationCommand: 'npm run xunjing:storage:smoke -- --env-file /secure/path/production.env --evidence-file qa/xicheng-object-storage-smoke-evidence.json'
+  },
   'vision-ocr-service': {
     taskDetail: 'Run the Xicheng OCR/vision provider smoke and provide its secret-safe evidence file.',
     requiredEvidence: 'Release evidence records visionOcrEvidenceFile and provider smoke metadata from XICHENG_VISION_OCR_SMOKE_READY evidence.',
