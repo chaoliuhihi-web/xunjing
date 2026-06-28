@@ -2015,6 +2015,7 @@ const sendMessage = async () => {
 			result: aiResult,
 			assistantMessage
 		})
+		const askSafetyStatus = normalizeXichengSafetyStatus(aiResult && aiResult.safetyStatus ? aiResult.safetyStatus : xichengAiContext.value.safetyStatus || '')
 		recordXunjingResourceEvent({
 			eventType: 'ASK',
 			payload: {
@@ -2030,8 +2031,9 @@ const sendMessage = async () => {
 				regionCode: xichengAiContext.value.regionCode || '',
 				poiCode: xichengAiContext.value.poiCode || '',
 				poiName: xichengAiContext.value.poiName || '',
-				safetyStatus: aiResult && aiResult.safetyStatus ? aiResult.safetyStatus : xichengAiContext.value.safetyStatus || '',
-				blocked: normalizeXichengSafetyStatus(aiResult && aiResult.safetyStatus ? aiResult.safetyStatus : '') === 'BLOCKED'
+				safetyStatus: askSafetyStatus,
+				blocked: askSafetyStatus === 'BLOCKED',
+				unavailable: askSafetyStatus === 'UNAVAILABLE'
 			}
 		})
 		speakVisibleAssistantReply(assistantMessage, aiResult.answer)

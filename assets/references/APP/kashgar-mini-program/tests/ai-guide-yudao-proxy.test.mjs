@@ -99,13 +99,19 @@ assert.match(
   'AI guide should record an ASK event after AI replies without blocking the user response'
 )
 
+assert.ok(
+  sendMessageSource.includes("const askSafetyStatus = normalizeXichengSafetyStatus(aiResult && aiResult.safetyStatus ? aiResult.safetyStatus : xichengAiContext.value.safetyStatus || '')"),
+  'AI guide should normalize ASK safety status once before recording operations fields'
+)
+
 for (const required of [
   'packageCode: xichengAiContext.value.packageCode || XICHENG_REGION_CONFIG.packageCode',
   'sceneCode: XICHENG_REGION_CONFIG.aiSceneCode',
   'sourceChannel: xichengAiContext.value.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel',
   "poiName: xichengAiContext.value.poiName || ''",
-  "safetyStatus: aiResult && aiResult.safetyStatus ? aiResult.safetyStatus : xichengAiContext.value.safetyStatus || ''",
-  "blocked: normalizeXichengSafetyStatus(aiResult && aiResult.safetyStatus ? aiResult.safetyStatus : '') === 'BLOCKED'",
+  'safetyStatus: askSafetyStatus',
+  "blocked: askSafetyStatus === 'BLOCKED'",
+  "unavailable: askSafetyStatus === 'UNAVAILABLE'",
   'answerLength: aiResult && aiResult.answer ? String(aiResult.answer).length : 0'
 ]) {
   assert.ok(askEventSource.includes(required), `Xicheng ASK event payload should include operations field ${required}`)
