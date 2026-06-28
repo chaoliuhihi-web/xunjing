@@ -7,6 +7,18 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const sliceBetween = (content, start, end) => {
+  const startIndex = content.indexOf(start)
+  const endIndex = content.indexOf(end, startIndex)
+  assert.ok(startIndex >= 0, `missing start marker ${start}`)
+  assert.ok(endIndex > startIndex, `missing end marker ${end}`)
+  return content.slice(startIndex, endIndex)
+}
+const candidateConfirmationAuditFactory = sliceBetween(
+  scanResult,
+  '\t\tcreateCandidateConfirmationAudit(selectedCandidate) {',
+  'formatCandidateSummary(candidate = {})'
+)
 
 for (const required of [
   'candidateConfirmationAudit',
@@ -26,9 +38,9 @@ assert.match(
 )
 
 assert.match(
-  scanResult,
-  /createCandidateConfirmationAudit\(selectedCandidate\)[\s\S]*candidateCount:\s*this\.candidateList\.length[\s\S]*candidatePoiCodes:\s*this\.candidateList[\s\S]*selectedCandidatePoiCode:\s*selectedCandidate\.poiCode[\s\S]*selectedCandidatePoiName:\s*selectedCandidate\.poiName[\s\S]*selectedCandidateConfidence:\s*selectedCandidate\.confidence[\s\S]*reviewedSourceCount:\s*selectedCandidate\.sources\.length[\s\S]*confirmationSource:\s*'user-selected-candidate'/,
-  'Candidate confirmation audit should include the candidate set, chosen POI, confidence, source count, and confirmation source'
+  candidateConfirmationAuditFactory,
+  /auditType:\s*'recognition-candidate-confirmation'[\s\S]*regionCode:\s*this\.result\.regionCode \|\| XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*this\.result\.packageCode \|\| XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*this\.result\.sceneCode \|\| XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*this\.result\.sourceChannel \|\| XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*candidateCount:\s*this\.candidateList\.length[\s\S]*candidatePoiCodes:\s*this\.candidateList[\s\S]*selectedCandidatePoiCode:\s*selectedCandidate\.poiCode[\s\S]*selectedCandidatePoiName:\s*selectedCandidate\.poiName[\s\S]*selectedCandidateConfidence:\s*selectedCandidate\.confidence[\s\S]*reviewedSourceCount:\s*selectedCandidate\.sources\.length[\s\S]*confirmationSource:\s*'user-selected-candidate'/,
+  'Candidate confirmation audit should include attribution context, candidate set, chosen POI, confidence, source count, and confirmation source'
 )
 
 assert.match(

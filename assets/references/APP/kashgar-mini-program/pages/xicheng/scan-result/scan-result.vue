@@ -360,6 +360,10 @@ export default {
 		createCandidateConfirmationAudit(selectedCandidate) {
 			return {
 				auditType: 'recognition-candidate-confirmation',
+				regionCode: this.result.regionCode || XICHENG_REGION_CONFIG.regionCode,
+				packageCode: this.result.packageCode || XICHENG_REGION_CONFIG.packageCode,
+				sceneCode: this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode,
+				sourceChannel: this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
 				candidateCount: this.candidateList.length,
 				candidatePoiCodes: this.candidateList
 					.map(candidate => candidate.poiCode)
