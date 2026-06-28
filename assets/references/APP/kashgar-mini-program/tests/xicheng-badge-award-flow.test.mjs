@@ -74,8 +74,8 @@ assert.match(
 
 assert.match(
   travelogue,
-  /routePassportCheckinCount\(\)[\s\S]*new Set\([\s\S]*this\.routeCheckins[\s\S]*checkin\.poiCode \|\| checkin\.poiName[\s\S]*return Math\.min\(checkedPoiKeys\.size, this\.routePassportTargetCount\)/,
-  'Route passport progress should count unique route check-in POIs, not study task completions'
+  /routePassportCheckinCount\(\)[\s\S]*new Set\([\s\S]*this\.routeCheckins[\s\S]*filter\(checkin => this\.hasReviewableRouteCheckinEvidence\(checkin\)\)[\s\S]*checkin\.poiCode \|\| checkin\.poiName[\s\S]*return Math\.min\(checkedPoiKeys\.size, this\.routePassportTargetCount\)/,
+  'Route passport progress should count unique reviewable route check-in POIs, not unsafe check-ins or study task completions'
 )
 
 assert.match(

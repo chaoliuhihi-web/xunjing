@@ -582,6 +582,7 @@ export default {
 		routePassportCheckinCount() {
 			const checkedPoiKeys = new Set(
 				this.routeCheckins
+					.filter(checkin => this.hasReviewableRouteCheckinEvidence(checkin))
 					.map(checkin => checkin && (checkin.poiCode || checkin.poiName) ? (checkin.poiCode || checkin.poiName) : '')
 					.filter(Boolean)
 			)
