@@ -1016,6 +1016,8 @@ export default {
 				photoPath: payload.photoPath || '',
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
 				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				sceneCode: XICHENG_REGION_CONFIG.sceneCode,
+				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
 				completedAt,
 				reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
 				publishStatus: 'private'
@@ -1098,6 +1100,8 @@ export default {
 				routePassportTitle: this.routePassport.title,
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
 				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				sceneCode: XICHENG_REGION_CONFIG.sceneCode,
+				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
 				passportProgress: this.passportProgress,
 				routePassportTargetCount: this.routePassportTargetCount,
 				routePassportCheckinCount: this.routePassportCheckinCount,

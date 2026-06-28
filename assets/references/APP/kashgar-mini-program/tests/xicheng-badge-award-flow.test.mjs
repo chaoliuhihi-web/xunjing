@@ -7,6 +7,18 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const sliceBetween = (content, start, end) => {
+  const startIndex = content.indexOf(start)
+  const endIndex = content.indexOf(end, startIndex)
+  assert.ok(startIndex >= 0, `missing start marker ${start}`)
+  assert.ok(endIndex > startIndex, `missing end marker ${end}`)
+  return content.slice(startIndex, endIndex)
+}
+const routeBadgeAwardFactory = sliceBetween(
+  travelogue,
+  '\t\tcreateRouteBadgeAward() {',
+  'persistRouteBadgeAward(award)'
+)
 
 assert.ok(
   regionConfig.includes("badgeAwardStorageKey: 'xicheng:badgeAwards'"),
@@ -79,9 +91,9 @@ assert.match(
 )
 
 assert.match(
-  travelogue,
-  /createRouteBadgeAward\(\)[\s\S]*awardId:\s*`badge-\$\{Date\.now\(\)\}`[\s\S]*badgeCode:\s*this\.routeBadgeCode[\s\S]*badgeName:\s*this\.badgeName[\s\S]*routePassportTitle:\s*this\.routePassport\.title[\s\S]*passportProgress:\s*this\.passportProgress[\s\S]*routePassportTargetCount:\s*this\.routePassportTargetCount[\s\S]*routePassportCheckinCount:\s*this\.routePassportCheckinCount[\s\S]*checkinCount:\s*this\.checkinCount[\s\S]*studyTaskEvidenceCount:\s*this\.studyTaskEvidenceCount[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
-  'Badge award payload should include identity, route passport context, completion evidence, and private review status'
+  routeBadgeAwardFactory,
+  /awardId:\s*`badge-\$\{Date\.now\(\)\}`[\s\S]*badgeCode:\s*this\.routeBadgeCode[\s\S]*badgeName:\s*this\.badgeName[\s\S]*routePassportTitle:\s*this\.routePassport\.title[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*passportProgress:\s*this\.passportProgress[\s\S]*routePassportTargetCount:\s*this\.routePassportTargetCount[\s\S]*routePassportCheckinCount:\s*this\.routePassportCheckinCount[\s\S]*checkinCount:\s*this\.checkinCount[\s\S]*studyTaskEvidenceCount:\s*this\.studyTaskEvidenceCount[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  'Badge award payload should include identity, attribution context, route passport context, completion evidence, and private review status'
 )
 
 assert.match(

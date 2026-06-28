@@ -7,6 +7,18 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const sliceBetween = (content, start, end) => {
+  const startIndex = content.indexOf(start)
+  const endIndex = content.indexOf(end, startIndex)
+  assert.ok(startIndex >= 0, `missing start marker ${start}`)
+  assert.ok(endIndex > startIndex, `missing end marker ${end}`)
+  return content.slice(startIndex, endIndex)
+}
+const studyTaskEvidenceFactory = sliceBetween(
+  travelogue,
+  'createStudyTaskEvidence(index, evidenceType, payload = {})',
+  'persistStudyTaskEvidence(evidence)'
+)
 
 assert.ok(
   regionConfig.includes("studyTaskStorageKey: 'xicheng:studyTaskEvidence'"),
@@ -73,9 +85,9 @@ assert.match(
 )
 
 assert.match(
-  travelogue,
-  /createStudyTaskEvidence\(index, evidenceType, payload = \{\}\)[\s\S]*taskId:\s*`study-task-\$\{index \+ 1\}`[\s\S]*taskText:\s*this\.parentChildTasks\[index\][\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
-  'Study task evidence should include task identity, task text, and default private review status'
+  studyTaskEvidenceFactory,
+  /taskId:\s*`study-task-\$\{index \+ 1\}`[\s\S]*taskText:\s*this\.parentChildTasks\[index\][\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  'Study task evidence should include task identity, attribution context, and default private review status'
 )
 
 assert.match(
