@@ -394,6 +394,14 @@ export function hasReviewableRouteCheckinEvidence(checkin = {}) {
 	return Boolean(checkin.poiCode || checkin.poiName || checkin.routeTitle)
 }
 
+export const hasReviewableStudyTaskEvidence = (evidence = {}) => {
+	if (!evidence || !evidence.completedAt) return false
+	return Boolean(
+		String(evidence.answerText || '').trim()
+		|| evidence.photoPath
+	)
+}
+
 export const hasXichengTravelogueDraftEvidence = ({
 	materials = [],
 	recordingSession = null,
@@ -409,7 +417,7 @@ export const hasXichengTravelogueDraftEvidence = ({
 		(Array.isArray(recordingSession.trackPoints) && recordingSession.trackPoints.length > 0)
 		|| (Array.isArray(recordingSession.stayPoints) && recordingSession.stayPoints.length > 0)
 	))
-	const hasStudyEvidence = Array.isArray(studyTaskEvidence) && studyTaskEvidence.some(evidence => evidence && evidence.completedAt)
+	const hasStudyEvidence = Array.isArray(studyTaskEvidence) && studyTaskEvidence.some(evidence => hasReviewableStudyTaskEvidence(evidence))
 	const hasRouteEvidence = Boolean(routeRecommendation && (
 		routeRecommendation.title
 		|| (Array.isArray(routeRecommendation.stops) && routeRecommendation.stops.length > 0)
@@ -432,7 +440,7 @@ export const hasXichengReviewableWorkEvidence = ({
 		(Array.isArray(recordingSession.trackPoints) && recordingSession.trackPoints.length > 0)
 		|| (Array.isArray(recordingSession.stayPoints) && recordingSession.stayPoints.length > 0)
 	))
-	const hasStudyEvidence = Array.isArray(studyTaskEvidence) && studyTaskEvidence.some(evidence => evidence && evidence.completedAt)
+	const hasStudyEvidence = Array.isArray(studyTaskEvidence) && studyTaskEvidence.some(evidence => hasReviewableStudyTaskEvidence(evidence))
 	const hasRouteCheckinEvidence = Array.isArray(routeCheckins)
 		&& routeCheckins.some(checkin => hasReviewableRouteCheckinEvidence(checkin))
 	return hasMaterialEvidence || hasTrackEvidence || hasStudyEvidence || hasRouteCheckinEvidence
@@ -492,9 +500,9 @@ export const createXichengTravelogueDraft = ({
 	const photoText = photoCount > 0 ? `现场补充了 ${photoCount} 张照片，` : ''
 	const remarkText = remarkTexts.length > 0 ? `用户备注提到：${remarkTexts.join('；')}。` : ''
 	const aiGuideText = aiGuideExcerpts.length > 0 ? `小京回答提到：${aiGuideExcerpts.join('；')}。` : ''
-	const completedStudyEvidence = studyTaskEvidence
-		.filter(evidence => evidence && evidence.completedAt)
-		.slice(0, 2)
+	const completedStudyEvidence = Array.isArray(studyTaskEvidence)
+		? studyTaskEvidence.filter(evidence => hasReviewableStudyTaskEvidence(evidence)).slice(0, 2)
+		: []
 	const studyEvidenceText = completedStudyEvidence.length > 0
 		? `研学任务证据包括：${completedStudyEvidence.map(evidence => evidence.answerText || evidence.taskText || '照片观察').join('；')}。`
 		: ''
@@ -697,7 +705,7 @@ export default {
 			return poiNames.length > 0 ? Array.from(new Set(poiNames)).join('、') : '暂无'
 		},
 		completedStudyTaskEvidence() {
-			return this.studyTaskEvidence.filter(evidence => evidence && evidence.completedAt)
+			return this.studyTaskEvidence.filter(evidence => hasReviewableStudyTaskEvidence(evidence))
 		},
 		studyTaskEvidenceCount() {
 			return this.completedStudyTaskEvidence.length

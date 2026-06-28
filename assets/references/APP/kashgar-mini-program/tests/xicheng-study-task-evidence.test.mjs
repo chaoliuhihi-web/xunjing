@@ -30,6 +30,7 @@ for (const required of [
   'studyTaskDrafts',
   'studyTaskEvidenceCount',
   'completedStudyTaskEvidence',
+  'hasReviewableStudyTaskEvidence',
   '提交观察',
   '拍照完成',
   'submitStudyTaskEvidence',
@@ -64,8 +65,8 @@ assert.match(
 
 assert.match(
   travelogue,
-  /completedStudyTaskEvidence\(\)[\s\S]*this\.studyTaskEvidence\.filter\(evidence => evidence && evidence\.completedAt\)/,
-  'Completed study task evidence should be filtered by completedAt'
+  /completedStudyTaskEvidence\(\)[\s\S]*return this\.studyTaskEvidence\.filter\(evidence => hasReviewableStudyTaskEvidence\(evidence\)\)/,
+  'Completed study task evidence should require completedAt plus observation text or photo evidence'
 )
 
 assert.match(
