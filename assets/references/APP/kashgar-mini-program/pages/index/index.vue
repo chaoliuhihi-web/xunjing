@@ -721,6 +721,13 @@ export default {
 			}
 			return Array.isArray(trigger.suggestedQuestions) ? trigger.suggestedQuestions : []
 		},
+		normalizeXichengMultimodalRoute(trigger = {}) {
+			const safetyStatus = normalizeXichengSafetyStatus(trigger.safetyStatus)
+			if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+				return null
+			}
+			return trigger.routeRecommendation || trigger.recommendedRoute || null
+		},
 		persistXichengMultimodalRecognition(trigger = {}) {
 			if (!trigger || !trigger.poiCode) return
 			uni.setStorageSync(XICHENG_REGION_CONFIG.storageKey, {
@@ -734,7 +741,9 @@ export default {
 				sourceLabel: trigger.sourceLabel || '文本识别',
 				safetyStatus: normalizeXichengSafetyStatus(trigger.safetyStatus),
 				sources: this.normalizeXichengMultimodalSources(trigger),
-				suggestedQuestions: this.normalizeXichengMultimodalSuggestedQuestions(trigger)
+				suggestedQuestions: this.normalizeXichengMultimodalSuggestedQuestions(trigger),
+				routeRecommendation: this.normalizeXichengMultimodalRoute(trigger),
+				recommendedRoute: this.normalizeXichengMultimodalRoute(trigger)
 			})
 		},
 		normalizeXunjingTriggerTargetPath(trigger = {}) {

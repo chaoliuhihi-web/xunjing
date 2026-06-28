@@ -55,6 +55,7 @@ assert.match(
 
 const persistedSourcesBlock = indexPage.match(/normalizeXichengMultimodalSources\(trigger = \{\}\)[\s\S]*?\n\t\t\},/)?.[0] || ''
 const persistedQuestionsBlock = indexPage.match(/normalizeXichengMultimodalSuggestedQuestions\(trigger = \{\}\)[\s\S]*?\n\t\t\},/)?.[0] || ''
+const persistedRouteBlock = indexPage.match(/normalizeXichengMultimodalRoute\(trigger = \{\}\)[\s\S]*?\n\t\t\},/)?.[0] || ''
 
 assert.match(
   persistedSourcesBlock,
@@ -66,6 +67,18 @@ assert.match(
   persistedQuestionsBlock,
   /const safetyStatus = normalizeXichengSafetyStatus\(trigger\.safetyStatus\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*return \[\][\s\S]*Array\.isArray\(trigger\.suggestedQuestions\) \? trigger\.suggestedQuestions : \[\]/,
   'Index should clear cached suggested questions when multimodal recognition is BLOCKED or UNAVAILABLE'
+)
+
+assert.match(
+  persistedRouteBlock,
+  /const safetyStatus = normalizeXichengSafetyStatus\(trigger\.safetyStatus\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*return null[\s\S]*return trigger\.routeRecommendation \|\| trigger\.recommendedRoute \|\| null/,
+  'Index should clear cached route recommendations when multimodal recognition is BLOCKED or UNAVAILABLE'
+)
+
+assert.match(
+  indexPage,
+  /persistXichengMultimodalRecognition\(trigger = \{\}\)[\s\S]*routeRecommendation:\s*this\.normalizeXichengMultimodalRoute\(trigger\)[\s\S]*recommendedRoute:\s*this\.normalizeXichengMultimodalRoute\(trigger\)/,
+  'Index should cache safety-aware route recommendations for recent recognition and Xiaojing context'
 )
 
 assert.doesNotMatch(
