@@ -25,6 +25,7 @@
     "xunjing:storage:smoke": "node scripts/verify-xicheng-object-storage-smoke.mjs",
     "xunjing:xicheng:poi:review:pack": "node scripts/create-xicheng-poi-production-review-pack.mjs",
     "xunjing:xicheng:poi:source-review:apply": "node scripts/apply-xicheng-poi-source-review-to-workbook.mjs",
+    "xunjing:xicheng:poi:production-review:apply": "node scripts/apply-xicheng-poi-production-review-to-workbook.mjs",
     "xunjing:xicheng:poi:source-coverage:audit": "node scripts/verify-xicheng-poi-source-coverage.mjs",
     "xunjing:xicheng:poi:manifest:template": "node scripts/create-xicheng-poi-production-manifest-template.mjs",
     "xunjing:xicheng:poi:workbook:gate": "node scripts/verify-xicheng-poi-review-workbook.mjs",
