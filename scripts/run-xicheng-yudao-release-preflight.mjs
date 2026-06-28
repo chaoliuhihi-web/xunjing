@@ -9,6 +9,11 @@ const artifactType = 'xicheng-yudao-release-preflight'
 const defaultReleaseEvidenceFile = 'qa/xicheng-yudao-release-evidence.json'
 const defaultTasksOutputFile = 'workbench/xicheng-yudao-release-blocker-tasks.csv'
 const defaultPoiTasksOutputFile = 'workbench/xicheng-yudao-release-poi-blocker-tasks.csv'
+const defaultPoiWorkbookEvidenceFile = 'qa/xicheng-poi-review-workbook-evidence.json'
+const defaultPoiManifestEvidenceFile = 'qa/xicheng-poi-manifest-evidence.json'
+const defaultPoiSeedEvidenceFile = 'qa/xicheng-poi-production-seed-evidence.json'
+const defaultAppReadinessEvidenceFile = 'qa/xicheng-app-readiness-evidence.json'
+const defaultReleasePackageEvidenceFile = 'qa/xicheng-release-evidence-package.json'
 const defaultStage = 'production'
 const defaultExpectedBranch = 'feature/xicheng-p0'
 const defaultEnvFile = 'ops/xunjing-platform.env.example'
@@ -64,6 +69,32 @@ function buildReleaseGateArgs({
   ]
 }
 
+function shellArg(value) {
+  const text = String(value || '')
+  return /^[A-Za-z0-9_./:=@+-]+$/.test(text) ? text : `'${text.replaceAll("'", "'\\''")}'`
+}
+
+function buildFinalEvidencePackageCommand({
+  stage,
+  releaseEvidenceFile,
+  poiWorkbookEvidenceFile,
+  poiManifestEvidenceFile,
+  poiSeedEvidenceFile,
+  appReadinessEvidenceFile,
+  releasePackageEvidenceFile
+}) {
+  return [
+    'npm run xunjing:xicheng:release:evidence:package --',
+    '--stage', shellArg(stage),
+    '--release-evidence', shellArg(releaseEvidenceFile),
+    '--poi-workbook-evidence', shellArg(poiWorkbookEvidenceFile),
+    '--poi-manifest-evidence', shellArg(poiManifestEvidenceFile),
+    '--poi-seed-evidence', shellArg(poiSeedEvidenceFile),
+    '--app-readiness-evidence', shellArg(appReadinessEvidenceFile),
+    '--evidence-file', shellArg(releasePackageEvidenceFile)
+  ].join(' ')
+}
+
 export async function runXichengYudaoReleasePreflight({
   rootDir = process.cwd(),
   args = []
@@ -81,6 +112,13 @@ export async function runXichengYudaoReleasePreflight({
   const poiTasksOutputFile = readArgValue(args, '--poi-tasks-output') ||
     readArgValue(args, '--poi-output') ||
     defaultPoiTasksOutputFile
+  const poiWorkbookEvidenceFile = readArgValue(args, '--poi-workbook-evidence') || defaultPoiWorkbookEvidenceFile
+  const poiManifestEvidenceFile = readArgValue(args, '--poi-manifest-evidence') || defaultPoiManifestEvidenceFile
+  const poiSeedEvidenceFile = readArgValue(args, '--poi-seed-evidence') || defaultPoiSeedEvidenceFile
+  const appReadinessEvidenceFile = readArgValue(args, '--app-readiness-evidence') || defaultAppReadinessEvidenceFile
+  const releasePackageEvidenceFile = readArgValue(args, '--release-package-evidence') ||
+    readArgValue(args, '--package-evidence') ||
+    defaultReleasePackageEvidenceFile
   const resolvedReleaseEvidenceFile = resolveRootFile(resolvedRoot, releaseEvidenceFile)
   const resolvedTasksOutputFile = resolveRootFile(resolvedRoot, tasksOutputFile)
   const resolvedPoiTasksOutputFile = resolveRootFile(resolvedRoot, poiTasksOutputFile)
@@ -131,7 +169,16 @@ export async function runXichengYudaoReleasePreflight({
       taskCount: taskReport.summary.taskCount,
       poiTaskCount: taskReport.summary.poiTaskCount,
       ownerLaneCounts: taskReport.summary.ownerLaneCounts,
-      ownerLaneBreakdown: taskReport.summary.ownerLaneBreakdown
+      ownerLaneBreakdown: taskReport.summary.ownerLaneBreakdown,
+      finalEvidencePackageCommand: buildFinalEvidencePackageCommand({
+        stage,
+        releaseEvidenceFile,
+        poiWorkbookEvidenceFile,
+        poiManifestEvidenceFile,
+        poiSeedEvidenceFile,
+        appReadinessEvidenceFile,
+        releasePackageEvidenceFile
+      })
     },
     release: {
       ok: releaseEvidence.ok === true,

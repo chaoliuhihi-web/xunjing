@@ -58,10 +58,18 @@ describe('xicheng Yudao release preflight', () => {
         releaseEvidenceFile,
         tasksOutputFile,
         poiTasksOutputFile,
+        finalEvidencePackageCommand: expect.stringContaining('npm run xunjing:xicheng:release:evidence:package'),
         poiTaskCount: expect.any(Number),
         releaseStatus: 'NOT_READY'
       }
     })
+    expect(report.summary.finalEvidencePackageCommand).toContain('--stage production')
+    expect(report.summary.finalEvidencePackageCommand).toContain('--release-evidence qa/xicheng-yudao-release-evidence.json')
+    expect(report.summary.finalEvidencePackageCommand).toContain('--poi-workbook-evidence qa/xicheng-poi-review-workbook-evidence.json')
+    expect(report.summary.finalEvidencePackageCommand).toContain('--poi-manifest-evidence qa/xicheng-poi-manifest-evidence.json')
+    expect(report.summary.finalEvidencePackageCommand).toContain('--poi-seed-evidence qa/xicheng-poi-production-seed-evidence.json')
+    expect(report.summary.finalEvidencePackageCommand).toContain('--app-readiness-evidence qa/xicheng-app-readiness-evidence.json')
+    expect(report.summary.finalEvidencePackageCommand).toContain('--evidence-file qa/xicheng-release-evidence-package.json')
     expect(report.summary.taskCount).toBeGreaterThan(0)
     expect(report.summary.ownerLaneCounts).toMatchObject({
       'platform-ops': expect.any(Number),
