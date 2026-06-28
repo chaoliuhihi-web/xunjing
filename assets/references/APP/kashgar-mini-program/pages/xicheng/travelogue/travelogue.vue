@@ -265,13 +265,16 @@
 				<text class="section-badge">{{ shareArtifacts.length }} 个产物</text>
 			</view>
 			<view
-				v-for="artifact in shareArtifacts.slice(0, 3)"
+				v-for="(artifact, index) in shareArtifacts.slice(0, 3)"
 				:key="artifact.assetId"
 				class="material-row"
 			>
 				<text class="material-title">{{ artifact.title }}</text>
 				<text class="material-meta">{{ artifact.assetLabel }} · {{ artifact.visibilityLabel || '待审核 · 未公开' }} · {{ formatArtifactTime(artifact.createdAt) }}</text>
 				<text v-if="artifact.templateLabel" class="material-meta">{{ artifact.templateLabel }}</text>
+				<view class="material-actions">
+					<button class="mini-button danger-mini-button" @click="deleteShareArtifact(index)">删除产物</button>
+				</view>
 			</view>
 		</view>
 
@@ -1727,6 +1730,22 @@ export default {
 				...(Array.isArray(existingArtifacts) ? existingArtifacts : [])
 			].slice(0, 20)
 			uni.setStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey, this.shareArtifacts)
+		},
+		deleteShareArtifact(index) {
+			const removedArtifact = this.shareArtifacts[index]
+			this.shareArtifacts = this.shareArtifacts.filter((_, artifactIndex) => artifactIndex !== index)
+			if (removedArtifact && removedArtifact.assetType === 'poster' && !this.shareArtifacts.some(artifact => artifact.assetType === 'poster')) {
+				this.posterStatus = '未生成'
+			}
+			if (removedArtifact && removedArtifact.assetType === 'pdf' && !this.shareArtifacts.some(artifact => artifact.assetType === 'pdf')) {
+				this.pdfStatus = '未生成'
+			}
+			uni.setStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey, this.shareArtifacts)
+			this.saveDraft({ silent: true })
+			uni.showToast({
+				title: '分享产物已删除',
+				icon: 'none'
+			})
 		},
 		saveRecordingSession() {
 			uni.setStorageSync(XICHENG_REGION_CONFIG.recordingStorageKey, this.recordingSession)

@@ -18,6 +18,7 @@ for (const required of [
   'shareArtifacts',
   'createShareArtifact',
   'persistShareArtifact',
+  'deleteShareArtifact',
   'shareAssetStorageKey',
   'assetId',
   'assetType',
@@ -32,7 +33,8 @@ for (const required of [
   'createMemorialPdfTemplate',
   'createMemorialPdfSourceCards',
   'shareAssetCount',
-  'formatArtifactTime'
+  'formatArtifactTime',
+  '删除产物'
 ]) {
   assert.ok(travelogue.includes(required), `Travelogue page should support share asset export evidence ${required}`)
 }
@@ -53,6 +55,18 @@ assert.match(
   travelogue,
   /persistShareArtifact\(artifact\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.shareAssetStorageKey/,
   'share assets should be persisted to local storage for review and operations handoff'
+)
+
+assert.match(
+  travelogue,
+  /v-for="\(\s*artifact,\s*index\s*\) in shareArtifacts\.slice\(0, 3\)"[\s\S]*@click="deleteShareArtifact\(index\)"[\s\S]*删除产物/,
+  'Share artifact list should expose a per-asset delete action before review/public sharing'
+)
+
+assert.match(
+  travelogue,
+  /deleteShareArtifact\(index\)[\s\S]*this\.shareArtifacts = this\.shareArtifacts\.filter\(\(_, artifactIndex\) => artifactIndex !== index\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.shareAssetStorageKey, this\.shareArtifacts\)[\s\S]*this\.saveDraft\(\{ silent: true \}\)[\s\S]*分享产物已删除/,
+  'Deleting a share asset should update local storage, refresh the draft package, and confirm deletion'
 )
 
 assert.match(
