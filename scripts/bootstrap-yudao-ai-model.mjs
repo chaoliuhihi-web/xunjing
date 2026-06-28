@@ -18,6 +18,15 @@ const requiredKeys = [
   'QWEN_MODEL'
 ]
 
+const providerKeys = ['QWEN_API_KEY', 'QWEN_BASE_URL', 'QWEN_MODEL']
+const placeholderTokens = [
+  'replace-with',
+  'placeholder',
+  'your-',
+  'example.com',
+  'local-or-staging'
+]
+
 function readArgValue(args, name) {
   const equalPrefix = `${name}=`
   const equalArg = args.find((arg) => arg.startsWith(equalPrefix))
@@ -49,6 +58,14 @@ export function validateBootstrapEnv(env) {
       throw new Error(`${key} is required for Yudao AI model bootstrap`)
     }
   }
+  for (const key of providerKeys) {
+    if (isPlaceholderProviderValue(env[key])) {
+      throw new Error(`${key} must be configured with a real value`)
+    }
+  }
+  if (!isNonLocalHttpsUrl(env.QWEN_BASE_URL)) {
+    throw new Error('QWEN_BASE_URL must be a non-local HTTPS URL')
+  }
 }
 
 export function buildMysqlArgs(env) {
@@ -73,6 +90,20 @@ function commandAvailable(command) {
 
 function isLoopbackHost(host) {
   return ['127.0.0.1', 'localhost', '::1', '0.0.0.0'].includes(String(host || '').trim())
+}
+
+function isPlaceholderProviderValue(value) {
+  const normalized = String(value || '').trim().toLowerCase()
+  return !normalized || placeholderTokens.some((token) => normalized.includes(token))
+}
+
+function isNonLocalHttpsUrl(value) {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' && !isLoopbackHost(url.hostname)
+  } catch {
+    return false
+  }
 }
 
 function dockerMysqlHost(env) {

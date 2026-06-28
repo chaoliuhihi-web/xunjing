@@ -22,7 +22,7 @@ const env = {
   MYSQL_DATABASE: 'yudao_xinghe_xunjing',
   MYSQL_USERNAME: 'xunjing',
   MYSQL_PASSWORD: 'test-mysql-password',
-  QWEN_API_KEY: 'test-qwen-api-key',
+  QWEN_API_KEY: 'sk-xunjing-fixture-key',
   QWEN_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
   QWEN_MODEL: 'qwen-plus'
 }
@@ -55,6 +55,25 @@ describe('Yudao AI model bootstrap', () => {
   test('requires model secrets and database connection variables', () => {
     expect(() => validateBootstrapEnv({ ...env, QWEN_API_KEY: '' })).toThrow('QWEN_API_KEY')
     expect(() => validateBootstrapEnv({ ...env, MYSQL_DATABASE: '' })).toThrow('MYSQL_DATABASE')
+  })
+
+  test('rejects placeholder or non-HTTPS AI provider configuration before smoke requests', () => {
+    expect(() => validateBootstrapEnv({
+      ...env,
+      QWEN_API_KEY: 'replace-with-local-or-staging-key'
+    })).toThrow('QWEN_API_KEY must be configured with a real value')
+    expect(() => validateBootstrapEnv({
+      ...env,
+      QWEN_BASE_URL: 'http://dashscope.aliyuncs.com/compatible-mode/v1'
+    })).toThrow('QWEN_BASE_URL must be a non-local HTTPS URL')
+    expect(() => validateBootstrapEnv({
+      ...env,
+      QWEN_BASE_URL: 'https://example.com/compatible-mode/v1'
+    })).toThrow('QWEN_BASE_URL must be configured with a real value')
+    expect(() => validateBootstrapEnv({
+      ...env,
+      QWEN_MODEL: 'replace-with-model'
+    })).toThrow('QWEN_MODEL must be configured with a real value')
   })
 
   test('keeps MySQL password out of process arguments', () => {
@@ -96,13 +115,13 @@ describe('Yudao AI model bootstrap', () => {
 
     expect(request.url).toBe('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions')
     expect(request.options.method).toBe('POST')
-    expect(request.options.headers.Authorization).toBe('Bearer test-qwen-api-key')
+    expect(request.options.headers.Authorization).toBe('Bearer sk-xunjing-fixture-key')
     expect(body.model).toBe('qwen-plus')
     expect(body.temperature).toBe(0)
     expect(body.max_tokens).toBe(16)
     expect(body.messages.at(-1).content).toContain('xunjing-ai-smoke-ok')
-    expect(request.url).not.toContain('test-qwen-api-key')
-    expect(request.options.body).not.toContain('test-qwen-api-key')
+    expect(request.url).not.toContain('sk-xunjing-fixture-key')
+    expect(request.options.body).not.toContain('sk-xunjing-fixture-key')
   })
 
   test('checks the real provider with a secret-safe smoke summary', async () => {
@@ -112,7 +131,7 @@ describe('Yudao AI model bootstrap', () => {
       nowMs: () => 1000,
       fetchImpl: async (url, options) => {
         expect(url).toBe('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions')
-        expect(options.headers.Authorization).toBe('Bearer test-qwen-api-key')
+        expect(options.headers.Authorization).toBe('Bearer sk-xunjing-fixture-key')
         return {
           ok: true,
           status: 200,
@@ -138,7 +157,7 @@ describe('Yudao AI model bootstrap', () => {
       responseTextLength: 19,
       latencyMs: 0
     })
-    expect(JSON.stringify(smoke)).not.toContain('test-qwen-api-key')
+    expect(JSON.stringify(smoke)).not.toContain('sk-xunjing-fixture-key')
     expect(JSON.stringify(smoke)).not.toContain('test-mysql-password')
   })
 
@@ -171,7 +190,7 @@ describe('Yudao AI model bootstrap', () => {
       'secret-redaction'
     ])
     expect(JSON.stringify(evidence)).not.toContain('test-mysql-password')
-    expect(JSON.stringify(evidence)).not.toContain('test-qwen-api-key')
+    expect(JSON.stringify(evidence)).not.toContain('sk-xunjing-fixture-key')
   })
 
   test('keeps bootstrap evidence files under qa tmp or workbench', async () => {
