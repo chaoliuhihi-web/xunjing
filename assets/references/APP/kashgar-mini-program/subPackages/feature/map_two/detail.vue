@@ -183,7 +183,6 @@ const showHandDrawnMap = ref(false)
 onLoad((options) => {
   type.value = normalizeMapType(options.type)
   masters.value = options.masters
-  console.log('type3',type.value)
   getMapClassList()
   getMapMarkersList(type.value)
   nextTick(()=>{
@@ -218,13 +217,11 @@ const openMaters = () => {
 
 //获取地图移动的中心坐标
 const getMapCenterLoca = (e)=>{
-	console.log("中心坐标：",e);
 	map_center.value = e
 };
 const selectedMarker = ref(null)
 //获取选中的标记
 const getChooseMarker = (e) =>{
-	console.log("选中的气泡标记：",e);
 	const found = markerArr.value.find(m => m.id == (e.markerId || e.id))
 	selectedMarker.value = found || e || null
 };
@@ -395,17 +392,14 @@ const cancelVoiceAsk = () => {
 const getMyLocation =()=>{
 	//获得当前的位置
 	if (typeof wx === 'undefined' || !wx.getFuzzyLocation) {
-		console.log('模糊定位接口不可用');
 		return;
 	}
 	wx.getFuzzyLocation({
 		type: 'gcj02', //返回国测局坐标
 		success(e) {
-			// console.log(e,"我的位置")
 			myLocation.value = e;
 		},
 		fail(e) {
-			console.log('失败', e);
 		}
 	})
 }
@@ -418,7 +412,6 @@ const queryParams = reactive({
 })
 const getMapClassList = async (e) =>{
 	let res = await request('api2/Map/cls', queryParams, 'GET')
-	console.log(res)
 	if (res.code == '0') {
 		markerCls.value = res.data
 	}
@@ -434,7 +427,6 @@ const getMapMarkersList = async (e) =>{
 		queryParams.mastersId = masters.value
 	}
 	let res = await request('api2/Map/lst', queryParams, 'GET')
-	console.log(res)
 	if (res.code == '0') {
 		markerArr.value = res.data
 	}

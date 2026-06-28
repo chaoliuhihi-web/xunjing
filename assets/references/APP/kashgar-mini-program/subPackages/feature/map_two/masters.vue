@@ -233,7 +233,6 @@ export default{
 		},
 		async fetchData(){
 			let res = await request('api2/Map/lst', this.queryParams, 'GET')
-			console.log(res)
 			if (res.code == '0') {
 				this.markerArr = res.data
 			}

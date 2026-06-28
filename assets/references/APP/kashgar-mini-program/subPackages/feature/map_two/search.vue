@@ -122,7 +122,6 @@ export default{
 			this.isLoading = true
 			try {
 				let res = await request('api2/Map/lst', this.queryParams, 'GET')
-				console.log(res)
 				if (res.code == '0') {
 					this.markerArr = Array.isArray(res.data) ? res.data : []
 				}

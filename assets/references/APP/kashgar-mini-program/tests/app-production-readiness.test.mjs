@@ -311,9 +311,17 @@ const collectSourceFiles = (relativeDir) => {
 }
 
 const appSourceFiles = [
+  'App.vue',
+  'app.js',
+  'main.js',
+  'vite.config.js',
+  ...collectSourceFiles('components'),
   ...collectSourceFiles('pages'),
+  ...collectSourceFiles('pagesInfo'),
+  ...collectSourceFiles('pagesLogin'),
   ...collectSourceFiles('request'),
   ...collectSourceFiles('config'),
+  ...collectSourceFiles('subPackages'),
 ]
 
 for (const relativePath of appSourceFiles) {

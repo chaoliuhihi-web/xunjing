@@ -425,7 +425,6 @@ const getVideoDetail = async () => {
       data_id: dramaId.value
     }
     const res = await request('api2/Drama/getDramaDetail', params, 'GET')
-    console.log('接口返回:', res)
     if (res.code == 0 && res.data) {
       const data = res.data
       drama.value = data.drama || {}
@@ -474,12 +473,10 @@ const onSwiperChange = (e) => {
 
 // 视频播放事件
 const onVideoPlay = (index) => {
-  console.log('视频播放:', index)
 }
 
 // 视频暂停事件
 const onVideoPause = (index) => {
-  console.log('视频暂停:', index)
 }
 
 // 屏幕点击事件（双击点赞）
@@ -533,7 +530,6 @@ const doLike = async (item) => {
       type: getCurrentDramaType()
     }
     const res = await request('api2/Drama/dramaZan', params, 'GET')
-    console.log('点赞结果:', res)
     if (res.code == 0) {
       if (isLiked) {
         // 取消点赞
@@ -599,7 +595,6 @@ const handleLike = () => {
 
 // 分享
 const handleShare = () => {
-  console.log('分享')
 }
 
 // 关注/取消关注
@@ -614,7 +609,6 @@ const handleFollow = async () => {
       action: action
     }
     const res = await request('api2/Drama/brandFollow', params, 'GET')
-    console.log('关注结果:', res)
     if (res.code == 0) {
       if (isFollowed.value) {
         isFollowed.value = false

@@ -87,7 +87,6 @@ const getDramaList = async () => {
 				const res = await request('api2/Drama/getDrama', params, 'GET', false, {
 					cacheTime: 30000
 				})
-				console.log(`剧场分类 ${type} 返回数据:`, res)
 				const list = res.code == 0 && Array.isArray(res.data) ? res.data : []
 				if (list.length < page_size.value) {
 					finishedTypes[type] = true
@@ -142,7 +141,6 @@ const goBack = () => {
 
 // 跳转到剧场详情页面
 const goToShortPlays = (item) => {
-	console.log('🎬 点击剧集:', item)
 	uni.navigateTo({
 		url: `/subPackages/feature/theater/theaterDetail?dramaId=${item.id}`
 	})

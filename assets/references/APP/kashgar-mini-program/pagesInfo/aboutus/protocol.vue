@@ -47,7 +47,6 @@
 						content = content.replace(regex2, `<video style="max-width: calc(100% - 15px);height: 230px;" poster=${resdata.img_url}`);
 					}
 					this.content = this.formatHtml(content)
-					console.log(this.content)
 				}
 			}
 		}

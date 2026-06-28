@@ -57,7 +57,6 @@ export default {
 		}
 	},
 	onLoad() {
-		console.log('授权页面加载')
 	},
 	methods: {
 		// 协议勾选变化
@@ -89,7 +88,6 @@ export default {
 				provider: 'weixin',
 				onlyAuthorize: true,
 				success: function(loginRes) {
-					console.log('微信登录成功，code:', loginRes.code)
 					that.wxLogin(loginRes.code)
 				},
 				fail: function(err) {
@@ -155,7 +153,6 @@ export default {
 		// 5. 前端缓存 token，后续请求带上 token
 		async wxLogin(code) {
 			try {
-				console.log('发送 code 到后端:', code)
 
 				let params = {
 					code: code  // 微信临时登录凭证
@@ -164,7 +161,6 @@ export default {
 				// 调用后端接口 api2/user/get_user，后端会用 code 换取 openid 并生成 token
 				let res = await request('api2/user/get_user', params, 'GET', false)
 
-				console.log('后端返回结果:', res)
 
 				if (res.code == 0 || res.code == '0') {
 					// 保存后端返回的用户信息到本地缓存
@@ -182,7 +178,6 @@ export default {
 						''
 					if (resolvedUserId) {
 						uni.setStorageSync('userId', resolvedUserId)
-						console.log('用户ID已保存:', resolvedUserId)
 					} else {
 						console.warn('后端未返回 userId，res.data 结构:', res.data)
 					}
@@ -195,7 +190,6 @@ export default {
 						''
 					if (resolvedOpenid) {
 						uni.setStorageSync('openid', resolvedOpenid)
-						console.log('openid已保存:', resolvedOpenid)
 					} else {
 						console.warn('后端未返回 openid，res.data 结构:', res.data)
 					}
@@ -203,12 +197,10 @@ export default {
 					// 保存个人信息
 					if (res.data.member) {
 						uni.setStorageSync('userInfo', res.data.member)
-						console.log('个人信息已保存:', res.data.member)
 					}
 
 					global.globalLoginOK = false
 
-					console.log('登录成功，用户信息已保存')
 
 					uni.showToast({
 						title: '登录成功',

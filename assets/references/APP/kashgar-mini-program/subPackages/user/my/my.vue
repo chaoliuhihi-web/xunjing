@@ -310,7 +310,6 @@ const persistAvatarFile = (tempFilePath) => new Promise((resolve) => {
 
 // 选择头像回调（新版微信API）
 const onChooseAvatar = async (e) => {
-	console.log('选择头像:', e)
 	const avatarUrl = e.detail.avatarUrl
 	if (!avatarUrl) return
 	const savedAvatarUrl = await persistAvatarFile(avatarUrl)
@@ -322,7 +321,6 @@ const onChooseAvatar = async (e) => {
 
 	try {
 		let res = await saveUserProfile({ avatarUrl: savedAvatarUrl })
-		console.log(res)
 		if (!res || res.code == '0') {
 			uni.showToast({
 				title: '头像设置成功',
@@ -352,7 +350,6 @@ const onNicknameChange = async (e) => {
 		const userInfo = uni.getStorageSync('userInfo') || {}
 		let res = await saveUserProfile({ nickName: nickname })
 		if (!res) return
-		console.log(res)
 		if (res.code == '0') {
 			// 保存到本地
 			userInfo.nickName = nickname

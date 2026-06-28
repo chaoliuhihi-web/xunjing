@@ -344,13 +344,10 @@ export default {
 		this.chooseItemInfo = {}
 		this.$emit('clearMarker')
 		const { latitude, longitude } = e.detail;
-		console.log('点击位置：', latitude, longitude);
 		// 这里你可以做任何后续操作
 	},
 	chooseItemDao_old(){
-		console.log('调起地图App')
 		const { latitude, longitude, title } = this.chooseItemInfo;
-		console.log('调起地图App2',latitude, longitude, title)
 		if (!latitude || !longitude) return;
 		wx.openLocation({
 			latitude,
@@ -363,8 +360,6 @@ export default {
 	chooseItemDao() {
 	  const { latitude, longitude, title, address } = this.chooseItemInfo;
 	  if (!latitude || !longitude) return;
-
-	  console.log('导航', latitude, longitude); // 真机看日志
 
 	  // ① 微信小程序
 	  // #ifdef MP-WEIXIN
@@ -552,7 +547,6 @@ export default {
 		if (!marker) return;
 		const distance = this.formatDistance(marker);
 		this.chooseItemInfo = { ...marker, distance };
-		console.log(this.chooseItemInfo)
 		this.$emit('chooseMarker', this.chooseItemInfo);
     },
 	getDistance(lat1, lon1, lat2, lon2) {

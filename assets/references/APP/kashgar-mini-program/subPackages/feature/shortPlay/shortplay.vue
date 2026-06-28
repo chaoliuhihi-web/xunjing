@@ -127,7 +127,6 @@ export default {
 					}
 					return request('api2/Drama/getDrama', params, 'GET')
 				}))
-				console.log('接口返回数据:', responses)
 				const responseData = responses.reduce((result, res) => {
 					if (res.code == 0 && Array.isArray(res.data)) {
 						return result.concat(res.data)

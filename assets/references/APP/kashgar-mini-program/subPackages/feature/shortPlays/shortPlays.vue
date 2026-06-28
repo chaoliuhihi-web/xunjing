@@ -284,7 +284,6 @@ const getDramaDetail = async () => {
 	try {
 		// 从本地存储获取用户ID
 		const userId = uni.getStorageSync('userId') || 1
-		console.log('👤 userId:', userId)
 
 		const params = {
 			userId: userId,
@@ -305,7 +304,6 @@ const getDramaDetail = async () => {
 				isFollow: item.brand && item.brand.is_follow == 1
 			}))
 		} else {
-			console.log('⚠️ 接口返回失败, code:', res.code, 'msg:', res.msg)
 			uni.showToast({
 				title: res.msg || '获取详情失败',
 				icon: 'none'
@@ -327,7 +325,6 @@ const goBack = () => {
 
 // 点击相关推荐
 const onRecommendClick = (id) => {
-	console.log(id);
 	dramaId.value = id
 	currentIndex.value = 0  // 重置选中的集数
 	getDramaDetail()
@@ -335,7 +332,6 @@ const onRecommendClick = (id) => {
 
 // 点击周边视频
 const onNearbyClick = (id) => {
-	console.log(id);
 	dramaId.value = id
 	currentIndex.value = 0  // 重置选中的集数
 	getDramaDetail()
@@ -394,9 +390,6 @@ const downloadVideo = () => {
 // 处理关注
 const handleFollow = async (item) => {
 	try {
-		console.log('👤 点击关注:', item)
-		console.log('🏷️ 品牌ID (brandId):', item.brandId)
-		console.log('📊 当前关注状态:', item.isFollow)
 
 		// 从本地存储获取用户ID
 		const userId = uni.getStorageSync('userId') || 1
@@ -410,11 +403,9 @@ const handleFollow = async (item) => {
 			action: action
 		}
 
-		console.log('📤 关注请求参数:', params)
 
 		const res = await request('api2/Drama/brandFollow', params, 'GET')
 
-		console.log('✅ 关注接口返回:', res)
 
 		if (res.code == 0) {
 			// 切换关注状态
@@ -464,10 +455,8 @@ const handleZan = async () => {
 			type: 1
 		}
 
-		console.log('👍 点赞请求参数:', params)
 
 		const res = await request('api2/Drama/dramaZan', params, 'GET')
-		console.log('✅ 点赞接口返回:', res)
 
 		if (res.code == 0) {
 			isZan.value = !isZan.value
@@ -490,8 +479,6 @@ const handleZan = async () => {
 // 分享
 const handleShare = async () => {
 	const currentEpisode = episodeList.value[currentIndex.value]
-	console.log('🎬 点击分享的剧集:', currentEpisode)
-	console.log('🆔 剧集ID (dataId):', currentEpisode?.id)
 
 	// 保存当前要分享的信息,供 onShareAppMessage 使用
 	currentShareItem.value = {
@@ -509,10 +496,8 @@ const handleShare = async () => {
 			type: 2
 		}
 
-		console.log('📤 分享统计参数:', params)
 
 		const res = await request('api2/Drama/dramaShare', params, 'GET')
-		console.log('✅ 分享统计返回:', res)
 	} catch (error) {
 		console.error('❌ 分享统计失败:', error)
 	}
@@ -520,8 +505,6 @@ const handleShare = async () => {
 
 // 周边视频分享
 const handleNearbyShare = async (item) => {
-	console.log('🎬 点击分享的周边视频:', item)
-	console.log('🆔 视频ID (dataId):', item.id)
 
 	// 保存当前要分享的信息,供 onShareAppMessage 使用
 	currentShareItem.value = item
@@ -535,10 +518,8 @@ const handleNearbyShare = async (item) => {
 			type: 2
 		}
 
-		console.log('📤 分享统计参数:', params)
 
 		const res = await request('api2/Drama/dramaShare', params, 'GET')
-		console.log('✅ 分享统计返回:', res)
 	} catch (error) {
 		console.error('❌ 分享统计失败:', error)
 	}
@@ -572,7 +553,6 @@ const handleLike = async (item) => {
 		}
 
 		const res = await request('api2/Drama/dramaZan', params, 'GET')
-		console.log('点赞结果:', res)
 
 		if (res.code == 0) {
 			// 切换点赞状态
@@ -591,7 +571,6 @@ const handleLike = async (item) => {
 onShareAppMessage(() => {
 	if (currentShareItem.value) {
 		const item = currentShareItem.value
-		console.log('📤 分享内容:', item)
 		return {
 			title: item.title || '喀什剧场',
 			path: `/subPackages/feature/shortPlays/shortPlays?id=${item.id}`,
