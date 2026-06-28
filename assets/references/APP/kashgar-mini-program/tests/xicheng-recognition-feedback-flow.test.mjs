@@ -94,6 +94,6 @@ assert.match(
 
 assert.doesNotMatch(
   `${scanResult}\n${travelogue}`,
-  /\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
-  'Local recognition feedback MVP should not introduce backend calls or client-side secrets'
+  /Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}|imageBase64|imageUrl/,
+  'Recognition feedback flow should not introduce client-side secrets or raw image uploads'
 )

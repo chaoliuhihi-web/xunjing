@@ -125,6 +125,7 @@ import {
 	XICHENG_REGION_CONFIG,
 	XICHENG_SUGGESTED_QUESTIONS
 } from '@/config/regions/xicheng.js'
+import { submitXichengRecognitionFeedbackEvent } from '@/request/xunjing/events.js'
 import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 
@@ -500,12 +501,36 @@ export default {
 		submitRecognitionFeedback(feedbackType = 'correct') {
 			const feedback = this.createRecognitionFeedback(feedbackType)
 			this.persistRecognitionFeedback(feedback)
+			this.submitRecognitionFeedbackEvent(feedback)
 			this.recognitionFeedback = feedback
 			this.feedbackNote = ''
 			uni.showToast({
 				title: '识别反馈已记录',
 				icon: 'none'
 			})
+		},
+		submitRecognitionFeedbackEvent(feedback) {
+			submitXichengRecognitionFeedbackEvent(feedback)
+				.then(() => this.updateRecognitionFeedbackSyncStatus(feedback.feedbackId, 'synced'))
+				.catch(() => this.updateRecognitionFeedbackSyncStatus(feedback.feedbackId, 'local_pending'))
+		},
+		updateRecognitionFeedbackSyncStatus(feedbackId, syncStatus) {
+			if (!feedbackId) return
+			const existingFeedbacks = uni.getStorageSync(XICHENG_REGION_CONFIG.recognitionFeedbackStorageKey)
+			const feedbacks = Array.isArray(existingFeedbacks) ? existingFeedbacks : []
+			const syncedAt = syncStatus === 'synced' ? new Date().toISOString() : ''
+			const nextFeedbacks = feedbacks.map(feedback => {
+				if (!feedback || feedback.feedbackId !== feedbackId) return feedback
+				return {
+					...feedback,
+					syncStatus,
+					syncedAt: syncedAt || feedback.syncedAt || ''
+				}
+			})
+			uni.setStorageSync(XICHENG_REGION_CONFIG.recognitionFeedbackStorageKey, nextFeedbacks)
+			if (this.recognitionFeedback && this.recognitionFeedback.feedbackId === feedbackId) {
+				this.recognitionFeedback = nextFeedbacks.find(feedback => feedback && feedback.feedbackId === feedbackId) || this.recognitionFeedback
+			}
 		},
 		withdrawRecognitionFeedback() {
 			const feedbackId = this.recognitionFeedback && this.recognitionFeedback.feedbackId ? this.recognitionFeedback.feedbackId : ''
@@ -541,6 +566,8 @@ export default {
 				candidateConfirmationAudit: this.result.candidateConfirmationAudit || null,
 				feedbackNote: this.feedbackNote.trim(),
 				misTrigger: feedbackType === 'wrong',
+				eventType: 'ERROR_FEEDBACK',
+				syncStatus: 'local_pending',
 				reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
 				publishStatus: 'private',
 				createdAt
