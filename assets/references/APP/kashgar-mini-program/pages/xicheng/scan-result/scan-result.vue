@@ -13,6 +13,10 @@
 					<text class="meta-value">{{ result.requiresUserConfirm ? '待确认' : '可直达' }}</text>
 					<text class="meta-label">触发状态</text>
 				</view>
+				<view>
+					<text class="meta-value">{{ safetyStatusLabel }}</text>
+					<text class="meta-label">审核状态</text>
+				</view>
 			</view>
 		</view>
 
@@ -83,7 +87,7 @@
 					</text>
 				</view>
 			</view>
-			<text v-else class="source-empty">暂无已审核来源，小京会按后台审核状态回答。</text>
+			<text v-else class="source-empty">{{ sourceEmptyCopy }}</text>
 		</view>
 
 		<view class="feedback-card">
@@ -250,6 +254,21 @@ export default {
 		},
 		sourceList() {
 			return Array.isArray(this.result.sources) ? this.result.sources : []
+		},
+		safetyStatusLabel() {
+			if (this.result.safetyStatus === 'BLOCKED') return '已拦截'
+			if (this.result.safetyStatus === 'UNAVAILABLE') return '来源服务不可用'
+			if (this.sourceList.length > 0) return '来源可用'
+			return '待审核'
+		},
+		sourceEmptyCopy() {
+			if (this.result.safetyStatus === 'BLOCKED') {
+				return '无已审核来源，不能回答'
+			}
+			if (this.result.safetyStatus === 'UNAVAILABLE') {
+				return '小京暂时无法获取已审核来源，请稍后再试'
+			}
+			return '暂无已审核来源，小京会按后台审核状态回答。'
 		},
 		candidateList() {
 			return normalizeRecognitionCandidates(this.result.candidates)

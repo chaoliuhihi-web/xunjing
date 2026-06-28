@@ -32,6 +32,18 @@ assert.match(
 
 assert.match(
   scanResult,
+  /<text class="meta-value">\{\{ safetyStatusLabel \}\}<\/text>[\s\S]*<text class="meta-label">审核状态<\/text>/,
+  'Recognition result UI should show a human-readable safety audit status near confidence and trigger status'
+)
+
+assert.match(
+  scanResult,
+  /sourceEmptyCopy\(\)[\s\S]*this\.result\.safetyStatus === 'BLOCKED'[\s\S]*无已审核来源，不能回答[\s\S]*this\.result\.safetyStatus === 'UNAVAILABLE'[\s\S]*小京暂时无法获取已审核来源，请稍后再试/,
+  'Recognition result empty-source copy should fail closed for BLOCKED and UNAVAILABLE safety states'
+)
+
+assert.match(
+  scanResult,
   /safetyStatus:\s*routeOptions\.safetyStatus \|\| \(selectedCached && selectedCached\.safetyStatus\) \|\| ''/,
   'Recognition result should prefer route safetyStatus and fall back to matching cached recognition safetyStatus'
 )
