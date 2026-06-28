@@ -87,6 +87,12 @@ assert.match(
 
 assert.match(
   travelogue,
+  /createShareArtifact\(assetType\)[\s\S]*reviewReadinessSummary:\s*this\.reviewReadinessSummary[\s\S]*sourceReadinessStatus:\s*this\.reviewReadinessSummary\.sourceReadinessStatus[\s\S]*reviewBlockers:\s*this\.reviewReadinessSummary\.reviewBlockers/,
+  'Generated poster and PDF assets should carry source readiness and review blockers for operations triage'
+)
+
+assert.match(
+  travelogue,
   /artifact\.assetLabel[\s\S]*artifact\.visibilityLabel/,
   'Share artifact list should show audit visibility so operators know generated works are not public'
 )

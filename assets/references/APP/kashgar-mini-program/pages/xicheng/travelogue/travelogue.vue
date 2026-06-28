@@ -322,6 +322,7 @@
 			<text class="section-desc">候选确认：{{ opsReport.candidateConfirmationCount }} 条 · {{ opsReport.candidateConfirmedPoiLabel }}</text>
 			<text class="section-desc">小京讲解：{{ opsReport.aiGuideMaterialCount }} 条</text>
 			<text class="section-desc">安全拦截：{{ opsReport.safetyBlockedCount }} · 服务不可用：{{ opsReport.safetyUnavailableCount }}</text>
+			<text class="section-desc">来源审核：{{ opsReport.sourceReadinessStatus }} · 待复核：{{ opsReport.reviewBlockerCount }}</text>
 			<text class="section-desc">轨迹质量：{{ opsReport.qualityReport.usableRate }}% 可用 · 异常点：{{ opsReport.filteredTrackPointCount }}</text>
 			<text class="section-desc">优化建议：{{ opsReport.optimizationSuggestionText }}</text>
 			<text class="section-desc">上线后可替换为后端真实城市运营报告。</text>
@@ -663,6 +664,25 @@ export default {
 		safetyUnavailableCount() {
 			return this.safetyStatusSummary.unavailableCount
 		},
+		reviewReadinessSummary() {
+			const reviewBlockers = []
+			if (this.sourceCount === 0) {
+				reviewBlockers.push('missing-reviewed-sources')
+			}
+			if (this.safetyBlockedCount > 0) {
+				reviewBlockers.push('blocked-ai-answer')
+			}
+			if (this.safetyUnavailableCount > 0) {
+				reviewBlockers.push('ai-source-service-unavailable')
+			}
+			return {
+				sourceReadinessStatus: reviewBlockers.length === 0 ? 'SOURCE_READY' : 'SOURCE_REVIEW_REQUIRED',
+				reviewedSourceCount: this.sourceCount,
+				safetyBlockedCount: this.safetyBlockedCount,
+				safetyUnavailableCount: this.safetyUnavailableCount,
+				reviewBlockers
+			}
+		},
 		opsReport() {
 			const hotPois = this.createHotPoiRanking()
 			const optimizationSuggestions = this.createOptimizationSuggestions()
@@ -692,6 +712,11 @@ export default {
 				safetyStatusSummary: this.safetyStatusSummary,
 				safetyBlockedCount: this.safetyBlockedCount,
 				safetyUnavailableCount: this.safetyUnavailableCount,
+				reviewReadinessSummary: this.reviewReadinessSummary,
+				sourceReadinessStatus: this.reviewReadinessSummary.sourceReadinessStatus,
+				reviewedSourceCount: this.reviewReadinessSummary.reviewedSourceCount,
+				reviewBlockers: this.reviewReadinessSummary.reviewBlockers,
+				reviewBlockerCount: this.reviewReadinessSummary.reviewBlockers.length,
 				optimizationSuggestions: this.createOptimizationSuggestions(),
 				reviewStatus: this.reviewText,
 				posterStatus: this.posterStatus,
@@ -1309,6 +1334,11 @@ export default {
 				safetyStatusSummary: this.safetyStatusSummary,
 				safetyBlockedCount: this.safetyBlockedCount,
 				safetyUnavailableCount: this.safetyUnavailableCount,
+				reviewReadinessSummary: this.reviewReadinessSummary,
+				sourceReadinessStatus: this.reviewReadinessSummary.sourceReadinessStatus,
+				reviewedSourceCount: this.reviewReadinessSummary.reviewedSourceCount,
+				reviewBlockers: this.reviewReadinessSummary.reviewBlockers,
+				reviewBlockerCount: this.reviewReadinessSummary.reviewBlockers.length,
 				reviewText: this.reviewText,
 				posterStatus: this.posterStatus,
 				pdfStatus: this.pdfStatus,
@@ -1406,6 +1436,11 @@ export default {
 				safetyStatusSummary: this.safetyStatusSummary,
 				safetyBlockedCount: this.safetyBlockedCount,
 				safetyUnavailableCount: this.safetyUnavailableCount,
+				reviewReadinessSummary: this.reviewReadinessSummary,
+				sourceReadinessStatus: this.reviewReadinessSummary.sourceReadinessStatus,
+				reviewedSourceCount: this.reviewReadinessSummary.reviewedSourceCount,
+				reviewBlockers: this.reviewReadinessSummary.reviewBlockers,
+				reviewBlockerCount: this.reviewReadinessSummary.reviewBlockers.length,
 				reviewStatus: this.reviewText,
 				submittedAt,
 				materialCount: this.materialCount,
@@ -1514,6 +1549,11 @@ export default {
 				safetyStatusSummary: this.safetyStatusSummary,
 				safetyBlockedCount: this.safetyBlockedCount,
 				safetyUnavailableCount: this.safetyUnavailableCount,
+				reviewReadinessSummary: this.reviewReadinessSummary,
+				sourceReadinessStatus: this.reviewReadinessSummary.sourceReadinessStatus,
+				reviewedSourceCount: this.reviewReadinessSummary.reviewedSourceCount,
+				reviewBlockers: this.reviewReadinessSummary.reviewBlockers,
+				reviewBlockerCount: this.reviewReadinessSummary.reviewBlockers.length,
 				sourceCount: this.sourceCount,
 				badgeName: this.badgeName,
 				passportProgress: this.passportProgress,

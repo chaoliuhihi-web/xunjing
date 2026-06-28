@@ -20,7 +20,8 @@ assert.ok(reviewPackageBlock, 'Travelogue page should expose submitReviewPackage
 for (const required of [
   'safetyStatusSummary()',
   'safetyBlockedCount()',
-  'safetyUnavailableCount()'
+  'safetyUnavailableCount()',
+  'reviewReadinessSummary()'
 ]) {
   assert.ok(computedBlock.includes(required), `Travelogue computed report should include ${required}`)
 }
@@ -34,12 +35,21 @@ assert.match(
 for (const required of [
   'safetyStatusSummary: this.safetyStatusSummary',
   'safetyBlockedCount: this.safetyBlockedCount',
-  'safetyUnavailableCount: this.safetyUnavailableCount'
+  'safetyUnavailableCount: this.safetyUnavailableCount',
+  'reviewReadinessSummary: this.reviewReadinessSummary',
+  'sourceReadinessStatus: this.reviewReadinessSummary.sourceReadinessStatus',
+  'reviewBlockers: this.reviewReadinessSummary.reviewBlockers'
 ]) {
   assert.ok(opsReportBlock.includes(required), `Ops report should include ${required}`)
   assert.ok(saveDraftBlock.includes(required), `Saved journey draft should include ${required}`)
   assert.ok(reviewPackageBlock.includes(required), `Review package should include ${required}`)
 }
+
+assert.match(
+  computedBlock,
+  /reviewReadinessSummary\(\)[\s\S]*missing-reviewed-sources[\s\S]*blocked-ai-answer[\s\S]*ai-source-service-unavailable[\s\S]*sourceReadinessStatus:\s*reviewBlockers\.length === 0 \? 'SOURCE_READY' : 'SOURCE_REVIEW_REQUIRED'[\s\S]*reviewedSourceCount:\s*this\.sourceCount[\s\S]*reviewBlockers/,
+  'Review readiness should expose source readiness status and explicit blockers for operations triage'
+)
 
 assert.match(
   travelogue,

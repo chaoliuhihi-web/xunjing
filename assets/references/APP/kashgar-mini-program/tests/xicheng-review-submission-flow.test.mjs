@@ -47,6 +47,12 @@ assert.match(
 
 assert.match(
   travelogue,
+  /submitReviewPackage\(\)[\s\S]*reviewReadinessSummary:\s*this\.reviewReadinessSummary[\s\S]*sourceReadinessStatus:\s*this\.reviewReadinessSummary\.sourceReadinessStatus[\s\S]*reviewBlockerCount:\s*this\.reviewReadinessSummary\.reviewBlockers\.length/,
+  'review payload should carry source readiness and blocker count for operations triage'
+)
+
+assert.match(
+  travelogue,
   /uni\.getStorageSync\(XICHENG_REGION_CONFIG\.reviewStorageKey\)[\s\S]*this\.reviewSubmission/,
   'travelogue should restore the last review submission on load'
 )
