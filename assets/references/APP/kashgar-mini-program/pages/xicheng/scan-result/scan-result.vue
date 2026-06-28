@@ -107,8 +107,8 @@
 		</view>
 
 		<view class="bottom-actions">
-			<button class="primary-button" :disabled="pendingCandidateConfirmation" @click="askXiaojing()">问问小京</button>
-			<button class="ghost-button" :disabled="pendingCandidateConfirmation" @click="startRecording">开始记录</button>
+			<button class="primary-button" :disabled="recognitionActionBlocked" @click="askXiaojing()">问问小京</button>
+			<button class="ghost-button" :disabled="recognitionActionBlocked" @click="startRecording">开始记录</button>
 		</view>
 	</view>
 </template>
@@ -263,6 +263,12 @@ export default {
 		},
 		pendingCandidateConfirmation() {
 			return Boolean(this.result.requiresUserConfirm && this.candidateList.length > 0)
+		},
+		missingOfficialPoiContext() {
+			return !this.result.poiCode || !this.result.poiName || this.result.poiName === XICHENG_EMPTY_RECOGNITION_RESULT.poiName
+		},
+		recognitionActionBlocked() {
+			return this.pendingCandidateConfirmation || this.missingOfficialPoiContext
 		}
 	},
 	onLoad(options = {}) {
@@ -288,9 +294,19 @@ export default {
 				icon: 'none'
 			})
 		},
+		showMissingOfficialPoiToast(actionLabel = '继续') {
+			uni.showToast({
+				title: `暂无官方 POI 匹配，不能${actionLabel}`,
+				icon: 'none'
+			})
+		},
 		askXiaojing(question = '') {
 			if (this.pendingCandidateConfirmation) {
 				this.requireOfficialPoiConfirmation('问小京')
+				return
+			}
+			if (this.missingOfficialPoiContext) {
+				this.showMissingOfficialPoiToast('问小京')
 				return
 			}
 			const prompt = question || this.suggestedQuestions[0] || `讲讲${this.result.poiName}`
@@ -351,6 +367,10 @@ export default {
 		startRecording() {
 			if (this.pendingCandidateConfirmation) {
 				this.requireOfficialPoiConfirmation('开始记录')
+				return
+			}
+			if (this.missingOfficialPoiContext) {
+				this.showMissingOfficialPoiToast('开始记录')
 				return
 			}
 			const existingMaterials = uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey)

@@ -9,6 +9,7 @@ const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
 
 for (const required of [
   'pendingCandidateConfirmation',
+  'recognitionActionBlocked',
   'requireOfficialPoiConfirmation',
   '请先选择官方 POI 再'
 ]) {
@@ -26,13 +27,13 @@ assert.match(
 
 assert.match(
   scanResult,
-  /<button class="primary-button" :disabled="pendingCandidateConfirmation" @click="askXiaojing\(\)">问问小京<\/button>/,
+  /<button class="primary-button" :disabled="recognitionActionBlocked" @click="askXiaojing\(\)">问问小京<\/button>/,
   'Primary Xiaojing action should be disabled while candidate confirmation is pending'
 )
 
 assert.match(
   scanResult,
-  /<button class="ghost-button" :disabled="pendingCandidateConfirmation" @click="startRecording">开始记录<\/button>/,
+  /<button class="ghost-button" :disabled="recognitionActionBlocked" @click="startRecording">开始记录<\/button>/,
   'Start recording should be disabled while candidate confirmation is pending'
 )
 
