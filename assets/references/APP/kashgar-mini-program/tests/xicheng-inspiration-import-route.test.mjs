@@ -16,6 +16,23 @@ const regionConfig = read('config', 'regions', 'xicheng.js')
 const home = read('pages', 'xicheng', 'home', 'home.vue')
 const inspiration = read('pages', 'xicheng', 'inspiration', 'inspiration.vue')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const sliceBetween = (content, start, end) => {
+  const startIndex = content.indexOf(start)
+  const endIndex = content.indexOf(end, startIndex)
+  assert.ok(startIndex >= 0, `missing start marker ${start}`)
+  assert.ok(endIndex > startIndex, `missing end marker ${end}`)
+  return content.slice(startIndex, endIndex)
+}
+const saveRouteBlock = sliceBetween(
+  inspiration,
+  'saveInspirationRoute({ silent = false, includeImageOnly = false } = {})',
+  'createInspirationTextExcerpt(text = \'\')'
+)
+const openTravelogueBlock = sliceBetween(
+  inspiration,
+  'openTravelogue()',
+  '</script>'
+)
 
 assert.match(
   pagesJson,
@@ -67,27 +84,27 @@ assert.match(
 )
 
 assert.match(
-  inspiration,
-  /const route = \{[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel/,
-  'Inspiration route should persist Xicheng package and source channel for route passport attribution'
+  saveRouteBlock,
+  /const route = \{[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel/,
+  'Inspiration route should persist Xicheng package, scene, and source channel for route passport attribution'
 )
 
 assert.match(
-  inspiration,
-  /route\.stops\.map\(stop => \(\{[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode/,
-  'Inspiration route POI materials should carry packageCode for review and operations attribution'
+  saveRouteBlock,
+  /route\.stops\.map\(stop => \(\{[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel/,
+  'Inspiration route POI materials should carry package, scene, and source channel for review and operations attribution'
 )
 
 assert.match(
-  inspiration,
-  /type:\s*'inspiration-image'[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode/,
-  'Inspiration image material should carry packageCode for review and operations attribution'
+  saveRouteBlock,
+  /type:\s*'inspiration-image'[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel/,
+  'Inspiration image material should carry package, scene, and source channel for review and operations attribution'
 )
 
 assert.match(
-  inspiration,
-  /openTravelogue\(\)[\s\S]*regionCode=\$\{encodeURIComponent\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeURIComponent\(this\.region\.packageCode\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.region\.companionName\)\}/,
-  'Inspiration openTravelogue should preserve package and companion context'
+  openTravelogueBlock,
+  /regionCode=\$\{encodeURIComponent\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeURIComponent\(this\.region\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeURIComponent\(this\.region\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeURIComponent\(this\.region\.sourceChannel\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.region\.companionName\)\}/,
+  'Inspiration openTravelogue should preserve package, scene, source channel, and companion context'
 )
 
 assert.match(

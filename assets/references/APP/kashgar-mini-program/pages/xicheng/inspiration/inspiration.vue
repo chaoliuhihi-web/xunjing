@@ -139,6 +139,7 @@ export default {
 				imagePath: this.imagePath,
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
 				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				sceneCode: XICHENG_REGION_CONFIG.sceneCode,
 				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
 				sourceLabel: '灵感导入路线',
 				updatedAt: new Date().toISOString()
@@ -153,6 +154,8 @@ export default {
 					type: 'inspiration-poi',
 					regionCode: XICHENG_REGION_CONFIG.regionCode,
 					packageCode: XICHENG_REGION_CONFIG.packageCode,
+					sceneCode: XICHENG_REGION_CONFIG.sceneCode,
+					sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
 					poiCode: stop.poiCode,
 					poiName: stop.poiName,
 					sourceLabel: '灵感导入路线',
@@ -164,6 +167,8 @@ export default {
 					type: 'inspiration-image',
 					regionCode: XICHENG_REGION_CONFIG.regionCode,
 					packageCode: XICHENG_REGION_CONFIG.packageCode,
+					sceneCode: XICHENG_REGION_CONFIG.sceneCode,
+					sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
 					poiCode: '',
 					poiName: '攻略图片',
 					imagePath: this.imagePath,
@@ -194,6 +199,8 @@ export default {
 				importId: `inspiration-${Date.now()}`,
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
 				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				sceneCode: XICHENG_REGION_CONFIG.sceneCode,
+				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
 				rawTextExcerpt: this.createInspirationTextExcerpt(this.rawText),
 				rawTextLength: String(this.rawText || '').length,
 				extractedPlaceNames: this.matchedPois.map(poi => poi.poiName),
@@ -220,7 +227,7 @@ export default {
 		openTravelogue() {
 			this.saveInspirationRoute({ silent: true })
 			uni.navigateTo({
-				url: `/pages/xicheng/travelogue/travelogue?mode=route&regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&companionName=${encodeURIComponent(this.region.companionName)}`
+				url: `/pages/xicheng/travelogue/travelogue?mode=route&regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.region.sourceChannel)}&companionName=${encodeURIComponent(this.region.companionName)}`
 			})
 		}
 	}

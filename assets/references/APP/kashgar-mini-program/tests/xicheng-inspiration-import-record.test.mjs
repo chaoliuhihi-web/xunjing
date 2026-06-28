@@ -8,6 +8,18 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const inspiration = read('pages', 'xicheng', 'inspiration', 'inspiration.vue')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const sliceBetween = (content, start, end) => {
+  const startIndex = content.indexOf(start)
+  const endIndex = content.indexOf(end, startIndex)
+  assert.ok(startIndex >= 0, `missing start marker ${start}`)
+  assert.ok(endIndex > startIndex, `missing end marker ${end}`)
+  return content.slice(startIndex, endIndex)
+}
+const importRecordFactory = sliceBetween(
+  inspiration,
+  'createInspirationImportRecord(route, includeImageOnly = false)',
+  'persistInspirationImportRecord(importRecord)'
+)
 
 assert.ok(
   regionConfig.includes("inspirationImportStorageKey: 'xicheng:inspirationImports'"),
@@ -23,6 +35,8 @@ for (const required of [
   'importId',
   'rawTextExcerpt',
   'rawTextLength',
+  'sceneCode',
+  'sourceChannel',
   'extractedPlaceNames',
   'matchedPoiCodes',
   'confirmedPois',
@@ -43,9 +57,9 @@ assert.match(
 )
 
 assert.match(
-  inspiration,
-  /createInspirationImportRecord\(route, includeImageOnly = false\)[\s\S]*importId:\s*`inspiration-\$\{Date\.now\(\)\}`[\s\S]*rawTextExcerpt:\s*this\.createInspirationTextExcerpt\(this\.rawText\)[\s\S]*rawTextLength:\s*String\(this\.rawText \|\| ''\)\.length[\s\S]*extractedPlaceNames:\s*this\.matchedPois\.map\(poi => poi\.poiName\)[\s\S]*matchedPoiCodes:\s*this\.matchedPois\.map\(poi => poi\.poiCode\)[\s\S]*confirmedPois:\s*route\.stops[\s\S]*imageIncluded:\s*!!this\.imagePath[\s\S]*routeTitle:\s*route\.title[\s\S]*sourcePolicy:\s*'不保存第三方平台原文'[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
-  'Inspiration import record should include extraction, matching, confirmation, privacy, and review evidence'
+  importRecordFactory,
+  /importId:\s*`inspiration-\$\{Date\.now\(\)\}`[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*rawTextExcerpt:\s*this\.createInspirationTextExcerpt\(this\.rawText\)[\s\S]*rawTextLength:\s*String\(this\.rawText \|\| ''\)\.length[\s\S]*extractedPlaceNames:\s*this\.matchedPois\.map\(poi => poi\.poiName\)[\s\S]*matchedPoiCodes:\s*this\.matchedPois\.map\(poi => poi\.poiCode\)[\s\S]*confirmedPois:\s*route\.stops[\s\S]*imageIncluded:\s*!!this\.imagePath[\s\S]*routeTitle:\s*route\.title[\s\S]*sourcePolicy:\s*'不保存第三方平台原文'[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  'Inspiration import record should include attribution context, extraction, matching, confirmation, privacy, and review evidence'
 )
 
 assert.match(
