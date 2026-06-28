@@ -1571,7 +1571,7 @@ export default {
 				...this.recognitionFeedbacks
 			].filter(item => item && item.safetyStatus)
 			const statusCounts = statusItems.reduce((counts, item) => {
-				const status = String(item.safetyStatus || '').toUpperCase()
+				const status = normalizeXichengSafetyStatus(item.safetyStatus)
 				if (!status) return counts
 				counts[status] = (counts[status] || 0) + 1
 				return counts

@@ -28,8 +28,14 @@ for (const required of [
 
 assert.match(
   methodsBlock,
-  /createSafetyStatusSummary\(\)[\s\S]*this\.materials[\s\S]*this\.routeCheckins[\s\S]*this\.recognitionFeedbacks[\s\S]*statusCounts\.BLOCKED[\s\S]*statusCounts\.UNAVAILABLE/,
-  'Safety status summary should aggregate BLOCKED and UNAVAILABLE evidence from materials, check-ins, and recognition feedback'
+  /createSafetyStatusSummary\(\)[\s\S]*this\.materials[\s\S]*this\.routeCheckins[\s\S]*this\.recognitionFeedbacks[\s\S]*const status = normalizeXichengSafetyStatus\(item\.safetyStatus\)[\s\S]*statusCounts\.BLOCKED[\s\S]*statusCounts\.UNAVAILABLE/,
+  'Safety status summary should normalize and aggregate BLOCKED and UNAVAILABLE evidence from materials, check-ins, and recognition feedback'
+)
+
+assert.doesNotMatch(
+  methodsBlock.match(/createSafetyStatusSummary\(\)[\s\S]*?\n\t\t\},\n\t\tsanitizeRouteRecommendationForPublicShare/)?.[0] || '',
+  /String\(item\.safetyStatus \|\| ''\)\.toUpperCase\(\)/,
+  'Safety status summary should not hand-roll safetyStatus normalization without trim support'
 )
 
 for (const required of [
