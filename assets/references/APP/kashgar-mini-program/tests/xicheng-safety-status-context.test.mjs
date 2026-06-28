@@ -11,6 +11,7 @@ const aiGuide = read('pages', 'ai-guide', 'ai-guide.vue')
 const recognitionActionBlockedBlock = scanResult.match(/recognitionActionBlocked\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
 const safetyStatusLabelBlock = scanResult.match(/safetyStatusLabel\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
 const sourceEmptyCopyBlock = scanResult.match(/sourceEmptyCopy\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
+const questionEmptyCopyBlock = scanResult.match(/questionEmptyCopy\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
 const unsafeRecognitionSafetyStatusBlock = scanResult.match(/unsafeRecognitionSafetyStatus\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
 const askXiaojingBlock = scanResult.match(/askXiaojing\(question = ''\)[\s\S]*?\n\t\t\},\n\t\tselectCandidate/)?.[0] || ''
 const startRecordingBlock = scanResult.match(/startRecording\(\)[\s\S]*?\n\t\t\},\n\t\tcreateRouteCheckinEvent/)?.[0] || ''
@@ -22,6 +23,7 @@ const requestChatBlock = aiGuide.match(/const requestXunjingAiChat\s*=\s*\(quest
 assert.ok(recognitionActionBlockedBlock, 'Recognition result should expose a central action-blocking computed value')
 assert.ok(safetyStatusLabelBlock, 'Recognition result should expose a safety status label computed value')
 assert.ok(sourceEmptyCopyBlock, 'Recognition result should expose unsafe-source empty copy')
+assert.ok(questionEmptyCopyBlock, 'Recognition result should expose a safe empty question copy')
 assert.ok(unsafeRecognitionSafetyStatusBlock, 'Recognition result should expose an unsafe safety-status computed value')
 assert.ok(askXiaojingBlock, 'Recognition result should expose askXiaojing')
 assert.ok(startRecordingBlock, 'Recognition result should expose startRecording')
@@ -62,6 +64,18 @@ assert.match(
   sourceEmptyCopyBlock,
   /const safetyStatus = normalizeXichengSafetyStatus\(this\.result\.safetyStatus\)[\s\S]*safetyStatus === 'BLOCKED'[\s\S]*无已审核来源，不能回答[\s\S]*safetyStatus === 'UNAVAILABLE'[\s\S]*小京暂时无法获取已审核来源，请稍后再试/,
   'Recognition result empty-source copy should fail closed for BLOCKED and UNAVAILABLE safety states'
+)
+
+assert.match(
+  scanResult,
+  /<text v-if="suggestedQuestions\.length === 0" class="question-empty">\{\{ questionEmptyCopy \}\}<\/text>/,
+  'Recognition result should show an explicit safe empty state when no Xiaojing follow-up questions are allowed'
+)
+
+assert.match(
+  questionEmptyCopyBlock,
+  /const safetyStatus = normalizeXichengSafetyStatus\(this\.result\.safetyStatus\)[\s\S]*safetyStatus === 'BLOCKED'[\s\S]*无已审核来源，不能问小京[\s\S]*safetyStatus === 'UNAVAILABLE'[\s\S]*小京暂时无法获取已审核来源，不能问小京/,
+  'Recognition result empty question copy should explain why Xiaojing follow-ups are unavailable for unsafe states'
 )
 
 assert.match(

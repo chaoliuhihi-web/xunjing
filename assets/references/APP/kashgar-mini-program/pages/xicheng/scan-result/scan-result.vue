@@ -75,6 +75,7 @@
 			>
 				<text>{{ question }}</text>
 			</view>
+			<text v-if="suggestedQuestions.length === 0" class="question-empty">{{ questionEmptyCopy }}</text>
 		</view>
 
 		<view class="source-card">
@@ -292,6 +293,16 @@ export default {
 				return '小京暂时无法获取已审核来源，请稍后再试'
 			}
 			return '暂无已审核来源，小京会按后台审核状态回答。'
+		},
+		questionEmptyCopy() {
+			const safetyStatus = normalizeXichengSafetyStatus(this.result.safetyStatus)
+			if (safetyStatus === 'BLOCKED') {
+				return '无已审核来源，不能问小京'
+			}
+			if (safetyStatus === 'UNAVAILABLE') {
+				return '小京暂时无法获取已审核来源，不能问小京'
+			}
+			return '暂无可继续追问的问题'
 		},
 		unsafeRecognitionSafetyStatus() {
 			const safetyStatus = normalizeXichengSafetyStatus(this.result.safetyStatus)
@@ -768,6 +779,14 @@ export default {
 	background: #F2F4F7;
 	font-size: 26rpx;
 	color: #344054;
+}
+
+.question-empty {
+	display: block;
+	margin-top: 18rpx;
+	font-size: 24rpx;
+	line-height: 1.6;
+	color: #667085;
 }
 
 .candidate-row {
