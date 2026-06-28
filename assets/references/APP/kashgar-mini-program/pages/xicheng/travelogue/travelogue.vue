@@ -81,13 +81,16 @@
 			</view>
 			<view v-if="inspirationImports.length > 0">
 				<view
-					v-for="record in inspirationImports.slice(0, 3)"
+					v-for="(record, index) in inspirationImports.slice(0, 3)"
 					:key="record.importId"
 					class="material-row"
 				>
 					<text class="material-title">{{ record.routeTitle || '西城灵感路线' }}</text>
 					<text class="material-meta">{{ record.rawTextExcerpt || '已保存导入摘要' }}</text>
 					<text class="material-meta">{{ record.sourcePolicy || '不保存第三方平台原文' }}</text>
+					<view class="material-actions">
+						<button class="mini-button danger-mini-button" @click="deleteInspirationImport(index)">删除导入</button>
+					</view>
 				</view>
 			</view>
 			<text v-else class="empty-copy">从“一键导入灵感”生成路线后，会沉淀为可审核的导入记录。</text>
@@ -991,6 +994,23 @@ export default {
 			this.refreshDraftFromEvidence()
 			uni.showToast({
 				title: '素材已删除',
+				icon: 'none'
+			})
+		},
+		deleteInspirationImport(index) {
+			const removedImport = this.inspirationImports[index]
+			if (!removedImport) return
+			this.inspirationImports = this.inspirationImports.filter((_, importIndex) => importIndex !== index)
+			uni.setStorageSync(XICHENG_REGION_CONFIG.inspirationImportStorageKey, this.inspirationImports)
+			if (removedImport && this.importedRoute && removedImport.routeTitle === this.importedRoute.title) {
+				this.importedRoute = null
+				uni.removeStorageSync(XICHENG_REGION_CONFIG.inspirationStorageKey)
+				this.materials = this.materials.filter(material => !['inspiration-poi', 'inspiration-image'].includes(material.type))
+				this.persistJourneyMaterials()
+			}
+			this.refreshDraftFromEvidence()
+			uni.showToast({
+				title: '灵感导入已删除',
 				icon: 'none'
 			})
 		},

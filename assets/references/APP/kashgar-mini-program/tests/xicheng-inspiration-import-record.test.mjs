@@ -84,7 +84,9 @@ for (const required of [
   'inspirationImports',
   'inspirationImportCount',
   '灵感导入记录',
-  'sourcePolicy'
+  'sourcePolicy',
+  'deleteInspirationImport',
+  '删除导入'
 ]) {
   assert.ok(travelogue.includes(required), `Travelogue should expose inspiration import record evidence ${required}`)
 }
@@ -99,6 +101,18 @@ assert.match(
   travelogue,
   /inspirationImportCount\(\)[\s\S]*return this\.inspirationImports\.length/,
   'Travelogue should compute inspiration import count'
+)
+
+assert.match(
+  travelogue,
+  /v-for="\(\s*record,\s*index\s*\) in inspirationImports\.slice\(0, 3\)"[\s\S]*@click="deleteInspirationImport\(index\)"[\s\S]*删除导入/,
+  'Travelogue should expose a per-record delete action for imported inspiration records'
+)
+
+assert.match(
+  travelogue,
+  /deleteInspirationImport\(index\)[\s\S]*const removedImport = this\.inspirationImports\[index\][\s\S]*this\.inspirationImports = this\.inspirationImports\.filter\(\(_, importIndex\) => importIndex !== index\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.inspirationImportStorageKey, this\.inspirationImports\)[\s\S]*removedImport && this\.importedRoute && removedImport\.routeTitle === this\.importedRoute\.title[\s\S]*this\.importedRoute = null[\s\S]*uni\.removeStorageSync\(XICHENG_REGION_CONFIG\.inspirationStorageKey\)[\s\S]*\['inspiration-poi', 'inspiration-image'\]\.includes\(material\.type\)[\s\S]*this\.persistJourneyMaterials\(\)[\s\S]*this\.refreshDraftFromEvidence\(\)[\s\S]*灵感导入已删除/,
+  'Deleting an imported inspiration route should clear the active imported route, route storage, generated inspiration materials, and refresh the draft package'
 )
 
 assert.match(
