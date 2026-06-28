@@ -42,8 +42,14 @@ for (const required of [
 
 assert.match(
   home,
-  /openRecommendedRoute\(route = \{\}\)[\s\S]*routePayload[\s\S]*regionCode:\s*this\.region\.regionCode[\s\S]*packageCode:\s*this\.region\.packageCode[\s\S]*sourceChannel:\s*this\.region\.sourceChannel[\s\S]*routeSource:\s*'home-recommendation'[\s\S]*sourceLabel:\s*'官方推荐路线'/,
-  'Opening a home recommended route should persist route attribution for route passport operations'
+  /openRecommendedRoute\(route = \{\}\)[\s\S]*routePayload[\s\S]*regionCode:\s*this\.region\.regionCode[\s\S]*packageCode:\s*this\.region\.packageCode[\s\S]*sceneCode:\s*this\.region\.sceneCode[\s\S]*sourceChannel:\s*this\.region\.sourceChannel[\s\S]*routeSource:\s*'home-recommendation'[\s\S]*sourceLabel:\s*'官方推荐路线'/,
+  'Opening a home recommended route should persist full route attribution for route passport operations'
+)
+
+assert.match(
+  home,
+  /const routeMaterials = stops\.map\(stop => \(\{[\s\S]*type:\s*'official-route-poi'[\s\S]*regionCode:\s*this\.region\.regionCode[\s\S]*packageCode:\s*this\.region\.packageCode[\s\S]*sceneCode:\s*this\.region\.sceneCode[\s\S]*sourceChannel:\s*this\.region\.sourceChannel[\s\S]*routeCode:\s*route\.routeCode/,
+  'Home recommended route POI materials should carry scene and source channel for review and city operations reports'
 )
 
 assert.match(
@@ -54,8 +60,14 @@ assert.match(
 
 assert.match(
   home,
-  /openRecommendedRoute\(route = \{\}\)[\s\S]*\/pages\/xicheng\/travelogue\/travelogue\?mode=route[\s\S]*regionCode=\$\{encodeURIComponent\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeURIComponent\(this\.region\.packageCode\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.region\.companionName\)\}/,
-  'Home recommended route navigation should preserve Xicheng region, package, and companion context'
+  /openRecommendedRoute\(route = \{\}\)[\s\S]*\/pages\/xicheng\/travelogue\/travelogue\?mode=route[\s\S]*regionCode=\$\{encodeURIComponent\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeURIComponent\(this\.region\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeURIComponent\(this\.region\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeURIComponent\(this\.region\.sourceChannel\)\}[\s\S]*routeCode=\$\{encodeURIComponent\(route\.routeCode \|\| ''\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.region\.companionName\)\}/,
+  'Home recommended route navigation should preserve Xicheng region, package, scene, source channel, route, and companion context'
+)
+
+assert.match(
+  home,
+  /openXichengTravelogue\(mode = 'record'\)[\s\S]*\/pages\/xicheng\/travelogue\/travelogue\?mode=\$\{encodeURIComponent\(mode\)\}[\s\S]*regionCode=\$\{encodeURIComponent\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeURIComponent\(this\.region\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeURIComponent\(this\.region\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeURIComponent\(this\.region\.sourceChannel\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.region\.companionName\)\}/,
+  'Home direct travelogue entry should preserve scene and source channel for review and city operations attribution'
 )
 
 assert.doesNotMatch(

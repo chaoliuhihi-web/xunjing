@@ -460,6 +460,7 @@ export default {
 				stops,
 				regionCode: this.region.regionCode,
 				packageCode: this.region.packageCode,
+				sceneCode: this.region.sceneCode,
 				sourceChannel: this.region.sourceChannel,
 				routeSource: 'home-recommendation',
 				sourceLabel: '官方推荐路线',
@@ -471,6 +472,8 @@ export default {
 				type: 'official-route-poi',
 				regionCode: this.region.regionCode,
 				packageCode: this.region.packageCode,
+				sceneCode: this.region.sceneCode,
+				sourceChannel: this.region.sourceChannel,
 				poiCode: stop.poiCode,
 				poiName: stop.poiName,
 				routeCode: route.routeCode,
@@ -485,12 +488,12 @@ export default {
 				...materials
 			].slice(0, 80))
 			uni.navigateTo({
-				url: `/pages/xicheng/travelogue/travelogue?mode=route&regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&companionName=${encodeURIComponent(this.region.companionName)}`
+				url: `/pages/xicheng/travelogue/travelogue?mode=route&regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.region.sourceChannel)}&routeCode=${encodeURIComponent(route.routeCode || '')}&companionName=${encodeURIComponent(this.region.companionName)}`
 			})
 		},
 		openXichengTravelogue(mode = 'record') {
 			uni.navigateTo({
-				url: `/pages/xicheng/travelogue/travelogue?mode=${encodeURIComponent(mode)}&autoStart=${encodeURIComponent(mode === 'record' ? '1' : '')}&regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&companionName=${encodeURIComponent(this.region.companionName)}`
+				url: `/pages/xicheng/travelogue/travelogue?mode=${encodeURIComponent(mode)}&autoStart=${encodeURIComponent(mode === 'record' ? '1' : '')}&regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.region.sourceChannel)}&companionName=${encodeURIComponent(this.region.companionName)}`
 			})
 		},
 		openXichengInspiration() {
