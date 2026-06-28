@@ -691,6 +691,29 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testAnswerSupportsXichengRagChatSceneWithQuotaCacheRules() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        consoleService.addKnowledgeDocument(xichengBaitasiKnowledgeReq(packageId));
+        consoleService.createAiQuotaRule(aiQuotaRuleReq(projectId, "PROJECT", projectId, 200, "xicheng-rag-chat"));
+        consoleService.createAiQuotaRule(aiQuotaRuleReq(projectId, "PACKAGE", packageId, 120, "xicheng-rag-chat"));
+        consoleService.createAiQuotaRule(aiQuotaRuleReq(projectId, "USER", null, 20, "xicheng-rag-chat"));
+
+        RagChatReqVO reqVO = xichengRagReq();
+        reqVO.setSceneCode("xicheng-rag-chat");
+        reqVO.setUserTraceId("trace-xicheng-rag-chat-001");
+        RagChatRespVO answer = appService.answer(reqVO);
+
+        assertEquals("PASSED", answer.getSafetyStatus());
+        assertEquals("xicheng-rag-chat", answer.getSceneCode());
+        assertEquals("XICHENG-MAP-001", answer.getPackageCode());
+        assertEquals("xicheng-baitasi", answer.getPoiCode());
+        assertFalse(answer.getSources().isEmpty());
+        assertTrue(answer.getAnswer().contains("妙应寺白塔"));
+    }
+
+    @Test
     public void testAnswerUsesYudaoAiKnowledgeSegmentsWhenPackageBound() {
         Long projectId = consoleService.createProject(projectReq());
         Long schoolId = consoleService.createSchool(schoolReq());
@@ -1014,11 +1037,16 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     private AiQuotaRuleCreateReqVO aiQuotaRuleReq(Long projectId, String scopeType, Long scopeId, Integer dailyLimit) {
+        return aiQuotaRuleReq(projectId, scopeType, scopeId, dailyLimit, "xunjing-rag-chat");
+    }
+
+    private AiQuotaRuleCreateReqVO aiQuotaRuleReq(
+            Long projectId, String scopeType, Long scopeId, Integer dailyLimit, String sceneCode) {
         AiQuotaRuleCreateReqVO reqVO = new AiQuotaRuleCreateReqVO();
         reqVO.setProjectId(projectId);
         reqVO.setScopeType(scopeType);
         reqVO.setScopeId(scopeId);
-        reqVO.setSceneCode("xunjing-rag-chat");
+        reqVO.setSceneCode(sceneCode);
         reqVO.setDailyLimit(dailyLimit);
         reqVO.setMonthlyBudget(new BigDecimal("10.000000"));
         reqVO.setCacheEnabled(true);

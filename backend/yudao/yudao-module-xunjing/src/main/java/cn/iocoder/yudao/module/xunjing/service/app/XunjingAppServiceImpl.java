@@ -891,13 +891,15 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         Long qrCodeId = QUOTA_SCOPE_QRCODE.equals(quotaRule.getScopeType()) && qrCode != null ? qrCode.getId() : null;
         String userTraceId = QUOTA_SCOPE_USER.equals(quotaRule.getScopeType()) ? effectiveUserTraceId(reqVO) : null;
         LocalDate today = LocalDate.now();
-        long dailyCount = aiGenerationLogMapper.selectListByQuotaScope(
+        Long tenantId = TenantContextHolder.getRequiredTenantId();
+        Long dailyCount = aiGenerationLogMapper.selectQuotaUsageCount(
                 packageIds, qrCodeId, userTraceId, sceneCode, today.atStartOfDay(),
-                AiSafetyStatus.PASSED.getStatus()).size();
-        BigDecimal monthlyCost = aiGenerationLogMapper.selectCostSumByQuotaScope(
+                AiSafetyStatus.PASSED.getStatus(), tenantId);
+        BigDecimal monthlyCost = aiGenerationLogMapper.selectQuotaUsageCostSum(
                 packageIds, qrCodeId, userTraceId, sceneCode, today.withDayOfMonth(1).atStartOfDay(),
-                AiSafetyStatus.PASSED.getStatus());
-        return new QuotaUsage(dailyCount, monthlyCost);
+                AiSafetyStatus.PASSED.getStatus(), tenantId);
+        return new QuotaUsage(dailyCount == null ? 0L : dailyCount,
+                monthlyCost == null ? BigDecimal.ZERO : monthlyCost);
     }
 
     private List<Long> quotaPackageIds(XunjingResourcePackageDO resourcePackage, XunjingAiQuotaRuleDO quotaRule) {

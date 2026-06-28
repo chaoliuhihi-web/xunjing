@@ -6,6 +6,8 @@ import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.ConsolePageReqVO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.ai.XunjingAiGenerationLogDO;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -72,6 +74,64 @@ public interface XunjingAiGenerationLogMapper extends BaseMapperX<XunjingAiGener
                 .filter(cost -> cost != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
+
+    @Select("""
+            <script>
+            SELECT COUNT(*)
+            FROM xunjing_ai_generation_log
+            WHERE deleted = 0
+              AND tenant_id = #{tenantId}
+              AND package_id IN
+              <foreach collection="packageIds" item="packageId" open="(" separator="," close=")">
+                #{packageId}
+              </foreach>
+              <if test="qrCodeId != null">
+                AND qr_code_id = #{qrCodeId}
+              </if>
+              <if test="userTraceId != null and userTraceId != ''">
+                AND user_trace_id = #{userTraceId}
+              </if>
+              AND scene_code = #{sceneCode}
+              AND create_time &gt;= #{beginTime}
+              AND safety_status = #{safetyStatus}
+            </script>
+            """)
+    Long selectQuotaUsageCount(@Param("packageIds") Collection<Long> packageIds,
+                               @Param("qrCodeId") Long qrCodeId,
+                               @Param("userTraceId") String userTraceId,
+                               @Param("sceneCode") String sceneCode,
+                               @Param("beginTime") LocalDateTime beginTime,
+                               @Param("safetyStatus") String safetyStatus,
+                               @Param("tenantId") Long tenantId);
+
+    @Select("""
+            <script>
+            SELECT COALESCE(SUM(cost_amount), 0)
+            FROM xunjing_ai_generation_log
+            WHERE deleted = 0
+              AND tenant_id = #{tenantId}
+              AND package_id IN
+              <foreach collection="packageIds" item="packageId" open="(" separator="," close=")">
+                #{packageId}
+              </foreach>
+              <if test="qrCodeId != null">
+                AND qr_code_id = #{qrCodeId}
+              </if>
+              <if test="userTraceId != null and userTraceId != ''">
+                AND user_trace_id = #{userTraceId}
+              </if>
+              AND scene_code = #{sceneCode}
+              AND create_time &gt;= #{beginTime}
+              AND safety_status = #{safetyStatus}
+            </script>
+            """)
+    BigDecimal selectQuotaUsageCostSum(@Param("packageIds") Collection<Long> packageIds,
+                                       @Param("qrCodeId") Long qrCodeId,
+                                       @Param("userTraceId") String userTraceId,
+                                       @Param("sceneCode") String sceneCode,
+                                       @Param("beginTime") LocalDateTime beginTime,
+                                       @Param("safetyStatus") String safetyStatus,
+                                       @Param("tenantId") Long tenantId);
 
     default XunjingAiGenerationLogDO selectLatestCacheCandidate(
             Long packageId, Long qrCodeId, String userTraceId, String sceneCode, String inputSummary,
