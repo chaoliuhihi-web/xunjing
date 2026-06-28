@@ -407,6 +407,7 @@ import config from '@/request/config.js'
 import request from '@/request/request.js'
 import { buildTencentMapSignedUrl } from '@/request/qqMapSign.js'
 import { resolveXunjingMultimodalTrigger, requestCurrentLocationForTrigger } from '@/request/xunjingMultimodal.js'
+import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 
 const KASHGAR_LOCAL_CONTENT_ENABLED = true
 const KASHGAR_LANDING_LOCAL_CONTENT_ENABLED = true
@@ -834,15 +835,36 @@ export default {
 				location
 			})
 		},
+		persistXichengMultimodalRecognition(trigger = {}) {
+			if (!trigger || !trigger.poiCode) return
+			uni.setStorageSync(XICHENG_REGION_CONFIG.storageKey, {
+				...trigger,
+				regionCode: trigger.regionCode || XICHENG_REGION_CONFIG.regionCode,
+				packageCode: trigger.packageCode || XICHENG_REGION_CONFIG.packageCode,
+				sceneCode: trigger.sceneCode || XICHENG_REGION_CONFIG.sceneCode,
+				sourceChannel: trigger.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
+				companionName: trigger.companionName || XICHENG_REGION_CONFIG.companionName,
+				source: trigger.source || trigger.triggerType || 'multimodal',
+				sourceLabel: trigger.sourceLabel || '文本识别',
+				sources: Array.isArray(trigger.sources) ? trigger.sources : [],
+				suggestedQuestions: Array.isArray(trigger.suggestedQuestions) ? trigger.suggestedQuestions : []
+			})
+		},
 		normalizeXunjingTriggerTargetPath(trigger = {}) {
 			if (!trigger || !trigger.poiCode) {
 				return ''
 			}
 			const query = this.stringifyXunjingQuery({
+				regionCode: trigger.regionCode || XICHENG_REGION_CONFIG.regionCode,
+				packageCode: trigger.packageCode || XICHENG_REGION_CONFIG.packageCode,
+				sceneCode: trigger.sceneCode || XICHENG_REGION_CONFIG.sceneCode,
+				sourceChannel: trigger.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
 				poiCode: trigger.poiCode,
 				poiName: trigger.poiName,
+				companionName: trigger.companionName || XICHENG_REGION_CONFIG.companionName,
 				intent: trigger.intent,
 				confidence: trigger.confidence,
+				safetyStatus: trigger.safetyStatus || '',
 				trigger: 'multimodal'
 			})
 			if (trigger.intent === 'route' || trigger.action === 'open_route_recommendation') {
@@ -855,6 +877,7 @@ export default {
 			return `/pages/ai-guide/ai-guide?question=${question}&${query}`
 		},
 		navigateToXunjingTrigger(trigger = {}) {
+			this.persistXichengMultimodalRecognition(trigger)
 			const targetUrl = this.normalizeXunjingTriggerTargetPath(trigger)
 			if (!targetUrl) {
 				return Promise.resolve(false)
