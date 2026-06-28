@@ -64,6 +64,26 @@ describe('xicheng Yudao release preflight', () => {
       'ai-platform': expect.any(Number),
       'poi-data': expect.any(Number)
     })
+    expect(report.summary.ownerLaneBreakdown).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ownerLane: 'platform-ops',
+          taskCount: expect.any(Number),
+          checkNames: expect.arrayContaining(['runtime-env']),
+          verificationCommands: expect.arrayContaining([
+            expect.stringContaining('npm run xunjing:yudao:release:gate')
+          ])
+        }),
+        expect.objectContaining({
+          ownerLane: 'poi-data',
+          taskCount: expect.any(Number),
+          checkNames: expect.arrayContaining(['xicheng-production-poi-evidence']),
+          verificationCommands: expect.arrayContaining([
+            expect.stringContaining('npm run xunjing:xicheng:poi:')
+          ])
+        })
+      ])
+    )
     expect(report.blockers).toContain(
       'Yudao release gate blockers remain; complete ownerLane CSV rows before preprod or production release'
     )

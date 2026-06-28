@@ -249,6 +249,34 @@ function summarizeOwnerLanes(taskRows) {
   }, {})
 }
 
+function sortedUnique(values) {
+  return [...new Set(values.filter((value) => String(value || '').trim().length > 0))]
+    .sort((left, right) => String(left).localeCompare(String(right)))
+}
+
+function summarizeOwnerLaneBreakdown(taskRows) {
+  const byLane = new Map()
+  taskRows.forEach((row) => {
+    const ownerLane = row.ownerLane || 'release-manager'
+    if (!byLane.has(ownerLane)) {
+      byLane.set(ownerLane, {
+        ownerLane,
+        rows: []
+      })
+    }
+    byLane.get(ownerLane).rows.push(row)
+  })
+
+  return [...byLane.values()]
+    .sort((left, right) => left.ownerLane.localeCompare(right.ownerLane))
+    .map((item) => ({
+      ownerLane: item.ownerLane,
+      taskCount: item.rows.length,
+      checkNames: sortedUnique(item.rows.map((row) => row.checkName)),
+      verificationCommands: sortedUnique(item.rows.map((row) => row.verificationCommand))
+    }))
+}
+
 function buildCsv(taskRows) {
   const header = [
     'checkName',
@@ -297,6 +325,7 @@ export async function exportXichengYudaoReleaseBlockerTasks({
 
   const taskRows = buildTaskRows(evidence, resolvedEvidenceFile)
   const ownerLaneCounts = summarizeOwnerLanes(taskRows)
+  const ownerLaneBreakdown = summarizeOwnerLaneBreakdown(taskRows)
   await mkdir(path.dirname(resolvedOutputFile), { recursive: true })
   await writeFile(resolvedOutputFile, buildCsv(taskRows))
 
@@ -314,7 +343,8 @@ export async function exportXichengYudaoReleaseBlockerTasks({
         ? evidence.checks.filter((item) => item.ok !== true).length
         : 0,
       taskCount: taskRows.length,
-      ownerLaneCounts
+      ownerLaneCounts,
+      ownerLaneBreakdown
     },
     tasks: taskRows,
     blockers: ok ? [] : [

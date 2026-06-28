@@ -146,7 +146,56 @@ describe('xicheng Yudao release blocker task export', () => {
           'vision-ocr': 1,
           'storage-ops': 1,
           'poi-data': 4
-        }
+        },
+        ownerLaneBreakdown: [
+          {
+            ownerLane: 'ai-platform',
+            taskCount: 1,
+            checkNames: ['yudao-ai-model-bootstrap'],
+            verificationCommands: [
+              'npm run xunjing:ai:bootstrap -- --env-file /secure/path/production.env --evidence-file qa/xicheng-yudao-ai-bootstrap-evidence.json'
+            ]
+          },
+          {
+            ownerLane: 'app-ops',
+            taskCount: 1,
+            checkNames: ['real-wechat-app'],
+            verificationCommands: [releaseGateCommand]
+          },
+          {
+            ownerLane: 'platform-ops',
+            taskCount: 3,
+            checkNames: ['runtime-env'],
+            verificationCommands: [releaseGateCommand]
+          },
+          {
+            ownerLane: 'poi-data',
+            taskCount: 4,
+            checkNames: ['xicheng-production-poi-evidence', 'xicheng-runtime-seed-evidence'],
+            verificationCommands: [
+              'npm run xunjing:xicheng:poi:manifest:gate -- --manifest workbench/xicheng-production-pois.json --evidence-file qa/xicheng-poi-manifest-evidence.json',
+              'npm run xunjing:xicheng:poi:seed:verify -- --sql workbench/xicheng-poi-production-seed.sql --evidence-file qa/xicheng-poi-production-seed-evidence.json',
+              'npm run xunjing:xicheng:poi:workbook:gate -- --workbook workbench/xicheng-production-pois.review-workbook.csv --evidence-file qa/xicheng-poi-review-workbook-evidence.json',
+              productionSeedApplyCommand
+            ]
+          },
+          {
+            ownerLane: 'storage-ops',
+            taskCount: 1,
+            checkNames: ['object-storage'],
+            verificationCommands: [
+              'npm run xunjing:storage:smoke -- --env-file /secure/path/production.env --evidence-file qa/xicheng-object-storage-smoke-evidence.json'
+            ]
+          },
+          {
+            ownerLane: 'vision-ocr',
+            taskCount: 1,
+            checkNames: ['vision-ocr-service'],
+            verificationCommands: [
+              'npm run xunjing:vision:smoke -- --env-file /secure/path/production.env --image-url https://your-cdn.example.com/xicheng/smoke/baitasi-test-card.jpg --evidence-file qa/xicheng-vision-ocr-smoke-evidence.json'
+            ]
+          }
+        ]
       }
     })
 
@@ -202,7 +251,8 @@ describe('xicheng Yudao release blocker task export', () => {
       summary: {
         failedCheckCount: 0,
         taskCount: 0,
-        ownerLaneCounts: {}
+        ownerLaneCounts: {},
+        ownerLaneBreakdown: []
       }
     })
     expect(await readFile(path.join(rootDir, 'workbench/xicheng-yudao-release-blocker-tasks.csv'), 'utf8')).toBe(
@@ -220,5 +270,7 @@ describe('xicheng Yudao release blocker task export', () => {
     )
     expect(deployDoc).toContain('npm run xunjing:yudao:release:tasks:export')
     expect(statusDoc).toContain('npm run xunjing:yudao:release:tasks:export')
+    expect(deployDoc).toContain('summary.ownerLaneBreakdown')
+    expect(statusDoc).toContain('summary.ownerLaneBreakdown')
   })
 })

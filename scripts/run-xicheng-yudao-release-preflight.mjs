@@ -120,7 +120,8 @@ export async function runXichengYudaoReleasePreflight({
       failedCheckCount: releaseEvidence.summary?.failedChecks,
       blockerCount: releaseEvidence.summary?.blockerCount,
       taskCount: taskReport.summary.taskCount,
-      ownerLaneCounts: taskReport.summary.ownerLaneCounts
+      ownerLaneCounts: taskReport.summary.ownerLaneCounts,
+      ownerLaneBreakdown: taskReport.summary.ownerLaneBreakdown
     },
     release: {
       ok: releaseEvidence.ok === true,
