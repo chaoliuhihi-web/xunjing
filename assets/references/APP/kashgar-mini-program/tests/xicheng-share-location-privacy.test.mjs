@@ -30,6 +30,7 @@ for (const required of [
   'publicLocationLabel: material.publicLocationLabel || this.createPublicLocationLabel(material)',
   'locationHidden: true',
   'sourceCount: Array.isArray(material.sources) ? material.sources.length : 0',
+  "remarkExcerpt: String(material.remarkText || '').slice(0, 80)",
   'routeRecommendation: this.sanitizeRouteRecommendationForPublicShare(material.routeRecommendation)'
 ]) {
   assert.ok(sanitizeBlock.includes(required), `Public material sanitizer should preserve safe public field ${required}`)
@@ -37,8 +38,8 @@ for (const required of [
 
 assert.doesNotMatch(
   sanitizeBlock,
-  /routeRecommendation:\s*material\.routeRecommendation|captureLocation|exifLocation|nearestTrackPoint|latitude|longitude|trackPoints|stayPoints/,
-  'Public material sanitizer should not expose raw routeRecommendation, exact coordinates, EXIF location, track points, or stay points'
+  /remarkText:\s*material\.remarkText|routeRecommendation:\s*material\.routeRecommendation|captureLocation|exifLocation|nearestTrackPoint|latitude|longitude|trackPoints|stayPoints/,
+  'Public material sanitizer should not expose raw remarkText, raw routeRecommendation, exact coordinates, EXIF location, track points, or stay points'
 )
 
 const routeRecommendationSanitizeBlock = travelogue.match(/sanitizeRouteRecommendationForPublicShare\(routeRecommendation = null\)[\s\S]*?\n\t\t\},\n\t\tsanitizeMaterialForPublicShare/)?.[0] || ''

@@ -1609,7 +1609,7 @@ export default {
 				poiCode: material.poiCode || '',
 				poiName: material.poiName || '',
 				sourceLabel: material.sourceLabel || '',
-				remarkText: material.remarkText || '',
+				remarkExcerpt: String(material.remarkText || '').slice(0, 80),
 				hasPhoto: Boolean(material.imagePath),
 				routeRecommendation: this.sanitizeRouteRecommendationForPublicShare(material.routeRecommendation),
 				sourceCount: Array.isArray(material.sources) ? material.sources.length : 0,
