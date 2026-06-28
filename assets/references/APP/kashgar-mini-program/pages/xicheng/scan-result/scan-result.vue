@@ -16,6 +16,27 @@
 			</view>
 		</view>
 
+		<view v-if="candidateList.length > 0" class="candidate-card">
+			<view class="section-head">
+				<text class="section-title">可能匹配地点</text>
+				<text class="section-badge">请选择官方 POI</text>
+			</view>
+			<view
+				v-for="candidate in candidateList"
+				:key="candidate.poiCode || candidate.poiName"
+				class="candidate-row"
+				@click="selectCandidate(candidate)"
+			>
+				<view>
+					<text class="candidate-title">{{ candidate.poiName || '西城文化点' }}</text>
+					<text v-if="candidate.summary || candidate.distanceMeters" class="candidate-desc">
+						{{ formatCandidateSummary(candidate) }}
+					</text>
+				</view>
+				<text class="candidate-confidence">{{ Math.round(Number(candidate.confidence || 0) * 100) }}%</text>
+			</view>
+		</view>
+
 		<view v-if="recommendedRoute" class="route-card">
 			<view class="section-head">
 				<text class="section-title">推荐路线</text>
@@ -113,7 +134,8 @@ const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
 	routeRecommendation: null,
 	recommendedRoute: null,
 	safetyStatus: '',
-	sources: []
+	sources: [],
+	candidates: []
 })
 
 const normalizeSuggestedQuestions = (result = {}) => {
@@ -163,6 +185,30 @@ const selectCachedRecognitionForRoute = (cached = {}, options = {}) => {
 	return cached
 }
 
+const normalizeCandidateConfidence = (candidate = {}) => {
+	const rawConfidence = candidate.confidence !== undefined && candidate.confidence !== null && candidate.confidence !== ''
+		? Number(candidate.confidence)
+		: Number(candidate.confidencePercent || 0) / 100
+	if (!Number.isFinite(rawConfidence)) {
+		return 0
+	}
+	return rawConfidence > 1 ? rawConfidence / 100 : rawConfidence
+}
+
+const normalizeRecognitionCandidate = (candidate = {}) => ({
+	...candidate,
+	poiCode: candidate.poiCode || '',
+	poiName: candidate.poiName || '',
+	confidence: normalizeCandidateConfidence(candidate),
+	suggestedQuestions: normalizeSuggestedQuestions(candidate),
+	recommendedQuestions: normalizeSuggestedQuestions(candidate),
+	sources: normalizeXichengReviewedSources(candidate.sources)
+})
+
+const normalizeRecognitionCandidates = (candidates = []) => Array.isArray(candidates)
+	? candidates.map(normalizeRecognitionCandidate).filter(candidate => candidate.poiCode || candidate.poiName)
+	: []
+
 const normalizeResult = (result = {}) => ({
 	...XICHENG_EMPTY_RECOGNITION_RESULT,
 	...result,
@@ -175,7 +221,8 @@ const normalizeResult = (result = {}) => ({
 	routeRecommendation: result.routeRecommendation || result.recommendedRoute || null,
 	recommendedRoute: result.routeRecommendation || result.recommendedRoute || null,
 	safetyStatus: result.safetyStatus || '',
-	sources: normalizeXichengReviewedSources(result.sources)
+	sources: normalizeXichengReviewedSources(result.sources),
+	candidates: normalizeRecognitionCandidates(result.candidates)
 })
 
 export default {
@@ -195,6 +242,9 @@ export default {
 		},
 		sourceList() {
 			return Array.isArray(this.result.sources) ? this.result.sources : []
+		},
+		candidateList() {
+			return normalizeRecognitionCandidates(this.result.candidates)
 		},
 		recommendedRoute() {
 			return this.result.routeRecommendation || this.result.recommendedRoute || null
@@ -243,6 +293,29 @@ export default {
 			uni.navigateTo({
 				url: `/pages/ai-guide/ai-guide?${query}`
 			})
+		},
+		selectCandidate(candidate) {
+			const selectedCandidate = normalizeRecognitionCandidate(candidate)
+			this.result = normalizeResult({
+				...this.result,
+				...selectedCandidate,
+				poiCode: selectedCandidate.poiCode,
+				poiName: selectedCandidate.poiName,
+				confidence: selectedCandidate.confidence,
+				requiresUserConfirm: false,
+				reason: selectedCandidate.summary || this.result.reason,
+				sources: selectedCandidate.sources,
+				suggestedQuestions: selectedCandidate.suggestedQuestions,
+				recommendedQuestions: selectedCandidate.suggestedQuestions
+			})
+			uni.setStorageSync(XICHENG_REGION_CONFIG.storageKey, this.result)
+			uni.showToast({
+				title: '已确认识别地点',
+				icon: 'none'
+			})
+		},
+		formatCandidateSummary(candidate = {}) {
+			return candidate.summary || `距离约 ${candidate.distanceMeters} 米`
 		},
 		startRecording() {
 			const existingMaterials = uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey)
@@ -361,6 +434,7 @@ export default {
 .result-card,
 .question-card,
 .route-card,
+.candidate-card,
 .source-card,
 .feedback-card {
 	padding: 32rpx;
@@ -411,6 +485,10 @@ export default {
 }
 
 .question-card {
+	margin-top: 28rpx;
+}
+
+.candidate-card {
 	margin-top: 28rpx;
 }
 
@@ -485,6 +563,44 @@ export default {
 	background: #F2F4F7;
 	font-size: 26rpx;
 	color: #344054;
+}
+
+.candidate-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 20rpx;
+	margin-top: 18rpx;
+	padding: 22rpx;
+	border-radius: 8rpx;
+	border: 1rpx solid #D9E7DF;
+	background: #FAFCFA;
+}
+
+.candidate-title,
+.candidate-desc,
+.candidate-confidence {
+	display: block;
+	line-height: 1.5;
+}
+
+.candidate-title {
+	font-size: 28rpx;
+	font-weight: 700;
+	color: #1F2933;
+}
+
+.candidate-desc {
+	margin-top: 6rpx;
+	font-size: 24rpx;
+	color: #667085;
+}
+
+.candidate-confidence {
+	flex-shrink: 0;
+	font-size: 28rpx;
+	font-weight: 700;
+	color: #1F6E5A;
 }
 
 .source-row {

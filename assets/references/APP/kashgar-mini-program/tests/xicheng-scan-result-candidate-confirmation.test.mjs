@@ -1,0 +1,49 @@
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
+
+const root = process.cwd()
+const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
+
+const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
+const triggerRequest = read('request', 'xunjing', 'trigger.js')
+
+for (const required of [
+  '可能匹配地点',
+  'candidateList',
+  'selectCandidate(candidate)',
+  'normalizeRecognitionCandidates',
+  'uni.setStorageSync(XICHENG_REGION_CONFIG.storageKey, this.result)'
+]) {
+  assert.ok(scanResult.includes(required), `Recognition result page should support candidate confirmation token ${required}`)
+}
+
+assert.match(
+  scanResult,
+  /const normalizeRecognitionCandidate\s*=\s*\(candidate = \{\}\) => \(\{[\s\S]*poiCode:\s*candidate\.poiCode \|\| ''[\s\S]*poiName:\s*candidate\.poiName \|\| ''[\s\S]*confidence:\s*normalizeCandidateConfidence\(candidate\)[\s\S]*suggestedQuestions:\s*normalizeSuggestedQuestions\(candidate\)[\s\S]*sources:\s*normalizeXichengReviewedSources\(candidate\.sources\)/,
+  'Recognition result page should normalize backend candidate POI, confidence, questions, and reviewed sources before display'
+)
+
+assert.match(
+  scanResult,
+  /candidateList\(\)[\s\S]*return normalizeRecognitionCandidates\(this\.result\.candidates\)/,
+  'Recognition result page should expose a normalized candidate list from backend trigger candidates'
+)
+
+assert.match(
+  scanResult,
+  /selectCandidate\(candidate\)[\s\S]*const selectedCandidate = normalizeRecognitionCandidate\(candidate\)[\s\S]*poiCode:\s*selectedCandidate\.poiCode[\s\S]*poiName:\s*selectedCandidate\.poiName[\s\S]*requiresUserConfirm:\s*false[\s\S]*sources:\s*selectedCandidate\.sources[\s\S]*suggestedQuestions:\s*selectedCandidate\.suggestedQuestions[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.storageKey, this\.result\)/,
+  'Selecting a candidate should update the active POI context and persist it for Xiaojing source hydration'
+)
+
+assert.match(
+  triggerRequest,
+  /candidates:\s*normalizeXichengTriggerCandidates\(result\.candidates\)/,
+  'Trigger normalization should normalize backend candidates before home stores the recognition result'
+)
+
+assert.match(
+  triggerRequest,
+  /const normalizeXichengTriggerCandidate\s*=\s*\(candidate = \{\}\) => \(\{[\s\S]*sources:\s*normalizeXichengReviewedSources\(candidate\.sources\)[\s\S]*suggestedQuestions:\s*normalizeSuggestedQuestions\(candidate\)/,
+  'Trigger candidate normalization should preserve reviewed sources and suggested questions for candidate confirmation'
+)

@@ -62,6 +62,20 @@ const normalizeConfidence = (result = {}) => {
 	return rawConfidence > 1 ? rawConfidence / 100 : rawConfidence
 }
 
+const normalizeXichengTriggerCandidate = (candidate = {}) => ({
+	...candidate,
+	poiCode: candidate.poiCode || '',
+	poiName: candidate.poiName || '',
+	confidence: normalizeConfidence(candidate),
+	sources: normalizeXichengReviewedSources(candidate.sources),
+	suggestedQuestions: normalizeSuggestedQuestions(candidate),
+	recommendedQuestions: normalizeSuggestedQuestions(candidate)
+})
+
+const normalizeXichengTriggerCandidates = (candidates = []) => Array.isArray(candidates)
+	? candidates.map(normalizeXichengTriggerCandidate)
+	: []
+
 export const normalizeXichengTriggerResult = (result = {}, source = '') => {
 	const confidence = normalizeConfidence(result)
 	const suggestedQuestions = normalizeSuggestedQuestions(result)
@@ -88,6 +102,7 @@ export const normalizeXichengTriggerResult = (result = {}, source = '') => {
 		routeRecommendation: result.routeRecommendation || result.recommendedRoute || null,
 		recommendedRoute: result.routeRecommendation || result.recommendedRoute || null,
 		sources,
+		candidates: normalizeXichengTriggerCandidates(result.candidates),
 		safetyStatus: result.safetyStatus || ''
 	}
 }
