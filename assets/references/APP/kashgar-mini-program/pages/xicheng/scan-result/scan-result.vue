@@ -435,6 +435,7 @@ export default {
 				return
 			}
 			const candidateConfirmationAudit = this.createCandidateConfirmationAudit(selectedCandidate)
+			const retainedRouteRecommendation = selectedCandidate.routeRecommendation || selectedCandidate.recommendedRoute || this.result.routeRecommendation || this.result.recommendedRoute || null
 			this.result = normalizeResult({
 				...this.result,
 				...selectedCandidate,
@@ -447,6 +448,8 @@ export default {
 				sources: selectedCandidate.sources,
 				suggestedQuestions: selectedCandidate.suggestedQuestions,
 				recommendedQuestions: selectedCandidate.suggestedQuestions,
+				routeRecommendation: retainedRouteRecommendation,
+				recommendedRoute: retainedRouteRecommendation,
 				candidateConfirmationAudit
 			})
 			uni.setStorageSync(XICHENG_REGION_CONFIG.storageKey, this.result)

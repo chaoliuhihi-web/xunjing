@@ -40,6 +40,12 @@ assert.match(
 
 assert.match(
   scanResult,
+  /selectCandidate\(candidate\)[\s\S]*const retainedRouteRecommendation = selectedCandidate\.routeRecommendation \|\| selectedCandidate\.recommendedRoute \|\| this\.result\.routeRecommendation \|\| this\.result\.recommendedRoute \|\| null[\s\S]*routeRecommendation:\s*retainedRouteRecommendation[\s\S]*recommendedRoute:\s*retainedRouteRecommendation/,
+  'Selecting a safe official POI candidate should retain an existing safe route recommendation when the candidate has no route payload'
+)
+
+assert.match(
+  scanResult,
   /isUnsafeCandidate\(candidate = \{\}\)[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(candidate\.safetyStatus\)[\s\S]*return \['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)/,
   'Candidate confirmation should detect BLOCKED or UNAVAILABLE candidate safety status before selection'
 )
