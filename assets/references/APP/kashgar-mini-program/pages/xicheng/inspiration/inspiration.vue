@@ -121,7 +121,21 @@ export default {
 			this.matchedPois = extractXichengPoiMatches(this.rawText)
 			this.route = buildXichengWalkRoute(this.matchedPois)
 		},
-		chooseInspirationImage() {
+		confirmInspirationImagePurpose(actionLabel = '上传攻略图片') {
+			return new Promise((resolve) => {
+				uni.showModal({
+					title: `${actionLabel}用途说明`,
+					content: '图片仅用于本次西城灵感路线素材，不默认公开；系统只保存短摘和匹配结果，不保存第三方平台原文；不会用于模型评估或运营纠错，除非你另行授权。',
+					confirmText: '继续',
+					cancelText: '取消',
+					success: (res) => resolve(Boolean(res.confirm)),
+					fail: () => resolve(false)
+				})
+			})
+		},
+		async chooseInspirationImage() {
+			const confirmed = await this.confirmInspirationImagePurpose('上传攻略图片')
+			if (!confirmed) return
 			uni.chooseImage({
 				count: 1,
 				sizeType: ['compressed'],

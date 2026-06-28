@@ -28,6 +28,11 @@ const saveRouteBlock = sliceBetween(
   'saveInspirationRoute({ silent = false, includeImageOnly = false } = {})',
   'createInspirationTextExcerpt(text = \'\')'
 )
+const chooseInspirationImageBlock = sliceBetween(
+  inspiration,
+  'chooseInspirationImage()',
+  'saveInspirationRoute({ silent = false, includeImageOnly = false } = {})'
+)
 const openTravelogueBlock = sliceBetween(
   inspiration,
   'openTravelogue()',
@@ -76,6 +81,18 @@ for (const required of [
 ]) {
   assert.ok(inspiration.includes(required), `Inspiration page should include ${required}`)
 }
+
+assert.match(
+  inspiration,
+  /confirmInspirationImagePurpose\(actionLabel = '上传攻略图片'\)[\s\S]*uni\.showModal\(\{[\s\S]*title:\s*`\$\{actionLabel\}用途说明`[\s\S]*仅用于本次西城灵感路线素材[\s\S]*不默认公开[\s\S]*不保存第三方平台原文[\s\S]*不会用于模型评估或运营纠错，除非你另行授权/,
+  'Inspiration image import should explain purpose, private default, third-party-text policy, and no model-evaluation or ops-correction reuse'
+)
+
+assert.match(
+  chooseInspirationImageBlock,
+  /const confirmed = await this\.confirmInspirationImagePurpose\('上传攻略图片'\)[\s\S]*if \(!confirmed\) return[\s\S]*uni\.chooseImage/,
+  'Inspiration image import should ask for image-use confirmation before opening the camera or album picker'
+)
 
 assert.match(
   inspiration,
