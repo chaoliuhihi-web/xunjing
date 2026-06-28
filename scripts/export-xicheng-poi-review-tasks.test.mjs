@@ -89,10 +89,10 @@ describe('xicheng POI review task export', () => {
     })
 
     const csv = await readFile(outputFile, 'utf8')
-    expect(csv).toContain('workbookRowNumber,poiIndex,poiCode,blockerGroup,ownerLane,taskStatus,sourceEvidenceFile')
-    expect(csv).toContain(`81,80,TODO-xicheng-poi-080,poi-identity,data-review,TODO,${evidencePath}`)
-    expect(csv).toContain(`81,80,TODO-xicheng-poi-080,poi-source-license,source-license,TODO,${evidencePath}`)
-    expect(csv).toContain(`81,80,TODO-xicheng-poi-080,no-placeholder-cells,cleanup,TODO,${evidencePath}`)
+    expect(csv).toContain('workbookRowNumber,poiIndex,poiCode,blockerGroup,ownerLane,taskDetail,requiredEvidence,workbookColumns,taskStatus,sourceEvidenceFile')
+    expect(csv).toContain(`81,80,TODO-xicheng-poi-080,poi-identity,data-review,Fill stable POI identity fields for an approved Xicheng P0 location.,Official POI name address category aliases and stable xicheng-* code.,poiCode|name|displayName|aliases|category|priority|address,TODO,${evidencePath}`)
+    expect(csv).toContain(`81,80,TODO-xicheng-poi-080,poi-source-license,source-license,Approve source license and attach non-local source evidence.,Official HTTPS source URL source type license approval reviewer and evidence reference.,sourceTitle|sourceUrl|sourceType|licenseStatus|licenseEvidenceRef|licenseReviewedBy|licenseReviewedAt,TODO,${evidencePath}`)
+    expect(csv).toContain(`81,80,TODO-xicheng-poi-080,no-placeholder-cells,cleanup,Replace all TODO TBD PLACEHOLDER REVIEW_REQUIRED or Chinese pending markers.,Workbook row contains no placeholder or review-required values.,all columns,TODO,${evidencePath}`)
   })
 
   test('exports an empty task CSV when workbook evidence is ready', async () => {
@@ -129,7 +129,7 @@ describe('xicheng POI review task export', () => {
       }
     })
     expect(await readFile(path.join(rootDir, 'workbench/xicheng-poi-review-tasks.csv'), 'utf8')).toBe(
-      'workbookRowNumber,poiIndex,poiCode,blockerGroup,ownerLane,taskStatus,sourceEvidenceFile\n'
+      'workbookRowNumber,poiIndex,poiCode,blockerGroup,ownerLane,taskDetail,requiredEvidence,workbookColumns,taskStatus,sourceEvidenceFile\n'
     )
   })
 

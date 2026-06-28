@@ -15,6 +15,34 @@ const ownerLaneByBlockerGroup = {
   'no-placeholder-cells': 'cleanup'
 }
 
+const taskInstructionByBlockerGroup = {
+  'poi-identity': {
+    taskDetail: 'Fill stable POI identity fields for an approved Xicheng P0 location.',
+    requiredEvidence: 'Official POI name address category aliases and stable xicheng-* code.',
+    workbookColumns: 'poiCode|name|displayName|aliases|category|priority|address'
+  },
+  'poi-source-license': {
+    taskDetail: 'Approve source license and attach non-local source evidence.',
+    requiredEvidence: 'Official HTTPS source URL source type license approval reviewer and evidence reference.',
+    workbookColumns: 'sourceTitle|sourceUrl|sourceType|licenseStatus|licenseEvidenceRef|licenseReviewedBy|licenseReviewedAt'
+  },
+  'poi-field-evidence': {
+    taskDetail: 'Verify field coordinates trigger smoke result and photo evidence.',
+    requiredEvidence: 'GCJ02 coordinate trigger keywords labels approved field photo evidence and verifier.',
+    workbookColumns: 'latitude|longitude|coordType|gpsRadiusMeters|ocrKeywords|photoLabels|minConfidence|photoEvidenceStatus|triggerSmokeStatus|fieldEvidenceRefs|fieldVerifiedBy|fieldVerifiedAt'
+  },
+  'poi-content-audit': {
+    taskDetail: 'Complete source-bound intro questions and publish audit fields.',
+    requiredEvidence: 'Reviewed introduction questions approved geo license content status reviewer and date.',
+    workbookColumns: 'shortIntro|recommendedQuestions|reviewStatus|geoStatus|auditLicenseStatus|status|reviewedBy|reviewedAt'
+  },
+  'no-placeholder-cells': {
+    taskDetail: 'Replace all TODO TBD PLACEHOLDER REVIEW_REQUIRED or Chinese pending markers.',
+    requiredEvidence: 'Workbook row contains no placeholder or review-required values.',
+    workbookColumns: 'all columns'
+  }
+}
+
 function readArgValue(args, name) {
   const equalPrefix = `${name}=`
   const equalArg = args.find((arg) => arg.startsWith(equalPrefix))
@@ -48,6 +76,14 @@ function ownerLaneFor(blockerGroup) {
   return ownerLaneByBlockerGroup[blockerGroup] || 'manual-review'
 }
 
+function taskInstructionFor(blockerGroup) {
+  return taskInstructionByBlockerGroup[blockerGroup] || {
+    taskDetail: `Resolve workbook blocker group ${blockerGroup}.`,
+    requiredEvidence: 'Reviewer supplies the missing production POI evidence required by the workbook gate.',
+    workbookColumns: 'manual review'
+  }
+}
+
 function buildTaskRows(evidence, sourceEvidenceFile) {
   const summary = evidence.summary || {}
   if (!Array.isArray(summary.pendingPoiTasks)) {
@@ -62,6 +98,7 @@ function buildTaskRows(evidence, sourceEvidenceFile) {
       poiCode: task.poiCode,
       blockerGroup,
       ownerLane: ownerLaneFor(blockerGroup),
+      ...taskInstructionFor(blockerGroup),
       taskStatus: 'TODO',
       sourceEvidenceFile
     }))
@@ -82,6 +119,9 @@ function buildCsv(taskRows) {
     'poiCode',
     'blockerGroup',
     'ownerLane',
+    'taskDetail',
+    'requiredEvidence',
+    'workbookColumns',
     'taskStatus',
     'sourceEvidenceFile'
   ]
@@ -91,6 +131,9 @@ function buildCsv(taskRows) {
     row.poiCode,
     row.blockerGroup,
     row.ownerLane,
+    row.taskDetail,
+    row.requiredEvidence,
+    row.workbookColumns,
     row.taskStatus,
     row.sourceEvidenceFile
   ]))

@@ -103,9 +103,11 @@ describe('xicheng POI production review pack', () => {
     })
 
     const reviewTasks = await readFile(reviewTasksFile, 'utf8')
-    expect(reviewTasks).toContain('workbookRowNumber,poiIndex,poiCode,blockerGroup,ownerLane,taskStatus,sourceEvidenceFile')
+    expect(reviewTasks).toContain('workbookRowNumber,poiIndex,poiCode,blockerGroup,ownerLane,taskDetail,requiredEvidence,workbookColumns,taskStatus,sourceEvidenceFile')
     expect(reviewTasks).toContain('TODO-xicheng-poi-025')
     expect(reviewTasks).toContain('source-license')
+    expect(reviewTasks).toContain('Approve source license and attach non-local source evidence.')
+    expect(reviewTasks).toContain('sourceTitle|sourceUrl|sourceType|licenseStatus|licenseEvidenceRef|licenseReviewedBy|licenseReviewedAt')
 
     const reviewPackEvidence = JSON.parse(await readFile(reviewPackEvidenceFile, 'utf8'))
     expect(reviewPackEvidence).toMatchObject({
