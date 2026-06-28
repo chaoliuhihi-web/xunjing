@@ -191,16 +191,12 @@ export default {
 		}
 	},
 	onLoad() {
-		this.prepareLocation()
 		this.loadRecentRecognition()
 	},
 	onShow() {
 		this.loadRecentRecognition()
 	},
 	methods: {
-		async prepareLocation() {
-			this.currentLocation = await requestCurrentLocationForTrigger()
-		},
 		loadRecentRecognition() {
 			const cached = uni.getStorageSync(XICHENG_REGION_CONFIG.storageKey)
 			this.recentRecognition = cached && typeof cached === 'object' && (cached.poiCode || cached.poiName)

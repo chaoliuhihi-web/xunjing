@@ -20,8 +20,14 @@ for (const required of [
 
 assert.match(
   home,
-  /onLoad\(\)\s*\{[\s\S]*this\.prepareLocation\(\)[\s\S]*this\.loadRecentRecognition\(\)/,
-  'Xicheng home should load recent recognition during initial page load'
+  /onLoad\(\)\s*\{[\s\S]*this\.loadRecentRecognition\(\)[\s\S]*\}/,
+  'Xicheng home should load recent recognition during initial page load without requiring a location prompt'
+)
+
+assert.doesNotMatch(
+  home,
+  /onLoad\(\)\s*\{[\s\S]*this\.prepareLocation\(\)/,
+  'Xicheng home should not request GPS during page load; location must be requested after a user recognition action'
 )
 
 assert.match(
