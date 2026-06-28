@@ -1624,7 +1624,7 @@ export default {
 				taskId: evidence.taskId || '',
 				taskText: evidence.taskText || '',
 				evidenceType: evidence.evidenceType || '',
-				answerText: evidence.answerText || '',
+				answerExcerpt: String(evidence.answerText || '').slice(0, 80),
 				hasPhoto: Boolean(evidence.photoPath),
 				completedAt: evidence.completedAt || ''
 			}

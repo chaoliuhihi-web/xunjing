@@ -74,7 +74,7 @@ for (const required of [
   'taskId: evidence.taskId ||',
   'taskText: evidence.taskText ||',
   'evidenceType: evidence.evidenceType ||',
-  'answerText: evidence.answerText ||',
+  "answerExcerpt: String(evidence.answerText || '').slice(0, 80)",
   'hasPhoto: Boolean(evidence.photoPath)',
   'completedAt: evidence.completedAt ||'
 ]) {
@@ -83,8 +83,8 @@ for (const required of [
 
 assert.doesNotMatch(
   studyEvidenceSanitizeBlock,
-  /photoPath:|imagePath:|captureLocation|exifLocation|latitude|longitude/,
-  'Public study-task evidence sanitizer should not expose raw photo paths or exact location metadata'
+  /answerText:\s*evidence\.answerText|photoPath:|imagePath:|captureLocation|exifLocation|latitude|longitude/,
+  'Public study-task evidence sanitizer should not expose raw answerText, raw photo paths or exact location metadata'
 )
 
 const routeCheckinSanitizeBlock = travelogue.match(/sanitizeRouteCheckinForPublicShare\(checkin = \{\}\)[\s\S]*?\n\t\t\},\n\t\tcreatePublicCandidateConfirmationSummary/)?.[0] || ''
