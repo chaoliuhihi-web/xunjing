@@ -145,6 +145,20 @@ async function writeReleaseEvidenceFile(rootDir, overrides = {}) {
       manifestEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-manifest-evidence.json'),
       workbookEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json'),
       seedEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-production-seed-evidence.json'),
+      aiBootstrapEvidenceFile: path.join(rootDir, 'qa/xicheng-yudao-ai-bootstrap-evidence.json'),
+      aiBootstrapModel: 'qwen-plus',
+      aiBootstrapProviderSmokeHost: 'dashscope.aliyuncs.com',
+      visionOcrEvidenceFile: path.join(rootDir, 'qa/xicheng-vision-ocr-smoke-evidence.json'),
+      visionOcrModel: 'qwen-vl-plus',
+      visionOcrProviderSmokeHost: 'dashscope.aliyuncs.com',
+      objectStorageEvidenceFile: path.join(rootDir, 'qa/xicheng-object-storage-smoke-evidence.json'),
+      objectStorageBucket: 'xinghe-xunjing-prod',
+      objectStorageProviderSmokeHost: 'oss-cn-beijing.aliyuncs.com',
+      objectStoragePutHttpStatus: 200,
+      objectStorageGetHttpStatus: 200,
+      objectStorageDeleteHttpStatus: 204,
+      objectStorageReadBackMatches: true,
+      objectStorageDeleted: true,
       poiManifestFile: poiSources.manifestFile,
       poiManifestSha256: poiSources.manifestSha256,
       sourceWorkbookFile: poiSources.workbookFile,
@@ -999,6 +1013,49 @@ describe('xicheng release evidence package gate', () => {
     expect(report.blockers.join('\n')).toContain('release evidence seedEvidenceFile is required')
   })
 
+  test('fails closed when release evidence omits AI OCR and object storage smoke summaries', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
+      summary: {
+        aiBootstrapEvidenceFile: undefined,
+        aiBootstrapModel: undefined,
+        aiBootstrapProviderSmokeHost: undefined,
+        visionOcrEvidenceFile: undefined,
+        visionOcrModel: undefined,
+        visionOcrProviderSmokeHost: undefined,
+        objectStorageEvidenceFile: undefined,
+        objectStorageBucket: undefined,
+        objectStorageProviderSmokeHost: undefined,
+        objectStoragePutHttpStatus: undefined,
+        objectStorageGetHttpStatus: undefined,
+        objectStorageDeleteHttpStatus: undefined,
+        objectStorageReadBackMatches: undefined,
+        objectStorageDeleted: undefined
+      }
+    })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.blockers.join('\n')).toContain('release evidence aiBootstrapEvidenceFile is required')
+    expect(report.blockers.join('\n')).toContain('release evidence visionOcrEvidenceFile is required')
+    expect(report.blockers.join('\n')).toContain('release evidence objectStorageEvidenceFile is required')
+    expect(report.blockers.join('\n')).toContain('release evidence objectStoragePutHttpStatus must be 2xx')
+    expect(report.blockers.join('\n')).toContain('release evidence objectStorageReadBackMatches must be true')
+  })
+
   test('fails closed when release evidence references different POI evidence files than the package inputs', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeReleaseEvidenceFile(rootDir, {
@@ -1780,5 +1837,10 @@ describe('xicheng release evidence package gate', () => {
     expect(deployDoc).toContain('APP API 域名一致性')
     expect(deployDoc).toContain('runtimeEnvFingerprintMode')
     expect(deployDoc).toContain('runtimeEnvNonSecretSha256')
+    expect(deployDoc).toContain('summary.aiBootstrapEvidenceFile')
+    expect(deployDoc).toContain('summary.visionOcrEvidenceFile')
+    expect(deployDoc).toContain('summary.objectStorageEvidenceFile')
+    expect(deployDoc).toContain('summary.objectStoragePutHttpStatus')
+    expect(deployDoc).toContain('summary.objectStorageReadBackMatches')
   })
 })

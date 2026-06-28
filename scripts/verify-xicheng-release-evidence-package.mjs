@@ -515,6 +515,59 @@ function checkReleaseRuntimeEnvFingerprintSummary(evidence) {
   return blockers
 }
 
+function checkNonLocalHostSummary(summary, field, label, blockers) {
+  const value = String(summary?.[field] || '').trim()
+  if (!value) {
+    blockers.push(`${label} ${field} is required`)
+    return
+  }
+  if (isLoopbackHostname(value)) {
+    blockers.push(`${label} ${field} must be non-local`)
+  }
+}
+
+function checkReleaseProviderSmokeSummary(evidence) {
+  const blockers = []
+  const summary = summaryOf(evidence)
+
+  for (const field of ['aiBootstrapEvidenceFile', 'aiBootstrapModel']) {
+    if (!hasText(summary[field])) {
+      blockers.push(`release evidence ${field} is required`)
+    }
+  }
+  checkNonLocalHostSummary(summary, 'aiBootstrapProviderSmokeHost', 'release evidence', blockers)
+
+  for (const field of ['visionOcrEvidenceFile', 'visionOcrModel']) {
+    if (!hasText(summary[field])) {
+      blockers.push(`release evidence ${field} is required`)
+    }
+  }
+  checkNonLocalHostSummary(summary, 'visionOcrProviderSmokeHost', 'release evidence', blockers)
+
+  for (const field of ['objectStorageEvidenceFile', 'objectStorageBucket']) {
+    if (!hasText(summary[field])) {
+      blockers.push(`release evidence ${field} is required`)
+    }
+  }
+  checkNonLocalHostSummary(summary, 'objectStorageProviderSmokeHost', 'release evidence', blockers)
+  if (Number(summary.objectStoragePutHttpStatus || 0) < 200 || Number(summary.objectStoragePutHttpStatus || 0) >= 300) {
+    blockers.push('release evidence objectStoragePutHttpStatus must be 2xx')
+  }
+  if (Number(summary.objectStorageGetHttpStatus || 0) < 200 || Number(summary.objectStorageGetHttpStatus || 0) >= 300) {
+    blockers.push('release evidence objectStorageGetHttpStatus must be 2xx')
+  }
+  if (![200, 202, 204].includes(Number(summary.objectStorageDeleteHttpStatus || 0))) {
+    blockers.push('release evidence objectStorageDeleteHttpStatus must be 200, 202 or 204')
+  }
+  if (summary.objectStorageReadBackMatches !== true) {
+    blockers.push('release evidence objectStorageReadBackMatches must be true')
+  }
+  if (summary.objectStorageDeleted !== true) {
+    blockers.push('release evidence objectStorageDeleted must be true')
+  }
+  return blockers
+}
+
 async function checkReleaseEvidence(ref, stage, freshnessOptions) {
   const blockers = []
   if (ref.error) {
@@ -548,6 +601,7 @@ async function checkReleaseEvidence(ref, stage, freshnessOptions) {
   }
   blockers.push(...checkReleaseSourceRevisionSummary(evidence))
   blockers.push(...checkReleaseRuntimeEnvFingerprintSummary(evidence))
+  blockers.push(...checkReleaseProviderSmokeSummary(evidence))
   blockers.push(...await checkReleaseBaselineHash(evidence))
   blockers.push(...await checkReleaseServerArtifactHash(evidence))
   blockers.push(...checkEvidenceChecks(evidence, requiredReleaseChecks, 'release'))
