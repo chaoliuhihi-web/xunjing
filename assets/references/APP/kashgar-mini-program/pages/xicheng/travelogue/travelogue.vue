@@ -794,7 +794,7 @@ export default {
 			return '待开始'
 		},
 		recognizedRoute() {
-			const routeMaterial = this.materials.find(material => material && material.routeRecommendation)
+			const routeMaterial = this.materials.find(material => material && hasReviewableMaterialEvidence(material) && material.routeRecommendation)
 			return routeMaterial ? routeMaterial.routeRecommendation : null
 		},
 		recognizedRouteStops() {

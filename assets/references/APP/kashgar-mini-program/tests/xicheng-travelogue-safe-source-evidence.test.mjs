@@ -51,6 +51,12 @@ assert.match(
 )
 
 assert.match(
+  computedBlock,
+  /recognizedRoute\(\)[\s\S]*this\.materials\.find\(material => material && hasReviewableMaterialEvidence\(material\) && material\.routeRecommendation\)[\s\S]*return routeMaterial \? routeMaterial\.routeRecommendation : null/,
+  'Travelogue recognized route should ignore stale routeRecommendation values on BLOCKED or UNAVAILABLE materials'
+)
+
+assert.match(
   travelogue,
   /hasXichengTravelogueDraftEvidence\s*=\s*\(\{[\s\S]*const hasMaterialEvidence = Array\.isArray\(materials\) && materials\.some\(material => \{[\s\S]*return hasReviewableMaterialEvidence\(material\)[\s\S]*return hasMaterialEvidence \|\| hasTrackEvidence \|\| hasStudyEvidence \|\| hasRouteEvidence/,
   'Travelogue draft evidence gate should use the reviewable material helper before allowing material evidence to generate a draft'
