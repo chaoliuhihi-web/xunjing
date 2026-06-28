@@ -47,6 +47,12 @@ assert.match(
   'Recognition result startRecording should save the recognized POI as journey material and open the Xicheng travelogue page'
 )
 
+assert.match(
+  scanResult,
+  /const material = \{[\s\S]*type:\s*'recognition'[\s\S]*candidateConfirmationAudit:\s*this\.result\.candidateConfirmationAudit \|\| null,\s*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending,\s*publishStatus:\s*'private',\s*capturedAt:/,
+  'Recognition result journey material should be pending review and private before travelogue sharing or review handoff'
+)
+
 assert.doesNotMatch(
   scanResult,
   /startRecording\(\)[\s\S]*\/pages\/ai-guide\/ai-guide\?mode=diary/,
@@ -76,6 +82,12 @@ assert.match(
   travelogue,
   /uni\.getStorageSync\(XICHENG_REGION_CONFIG\.materialsStorageKey\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.journeyStorageKey/,
   'Travelogue page should load local journey materials and persist the editable draft locally'
+)
+
+assert.match(
+  travelogue,
+  /materials\.unshift\(\{[\s\S]*type:\s*'manual-entry'[\s\S]*safetyStatus:\s*routeSafetyStatus,\s*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending,\s*publishStatus:\s*'private',\s*capturedAt:/,
+  'Travelogue route-param manual entry material should be pending review and private before sharing or review handoff'
 )
 
 assert.match(

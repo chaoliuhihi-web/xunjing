@@ -860,6 +860,8 @@ export default {
 					sourceLabel: '入口记录',
 					sources: [],
 					safetyStatus: routeSafetyStatus,
+					reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
+					publishStatus: 'private',
 					capturedAt: new Date().toISOString()
 				})
 				uni.setStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey, materials)

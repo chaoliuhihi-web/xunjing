@@ -443,6 +443,8 @@ export default {
 				safetyStatus: this.result.safetyStatus || '',
 				recognitionFeedback: this.recognitionFeedback,
 				candidateConfirmationAudit: this.result.candidateConfirmationAudit || null,
+				reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
+				publishStatus: 'private',
 				capturedAt: new Date().toISOString()
 			}
 			const checkinEvent = this.createRouteCheckinEvent(material)
