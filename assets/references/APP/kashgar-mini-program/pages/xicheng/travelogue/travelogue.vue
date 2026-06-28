@@ -1081,7 +1081,25 @@ export default {
 				icon: 'none'
 			})
 		},
-		addStudyTaskPhoto(index) {
+		confirmTraveloguePhotoPurpose(actionLabel = '补充照片') {
+			return new Promise(resolve => {
+				uni.showModal({
+					title: `${actionLabel}用途说明`,
+					content: '照片仅用于本次西城游记素材、研学任务证据和本地审核包，不默认公开；如你已授权定位，可记录拍摄时定位和定位精度用于足迹归属；不会用于模型评估或运营纠错，除非你另行授权。',
+					confirmText: '继续',
+					cancelText: '取消',
+					success: (res) => {
+						resolve(Boolean(res.confirm))
+					},
+					fail: () => {
+						resolve(false)
+					}
+				})
+			})
+		},
+		async addStudyTaskPhoto(index) {
+			const confirmed = await this.confirmTraveloguePhotoPurpose('研学照片')
+			if (!confirmed) return
 			uni.chooseImage({
 				count: 1,
 				sizeType: ['compressed'],
@@ -1241,7 +1259,9 @@ export default {
 			const point = await this.captureTrackPoint('photo')
 			return this.normalizeTrackPointForMaterial(point)
 		},
-		addPhotoMaterial() {
+		async addPhotoMaterial() {
+			const confirmed = await this.confirmTraveloguePhotoPurpose('补充照片')
+			if (!confirmed) return
 			uni.chooseImage({
 				count: 1,
 				sizeType: ['compressed'],

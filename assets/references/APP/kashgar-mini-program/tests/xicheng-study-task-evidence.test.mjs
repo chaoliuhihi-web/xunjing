@@ -85,6 +85,12 @@ assert.match(
 )
 
 assert.match(
+  travelogue,
+  /addStudyTaskPhoto\(index\)[\s\S]*const confirmed = await this\.confirmTraveloguePhotoPurpose\('研学照片'\)[\s\S]*if \(!confirmed\) return[\s\S]*uni\.chooseImage/,
+  'Completing a study task by photo should ask for photo-use confirmation before opening camera or album'
+)
+
+assert.match(
   studyTaskEvidenceFactory,
   /taskId:\s*`study-task-\$\{index \+ 1\}`[\s\S]*taskText:\s*this\.parentChildTasks\[index\][\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
   'Study task evidence should include task identity, attribution context, and default private review status'

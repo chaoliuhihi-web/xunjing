@@ -61,6 +61,18 @@ assert.match(
 
 assert.match(
   travelogue,
+  /confirmTraveloguePhotoPurpose\(actionLabel = '补充照片'\)[\s\S]*uni\.showModal\(\{[\s\S]*title:\s*`\$\{actionLabel\}用途说明`[\s\S]*仅用于本次西城游记素材[\s\S]*不默认公开[\s\S]*拍摄时定位和定位精度[\s\S]*不会用于模型评估或运营纠错，除非你另行授权/,
+  'Travelogue photo evidence should explain material use, private default, capture location use, and no model-evaluation reuse'
+)
+
+assert.match(
+  travelogue,
+  /addPhotoMaterial\(\)[\s\S]*const confirmed = await this\.confirmTraveloguePhotoPurpose\('补充照片'\)[\s\S]*if \(!confirmed\) return[\s\S]*uni\.chooseImage/,
+  'Adding a travelogue photo should ask for photo-use confirmation before opening camera or album'
+)
+
+assert.match(
+  travelogue,
   /addPhotoMaterial\(\)[\s\S]*requestCurrentLocationForTrigger\(\)[\s\S]*const photoTrackPoint = await this\.capturePhotoTrackPointIfRecording\(\)[\s\S]*captureLocation:\s*this\.normalizeCaptureLocationForMaterial\(captureLocation\)[\s\S]*nearestTrackPoint:\s*photoTrackPoint \|\| this\.findNearestTrackPoint\(takenAt\)/,
   'Adding a photo should bind the photo material to capture-time location and prefer a forced photo track point before falling back to nearest track point'
 )
