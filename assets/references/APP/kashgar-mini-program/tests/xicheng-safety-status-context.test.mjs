@@ -8,9 +8,15 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
 const aiGuide = read('pages', 'ai-guide', 'ai-guide.vue')
 
-const askXiaojingBlock = scanResult.match(/askXiaojing\(question = ''\)[\s\S]*?\n\t\t\},\n\t\tstartRecording/)?.[0] || ''
+const recognitionActionBlockedBlock = scanResult.match(/recognitionActionBlocked\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
+const askXiaojingBlock = scanResult.match(/askXiaojing\(question = ''\)[\s\S]*?\n\t\t\},\n\t\tselectCandidate/)?.[0] || ''
+const startRecordingBlock = scanResult.match(/startRecording\(\)[\s\S]*?\n\t\t\},\n\t\tcreateRouteCheckinEvent/)?.[0] || ''
 const applyContextBlock = aiGuide.match(/const applyXichengAiContext\s*=\s*\(options = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const requestChatBlock = aiGuide.match(/const requestXunjingAiChat\s*=\s*\(question\) => \{[\s\S]*?\n\}\n\nconst escapeHtml/)?.[0] || ''
+
+assert.ok(recognitionActionBlockedBlock, 'Recognition result should expose a central action-blocking computed value')
+assert.ok(askXiaojingBlock, 'Recognition result should expose askXiaojing')
+assert.ok(startRecordingBlock, 'Recognition result should expose startRecording')
 
 assert.match(
   scanResult,
@@ -40,6 +46,30 @@ assert.match(
   scanResult,
   /sourceEmptyCopy\(\)[\s\S]*this\.result\.safetyStatus === 'BLOCKED'[\s\S]*无已审核来源，不能回答[\s\S]*this\.result\.safetyStatus === 'UNAVAILABLE'[\s\S]*小京暂时无法获取已审核来源，请稍后再试/,
   'Recognition result empty-source copy should fail closed for BLOCKED and UNAVAILABLE safety states'
+)
+
+assert.match(
+  scanResult,
+  /unsafeRecognitionSafetyStatus\(\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(this\.result\.safetyStatus\)/,
+  'Recognition result should treat BLOCKED and UNAVAILABLE safety states as unsafe for local actions'
+)
+
+assert.match(
+  recognitionActionBlockedBlock,
+  /this\.pendingCandidateConfirmation \|\| this\.missingOfficialPoiContext \|\| this\.unsafeRecognitionSafetyStatus/,
+  'Recognition result bottom actions should be disabled when safety status has no reviewed answer source'
+)
+
+assert.match(
+  askXiaojingBlock,
+  /if \(this\.unsafeRecognitionSafetyStatus\) \{[\s\S]*this\.showUnsafeRecognitionToast\('问小京'\)[\s\S]*return/,
+  'Suggested questions and the Xiaojing button should not navigate when recognition safety status is BLOCKED or UNAVAILABLE'
+)
+
+assert.match(
+  startRecordingBlock,
+  /if \(this\.unsafeRecognitionSafetyStatus\) \{[\s\S]*this\.showUnsafeRecognitionToast\('开始记录'\)[\s\S]*return/,
+  'Recognition result should not create travelogue materials from BLOCKED or UNAVAILABLE recognition contexts'
 )
 
 assert.match(

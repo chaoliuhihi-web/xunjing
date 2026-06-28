@@ -273,6 +273,9 @@ export default {
 			}
 			return '暂无已审核来源，小京会按后台审核状态回答。'
 		},
+		unsafeRecognitionSafetyStatus() {
+			return ['BLOCKED', 'UNAVAILABLE'].includes(this.result.safetyStatus)
+		},
 		candidateList() {
 			return normalizeRecognitionCandidates(this.result.candidates)
 		},
@@ -297,7 +300,7 @@ export default {
 			return !this.result.poiCode || !this.result.poiName || this.result.poiName === XICHENG_EMPTY_RECOGNITION_RESULT.poiName
 		},
 		recognitionActionBlocked() {
-			return this.pendingCandidateConfirmation || this.missingOfficialPoiContext
+			return this.pendingCandidateConfirmation || this.missingOfficialPoiContext || this.unsafeRecognitionSafetyStatus
 		}
 	},
 	onLoad(options = {}) {
@@ -331,6 +334,12 @@ export default {
 				icon: 'none'
 			})
 		},
+		showUnsafeRecognitionToast(actionLabel = '继续') {
+			uni.showToast({
+				title: this.sourceEmptyCopy || `无已审核来源，不能${actionLabel}`,
+				icon: 'none'
+			})
+		},
 		askXiaojing(question = '') {
 			if (this.pendingCandidateConfirmation) {
 				this.requireOfficialPoiConfirmation('问小京')
@@ -338,6 +347,10 @@ export default {
 			}
 			if (this.missingOfficialPoiContext) {
 				this.showMissingOfficialPoiToast('问小京')
+				return
+			}
+			if (this.unsafeRecognitionSafetyStatus) {
+				this.showUnsafeRecognitionToast('问小京')
 				return
 			}
 			const prompt = question || this.suggestedQuestions[0] || `讲讲${this.result.poiName}`
@@ -408,6 +421,10 @@ export default {
 			}
 			if (this.missingOfficialPoiContext) {
 				this.showMissingOfficialPoiToast('开始记录')
+				return
+			}
+			if (this.unsafeRecognitionSafetyStatus) {
+				this.showUnsafeRecognitionToast('开始记录')
 				return
 			}
 			const existingMaterials = uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey)
