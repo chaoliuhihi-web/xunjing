@@ -398,7 +398,8 @@ export const hasXichengTravelogueDraftEvidence = ({
 	materials = [],
 	recordingSession = null,
 	studyTaskEvidence = [],
-	routeRecommendation = null
+	routeRecommendation = null,
+	routeCheckins = []
 } = {}) => {
 	const hasMaterialEvidence = Array.isArray(materials) && materials.some(material => {
 		if (!material) return false
@@ -413,7 +414,9 @@ export const hasXichengTravelogueDraftEvidence = ({
 		routeRecommendation.title
 		|| (Array.isArray(routeRecommendation.stops) && routeRecommendation.stops.length > 0)
 	))
-	return hasMaterialEvidence || hasTrackEvidence || hasStudyEvidence || hasRouteEvidence
+	const hasRouteCheckinEvidence = Array.isArray(routeCheckins)
+		&& routeCheckins.some(checkin => hasReviewableRouteCheckinEvidence(checkin))
+	return hasMaterialEvidence || hasTrackEvidence || hasStudyEvidence || hasRouteEvidence || hasRouteCheckinEvidence
 }
 
 export const hasXichengReviewableWorkEvidence = ({
@@ -440,13 +443,15 @@ export const createXichengTravelogueDraft = ({
 	parentChildTasks = XICHENG_REGION_CONFIG.parentChildTasks,
 	routeRecommendation = null,
 	recordingSession = null,
-	studyTaskEvidence = []
+	studyTaskEvidence = [],
+	routeCheckins = []
 } = {}) => {
 	if (!hasXichengTravelogueDraftEvidence({
 		materials,
 		routeRecommendation,
 		recordingSession,
-		studyTaskEvidence
+		studyTaskEvidence,
+		routeCheckins
 	})) {
 		return `请先通过识别、开始记录、补充照片或现场备注积累真实素材，再生成西城游记草稿。小京会基于真实照片、轨迹、识别事件、停留点、研学任务证据和用户备注整理内容，不会替用户编造路线。`
 	}
@@ -454,6 +459,12 @@ export const createXichengTravelogueDraft = ({
 	const poiNames = Array.from(new Set(
 		reviewableMaterials
 			.map(material => material && material.poiName ? material.poiName : '')
+			.filter(Boolean)
+	))
+	const routeCheckinNames = Array.from(new Set(
+		(Array.isArray(routeCheckins) ? routeCheckins : [])
+			.filter(checkin => hasReviewableRouteCheckinEvidence(checkin))
+			.map(checkin => checkin && checkin.poiName ? checkin.poiName : '')
 			.filter(Boolean)
 	))
 	const routePointCount = recordingSession && Array.isArray(recordingSession.trackPoints)
@@ -464,7 +475,7 @@ export const createXichengTravelogueDraft = ({
 		: 0
 	const routeText = routeRecommendation && routeRecommendation.title
 		? routeRecommendation.title
-		: poiNames.length > 0 ? poiNames.join('、') : '本次西城 Citywalk'
+		: poiNames.length > 0 ? poiNames.join('、') : routeCheckinNames.length > 0 ? routeCheckinNames.join('、') : '本次西城 Citywalk'
 	const taskText = parentChildTasks.length > 0 ? parentChildTasks.slice(0, 2).join('；') : '完成现场观察'
 	const photoCount = reviewableMaterials.filter(material => material && material.type === 'photo').length
 	const remarkTexts = reviewableMaterials
@@ -477,6 +488,7 @@ export const createXichengTravelogueDraft = ({
 		.slice(0, 2)
 	const trackText = routePointCount > 0 ? `本次主动记录了 ${routePointCount} 个前台位置点，` : ''
 	const stayText = stayPointCount > 0 ? `本次标记了 ${stayPointCount} 个停留点，` : ''
+	const routeCheckinText = routeCheckinNames.length > 0 ? `路线护照打卡包括：${routeCheckinNames.join('、')}。` : ''
 	const photoText = photoCount > 0 ? `现场补充了 ${photoCount} 张照片，` : ''
 	const remarkText = remarkTexts.length > 0 ? `用户备注提到：${remarkTexts.join('；')}。` : ''
 	const aiGuideText = aiGuideExcerpts.length > 0 ? `小京回答提到：${aiGuideExcerpts.join('；')}。` : ''
@@ -486,7 +498,7 @@ export const createXichengTravelogueDraft = ({
 	const studyEvidenceText = completedStudyEvidence.length > 0
 		? `研学任务证据包括：${completedStudyEvidence.map(evidence => evidence.answerText || evidence.taskText || '照片观察').join('；')}。`
 		: ''
-	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒，${trackText}${stayText}${photoText}我们沿途完成了${taskText}。${remarkText}${studyEvidenceText}${aiGuideText}这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
+	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒，${trackText}${stayText}${photoText}我们沿途完成了${taskText}。${routeCheckinText}${remarkText}${studyEvidenceText}${aiGuideText}这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
 }
 
 const createEmptyRecordingSession = () => ({
@@ -914,12 +926,13 @@ export default {
 			const cachedDraft = uni.getStorageSync(XICHENG_REGION_CONFIG.journeyStorageKey)
 			this.draft = cachedDraft && cachedDraft.draft
 				? cachedDraft.draft
-				: createXichengTravelogueDraft({
-					materials: this.materials,
+					: createXichengTravelogueDraft({
+						materials: this.materials,
 					parentChildTasks: this.parentChildTasks,
 					routeRecommendation: this.recognizedRoute,
 					recordingSession: this.recordingSession,
-					studyTaskEvidence: this.studyTaskEvidence
+					studyTaskEvidence: this.studyTaskEvidence,
+					routeCheckins: this.routeCheckins
 				})
 			this.reviewText = cachedDraft && cachedDraft.reviewText ? cachedDraft.reviewText : this.reviewText
 			this.posterStatus = cachedDraft && cachedDraft.posterStatus ? cachedDraft.posterStatus : this.posterStatus
@@ -1103,7 +1116,8 @@ export default {
 				parentChildTasks: this.parentChildTasks,
 				routeRecommendation: this.recognizedRoute,
 				recordingSession: this.recordingSession,
-				studyTaskEvidence: this.studyTaskEvidence
+				studyTaskEvidence: this.studyTaskEvidence,
+				routeCheckins: this.routeCheckins
 			})
 			this.saveDraft({ silent: true })
 		},

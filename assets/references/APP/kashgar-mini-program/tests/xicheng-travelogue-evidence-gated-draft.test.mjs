@@ -20,13 +20,13 @@ for (const required of [
 
 assert.match(
   travelogue,
-  /hasXichengTravelogueDraftEvidence\s*=\s*\(\{[\s\S]*materials = \[\][\s\S]*recordingSession = null[\s\S]*studyTaskEvidence = \[\][\s\S]*routeRecommendation = null[\s\S]*hasMaterialEvidence[\s\S]*hasTrackEvidence[\s\S]*hasStudyEvidence[\s\S]*hasRouteEvidence[\s\S]*return hasMaterialEvidence \|\| hasTrackEvidence \|\| hasStudyEvidence \|\| hasRouteEvidence/,
-  'Travelogue should centralize the evidence gate across materials, route recording, study tasks, and recognized routes'
+  /hasXichengTravelogueDraftEvidence\s*=\s*\(\{[\s\S]*materials = \[\][\s\S]*recordingSession = null[\s\S]*studyTaskEvidence = \[\][\s\S]*routeRecommendation = null[\s\S]*routeCheckins = \[\][\s\S]*hasMaterialEvidence[\s\S]*hasTrackEvidence[\s\S]*hasStudyEvidence[\s\S]*hasRouteEvidence[\s\S]*hasRouteCheckinEvidence[\s\S]*return hasMaterialEvidence \|\| hasTrackEvidence \|\| hasStudyEvidence \|\| hasRouteEvidence \|\| hasRouteCheckinEvidence/,
+  'Travelogue should centralize the evidence gate across materials, route recording, study tasks, recognized routes, and actual route check-ins'
 )
 
 assert.match(
   travelogue,
-  /createXichengTravelogueDraft\s*=\s*\(\{[\s\S]*if \(!hasXichengTravelogueDraftEvidence\(\{[\s\S]*materials[\s\S]*routeRecommendation[\s\S]*recordingSession[\s\S]*studyTaskEvidence[\s\S]*return `请先通过识别、开始记录、补充照片或现场备注积累真实素材/,
+  /createXichengTravelogueDraft\s*=\s*\(\{[\s\S]*routeCheckins = \[\][\s\S]*if \(!hasXichengTravelogueDraftEvidence\(\{[\s\S]*materials[\s\S]*routeRecommendation[\s\S]*recordingSession[\s\S]*studyTaskEvidence[\s\S]*routeCheckins[\s\S]*return `请先通过识别、开始记录、补充照片或现场备注积累真实素材/,
   'Travelogue draft generator should return a no-evidence prompt before creating a narrative draft'
 )
 

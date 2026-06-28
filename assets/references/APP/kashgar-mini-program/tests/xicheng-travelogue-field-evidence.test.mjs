@@ -57,8 +57,8 @@ for (const required of [
 
 assert.match(
   travelogue,
-  /createXichengTravelogueDraft\s*=\s*\(\{[\s\S]*const photoCount[\s\S]*const remarkTexts[\s\S]*photoText[\s\S]*remarkText[\s\S]*return `今天的西城 Citywalk/,
-  'Travelogue draft generator should summarize photo evidence and user remarks'
+  /createXichengTravelogueDraft\s*=\s*\(\{[\s\S]*routeCheckins = \[\][\s\S]*const routeCheckinNames[\s\S]*hasReviewableRouteCheckinEvidence[\s\S]*const photoCount[\s\S]*const remarkTexts[\s\S]*routeCheckinText[\s\S]*photoText[\s\S]*remarkText[\s\S]*return `今天的西城 Citywalk/,
+  'Travelogue draft generator should summarize photo evidence, user remarks, and route passport check-ins'
 )
 
 assert.match(
@@ -153,8 +153,8 @@ assert.match(
 
 assert.match(
   travelogue,
-  /refreshDraftFromEvidence\(\)[\s\S]*createXichengTravelogueDraft\(\{[\s\S]*materials:\s*this\.materials[\s\S]*recordingSession:\s*this\.recordingSession/,
-  'Refreshing the draft should rebuild it from materials and the recording session'
+  /refreshDraftFromEvidence\(\)[\s\S]*createXichengTravelogueDraft\(\{[\s\S]*materials:\s*this\.materials[\s\S]*recordingSession:\s*this\.recordingSession[\s\S]*routeCheckins:\s*this\.routeCheckins/,
+  'Refreshing the draft should rebuild it from materials, the recording session, and route check-ins'
 )
 
 assert.match(
