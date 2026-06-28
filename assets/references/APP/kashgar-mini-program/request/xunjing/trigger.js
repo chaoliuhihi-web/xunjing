@@ -64,6 +64,14 @@ const normalizeReviewedSources = (result = {}) => {
 	return normalizeXichengReviewedSources(result.sources)
 }
 
+const normalizeRecommendedRoute = (result = {}) => {
+	const safetyStatus = normalizeXichengSafetyStatus(result.safetyStatus)
+	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+		return null
+	}
+	return result.routeRecommendation || result.recommendedRoute || null
+}
+
 const normalizeConfidence = (result = {}) => {
 	const hasConfidence = result.confidence !== undefined && result.confidence !== null && result.confidence !== ''
 	const rawConfidence = hasConfidence
@@ -83,7 +91,9 @@ const normalizeXichengTriggerCandidate = (candidate = {}) => ({
 	safetyStatus: normalizeXichengSafetyStatus(candidate.safetyStatus),
 	sources: normalizeReviewedSources(candidate),
 	suggestedQuestions: normalizeSuggestedQuestions(candidate),
-	recommendedQuestions: normalizeSuggestedQuestions(candidate)
+	recommendedQuestions: normalizeSuggestedQuestions(candidate),
+	routeRecommendation: normalizeRecommendedRoute(candidate),
+	recommendedRoute: normalizeRecommendedRoute(candidate)
 })
 
 const normalizeXichengTriggerCandidates = (candidates = []) => Array.isArray(candidates)
@@ -113,8 +123,8 @@ export const normalizeXichengTriggerResult = (result = {}, source = '') => {
 		requiresUserConfirm: result.requiresUserConfirm !== false,
 		suggestedQuestions,
 		recommendedQuestions: suggestedQuestions,
-		routeRecommendation: result.routeRecommendation || result.recommendedRoute || null,
-		recommendedRoute: result.routeRecommendation || result.recommendedRoute || null,
+		routeRecommendation: normalizeRecommendedRoute(result),
+		recommendedRoute: normalizeRecommendedRoute(result),
 		sources,
 		candidates: normalizeXichengTriggerCandidates(result.candidates),
 		safetyStatus: normalizeXichengSafetyStatus(result.safetyStatus)

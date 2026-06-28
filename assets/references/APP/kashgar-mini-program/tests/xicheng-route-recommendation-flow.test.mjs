@@ -18,8 +18,14 @@ assert.match(
 
 assert.match(
   triggerRequest,
-  /routeRecommendation:\s*result\.routeRecommendation\s*\|\|\s*result\.recommendedRoute\s*\|\|\s*null/,
-  'Trigger normalization should preserve backend routeRecommendation/recommendedRoute'
+  /const normalizeRecommendedRoute\s*=\s*\(result = \{\}\) => \{[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(result\.safetyStatus\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*return null[\s\S]*return result\.routeRecommendation \|\| result\.recommendedRoute \|\| null/,
+  'Trigger normalization should preserve backend routeRecommendation/recommendedRoute only when reviewed sources are available'
+)
+
+assert.match(
+  triggerRequest,
+  /routeRecommendation:\s*normalizeRecommendedRoute\(result\)[\s\S]*recommendedRoute:\s*normalizeRecommendedRoute\(result\)/,
+  'Trigger normalization should not preserve unsafe routeRecommendation/recommendedRoute fields'
 )
 
 for (const required of [

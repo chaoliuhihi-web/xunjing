@@ -81,6 +81,14 @@ const lowercaseBlockedResult = normalizeXichengTriggerResult({
   poiCode: 'xicheng-baitasi',
   poiName: '白塔寺',
   safetyStatus: 'blocked',
+  routeRecommendation: {
+    title: '不应展示的拦截路线',
+    stops: [{ poiCode: 'xicheng-baitasi', poiName: '白塔寺' }]
+  },
+  recommendedRoute: {
+    title: '不应缓存的拦截路线',
+    stops: [{ poiCode: 'xicheng-baitasi', poiName: '白塔寺' }]
+  },
   sources: [{ title: '不应展示的拦截来源' }]
 }, 'scan')
 
@@ -94,6 +102,16 @@ assert.deepEqual(
   [],
   'Trigger normalization should clear reviewed sources when safetyStatus is BLOCKED'
 )
+assert.equal(
+  lowercaseBlockedResult.routeRecommendation,
+  null,
+  'Trigger normalization should clear route recommendations when safetyStatus is BLOCKED'
+)
+assert.equal(
+  lowercaseBlockedResult.recommendedRoute,
+  null,
+  'Trigger normalization should not cache alternate route fields when safetyStatus is BLOCKED'
+)
 
 const blockedCandidateResult = normalizeXichengTriggerResult({
   poiCode: '',
@@ -106,6 +124,12 @@ const blockedCandidateResult = normalizeXichengTriggerResult({
       confidencePercent: 91,
       safetyStatus: 'blocked',
       suggestedQuestions: ['继续讲讲白塔寺'],
+      routeRecommendation: {
+        title: '不应展示的候选拦截路线'
+      },
+      recommendedRoute: {
+        title: '不应缓存的候选拦截路线'
+      },
       sources: [{ title: '不应继续追问的候选来源' }]
     }
   ]
@@ -125,6 +149,16 @@ assert.deepEqual(
   blockedCandidateResult.candidates[0].sources,
   [],
   'Trigger normalization should clear candidate sources when candidate safetyStatus is BLOCKED'
+)
+assert.equal(
+  blockedCandidateResult.candidates[0].routeRecommendation,
+  null,
+  'Trigger normalization should clear candidate route recommendations when candidate safetyStatus is BLOCKED'
+)
+assert.equal(
+  blockedCandidateResult.candidates[0].recommendedRoute,
+  null,
+  'Trigger normalization should not cache alternate candidate route fields when candidate safetyStatus is BLOCKED'
 )
 
 const decimalResult = normalizeXichengTriggerResult({
