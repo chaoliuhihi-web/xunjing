@@ -107,8 +107,8 @@
 		</view>
 
 		<view class="bottom-actions">
-			<button class="primary-button" @click="askXiaojing()">问问小京</button>
-			<button class="ghost-button" @click="startRecording">开始记录</button>
+			<button class="primary-button" :disabled="pendingCandidateConfirmation" @click="askXiaojing()">问问小京</button>
+			<button class="ghost-button" :disabled="pendingCandidateConfirmation" @click="startRecording">开始记录</button>
 		</view>
 	</view>
 </template>
@@ -260,6 +260,9 @@ export default {
 				.split(/\s*[-—－]\s*/)
 				.map(name => name.trim())
 				.filter(Boolean)
+		},
+		pendingCandidateConfirmation() {
+			return Boolean(this.result.requiresUserConfirm && this.candidateList.length > 0)
 		}
 	},
 	onLoad(options = {}) {
@@ -279,7 +282,17 @@ export default {
 		this.loadRecognitionFeedback()
 	},
 	methods: {
+		requireOfficialPoiConfirmation(actionLabel = '继续') {
+			uni.showToast({
+				title: `请先选择官方 POI 再${actionLabel}`,
+				icon: 'none'
+			})
+		},
 		askXiaojing(question = '') {
+			if (this.pendingCandidateConfirmation) {
+				this.requireOfficialPoiConfirmation('问小京')
+				return
+			}
 			const prompt = question || this.suggestedQuestions[0] || `讲讲${this.result.poiName}`
 			const query = [
 				`question=${encodeURIComponent(prompt)}`,
@@ -336,6 +349,10 @@ export default {
 			return candidate.summary || `距离约 ${candidate.distanceMeters} 米`
 		},
 		startRecording() {
+			if (this.pendingCandidateConfirmation) {
+				this.requireOfficialPoiConfirmation('开始记录')
+				return
+			}
 			const existingMaterials = uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey)
 			const material = {
 				type: 'recognition',
