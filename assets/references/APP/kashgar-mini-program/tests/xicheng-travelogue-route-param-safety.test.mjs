@@ -9,9 +9,8 @@ const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 
 for (const required of [
   'decodeJourneyRouteValue',
-  'return decodeURIComponent(String(value || \'\'))',
-  'catch (error)',
-  'return String(value || \'\')'
+  "import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'",
+  'const decodeJourneyRouteValue = decodeXichengRouteValue'
 ]) {
   assert.ok(
     travelogue.includes(required),
@@ -21,8 +20,8 @@ for (const required of [
 
 assert.match(
   travelogue,
-  /const decodeJourneyRouteValue\s*=\s*\(value = ''\) => \{[\s\S]*try \{[\s\S]*return decodeURIComponent\(String\(value \|\| ''\)\)[\s\S]*\} catch \(error\) \{[\s\S]*return String\(value \|\| ''\)[\s\S]*\}/,
-  'Travelogue should use a safe route decoding helper that falls back to the raw value'
+  /import \{ decodeXichengRouteValue \} from '@\/request\/xunjing\/routeParams\.js'[\s\S]*const decodeJourneyRouteValue = decodeXichengRouteValue/,
+  'Travelogue should use the shared safe route decoding helper that falls back to the raw value'
 )
 
 assert.match(

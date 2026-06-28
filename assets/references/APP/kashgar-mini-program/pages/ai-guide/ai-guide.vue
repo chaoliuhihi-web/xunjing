@@ -316,6 +316,7 @@ import TabBar from '@/components/tab-bar/tab-bar.vue'
 import config from '@/request/config.js'
 import { resolveXunjingPhotoTrigger } from '@/request/xunjingMultimodal.js'
 import { normalizeXichengAiChatResponse } from '@/request/xunjing/chat.js'
+import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
 import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
@@ -614,13 +615,7 @@ const getUserTraceId = () => {
 	return getUserId()
 }
 
-const decodeRouteValue = (value = '') => {
-	try {
-		return decodeURIComponent(String(value || ''))
-	} catch (error) {
-		return String(value || '')
-	}
-}
+const decodeRouteValue = decodeXichengRouteValue
 
 const normalizeXichengAiContext = (options = {}) => ({
 	regionCode: decodeRouteValue(options.regionCode),

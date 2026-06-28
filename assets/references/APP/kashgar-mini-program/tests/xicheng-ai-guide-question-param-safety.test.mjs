@@ -9,8 +9,8 @@ const aiGuide = read('pages', 'ai-guide', 'ai-guide.vue')
 
 assert.match(
   aiGuide,
-  /const decodeRouteValue\s*=\s*\(value = ''\) => \{[\s\S]*try \{[\s\S]*return decodeURIComponent\(String\(value \|\| ''\)\)[\s\S]*\} catch \(error\) \{[\s\S]*return String\(value \|\| ''\)[\s\S]*\}/,
-  'AI guide should keep a safe route value decoder for malformed entry params'
+  /import \{ decodeXichengRouteValue \} from '@\/request\/xunjing\/routeParams\.js'[\s\S]*const decodeRouteValue = decodeXichengRouteValue/,
+  'AI guide should reuse the shared safe route value decoder for malformed or nested entry params'
 )
 
 assert.match(

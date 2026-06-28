@@ -346,6 +346,7 @@
 
 <script>
 import { XICHENG_OFFICIAL_POIS, XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
+import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
 import { requestCurrentLocationForTrigger } from '@/request/xunjing/trigger.js'
 import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
@@ -491,13 +492,7 @@ const calculateTrackPointDistanceMeters = (left = {}, right = {}) => {
 	return Math.round(earthRadiusMeters * c)
 }
 
-const decodeJourneyRouteValue = (value = '') => {
-	try {
-		return decodeURIComponent(String(value || ''))
-	} catch (error) {
-		return String(value || '')
-	}
-}
+const decodeJourneyRouteValue = decodeXichengRouteValue
 
 const normalizePhotoCoordinate = (value) => {
 	const numericValue = Number(value)

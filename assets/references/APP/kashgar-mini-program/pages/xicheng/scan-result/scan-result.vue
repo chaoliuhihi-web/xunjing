@@ -131,6 +131,7 @@ import {
 	XICHENG_SUGGESTED_QUESTIONS
 } from '@/config/regions/xicheng.js'
 import { submitXichengRecognitionFeedbackEvent } from '@/request/xunjing/events.js'
+import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
 import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 
@@ -185,13 +186,7 @@ const normalizeRecommendedRoute = (result = {}) => {
 	return result.routeRecommendation || result.recommendedRoute || null
 }
 
-const decodeRouteValue = (value = '') => {
-	try {
-		return decodeURIComponent(String(value || ''))
-	} catch (error) {
-		return String(value || '')
-	}
-}
+const decodeRouteValue = decodeXichengRouteValue
 
 const normalizeRouteOptions = (options = {}) => ({
 	source: decodeRouteValue(options.source),
