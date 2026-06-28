@@ -42,6 +42,7 @@ for (const required of [
   'confirmedPois',
   'imageIncluded',
   'routeTitle',
+  '攻略图片待提取',
   'sourcePolicy',
   '不保存第三方平台原文',
   'reviewStatus',
@@ -58,8 +59,8 @@ assert.match(
 
 assert.match(
   importRecordFactory,
-  /importId:\s*`inspiration-\$\{Date\.now\(\)\}`[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*rawTextExcerpt:\s*this\.createInspirationTextExcerpt\(this\.rawText\)[\s\S]*rawTextLength:\s*String\(this\.rawText \|\| ''\)\.length[\s\S]*extractedPlaceNames:\s*this\.matchedPois\.map\(poi => poi\.poiName\)[\s\S]*matchedPoiCodes:\s*this\.matchedPois\.map\(poi => poi\.poiCode\)[\s\S]*confirmedPois:\s*route\.stops[\s\S]*imageIncluded:\s*!!this\.imagePath[\s\S]*routeTitle:\s*route\.title[\s\S]*sourcePolicy:\s*'不保存第三方平台原文'[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
-  'Inspiration import record should include attribution context, extraction, matching, confirmation, privacy, and review evidence'
+  /importId:\s*`inspiration-\$\{Date\.now\(\)\}`[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*rawTextExcerpt:\s*includeImageOnly \? '' : this\.createInspirationTextExcerpt\(this\.rawText\)[\s\S]*rawTextLength:\s*includeImageOnly \? 0 : String\(this\.rawText \|\| ''\)\.length[\s\S]*extractedPlaceNames:\s*includeImageOnly \? \[\] : this\.matchedPois\.map\(poi => poi\.poiName\)[\s\S]*matchedPoiCodes:\s*includeImageOnly \? \[\] : this\.matchedPois\.map\(poi => poi\.poiCode\)[\s\S]*confirmedPois:\s*includeImageOnly \? \[\] : route\.stops[\s\S]*imageIncluded:\s*!!this\.imagePath[\s\S]*routeTitle:\s*includeImageOnly \? '攻略图片待提取' : route\.title[\s\S]*sourcePolicy:\s*'不保存第三方平台原文'[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  'Inspiration import record should include attribution context, extraction, matching, confirmation, privacy, and review evidence without inventing route evidence for image-only uploads'
 )
 
 assert.match(

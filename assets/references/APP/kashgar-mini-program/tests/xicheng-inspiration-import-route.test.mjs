@@ -95,9 +95,9 @@ assert.match(
 )
 
 assert.match(
-  inspiration,
-  /uni\.setStorageSync\(XICHENG_REGION_CONFIG\.inspirationStorageKey[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.materialsStorageKey/,
-  'Inspiration route should persist the imported route and add matched POIs to the local journey materials'
+  saveRouteBlock,
+  /if \(!includeImageOnly\) \{[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.inspirationStorageKey, route\)[\s\S]*\}[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.materialsStorageKey/,
+  'Image-only inspiration upload should not persist an active route until text extraction or POI confirmation has produced a route'
 )
 
 assert.match(

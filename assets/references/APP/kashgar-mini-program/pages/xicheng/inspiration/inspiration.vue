@@ -191,7 +191,9 @@ export default {
 					capturedAt: route.updatedAt
 				}]
 				: []
-			uni.setStorageSync(XICHENG_REGION_CONFIG.inspirationStorageKey, route)
+			if (!includeImageOnly) {
+				uni.setStorageSync(XICHENG_REGION_CONFIG.inspirationStorageKey, route)
+			}
 			uni.setStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey, [
 				...imageMaterial,
 				...routeMaterials,
@@ -215,14 +217,14 @@ export default {
 				packageCode: XICHENG_REGION_CONFIG.packageCode,
 				sceneCode: XICHENG_REGION_CONFIG.sceneCode,
 				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
-				rawTextExcerpt: this.createInspirationTextExcerpt(this.rawText),
-				rawTextLength: String(this.rawText || '').length,
-				extractedPlaceNames: this.matchedPois.map(poi => poi.poiName),
-				matchedPoiCodes: this.matchedPois.map(poi => poi.poiCode),
-				confirmedPois: route.stops,
+				rawTextExcerpt: includeImageOnly ? '' : this.createInspirationTextExcerpt(this.rawText),
+				rawTextLength: includeImageOnly ? 0 : String(this.rawText || '').length,
+				extractedPlaceNames: includeImageOnly ? [] : this.matchedPois.map(poi => poi.poiName),
+				matchedPoiCodes: includeImageOnly ? [] : this.matchedPois.map(poi => poi.poiCode),
+				confirmedPois: includeImageOnly ? [] : route.stops,
 				imageIncluded: !!this.imagePath,
 				includeImageOnly,
-				routeTitle: route.title,
+				routeTitle: includeImageOnly ? '攻略图片待提取' : route.title,
 				sourcePolicy: '不保存第三方平台原文',
 				reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
 				publishStatus: 'private',
