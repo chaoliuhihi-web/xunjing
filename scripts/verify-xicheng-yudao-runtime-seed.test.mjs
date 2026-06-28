@@ -77,6 +77,70 @@ describe('Xicheng Yudao runtime seed verifier', () => {
     expect(JSON.stringify(evidence)).not.toContain(env.MYSQL_PASSWORD)
   })
 
+  test('fails production runtime readiness when the live database still contains local candidate review blockers', () => {
+    const rows = [
+      'packageCount\t1',
+      'poiTotal\t80',
+      'poiApprovedPublished\t80',
+      'poiGeoReviewRequired\t80',
+      'poiLicenseReviewRequired\t80',
+      'knowledgeDocuments\t84',
+      'mapPoints\t80',
+      'qrCodes\t1',
+      'publicReportLocalCandidate\t1',
+      'publicReportProductionReady\t0',
+      'samplePoiCodes\txicheng-baitasi,xicheng-emperors-temple,xicheng-beihai-park'
+    ].join('\n')
+
+    const evidence = buildRuntimeSeedEvidence({
+      env,
+      metrics: parseMetricRows(rows),
+      client: 'container',
+      mode: 'production',
+      checkedAt: '2026-06-28T12:00:00.000Z'
+    })
+
+    expect(evidence.ok).toBe(false)
+    expect(evidence.status).toBe('YUDAO_XICHENG_PRODUCTION_SEED_NOT_READY')
+    expect(evidence.summary.readinessMode).toBe('production')
+    expect(evidence.summary.localCandidateReady).toBe(true)
+    expect(evidence.summary.productionReady).toBe(false)
+    expect(evidence.blockers).toContain('80 Xicheng POIs still require coordinate review')
+    expect(evidence.blockers).toContain('80 Xicheng POIs still require source license review')
+    expect(evidence.blockers).toContain('runtime public report still records productionReady=false')
+  })
+
+  test('marks production runtime ready only when production seed evidence is visible in the live database', () => {
+    const rows = [
+      'packageCount\t1',
+      'poiTotal\t80',
+      'poiApprovedPublished\t80',
+      'poiGeoReviewRequired\t0',
+      'poiLicenseReviewRequired\t0',
+      'knowledgeDocuments\t84',
+      'mapPoints\t80',
+      'qrCodes\t1',
+      'publicReportLocalCandidate\t1',
+      'publicReportProductionReady\t1',
+      'samplePoiCodes\txicheng-baitasi,xicheng-emperors-temple,xicheng-beihai-park'
+    ].join('\n')
+
+    const evidence = buildRuntimeSeedEvidence({
+      env,
+      metrics: parseMetricRows(rows),
+      client: 'container',
+      mode: 'production',
+      checkedAt: '2026-06-28T12:00:00.000Z'
+    })
+
+    expect(evidence.ok).toBe(true)
+    expect(evidence.status).toBe('YUDAO_XICHENG_PRODUCTION_SEED_READY')
+    expect(evidence.summary.readinessMode).toBe('production')
+    expect(evidence.summary.localCandidateReady).toBe(true)
+    expect(evidence.summary.productionReady).toBe(true)
+    expect(evidence.summary.productionBlockers).toEqual([])
+  })
+
   test('fails local candidate readiness when the runtime database is missing Xicheng POIs', () => {
     const evidence = buildRuntimeSeedEvidence({
       env,
@@ -157,6 +221,8 @@ describe('Xicheng Yudao runtime seed verifier', () => {
       'node scripts/verify-xicheng-yudao-runtime-seed.mjs'
     )
     expect(statusDoc).toContain('npm run xunjing:yudao:runtime-seed:verify')
+    expect(statusDoc).toContain('--mode production')
+    expect(statusDoc).toContain('YUDAO_XICHENG_PRODUCTION_SEED_READY')
   })
 
   test('rejects missing required database env without printing secrets', () => {

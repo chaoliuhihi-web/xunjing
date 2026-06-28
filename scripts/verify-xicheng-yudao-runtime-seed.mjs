@@ -228,6 +228,17 @@ function countMetric(metrics, key) {
   return Number.isFinite(value) ? value : 0
 }
 
+function normalizeReadinessMode(value) {
+  const mode = String(value || 'local-candidate').trim().toLowerCase()
+  if (['local', 'local-candidate', 'candidate'].includes(mode)) {
+    return 'local-candidate'
+  }
+  if (['production', 'prod', 'preprod', 'preproduction'].includes(mode)) {
+    return 'production'
+  }
+  throw new Error('runtime seed readiness mode must be one of: local-candidate, production')
+}
+
 function buildRuntimeChecks(metrics) {
   const checks = []
   const packageCount = countMetric(metrics, 'packageCount')
@@ -343,19 +354,30 @@ export function buildRuntimeSeedEvidence({
   env,
   metrics,
   client,
+  mode = 'local-candidate',
   checkedAt = new Date().toISOString()
 }) {
   validateRuntimeSeedEnv(env)
+  const readinessMode = normalizeReadinessMode(mode)
   const checks = buildRuntimeChecks(metrics)
-  const blockers = checks.flatMap((item) => item.blockers || [])
+  const localBlockers = checks.flatMap((item) => item.blockers || [])
   const productionBlockers = buildProductionBlockers(metrics)
+  const productionReady = productionBlockers.length === 0
+  const blockers = [
+    ...localBlockers,
+    ...(readinessMode === 'production' ? productionBlockers : [])
+  ]
   const ok = blockers.length === 0
+  const status = readinessMode === 'production'
+    ? (ok ? 'YUDAO_XICHENG_PRODUCTION_SEED_READY' : 'YUDAO_XICHENG_PRODUCTION_SEED_NOT_READY')
+    : (ok ? 'YUDAO_XICHENG_LOCAL_SEED_READY' : 'YUDAO_XICHENG_LOCAL_SEED_NOT_READY')
   const evidence = {
     artifactType: 'xicheng-yudao-runtime-seed',
     ok,
-    status: ok ? 'YUDAO_XICHENG_LOCAL_SEED_READY' : 'YUDAO_XICHENG_LOCAL_SEED_NOT_READY',
+    status,
     checkedAt,
     summary: {
+      readinessMode,
       tenantId: String(env.XUNJING_TENANT_ID),
       database: env.MYSQL_DATABASE,
       client,
@@ -372,8 +394,8 @@ export function buildRuntimeSeedEvidence({
       publicReportLocalCandidate: countMetric(metrics, 'publicReportLocalCandidate'),
       publicReportProductionReady: countMetric(metrics, 'publicReportProductionReady'),
       samplePoiCodes: String(metrics.samplePoiCodes || '').split(',').filter(Boolean),
-      localCandidateReady: ok,
-      productionReady: productionBlockers.length === 0,
+      localCandidateReady: localBlockers.length === 0,
+      productionReady,
       productionBlockers
     },
     checks,
@@ -509,6 +531,11 @@ async function runCli() {
   const args = process.argv.slice(2)
   const rootDir = path.resolve(readArgValue(args, '--root') || process.cwd())
   const envFile = readArgValue(args, '--env-file') || process.env.XUNJING_ENV_FILE
+  const mode = readArgValue(args, '--mode') ||
+    readArgValue(args, '--stage') ||
+    process.env.XICHENG_RUNTIME_SEED_MODE ||
+    process.env.STAGE ||
+    'local-candidate'
   const fileEnv = envFile ? await loadEnvFile(envFile) : {}
   const env = { ...process.env, ...fileEnv }
   const sql = buildRuntimeSeedSql(env)
@@ -531,7 +558,8 @@ async function runCli() {
   const evidence = buildRuntimeSeedEvidence({
     env,
     metrics,
-    client: invocation.client
+    client: invocation.client,
+    mode
   })
   await writeEvidence({
     rootDir,
@@ -545,6 +573,7 @@ async function runCli() {
     tenantId: evidence.summary.tenantId,
     database: evidence.summary.database,
     client: evidence.summary.client,
+    readinessMode: evidence.summary.readinessMode,
     packageCode: evidence.summary.packageCode,
     regionCode: evidence.summary.regionCode,
     poiTotal: evidence.summary.poiTotal,
