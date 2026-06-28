@@ -65,7 +65,9 @@ describe('xunjing platform dependency compose configuration', () => {
     expect(initScript).toContain("region_code = 'beijing-xicheng'");
     expect(initScript).toContain('xicheng_poi_source_doc_count');
     expect(initScript).toContain('POI 级已审核来源');
-    expect(initScript).toContain('Xicheng POI-level reviewed source documents are below 24');
+    expect(initScript).toContain("source_url in ('https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html', 'https://www.bjxch.gov.cn/xcfw/whfw/xxxq/pnidpv736523.html')");
+    expect(initScript).toContain('Xicheng approved POI seed count is below 80');
+    expect(initScript).toContain('Xicheng POI-level reviewed source documents are below 80');
     expect(initScript).toContain('ai_api_key');
     expect(initScript).toContain('ai_model');
     expect(initScript).toContain('ai_knowledge');

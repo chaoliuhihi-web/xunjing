@@ -85,14 +85,14 @@ if [ "${xicheng_package_count}" -le 0 ]; then
 fi
 
 xicheng_poi_count="$(mysql_base --batch --skip-column-names --execute "select count(*) from xunjing_poi where region_code = 'beijing-xicheng' and review_status = 'APPROVED';")"
-if [ "${xicheng_poi_count}" -lt 24 ]; then
-  echo "Xunjing MySQL initialization failed: Xicheng approved POI seed count is below 24." >&2
+if [ "${xicheng_poi_count}" -lt 80 ]; then
+  echo "Xunjing MySQL initialization failed: Xicheng approved POI seed count is below 80." >&2
   exit 1
 fi
 
-xicheng_poi_source_doc_count="$(mysql_base --batch --skip-column-names --execute "select count(*) from xunjing_knowledge_document where title like '% POI 级已审核来源' and source_url like 'https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html#%' and review_status = 'APPROVED' and vector_status = 'INDEXED';")"
-if [ "${xicheng_poi_source_doc_count}" -lt 24 ]; then
-  echo "Xunjing MySQL initialization failed: Xicheng POI-level reviewed source documents are below 24." >&2
+xicheng_poi_source_doc_count="$(mysql_base --batch --skip-column-names --execute "select count(*) from xunjing_knowledge_document where title like '% POI 级已审核来源' and source_url in ('https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html', 'https://www.bjxch.gov.cn/xcfw/whfw/xxxq/pnidpv736523.html') and review_status = 'APPROVED' and vector_status = 'INDEXED';")"
+if [ "${xicheng_poi_source_doc_count}" -lt 80 ]; then
+  echo "Xunjing MySQL initialization failed: Xicheng POI-level reviewed source documents are below 80." >&2
   exit 1
 fi
 
