@@ -17,6 +17,17 @@ const requestCurrentLocationForTrigger = async () => null
 const requestImageInfoForTrigger = async () => null`
   )
   .replace(
+    /import \{ normalizeXichengReviewedSources \} from '@\/request\/xunjing\/sources\.js'/,
+    `const normalizeXichengReviewedSources = (sources = []) => Array.isArray(sources)
+  ? sources.map(source => ({
+    ...source,
+    url: source.url || source.sourceUrl || '',
+    excerpt: source.excerpt || source.contentDigest || source.summary || '',
+    summary: source.summary || source.contentDigest || source.excerpt || ''
+  }))
+  : []`
+  )
+  .replace(
     /import \{[\s\S]*?\} from '@\/config\/regions\/xicheng\.js'/,
     `const XICHENG_REGION_CONFIG = Object.freeze({
   regionCode: 'beijing-xicheng',

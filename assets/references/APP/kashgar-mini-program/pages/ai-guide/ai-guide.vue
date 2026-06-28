@@ -316,6 +316,7 @@ import TabBar from '@/components/tab-bar/tab-bar.vue'
 import config from '@/request/config.js'
 import { resolveXunjingPhotoTrigger } from '@/request/xunjingMultimodal.js'
 import { normalizeXichengAiChatResponse } from '@/request/xunjing/chat.js'
+import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 
 const UrlImg = config.UrlImg
@@ -565,7 +566,7 @@ const normalizeCachedMessages = (list) => {
 			content: item.content || '',
 			images: Array.isArray(item.images) ? item.images : [],
 			followUps: Array.isArray(item.followUps) ? item.followUps : [],
-			sources: Array.isArray(item.sources) ? item.sources : [],
+			sources: normalizeXichengReviewedSources(item.sources),
 			safetyStatus: item.safetyStatus || '',
 			isPending: false,
 			interrupted: Boolean(item.interrupted)
@@ -668,7 +669,7 @@ const loadCachedXichengRecognitionContext = (context = {}) => {
 		confidence: cached.confidence || '',
 		sourceLabel: cached.sourceLabel || '',
 		safetyStatus: cached.safetyStatus || '',
-		sources: Array.isArray(cached.sources) ? cached.sources : []
+		sources: normalizeXichengReviewedSources(cached.sources)
 	}
 }
 
@@ -713,7 +714,7 @@ const hasXichengAiContext = (context = xichengAiContext.value) => (
 
 const getXichengContextSources = () => {
 	const context = xichengAiContext.value || {}
-	return Array.isArray(context.sources) ? context.sources : []
+	return normalizeXichengReviewedSources(context.sources)
 }
 
 const getActiveXunjingResourceConfig = (context = xichengAiContext.value) => {

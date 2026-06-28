@@ -9,6 +9,7 @@ import {
 	requestCurrentLocationForTrigger,
 	requestImageInfoForTrigger
 } from '@/request/xunjingMultimodal.js'
+import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 import {
 	XICHENG_REGION_CONFIG,
 	XICHENG_DEVELOPMENT_TRIGGER_FIXTURE,
@@ -64,7 +65,7 @@ const normalizeConfidence = (result = {}) => {
 export const normalizeXichengTriggerResult = (result = {}, source = '') => {
 	const confidence = normalizeConfidence(result)
 	const suggestedQuestions = normalizeSuggestedQuestions(result)
-	const sources = Array.isArray(result.sources) ? result.sources : []
+	const sources = normalizeXichengReviewedSources(result.sources)
 	return {
 		...result,
 		regionCode: result.regionCode || XICHENG_REGION_CONFIG.regionCode,

@@ -97,6 +97,7 @@ import {
 	XICHENG_REGION_CONFIG,
 	XICHENG_SUGGESTED_QUESTIONS
 } from '@/config/regions/xicheng.js'
+import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 
 const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
 	regionCode: XICHENG_REGION_CONFIG.regionCode,
@@ -174,7 +175,7 @@ const normalizeResult = (result = {}) => ({
 	routeRecommendation: result.routeRecommendation || result.recommendedRoute || null,
 	recommendedRoute: result.routeRecommendation || result.recommendedRoute || null,
 	safetyStatus: result.safetyStatus || '',
-	sources: Array.isArray(result.sources) ? result.sources : []
+	sources: normalizeXichengReviewedSources(result.sources)
 })
 
 export default {

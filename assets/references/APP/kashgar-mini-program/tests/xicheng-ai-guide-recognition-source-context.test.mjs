@@ -16,8 +16,8 @@ for (const required of [
 
 assert.match(
   aiGuide,
-  /const loadCachedXichengRecognitionContext\s*=\s*\(context = \{\}\) => \{[\s\S]*uni\.getStorageSync\(XICHENG_REGION_CONFIG\.storageKey\)[\s\S]*cached\.poiCode === context\.poiCode[\s\S]*cached\.poiName === context\.poiName[\s\S]*sources:\s*Array\.isArray\(cached\.sources\) \? cached\.sources : \[\]/,
-  'AI guide should restore reviewed source metadata from the latest recognition cache only when it matches the active POI context'
+  /const loadCachedXichengRecognitionContext\s*=\s*\(context = \{\}\) => \{[\s\S]*uni\.getStorageSync\(XICHENG_REGION_CONFIG\.storageKey\)[\s\S]*cached\.poiCode === context\.poiCode[\s\S]*cached\.poiName === context\.poiName[\s\S]*sources:\s*normalizeXichengReviewedSources\(cached\.sources\)/,
+  'AI guide should restore normalized reviewed source metadata from the latest recognition cache only when it matches the active POI context'
 )
 
 assert.match(
@@ -28,8 +28,8 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /const getXichengContextSources\s*=\s*\(\) => \{[\s\S]*xichengAiContext\.value[\s\S]*Array\.isArray\(context\.sources\) \? context\.sources : \[\]/,
-  'AI guide should expose a safe helper for the active Xicheng reviewed sources'
+  /const getXichengContextSources\s*=\s*\(\) => \{[\s\S]*xichengAiContext\.value[\s\S]*normalizeXichengReviewedSources\(context\.sources\)/,
+  'AI guide should expose a normalized safe helper for the active Xicheng reviewed sources'
 )
 
 assert.match(

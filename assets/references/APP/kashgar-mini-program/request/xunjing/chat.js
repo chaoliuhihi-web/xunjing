@@ -3,6 +3,7 @@ import {
 	getXunjingUserTraceId,
 	getYudaoCommonResultPayload
 } from '@/request/xunjingMultimodal.js'
+import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 
 export const XICHENG_AI_CHAT_API_PATH = 'app-api/xunjing/ai/chat'
@@ -32,7 +33,7 @@ export const normalizeXichengAiChatResponse = (payload = {}) => {
 	return {
 		answer: safetyStatus === 'BLOCKED' ? XICHENG_BLOCKED_ANSWER : payload.answer ? String(payload.answer) : '',
 		suggestedQuestions,
-		sources: Array.isArray(payload.sources) ? payload.sources : [],
+		sources: normalizeXichengReviewedSources(payload.sources),
 		safetyStatus,
 		logId: payload.logId || ''
 	}
