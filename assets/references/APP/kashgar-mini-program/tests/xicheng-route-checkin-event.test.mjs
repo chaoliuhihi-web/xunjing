@@ -105,8 +105,8 @@ assert.match(
 
 assert.match(
   travelogue,
-  /createShareArtifact\(assetType\)[\s\S]*publicRouteCheckins:\s*this\.routeCheckins\.map\(checkin => this\.sanitizeRouteCheckinForPublicShare\(checkin\)\)[\s\S]*checkinCount:\s*this\.checkinCount/,
-  'Poster and PDF assets should include sanitized public route check-in events'
+  /createShareArtifact\(assetType\)[\s\S]*publicRouteCheckins:\s*this\.routeCheckins[\s\S]*filter\(checkin => this\.hasReviewableRouteCheckinEvidence\(checkin\)\)[\s\S]*map\(checkin => this\.sanitizeRouteCheckinForPublicShare\(checkin\)\)[\s\S]*checkinCount:\s*this\.checkinCount/,
+  'Poster and PDF assets should include only reviewable sanitized public route check-in events'
 )
 
 assert.match(

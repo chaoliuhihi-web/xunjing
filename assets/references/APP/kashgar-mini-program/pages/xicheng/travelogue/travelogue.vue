@@ -1647,6 +1647,11 @@ export default {
 				checkedInAt: checkin.checkedInAt || ''
 			}
 		},
+		hasReviewableRouteCheckinEvidence(checkin = {}) {
+			const safetyStatus = normalizeXichengSafetyStatus(checkin.safetyStatus)
+			if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) return false
+			return Boolean(checkin.poiCode || checkin.poiName || checkin.routeTitle)
+		},
 		createPublicCandidateConfirmationSummary() {
 			const confirmedPoiNames = this.candidateConfirmationAudits
 				.map(audit => audit && audit.selectedCandidatePoiName ? audit.selectedCandidatePoiName : '')
@@ -1691,7 +1696,9 @@ export default {
 					.filter(material => hasReviewableMaterialEvidence(material))
 					.map(material => this.sanitizeMaterialForPublicShare(material)),
 				publicStudyTaskEvidence: this.completedStudyTaskEvidence.map(evidence => this.sanitizeStudyTaskEvidenceForPublicShare(evidence)),
-				publicRouteCheckins: this.routeCheckins.map(checkin => this.sanitizeRouteCheckinForPublicShare(checkin)),
+				publicRouteCheckins: this.routeCheckins
+					.filter(checkin => this.hasReviewableRouteCheckinEvidence(checkin))
+					.map(checkin => this.sanitizeRouteCheckinForPublicShare(checkin)),
 				publicCandidateConfirmationSummary: this.createPublicCandidateConfirmationSummary(),
 				publicRecordingSummary: this.createPublicRecordingSummary(),
 				qualityReport: this.qualityReport,

@@ -15,6 +15,7 @@ for (const required of [
   'sanitizeRouteRecommendationForPublicShare',
   'sanitizeMaterialForPublicShare',
   'sanitizeStudyTaskEvidenceForPublicShare',
+  'hasReviewableRouteCheckinEvidence',
   'sanitizeRouteCheckinForPublicShare',
   'createPublicCandidateConfirmationSummary',
   'createPublicRecordingSummary',
@@ -94,8 +95,14 @@ assert.doesNotMatch(
   'Public study-task evidence sanitizer should not expose raw answerText, raw photo paths or exact location metadata'
 )
 
-const routeCheckinSanitizeBlock = travelogue.match(/sanitizeRouteCheckinForPublicShare\(checkin = \{\}\)[\s\S]*?\n\t\t\},\n\t\tcreatePublicCandidateConfirmationSummary/)?.[0] || ''
+const routeCheckinSanitizeBlock = travelogue.match(/sanitizeRouteCheckinForPublicShare\(checkin = \{\}\)[\s\S]*?hasReviewableRouteCheckinEvidence/)?.[0] || ''
 assert.ok(routeCheckinSanitizeBlock, 'Travelogue should expose a bounded public route check-in sanitizer for share exports')
+
+assert.match(
+  travelogue,
+  /hasReviewableRouteCheckinEvidence\(checkin = \{\}\)[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(checkin\.safetyStatus\)[\s\S]*if \(\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)\) return false[\s\S]*return Boolean\([\s\S]*checkin\.poiCode[\s\S]*checkin\.poiName[\s\S]*checkin\.routeTitle/,
+  'Public route check-in exports should reject stale BLOCKED or UNAVAILABLE check-ins before sanitizing'
+)
 
 for (const required of [
   'checkinId: checkin.checkinId ||',
@@ -136,7 +143,7 @@ assert.doesNotMatch(
 
 assert.match(
   travelogue,
-  /createShareArtifact\(assetType\)[\s\S]*publicMaterials:\s*this\.materials[\s\S]*filter\(material => hasReviewableMaterialEvidence\(material\)\)[\s\S]*map\(material => this\.sanitizeMaterialForPublicShare\(material\)\)[\s\S]*publicStudyTaskEvidence:\s*this\.completedStudyTaskEvidence\.map\(evidence => this\.sanitizeStudyTaskEvidenceForPublicShare\(evidence\)\)[\s\S]*publicRouteCheckins:\s*this\.routeCheckins\.map\(checkin => this\.sanitizeRouteCheckinForPublicShare\(checkin\)\)[\s\S]*publicCandidateConfirmationSummary:\s*this\.createPublicCandidateConfirmationSummary\(\)[\s\S]*publicRecordingSummary:\s*this\.createPublicRecordingSummary\(\)[\s\S]*privacy:\s*\{[\s\S]*shareLocationPrecision:\s*'poi_area'[\s\S]*exactCoordinatesHidden:\s*true/,
+  /createShareArtifact\(assetType\)[\s\S]*publicMaterials:\s*this\.materials[\s\S]*filter\(material => hasReviewableMaterialEvidence\(material\)\)[\s\S]*map\(material => this\.sanitizeMaterialForPublicShare\(material\)\)[\s\S]*publicStudyTaskEvidence:\s*this\.completedStudyTaskEvidence\.map\(evidence => this\.sanitizeStudyTaskEvidenceForPublicShare\(evidence\)\)[\s\S]*publicRouteCheckins:\s*this\.routeCheckins[\s\S]*filter\(checkin => this\.hasReviewableRouteCheckinEvidence\(checkin\)\)[\s\S]*map\(checkin => this\.sanitizeRouteCheckinForPublicShare\(checkin\)\)[\s\S]*publicCandidateConfirmationSummary:\s*this\.createPublicCandidateConfirmationSummary\(\)[\s\S]*publicRecordingSummary:\s*this\.createPublicRecordingSummary\(\)[\s\S]*privacy:\s*\{[\s\S]*shareLocationPrecision:\s*'poi_area'[\s\S]*exactCoordinatesHidden:\s*true/,
   'Generated poster and PDF assets should include only reviewable sanitized public materials, study evidence, route check-ins, candidate confirmation summary, and recording summary'
 )
 
