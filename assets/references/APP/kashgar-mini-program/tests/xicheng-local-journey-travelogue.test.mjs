@@ -80,8 +80,8 @@ assert.match(
 
 assert.match(
   travelogue,
-  /saveDraft\(\{ silent = false \} = \{\}\)[\s\S]*const payload = \{[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*companionName:\s*XICHENG_REGION_CONFIG\.companionName/,
-  'Saved travelogue draft should carry Xicheng package, source channel, and companion context for release attribution'
+  /saveDraft\(\{ silent = false \} = \{\}\)[\s\S]*const payload = \{[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*companionName:\s*XICHENG_REGION_CONFIG\.companionName/,
+  'Saved travelogue draft should carry Xicheng package, scene, source channel, and companion context for release attribution'
 )
 
 assert.doesNotMatch(

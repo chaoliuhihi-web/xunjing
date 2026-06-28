@@ -670,6 +670,7 @@ export default {
 				templateCode: 'xicheng-city-ops-report-v1',
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
 				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				sceneCode: XICHENG_REGION_CONFIG.sceneCode,
 				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
 				companionName: XICHENG_REGION_CONFIG.companionName,
 				templateSections: this.reportTemplateSections,
@@ -1280,6 +1281,7 @@ export default {
 			const payload = {
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
 				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				sceneCode: XICHENG_REGION_CONFIG.sceneCode,
 				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
 				companionName: XICHENG_REGION_CONFIG.companionName,
 				draft: this.draft,
@@ -1369,6 +1371,7 @@ export default {
 			return {
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
 				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				sceneCode: XICHENG_REGION_CONFIG.sceneCode,
 				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
 				companionName: XICHENG_REGION_CONFIG.companionName,
 				draft: this.draft,
@@ -1473,6 +1476,7 @@ export default {
 				title: assetTitle,
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
 				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				sceneCode: XICHENG_REGION_CONFIG.sceneCode,
 				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
 				companionName: XICHENG_REGION_CONFIG.companionName,
 				routeTitle,
