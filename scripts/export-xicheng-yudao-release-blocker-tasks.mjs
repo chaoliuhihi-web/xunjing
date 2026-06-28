@@ -99,6 +99,24 @@ const checkTaskInstructions = {
   }
 }
 
+const poiEvidenceTaskInstructions = [
+  [/manifest/i, {
+    taskDetail: 'Generate production POI manifest evidence from the reviewed 80-row workbook.',
+    requiredEvidence: 'Manifest gate outputs PRODUCTION_POI_MANIFEST_READY with review batch and source workbook hashes.',
+    verificationCommand: 'npm run xunjing:xicheng:poi:manifest:gate -- --manifest workbench/xicheng-production-pois.json --evidence-file qa/xicheng-poi-manifest-evidence.json'
+  }],
+  [/workbook/i, {
+    taskDetail: 'Generate reviewed POI workbook evidence from 80 approved Xicheng POIs.',
+    requiredEvidence: 'Workbook gate outputs XICHENG_POI_REVIEW_WORKBOOK_READY with pendingPoiTasks empty.',
+    verificationCommand: 'npm run xunjing:xicheng:poi:workbook:gate -- --workbook workbench/xicheng-production-pois.review-workbook.csv --evidence-file qa/xicheng-poi-review-workbook-evidence.json'
+  }],
+  [/seed/i, {
+    taskDetail: 'Generate and verify production POI seed SQL from the approved manifest.',
+    requiredEvidence: 'Seed verify outputs PRODUCTION_POI_SEED_READY with sqlFile and sqlSha256.',
+    verificationCommand: 'npm run xunjing:xicheng:poi:seed:verify -- --sql workbench/xicheng-poi-production-seed.sql --evidence-file qa/xicheng-poi-production-seed-evidence.json'
+  }]
+]
+
 function readArgValue(args, name) {
   const equalPrefix = `${name}=`
   const equalArg = args.find((arg) => arg.startsWith(equalPrefix))
@@ -148,6 +166,12 @@ function taskInstructionFor(checkName, blocker) {
   const envInstruction = envTaskInstructions.find(([pattern]) => pattern.test(String(envKey || '')))
   if (envInstruction) {
     return envInstruction[1]
+  }
+  if (checkName === 'xicheng-production-poi-evidence') {
+    const poiEvidenceInstruction = poiEvidenceTaskInstructions.find(([pattern]) => pattern.test(String(blocker || '')))
+    if (poiEvidenceInstruction) {
+      return poiEvidenceInstruction[1]
+    }
   }
   return checkTaskInstructions[checkName] || {
     taskDetail: `Resolve release gate blocker for ${checkName}.`,
