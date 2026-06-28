@@ -30,6 +30,8 @@
 - 禁止把 APP 名称、全局标题、包名或描述恢复成 `xinxiake`、`uni-app` 等脚手架/旧项目默认值。
 - 禁止给 APP 增加读取日志、读取账号、读取设备号、写系统设置、修改网络或 Wi-Fi、挂载文件系统等高风险 Android 权限，确需新增权限必须先写明业务理由并补测试。
 - 禁止为了目录变干净而删除、重置或覆盖用户未提交文件。
+- APP 页面单文件不得超过 3500 行；接近上限时必须拆到组件、配置、请求层或样式文件，不得继续向 `ai-guide.vue`、`index.vue` 这类大文件堆代码。
+- `backend/yudao/` 只保留星河寻境正式采用的 Yudao 基座、`yudao-module-xunjing`、必要 SQL 和后台 xunjing UI；完整上游 Yudao checkout、未采纳模块、上游图片和上游基座测试只能放在 `workbench/` 作为参考，不得混入正式 reactor。
 
 ## 接口原则
 
@@ -40,6 +42,7 @@
 ## 验证要求
 
 - 改前端 APP：在 `assets/references/APP/kashgar-mini-program/` 运行相关 `tests/*.test.mjs` 和 `npm run build`。
+- 改 APP 页面结构：必须确认 `pages/index/index.vue` 和 `pages/ai-guide/ai-guide.vue` 不超过 3500 行，相关门禁在 APP `tests/app-production-readiness.test.mjs`。
 - 改根项目：运行 `npm run test:run`。
 - 改 Yudao/部署门禁：运行相关 `scripts/*.test.mjs` 和 `npm run xunjing:platform:verify:static`。
 - 改目录结构：运行 `npm run test:run -- scripts/project-structure-contract.test.mjs`。

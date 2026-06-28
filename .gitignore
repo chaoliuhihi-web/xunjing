@@ -21,6 +21,9 @@ node_modules/
 *.zip
 *.mp4
 *.gif
+assets/brand/LOGO/ChatGPT Image*.png
+assets/brand/LOGO/newdesign/ChatGPT Image*.png
+assets/references/APP/参考图/
 
 # Frontend build and test outputs
 dist/
@@ -29,6 +32,10 @@ test-results/
 
 # Local QA evidence belongs under qa/, never repository root
 qa/app-kashgar/
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
 /kashgar-*
 /*-comparison.png
 /reference-contact-sheet.png
@@ -45,6 +52,7 @@ backend/yudao/**/.runtime/
 backend/yudao/yudao-server/src/main/resources/application-local.yaml
 backend/yudao/yudao-server/src/main/resources/application-dev.yaml
 backend/yudao/yudao-server/src/main/resources/application-prod.yaml
+backend/yudao/yudao-ui/yudao-ui-admin-vue3/src/types/auto-*.d.ts
 
 # Keep only the website reference assets required by src/data/siteContent.js
 assets/references/*
