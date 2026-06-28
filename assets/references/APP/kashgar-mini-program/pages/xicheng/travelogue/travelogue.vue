@@ -1247,6 +1247,20 @@ export default {
 				}
 			})
 		},
+		hasReviewableJourneyEvidence() {
+			return hasXichengTravelogueDraftEvidence({
+				materials: this.materials,
+				routeRecommendation: this.recognizedRoute,
+				recordingSession: this.recordingSession,
+				studyTaskEvidence: this.studyTaskEvidence
+			})
+		},
+		showWorkEvidenceRequiredToast(actionLabel = '生成作品') {
+			uni.showToast({
+				title: `请先补充真实素材再${actionLabel}`,
+				icon: 'none'
+			})
+		},
 		saveDraft({ silent = false } = {}) {
 			const payload = {
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
@@ -1289,6 +1303,10 @@ export default {
 			}
 		},
 		generatePoster() {
+			if (!this.hasReviewableJourneyEvidence()) {
+				this.showWorkEvidenceRequiredToast('分享海报')
+				return
+			}
 			this.posterStatus = '分享海报已生成'
 			const posterAsset = this.createShareArtifact('poster')
 			this.persistShareArtifact(posterAsset)
@@ -1299,6 +1317,10 @@ export default {
 			})
 		},
 		exportMemorialPdf() {
+			if (!this.hasReviewableJourneyEvidence()) {
+				this.showWorkEvidenceRequiredToast('PDF纪念册')
+				return
+			}
 			this.pdfStatus = 'PDF纪念册已生成'
 			const pdfAsset = this.createShareArtifact('pdf')
 			this.persistShareArtifact(pdfAsset)
@@ -1309,6 +1331,10 @@ export default {
 			})
 		},
 		submitReview() {
+			if (!this.hasReviewableJourneyEvidence()) {
+				this.showWorkEvidenceRequiredToast('作品审核')
+				return
+			}
 			this.reviewText = XICHENG_REGION_CONFIG.reviewStatus.pending
 			const reviewPayload = this.submitReviewPackage()
 			const existingSubmissions = uni.getStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey)
