@@ -215,8 +215,9 @@
 						placeholder="记录孩子观察、答案或一句发现"
 					/>
 					<view class="task-actions">
-						<button class="mini-button" :disabled="!!getStudyTaskEvidence(index)" @click="submitStudyTaskEvidence(index)">提交观察</button>
-						<button class="mini-button" :disabled="!!getStudyTaskEvidence(index)" @click="addStudyTaskPhoto(index)">拍照完成</button>
+						<button v-if="getStudyTaskEvidence(index)" class="mini-button danger-mini-button" @click="deleteStudyTaskEvidence(index)">删除证据</button>
+						<button v-else class="mini-button" @click="submitStudyTaskEvidence(index)">提交观察</button>
+						<button v-if="!getStudyTaskEvidence(index)" class="mini-button" @click="addStudyTaskPhoto(index)">拍照完成</button>
 					</view>
 				</view>
 				<text class="task-status">{{ getStudyTaskStatus(index) }}</text>
@@ -1056,6 +1057,18 @@ export default {
 			].slice(0, this.parentChildTasks.length)
 			uni.setStorageSync(XICHENG_REGION_CONFIG.studyTaskStorageKey, this.studyTaskEvidence)
 			this.refreshDraftFromEvidence()
+		},
+		deleteStudyTaskEvidence(index) {
+			const taskId = `study-task-${index + 1}`
+			const existingEvidence = this.getStudyTaskEvidence(index)
+			if (!existingEvidence) return
+			this.studyTaskEvidence = this.studyTaskEvidence.filter(evidence => evidence && evidence.taskId !== taskId)
+			uni.setStorageSync(XICHENG_REGION_CONFIG.studyTaskStorageKey, this.studyTaskEvidence)
+			this.refreshDraftFromEvidence()
+			uni.showToast({
+				title: '研学证据已删除',
+				icon: 'none'
+			})
 		},
 		submitStudyTaskEvidence(index) {
 			const answerText = String(this.studyTaskDrafts[index] || '').trim()

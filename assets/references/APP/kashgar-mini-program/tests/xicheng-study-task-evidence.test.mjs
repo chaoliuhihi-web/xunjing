@@ -34,6 +34,7 @@ for (const required of [
   '拍照完成',
   'submitStudyTaskEvidence',
   'addStudyTaskPhoto',
+  'deleteStudyTaskEvidence',
   'createStudyTaskEvidence',
   'persistStudyTaskEvidence',
   'studyTaskStorageKey',
@@ -43,7 +44,8 @@ for (const required of [
   'answerText',
   'photoPath',
   'completedAt',
-  '研学任务证据'
+  '研学任务证据',
+  '删除证据'
 ]) {
   assert.ok(travelogue.includes(required), `Travelogue should support study task evidence ${required}`)
 }
@@ -88,6 +90,18 @@ assert.match(
   travelogue,
   /addStudyTaskPhoto\(index\)[\s\S]*const confirmed = await this\.confirmTraveloguePhotoPurpose\('研学照片'\)[\s\S]*if \(!confirmed\) return[\s\S]*uni\.chooseImage/,
   'Completing a study task by photo should ask for photo-use confirmation before opening camera or album'
+)
+
+assert.match(
+  travelogue,
+  /v-if="getStudyTaskEvidence\(index\)"[\s\S]*@click="deleteStudyTaskEvidence\(index\)"[\s\S]*删除证据/,
+  'Completed study task evidence should expose a delete action so users can remove photo evidence'
+)
+
+assert.match(
+  travelogue,
+  /deleteStudyTaskEvidence\(index\)[\s\S]*const taskId = `study-task-\$\{index \+ 1\}`[\s\S]*this\.studyTaskEvidence = this\.studyTaskEvidence\.filter\(evidence => evidence && evidence\.taskId !== taskId\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.studyTaskStorageKey, this\.studyTaskEvidence\)[\s\S]*this\.refreshDraftFromEvidence\(\)[\s\S]*研学证据已删除/,
+  'Deleting study task evidence should remove the local photo or answer evidence, persist storage, and refresh the draft'
 )
 
 assert.match(
