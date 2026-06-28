@@ -254,6 +254,7 @@
 				<button class="ghost-button" @click="openPrivacyPolicy">隐私政策</button>
 				<button class="ghost-button" @click="openUserProtocol">用户协议</button>
 				<button class="ghost-button" @click="openAiContentNotice">AI 内容说明</button>
+				<button class="ghost-button" @click="openXichengFeedbackEntry">反馈入口</button>
 				<button class="ghost-button danger-button" @click="clearXichengLocalData">清除西城本地数据</button>
 			</view>
 		</view>
@@ -889,6 +890,14 @@ export default {
 			uni.showModal({
 				title: 'AI 内容说明',
 				content: '小京回答和游记草稿由 AI 辅助生成，仅作旅行参考；西城讲解优先使用已审核来源，无已审核来源时不编造。',
+				showCancel: false,
+				confirmText: '知道了'
+			})
+		},
+		openXichengFeedbackEntry() {
+			uni.showModal({
+				title: '反馈入口',
+				content: '识别结果页可提交识别准确/有误反馈；本页可清除西城本地数据；其它试运营问题请联系现场运营人员处理。',
 				showCancel: false,
 				confirmText: '知道了'
 			})
