@@ -2,9 +2,13 @@ export const normalizeXichengReviewedSource = (source = {}) => {
 	if (!source || typeof source !== 'object') {
 		return null
 	}
-	const title = source.title || source.name || source.sourceTitle || '审核来源'
+	const displayTitle = source.title || source.name || source.sourceTitle || ''
 	const sourceUrl = source.sourceUrl || source.url || ''
 	const contentDigest = source.contentDigest || source.excerpt || source.summary || ''
+	if (!displayTitle && !sourceUrl && !contentDigest) {
+		return null
+	}
+	const title = displayTitle || '审核来源'
 	const sourceId = source.sourceId !== undefined && source.sourceId !== null ? source.sourceId : source.id
 	const sourceType = source.sourceType || source.type || ''
 	return {

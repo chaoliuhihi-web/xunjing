@@ -106,3 +106,17 @@ for (const blocked of ['rawText', 'content', 'embedding', 'authorization', 'apiK
     `Reviewed source normalization should not preserve raw backend field ${blocked}`
   )
 }
+
+assert.deepEqual(
+  normalizeXichengReviewedSources([
+    {},
+    null,
+    'bad-source',
+    {
+      rawText: '只有内部原文不能作为 APP 已审核展示来源',
+      content: '只有内部全文不能作为 APP 已审核展示来源'
+    }
+  ]),
+  [],
+  'Reviewed source normalization should drop blank/raw-only source records so sourceCount cannot be inflated'
+)
