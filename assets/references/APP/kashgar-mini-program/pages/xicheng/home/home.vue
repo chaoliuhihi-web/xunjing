@@ -480,6 +480,8 @@ export default {
 				routeTitle: route.title,
 				sourceLabel: '官方推荐路线',
 				sources: [],
+				reviewStatus: this.region.reviewStatus.pending,
+				publishStatus: 'private',
 				capturedAt: updatedAt
 			}))
 			uni.setStorageSync(this.region.inspirationStorageKey, routePayload)

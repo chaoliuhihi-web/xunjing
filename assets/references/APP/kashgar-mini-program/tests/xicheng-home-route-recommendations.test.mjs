@@ -54,6 +54,12 @@ assert.match(
 
 assert.match(
   home,
+  /const routeMaterials = stops\.map\(stop => \(\{[\s\S]*type:\s*'official-route-poi'[\s\S]*reviewStatus:\s*this\.region\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  'Home recommended route POI materials should be pending review and private before share or review handoff'
+)
+
+assert.match(
+  home,
   /uni\.setStorageSync\(this\.region\.inspirationStorageKey,\s*routePayload\)[\s\S]*uni\.setStorageSync\(this\.region\.materialsStorageKey/,
   'Home recommended routes should save the route and route POI materials before opening the travelogue'
 )
