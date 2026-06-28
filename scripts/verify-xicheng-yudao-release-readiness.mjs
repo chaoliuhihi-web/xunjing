@@ -1,5 +1,6 @@
 import { existsSync, statSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -92,6 +93,65 @@ const requiredProductionEnvKeys = [
 
 function check(name, ok, detail, blockers = []) {
   return { name, ok, detail, blockers }
+}
+
+function gitOutput(rootDir, args) {
+  try {
+    return execFileSync('git', ['-C', rootDir, ...args], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe']
+    }).trim()
+  } catch {
+    return undefined
+  }
+}
+
+function checkReleaseSourceRevision(rootDir) {
+  const isGitWorkTree = gitOutput(rootDir, ['rev-parse', '--is-inside-work-tree']) === 'true'
+  if (!isGitWorkTree) {
+    return {
+      ...check(
+        'release-source-revision',
+        true,
+        'Git source revision metadata is unavailable for this release root',
+        []
+      ),
+      summary: {
+        gitAvailable: false
+      }
+    }
+  }
+
+  const gitBranch = gitOutput(rootDir, ['rev-parse', '--abbrev-ref', 'HEAD']) || 'UNKNOWN'
+  const gitCommit = gitOutput(rootDir, ['rev-parse', 'HEAD']) || ''
+  const gitStatusShort = gitOutput(rootDir, ['status', '--short']) || ''
+  const dirtyEntries = gitStatusShort.split(/\r?\n/).filter(Boolean)
+  const blockers = []
+
+  if (!/^[a-f0-9]{40}$/i.test(gitCommit)) {
+    blockers.push('git commit SHA must be available before release evidence generation')
+  }
+  if (dirtyEntries.length > 0) {
+    blockers.push('git worktree must be clean before release evidence generation')
+  }
+
+  return {
+    ...check(
+      'release-source-revision',
+      blockers.length === 0,
+      blockers.length === 0
+        ? `Git source revision is clean: ${gitBranch} ${gitCommit}`
+        : blockers.join('; '),
+      blockers
+    ),
+    summary: {
+      gitAvailable: true,
+      gitBranch,
+      gitCommit,
+      gitDirty: dirtyEntries.length > 0,
+      gitDirtyFileCount: dirtyEntries.length
+    }
+  }
 }
 
 function sha256(value) {
@@ -919,6 +979,7 @@ export async function verifyXichengYudaoReleaseReadiness({
     : undefined
 
   const checks = [
+    checkReleaseSourceRevision(rootDir),
     checkRuntimeEnv(env, normalizedStage),
     checkVectorEmbeddingRuntime(env, normalizedStage),
     checkHttpsAppApiDomain(env),
@@ -970,6 +1031,7 @@ function resolveEvidenceFile(rootDir, evidenceFile) {
 }
 
 function buildReleaseEvidence(result) {
+  const sourceRevisionSummary = result.checks.find((item) => item.name === 'release-source-revision')?.summary || {}
   const baselineSummary = result.checks.find((item) => item.name === 'full-yudao-baseline')?.summary || {}
   const serverArtifactSummary = result.checks.find((item) => item.name === 'yudao-server-artifact')?.summary || {}
   const productionPoiEvidenceSummary = result.checks.find((item) => item.name === 'xicheng-production-poi-evidence')?.summary || {}
@@ -982,6 +1044,7 @@ function buildReleaseEvidence(result) {
       passedChecks: result.checks.filter((item) => item.ok).length,
       failedChecks: result.checks.filter((item) => !item.ok).length,
       blockerCount: result.blockers.length,
+      ...sourceRevisionSummary,
       ...baselineSummary,
       ...serverArtifactSummary,
       ...productionPoiEvidenceSummary

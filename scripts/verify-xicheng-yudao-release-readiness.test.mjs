@@ -52,6 +52,27 @@ function passedChecks(names) {
   return names.map((name) => ({ name, ok: true, detail: `${name} passed`, blockers: [] }))
 }
 
+function runGit(rootDir, args) {
+  const result = spawnSync('git', args, {
+    cwd: rootDir,
+    encoding: 'utf8'
+  })
+  if (result.status !== 0) {
+    throw new Error(`git ${args.join(' ')} failed: ${result.stderr || result.stdout}`)
+  }
+  return result.stdout.trim()
+}
+
+function initCleanGitRepo(rootDir) {
+  runGit(rootDir, ['init'])
+  runGit(rootDir, ['checkout', '-b', 'feature/xicheng-p0'])
+  runGit(rootDir, ['config', 'user.name', 'Xicheng Release Test'])
+  runGit(rootDir, ['config', 'user.email', 'xicheng-release@example.com'])
+  runGit(rootDir, ['add', '.'])
+  runGit(rootDir, ['commit', '-m', 'fixture'])
+  return runGit(rootDir, ['rev-parse', 'HEAD'])
+}
+
 function mergeEvidence(base, overrides = {}) {
   return {
     ...base,
@@ -345,6 +366,7 @@ describe('xicheng Yudao release readiness gate', () => {
       pendingPoiTasks: []
     })
     expect(result.checks.map((check) => check.name)).toEqual([
+      'release-source-revision',
       'runtime-env',
       'vector-embedding-runtime',
       'https-app-api-domain',
@@ -358,6 +380,34 @@ describe('xicheng Yudao release readiness gate', () => {
       'xicheng-production-poi',
       'xicheng-source-license'
     ])
+  })
+
+  test('fails closed when a git-backed release root has uncommitted changes', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    await initCleanGitRepo(rootDir)
+    await writeFile(path.join(rootDir, 'docs-dirty-release-note.md'), 'dirty release input\n')
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    const revisionCheck = result.checks.find((check) => check.name === 'release-source-revision')
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    expect(revisionCheck?.ok).toBe(false)
+    expect(revisionCheck?.summary).toMatchObject({
+      gitAvailable: true,
+      gitBranch: 'feature/xicheng-p0',
+      gitDirty: true,
+      gitDirtyFileCount: 1
+    })
+    expect(revisionCheck?.blockers.join('\n')).toContain('git worktree must be clean before release evidence generation')
   })
 
   test('fails closed when the deployable Yudao server jar artifact is missing', async () => {
@@ -873,7 +923,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidence.summary).toMatchObject({
       stage: 'production',
       status: 'NOT_READY',
-      totalChecks: 12
+      totalChecks: 13
     })
     expect(evidence.blockers.join('\n')).toContain('SPRING_PROFILES_ACTIVE must be production')
     expect(JSON.stringify(evidence)).not.toContain('prod-db-password')
@@ -941,6 +991,39 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidence.checks.find((check) => check.name === 'full-yudao-baseline')?.detail).toContain(externalBaselinePath)
   })
 
+  test('CLI release evidence records clean git source revision metadata', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const envPath = await writeEnvFile(rootDir, productionEnv())
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const gitCommit = initCleanGitRepo(rootDir)
+    const evidenceRelativePath = 'qa/xicheng-yudao-release-evidence.json'
+    const evidencePath = path.join(rootDir, evidenceRelativePath)
+
+    const result = spawnSync(process.execPath, [
+      path.resolve('scripts/verify-xicheng-yudao-release-readiness.mjs'),
+      '--root', rootDir,
+      '--stage', 'production',
+      '--env-file', envPath,
+      '--poi-manifest-evidence', manifestEvidencePath,
+      '--poi-workbook-evidence', workbookEvidencePath,
+      '--poi-seed-evidence', seedEvidencePath,
+      '--evidence-file', evidenceRelativePath
+    ], {
+      cwd: process.cwd(),
+      encoding: 'utf8'
+    })
+
+    expect(result.status).toBe(0)
+    const evidence = JSON.parse(await readFile(evidencePath, 'utf8'))
+    expect(evidence.summary).toMatchObject({
+      gitAvailable: true,
+      gitBranch: 'feature/xicheng-p0',
+      gitCommit,
+      gitDirty: false,
+      gitDirtyFileCount: 0
+    })
+  })
+
   test('rejects release evidence paths outside qa tmp or workbench', async () => {
     const rootDir = await createProductionReadyFixture()
     const envPath = await writeEnvFile(rootDir, productionEnv())
@@ -985,10 +1068,14 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(deployDoc).toContain('workbookPendingPoiCount')
     expect(deployDoc).toContain('pendingPoiTasks')
     expect(deployDoc).toContain('release evidence summary 会直接提升这些行级 POI 完成数')
+    expect(deployDoc).toContain('release-source-revision')
+    expect(deployDoc).toContain('summary.gitCommit')
     expect(statusDoc).toContain('workbookReadyPoiCount')
     expect(statusDoc).toContain('workbookPendingPoiCount')
     expect(statusDoc).toContain('pendingPoiTasks')
     expect(statusDoc).toContain('package summary 里直接展示 workbook 行级完成数')
+    expect(statusDoc).toContain('release-source-revision')
+    expect(statusDoc).toContain('summary.gitCommit')
     expect(deployDoc).toContain('seed evidence 的 `summary.sqlFile`')
     expect(deployDoc).toContain('sourceWorkbookSha256')
     expect(deployDoc).toContain('poiManifestSha256')

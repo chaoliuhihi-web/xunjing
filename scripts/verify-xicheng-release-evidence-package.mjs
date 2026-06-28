@@ -11,6 +11,7 @@ const defaultMaxEvidenceAgeHours = 24
 const allowedClockSkewMs = 5 * 60 * 1000
 
 const requiredReleaseChecks = [
+  'release-source-revision',
   'runtime-env',
   'vector-embedding-runtime',
   'https-app-api-domain',
@@ -446,6 +447,27 @@ async function checkReleaseServerArtifactHash(evidence) {
   return blockers
 }
 
+function checkReleaseSourceRevisionSummary(evidence) {
+  const blockers = []
+  const summary = summaryOf(evidence)
+  if (summary.gitAvailable !== true) {
+    blockers.push('release evidence summary.gitAvailable must be true')
+  }
+  if (!String(summary.gitBranch || '').trim()) {
+    blockers.push('release evidence summary.gitBranch is required')
+  }
+  if (!/^[a-f0-9]{40}$/i.test(String(summary.gitCommit || ''))) {
+    blockers.push('release evidence summary.gitCommit must be a 40-character git commit SHA')
+  }
+  if (summary.gitDirty !== false) {
+    blockers.push('release evidence summary.gitDirty must be false')
+  }
+  if (Number(summary.gitDirtyFileCount) !== 0) {
+    blockers.push('release evidence summary.gitDirtyFileCount must be 0')
+  }
+  return blockers
+}
+
 async function checkReleaseEvidence(ref, stage, freshnessOptions) {
   const blockers = []
   if (ref.error) {
@@ -474,6 +496,7 @@ async function checkReleaseEvidence(ref, stage, freshnessOptions) {
   if (Number(summary.failedChecks) !== 0 || Number(summary.blockerCount) !== 0) {
     blockers.push('release evidence summary must have zero failed checks and zero blockers')
   }
+  blockers.push(...checkReleaseSourceRevisionSummary(evidence))
   blockers.push(...await checkReleaseBaselineHash(evidence))
   blockers.push(...await checkReleaseServerArtifactHash(evidence))
   blockers.push(...checkEvidenceChecks(evidence, requiredReleaseChecks, 'release'))
