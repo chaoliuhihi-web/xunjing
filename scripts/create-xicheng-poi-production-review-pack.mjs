@@ -22,6 +22,7 @@ const defaultPaths = {
   reviewPacketFile: 'workbench/xicheng-production-pois.review-packet.json',
   workbookEvidenceFile: 'qa/xicheng-poi-review-workbook-evidence.json',
   reviewTasksFile: 'workbench/xicheng-poi-review-tasks.csv',
+  sourceReviewFile: 'workbench/xicheng-poi-source-review-summary.csv',
   reviewPackEvidenceFile: 'qa/xicheng-poi-production-review-pack-evidence.json'
 }
 
@@ -60,6 +61,80 @@ function resolveEvidenceFile(rootDir, filePath) {
   return resolvedFile
 }
 
+function csvCell(value) {
+  const text = String(value ?? '')
+  return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
+}
+
+function csvRow(values) {
+  return values.map(csvCell).join(',')
+}
+
+function sourceReviewKey(poi) {
+  const source = poi.source || {}
+  return [
+    String(source.sourceUrl || '').trim(),
+    String(source.sourceType || '').trim()
+  ].join('\n')
+}
+
+function buildSourceReviewGroups(manifest) {
+  const groups = new Map()
+  const pois = Array.isArray(manifest?.pois) ? manifest.pois : []
+  for (const poi of pois) {
+    const source = poi.source || {}
+    const key = sourceReviewKey(poi)
+    const group = groups.get(key) || {
+      sourceTitle: String(source.sourceTitle || '').trim(),
+      sourceUrl: String(source.sourceUrl || '').trim(),
+      sourceType: String(source.sourceType || '').trim(),
+      licenseStatuses: new Set(),
+      poiCodes: [],
+      poiNames: []
+    }
+    group.licenseStatuses.add(String(source.licenseStatus || '').trim())
+    group.poiCodes.push(poi.poiCode)
+    group.poiNames.push(poi.name || poi.displayName || '')
+    groups.set(key, group)
+  }
+  return Array.from(groups.values()).map((group) => ({
+    sourceTitle: group.sourceTitle,
+    sourceUrl: group.sourceUrl,
+    sourceType: group.sourceType,
+    poiCount: group.poiCodes.length,
+    poiCodes: group.poiCodes,
+    poiNames: group.poiNames,
+    licenseStatus: Array.from(group.licenseStatuses).filter(Boolean).join('|') || 'REVIEW_REQUIRED',
+    nextAction: 'Approve source license once per source group and attach non-local evidence refs to every POI row.'
+  }))
+}
+
+function buildSourceReviewCsv(groups) {
+  return [
+    csvRow(['sourceTitle', 'sourceUrl', 'sourceType', 'poiCount', 'poiCodes', 'poiNames', 'licenseStatus', 'nextAction']),
+    ...groups.map((group) => csvRow([
+      group.sourceTitle,
+      group.sourceUrl,
+      group.sourceType,
+      group.poiCount,
+      group.poiCodes.join('|'),
+      group.poiNames.join('|'),
+      group.licenseStatus,
+      group.nextAction
+    ]))
+  ].join('\n') + '\n'
+}
+
+function sourceReviewGroupBreakdown(groups) {
+  return groups.map((group) => ({
+    sourceTitle: group.sourceTitle,
+    sourceUrl: group.sourceUrl,
+    sourceType: group.sourceType,
+    poiCount: group.poiCount,
+    poiCodes: group.poiCodes
+  }))
+}
+
 export async function createXichengPoiProductionReviewPack({
   rootDir = process.cwd(),
   outputFile = defaultPaths.outputFile,
@@ -69,6 +144,7 @@ export async function createXichengPoiProductionReviewPack({
   reviewPacketFile = defaultPaths.reviewPacketFile,
   workbookEvidenceFile = defaultPaths.workbookEvidenceFile,
   reviewTasksFile = defaultPaths.reviewTasksFile,
+  sourceReviewFile = defaultPaths.sourceReviewFile,
   reviewPackEvidenceFile = defaultPaths.reviewPackEvidenceFile,
   count = 80
 } = {}) {
@@ -82,8 +158,14 @@ export async function createXichengPoiProductionReviewPack({
     reviewWorkbookFile,
     reviewPacketFile
   })
+  const resolvedOutputFile = resolveRootPath(resolvedRootDir, outputFile)
+  const manifest = JSON.parse(await readFile(resolvedOutputFile, 'utf8'))
   const resolvedReviewPacketFile = resolveRootPath(resolvedRootDir, reviewPacketFile)
   const reviewPacket = JSON.parse(await readFile(resolvedReviewPacketFile, 'utf8'))
+  const sourceReviewGroups = buildSourceReviewGroups(manifest)
+  const resolvedSourceReviewFile = resolveEvidenceFile(resolvedRootDir, sourceReviewFile)
+  await mkdir(path.dirname(resolvedSourceReviewFile), { recursive: true })
+  await writeFile(resolvedSourceReviewFile, buildSourceReviewCsv(sourceReviewGroups))
   const workbookGateReport = await verifyXichengPoiReviewWorkbook({
     rootDir: resolvedRootDir,
     workbookFile: reviewWorkbookFile,
@@ -116,6 +198,9 @@ export async function createXichengPoiProductionReviewPack({
       reviewTaskCount: reviewTaskReport.summary?.taskCount,
       reviewTaskOwnerLaneCounts: reviewTaskReport.summary?.ownerLaneCounts,
       reviewTaskOwnerLaneBreakdown: reviewTaskReport.summary?.ownerLaneBreakdown,
+      sourceReviewFile: resolvedSourceReviewFile,
+      sourceReviewGroupCount: sourceReviewGroups.length,
+      sourceReviewGroupBreakdown: sourceReviewGroupBreakdown(sourceReviewGroups),
       reviewPackEvidenceFile: resolvedReviewPackEvidenceFile,
       nextCommandCount: Array.isArray(reviewPacket.nextCommands)
         ? reviewPacket.nextCommands.length
@@ -146,6 +231,7 @@ async function runCli() {
     reviewPacketFile: readArgValue(args, '--review-packet') || defaultPaths.reviewPacketFile,
     workbookEvidenceFile: readArgValue(args, '--workbook-evidence') || defaultPaths.workbookEvidenceFile,
     reviewTasksFile: readArgValue(args, '--review-tasks') || defaultPaths.reviewTasksFile,
+    sourceReviewFile: readArgValue(args, '--source-review') || defaultPaths.sourceReviewFile,
     reviewPackEvidenceFile: readArgValue(args, '--evidence-file') || defaultPaths.reviewPackEvidenceFile,
     count: readArgValue(args, '--count') || 80
   })

@@ -45,6 +45,7 @@ describe('xicheng POI production review pack', () => {
     const reviewPacketFile = path.join(rootDir, 'workbench/xicheng-production-pois.review-packet.json')
     const workbookEvidenceFile = path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json')
     const reviewTasksFile = path.join(rootDir, 'workbench/xicheng-poi-review-tasks.csv')
+    const sourceReviewFile = path.join(rootDir, 'workbench/xicheng-poi-source-review-summary.csv')
     const reviewPackEvidenceFile = path.join(rootDir, 'qa/xicheng-poi-production-review-pack-evidence.json')
 
     expect(report).toMatchObject({
@@ -58,11 +59,26 @@ describe('xicheng POI production review pack', () => {
         reviewPacketFile,
         workbookEvidenceFile,
         reviewTasksFile,
+        sourceReviewFile,
         reviewPackEvidenceFile,
         poiSlots: 80,
         importedPoiCount: 80,
         todoPoiSlots: 0,
         productionReady: false,
+        sourceReviewGroupCount: 2,
+        sourceReviewGroupBreakdown: [
+          {
+            sourceUrl: 'https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html',
+            sourceType: 'OFFICIAL_PUBLIC',
+            poiCount: 24
+          },
+          {
+            sourceTitle: '西城区文物保护单位（81处）',
+            sourceUrl: 'https://www.bjxch.gov.cn/xcfw/whfw/xxxq/pnidpv736523.html',
+            sourceType: 'OFFICIAL_PUBLIC',
+            poiCount: 56
+          }
+        ],
         workbookGateStatus: 'NOT_READY',
         workbookReadyPoiCount: 0,
         workbookPendingPoiCount: 80,
@@ -142,6 +158,14 @@ describe('xicheng POI production review pack', () => {
     expect(reviewTasks).toContain('Approve source license and attach non-local source evidence.')
     expect(reviewTasks).toContain('sourceTitle|sourceUrl|sourceType|licenseStatus|licenseEvidenceRef|licenseReviewedBy|licenseReviewedAt')
 
+    const sourceReview = await readFile(sourceReviewFile, 'utf8')
+    expect(sourceReview).toContain('sourceTitle,sourceUrl,sourceType,poiCount,poiCodes,poiNames,licenseStatus,nextAction')
+    expect(sourceReview).toContain('https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html,OFFICIAL_PUBLIC,24')
+    expect(sourceReview).toContain('xicheng-baitasi|xicheng-emperors-temple')
+    expect(sourceReview).toContain('西城区文物保护单位（81处）,https://www.bjxch.gov.cn/xcfw/whfw/xxxq/pnidpv736523.html,OFFICIAL_PUBLIC,56')
+    expect(sourceReview).toContain('xicheng-heritage-001-sanguanmiao|xicheng-heritage-002-jingyesi')
+    expect(sourceReview).toContain('Approve source license once per source group and attach non-local evidence refs to every POI row.')
+
     const reviewPackEvidence = JSON.parse(await readFile(reviewPackEvidenceFile, 'utf8'))
     expect(reviewPackEvidence).toMatchObject({
       artifactType: 'xicheng-poi-production-review-pack',
@@ -151,6 +175,8 @@ describe('xicheng POI production review pack', () => {
         reviewPackEvidenceFile,
         workbookEvidenceFile,
         reviewTasksFile,
+        sourceReviewFile,
+        sourceReviewGroupCount: 2,
         workbookGateStatus: 'NOT_READY',
         reviewTaskStatus: 'REVIEW_TASKS_REQUIRED'
       }
@@ -182,14 +208,17 @@ describe('xicheng POI production review pack', () => {
     expect(deployDoc).toContain('npm run xunjing:xicheng:poi:review:pack')
     expect(deployDoc).toContain('qa/xicheng-poi-review-workbook-evidence.json')
     expect(deployDoc).toContain('workbench/xicheng-poi-review-tasks.csv')
+    expect(deployDoc).toContain('workbench/xicheng-poi-source-review-summary.csv')
     expect(deployDoc).toContain('--workbook-evidence qa/xicheng-poi-review-workbook-evidence.json')
     expect(deployDoc).toContain('--review-tasks workbench/xicheng-poi-review-tasks.csv')
+    expect(deployDoc).toContain('--source-review workbench/xicheng-poi-source-review-summary.csv')
     expect(deployDoc).toContain('--evidence-file qa/xicheng-poi-production-review-pack-evidence.json')
     expect(statusDoc).toContain('npm run xunjing:xicheng:poi:review:pack')
     expect(statusDoc).toContain('qa/xicheng-poi-production-review-pack-evidence.json')
     expect(statusDoc).toContain('workbookGateStatus')
     expect(statusDoc).toContain('reviewTaskStatus')
     expect(statusDoc).toContain('reviewTaskOwnerLaneBreakdown')
+    expect(statusDoc).toContain('sourceReviewGroupBreakdown')
     expect(deployDoc).toContain('reviewTaskOwnerLaneBreakdown')
   })
 })
