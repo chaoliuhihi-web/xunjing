@@ -21,8 +21,14 @@ for (const required of [
 
 assert.match(
   travelogue,
-  /isUnsafeSourceBlockedMaterial\s*=\s*\(material = \{\}\) => \{[\s\S]*const safetyStatus = String\(material\.safetyStatus \|\| ''\)\.toUpperCase\(\)[\s\S]*const hasReviewedSources = Array\.isArray\(material\.sources\) && material\.sources\.length > 0[\s\S]*return \['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\) && !hasReviewedSources/,
-  'Unsafe material helper should only reject BLOCKED or UNAVAILABLE materials when reviewed sources are absent'
+  /isUnsafeSourceBlockedMaterial\s*=\s*\(material = \{\}\) => \{[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(material\.safetyStatus\)[\s\S]*const hasReviewedSources = Array\.isArray\(material\.sources\) && material\.sources\.length > 0[\s\S]*return \['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\) && !hasReviewedSources/,
+  'Unsafe material helper should normalize legacy cached safetyStatus values before rejecting BLOCKED or UNAVAILABLE materials when reviewed sources are absent'
+)
+
+assert.doesNotMatch(
+  travelogue.match(/isUnsafeSourceBlockedMaterial\s*=\s*\(material = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || '',
+  /String\(material\.safetyStatus \|\| ''\)\.toUpperCase\(\)/,
+  'Unsafe material helper should not hand-roll safetyStatus normalization without trim support'
 )
 
 assert.match(

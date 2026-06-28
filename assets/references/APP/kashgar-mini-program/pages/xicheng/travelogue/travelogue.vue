@@ -350,7 +350,7 @@ import { requestCurrentLocationForTrigger } from '@/request/xunjing/trigger.js'
 import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 
 export const isUnsafeSourceBlockedMaterial = (material = {}) => {
-	const safetyStatus = String(material.safetyStatus || '').toUpperCase()
+	const safetyStatus = normalizeXichengSafetyStatus(material.safetyStatus)
 	const hasReviewedSources = Array.isArray(material.sources) && material.sources.length > 0
 	return ['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus) && !hasReviewedSources
 }
