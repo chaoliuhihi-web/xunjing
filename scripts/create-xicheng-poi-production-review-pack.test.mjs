@@ -66,7 +66,39 @@ describe('xicheng POI production review pack', () => {
         workbookGateStatus: 'NOT_READY',
         workbookReadyPoiCount: 0,
         workbookPendingPoiCount: 80,
-        reviewTaskStatus: 'REVIEW_TASKS_REQUIRED'
+        reviewTaskStatus: 'REVIEW_TASKS_REQUIRED',
+        reviewTaskOwnerLaneCounts: {
+          'source-license': 80,
+          'field-review': 80,
+          'content-audit': 80,
+          cleanup: 80
+        },
+        reviewTaskOwnerLaneBreakdown: [
+          {
+            ownerLane: 'cleanup',
+            taskCount: 80,
+            poiCount: 80,
+            blockerGroups: ['no-placeholder-cells']
+          },
+          {
+            ownerLane: 'content-audit',
+            taskCount: 80,
+            poiCount: 80,
+            blockerGroups: ['poi-content-audit']
+          },
+          {
+            ownerLane: 'field-review',
+            taskCount: 80,
+            poiCount: 80,
+            blockerGroups: ['poi-field-evidence']
+          },
+          {
+            ownerLane: 'source-license',
+            taskCount: 80,
+            poiCount: 80,
+            blockerGroups: ['poi-source-license']
+          }
+        ]
       }
     })
     expect(report.blockers).toContain('review workbook still contains TODO or REVIEW_REQUIRED placeholders')
@@ -157,5 +189,7 @@ describe('xicheng POI production review pack', () => {
     expect(statusDoc).toContain('qa/xicheng-poi-production-review-pack-evidence.json')
     expect(statusDoc).toContain('workbookGateStatus')
     expect(statusDoc).toContain('reviewTaskStatus')
+    expect(statusDoc).toContain('reviewTaskOwnerLaneBreakdown')
+    expect(deployDoc).toContain('reviewTaskOwnerLaneBreakdown')
   })
 })

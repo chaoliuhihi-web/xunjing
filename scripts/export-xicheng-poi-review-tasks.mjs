@@ -112,6 +112,36 @@ function summarizeOwnerLanes(taskRows) {
   }, {})
 }
 
+function sortedUnique(values) {
+  return [...new Set(values.filter((value) => String(value || '').trim().length > 0))]
+    .sort((left, right) => String(left).localeCompare(String(right)))
+}
+
+function summarizeOwnerLaneBreakdown(taskRows) {
+  const byLane = new Map()
+  taskRows.forEach((row) => {
+    const ownerLane = row.ownerLane || 'manual-review'
+    if (!byLane.has(ownerLane)) {
+      byLane.set(ownerLane, {
+        ownerLane,
+        rows: []
+      })
+    }
+    byLane.get(ownerLane).rows.push(row)
+  })
+
+  return [...byLane.values()]
+    .sort((left, right) => left.ownerLane.localeCompare(right.ownerLane))
+    .map((item) => ({
+      ownerLane: item.ownerLane,
+      taskCount: item.rows.length,
+      poiCount: sortedUnique(item.rows.map((row) => row.poiCode)).length,
+      poiCodes: sortedUnique(item.rows.map((row) => row.poiCode)),
+      blockerGroups: sortedUnique(item.rows.map((row) => row.blockerGroup)),
+      workbookColumns: sortedUnique(item.rows.map((row) => row.workbookColumns))
+    }))
+}
+
 function buildCsv(taskRows) {
   const header = [
     'workbookRowNumber',
@@ -162,6 +192,7 @@ export async function exportXichengPoiReviewTasks({
 
   const taskRows = buildTaskRows(evidence, resolvedEvidenceFile)
   const ownerLaneCounts = summarizeOwnerLanes(taskRows)
+  const ownerLaneBreakdown = summarizeOwnerLaneBreakdown(taskRows)
   await mkdir(path.dirname(resolvedOutputFile), { recursive: true })
   await writeFile(resolvedOutputFile, buildCsv(taskRows))
 
@@ -176,7 +207,8 @@ export async function exportXichengPoiReviewTasks({
       outputFile: resolvedOutputFile,
       pendingPoiCount: Number(evidence.summary?.workbookPendingPoiCount || 0),
       taskCount: taskRows.length,
-      ownerLaneCounts
+      ownerLaneCounts,
+      ownerLaneBreakdown
     },
     tasks: taskRows,
     blockers: ok ? [] : [

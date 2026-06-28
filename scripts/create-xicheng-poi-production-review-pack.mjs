@@ -114,6 +114,8 @@ export async function createXichengPoiProductionReviewPack({
       reviewTasksFile: resolvedReviewTasksFile,
       reviewTaskStatus: reviewTaskReport.status,
       reviewTaskCount: reviewTaskReport.summary?.taskCount,
+      reviewTaskOwnerLaneCounts: reviewTaskReport.summary?.ownerLaneCounts,
+      reviewTaskOwnerLaneBreakdown: reviewTaskReport.summary?.ownerLaneBreakdown,
       reviewPackEvidenceFile: resolvedReviewPackEvidenceFile,
       nextCommandCount: Array.isArray(reviewPacket.nextCommands)
         ? reviewPacket.nextCommands.length

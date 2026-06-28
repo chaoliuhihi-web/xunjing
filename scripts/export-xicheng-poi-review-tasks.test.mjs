@@ -84,7 +84,33 @@ describe('xicheng POI review task export', () => {
           'data-review': 1,
           'source-license': 1,
           cleanup: 1
-        }
+        },
+        ownerLaneBreakdown: [
+          {
+            ownerLane: 'cleanup',
+            taskCount: 1,
+            poiCount: 1,
+            poiCodes: ['TODO-xicheng-poi-080'],
+            blockerGroups: ['no-placeholder-cells'],
+            workbookColumns: ['all columns']
+          },
+          {
+            ownerLane: 'data-review',
+            taskCount: 1,
+            poiCount: 1,
+            poiCodes: ['TODO-xicheng-poi-080'],
+            blockerGroups: ['poi-identity'],
+            workbookColumns: ['poiCode|name|displayName|aliases|category|priority|address']
+          },
+          {
+            ownerLane: 'source-license',
+            taskCount: 1,
+            poiCount: 1,
+            poiCodes: ['TODO-xicheng-poi-080'],
+            blockerGroups: ['poi-source-license'],
+            workbookColumns: ['sourceTitle|sourceUrl|sourceType|licenseStatus|licenseEvidenceRef|licenseReviewedBy|licenseReviewedAt']
+          }
+        ]
       }
     })
 
@@ -125,7 +151,8 @@ describe('xicheng POI review task export', () => {
       summary: {
         pendingPoiCount: 0,
         taskCount: 0,
-        ownerLaneCounts: {}
+        ownerLaneCounts: {},
+        ownerLaneBreakdown: []
       }
     })
     expect(await readFile(path.join(rootDir, 'workbench/xicheng-poi-review-tasks.csv'), 'utf8')).toBe(
