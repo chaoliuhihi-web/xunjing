@@ -84,6 +84,13 @@ const requiredRuntimeSeedEvidenceChecks = [
   'secret-redaction'
 ]
 
+const requiredProductionSeedApplyEvidenceChecks = [
+  'seed-evidence',
+  'mysql-apply',
+  'runtime-seed-production-readiness',
+  'secret-redaction'
+]
+
 const secretEvidenceKeys = [
   'MYSQL_PASSWORD',
   'REDIS_PASSWORD',
@@ -1228,6 +1235,115 @@ async function checkXichengRuntimeSeedEvidence({
   }
 }
 
+async function checkXichengProductionSeedApplyEvidence({
+  rootDir,
+  productionSeedApplyEvidencePath,
+  poiSeedEvidencePath,
+  runtimeSeedEvidencePath,
+  env,
+  freshnessOptions
+}) {
+  const ref = await loadEvidenceInput(rootDir, productionSeedApplyEvidencePath)
+  const blockers = []
+  const expectedSeedEvidenceFile = normalizeEvidencePath(rootDir, poiSeedEvidencePath)
+  const expectedRuntimeEvidenceFile = normalizeEvidencePath(rootDir, runtimeSeedEvidencePath)
+
+  if (!ref.path) {
+    blockers.push('Yudao production seed apply evidence is required before production release')
+  } else if (ref.error) {
+    blockers.push(`Yudao production seed apply evidence cannot be read: ${ref.error}`)
+  } else {
+    const evidence = ref.data || {}
+    const summary = evidenceSummary(evidence)
+    if (evidence.artifactType !== 'xicheng-yudao-production-seed-apply') {
+      blockers.push('production seed apply evidence artifactType must be xicheng-yudao-production-seed-apply')
+    }
+    blockers.push(...checkEvidenceTimestamp(evidence, 'production seed apply', freshnessOptions))
+    if (evidence.ok !== true) {
+      blockers.push('production seed apply evidence ok must be true')
+    }
+    if (evidence.status !== 'YUDAO_XICHENG_PRODUCTION_SEED_APPLIED') {
+      blockers.push('production seed apply evidence status must be YUDAO_XICHENG_PRODUCTION_SEED_APPLIED')
+    }
+    if (String(summary.targetTenantId || '') !== String(env.XUNJING_TENANT_ID || '')) {
+      blockers.push('production seed apply evidence targetTenantId must match XUNJING_TENANT_ID')
+    }
+    if (String(summary.targetDatabase || '') !== String(env.MYSQL_DATABASE || '')) {
+      blockers.push('production seed apply evidence targetDatabase must match MYSQL_DATABASE')
+    }
+    if (summary.regionCode !== expectedXichengRegionCode) {
+      blockers.push('production seed apply evidence regionCode must be beijing-xicheng')
+    }
+    if (summary.packageCode !== expectedXichengPackageCode) {
+      blockers.push('production seed apply evidence packageCode must be XICHENG-MAP-001')
+    }
+    if (expectedSeedEvidenceFile && normalizeEvidencePath(rootDir, summary.seedEvidenceFile) !== expectedSeedEvidenceFile) {
+      blockers.push('production seed apply evidence seedEvidenceFile must match --poi-seed-evidence')
+    }
+    if (expectedRuntimeEvidenceFile && normalizeEvidencePath(rootDir, summary.runtimeEvidenceFile) !== expectedRuntimeEvidenceFile) {
+      blockers.push('production seed apply evidence runtimeEvidenceFile must match --runtime-seed-evidence')
+    }
+    if (ref.path && normalizeEvidencePath(rootDir, summary.applyEvidenceFile) !== ref.path) {
+      blockers.push('production seed apply evidence applyEvidenceFile must match the evidence file path')
+    }
+    if (!/^[a-f0-9]{64}$/.test(String(summary.seedSqlSha256 || ''))) {
+      blockers.push('production seed apply evidence seedSqlSha256 must be a sha256 hex digest')
+    }
+    if (summary.runtimeSeedStatus !== 'YUDAO_XICHENG_PRODUCTION_SEED_READY') {
+      blockers.push('production seed apply evidence runtimeSeedStatus must be YUDAO_XICHENG_PRODUCTION_SEED_READY')
+    }
+    if (summary.runtimeSeedProductionReady !== true) {
+      blockers.push('production seed apply evidence runtimeSeedProductionReady must be true')
+    }
+    if (Number(summary.runtimeSeedPoiTotal) < productionPoiTarget) {
+      blockers.push(`production seed apply evidence runtimeSeedPoiTotal must be at least ${productionPoiTarget}`)
+    }
+    if (Number(summary.runtimeSeedKnowledgeDocuments) < productionPoiTarget + 4) {
+      blockers.push('production seed apply evidence runtimeSeedKnowledgeDocuments must be at least 84')
+    }
+    if (Number(summary.runtimeSeedMapPoints) < productionPoiTarget) {
+      blockers.push(`production seed apply evidence runtimeSeedMapPoints must be at least ${productionPoiTarget}`)
+    }
+    blockers.push(...checkEvidenceChecks(evidence, requiredProductionSeedApplyEvidenceChecks, 'production seed apply'))
+    const leakedKeys = evidenceSecretLeaks(evidence, env)
+    if (leakedKeys.length > 0) {
+      blockers.push(`production seed apply evidence must not contain secret values: ${leakedKeys.join(', ')}`)
+    }
+    if (!hasNoEvidenceBlockers(evidence)) {
+      blockers.push(`production seed apply evidence contains blockers: ${evidence.blockers.join('; ')}`)
+    }
+  }
+
+  const summary = evidenceSummary(ref.data)
+  return {
+    ...check(
+      'xicheng-production-seed-apply',
+      blockers.length === 0,
+      blockers.length === 0
+        ? `Yudao production seed apply evidence is ready: ${ref.path}`
+        : blockers.join('; '),
+      blockers
+    ),
+    summary: {
+      productionSeedApplyEvidenceFile: ref.path,
+      productionSeedApplyCheckedAt: ref.data?.checkedAt,
+      productionSeedApplySeedSqlFile: summary.seedSqlFile,
+      productionSeedApplySeedSqlSha256: summary.seedSqlSha256,
+      productionSeedApplySeedEvidenceFile: summary.seedEvidenceFile,
+      productionSeedApplyRuntimeEvidenceFile: summary.runtimeEvidenceFile,
+      productionSeedApplyTargetTenantId: summary.targetTenantId,
+      productionSeedApplyTargetDatabase: summary.targetDatabase,
+      productionSeedApplyPackageCode: summary.packageCode,
+      productionSeedApplyRegionCode: summary.regionCode,
+      productionSeedApplyRuntimeSeedStatus: summary.runtimeSeedStatus,
+      productionSeedApplyRuntimeSeedProductionReady: summary.runtimeSeedProductionReady,
+      productionSeedApplyRuntimeSeedPoiTotal: summary.runtimeSeedPoiTotal,
+      productionSeedApplyRuntimeSeedKnowledgeDocuments: summary.runtimeSeedKnowledgeDocuments,
+      productionSeedApplyRuntimeSeedMapPoints: summary.runtimeSeedMapPoints
+    }
+  }
+}
+
 function normalizeEvidencePath(rootDir, filePath) {
   if (!hasValue(filePath)) {
     return undefined
@@ -1444,6 +1560,7 @@ export async function verifyXichengYudaoReleaseReadiness({
   visionOcrEvidencePath,
   objectStorageEvidencePath,
   runtimeSeedEvidencePath,
+  productionSeedApplyEvidencePath,
   poiManifestEvidencePath,
   poiWorkbookEvidencePath,
   poiSeedEvidencePath,
@@ -1505,6 +1622,14 @@ export async function verifyXichengYudaoReleaseReadiness({
       env,
       freshnessOptions
     }),
+    await checkXichengProductionSeedApplyEvidence({
+      rootDir,
+      productionSeedApplyEvidencePath,
+      poiSeedEvidencePath,
+      runtimeSeedEvidencePath,
+      env,
+      freshnessOptions
+    }),
     await checkXichengProductionPoi(rootDir, productionPoiSeedSqlPath),
     await checkXichengSourceLicense(rootDir, productionPoiSeedSqlPath)
   ]
@@ -1556,6 +1681,7 @@ function buildReleaseEvidence(result) {
   const serverArtifactSummary = result.checks.find((item) => item.name === 'yudao-server-artifact')?.summary || {}
   const productionPoiEvidenceSummary = result.checks.find((item) => item.name === 'xicheng-production-poi-evidence')?.summary || {}
   const runtimeSeedSummary = result.checks.find((item) => item.name === 'xicheng-runtime-seed-evidence')?.summary || {}
+  const productionSeedApplySummary = result.checks.find((item) => item.name === 'xicheng-production-seed-apply')?.summary || {}
   return {
     artifactType: 'xicheng-yudao-release-readiness',
     summary: {
@@ -1574,6 +1700,7 @@ function buildReleaseEvidence(result) {
       ...serverArtifactSummary,
       ...productionPoiEvidenceSummary,
       ...runtimeSeedSummary,
+      ...productionSeedApplySummary,
       ...result.runtimeEnvSummary
     },
     ...result
@@ -1623,6 +1750,9 @@ async function runCli() {
       env.XICHENG_OBJECT_STORAGE_EVIDENCE,
     runtimeSeedEvidencePath: readArgValue(args, '--runtime-seed-evidence') ||
       env.XICHENG_RUNTIME_SEED_EVIDENCE,
+    productionSeedApplyEvidencePath: readArgValue(args, '--production-seed-apply-evidence') ||
+      readArgValue(args, '--seed-apply-evidence') ||
+      env.XICHENG_PRODUCTION_SEED_APPLY_EVIDENCE,
     poiManifestEvidencePath: readArgValue(args, '--poi-manifest-evidence') ||
       process.env.XICHENG_POI_MANIFEST_EVIDENCE,
     poiWorkbookEvidencePath: readArgValue(args, '--poi-workbook-evidence') ||

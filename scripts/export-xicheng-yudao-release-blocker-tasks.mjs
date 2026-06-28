@@ -29,6 +29,7 @@ const checkOwnerLane = {
   'yudao-server-artifact': 'yudao-deploy',
   'xicheng-production-poi-evidence': 'poi-data',
   'xicheng-runtime-seed-evidence': 'poi-data',
+  'xicheng-production-seed-apply': 'poi-data',
   'xicheng-production-poi': 'poi-data',
   'xicheng-source-license': 'poi-data'
 }
@@ -108,6 +109,11 @@ const checkTaskInstructions = {
   'xicheng-runtime-seed-evidence': {
     taskDetail: 'Apply the approved Xicheng production seed to the target Yudao database and provide runtime seed evidence.',
     requiredEvidence: 'Production seed apply outputs YUDAO_XICHENG_PRODUCTION_SEED_APPLIED and writes YUDAO_XICHENG_PRODUCTION_SEED_READY runtime evidence.',
+    verificationCommand: productionSeedApplyCommand
+  },
+  'xicheng-production-seed-apply': {
+    taskDetail: 'Run the controlled production seed apply command and provide apply evidence tied to the runtime seed evidence.',
+    requiredEvidence: 'Release evidence records productionSeedApplyEvidenceFile with YUDAO_XICHENG_PRODUCTION_SEED_APPLIED and matching runtimeEvidenceFile.',
     verificationCommand: productionSeedApplyCommand
   },
   'xicheng-production-poi': {

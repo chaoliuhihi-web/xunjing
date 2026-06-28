@@ -25,6 +25,7 @@ const requiredReleaseChecks = [
   'yudao-server-artifact',
   'xicheng-production-poi-evidence',
   'xicheng-runtime-seed-evidence',
+  'xicheng-production-seed-apply',
   'xicheng-production-poi',
   'xicheng-source-license'
 ]
@@ -608,6 +609,55 @@ function checkReleaseRuntimeSeedSummary(evidence) {
   return blockers
 }
 
+function checkReleaseProductionSeedApplySummary(evidence) {
+  const blockers = []
+  const summary = summaryOf(evidence)
+  if (!hasText(summary.productionSeedApplyEvidenceFile)) {
+    blockers.push('release evidence productionSeedApplyEvidenceFile is required')
+  }
+  if (!hasText(summary.productionSeedApplySeedEvidenceFile)) {
+    blockers.push('release evidence productionSeedApplySeedEvidenceFile is required')
+  }
+  if (!hasText(summary.productionSeedApplyRuntimeEvidenceFile)) {
+    blockers.push('release evidence productionSeedApplyRuntimeEvidenceFile is required')
+  }
+  if (
+    hasText(summary.runtimeSeedEvidenceFile) &&
+    hasText(summary.productionSeedApplyRuntimeEvidenceFile) &&
+    normalizeEvidencePath(process.cwd(), summary.productionSeedApplyRuntimeEvidenceFile) !==
+      normalizeEvidencePath(process.cwd(), summary.runtimeSeedEvidenceFile)
+  ) {
+    blockers.push('release evidence productionSeedApplyRuntimeEvidenceFile must match runtimeSeedEvidenceFile')
+  }
+  if (
+    hasText(summary.seedEvidenceFile) &&
+    hasText(summary.productionSeedApplySeedEvidenceFile) &&
+    normalizeEvidencePath(process.cwd(), summary.productionSeedApplySeedEvidenceFile) !==
+      normalizeEvidencePath(process.cwd(), summary.seedEvidenceFile)
+  ) {
+    blockers.push('release evidence productionSeedApplySeedEvidenceFile must match seedEvidenceFile')
+  }
+  if (!/^[a-f0-9]{64}$/i.test(String(summary.productionSeedApplySeedSqlSha256 || ''))) {
+    blockers.push('release evidence productionSeedApplySeedSqlSha256 must be a sha256 hex digest')
+  }
+  if (summary.productionSeedApplyRuntimeSeedStatus !== 'YUDAO_XICHENG_PRODUCTION_SEED_READY') {
+    blockers.push('release evidence productionSeedApplyRuntimeSeedStatus must be YUDAO_XICHENG_PRODUCTION_SEED_READY')
+  }
+  if (summary.productionSeedApplyRuntimeSeedProductionReady !== true) {
+    blockers.push('release evidence productionSeedApplyRuntimeSeedProductionReady must be true')
+  }
+  if (Number(summary.productionSeedApplyRuntimeSeedPoiTotal) < productionPoiTarget) {
+    blockers.push(`release evidence productionSeedApplyRuntimeSeedPoiTotal must be at least ${productionPoiTarget}`)
+  }
+  if (Number(summary.productionSeedApplyRuntimeSeedKnowledgeDocuments) < productionPoiTarget + 4) {
+    blockers.push('release evidence productionSeedApplyRuntimeSeedKnowledgeDocuments must be at least 84')
+  }
+  if (Number(summary.productionSeedApplyRuntimeSeedMapPoints) < productionPoiTarget) {
+    blockers.push(`release evidence productionSeedApplyRuntimeSeedMapPoints must be at least ${productionPoiTarget}`)
+  }
+  return blockers
+}
+
 async function checkReleaseEvidence(ref, stage, freshnessOptions) {
   const blockers = []
   if (ref.error) {
@@ -643,6 +693,7 @@ async function checkReleaseEvidence(ref, stage, freshnessOptions) {
   blockers.push(...checkReleaseRuntimeEnvFingerprintSummary(evidence))
   blockers.push(...checkReleaseProviderSmokeSummary(evidence))
   blockers.push(...checkReleaseRuntimeSeedSummary(evidence))
+  blockers.push(...checkReleaseProductionSeedApplySummary(evidence))
   blockers.push(...await checkReleaseBaselineHash(evidence))
   blockers.push(...await checkReleaseServerArtifactHash(evidence))
   blockers.push(...checkEvidenceChecks(evidence, requiredReleaseChecks, 'release'))

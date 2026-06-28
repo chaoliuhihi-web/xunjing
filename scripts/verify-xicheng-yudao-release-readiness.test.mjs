@@ -438,6 +438,54 @@ async function writeRuntimeSeedEvidence(rootDir, overrides = {}) {
   return evidencePath
 }
 
+async function writeProductionSeedApplyEvidence(rootDir, {
+  seedEvidencePath = path.join(rootDir, 'qa/xicheng-poi-production-seed-evidence.json'),
+  runtimeSeedEvidencePath = path.join(rootDir, 'qa/xicheng-yudao-runtime-seed-production-evidence.json'),
+  overrides = {}
+} = {}) {
+  const evidencePath = path.join(rootDir, 'qa/xicheng-yudao-production-seed-apply-evidence.json')
+  await mkdir(path.dirname(evidencePath), { recursive: true })
+  const seedEvidence = JSON.parse(await readFile(seedEvidencePath, 'utf8'))
+  const runtimeEvidence = JSON.parse(await readFile(runtimeSeedEvidencePath, 'utf8'))
+  const seedSummary = seedEvidence.summary || {}
+  const runtimeSummary = runtimeEvidence.summary || {}
+  const evidence = mergeEvidence({
+    artifactType: 'xicheng-yudao-production-seed-apply',
+    ok: true,
+    status: 'YUDAO_XICHENG_PRODUCTION_SEED_APPLIED',
+    checkedAt: freshCheckedAt(),
+    summary: {
+      seedSqlFile: seedSummary.sqlFile,
+      seedSqlSha256: seedSummary.sqlSha256,
+      seedEvidenceFile: seedEvidencePath,
+      runtimeEvidenceFile: runtimeSeedEvidencePath,
+      applyEvidenceFile: evidencePath,
+      mysqlClient: 'container',
+      targetTenantId: '1001',
+      targetDatabase: 'yudao_xinghe_xunjing_prod',
+      packageCode: 'XICHENG-MAP-001',
+      regionCode: 'beijing-xicheng',
+      poiCount: 80,
+      reviewBatchCode: seedSummary.reviewBatchCode,
+      reviewBatchEvidencePackageRef: seedSummary.reviewBatchEvidencePackageRef,
+      runtimeSeedStatus: runtimeEvidence.status,
+      runtimeSeedProductionReady: runtimeSummary.productionReady,
+      runtimeSeedPoiTotal: runtimeSummary.poiTotal,
+      runtimeSeedKnowledgeDocuments: runtimeSummary.knowledgeDocuments,
+      runtimeSeedMapPoints: runtimeSummary.mapPoints
+    },
+    checks: passedChecks([
+      'seed-evidence',
+      'mysql-apply',
+      'runtime-seed-production-readiness',
+      'secret-redaction'
+    ]),
+    blockers: []
+  }, overrides)
+  await writeFile(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`)
+  return evidencePath
+}
+
 afterEach(async () => {
   while (tempDirs.length > 0) {
     await rm(tempDirs.pop(), { recursive: true, force: true })
@@ -495,6 +543,10 @@ describe('xicheng Yudao release readiness gate', () => {
     const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
     const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
     const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
 
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
@@ -504,6 +556,7 @@ describe('xicheng Yudao release readiness gate', () => {
       visionOcrEvidencePath,
       objectStorageEvidencePath,
       runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
       poiManifestEvidencePath: manifestEvidencePath,
       poiWorkbookEvidencePath: workbookEvidencePath,
       poiSeedEvidencePath: seedEvidencePath
@@ -541,6 +594,13 @@ describe('xicheng Yudao release readiness gate', () => {
       runtimeSeedGeoReviewRequiredPoiCodes: [],
       runtimeSeedLicenseReviewRequiredPoiCodes: []
     })
+    expect(result.checks.find((check) => check.name === 'xicheng-production-seed-apply')?.summary).toMatchObject({
+      productionSeedApplyEvidenceFile: productionSeedApplyEvidencePath,
+      productionSeedApplySeedEvidenceFile: seedEvidencePath,
+      productionSeedApplyRuntimeEvidenceFile: runtimeSeedEvidencePath,
+      productionSeedApplyRuntimeSeedStatus: 'YUDAO_XICHENG_PRODUCTION_SEED_READY',
+      productionSeedApplyRuntimeSeedProductionReady: true
+    })
     expect(result.checks.map((check) => check.name)).toEqual([
       'release-source-revision',
       'runtime-env',
@@ -555,6 +615,7 @@ describe('xicheng Yudao release readiness gate', () => {
       'yudao-server-artifact',
       'xicheng-production-poi-evidence',
       'xicheng-runtime-seed-evidence',
+      'xicheng-production-seed-apply',
       'xicheng-production-poi',
       'xicheng-source-license'
     ])
@@ -584,6 +645,34 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(result.status).toBe('NOT_READY')
     expect(runtimeSeedCheck?.ok).toBe(false)
     expect(runtimeSeedCheck?.blockers.join('\n')).toContain('Yudao runtime production seed evidence is required before production release')
+  })
+
+  test('fails closed when production seed apply evidence is missing', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
+    const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
+    const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      aiBootstrapEvidencePath,
+      visionOcrEvidencePath,
+      objectStorageEvidencePath,
+      runtimeSeedEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    const seedApplyCheck = result.checks.find((check) => check.name === 'xicheng-production-seed-apply')
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    expect(seedApplyCheck?.ok).toBe(false)
+    expect(seedApplyCheck?.blockers.join('\n')).toContain('Yudao production seed apply evidence is required before production release')
   })
 
   test('fails closed when a git-backed release root has uncommitted changes', async () => {
@@ -680,6 +769,10 @@ describe('xicheng Yudao release readiness gate', () => {
     const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
     const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
     const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
 
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
@@ -690,6 +783,7 @@ describe('xicheng Yudao release readiness gate', () => {
       visionOcrEvidencePath,
       objectStorageEvidencePath,
       runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
       poiManifestEvidencePath: manifestEvidencePath,
       poiWorkbookEvidencePath: workbookEvidencePath,
       poiSeedEvidencePath: seedEvidencePath
@@ -726,6 +820,10 @@ describe('xicheng Yudao release readiness gate', () => {
     const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
     const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
     const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
 
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
@@ -736,6 +834,7 @@ describe('xicheng Yudao release readiness gate', () => {
       visionOcrEvidencePath,
       objectStorageEvidencePath,
       runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
       poiManifestEvidencePath: manifestEvidencePath,
       poiWorkbookEvidencePath: workbookEvidencePath,
       poiSeedEvidencePath: seedEvidencePath
@@ -807,6 +906,10 @@ describe('xicheng Yudao release readiness gate', () => {
     const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
     const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
     const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
 
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
@@ -816,6 +919,7 @@ describe('xicheng Yudao release readiness gate', () => {
       visionOcrEvidencePath,
       objectStorageEvidencePath,
       runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
       poiManifestEvidencePath: manifestEvidencePath,
       poiWorkbookEvidencePath: workbookEvidencePath,
       poiSeedEvidencePath: seedEvidencePath
@@ -1270,7 +1374,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidence.summary).toMatchObject({
       stage: 'production',
       status: 'NOT_READY',
-      totalChecks: 15,
+      totalChecks: 16,
       appApiBaseUrl: 'http://127.0.0.1:48080',
       runtimeEnvFingerprintMode: 'redacted-runtime-env-v1',
       runtimeEnvRequiredKeyCount: expect.any(Number),
@@ -1305,6 +1409,10 @@ describe('xicheng Yudao release readiness gate', () => {
     const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
     const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
     const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
     const evidenceRelativePath = 'qa/xicheng-yudao-release-evidence.json'
     const evidencePath = path.join(rootDir, evidenceRelativePath)
 
@@ -1319,6 +1427,7 @@ describe('xicheng Yudao release readiness gate', () => {
       '--vision-ocr-evidence', visionOcrEvidencePath,
       '--object-storage-evidence', objectStorageEvidencePath,
       '--runtime-seed-evidence', runtimeSeedEvidencePath,
+      '--production-seed-apply-evidence', productionSeedApplyEvidencePath,
       '--poi-manifest-evidence', manifestEvidencePath,
       '--poi-workbook-evidence', workbookEvidencePath,
       '--poi-seed-evidence', seedEvidencePath,
@@ -1346,6 +1455,9 @@ describe('xicheng Yudao release readiness gate', () => {
       runtimeSeedEvidenceFile: runtimeSeedEvidencePath,
       runtimeSeedReadinessMode: 'production',
       runtimeSeedProductionReady: true,
+      productionSeedApplyEvidenceFile: productionSeedApplyEvidencePath,
+      productionSeedApplyRuntimeEvidenceFile: runtimeSeedEvidencePath,
+      productionSeedApplyRuntimeSeedStatus: 'YUDAO_XICHENG_PRODUCTION_SEED_READY',
       manifestEvidenceFile: manifestEvidencePath,
       workbookEvidenceFile: workbookEvidencePath,
       seedEvidenceFile: seedEvidencePath,
@@ -1376,6 +1488,10 @@ describe('xicheng Yudao release readiness gate', () => {
     const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
     const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
     const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
     const gitCommit = initCleanGitRepo(rootDir)
     const evidenceRelativePath = 'qa/xicheng-yudao-release-evidence.json'
     const evidencePath = path.join(rootDir, evidenceRelativePath)
@@ -1389,6 +1505,7 @@ describe('xicheng Yudao release readiness gate', () => {
       '--vision-ocr-evidence', visionOcrEvidencePath,
       '--object-storage-evidence', objectStorageEvidencePath,
       '--runtime-seed-evidence', runtimeSeedEvidencePath,
+      '--production-seed-apply-evidence', productionSeedApplyEvidencePath,
       '--poi-manifest-evidence', manifestEvidencePath,
       '--poi-workbook-evidence', workbookEvidencePath,
       '--poi-seed-evidence', seedEvidencePath,
