@@ -351,8 +351,7 @@ import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 
 export const isUnsafeSourceBlockedMaterial = (material = {}) => {
 	const safetyStatus = normalizeXichengSafetyStatus(material.safetyStatus)
-	const hasReviewedSources = Array.isArray(material.sources) && material.sources.length > 0
-	return ['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus) && !hasReviewedSources
+	return ['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)
 }
 
 export const hasReviewableMaterialEvidence = (material = {}) => {
@@ -366,6 +365,11 @@ export const hasReviewableMaterialEvidence = (material = {}) => {
 		|| material.aiAnswerExcerpt
 		|| ['photo', 'remark', 'manual-entry'].includes(material.type)
 	)
+}
+
+export const getReviewableMaterialSources = (material = {}) => {
+	if (!hasReviewableMaterialEvidence(material)) return []
+	return Array.isArray(material.sources) ? material.sources : []
 }
 
 export const hasXichengTravelogueDraftEvidence = ({
@@ -565,7 +569,7 @@ export default {
 		},
 		sourceCount() {
 			return this.materials.reduce((total, material) => {
-				return total + (Array.isArray(material.sources) ? material.sources.length : 0)
+				return total + getReviewableMaterialSources(material).length
 			}, 0)
 		},
 		completedTaskCount() {
@@ -1613,7 +1617,7 @@ export default {
 				remarkExcerpt: String(material.remarkText || '').slice(0, 80),
 				hasPhoto: Boolean(material.imagePath),
 				routeRecommendation: this.sanitizeRouteRecommendationForPublicShare(material.routeRecommendation),
-				sourceCount: Array.isArray(material.sources) ? material.sources.length : 0,
+				sourceCount: getReviewableMaterialSources(material).length,
 				safetyStatus: normalizeXichengSafetyStatus(material.safetyStatus),
 				publicLocationLabel: material.publicLocationLabel || this.createPublicLocationLabel(material),
 				locationHidden: true,
@@ -1750,7 +1754,7 @@ export default {
 			this.materials
 				.filter(material => hasReviewableMaterialEvidence(material))
 				.forEach((material = {}, materialIndex) => {
-					const materialSources = Array.isArray(material.sources) ? material.sources : []
+					const materialSources = getReviewableMaterialSources(material)
 					materialSources.forEach((source = {}, sourceIndex) => {
 						const title = source.title || source.name || ''
 						const excerpt = source.excerpt || source.summary || source.url || ''

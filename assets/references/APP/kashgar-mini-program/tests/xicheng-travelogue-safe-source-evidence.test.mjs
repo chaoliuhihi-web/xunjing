@@ -6,23 +6,24 @@ const root = process.cwd()
 const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
 
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const computedBlock = travelogue.match(/computed:\s*\{[\s\S]*?\n\t\},\n\tonLoad/)?.[0] || ''
 
 for (const required of [
   'isUnsafeSourceBlockedMaterial',
   'hasReviewableMaterialEvidence',
-  "['BLOCKED', 'UNAVAILABLE']",
-  'hasReviewedSources'
+  'getReviewableMaterialSources',
+  "['BLOCKED', 'UNAVAILABLE']"
 ]) {
   assert.ok(
     travelogue.includes(required),
-    `Travelogue evidence gate should reject unsafe source-less materials with token ${required}`
+    `Travelogue evidence gate should reject unsafe materials with token ${required}`
   )
 }
 
 assert.match(
   travelogue,
-  /isUnsafeSourceBlockedMaterial\s*=\s*\(material = \{\}\) => \{[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(material\.safetyStatus\)[\s\S]*const hasReviewedSources = Array\.isArray\(material\.sources\) && material\.sources\.length > 0[\s\S]*return \['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\) && !hasReviewedSources/,
-  'Unsafe material helper should normalize legacy cached safetyStatus values before rejecting BLOCKED or UNAVAILABLE materials when reviewed sources are absent'
+  /isUnsafeSourceBlockedMaterial\s*=\s*\(material = \{\}\) => \{[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(material\.safetyStatus\)[\s\S]*return \['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)/,
+  'Unsafe material helper should normalize legacy cached safetyStatus values before rejecting BLOCKED or UNAVAILABLE materials'
 )
 
 assert.doesNotMatch(
@@ -34,7 +35,19 @@ assert.doesNotMatch(
 assert.match(
   travelogue,
   /hasReviewableMaterialEvidence\s*=\s*\(material = \{\}\) => \{[\s\S]*if \(!material \|\| isUnsafeSourceBlockedMaterial\(material\)\) return false[\s\S]*material\.poiCode[\s\S]*material\.poiName[\s\S]*material\.remarkText[\s\S]*material\.imagePath[\s\S]*material\.aiAnswerExcerpt/,
-  'Reviewable material helper should preserve normal POI, photo, remark, route, and Xiaojing evidence while rejecting unsafe source-less materials first'
+  'Reviewable material helper should preserve normal POI, photo, remark, route, and Xiaojing evidence while rejecting unsafe materials first'
+)
+
+assert.match(
+  travelogue,
+  /getReviewableMaterialSources\s*=\s*\(material = \{\}\) => \{[\s\S]*if \(!hasReviewableMaterialEvidence\(material\)\) return \[\][\s\S]*return Array\.isArray\(material\.sources\) \? material\.sources : \[\]/,
+  'Reviewable source helper should clear sources for unsafe materials before source counts or public share cards use them'
+)
+
+assert.match(
+  computedBlock,
+  /sourceCount\(\)[\s\S]*this\.materials\.reduce\(\(total, material\) => \{[\s\S]*return total \+ getReviewableMaterialSources\(material\)\.length/,
+  'Travelogue source count should ignore stale sources on BLOCKED or UNAVAILABLE materials'
 )
 
 assert.match(

@@ -35,7 +35,7 @@ assert.ok(sanitizeBlock, 'Travelogue should expose a bounded public material san
 for (const required of [
   'publicLocationLabel: material.publicLocationLabel || this.createPublicLocationLabel(material)',
   'locationHidden: true',
-  'sourceCount: Array.isArray(material.sources) ? material.sources.length : 0',
+  'sourceCount: getReviewableMaterialSources(material).length',
   'safetyStatus: normalizeXichengSafetyStatus(material.safetyStatus)',
   "remarkExcerpt: String(material.remarkText || '').slice(0, 80)",
   'routeRecommendation: this.sanitizeRouteRecommendationForPublicShare(material.routeRecommendation)'
