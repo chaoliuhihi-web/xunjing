@@ -171,8 +171,8 @@ assert.match(
 
 assert.match(
   travelogue,
-  /createShareArtifact\(assetType\)[\s\S]*photoMaterialCount:\s*this\.photoMaterialCount[\s\S]*remarkMaterialCount:\s*this\.remarkMaterialCount/,
-  'Poster and PDF artifacts should include photo and remark evidence counts'
+  /createShareArtifact\(assetType\)[\s\S]*const publicPhotoMaterialCount = publicMaterials\.filter\(material => material && material\.type === 'photo'\)\.length[\s\S]*const publicRemarkMaterialCount = publicMaterials\.filter\(material => material && material\.type === 'remark'\)\.length[\s\S]*photoMaterialCount:\s*publicPhotoMaterialCount[\s\S]*remarkMaterialCount:\s*publicRemarkMaterialCount/,
+  'Poster and PDF artifacts should include public-only photo and remark evidence counts'
 )
 
 assert.match(

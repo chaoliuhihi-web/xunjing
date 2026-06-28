@@ -1687,6 +1687,9 @@ export default {
 			const publicMaterials = this.materials
 				.filter(material => hasReviewableMaterialEvidence(material))
 				.map(material => this.sanitizeMaterialForPublicShare(material))
+			const publicPhotoMaterialCount = publicMaterials.filter(material => material && material.type === 'photo').length
+			const publicRemarkMaterialCount = publicMaterials.filter(material => material && material.type === 'remark').length
+			const publicAiGuideMaterialCount = publicMaterials.filter(material => material && material.type === 'ai-guide').length
 			return {
 				assetId: `${assetType}-${Date.now()}`,
 				assetType,
@@ -1705,6 +1708,9 @@ export default {
 				publicRecordingSummary: this.createPublicRecordingSummary(),
 				checkinCount: publicRouteCheckins.length,
 				materialCount: publicMaterials.length,
+				photoMaterialCount: publicPhotoMaterialCount,
+				remarkMaterialCount: publicRemarkMaterialCount,
+				aiGuideMaterialCount: publicAiGuideMaterialCount,
 				qualityReport: this.qualityReport,
 				filteredTrackPointCount: this.filteredTrackPointCount,
 				privacy: {
@@ -1717,14 +1723,11 @@ export default {
 				templateSections: assetType === 'pdf' ? this.createMemorialPdfTemplate(routeTitle, createdAt) : this.createPosterTemplate(routeTitle),
 				draftExcerpt: String(this.draft || '').slice(0, 80),
 				stayPointCount: this.stayPointCount,
-				photoMaterialCount: this.photoMaterialCount,
-				remarkMaterialCount: this.remarkMaterialCount,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
 				activeBadgeAward: this.activeBadgeAward,
 				badgeAwardCount: this.badgeAwardCount,
 				recognitionFeedbackCount: this.recognitionFeedbackCount,
 				candidateConfirmationCount: this.candidateConfirmationCount,
-				aiGuideMaterialCount: this.aiGuideMaterialCount,
 				safetyStatusSummary: this.safetyStatusSummary,
 				safetyBlockedCount: this.safetyBlockedCount,
 				safetyUnavailableCount: this.safetyUnavailableCount,
