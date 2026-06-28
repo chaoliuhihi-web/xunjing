@@ -65,7 +65,7 @@ describe('xicheng POI production review pack', () => {
         importedPoiCount: 80,
         todoPoiSlots: 0,
         productionReady: false,
-        sourceReviewGroupCount: 15,
+        sourceReviewGroupCount: 25,
         sourceReviewGroupBreakdown: expect.arrayContaining([
           expect.objectContaining({
             sourceTitle: '妙应寺白塔公开来源',
@@ -74,9 +74,22 @@ describe('xicheng POI production review pack', () => {
             poiCount: 1
           }),
           expect.objectContaining({
-            sourceUrl: 'https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html',
+            sourceTitle: '西城区 3A 及以下旅游景区名录：历代帝王庙',
+            sourceUrl: 'https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html#xicheng-emperors-temple',
             sourceType: 'OFFICIAL_PUBLIC',
-            poiCount: 11
+            poiCount: 1
+          }),
+          expect.objectContaining({
+            sourceTitle: '西城区 3A 及以下旅游景区名录：什刹海',
+            sourceUrl: 'https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html#xicheng-shichahai',
+            sourceType: 'OFFICIAL_PUBLIC',
+            poiCount: 1
+          }),
+          expect.objectContaining({
+            sourceTitle: '西城区 3A 及以下旅游景区名录：金融街',
+            sourceUrl: 'https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html#xicheng-financial-street',
+            sourceType: 'OFFICIAL_PUBLIC',
+            poiCount: 1
           }),
           expect.objectContaining({
             sourceTitle: '北京旅游网：牛街',
@@ -174,9 +187,12 @@ describe('xicheng POI production review pack', () => {
     expect(sourceReview).toContain('sourceTitle,sourceUrl,sourceType,poiCount,poiCodes,poiNames,licenseStatus,licenseEvidenceRef,licenseReviewedBy,licenseReviewedAt,nextAction')
     expect(sourceReview).toContain('妙应寺白塔公开来源,https://www.bjxch.gov.cn/zt/xjkjmp/xxxq/pnidpv969571.html,OFFICIAL_PUBLIC,1,xicheng-baitasi,妙应寺白塔')
     expect(sourceReview).toContain('北京旅游网：恭王府,https://s.visitbeijing.com.cn/attraction/117810,OFFICIAL_PUBLIC,1,xicheng-gongwangfu,恭王府')
-    expect(sourceReview).toContain('https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html,OFFICIAL_PUBLIC,11')
+    expect(sourceReview).toContain('西城区 3A 及以下旅游景区名录：历代帝王庙,https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html#xicheng-emperors-temple,OFFICIAL_PUBLIC,1,xicheng-emperors-temple,历代帝王庙')
+    expect(sourceReview).toContain('西城区 3A 及以下旅游景区名录：什刹海,https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html#xicheng-shichahai,OFFICIAL_PUBLIC,1,xicheng-shichahai,什刹海')
+    expect(sourceReview).toContain('西城区 3A 及以下旅游景区名录：金融街,https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html#xicheng-financial-street,OFFICIAL_PUBLIC,1,xicheng-financial-street,金融街')
+    expect(sourceReview).not.toContain('https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html,OFFICIAL_PUBLIC,11')
     expect(sourceReview).not.toContain('xicheng-baitasi|xicheng-emperors-temple')
-    expect(sourceReview).toContain('xicheng-emperors-temple|xicheng-shichahai')
+    expect(sourceReview).not.toContain('xicheng-emperors-temple|xicheng-shichahai')
     expect(sourceReview).toContain('北京旅游网：牛街,https://www.visitbeijing.com.cn/article/4M2HM3VB4pD?device=amp&device=amp,OFFICIAL_PUBLIC,1,xicheng-niujie,牛街')
     expect(sourceReview).toContain('西城区文物保护单位（81处）,https://www.bjxch.gov.cn/xcfw/whfw/xxxq/pnidpv736523.html,OFFICIAL_PUBLIC,56')
     expect(sourceReview).toContain('xicheng-heritage-001-sanguanmiao|xicheng-heritage-002-jingyesi')
@@ -192,7 +208,7 @@ describe('xicheng POI production review pack', () => {
         workbookEvidenceFile,
         reviewTasksFile,
         sourceReviewFile,
-        sourceReviewGroupCount: 15,
+        sourceReviewGroupCount: 25,
         workbookGateStatus: 'NOT_READY',
         reviewTaskStatus: 'REVIEW_TASKS_REQUIRED'
       }

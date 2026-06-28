@@ -127,8 +127,14 @@ describe('xicheng backend launch readiness', () => {
     expect(seed).toContain("CONCAT(`name`, ' POI 级已审核来源')")
     expect(seed).toContain('xicheng-baitasi')
     expect(seed).toContain('@xicheng_baitasi_source_url')
+    expect(seed).toContain('@xicheng_emperors_temple_source_url')
+    expect(seed).toContain('@xicheng_shichahai_source_url')
     expect(seed).toContain('@xicheng_gongwangfu_source_url')
     expect(seed).toContain('@xicheng_niujie_source_url')
+    expect(seed).toContain('@xicheng_financial_street_source_url')
+    for (const row of poiRows.slice(0, 24)) {
+      expect(row).not.toContain("'sourceUrl',@xicheng_source_url")
+    }
     expect(seed).toContain('POI 级已审核来源')
     expect(seed).toContain("JSON_UNQUOTE(JSON_EXTRACT(`content_json`, '$.shortIntro'))")
     expect(seed).toContain("CONCAT(@xicheng_source_url, _utf8mb4'#%')")

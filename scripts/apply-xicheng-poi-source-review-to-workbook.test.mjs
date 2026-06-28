@@ -5,7 +5,7 @@ import path from 'node:path'
 import { afterEach, describe, expect, test } from 'vitest'
 
 const tempDirs = []
-const sourceUrl = 'https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html'
+const sourceUrl = 'https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html#xicheng-emperors-temple'
 const heritageSourceUrl = 'https://www.bjxch.gov.cn/xcfw/whfw/xxxq/pnidpv736523.html'
 
 async function createTempRoot() {
@@ -98,10 +98,10 @@ function approvedSourceReviewCsv() {
   return [
     'sourceTitle,sourceUrl,sourceType,poiCount,poiCodes,poiNames,licenseStatus,licenseEvidenceRef,licenseReviewedBy,licenseReviewedAt,nextAction',
     [
-      '西城首批文旅 POI 公开来源索引',
+      '西城区 3A 及以下旅游景区名录：历代帝王庙',
       sourceUrl,
       'OFFICIAL_PUBLIC',
-      '11',
+      '1',
       '',
       '',
       'APPROVED',
@@ -156,11 +156,11 @@ describe('xicheng POI source review workbook apply', () => {
         workbookRows: 80,
         sourceReviewRows: 2,
         approvedSourceGroupCount: 1,
-        appliedPoiCount: 11,
-        pendingSourcePoiCount: 69
+        appliedPoiCount: 1,
+        pendingSourcePoiCount: 79
       }
     })
-    expect(report.blockers).toContain('69 workbook POIs still require source license review')
+    expect(report.blockers).toContain('79 workbook POIs still require source license review')
     expect(report.note).toContain('not production evidence')
 
     const rows = workbookRows(await readFile(outputFile, 'utf8'))
@@ -189,7 +189,7 @@ describe('xicheng POI source review workbook apply', () => {
       {
         sourceUrl,
         sourceType: 'OFFICIAL_PUBLIC',
-        poiCount: 11,
+        poiCount: 1,
         licenseEvidenceRef: 'oss://xunjing-review/xicheng/source-license/a-level-directory-approval.pdf'
       }
     ])
