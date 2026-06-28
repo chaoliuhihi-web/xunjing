@@ -90,6 +90,8 @@ describe('xicheng backend launch readiness', () => {
       '"poiId":"xicheng-beihai-park"',
       '"poiId":"xicheng-shichahai"',
       '"poiId":"xicheng-dashilar"',
+      '西城区文物保护单位（81处）',
+      'https://www.bjxch.gov.cn/xcfw/whfw/xxxq/pnidpv736523.html',
       '妙应寺白塔',
       '历代帝王庙',
       '北海公园',
@@ -99,15 +101,18 @@ describe('xicheng backend launch readiness', () => {
     }
 
     const poiRows = xichengPoiSeedRows(seed)
-    expect(poiRows).toHaveLength(24)
-    expect(seed.match(/"poiId":"xicheng-/g) ?? []).toHaveLength(24)
+    expect(poiRows).toHaveLength(80)
+    expect(seed.match(/"poiId":"xicheng-/g) ?? []).toHaveLength(80)
     for (const row of poiRows) {
       const poiCode = row.match(/'(?<poiCode>xicheng-[^']+)'/)?.groups?.poiCode
       expect(poiCode).toBeTruthy()
       expect(row).toContain("'beijing-xicheng'")
       expect(row).toContain("'P0'")
       expect(row).toContain("'GCJ02'")
-      expect(row).toContain("'sourceUrl',@xicheng_source_url")
+      expect(
+        row.includes("'sourceUrl',@xicheng_source_url") ||
+          row.includes("'sourceUrl',@xicheng_heritage_source_url")
+      ).toBe(true)
       expect(row).toContain('"gpsRadiusMeters":')
       expect(row).toContain('"ocrKeywords":[')
       expect(row).toContain('"photoLabels":[')
@@ -115,6 +120,10 @@ describe('xicheng backend launch readiness', () => {
       expect(row).toContain('"shortIntro":"')
       expect(row).toContain('"recommendedQuestions":[')
       expect(row).toContain("'APPROVED', 'REVIEW_REQUIRED', 'REVIEW_REQUIRED', 'PUBLISHED'")
+      const heritageNumber = poiCode.match(/^xicheng-heritage-(\d{3})-/)?.[1]
+      if (heritageNumber) {
+        expect(row).toContain(`'heritageNo',${Number.parseInt(heritageNumber, 10)}`)
+      }
     }
     expect(seed).toContain('INSERT INTO `xunjing_poi`')
     expect(seed).toContain('INSERT INTO `xunjing_knowledge_document`')

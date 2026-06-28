@@ -182,10 +182,10 @@ describe('xicheng POI production manifest template generator', () => {
         reviewWorkbookFile: workbookFile,
         reviewPacketFile,
         poiSlots: 80,
-        importedPoiCount: 24,
+        importedPoiCount: 80,
         checklistRows: 80,
         workbookRows: 80,
-        todoPoiSlots: 56,
+        todoPoiSlots: 0,
         productionReady: false
       }
     })
@@ -198,7 +198,7 @@ describe('xicheng POI production manifest template generator', () => {
       productionReady: false,
       seedSource: {
         localCandidateOnly: true,
-        importedPoiCount: 24
+        importedPoiCount: 80
       }
     })
     expect(manifest.pois).toHaveLength(80)
@@ -240,7 +240,8 @@ describe('xicheng POI production manifest template generator', () => {
     expect(manifest.pois[0].trigger.ocrKeywords).toContain('妙应寺白塔')
     expect(manifest.pois[0].content.recommendedQuestions).toHaveLength(3)
     expect(manifest.pois[23].poiCode).toBe('xicheng-financial-street')
-    expect(manifest.pois[24].poiCode).toBe('TODO-xicheng-poi-025')
+    expect(manifest.pois[24].poiCode).toBe('xicheng-heritage-001-sanguanmiao')
+    expect(manifest.pois[24].name).toBe('三官庙')
 
     const gateEvidenceFile = path.join(rootDir, 'tmp/prefilled-manifest-gate-evidence.json')
     const gateResult = runManifestGate([
@@ -253,7 +254,7 @@ describe('xicheng POI production manifest template generator', () => {
     expect(gateReport.status).toBe('NOT_READY')
     expect(gateReport.blockers.join('\n')).toContain('manifest.productionReady must be true before production seed merge')
     expect(gateReport.blockers.join('\n')).toContain('xicheng-baitasi source.licenseStatus must be APPROVED')
-    expect(gateReport.blockers.join('\n')).toContain('TODO-xicheng-poi-025 poiCode must be a stable xicheng-* slug')
+    expect(gateReport.blockers.join('\n')).toContain('xicheng-heritage-001-sanguanmiao source.licenseStatus must be APPROVED')
 
     const checklist = await readFile(checklistFile, 'utf8')
     const checklistLines = checklist.trim().split('\n')
@@ -263,9 +264,9 @@ describe('xicheng POI production manifest template generator', () => {
     expect(checklistLines[1]).toContain('妙应寺白塔')
     expect(checklistLines[1]).toContain('source.licenseEvidenceRef')
     expect(checklistLines[1]).toContain('audit.reviewStatus=APPROVED')
-    expect(checklistLines[25]).toContain('TODO-xicheng-poi-025')
-    expect(checklistLines[25]).toContain('name')
-    expect(checklistLines[25]).toContain('source.sourceUrl')
+    expect(checklistLines[25]).toContain('xicheng-heritage-001-sanguanmiao')
+    expect(checklistLines[25]).toContain('三官庙')
+    expect(checklistLines[25]).toContain('source.licenseEvidenceRef')
 
     const workbook = await readFile(workbookFile, 'utf8')
     const workbookLines = workbook.trim().split('\n')
@@ -310,7 +311,8 @@ describe('xicheng POI production manifest template generator', () => {
     expect(workbookLines[1]).toContain('妙应寺白塔')
     expect(workbookLines[1]).toContain('妙应寺白塔|妙应寺|白塔寺')
     expect(workbookLines[1]).toContain('REVIEW_REQUIRED')
-    expect(workbookLines[25]).toContain('TODO-xicheng-poi-025')
+    expect(workbookLines[25]).toContain('xicheng-heritage-001-sanguanmiao')
+    expect(workbookLines[25]).toContain('三官庙')
 
     const reviewPacket = JSON.parse(await readFile(reviewPacketFile, 'utf8'))
     expect(reviewPacket).toMatchObject({
@@ -318,8 +320,8 @@ describe('xicheng POI production manifest template generator', () => {
       status: 'REVIEW_DATA_REQUIRED',
       summary: {
         poiSlots: 80,
-        importedPoiCount: 24,
-        todoPoiSlots: 56,
+        importedPoiCount: 80,
+        todoPoiSlots: 0,
         productionReady: false,
         manifestFile: outputFile,
         reviewChecklistFile: checklistFile,

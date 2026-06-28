@@ -307,7 +307,6 @@ function assertXichengPoiSeedRow(row) {
 
   for (const snippet of [
     "'beijing-xicheng'",
-    "'sourceUrl',@xicheng_source_url",
     "'licenseStatus','REVIEW_REQUIRED'",
     '"gpsRadiusMeters":',
     '"ocrKeywords":[',
@@ -324,6 +323,12 @@ function assertXichengPoiSeedRow(row) {
     "'APPROVED', 'REVIEW_REQUIRED', 'REVIEW_REQUIRED', 'PUBLISHED'"
   ]) {
     assertContains(row, snippet, `xunjing-seed-xicheng-p0.sql ${poiCode}`)
+  }
+  if (
+    !row.includes("'sourceUrl',@xicheng_source_url") &&
+    !row.includes("'sourceUrl',@xicheng_heritage_source_url")
+  ) {
+    throw new Error(`Xicheng POI seed row ${poiCode} must reference a tracked official source URL`)
   }
 
   return {

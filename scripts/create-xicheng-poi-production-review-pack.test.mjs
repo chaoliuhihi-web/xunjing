@@ -60,8 +60,8 @@ describe('xicheng POI production review pack', () => {
         reviewTasksFile,
         reviewPackEvidenceFile,
         poiSlots: 80,
-        importedPoiCount: 24,
-        todoPoiSlots: 56,
+        importedPoiCount: 80,
+        todoPoiSlots: 0,
         productionReady: false,
         workbookGateStatus: 'NOT_READY',
         workbookReadyPoiCount: 0,
@@ -81,13 +81,14 @@ describe('xicheng POI production review pack', () => {
     const manifest = JSON.parse(await readFile(outputFile, 'utf8'))
     expect(manifest.seedSource).toMatchObject({
       localCandidateOnly: true,
-      importedPoiCount: 24
+      importedPoiCount: 80
     })
     expect(manifest.productionReady).toBe(false)
     expect(manifest.pois).toHaveLength(80)
 
     const workbook = await readFile(reviewWorkbookFile, 'utf8')
-    expect(workbook).toContain('TODO-xicheng-poi-025')
+    expect(workbook).toContain('xicheng-heritage-001-sanguanmiao')
+    expect(workbook).toContain('三官庙')
     expect(workbook).toContain('REVIEW_REQUIRED')
 
     const workbookEvidence = JSON.parse(await readFile(workbookEvidenceFile, 'utf8'))
@@ -104,7 +105,7 @@ describe('xicheng POI production review pack', () => {
 
     const reviewTasks = await readFile(reviewTasksFile, 'utf8')
     expect(reviewTasks).toContain('workbookRowNumber,poiIndex,poiCode,blockerGroup,ownerLane,taskDetail,requiredEvidence,workbookColumns,taskStatus,sourceEvidenceFile')
-    expect(reviewTasks).toContain('TODO-xicheng-poi-025')
+    expect(reviewTasks).toContain('xicheng-heritage-001-sanguanmiao')
     expect(reviewTasks).toContain('source-license')
     expect(reviewTasks).toContain('Approve source license and attach non-local source evidence.')
     expect(reviewTasks).toContain('sourceTitle|sourceUrl|sourceType|licenseStatus|licenseEvidenceRef|licenseReviewedBy|licenseReviewedAt')
@@ -130,12 +131,12 @@ describe('xicheng POI production review pack', () => {
       status: 'REVIEW_DATA_REQUIRED',
       summary: {
         poiSlots: 80,
-        importedPoiCount: 24,
-        todoPoiSlots: 56,
+        importedPoiCount: 80,
+        todoPoiSlots: 0,
         productionReady: false
       }
     })
-    expect(await readFile(reviewChecklistFile, 'utf8')).toContain('TODO-xicheng-poi-025')
+    expect(await readFile(reviewChecklistFile, 'utf8')).toContain('xicheng-heritage-001-sanguanmiao')
   })
 
   test('exposes the review pack through npm scripts and handoff docs', async () => {

@@ -311,12 +311,13 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(result.checks.find((check) => check.name === 'full-yudao-baseline')?.ok).toBe(false)
     expect(result.checks.map((check) => check.name)).toContain('yudao-server-artifact')
     expect(result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')?.ok).toBe(false)
-    expect(result.checks.find((check) => check.name === 'xicheng-production-poi')?.detail).toContain('24/80')
+    expect(result.checks.find((check) => check.name === 'xicheng-production-poi')?.detail).toContain('productionReady=true')
     expect(result.checks.find((check) => check.name === 'xicheng-source-license')?.ok).toBe(false)
     expect(result.blockers).toEqual(expect.arrayContaining([
       expect.stringContaining('complete Yudao baseline'),
       expect.stringContaining('POI manifest evidence is required'),
-      expect.stringContaining('80 reviewed Xicheng POIs')
+      expect.stringContaining('xicheng seed must declare productionReady=true'),
+      expect.stringContaining('80 Xicheng POI rows are not fully approved')
     ]))
   }, 20000)
 
