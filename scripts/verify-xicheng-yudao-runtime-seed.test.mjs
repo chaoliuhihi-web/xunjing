@@ -29,6 +29,7 @@ describe('Xicheng Yudao runtime seed verifier', () => {
     const sql = buildRuntimeSeedSql(env)
 
     expect(sql).toContain('SET NAMES utf8mb4')
+    expect(sql).toContain('SET SESSION group_concat_max_len = 65535')
     expect(sql).toContain('SET @tenant_id := 1')
     expect(sql).toContain("package_code = 'XICHENG-MAP-001'")
     expect(sql).toContain("region_code = 'beijing-xicheng'")
@@ -37,6 +38,8 @@ describe('Xicheng Yudao runtime seed verifier', () => {
     expect(sql).toContain('xunjing_knowledge_document')
     expect(sql).toContain('xunjing_map_point')
     expect(sql).toContain('xunjing_qrcode')
+    expect(sql).toContain('geoReviewRequiredPoiCodes')
+    expect(sql).toContain('licenseReviewRequiredPoiCodes')
   })
 
   test('parses MySQL metric output and marks runtime seed ready without hiding production review blockers', () => {
@@ -51,6 +54,8 @@ describe('Xicheng Yudao runtime seed verifier', () => {
       'qrCodes\t1',
       'publicReportLocalCandidate\t1',
       'publicReportProductionReady\t0',
+      'geoReviewRequiredPoiCodes\txicheng-baitasi,xicheng-emperors-temple',
+      'licenseReviewRequiredPoiCodes\txicheng-baitasi,xicheng-emperors-temple',
       'samplePoiCodes\txicheng-baitasi,xicheng-emperors-temple,xicheng-beihai-park'
     ].join('\n')
 
@@ -73,6 +78,8 @@ describe('Xicheng Yudao runtime seed verifier', () => {
     expect(evidence.summary.productionReady).toBe(false)
     expect(evidence.summary.productionBlockers).toContain('80 Xicheng POIs still require coordinate review')
     expect(evidence.summary.productionBlockers).toContain('80 Xicheng POIs still require source license review')
+    expect(evidence.summary.geoReviewRequiredPoiCodes).toEqual(['xicheng-baitasi', 'xicheng-emperors-temple'])
+    expect(evidence.summary.licenseReviewRequiredPoiCodes).toEqual(['xicheng-baitasi', 'xicheng-emperors-temple'])
     expect(evidence.checks.map((check) => check.name)).toContain('secret-redaction')
     expect(JSON.stringify(evidence)).not.toContain(env.MYSQL_PASSWORD)
   })
@@ -89,6 +96,8 @@ describe('Xicheng Yudao runtime seed verifier', () => {
       'qrCodes\t1',
       'publicReportLocalCandidate\t1',
       'publicReportProductionReady\t0',
+      'geoReviewRequiredPoiCodes\txicheng-baitasi,xicheng-emperors-temple',
+      'licenseReviewRequiredPoiCodes\txicheng-baitasi,xicheng-emperors-temple',
       'samplePoiCodes\txicheng-baitasi,xicheng-emperors-temple,xicheng-beihai-park'
     ].join('\n')
 
@@ -108,6 +117,8 @@ describe('Xicheng Yudao runtime seed verifier', () => {
     expect(evidence.blockers).toContain('80 Xicheng POIs still require coordinate review')
     expect(evidence.blockers).toContain('80 Xicheng POIs still require source license review')
     expect(evidence.blockers).toContain('runtime public report still records productionReady=false')
+    expect(evidence.summary.geoReviewRequiredPoiCodes).toEqual(['xicheng-baitasi', 'xicheng-emperors-temple'])
+    expect(evidence.summary.licenseReviewRequiredPoiCodes).toEqual(['xicheng-baitasi', 'xicheng-emperors-temple'])
   })
 
   test('marks production runtime ready only when production seed evidence is visible in the live database', () => {

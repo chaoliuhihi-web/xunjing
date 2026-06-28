@@ -1215,6 +1215,12 @@ async function checkXichengRuntimeSeedEvidence({
       runtimeSeedMapPoints: summary.mapPoints,
       runtimeSeedGeoReviewRequired: summary.poiGeoReviewRequired,
       runtimeSeedLicenseReviewRequired: summary.poiLicenseReviewRequired,
+      runtimeSeedGeoReviewRequiredPoiCodes: Array.isArray(summary.geoReviewRequiredPoiCodes)
+        ? summary.geoReviewRequiredPoiCodes
+        : [],
+      runtimeSeedLicenseReviewRequiredPoiCodes: Array.isArray(summary.licenseReviewRequiredPoiCodes)
+        ? summary.licenseReviewRequiredPoiCodes
+        : [],
       runtimeSeedProductionBlockerCount: Array.isArray(summary.productionBlockers)
         ? summary.productionBlockers.length
         : undefined

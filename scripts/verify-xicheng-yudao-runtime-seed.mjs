@@ -106,6 +106,7 @@ export function buildRuntimeSeedSql(env) {
 
   return `
 SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+SET SESSION group_concat_max_len = 65535;
 SET @tenant_id := ${tenantId};
 
 SELECT 'packageCount', COUNT(*)
@@ -136,7 +137,21 @@ WHERE region_code = '${expectedRegionCode}'
   AND tenant_id = @tenant_id
   AND deleted = b'0'
 UNION ALL
+SELECT 'geoReviewRequiredPoiCodes', COALESCE(GROUP_CONCAT(poi_code ORDER BY id SEPARATOR ','), '')
+FROM xunjing_poi
+WHERE region_code = '${expectedRegionCode}'
+  AND geo_status = 'REVIEW_REQUIRED'
+  AND tenant_id = @tenant_id
+  AND deleted = b'0'
+UNION ALL
 SELECT 'poiLicenseReviewRequired', COUNT(*)
+FROM xunjing_poi
+WHERE region_code = '${expectedRegionCode}'
+  AND license_status = 'REVIEW_REQUIRED'
+  AND tenant_id = @tenant_id
+  AND deleted = b'0'
+UNION ALL
+SELECT 'licenseReviewRequiredPoiCodes', COALESCE(GROUP_CONCAT(poi_code ORDER BY id SEPARATOR ','), '')
 FROM xunjing_poi
 WHERE region_code = '${expectedRegionCode}'
   AND license_status = 'REVIEW_REQUIRED'
@@ -226,6 +241,13 @@ function check(name, ok, detail, blockers = []) {
 function countMetric(metrics, key) {
   const value = Number(metrics[key] || 0)
   return Number.isFinite(value) ? value : 0
+}
+
+function splitCodeList(value) {
+  return String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
 }
 
 function normalizeReadinessMode(value) {
@@ -393,7 +415,9 @@ export function buildRuntimeSeedEvidence({
       qrCodes: countMetric(metrics, 'qrCodes'),
       publicReportLocalCandidate: countMetric(metrics, 'publicReportLocalCandidate'),
       publicReportProductionReady: countMetric(metrics, 'publicReportProductionReady'),
-      samplePoiCodes: String(metrics.samplePoiCodes || '').split(',').filter(Boolean),
+      samplePoiCodes: splitCodeList(metrics.samplePoiCodes),
+      geoReviewRequiredPoiCodes: splitCodeList(metrics.geoReviewRequiredPoiCodes),
+      licenseReviewRequiredPoiCodes: splitCodeList(metrics.licenseReviewRequiredPoiCodes),
       localCandidateReady: localBlockers.length === 0,
       productionReady,
       productionBlockers

@@ -427,7 +427,9 @@ async function writeRuntimeSeedEvidence(rootDir, overrides = {}) {
       localCandidateReady: true,
       productionReady: true,
       productionBlockers: [],
-      samplePoiCodes: ['xicheng-baitasi', 'xicheng-gongwangfu']
+      samplePoiCodes: ['xicheng-baitasi', 'xicheng-gongwangfu'],
+      geoReviewRequiredPoiCodes: [],
+      licenseReviewRequiredPoiCodes: []
     },
     checks: passedChecks(requiredRuntimeSeedEvidenceChecks),
     blockers: []
@@ -535,7 +537,9 @@ describe('xicheng Yudao release readiness gate', () => {
       runtimeSeedProductionReady: true,
       runtimeSeedPoiTotal: 80,
       runtimeSeedKnowledgeDocuments: 84,
-      runtimeSeedMapPoints: 80
+      runtimeSeedMapPoints: 80,
+      runtimeSeedGeoReviewRequiredPoiCodes: [],
+      runtimeSeedLicenseReviewRequiredPoiCodes: []
     })
     expect(result.checks.map((check) => check.name)).toEqual([
       'release-source-revision',
