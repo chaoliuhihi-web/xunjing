@@ -64,6 +64,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -414,6 +415,39 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertFalse(respVO.getSources().isEmpty());
         assertEquals("恭王府", respVO.getSources().get(0).getTitle());
         assertTrue(respVO.getSources().get(0).getSourceUrl().contains("bjxch.gov.cn"));
+    }
+
+    @Test
+    public void testResolveMultimodalTriggerDoesNotUsePoiFromAnotherPackage() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        Long otherPackageId = consoleService.createResourcePackage(packageReq(
+                projectId, schoolId, "XICHENG-MAP-ALT", "西城 AI 旅伴备选地图",
+                XunjingEnums.ResourceType.MAP.getType()));
+        insertXichengPoi(otherPackageId);
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-multimodal-trigger");
+        reqVO.setOcrText("恭王府博物馆入口");
+        reqVO.setImageLabels(List.of("palace", "courtyard"));
+        reqVO.setLocation(location("39.937050", "116.386770", 20));
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("XICHENG-MAP-001", respVO.getPackageCode());
+        assertEquals("ask_ai_companion", respVO.getAction());
+        assertEquals("beijing-xicheng", respVO.getRegionCode());
+        assertNull(respVO.getPoiCode());
+        assertTrue(respVO.getCandidates().isEmpty());
+        List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.TRIGGER_RESOLVE.getType()));
+        assertEquals(1, events.size());
+        assertTrue(events.get(0).getPayloadJson().contains("\"packageCode\":\"XICHENG-MAP-001\""));
+        assertTrue(events.get(0).getPayloadJson().contains("\"poiCode\":\"\""));
     }
 
     @Test

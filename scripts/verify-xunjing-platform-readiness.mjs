@@ -396,7 +396,11 @@ async function checkXichengTriggerBackend(rootDir) {
 
   for (const snippet of [
     'XunjingPoiMapper',
+    'XunjingResourcePackageMapper',
     'loadDatabasePoiProfiles',
+    'safeReqVO.getPackageCode()',
+    'resourcePackageMapper.selectByPackageCodeAndStatus',
+    'selectPublishedListByRegionCodeAndPackageId',
     'selectPublishedListByRegionCode',
     'sourceProfiles',
     'databasePoiProfiles.isEmpty() ? XICHENG_POIS : databasePoiProfiles'
@@ -406,7 +410,13 @@ async function checkXichengTriggerBackend(rootDir) {
   for (const snippet of ['@TableName("xunjing_poi")', 'private String sourceJson', 'private String triggerJson', 'private String contentJson']) {
     assertContains(poiDo, snippet, 'XunjingPoiDO.java')
   }
-  assertContains(mapper, 'selectPublishedListByRegionCode', 'XunjingPoiMapper.java')
+  for (const snippet of [
+    'selectPublishedListByRegionCode',
+    'selectPublishedListByRegionCodeAndPackageId',
+    'XunjingPoiDO::getPackageId'
+  ]) {
+    assertContains(mapper, snippet, 'XunjingPoiMapper.java')
+  }
   for (const snippet of [
     'recordTriggerResolveEventIfPossible',
     'buildTriggerResolveEventPayload',
@@ -418,6 +428,11 @@ async function checkXichengTriggerBackend(rootDir) {
   assertContains(appTest, 'testResolveMultimodalTriggerUsesPublishedPoiFromDatabase', 'XunjingAppServiceImplTest.java')
   assertContains(
     appTest,
+    'testResolveMultimodalTriggerDoesNotUsePoiFromAnotherPackage',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
     'testResolveMultimodalTriggerRecordsRecognitionEventWhenPackageProvided',
     'XunjingAppServiceImplTest.java'
   )
@@ -425,7 +440,7 @@ async function checkXichengTriggerBackend(rootDir) {
   assertContains(h2Schema, 'CREATE TABLE IF NOT EXISTS "xunjing_poi"', 'create_tables.sql')
   return pass(
     'xicheng-trigger-backend',
-    'Xicheng trigger resolution reads approved xunjing_poi rows and records TRIGGER_RESOLVE events'
+    'Xicheng trigger resolution reads package-scoped approved xunjing_poi rows and records TRIGGER_RESOLVE events'
   )
 }
 

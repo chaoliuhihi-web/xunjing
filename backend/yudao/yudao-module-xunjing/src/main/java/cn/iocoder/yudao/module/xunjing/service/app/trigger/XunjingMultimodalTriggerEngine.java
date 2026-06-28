@@ -7,7 +7,9 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.Multimodal
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PhotoMetaReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.SourceRespVO;
+import cn.iocoder.yudao.module.xunjing.dal.dataobject.packagepkg.XunjingResourcePackageDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.poi.XunjingPoiDO;
+import cn.iocoder.yudao.module.xunjing.dal.mysql.packagepkg.XunjingResourcePackageMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.poi.XunjingPoiMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import jakarta.annotation.Resource;
@@ -29,6 +31,7 @@ public class XunjingMultimodalTriggerEngine {
 
     private static final String REGION_XICHENG = "beijing-xicheng";
     private static final String POI_STATUS_PUBLISHED = "PUBLISHED";
+    private static final String PACKAGE_STATUS_PUBLISHED = "PUBLISHED";
     private static final String REVIEW_STATUS_APPROVED = "APPROVED";
     private static final double AUTO_TRIGGER_THRESHOLD = 0.85D;
 
@@ -79,12 +82,14 @@ public class XunjingMultimodalTriggerEngine {
     private XunjingVisionRecognitionService visionRecognitionService;
     @Resource
     private XunjingPoiMapper poiMapper;
+    @Resource
+    private XunjingResourcePackageMapper resourcePackageMapper;
 
     public MultimodalTriggerRespVO resolve(MultimodalTriggerReqVO reqVO) {
         MultimodalTriggerReqVO safeReqVO = visionRecognitionService.enrich(
                 reqVO == null ? new MultimodalTriggerReqVO() : reqVO);
         String regionCode = normalizeRegionCode(safeReqVO.getRegionCode());
-        List<PoiProfile> poiProfiles = loadPoiProfiles(regionCode);
+        List<PoiProfile> poiProfiles = loadPoiProfiles(regionCode, safeReqVO.getPackageCode());
 
         List<MatchScore> matches = poiProfiles.stream()
                 .map(poi -> score(poi, safeReqVO))
@@ -161,16 +166,30 @@ public class XunjingMultimodalTriggerEngine {
         return new MatchScore(poi, round2(Math.min(score, 0.99D)), distanceMeters, List.copyOf(signals));
     }
 
-    private List<PoiProfile> loadPoiProfiles(String regionCode) {
+    private List<PoiProfile> loadPoiProfiles(String regionCode, String packageCode) {
         if (!REGION_XICHENG.equals(regionCode)) {
             return List.of();
         }
-        List<PoiProfile> databasePoiProfiles = loadDatabasePoiProfiles(regionCode);
+        List<PoiProfile> databasePoiProfiles = loadDatabasePoiProfiles(regionCode, packageCode);
+        if (hasText(packageCode)) {
+            return databasePoiProfiles;
+        }
         return databasePoiProfiles.isEmpty() ? XICHENG_POIS : databasePoiProfiles;
     }
 
-    private List<PoiProfile> loadDatabasePoiProfiles(String regionCode) {
+    private List<PoiProfile> loadDatabasePoiProfiles(String regionCode, String packageCode) {
         try {
+            if (hasText(packageCode)) {
+                XunjingResourcePackageDO resourcePackage = resourcePackageMapper.selectByPackageCodeAndStatus(
+                        packageCode, PACKAGE_STATUS_PUBLISHED);
+                if (resourcePackage == null || resourcePackage.getId() == null) {
+                    return List.of();
+                }
+                return poiMapper.selectPublishedListByRegionCodeAndPackageId(
+                                regionCode, resourcePackage.getId(), POI_STATUS_PUBLISHED, REVIEW_STATUS_APPROVED).stream()
+                        .map(this::toPoiProfile)
+                        .toList();
+            }
             return poiMapper.selectPublishedListByRegionCode(
                             regionCode, POI_STATUS_PUBLISHED, REVIEW_STATUS_APPROVED).stream()
                     .map(this::toPoiProfile)

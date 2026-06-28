@@ -436,6 +436,25 @@ describe('xunjing platform readiness verifier', () => {
     ])
   })
 
+  test('static gate rejects trigger backend without package-scoped POI lookup', async () => {
+    const fixtureRoot = await createStaticReadinessFixture()
+    const mapperPath = path.join(
+      fixtureRoot,
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/dal/mysql/poi/XunjingPoiMapper.java'
+    )
+    const mapper = await readFile(mapperPath, 'utf8')
+    await writeFile(mapperPath, mapper.replaceAll(
+      'selectPublishedListByRegionCodeAndPackageId',
+      'selectPublishedListByRegionCodeWithoutPackageId'
+    ))
+
+    await expect(verifyXunjingPlatformReadiness({
+      env: {},
+      staticOnly: true,
+      rootDir: fixtureRoot
+    })).rejects.toThrow('selectPublishedListByRegionCodeAndPackageId')
+  })
+
   test.each([
     ['interaction event table', 'xunjing_interaction_event'],
     ['media usage log table', 'xunjing_media_usage_log']
