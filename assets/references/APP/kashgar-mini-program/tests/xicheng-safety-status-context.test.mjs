@@ -17,6 +17,8 @@ const askXiaojingBlock = scanResult.match(/askXiaojing\(question = ''\)[\s\S]*?\
 const startRecordingBlock = scanResult.match(/startRecording\(\)[\s\S]*?\n\t\t\},\n\t\tcreateRouteCheckinEvent/)?.[0] || ''
 const normalizeSuggestedQuestionsBlock = scanResult.match(/const normalizeSuggestedQuestions\s*=\s*\(result = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const normalizeReviewedSourcesBlock = scanResult.match(/const normalizeReviewedSources\s*=\s*\(result = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
+const normalizeRecommendedRouteBlock = scanResult.match(/const normalizeRecommendedRoute\s*=\s*\(result = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
+const recommendedRouteBlock = scanResult.match(/recommendedRoute\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
 const applyContextBlock = aiGuide.match(/const applyXichengAiContext\s*=\s*\(options = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const requestChatBlock = aiGuide.match(/const requestXunjingAiChat\s*=\s*\(question\) => \{[\s\S]*?\n\}\n\nconst escapeHtml/)?.[0] || ''
 
@@ -29,6 +31,8 @@ assert.ok(askXiaojingBlock, 'Recognition result should expose askXiaojing')
 assert.ok(startRecordingBlock, 'Recognition result should expose startRecording')
 assert.ok(normalizeSuggestedQuestionsBlock, 'Recognition result should expose suggested-question normalization')
 assert.ok(normalizeReviewedSourcesBlock, 'Recognition result should expose reviewed-source normalization')
+assert.ok(normalizeRecommendedRouteBlock, 'Recognition result should expose safety-aware route recommendation normalization')
+assert.ok(recommendedRouteBlock, 'Recognition result should expose recommendedRoute')
 
 assert.match(
   scanResult,
@@ -88,6 +92,24 @@ assert.match(
   normalizeReviewedSourcesBlock,
   /const safetyStatus = normalizeXichengSafetyStatus\(result\.safetyStatus\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*return \[\][\s\S]*return normalizeXichengReviewedSources\(result\.sources\)/,
   'Recognition result should hide reviewed sources when safetyStatus is BLOCKED or UNAVAILABLE'
+)
+
+assert.match(
+  normalizeRecommendedRouteBlock,
+  /const safetyStatus = normalizeXichengSafetyStatus\(result\.safetyStatus\)[\s\S]*if \(\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)\) \{[\s\S]*return null[\s\S]*return result\.routeRecommendation \|\| result\.recommendedRoute \|\| null/,
+  'Recognition result should hide recommended routes when safetyStatus is BLOCKED or UNAVAILABLE'
+)
+
+assert.match(
+  scanResult,
+  /routeRecommendation:\s*normalizeRecommendedRoute\(result\)[\s\S]*recommendedRoute:\s*normalizeRecommendedRoute\(result\)/,
+  'Recognition result normalization should not preserve routeRecommendation/recommendedRoute for unsafe recognition results'
+)
+
+assert.match(
+  recommendedRouteBlock,
+  /if \(this\.unsafeRecognitionSafetyStatus\) return null[\s\S]*return this\.result\.routeRecommendation \|\| this\.result\.recommendedRoute \|\| null/,
+  'Recognition result computed route card should fail closed if the active result becomes BLOCKED or UNAVAILABLE'
 )
 
 assert.match(

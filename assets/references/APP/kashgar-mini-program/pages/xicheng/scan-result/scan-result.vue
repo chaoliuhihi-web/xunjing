@@ -177,6 +177,14 @@ const normalizeReviewedSources = (result = {}) => {
 	return normalizeXichengReviewedSources(result.sources)
 }
 
+const normalizeRecommendedRoute = (result = {}) => {
+	const safetyStatus = normalizeXichengSafetyStatus(result.safetyStatus)
+	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+		return null
+	}
+	return result.routeRecommendation || result.recommendedRoute || null
+}
+
 const decodeRouteValue = (value = '') => {
 	try {
 		return decodeURIComponent(String(value || ''))
@@ -252,8 +260,8 @@ const normalizeResult = (result = {}) => ({
 	poiName: result.poiName || XICHENG_EMPTY_RECOGNITION_RESULT.poiName,
 	suggestedQuestions: normalizeSuggestedQuestions(result),
 	recommendedQuestions: normalizeSuggestedQuestions(result),
-	routeRecommendation: result.routeRecommendation || result.recommendedRoute || null,
-	recommendedRoute: result.routeRecommendation || result.recommendedRoute || null,
+	routeRecommendation: normalizeRecommendedRoute(result),
+	recommendedRoute: normalizeRecommendedRoute(result),
 	safetyStatus: normalizeXichengSafetyStatus(result.safetyStatus),
 	sources: normalizeReviewedSources(result),
 	candidates: normalizeRecognitionCandidates(result.candidates)
@@ -312,6 +320,7 @@ export default {
 			return normalizeRecognitionCandidates(this.result.candidates)
 		},
 		recommendedRoute() {
+			if (this.unsafeRecognitionSafetyStatus) return null
 			return this.result.routeRecommendation || this.result.recommendedRoute || null
 		},
 		routeSteps() {
