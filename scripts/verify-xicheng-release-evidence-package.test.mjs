@@ -210,8 +210,8 @@ function releaseEvidence(overrides = {}) {
     summary: {
       stage: 'production',
       status: 'PRODUCTION_READY_CANDIDATE',
-      totalChecks: 13,
-      passedChecks: 13,
+      totalChecks: 14,
+      passedChecks: 14,
       failedChecks: 0,
       blockerCount: 0,
       gitAvailable: true,
@@ -228,6 +228,7 @@ function releaseEvidence(overrides = {}) {
       { name: 'https-app-api-domain', ok: true },
       { name: 'real-wechat-app', ok: true },
       { name: 'real-ai-provider', ok: true },
+      { name: 'yudao-ai-model-bootstrap', ok: true },
       { name: 'vision-ocr-service', ok: true },
       { name: 'object-storage', ok: true },
       { name: 'full-yudao-baseline', ok: true },

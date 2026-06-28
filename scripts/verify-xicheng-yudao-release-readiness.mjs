@@ -52,6 +52,24 @@ const requiredSeedEvidenceChecks = [
   'source-documents'
 ]
 
+const requiredAiBootstrapEvidenceChecks = [
+  'ai-api-key-upsert',
+  'default-chat-model-upsert',
+  'secret-redaction'
+]
+
+const secretEvidenceKeys = [
+  'MYSQL_PASSWORD',
+  'REDIS_PASSWORD',
+  'OSS_SECRET_KEY',
+  'QWEN_API_KEY',
+  'DASHSCOPE_API_KEY',
+  'WX_MP_SECRET',
+  'WX_MINIAPP_SECRET',
+  'XUNJING_VISION_API_KEY',
+  'INTERNAL_AUTH_TOKEN'
+]
+
 const requiredProductionEnvKeys = [
   'SPRING_PROFILES_ACTIVE',
   'SPRING_AI_VECTORSTORE_TYPE',
@@ -332,6 +350,70 @@ function checkRealAiProvider(env) {
       : `Missing, placeholder or non-HTTPS AI env: ${blockers.join(', ')}`,
     blockers.map((key) => `${key} must be configured for real AI calls`)
   )
+}
+
+function evidenceSecretLeaks(evidence, env) {
+  const serialized = JSON.stringify(evidence || {})
+  return secretEvidenceKeys.filter((key) => hasValue(env[key]) && serialized.includes(env[key]))
+}
+
+async function checkYudaoAiBootstrapEvidence({ rootDir, aiBootstrapEvidencePath, env, freshnessOptions }) {
+  const ref = await loadEvidenceInput(rootDir, aiBootstrapEvidencePath)
+  const blockers = []
+  if (!ref.path) {
+    blockers.push('Yudao AI bootstrap evidence is required before production release')
+  } else if (ref.error) {
+    blockers.push(`Yudao AI bootstrap evidence cannot be read: ${ref.error}`)
+  } else {
+    const evidence = ref.data || {}
+    const summary = evidenceSummary(evidence)
+    if (evidence.artifactType !== 'xicheng-yudao-ai-bootstrap') {
+      blockers.push('AI bootstrap evidence artifactType must be xicheng-yudao-ai-bootstrap')
+    }
+    blockers.push(...checkEvidenceTimestamp(evidence, 'AI bootstrap', freshnessOptions))
+    if (evidence.ok !== true) {
+      blockers.push('AI bootstrap evidence ok must be true')
+    }
+    if (evidence.status !== 'YUDAO_AI_MODEL_BOOTSTRAPPED') {
+      blockers.push('AI bootstrap evidence status must be YUDAO_AI_MODEL_BOOTSTRAPPED')
+    }
+    if (String(summary.tenantId || '') !== String(env.XUNJING_TENANT_ID || '')) {
+      blockers.push('AI bootstrap evidence tenantId must match XUNJING_TENANT_ID')
+    }
+    if (String(summary.platform || '') !== String(env.YUDAO_AI_PLATFORM || 'TongYi')) {
+      blockers.push('AI bootstrap evidence platform must match YUDAO_AI_PLATFORM')
+    }
+    if (String(summary.model || '') !== String(env.QWEN_MODEL || '')) {
+      blockers.push('AI bootstrap evidence model must match QWEN_MODEL')
+    }
+    blockers.push(...checkEvidenceChecks(evidence, requiredAiBootstrapEvidenceChecks, 'AI bootstrap'))
+    const leakedKeys = evidenceSecretLeaks(evidence, env)
+    if (leakedKeys.length > 0) {
+      blockers.push(`AI bootstrap evidence must not contain secret values: ${leakedKeys.join(', ')}`)
+    }
+    if (!hasNoEvidenceBlockers(evidence)) {
+      blockers.push(`AI bootstrap evidence contains blockers: ${evidence.blockers.join('; ')}`)
+    }
+  }
+
+  return {
+    ...check(
+      'yudao-ai-model-bootstrap',
+      blockers.length === 0,
+      blockers.length === 0
+        ? `Yudao AI default model bootstrap evidence is ready: ${ref.path}`
+        : blockers.join('; '),
+      blockers
+    ),
+    summary: {
+      aiBootstrapEvidenceFile: ref.path,
+      aiBootstrapCheckedAt: ref.data?.checkedAt,
+      aiBootstrapTenantId: evidenceSummary(ref.data).tenantId,
+      aiBootstrapPlatform: evidenceSummary(ref.data).platform,
+      aiBootstrapModel: evidenceSummary(ref.data).model,
+      aiBootstrapClient: evidenceSummary(ref.data).client
+    }
+  }
 }
 
 function checkVisionOcrService(env) {
@@ -963,6 +1045,7 @@ export async function verifyXichengYudaoReleaseReadiness({
   stage = 'production',
   yudaoBaselineSqlPath,
   yudaoServerJarPath,
+  aiBootstrapEvidencePath,
   poiManifestEvidencePath,
   poiWorkbookEvidencePath,
   poiSeedEvidencePath,
@@ -997,6 +1080,12 @@ export async function verifyXichengYudaoReleaseReadiness({
     checkHttpsAppApiDomain(env),
     checkRealWechatApp(env),
     checkRealAiProvider(env),
+    await checkYudaoAiBootstrapEvidence({
+      rootDir,
+      aiBootstrapEvidencePath,
+      env,
+      freshnessOptions
+    }),
     checkVisionOcrService(env),
     checkObjectStorage(env),
     await checkFullYudaoBaseline(rootDir, yudaoBaselineSqlPath || env.YUDAO_BASELINE_SQL),
@@ -1045,6 +1134,7 @@ function resolveEvidenceFile(rootDir, evidenceFile) {
 function buildReleaseEvidence(result) {
   const sourceRevisionSummary = result.checks.find((item) => item.name === 'release-source-revision')?.summary || {}
   const appApiDomainSummary = result.checks.find((item) => item.name === 'https-app-api-domain')?.summary || {}
+  const aiBootstrapSummary = result.checks.find((item) => item.name === 'yudao-ai-model-bootstrap')?.summary || {}
   const baselineSummary = result.checks.find((item) => item.name === 'full-yudao-baseline')?.summary || {}
   const serverArtifactSummary = result.checks.find((item) => item.name === 'yudao-server-artifact')?.summary || {}
   const productionPoiEvidenceSummary = result.checks.find((item) => item.name === 'xicheng-production-poi-evidence')?.summary || {}
@@ -1059,6 +1149,7 @@ function buildReleaseEvidence(result) {
       blockerCount: result.blockers.length,
       ...sourceRevisionSummary,
       ...appApiDomainSummary,
+      ...aiBootstrapSummary,
       ...baselineSummary,
       ...serverArtifactSummary,
       ...productionPoiEvidenceSummary
@@ -1102,6 +1193,8 @@ async function runCli() {
     stage: readArgValue(args, '--stage') || process.env.XUNJING_RELEASE_STAGE || 'production',
     yudaoBaselineSqlPath: readArgValue(args, '--yudao-baseline-sql') || env.YUDAO_BASELINE_SQL,
     yudaoServerJarPath: readArgValue(args, '--yudao-server-jar') || env.YUDAO_SERVER_JAR,
+    aiBootstrapEvidencePath: readArgValue(args, '--ai-bootstrap-evidence') ||
+      env.YUDAO_AI_BOOTSTRAP_EVIDENCE,
     poiManifestEvidencePath: readArgValue(args, '--poi-manifest-evidence') ||
       process.env.XICHENG_POI_MANIFEST_EVIDENCE,
     poiWorkbookEvidencePath: readArgValue(args, '--poi-workbook-evidence') ||

@@ -18,6 +18,7 @@ const requiredReleaseChecks = [
   'https-app-api-domain',
   'real-wechat-app',
   'real-ai-provider',
+  'yudao-ai-model-bootstrap',
   'vision-ocr-service',
   'object-storage',
   'full-yudao-baseline',

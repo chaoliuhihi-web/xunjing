@@ -3,7 +3,9 @@ import { readFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
+  buildAiBootstrapEvidence,
   buildMysqlArgs,
+  resolveEvidenceFile,
   resolveMysqlInvocation,
   buildYudaoAiBootstrapSql,
   validateBootstrapEnv
@@ -17,7 +19,7 @@ const env = {
   MYSQL_PORT: '33306',
   MYSQL_DATABASE: 'yudao_xinghe_xunjing',
   MYSQL_USERNAME: 'xunjing',
-  MYSQL_PASSWORD: 'secret',
+  MYSQL_PASSWORD: 'test-mysql-password',
   QWEN_API_KEY: 'test-qwen-api-key',
   QWEN_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
   QWEN_MODEL: 'qwen-plus'
@@ -54,7 +56,7 @@ describe('Yudao AI model bootstrap', () => {
       '--user=xunjing',
       'yudao_xinghe_xunjing'
     ])
-    expect(args.join(' ')).not.toContain('secret')
+    expect(args.join(' ')).not.toContain('test-mysql-password')
   })
 
   test('falls back to Docker mysql client without leaking password in args', () => {
@@ -69,11 +71,46 @@ describe('Yudao AI model bootstrap', () => {
     expect(invocation.args).toContain('MYSQL_PWD')
     expect(invocation.args).toContain('mysql:8.4')
     expect(invocation.args.join(' ')).toContain('--host=host.docker.internal')
-    expect(invocation.args.join(' ')).not.toContain('secret')
+    expect(invocation.args.join(' ')).not.toContain('test-mysql-password')
   })
 
   test('rejects unsupported mysql client values', () => {
     expect(() => resolveMysqlInvocation({ ...env, MYSQL_CLIENT: 'shell' })).toThrow('MYSQL_CLIENT')
+  })
+
+  test('builds secret-safe AI bootstrap evidence for release gate consumption', () => {
+    const evidence = buildAiBootstrapEvidence({
+      env,
+      client: 'docker',
+      checkedAt: '2026-06-28T00:00:00.000Z'
+    })
+
+    expect(evidence).toMatchObject({
+      artifactType: 'xicheng-yudao-ai-bootstrap',
+      ok: true,
+      status: 'YUDAO_AI_MODEL_BOOTSTRAPPED',
+      checkedAt: '2026-06-28T00:00:00.000Z',
+      summary: {
+        tenantId: '1',
+        platform: 'TongYi',
+        model: 'qwen-plus',
+        client: 'docker'
+      }
+    })
+    expect(evidence.checks.map((check) => check.name)).toEqual([
+      'ai-api-key-upsert',
+      'default-chat-model-upsert',
+      'secret-redaction'
+    ])
+    expect(JSON.stringify(evidence)).not.toContain('test-mysql-password')
+    expect(JSON.stringify(evidence)).not.toContain('test-qwen-api-key')
+  })
+
+  test('keeps bootstrap evidence files under qa tmp or workbench', async () => {
+    expect(resolveEvidenceFile(rootDir, 'qa/yudao-ai-bootstrap-evidence.json')).toBe(
+      resolve(rootDir, 'qa/yudao-ai-bootstrap-evidence.json')
+    )
+    expect(() => resolveEvidenceFile(rootDir, 'ops/leak.json')).toThrow('evidence file must be under qa/, tmp/ or workbench/')
   })
 
   test('is exposed as a documented npm script without storing real keys', async () => {

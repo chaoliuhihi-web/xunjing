@@ -22,6 +22,7 @@ const checkOwnerLane = {
   'https-app-api-domain': 'platform-ops',
   'real-wechat-app': 'app-ops',
   'real-ai-provider': 'ai-platform',
+  'yudao-ai-model-bootstrap': 'ai-platform',
   'vision-ocr-service': 'vision-ocr',
   'object-storage': 'storage-ops',
   'full-yudao-baseline': 'yudao-deploy',
@@ -81,6 +82,11 @@ const checkTaskInstructions = {
     taskDetail: 'Build and provide the deployable Yudao server jar for release gate.',
     requiredEvidence: 'Release evidence records yudaoServerJarFile size and SHA-256.',
     verificationCommand: 'npm run xunjing:yudao:release:gate -- --stage production --expected-branch feature/xicheng-p0 --env-file /secure/path/production.env --yudao-server-jar /secure/path/yudao-server.jar --evidence-file qa/xicheng-yudao-release-evidence.json'
+  },
+  'yudao-ai-model-bootstrap': {
+    taskDetail: 'Run the Yudao AI model bootstrap against production or preprod MySQL and provide its secret-safe evidence file.',
+    requiredEvidence: 'Release evidence records aiBootstrapEvidenceFile and aiBootstrapModel from YUDAO_AI_MODEL_BOOTSTRAPPED evidence.',
+    verificationCommand: 'npm run xunjing:ai:bootstrap -- --env-file /secure/path/production.env --evidence-file qa/xicheng-yudao-ai-bootstrap-evidence.json'
   },
   'xicheng-production-poi-evidence': {
     taskDetail: 'Generate reviewed POI workbook manifest and seed evidence from 80 approved Xicheng POIs.',

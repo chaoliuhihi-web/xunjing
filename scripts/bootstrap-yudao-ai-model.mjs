@@ -1,7 +1,10 @@
 import { spawnSync } from 'node:child_process'
+import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { loadEnvFile } from './verify-xunjing-platform-readiness.mjs'
+
+const allowedEvidenceDirs = new Set(['qa', 'tmp', 'workbench'])
 
 const requiredKeys = [
   'XUNJING_TENANT_ID',
@@ -236,8 +239,82 @@ function redact(text, env) {
   return output
 }
 
+export function resolveEvidenceFile(rootDir, evidenceFile) {
+  if (!evidenceFile) {
+    return undefined
+  }
+  const resolvedRoot = path.resolve(rootDir)
+  const resolvedFile = path.isAbsolute(evidenceFile)
+    ? path.resolve(evidenceFile)
+    : path.resolve(resolvedRoot, evidenceFile)
+  const relativePath = path.relative(resolvedRoot, resolvedFile)
+  const [topLevelDir] = relativePath.split(path.sep)
+  if (
+    !relativePath ||
+    relativePath.startsWith('..') ||
+    path.isAbsolute(relativePath) ||
+    !allowedEvidenceDirs.has(topLevelDir)
+  ) {
+    throw new Error('evidence file must be under qa/, tmp/ or workbench/')
+  }
+  return resolvedFile
+}
+
+export function buildAiBootstrapEvidence({ env, client, checkedAt = new Date().toISOString() }) {
+  const evidence = {
+    artifactType: 'xicheng-yudao-ai-bootstrap',
+    ok: true,
+    status: 'YUDAO_AI_MODEL_BOOTSTRAPPED',
+    checkedAt,
+    summary: {
+      tenantId: String(env.XUNJING_TENANT_ID),
+      platform: env.YUDAO_AI_PLATFORM || 'TongYi',
+      model: env.QWEN_MODEL,
+      client
+    },
+    checks: [
+      {
+        name: 'ai-api-key-upsert',
+        ok: true,
+        detail: 'Yudao ai_api_key upsert completed without printing credentials',
+        blockers: []
+      },
+      {
+        name: 'default-chat-model-upsert',
+        ok: true,
+        detail: 'Yudao ai_model default chat model upsert completed',
+        blockers: []
+      },
+      {
+        name: 'secret-redaction',
+        ok: true,
+        detail: 'Evidence excludes database passwords and AI API keys',
+        blockers: []
+      }
+    ],
+    blockers: []
+  }
+  const serialized = JSON.stringify(evidence)
+  for (const key of ['MYSQL_PASSWORD', 'QWEN_API_KEY']) {
+    if (env[key] && serialized.includes(env[key])) {
+      throw new Error(`bootstrap evidence must not contain ${key}`)
+    }
+  }
+  return evidence
+}
+
+async function writeAiBootstrapEvidence({ rootDir, evidenceFile, evidence }) {
+  const resolvedFile = resolveEvidenceFile(rootDir, evidenceFile)
+  if (!resolvedFile) {
+    return
+  }
+  await mkdir(path.dirname(resolvedFile), { recursive: true })
+  await writeFile(resolvedFile, `${JSON.stringify(evidence, null, 2)}\n`)
+}
+
 async function runCli() {
   const args = process.argv.slice(2)
+  const rootDir = path.resolve(readArgValue(args, '--root') || process.cwd())
   const envFile = readArgValue(args, '--env-file') || process.env.XUNJING_ENV_FILE
   const fileEnv = envFile ? await loadEnvFile(envFile) : {}
   const env = { ...process.env, ...fileEnv }
@@ -257,6 +334,16 @@ async function runCli() {
     throw new Error(stderr.trim())
   }
 
+  const evidence = buildAiBootstrapEvidence({
+    env,
+    client: invocation.client
+  })
+  await writeAiBootstrapEvidence({
+    rootDir,
+    evidenceFile: readArgValue(args, '--evidence-file') || readArgValue(args, '--output'),
+    evidence
+  })
+
   console.log(JSON.stringify({
     ok: true,
     client: invocation.client,
@@ -264,6 +351,7 @@ async function runCli() {
     platform: env.YUDAO_AI_PLATFORM || 'TongYi',
     model: env.QWEN_MODEL,
     database: env.MYSQL_DATABASE,
+    evidenceFile: readArgValue(args, '--evidence-file') || readArgValue(args, '--output') || undefined,
     message: 'Yudao AI API key and default chat model bootstrapped without printing secrets'
   }, null, 2))
 }

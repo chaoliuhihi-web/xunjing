@@ -292,6 +292,27 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
   return { manifestEvidencePath, workbookEvidencePath, seedEvidencePath }
 }
 
+async function writeAiBootstrapEvidence(rootDir, overrides = {}) {
+  const evidencePath = path.join(rootDir, 'qa/xicheng-yudao-ai-bootstrap-evidence.json')
+  await mkdir(path.dirname(evidencePath), { recursive: true })
+  const evidence = mergeEvidence({
+    artifactType: 'xicheng-yudao-ai-bootstrap',
+    ok: true,
+    status: 'YUDAO_AI_MODEL_BOOTSTRAPPED',
+    checkedAt: freshCheckedAt(),
+    summary: {
+      tenantId: '1001',
+      platform: 'TongYi',
+      model: 'qwen-plus',
+      client: 'docker'
+    },
+    checks: passedChecks(['ai-api-key-upsert', 'default-chat-model-upsert', 'secret-redaction']),
+    blockers: []
+  }, overrides)
+  await writeFile(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`)
+  return evidencePath
+}
+
 afterEach(async () => {
   while (tempDirs.length > 0) {
     await rm(tempDirs.pop(), { recursive: true, force: true })
@@ -344,11 +365,13 @@ describe('xicheng Yudao release readiness gate', () => {
   test('returns production candidate only when env, full baseline and 80 approved POIs are present', async () => {
     const rootDir = await createProductionReadyFixture()
     const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
 
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
       rootDir,
       stage: 'production',
+      aiBootstrapEvidencePath,
       poiManifestEvidencePath: manifestEvidencePath,
       poiWorkbookEvidencePath: workbookEvidencePath,
       poiSeedEvidencePath: seedEvidencePath
@@ -373,6 +396,7 @@ describe('xicheng Yudao release readiness gate', () => {
       'https-app-api-domain',
       'real-wechat-app',
       'real-ai-provider',
+      'yudao-ai-model-bootstrap',
       'vision-ocr-service',
       'object-storage',
       'full-yudao-baseline',
@@ -386,6 +410,7 @@ describe('xicheng Yudao release readiness gate', () => {
   test('fails closed when a git-backed release root has uncommitted changes', async () => {
     const rootDir = await createProductionReadyFixture()
     const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
     await initCleanGitRepo(rootDir)
     await writeFile(path.join(rootDir, 'docs-dirty-release-note.md'), 'dirty release input\n')
 
@@ -393,6 +418,7 @@ describe('xicheng Yudao release readiness gate', () => {
       env: productionEnv(),
       rootDir,
       stage: 'production',
+      aiBootstrapEvidencePath,
       poiManifestEvidencePath: manifestEvidencePath,
       poiWorkbookEvidencePath: workbookEvidencePath,
       poiSeedEvidencePath: seedEvidencePath
@@ -414,6 +440,7 @@ describe('xicheng Yudao release readiness gate', () => {
   test('fails closed when a git-backed release root is not on the expected handoff branch', async () => {
     const rootDir = await createProductionReadyFixture()
     const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
     await initCleanGitRepo(rootDir)
     runGit(rootDir, ['checkout', '-b', 'workbench/unified-release'])
 
@@ -421,6 +448,7 @@ describe('xicheng Yudao release readiness gate', () => {
       env: productionEnv(),
       rootDir,
       stage: 'production',
+      aiBootstrapEvidencePath,
       poiManifestEvidencePath: manifestEvidencePath,
       poiWorkbookEvidencePath: workbookEvidencePath,
       poiSeedEvidencePath: seedEvidencePath
@@ -444,11 +472,13 @@ describe('xicheng Yudao release readiness gate', () => {
     const yudaoServerJarPath = path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar')
     await rm(yudaoServerJarPath, { force: true })
     const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
 
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
       rootDir,
       stage: 'production',
+      aiBootstrapEvidencePath,
       poiManifestEvidencePath: manifestEvidencePath,
       poiWorkbookEvidencePath: workbookEvidencePath,
       poiSeedEvidencePath: seedEvidencePath
@@ -467,12 +497,14 @@ describe('xicheng Yudao release readiness gate', () => {
     const externalJarPath = await writeYudaoServerJar(rootDir, 'tmp/artifacts/yudao-server.jar')
     await rm(defaultJarPath, { force: true })
     const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
 
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
       rootDir,
       stage: 'production',
       yudaoServerJarPath: externalJarPath,
+      aiBootstrapEvidencePath,
       poiManifestEvidencePath: manifestEvidencePath,
       poiWorkbookEvidencePath: workbookEvidencePath,
       poiSeedEvidencePath: seedEvidencePath
@@ -505,12 +537,14 @@ describe('xicheng Yudao release readiness gate', () => {
       ].join('\n')
     )
     const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
 
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
       rootDir,
       stage: 'production',
       yudaoBaselineSqlPath: externalBaselinePath,
+      aiBootstrapEvidencePath,
       poiManifestEvidencePath: manifestEvidencePath,
       poiWorkbookEvidencePath: workbookEvidencePath,
       poiSeedEvidencePath: seedEvidencePath
@@ -539,11 +573,13 @@ describe('xicheng Yudao release readiness gate', () => {
     const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir, {
       seedSource: productionSeedSql()
     })
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
 
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
       rootDir,
       stage: 'production',
+      aiBootstrapEvidencePath,
       poiManifestEvidencePath: manifestEvidencePath,
       poiWorkbookEvidencePath: workbookEvidencePath,
       poiSeedEvidencePath: seedEvidencePath
@@ -556,6 +592,26 @@ describe('xicheng Yudao release readiness gate', () => {
     })
     expect(result.checks.find((check) => check.name === 'xicheng-production-poi')?.ok).toBe(true)
     expect(result.checks.find((check) => check.name === 'xicheng-source-license')?.ok).toBe(true)
+  })
+
+  test('fails closed when Yudao AI default model bootstrap evidence is missing', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const aiCheck = result.checks.find((check) => check.name === 'yudao-ai-model-bootstrap')
+    expect(aiCheck?.ok).toBe(false)
+    expect(aiCheck?.blockers).toContain('Yudao AI bootstrap evidence is required before production release')
   })
 
   test('fails closed when reviewed POI manifest and seed evidence are missing', async () => {
@@ -955,7 +1011,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidence.summary).toMatchObject({
       stage: 'production',
       status: 'NOT_READY',
-      totalChecks: 13,
+      totalChecks: 14,
       appApiBaseUrl: 'http://127.0.0.1:48080'
     })
     expect(evidence.blockers.join('\n')).toContain('SPRING_PROFILES_ACTIVE must be production')
@@ -981,6 +1037,7 @@ describe('xicheng Yudao release readiness gate', () => {
     )
     const envPath = await writeEnvFile(rootDir, productionEnv())
     const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
     const evidenceRelativePath = 'qa/xicheng-yudao-release-evidence.json'
     const evidencePath = path.join(rootDir, evidenceRelativePath)
 
@@ -991,6 +1048,7 @@ describe('xicheng Yudao release readiness gate', () => {
       '--env-file', envPath,
       '--yudao-baseline-sql', externalBaselinePath,
       '--yudao-server-jar', path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar'),
+      '--ai-bootstrap-evidence', aiBootstrapEvidencePath,
       '--poi-manifest-evidence', manifestEvidencePath,
       '--poi-workbook-evidence', workbookEvidencePath,
       '--poi-seed-evidence', seedEvidencePath,
@@ -1007,6 +1065,8 @@ describe('xicheng Yudao release readiness gate', () => {
       yudaoBaselineSqlFile: externalBaselinePath,
       yudaoBaselineSqlSha256: sha256(await readFile(externalBaselinePath, 'utf8')),
       yudaoServerJarFile: path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar'),
+      aiBootstrapEvidenceFile: aiBootstrapEvidencePath,
+      aiBootstrapModel: 'qwen-plus',
       manifestEvidenceFile: manifestEvidencePath,
       workbookEvidenceFile: workbookEvidencePath,
       seedEvidenceFile: seedEvidencePath,
@@ -1028,6 +1088,7 @@ describe('xicheng Yudao release readiness gate', () => {
     const rootDir = await createProductionReadyFixture()
     const envPath = await writeEnvFile(rootDir, productionEnv())
     const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
     const gitCommit = initCleanGitRepo(rootDir)
     const evidenceRelativePath = 'qa/xicheng-yudao-release-evidence.json'
     const evidencePath = path.join(rootDir, evidenceRelativePath)
@@ -1037,6 +1098,7 @@ describe('xicheng Yudao release readiness gate', () => {
       '--root', rootDir,
       '--stage', 'production',
       '--env-file', envPath,
+      '--ai-bootstrap-evidence', aiBootstrapEvidencePath,
       '--poi-manifest-evidence', manifestEvidencePath,
       '--poi-workbook-evidence', workbookEvidencePath,
       '--poi-seed-evidence', seedEvidencePath,
