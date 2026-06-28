@@ -150,7 +150,7 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /const loadCachedXichengRecognitionContext\s*=\s*\(context = \{\}\) => \{[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(cached\.safetyStatus\)/,
+  /const loadCachedXichengRecognitionContext\s*=\s*\(context = \{\}\) => \{[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(cached\.safetyStatus\)[\s\S]*safetyStatus,/,
   'AI guide should restore safetyStatus from the matching cached recognition context'
 )
 

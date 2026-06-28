@@ -4,6 +4,8 @@ import path from 'node:path'
 
 const root = process.cwd()
 const aiGuide = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
+const loadCachedRecognitionBlock = aiGuide.match(/const loadCachedXichengRecognitionContext\s*=\s*\(context = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
+const contextSourcesBlock = aiGuide.match(/const getXichengContextSources\s*=\s*\(\) => \{[\s\S]*?\n\}/)?.[0] || ''
 
 for (const required of [
   'sourceLabel',
@@ -14,10 +16,19 @@ for (const required of [
   assert.ok(aiGuide.includes(required), `AI guide should keep recognition source context token ${required}`)
 }
 
+assert.ok(loadCachedRecognitionBlock, 'AI guide should expose cached Xicheng recognition context hydration')
+assert.ok(contextSourcesBlock, 'AI guide should expose active Xicheng context source hydration')
+
 assert.match(
   aiGuide,
-  /const loadCachedXichengRecognitionContext\s*=\s*\(context = \{\}\) => \{[\s\S]*uni\.getStorageSync\(XICHENG_REGION_CONFIG\.storageKey\)[\s\S]*cached\.poiCode === context\.poiCode[\s\S]*cached\.poiName === context\.poiName[\s\S]*sources:\s*normalizeXichengReviewedSources\(cached\.sources\)/,
-  'AI guide should restore normalized reviewed source metadata from the latest recognition cache only when it matches the active POI context'
+  /const loadCachedXichengRecognitionContext\s*=\s*\(context = \{\}\) => \{[\s\S]*uni\.getStorageSync\(XICHENG_REGION_CONFIG\.storageKey\)[\s\S]*cached\.poiCode === context\.poiCode[\s\S]*cached\.poiName === context\.poiName[\s\S]*sources:\s*unsafeSafetyStatus \? \[\] : normalizeXichengReviewedSources\(cached\.sources\)/,
+  'AI guide should restore safety-filtered reviewed source metadata from the latest recognition cache only when it matches the active POI context'
+)
+
+assert.match(
+  loadCachedRecognitionBlock,
+  /const safetyStatus = normalizeXichengSafetyStatus\(cached\.safetyStatus\)[\s\S]*const unsafeSafetyStatus = \['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*safetyStatus,[\s\S]*sources:\s*unsafeSafetyStatus \? \[\] : normalizeXichengReviewedSources\(cached\.sources\)/,
+  'AI guide should fail closed when restoring cached BLOCKED or UNAVAILABLE recognition sources'
 )
 
 assert.match(
@@ -27,8 +38,8 @@ assert.match(
 )
 
 assert.match(
-  aiGuide,
-  /const getXichengContextSources\s*=\s*\(\) => \{[\s\S]*xichengAiContext\.value[\s\S]*normalizeXichengReviewedSources\(context\.sources\)/,
+  contextSourcesBlock,
+  /const safetyStatus = normalizeXichengSafetyStatus\(context\.safetyStatus\)[\s\S]*if \(\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)\) \{[\s\S]*return \[\][\s\S]*return normalizeXichengReviewedSources\(context\.sources\)/,
   'AI guide should expose a normalized safe helper for the active Xicheng reviewed sources'
 )
 

@@ -652,6 +652,8 @@ const loadCachedXichengRecognitionContext = (context = {}) => {
 	if (!matchesPoiCode && !matchesPoiName) {
 		return createEmptyXichengRecognitionContext()
 	}
+	const safetyStatus = normalizeXichengSafetyStatus(cached.safetyStatus)
+	const unsafeSafetyStatus = ['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)
 	return {
 		sceneCode: cached.sceneCode || '',
 		sourceChannel: cached.sourceChannel || '',
@@ -659,8 +661,8 @@ const loadCachedXichengRecognitionContext = (context = {}) => {
 		poiName: cached.poiName || '',
 		confidence: cached.confidence || '',
 		sourceLabel: cached.sourceLabel || '',
-		safetyStatus: normalizeXichengSafetyStatus(cached.safetyStatus),
-		sources: normalizeXichengReviewedSources(cached.sources)
+		safetyStatus,
+		sources: unsafeSafetyStatus ? [] : normalizeXichengReviewedSources(cached.sources)
 	}
 }
 
@@ -709,6 +711,10 @@ const hasXichengAiContext = (context = xichengAiContext.value) => (
 
 const getXichengContextSources = () => {
 	const context = xichengAiContext.value || {}
+	const safetyStatus = normalizeXichengSafetyStatus(context.safetyStatus)
+	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+		return []
+	}
 	return normalizeXichengReviewedSources(context.sources)
 }
 
