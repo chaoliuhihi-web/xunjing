@@ -533,7 +533,6 @@ export default {
 		// 如果有当前分享的剧场信息,使用它
 		if (this.currentShareItem) {
 			const item = this.currentShareItem
-			console.log('📤 分享内容:', item)
 			return {
 				title: item.title || '剧好玩文旅地图',
 				path: `/pages/index/index?dramaId=${item.id}`,
@@ -1481,7 +1480,6 @@ export default {
 				}
 
 				const res = await request('api2/Drama/dramaZan', params, 'GET')
-				console.log('点赞结果:', res)
 
 				if (res.code == 0) {
 					// 切换点赞状态
@@ -1498,9 +1496,6 @@ export default {
 		},
 		// 处理分享
 		async handleShare(item) {
-			console.log('🎬 点击分享的剧场数据:', item)
-			console.log('🆔 剧场ID (dataId):', item.id)
-
 			// 保存当前要分享的剧场信息,供 onShareAppMessage 使用
 			this.currentShareItem = item
 
@@ -1513,10 +1508,7 @@ export default {
 					type: 2
 				}
 
-				console.log('📤 分享统计参数:', params)
-
 				const res = await request('api2/Drama/dramaShare', params, 'GET')
-				console.log('✅ 分享统计返回:', res)
 			} catch (error) {
 				console.error('❌ 分享统计失败:', error)
 			}
@@ -1524,10 +1516,6 @@ export default {
 		// 处理关注
 		async handleFollow(item) {
 			try {
-				console.log('👤 点击关注的剧场数据:', item)
-				console.log('🏷️ 品牌ID (brandId):', item.brandId)
-				console.log('📊 当前关注状态:', item.isFollow)
-
 				// 从本地存储获取用户ID
 				const userId = uni.getStorageSync('userId') || 1
 
@@ -1540,11 +1528,7 @@ export default {
 					action: action // 操作: 1=关注 2=取消
 				}
 
-				console.log('📤 关注请求参数:', params)
-
 				const res = await request('api2/Drama/brandFollow', params, 'GET')
-
-				console.log('✅ 关注接口返回:', res)
 
 				if (res.code == 0) {
 					// 切换关注状态

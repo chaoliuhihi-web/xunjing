@@ -77,7 +77,6 @@ export default {
 					id: this.id
 				}
 				let res = await request('api2/Drama/banner_detail', params, 'GET')
-				console.log('Banner详情接口返回:', res)
 
 				if (res.code == 0 && res.data) {
 					this.bannerInfo = res.data

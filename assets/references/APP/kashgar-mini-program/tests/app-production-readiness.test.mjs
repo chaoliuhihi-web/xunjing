@@ -297,3 +297,30 @@ assert.doesNotMatch(
   /mock|demo|blocked/i,
   'APP readiness QA report should not describe the shipped branch as mock/demo/blocked'
 )
+
+const collectSourceFiles = (relativeDir) => {
+  const absoluteDir = path.join(root, relativeDir)
+  if (!fs.existsSync(absoluteDir)) return []
+  return fs.readdirSync(absoluteDir, { withFileTypes: true }).flatMap((entry) => {
+    const relativePath = path.join(relativeDir, entry.name)
+    if (entry.isDirectory()) {
+      return collectSourceFiles(relativePath)
+    }
+    return /\.(vue|js)$/.test(entry.name) ? [relativePath] : []
+  })
+}
+
+const appSourceFiles = [
+  ...collectSourceFiles('pages'),
+  ...collectSourceFiles('request'),
+  ...collectSourceFiles('config'),
+]
+
+for (const relativePath of appSourceFiles) {
+  const source = fs.readFileSync(path.join(root, relativePath), 'utf8')
+  assert.doesNotMatch(
+    source,
+    /console\.(?:log|debug|info)\s*\(/,
+    `${relativePath} should not ship production console.log/debug/info statements`
+  )
+}

@@ -23,7 +23,6 @@ export function getUserId() {
 export function setUserId(userId) {
 	try {
 		uni.setStorageSync('userId', userId)
-		console.log('用户ID已保存:', userId)
 	} catch (e) {
 		console.error('保存用户ID失败:', e)
 	}
@@ -63,7 +62,6 @@ export function getToken() {
 export function clearUserData() {
 	try {
 		uni.clearStorageSync()
-		console.log('用户数据已清除')
 	} catch (e) {
 		console.error('清除用户数据失败:', e)
 	}

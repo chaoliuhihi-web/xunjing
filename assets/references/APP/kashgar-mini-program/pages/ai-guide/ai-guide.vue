@@ -1976,7 +1976,6 @@ const chooseImage = () => {
 		sourceType: ['album', 'camera'], // 可以从相册选择或拍照
 		success: (res) => {
 			const filePath = res.tempFilePaths[0]
-			console.log('✅ 已选择图片:', filePath)
 			uploadAndSendImage(filePath)
 		},
 		fail: (err) => {
