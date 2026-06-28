@@ -19,6 +19,7 @@
     "xunjing:xicheng:poi:review:pack": "node scripts/create-xicheng-poi-production-review-pack.mjs",
     "xunjing:xicheng:poi:manifest:template": "node scripts/create-xicheng-poi-production-manifest-template.mjs",
     "xunjing:xicheng:poi:workbook:gate": "node scripts/verify-xicheng-poi-review-workbook.mjs",
+    "xunjing:xicheng:poi:tasks:export": "node scripts/export-xicheng-poi-review-tasks.mjs",
     "xunjing:xicheng:poi:manifest:from-workbook": "node scripts/build-xicheng-poi-production-manifest-from-workbook.mjs",
     "xunjing:xicheng:poi:manifest:gate": "node scripts/verify-xicheng-poi-production-manifest.mjs",
     "xunjing:xicheng:poi:seed:generate": "node scripts/generate-xicheng-poi-production-seed.mjs",
