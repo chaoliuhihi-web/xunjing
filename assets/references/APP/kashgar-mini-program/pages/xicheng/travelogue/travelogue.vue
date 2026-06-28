@@ -1681,6 +1681,9 @@ export default {
 				: this.importedRoute && this.importedRoute.title ? this.importedRoute.title : '西城 Citywalk'
 			const assetLabel = assetType === 'pdf' ? 'PDF纪念册' : '分享海报'
 			const assetTitle = assetType === 'pdf' ? '西城 PDF纪念册' : '西城分享海报'
+			const publicRouteCheckins = this.routeCheckins
+				.filter(checkin => this.hasReviewableRouteCheckinEvidence(checkin))
+				.map(checkin => this.sanitizeRouteCheckinForPublicShare(checkin))
 			return {
 				assetId: `${assetType}-${Date.now()}`,
 				assetType,
@@ -1696,11 +1699,10 @@ export default {
 					.filter(material => hasReviewableMaterialEvidence(material))
 					.map(material => this.sanitizeMaterialForPublicShare(material)),
 				publicStudyTaskEvidence: this.completedStudyTaskEvidence.map(evidence => this.sanitizeStudyTaskEvidenceForPublicShare(evidence)),
-				publicRouteCheckins: this.routeCheckins
-					.filter(checkin => this.hasReviewableRouteCheckinEvidence(checkin))
-					.map(checkin => this.sanitizeRouteCheckinForPublicShare(checkin)),
+				publicRouteCheckins,
 				publicCandidateConfirmationSummary: this.createPublicCandidateConfirmationSummary(),
 				publicRecordingSummary: this.createPublicRecordingSummary(),
+				checkinCount: publicRouteCheckins.length,
 				qualityReport: this.qualityReport,
 				filteredTrackPointCount: this.filteredTrackPointCount,
 				privacy: {
@@ -1716,7 +1718,6 @@ export default {
 				stayPointCount: this.stayPointCount,
 				photoMaterialCount: this.photoMaterialCount,
 				remarkMaterialCount: this.remarkMaterialCount,
-				checkinCount: this.checkinCount,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
 				activeBadgeAward: this.activeBadgeAward,
 				badgeAwardCount: this.badgeAwardCount,
