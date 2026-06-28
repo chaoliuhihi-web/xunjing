@@ -94,6 +94,29 @@ function extractStringMetric(sql, name) {
   }
 }
 
+function decodeJsonString(value) {
+  try {
+    return JSON.parse(`"${value}"`)
+  } catch {
+    return value
+  }
+}
+
+function extractJsonStringValues(sql, key) {
+  return Array.from(sql.matchAll(new RegExp(`"${key}"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"`, 'g')))
+    .map((match) => decodeJsonString(match[1]))
+}
+
+function extractJsonArrayStringValues(sql, key) {
+  const values = []
+  for (const match of sql.matchAll(new RegExp(`"${key}"\\s*:\\s*\\[([^\\]]*)\\]`, 'g'))) {
+    for (const stringMatch of match[1].matchAll(/"((?:\\.|[^"\\])*)"/g)) {
+      values.push(decodeJsonString(stringMatch[1]))
+    }
+  }
+  return values
+}
+
 function isNonLocalEvidenceRef(value) {
   if (!hasText(value)) {
     return false
@@ -227,11 +250,15 @@ function checkFieldEvidence(sql) {
   const fieldEvidenceStatusCount = countMatches(sql, /"fieldEvidenceStatus"\s*:\s*"APPROVED"/g)
   const triggerSmokeStatusCount = countMatches(sql, /"triggerSmokeStatus"\s*:\s*"PASSED"/g)
   const fieldEvidenceRefsCount = countMatches(sql, /"fieldEvidenceRefs"\s*:\s*\[/g)
+  const fieldEvidenceRefs = extractJsonArrayStringValues(sql, 'fieldEvidenceRefs')
   if (
     poiCount > 0 &&
     (fieldEvidenceStatusCount < poiCount || triggerSmokeStatusCount < poiCount || fieldEvidenceRefsCount < poiCount)
   ) {
     blockers.push('seed SQL must include approved field evidence for each production POI')
+  }
+  if (fieldEvidenceRefs.length < poiCount || fieldEvidenceRefs.some((ref) => !isNonLocalEvidenceRef(ref))) {
+    blockers.push('seed SQL field evidence refs must use non-local HTTPS or object-storage references')
   }
   if (/(?:data:image|imageBase64|file:\/\/)/i.test(sql)) {
     blockers.push('seed SQL must not contain raw image data or local field evidence file paths')
@@ -242,7 +269,8 @@ function checkFieldEvidence(sql) {
 function checkSourceLicenseEvidence(sql) {
   const blockers = []
   const poiCount = extractPoiCodes(sql).length
-  const licenseEvidenceRefCount = countMatches(sql, /"licenseEvidenceRef"\s*:\s*"[^"]+"/g)
+  const licenseEvidenceRefs = extractJsonStringValues(sql, 'licenseEvidenceRef')
+  const licenseEvidenceRefCount = licenseEvidenceRefs.length
   const licenseReviewedByCount = countMatches(sql, /"licenseReviewedBy"\s*:\s*"[^"]+"/g)
   const licenseReviewedAtCount = countMatches(sql, /"licenseReviewedAt"\s*:\s*"[^"]+"/g)
   if (
@@ -254,6 +282,9 @@ function checkSourceLicenseEvidence(sql) {
     )
   ) {
     blockers.push('seed SQL must include approved source license evidence for each production POI')
+  }
+  if (licenseEvidenceRefs.length < poiCount || licenseEvidenceRefs.some((ref) => !isNonLocalEvidenceRef(ref))) {
+    blockers.push('seed SQL source license evidence refs must use non-local HTTPS or object-storage references')
   }
   if (/(?:data:|file:\/\/|localhost|127\.0\.0\.1|0\.0\.0\.0)/i.test(sql)) {
     blockers.push('seed SQL must not contain raw or local source license evidence references')

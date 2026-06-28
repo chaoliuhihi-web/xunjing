@@ -227,6 +227,48 @@ INSERT INTO \`xunjing_public_report\` (\`metrics_json\`) VALUES ('{"productionRe
     expect(evidence.blockers.join('\n')).toContain('seed SQL must include approved source license evidence for each production POI')
   })
 
+  test('fails closed when production SQL evidence refs are not non-local storage references', async () => {
+    const rootDir = await createTempRoot()
+    const manifestPath = await writeJson(rootDir, 'workbench/xicheng-production-pois.json', productionManifest())
+    const sqlPath = path.join(rootDir, 'tmp/xicheng-poi-production-seed.sql')
+    const evidencePath = path.join(rootDir, 'tmp/xicheng-poi-production-seed-evidence.json')
+
+    const generated = runGenerator([
+      '--manifest', manifestPath,
+      '--root', rootDir,
+      '--output', 'tmp/xicheng-poi-production-seed.sql'
+    ])
+    expect(generated.status).toBe(0)
+
+    const originalSql = await readFile(sqlPath, 'utf8')
+    const unsafeSql = originalSql
+      .replace(
+        'oss://xunjing-review/xicheng/xicheng-prod-poi-001/source-license-approval.pdf',
+        'review-note-source-license-001'
+      )
+      .replace(
+        'oss://xunjing-review/xicheng/xicheng-prod-poi-001/field-photo-001.jpg',
+        'review-note-field-photo-001'
+      )
+    await writeFile(sqlPath, unsafeSql)
+
+    const result = runSeedGate([
+      '--sql', sqlPath,
+      '--root', rootDir,
+      '--evidence-file', 'tmp/xicheng-poi-production-seed-evidence.json'
+    ])
+
+    expect(result.status).toBe(1)
+    const evidence = JSON.parse(await readFile(evidencePath, 'utf8'))
+    expect(evidence.status).toBe('NOT_READY')
+    expect(evidence.blockers.join('\n')).toContain(
+      'seed SQL source license evidence refs must use non-local HTTPS or object-storage references'
+    )
+    expect(evidence.blockers.join('\n')).toContain(
+      'seed SQL field evidence refs must use non-local HTTPS or object-storage references'
+    )
+  })
+
   test('rejects seed evidence paths outside qa tmp or workbench', async () => {
     const rootDir = await createTempRoot()
     const manifestPath = await writeJson(rootDir, 'workbench/xicheng-production-pois.json', productionManifest())
