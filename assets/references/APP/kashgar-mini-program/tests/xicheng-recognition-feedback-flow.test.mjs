@@ -21,9 +21,11 @@ for (const required of [
   'feedbackNote',
   'recognitionFeedback',
   'submitRecognitionFeedback',
+  'withdrawRecognitionFeedback',
   'createRecognitionFeedback',
   'persistRecognitionFeedback',
-  'recognitionFeedbackStorageKey'
+  'recognitionFeedbackStorageKey',
+  '撤回反馈'
 ]) {
   assert.ok(scanResult.includes(required), `Recognition result page should include ${required}`)
 }
@@ -44,6 +46,18 @@ assert.match(
   scanResult,
   /persistRecognitionFeedback\(feedback\)[\s\S]*uni\.getStorageSync\(XICHENG_REGION_CONFIG\.recognitionFeedbackStorageKey\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.recognitionFeedbackStorageKey/,
   'Recognition feedback should be stored locally for operations handoff'
+)
+
+assert.match(
+  scanResult,
+  /v-if="recognitionFeedback"[\s\S]*@click="withdrawRecognitionFeedback"[\s\S]*撤回反馈/,
+  'Recognition feedback card should expose a withdraw action for accidental correction feedback'
+)
+
+assert.match(
+  scanResult,
+  /withdrawRecognitionFeedback\(\)[\s\S]*const feedbackId = this\.recognitionFeedback && this\.recognitionFeedback\.feedbackId \? this\.recognitionFeedback\.feedbackId : ''[\s\S]*const existingFeedbacks = uni\.getStorageSync\(XICHENG_REGION_CONFIG\.recognitionFeedbackStorageKey\)[\s\S]*const remainingFeedbacks = feedbackId[\s\S]*feedback\.feedbackId !== feedbackId[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.recognitionFeedbackStorageKey, remainingFeedbacks\)[\s\S]*this\.recognitionFeedback = null[\s\S]*识别反馈已撤回/,
+  'Withdrawing recognition feedback should remove the current local feedback record and reset page state'
 )
 
 for (const required of [

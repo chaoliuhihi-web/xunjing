@@ -108,6 +108,9 @@
 			<text v-if="recognitionFeedback" class="source-empty">
 				已记录为{{ recognitionFeedback.reviewStatus }}反馈，运营可用于 POI 纠错。
 			</text>
+			<view v-if="recognitionFeedback" class="feedback-actions">
+				<button class="ghost-button danger-button" @click="withdrawRecognitionFeedback">撤回反馈</button>
+			</view>
 		</view>
 
 		<view class="bottom-actions">
@@ -480,6 +483,20 @@ export default {
 			this.feedbackNote = ''
 			uni.showToast({
 				title: '识别反馈已记录',
+				icon: 'none'
+			})
+		},
+		withdrawRecognitionFeedback() {
+			const feedbackId = this.recognitionFeedback && this.recognitionFeedback.feedbackId ? this.recognitionFeedback.feedbackId : ''
+			const existingFeedbacks = uni.getStorageSync(XICHENG_REGION_CONFIG.recognitionFeedbackStorageKey)
+			const feedbacks = Array.isArray(existingFeedbacks) ? existingFeedbacks : []
+			const remainingFeedbacks = feedbackId
+				? feedbacks.filter(feedback => feedback && feedback.feedbackId !== feedbackId)
+				: feedbacks.filter(feedback => !(feedback && feedback.poiCode === this.result.poiCode && feedback.source === this.result.source))
+			uni.setStorageSync(XICHENG_REGION_CONFIG.recognitionFeedbackStorageKey, remainingFeedbacks)
+			this.recognitionFeedback = null
+			uni.showToast({
+				title: '识别反馈已撤回',
 				icon: 'none'
 			})
 		},
