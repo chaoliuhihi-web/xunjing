@@ -5,17 +5,24 @@ export const normalizeXichengReviewedSource = (source = {}) => {
 	const title = source.title || source.name || source.sourceTitle || '审核来源'
 	const sourceUrl = source.sourceUrl || source.url || ''
 	const contentDigest = source.contentDigest || source.excerpt || source.summary || ''
+	const sourceId = source.sourceId !== undefined && source.sourceId !== null ? source.sourceId : source.id
+	const sourceType = source.sourceType || source.type || ''
 	return {
-		...source,
+		id: source.id !== undefined && source.id !== null ? source.id : sourceId,
+		sourceId,
 		title,
 		name: source.name || title,
+		sourceTitle: source.sourceTitle || title,
 		sourceUrl,
 		url: source.url || sourceUrl,
 		contentDigest,
 		excerpt: source.excerpt || contentDigest || sourceUrl,
 		summary: source.summary || contentDigest || source.excerpt || '',
-		sourceType: source.sourceType || source.type || '',
-		score: source.score
+		sourceType,
+		type: source.type || sourceType,
+		score: source.score,
+		poiCode: source.poiCode || '',
+		poiName: source.poiName || ''
 	}
 }
 

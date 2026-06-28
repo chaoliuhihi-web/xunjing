@@ -27,6 +27,12 @@ for (const required of [
   assert.ok(sourceHelper.includes(required), `Reviewed source helper should normalize ${required}`)
 }
 
+assert.doesNotMatch(
+  sourceHelper,
+  /\.\.\.source/,
+  'Reviewed source helper should whitelist display fields instead of retaining raw backend source metadata'
+)
+
 assert.match(
   triggerRequest,
   /normalizeXichengReviewedSources\(result\.sources\)/,
@@ -78,3 +84,25 @@ assert.equal(normalized.url, 'https://example.com/xicheng')
 assert.equal(normalized.sourceUrl, 'https://example.com/xicheng')
 assert.equal(normalized.sourceType, 'OFFICIAL_PUBLIC')
 assert.equal(normalized.score, 0.93)
+
+const [safeNormalized] = normalizeXichengReviewedSources([
+  {
+    id: 8,
+    sourceTitle: '后台审核来源',
+    sourceUrl: 'https://example.com/source',
+    contentDigest: '用于展示的审核摘要。',
+    rawText: '完整原文不应进入 APP 展示缓存',
+    content: '内部全文不应进入 APP 展示缓存',
+    embedding: [0.1, 0.2],
+    authorization: 'Bearer secret',
+    apiKey: 'sk-not-real-but-sensitive'
+  }
+])
+
+for (const blocked of ['rawText', 'content', 'embedding', 'authorization', 'apiKey']) {
+  assert.equal(
+    Object.prototype.hasOwnProperty.call(safeNormalized, blocked),
+    false,
+    `Reviewed source normalization should not preserve raw backend field ${blocked}`
+  )
+}
