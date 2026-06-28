@@ -6,6 +6,7 @@ const root = process.cwd()
 const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
 
 for (const required of [
+  'sanitizeRouteRecommendationForPublicShare',
   'sanitizeMaterialForPublicShare',
   'sanitizeStudyTaskEvidenceForPublicShare',
   'sanitizeRouteCheckinForPublicShare',
@@ -28,15 +29,41 @@ assert.ok(sanitizeBlock, 'Travelogue should expose a bounded public material san
 for (const required of [
   'publicLocationLabel: material.publicLocationLabel || this.createPublicLocationLabel(material)',
   'locationHidden: true',
-  'sourceCount: Array.isArray(material.sources) ? material.sources.length : 0'
+  'sourceCount: Array.isArray(material.sources) ? material.sources.length : 0',
+  'routeRecommendation: this.sanitizeRouteRecommendationForPublicShare(material.routeRecommendation)'
 ]) {
   assert.ok(sanitizeBlock.includes(required), `Public material sanitizer should preserve safe public field ${required}`)
 }
 
 assert.doesNotMatch(
   sanitizeBlock,
-  /captureLocation|exifLocation|nearestTrackPoint|latitude|longitude|trackPoints|stayPoints/,
-  'Public material sanitizer should not expose exact coordinates, EXIF location, track points, or stay points'
+  /routeRecommendation:\s*material\.routeRecommendation|captureLocation|exifLocation|nearestTrackPoint|latitude|longitude|trackPoints|stayPoints/,
+  'Public material sanitizer should not expose raw routeRecommendation, exact coordinates, EXIF location, track points, or stay points'
+)
+
+const routeRecommendationSanitizeBlock = travelogue.match(/sanitizeRouteRecommendationForPublicShare\(routeRecommendation = null\)[\s\S]*?\n\t\t\},\n\t\tsanitizeMaterialForPublicShare/)?.[0] || ''
+assert.ok(routeRecommendationSanitizeBlock, 'Travelogue should expose a bounded public route-recommendation sanitizer for share exports')
+
+for (const required of [
+  'title: routeRecommendation.title ||',
+  'summary: routeRecommendation.summary || routeRecommendation.theme ||',
+  'durationText: routeRecommendation.durationText || routeRecommendation.duration ||',
+  'theme: routeRecommendation.theme ||',
+  'stops: publicStops'
+]) {
+  assert.ok(routeRecommendationSanitizeBlock.includes(required), `Public route recommendation sanitizer should preserve safe field ${required}`)
+}
+
+assert.match(
+  routeRecommendationSanitizeBlock,
+  /const publicStops = Array\.isArray\(routeRecommendation\.stops\)[\s\S]*poiCode:\s*stop\.poiCode \|\| ''[\s\S]*poiName:\s*stop\.poiName \|\| stop\.name \|\| ''[\s\S]*slice\(0, 8\)/,
+  'Public route recommendation sanitizer should expose only bounded POI stop labels'
+)
+
+assert.doesNotMatch(
+  routeRecommendationSanitizeBlock,
+  /sources|polyline|geometry|path|coordinates|latitude|longitude|confidence|candidate|raw|provider/,
+  'Public route recommendation sanitizer should not expose reviewed sources, geometry, coordinates, confidence, candidate, raw, or provider metadata'
 )
 
 const studyEvidenceSanitizeBlock = travelogue.match(/sanitizeStudyTaskEvidenceForPublicShare\(evidence = \{\}\)[\s\S]*?\n\t\t\},\n\t\tcreatePublicRecordingSummary/)?.[0] || ''

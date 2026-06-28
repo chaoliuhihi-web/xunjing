@@ -1582,6 +1582,25 @@ export default {
 				statusCounts
 			}
 		},
+		sanitizeRouteRecommendationForPublicShare(routeRecommendation = null) {
+			if (!routeRecommendation) return null
+			const publicStops = Array.isArray(routeRecommendation.stops)
+				? routeRecommendation.stops
+					.map(stop => ({
+						poiCode: stop.poiCode || '',
+						poiName: stop.poiName || stop.name || ''
+					}))
+					.filter(stop => stop.poiCode || stop.poiName)
+					.slice(0, 8)
+				: []
+			return {
+				title: routeRecommendation.title || '',
+				summary: routeRecommendation.summary || routeRecommendation.theme || '',
+				durationText: routeRecommendation.durationText || routeRecommendation.duration || '',
+				theme: routeRecommendation.theme || '',
+				stops: publicStops
+			}
+		},
 		sanitizeMaterialForPublicShare(material = {}) {
 			return {
 				type: material.type || '',
@@ -1592,7 +1611,7 @@ export default {
 				sourceLabel: material.sourceLabel || '',
 				remarkText: material.remarkText || '',
 				hasPhoto: Boolean(material.imagePath),
-				routeRecommendation: material.routeRecommendation || null,
+				routeRecommendation: this.sanitizeRouteRecommendationForPublicShare(material.routeRecommendation),
 				sourceCount: Array.isArray(material.sources) ? material.sources.length : 0,
 				safetyStatus: material.safetyStatus || '',
 				publicLocationLabel: material.publicLocationLabel || this.createPublicLocationLabel(material),
