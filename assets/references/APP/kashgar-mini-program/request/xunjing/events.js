@@ -3,6 +3,7 @@ import {
 	getXunjingUserTraceId,
 	getYudaoCommonResultPayload
 } from '@/request/xunjingMultimodal.js'
+import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 
 export const XICHENG_RESOURCE_EVENT_API_PATH = 'app-api/xunjing/resource/events'
@@ -21,7 +22,7 @@ export const buildXichengRecognitionFeedbackEventPayload = (feedback = {}) => ({
 		poiCode: feedback.poiCode || '',
 		poiName: feedback.poiName || '',
 		confidence: feedback.confidence || 0,
-		safetyStatus: feedback.safetyStatus || '',
+		safetyStatus: normalizeXichengSafetyStatus(feedback.safetyStatus),
 		sourceLabel: feedback.sourceLabel || '',
 		sourceCount: Array.isArray(feedback.sources) ? feedback.sources.length : 0,
 		severity: feedback.misTrigger ? 'WARN' : 'INFO'

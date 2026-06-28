@@ -15,6 +15,7 @@ const safetyHelper = exists('request', 'xunjing', 'safety.js')
   ? read('request', 'xunjing', 'safety.js')
   : ''
 const chatRequest = read('request', 'xunjing', 'chat.js')
+const eventRequest = read('request', 'xunjing', 'events.js')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
 const aiGuide = read('pages', 'ai-guide', 'ai-guide.vue')
 
@@ -69,6 +70,18 @@ assert.match(
   aiGuide,
   /safetyStatus:\s*normalizeXichengSafetyStatus\(result\.safetyStatus\)/,
   'AI guide should persist normalized safetyStatus into local Xiaojing answer materials'
+)
+
+assert.match(
+  scanResult,
+  /safetyStatus:\s*normalizeXichengSafetyStatus\(this\.result\.safetyStatus\)/,
+  'Recognition result should persist normalized safetyStatus into local feedback records'
+)
+
+assert.match(
+  eventRequest,
+  /safetyStatus:\s*normalizeXichengSafetyStatus\(feedback\.safetyStatus\)/,
+  'Recognition feedback event payload should send normalized safetyStatus to Yudao'
 )
 
 assert.match(

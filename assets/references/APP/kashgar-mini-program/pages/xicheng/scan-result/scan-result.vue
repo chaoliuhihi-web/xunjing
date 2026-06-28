@@ -562,7 +562,7 @@ export default {
 				source: this.result.source || '',
 				sourceLabel: this.result.sourceLabel,
 				sources: this.sourceList,
-				safetyStatus: this.result.safetyStatus || '',
+				safetyStatus: normalizeXichengSafetyStatus(this.result.safetyStatus),
 				candidateConfirmationAudit: this.result.candidateConfirmationAudit || null,
 				feedbackNote: this.feedbackNote.trim(),
 				misTrigger: feedbackType === 'wrong',

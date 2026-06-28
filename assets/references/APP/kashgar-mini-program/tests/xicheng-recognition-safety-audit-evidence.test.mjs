@@ -27,8 +27,8 @@ assert.match(
 
 assert.match(
   createFeedbackBlock,
-  /safetyStatus:\s*this\.result\.safetyStatus \|\| ''/,
-  'Recognition feedback records should preserve safetyStatus with POI correction evidence'
+  /safetyStatus:\s*normalizeXichengSafetyStatus\(this\.result\.safetyStatus\)/,
+  'Recognition feedback records should preserve normalized safetyStatus with POI correction evidence'
 )
 
 assert.match(

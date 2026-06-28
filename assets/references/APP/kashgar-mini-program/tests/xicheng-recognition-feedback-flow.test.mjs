@@ -38,7 +38,7 @@ assert.match(
 
 assert.match(
   scanResult,
-  /createRecognitionFeedback\(feedbackType = 'correct'\)[\s\S]*feedbackId:\s*`feedback-\$\{Date\.now\(\)\}`[\s\S]*feedbackType[\s\S]*feedbackLabel:\s*feedbackType === 'wrong' \? '识别有误' : '识别准确'[\s\S]*regionCode:\s*this\.result\.regionCode[\s\S]*packageCode:\s*this\.result\.packageCode[\s\S]*poiCode:\s*this\.result\.poiCode[\s\S]*poiName:\s*this\.result\.poiName[\s\S]*confidence:\s*this\.result\.confidence[\s\S]*sourceLabel:\s*this\.result\.sourceLabel[\s\S]*sources:\s*this\.sourceList[\s\S]*feedbackNote:\s*this\.feedbackNote\.trim\(\)[\s\S]*misTrigger:\s*feedbackType === 'wrong'[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  /createRecognitionFeedback\(feedbackType = 'correct'\)[\s\S]*feedbackId:\s*`feedback-\$\{Date\.now\(\)\}`[\s\S]*feedbackType[\s\S]*feedbackLabel:\s*feedbackType === 'wrong' \? '识别有误' : '识别准确'[\s\S]*regionCode:\s*this\.result\.regionCode[\s\S]*packageCode:\s*this\.result\.packageCode[\s\S]*poiCode:\s*this\.result\.poiCode[\s\S]*poiName:\s*this\.result\.poiName[\s\S]*confidence:\s*this\.result\.confidence[\s\S]*sourceLabel:\s*this\.result\.sourceLabel[\s\S]*sources:\s*this\.sourceList[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(this\.result\.safetyStatus\)[\s\S]*feedbackNote:\s*this\.feedbackNote\.trim\(\)[\s\S]*misTrigger:\s*feedbackType === 'wrong'[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
   'Recognition feedback record should include POI, confidence, sources, note, mis-trigger, and private review status'
 )
 

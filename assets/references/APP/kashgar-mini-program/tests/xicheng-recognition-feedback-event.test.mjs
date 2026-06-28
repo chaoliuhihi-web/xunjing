@@ -20,6 +20,7 @@ for (const required of [
   'buildXichengRecognitionFeedbackEventPayload',
   "eventType: 'ERROR_FEEDBACK'",
   'payloadJson: JSON.stringify',
+  'normalizeXichengSafetyStatus',
   "'tenant-id': XICHENG_REGION_CONFIG.tenantId",
   'getXunjingUserTraceId()',
   'getYudaoCommonResultPayload(res)'
@@ -35,7 +36,7 @@ assert.match(
 
 assert.match(
   eventRequest,
-  /payloadJson:\s*JSON\.stringify\(\{[\s\S]*category:\s*feedback\.misTrigger \? 'recognition_wrong' : 'recognition_confirmed'[\s\S]*feedbackId:\s*feedback\.feedbackId \|\| ''[\s\S]*poiCode:\s*feedback\.poiCode \|\| ''[\s\S]*poiName:\s*feedback\.poiName \|\| ''[\s\S]*confidence:\s*feedback\.confidence \|\| 0[\s\S]*sourceCount:\s*Array\.isArray\(feedback\.sources\) \? feedback\.sources\.length : 0[\s\S]*severity:\s*feedback\.misTrigger \? 'WARN' : 'INFO'/,
+  /payloadJson:\s*JSON\.stringify\(\{[\s\S]*category:\s*feedback\.misTrigger \? 'recognition_wrong' : 'recognition_confirmed'[\s\S]*feedbackId:\s*feedback\.feedbackId \|\| ''[\s\S]*poiCode:\s*feedback\.poiCode \|\| ''[\s\S]*poiName:\s*feedback\.poiName \|\| ''[\s\S]*confidence:\s*feedback\.confidence \|\| 0[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(feedback\.safetyStatus\)[\s\S]*sourceCount:\s*Array\.isArray\(feedback\.sources\) \? feedback\.sources\.length : 0[\s\S]*severity:\s*feedback\.misTrigger \? 'WARN' : 'INFO'/,
   'Recognition feedback event payload should send a bounded summary instead of raw source arrays'
 )
 
