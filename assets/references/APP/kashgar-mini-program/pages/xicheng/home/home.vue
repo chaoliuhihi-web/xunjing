@@ -36,9 +36,10 @@
 				<text class="recent-desc">
 					{{ recentRecognition.sourceLabel || '识别结果' }} · 置信度 {{ recentRecognitionConfidence }}%
 				</text>
+				<text class="recent-status">{{ recentRecognitionStatusCopy }}</text>
 			</view>
 			<view class="recent-actions">
-				<button class="primary-button" @click="continueRecentRecognitionWithXiaojing">继续问小京</button>
+				<button class="primary-button" :disabled="recentRecognitionActionBlocked" @click="continueRecentRecognitionWithXiaojing">继续问小京</button>
 				<button class="ghost-button" @click="openRecentRecognition">查看识别结果</button>
 			</view>
 		</view>
@@ -192,6 +193,18 @@ export default {
 	computed: {
 		recentRecognitionConfidence() {
 			return Math.round(Number(this.recentRecognition && this.recentRecognition.confidence ? this.recentRecognition.confidence : 0) * 100)
+		},
+		recentRecognitionStatusCopy() {
+			if (!this.recentRecognition) return ''
+			if (this.recentRecognitionNeedsCandidateConfirmation()) return '待选择官方 POI'
+			if (this.recentRecognitionMissingOfficialPoi()) return '暂无官方 POI'
+			if (this.recentRecognitionUnsafeSafetyStatus()) return '无已审核来源'
+			return '可继续问小京'
+		},
+		recentRecognitionActionBlocked() {
+			return this.recentRecognitionNeedsCandidateConfirmation()
+				|| this.recentRecognitionMissingOfficialPoi()
+				|| this.recentRecognitionUnsafeSafetyStatus()
 		}
 	},
 	onLoad() {
@@ -743,6 +756,14 @@ export default {
 	font-size: 24rpx;
 	line-height: 1.55;
 	color: #667085;
+}
+
+.recent-status {
+	display: block;
+	margin-top: 10rpx;
+	font-size: 24rpx;
+	line-height: 1.4;
+	color: #1F6E5A;
 }
 
 .recent-actions {

@@ -6,6 +6,7 @@ const root = process.cwd()
 const home = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'home', 'home.vue'), 'utf8')
 const continueRecentSource = home.match(/continueRecentRecognitionWithXiaojing\(\)[\s\S]*?\n\t\t\},\n\t\taskXiaojing/)?.[0] || ''
 const unsafeRecentStatusSource = home.match(/recentRecognitionUnsafeSafetyStatus\(\)[\s\S]*?\n\t\t\},\n\t\tcontinueRecentRecognitionWithXiaojing/)?.[0] || ''
+const computedBlock = home.match(/computed:\s*\{[\s\S]*?\n\t\},\n\tonLoad/)?.[0] || ''
 
 for (const required of [
   '最近识别',
@@ -13,6 +14,8 @@ for (const required of [
   'loadRecentRecognition',
   'openRecentRecognition',
   'continueRecentRecognitionWithXiaojing',
+  'recentRecognitionStatusCopy',
+  'recentRecognitionActionBlocked',
   'XICHENG_REGION_CONFIG.storageKey',
   'onShow'
 ]) {
@@ -75,6 +78,30 @@ assert.match(
   unsafeRecentStatusSource,
   /const status = normalizeXichengSafetyStatus\(this\.recentRecognition && this\.recentRecognition\.safetyStatus\)[\s\S]*return \['BLOCKED', 'UNAVAILABLE'\]\.includes\(status\)/,
   'Recent recognition safety gate should normalize legacy cached safetyStatus values before deciding whether Xiaojing can answer'
+)
+
+assert.match(
+  computedBlock,
+  /recentRecognitionStatusCopy\(\)[\s\S]*this\.recentRecognitionNeedsCandidateConfirmation\(\)[\s\S]*待选择官方 POI[\s\S]*this\.recentRecognitionMissingOfficialPoi\(\)[\s\S]*暂无官方 POI[\s\S]*this\.recentRecognitionUnsafeSafetyStatus\(\)[\s\S]*无已审核来源[\s\S]*可继续问小京/,
+  'Recent recognition card should surface why a cached recognition cannot continue into Xiaojing'
+)
+
+assert.match(
+  computedBlock,
+  /recentRecognitionActionBlocked\(\)[\s\S]*return this\.recentRecognitionNeedsCandidateConfirmation\(\)[\s\S]*this\.recentRecognitionMissingOfficialPoi\(\)[\s\S]*this\.recentRecognitionUnsafeSafetyStatus\(\)/,
+  'Recent recognition card should compute a single disabled state for unsafe or incomplete cached recognitions'
+)
+
+assert.match(
+  home,
+  /class="recent-status"[\s\S]*\{\{ recentRecognitionStatusCopy \}\}/,
+  'Recent recognition card should render the latest continuation status next to cached recognition details'
+)
+
+assert.match(
+  home,
+  /<button class="primary-button" :disabled="recentRecognitionActionBlocked" @click="continueRecentRecognitionWithXiaojing">继续问小京<\/button>/,
+  'Recent recognition card should disable the Xiaojing continuation button until official POI and reviewed-source gates are satisfied'
 )
 
 assert.doesNotMatch(
