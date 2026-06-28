@@ -58,6 +58,12 @@ for (const required of [
   assert.ok(continueRecentSource.includes(required), `Recent recognition card should carry Xiaojing query part ${required}`)
 }
 
+assert.match(
+  continueRecentSource,
+  /this\.recentRecognitionNeedsCandidateConfirmation\(\)[\s\S]*请先查看识别结果并选择官方 POI[\s\S]*return[\s\S]*this\.recentRecognitionMissingOfficialPoi\(\)[\s\S]*暂无官方 POI 匹配，不能问小京[\s\S]*return[\s\S]*this\.recentRecognitionUnsafeSafetyStatus\(\)[\s\S]*无已审核来源，不能问小京[\s\S]*return[\s\S]*\/pages\/ai-guide\/ai-guide\?/,
+  'Recent recognition should not bypass candidate, official POI, or reviewed-source safety gates when continuing into Xiaojing'
+)
+
 assert.doesNotMatch(
   home,
   /\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,

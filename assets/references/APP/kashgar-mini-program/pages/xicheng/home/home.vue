@@ -391,8 +391,43 @@ export default {
 				url: `/pages/xicheng/scan-result/scan-result?source=${encodeURIComponent(this.recentRecognition.source || '')}&regionCode=${encodeURIComponent(this.recentRecognition.regionCode || this.region.regionCode)}&packageCode=${encodeURIComponent(this.recentRecognition.packageCode || this.region.packageCode)}&sceneCode=${encodeURIComponent(this.recentRecognition.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.recentRecognition.sourceChannel || this.region.sourceChannel)}&poiCode=${encodeURIComponent(this.recentRecognition.poiCode || '')}&poiName=${encodeURIComponent(this.recentRecognition.poiName || '')}&companionName=${encodeURIComponent(this.recentRecognition.companionName || this.region.companionName)}&safetyStatus=${encodeURIComponent(this.recentRecognition.safetyStatus || '')}`
 			})
 		},
+		recentRecognitionNeedsCandidateConfirmation() {
+			const candidates = this.recentRecognition && Array.isArray(this.recentRecognition.candidates)
+				? this.recentRecognition.candidates
+				: []
+			return Boolean(this.recentRecognition && this.recentRecognition.requiresUserConfirm && candidates.length > 0)
+		},
+		recentRecognitionMissingOfficialPoi() {
+			const recognition = this.recentRecognition || {}
+			return !recognition.poiCode || !recognition.poiName
+		},
+		recentRecognitionUnsafeSafetyStatus() {
+			const status = String((this.recentRecognition && this.recentRecognition.safetyStatus) || '').toUpperCase()
+			return ['BLOCKED', 'UNAVAILABLE'].includes(status)
+		},
 		continueRecentRecognitionWithXiaojing() {
 			if (!this.recentRecognition) return
+			if (this.recentRecognitionNeedsCandidateConfirmation()) {
+				uni.showToast({
+					icon: 'none',
+					title: '请先查看识别结果并选择官方 POI'
+				})
+				return
+			}
+			if (this.recentRecognitionMissingOfficialPoi()) {
+				uni.showToast({
+					icon: 'none',
+					title: '暂无官方 POI 匹配，不能问小京'
+				})
+				return
+			}
+			if (this.recentRecognitionUnsafeSafetyStatus()) {
+				uni.showToast({
+					icon: 'none',
+					title: '无已审核来源，不能问小京'
+				})
+				return
+			}
 			const prompt = this.recentRecognition.poiName ? `讲讲${this.recentRecognition.poiName}` : '讲讲这个西城文化点'
 			const query = [
 				`question=${encodeURIComponent(prompt)}`,
