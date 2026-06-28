@@ -31,7 +31,7 @@ const checkOwnerLane = {
   'xicheng-source-license': 'poi-data'
 }
 
-const releaseGateCommand = 'npm run xunjing:yudao:release:gate -- --stage production --env-file /secure/path/production.env --evidence-file qa/xicheng-yudao-release-evidence.json'
+const releaseGateCommand = 'npm run xunjing:yudao:release:gate -- --stage production --expected-branch feature/xicheng-p0 --env-file /secure/path/production.env --evidence-file qa/xicheng-yudao-release-evidence.json'
 
 const envTaskInstructions = [
   [/^XUNJING_APP_API_BASE_URL$/, {
@@ -75,12 +75,12 @@ const checkTaskInstructions = {
   'full-yudao-baseline': {
     taskDetail: 'Provide the complete controlled Yudao baseline SQL path for release gate.',
     requiredEvidence: 'Release evidence records yudaoBaselineSqlFile and matching yudaoBaselineSqlSha256.',
-    verificationCommand: 'npm run xunjing:yudao:release:gate -- --stage production --env-file /secure/path/production.env --yudao-baseline-sql /secure/path/ruoyi-vue-pro.sql --evidence-file qa/xicheng-yudao-release-evidence.json'
+    verificationCommand: 'npm run xunjing:yudao:release:gate -- --stage production --expected-branch feature/xicheng-p0 --env-file /secure/path/production.env --yudao-baseline-sql /secure/path/ruoyi-vue-pro.sql --evidence-file qa/xicheng-yudao-release-evidence.json'
   },
   'yudao-server-artifact': {
     taskDetail: 'Build and provide the deployable Yudao server jar for release gate.',
     requiredEvidence: 'Release evidence records yudaoServerJarFile size and SHA-256.',
-    verificationCommand: 'npm run xunjing:yudao:release:gate -- --stage production --env-file /secure/path/production.env --yudao-server-jar /secure/path/yudao-server.jar --evidence-file qa/xicheng-yudao-release-evidence.json'
+    verificationCommand: 'npm run xunjing:yudao:release:gate -- --stage production --expected-branch feature/xicheng-p0 --env-file /secure/path/production.env --yudao-server-jar /secure/path/yudao-server.jar --evidence-file qa/xicheng-yudao-release-evidence.json'
   },
   'xicheng-production-poi-evidence': {
     taskDetail: 'Generate reviewed POI workbook manifest and seed evidence from 80 approved Xicheng POIs.',

@@ -5,6 +5,7 @@ import path from 'node:path'
 import { afterEach, describe, expect, test } from 'vitest'
 
 const tempDirs = []
+const releaseGateCommand = 'npm run xunjing:yudao:release:gate -- --stage production --expected-branch feature/xicheng-p0 --env-file /secure/path/production.env --evidence-file qa/xicheng-yudao-release-evidence.json'
 
 async function createTempRoot() {
   const rootDir = await mkdtemp(path.join(os.tmpdir(), 'xicheng-release-blocker-tasks-'))
@@ -112,10 +113,10 @@ describe('xicheng Yudao release blocker task export', () => {
 
     const csv = await readFile(outputFile, 'utf8')
     expect(csv).toContain('checkName,blockerIndex,blocker,ownerLane,taskDetail,requiredEvidence,verificationCommand,taskStatus,sourceEvidenceFile')
-    expect(csv).toContain(`runtime-env,1,XUNJING_APP_API_BASE_URL must be configured for production,platform-ops,Configure a non-local HTTPS APP API backend domain in the production env.,Release evidence records a non-local HTTPS appApiBaseUrl from production env.,npm run xunjing:yudao:release:gate -- --stage production --env-file /secure/path/production.env --evidence-file qa/xicheng-yudao-release-evidence.json,TODO,${releaseEvidencePath}`)
-    expect(csv).toContain(`runtime-env,2,MYSQL_PASSWORD must be configured for production,platform-ops,Configure production MySQL host credentials and profile settings.,Release gate runtime-env check passes without local host or placeholder database values.,npm run xunjing:yudao:release:gate -- --stage production --env-file /secure/path/production.env --evidence-file qa/xicheng-yudao-release-evidence.json,TODO,${releaseEvidencePath}`)
-    expect(csv).toContain(`runtime-env,3,MYSQL_HOST must not point to a local host for production,platform-ops,Configure production MySQL host credentials and profile settings.,Release gate runtime-env check passes without local host or placeholder database values.,npm run xunjing:yudao:release:gate -- --stage production --env-file /secure/path/production.env --evidence-file qa/xicheng-yudao-release-evidence.json,TODO,${releaseEvidencePath}`)
-    expect(csv).toContain(`real-wechat-app,1,WX_MINIAPP_APPID must be configured with a real value,app-ops,Configure real WeChat MP and Mini Program credentials outside Git.,Release gate real-wechat-app check passes using production secret store values.,npm run xunjing:yudao:release:gate -- --stage production --env-file /secure/path/production.env --evidence-file qa/xicheng-yudao-release-evidence.json,TODO,${releaseEvidencePath}`)
+    expect(csv).toContain(`runtime-env,1,XUNJING_APP_API_BASE_URL must be configured for production,platform-ops,Configure a non-local HTTPS APP API backend domain in the production env.,Release evidence records a non-local HTTPS appApiBaseUrl from production env.,${releaseGateCommand},TODO,${releaseEvidencePath}`)
+    expect(csv).toContain(`runtime-env,2,MYSQL_PASSWORD must be configured for production,platform-ops,Configure production MySQL host credentials and profile settings.,Release gate runtime-env check passes without local host or placeholder database values.,${releaseGateCommand},TODO,${releaseEvidencePath}`)
+    expect(csv).toContain(`runtime-env,3,MYSQL_HOST must not point to a local host for production,platform-ops,Configure production MySQL host credentials and profile settings.,Release gate runtime-env check passes without local host or placeholder database values.,${releaseGateCommand},TODO,${releaseEvidencePath}`)
+    expect(csv).toContain(`real-wechat-app,1,WX_MINIAPP_APPID must be configured with a real value,app-ops,Configure real WeChat MP and Mini Program credentials outside Git.,Release gate real-wechat-app check passes using production secret store values.,${releaseGateCommand},TODO,${releaseEvidencePath}`)
     expect(csv).toContain(`xicheng-production-poi-evidence,1,POI workbook evidence is required before production release,poi-data,Generate reviewed POI workbook manifest and seed evidence from 80 approved Xicheng POIs.,Workbook manifest and seed gates output READY evidence with matching source hashes.,npm run xunjing:xicheng:poi:review:pack,TODO,${releaseEvidencePath}`)
   })
 
