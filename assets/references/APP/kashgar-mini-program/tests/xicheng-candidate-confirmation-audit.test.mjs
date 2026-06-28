@@ -16,7 +16,7 @@ const sliceBetween = (content, start, end) => {
 }
 const candidateConfirmationAuditFactory = sliceBetween(
   scanResult,
-  '\t\tcreateCandidateConfirmationAudit(selectedCandidate) {',
+  '\t\tcreateCandidateConfirmationAudit(selectedCandidate, retainedReviewedSources) {',
   'formatCandidateSummary(candidate = {})'
 )
 
@@ -33,13 +33,13 @@ for (const required of [
 
 assert.match(
   scanResult,
-  /selectCandidate\(candidate\)[\s\S]*const candidateConfirmationAudit = this\.createCandidateConfirmationAudit\(selectedCandidate\)[\s\S]*requiresUserConfirm:\s*false[\s\S]*candidateConfirmationAudit[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.storageKey, this\.result\)/,
+  /selectCandidate\(candidate\)[\s\S]*const retainedReviewedSources = selectedCandidate\.sources\.length > 0 \? selectedCandidate\.sources : this\.sourceList[\s\S]*const candidateConfirmationAudit = this\.createCandidateConfirmationAudit\(selectedCandidate, retainedReviewedSources\)[\s\S]*requiresUserConfirm:\s*false[\s\S]*candidateConfirmationAudit[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.storageKey, this\.result\)/,
   'Selecting a candidate should create and persist an audit record with the active recognition result'
 )
 
 assert.match(
   candidateConfirmationAuditFactory,
-  /auditType:\s*'recognition-candidate-confirmation'[\s\S]*regionCode:\s*this\.result\.regionCode \|\| XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*this\.result\.packageCode \|\| XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*this\.result\.sceneCode \|\| XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*this\.result\.sourceChannel \|\| XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*candidateCount:\s*this\.candidateList\.length[\s\S]*candidatePoiCodes:\s*this\.candidateList[\s\S]*selectedCandidatePoiCode:\s*selectedCandidate\.poiCode[\s\S]*selectedCandidatePoiName:\s*selectedCandidate\.poiName[\s\S]*selectedCandidateConfidence:\s*selectedCandidate\.confidence[\s\S]*reviewedSourceCount:\s*selectedCandidate\.sources\.length[\s\S]*confirmationSource:\s*'user-selected-candidate'/,
+  /auditType:\s*'recognition-candidate-confirmation'[\s\S]*regionCode:\s*this\.result\.regionCode \|\| XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*this\.result\.packageCode \|\| XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*this\.result\.sceneCode \|\| XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*this\.result\.sourceChannel \|\| XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*candidateCount:\s*this\.candidateList\.length[\s\S]*candidatePoiCodes:\s*this\.candidateList[\s\S]*selectedCandidatePoiCode:\s*selectedCandidate\.poiCode[\s\S]*selectedCandidatePoiName:\s*selectedCandidate\.poiName[\s\S]*selectedCandidateConfidence:\s*selectedCandidate\.confidence[\s\S]*reviewedSourceCount:\s*retainedReviewedSources\.length[\s\S]*confirmationSource:\s*'user-selected-candidate'/,
   'Candidate confirmation audit should include attribution context, candidate set, chosen POI, confidence, source count, and confirmation source'
 )
 

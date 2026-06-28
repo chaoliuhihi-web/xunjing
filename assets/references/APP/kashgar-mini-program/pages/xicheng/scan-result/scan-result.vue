@@ -434,7 +434,8 @@ export default {
 				this.showUnsafeCandidateToast(selectedCandidate)
 				return
 			}
-			const candidateConfirmationAudit = this.createCandidateConfirmationAudit(selectedCandidate)
+			const retainedReviewedSources = selectedCandidate.sources.length > 0 ? selectedCandidate.sources : this.sourceList
+			const candidateConfirmationAudit = this.createCandidateConfirmationAudit(selectedCandidate, retainedReviewedSources)
 			const retainedRouteRecommendation = selectedCandidate.routeRecommendation || selectedCandidate.recommendedRoute || this.result.routeRecommendation || this.result.recommendedRoute || null
 			this.result = normalizeResult({
 				...this.result,
@@ -445,7 +446,7 @@ export default {
 				requiresUserConfirm: false,
 				reason: selectedCandidate.summary || this.result.reason,
 				safetyStatus: selectedCandidate.safetyStatus,
-				sources: selectedCandidate.sources,
+				sources: retainedReviewedSources,
 				suggestedQuestions: selectedCandidate.suggestedQuestions,
 				recommendedQuestions: selectedCandidate.suggestedQuestions,
 				routeRecommendation: retainedRouteRecommendation,
@@ -458,7 +459,7 @@ export default {
 				icon: 'none'
 			})
 		},
-		createCandidateConfirmationAudit(selectedCandidate) {
+		createCandidateConfirmationAudit(selectedCandidate, retainedReviewedSources) {
 			return {
 				auditType: 'recognition-candidate-confirmation',
 				regionCode: this.result.regionCode || XICHENG_REGION_CONFIG.regionCode,
@@ -472,7 +473,7 @@ export default {
 				selectedCandidatePoiCode: selectedCandidate.poiCode,
 				selectedCandidatePoiName: selectedCandidate.poiName,
 				selectedCandidateConfidence: selectedCandidate.confidence,
-				reviewedSourceCount: selectedCandidate.sources.length,
+				reviewedSourceCount: retainedReviewedSources.length,
 				confirmationSource: 'user-selected-candidate',
 				confirmedAt: new Date().toISOString()
 			}

@@ -34,7 +34,7 @@ assert.match(
 
 assert.match(
   scanResult,
-  /selectCandidate\(candidate\)[\s\S]*const selectedCandidate = normalizeRecognitionCandidate\(candidate\)[\s\S]*if \(this\.isUnsafeCandidate\(selectedCandidate\)\) \{[\s\S]*this\.showUnsafeCandidateToast\(selectedCandidate\)[\s\S]*return[\s\S]*poiCode:\s*selectedCandidate\.poiCode[\s\S]*poiName:\s*selectedCandidate\.poiName[\s\S]*requiresUserConfirm:\s*false[\s\S]*safetyStatus:\s*selectedCandidate\.safetyStatus[\s\S]*sources:\s*selectedCandidate\.sources[\s\S]*suggestedQuestions:\s*selectedCandidate\.suggestedQuestions[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.storageKey, this\.result\)/,
+  /selectCandidate\(candidate\)[\s\S]*const selectedCandidate = normalizeRecognitionCandidate\(candidate\)[\s\S]*if \(this\.isUnsafeCandidate\(selectedCandidate\)\) \{[\s\S]*this\.showUnsafeCandidateToast\(selectedCandidate\)[\s\S]*return[\s\S]*const retainedReviewedSources = selectedCandidate\.sources\.length > 0 \? selectedCandidate\.sources : this\.sourceList[\s\S]*poiCode:\s*selectedCandidate\.poiCode[\s\S]*poiName:\s*selectedCandidate\.poiName[\s\S]*requiresUserConfirm:\s*false[\s\S]*safetyStatus:\s*selectedCandidate\.safetyStatus[\s\S]*sources:\s*retainedReviewedSources[\s\S]*suggestedQuestions:\s*selectedCandidate\.suggestedQuestions[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.storageKey, this\.result\)/,
   'Selecting a safe candidate should update the active POI and safety context, while unsafe candidates are blocked before persistence'
 )
 
