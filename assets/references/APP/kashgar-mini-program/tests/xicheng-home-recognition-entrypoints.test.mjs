@@ -8,6 +8,7 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const home = read('pages', 'xicheng', 'home', 'home.vue')
 const triggerRequest = read('request', 'xunjing', 'trigger.js')
+const resolveTextBlock = home.match(/resolveTextAndOpenResult\(text = '', source = 'ocr'\)[\s\S]*?\n\t\t\},\n\t\tstartScanRecognition/)?.[0] || ''
 
 for (const required of [
   "{ key: 'gps'",
@@ -42,6 +43,18 @@ assert.match(
   home,
   /startTextRecognition\(\)[\s\S]*this\.textRecognitionInput\.trim\(\)[\s\S]*resolveTextAndOpenResult\(text,\s*'text'\)/,
   'Text recognition should resolve the user-entered text through the shared Xicheng trigger flow'
+)
+
+assert.match(
+  resolveTextBlock,
+  /const location = this\.currentLocation[\s\S]*resolveXichengTextTrigger\(\{[\s\S]*location/,
+  'Text and scan recognition should reuse an existing user-authorized location when available'
+)
+
+assert.doesNotMatch(
+  resolveTextBlock,
+  /requestCurrentLocationForTrigger\(\)/,
+  'Text and scan recognition should not actively request GPS permission; only the GPS recognition entry should request location'
 )
 
 assert.match(

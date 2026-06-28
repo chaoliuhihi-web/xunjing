@@ -224,7 +224,7 @@ export default {
 			this.recognizing = true
 			this.lastError = ''
 			try {
-				const location = this.currentLocation || await requestCurrentLocationForTrigger()
+				const location = this.currentLocation
 				const trigger = await resolveXichengTextTrigger({
 					text,
 					ocrText: text,
