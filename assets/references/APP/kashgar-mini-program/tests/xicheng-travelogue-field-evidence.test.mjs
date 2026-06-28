@@ -21,6 +21,11 @@ const addPhotoMaterialBlock = getBlock(
   /addPhotoMaterial\(\)[\s\S]*?\n\t\t\},\n\t\thasReviewableJourneyEvidence/,
   'addPhotoMaterial block'
 )
+const saveDraftBlock = getBlock(
+  travelogue,
+  /saveDraft\(\{ silent = false \} = \{\}\)[\s\S]*?\n\t\t\},\n\t\tgeneratePoster/,
+  'saveDraft block'
+)
 
 for (const required of [
   '现场备注',
@@ -150,6 +155,12 @@ assert.match(
   travelogue,
   /refreshDraftFromEvidence\(\)[\s\S]*createXichengTravelogueDraft\(\{[\s\S]*materials:\s*this\.materials[\s\S]*recordingSession:\s*this\.recordingSession/,
   'Refreshing the draft should rebuild it from materials and the recording session'
+)
+
+assert.match(
+  saveDraftBlock,
+  /photoMaterialCount:\s*this\.photoMaterialCount[\s\S]*remarkMaterialCount:\s*this\.remarkMaterialCount/,
+  'Saved travelogue draft should include photo and remark evidence counts'
 )
 
 assert.match(

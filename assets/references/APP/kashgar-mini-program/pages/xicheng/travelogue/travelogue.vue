@@ -1407,6 +1407,8 @@ export default {
 				companionName: XICHENG_REGION_CONFIG.companionName,
 				draft: this.draft,
 				materials: this.materials,
+				photoMaterialCount: this.photoMaterialCount,
+				remarkMaterialCount: this.remarkMaterialCount,
 				recognizedRoute: this.recognizedRoute,
 				reviewSubmission: this.reviewSubmission,
 				shareArtifacts: this.shareArtifacts,
