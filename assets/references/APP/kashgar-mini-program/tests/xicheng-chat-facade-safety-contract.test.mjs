@@ -36,6 +36,12 @@ assert.match(
 
 assert.match(
   normalizeResponseBlock,
+  /followUps:\s*suggestedQuestions/,
+  'Xicheng chat response normalization should expose followUps as an alias of suggestedQuestions for APP material and chat reuse'
+)
+
+assert.match(
+  normalizeResponseBlock,
   /answer:\s*safetyStatus === 'BLOCKED'\s*\?\s*XICHENG_BLOCKED_ANSWER\s*:\s*payload\.answer/,
   'Xicheng chat response normalization should convert BLOCKED responses into the exact refused answer'
 )
