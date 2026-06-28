@@ -30,6 +30,23 @@ const manifestJson = readJsonc(manifestPath)
 const pagesJson = readJsonc(pagesPath)
 const projectConfigJson = readJsonc(projectConfigPath)
 const qaReport = fs.existsSync(qaPath) ? fs.readFileSync(qaPath, 'utf8') : ''
+const MAX_APP_PAGE_LINES = 3500
+
+const countSourceLines = (content) => {
+  const normalized = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  return normalized.split('\n').length - (normalized.endsWith('\n') ? 1 : 0)
+}
+
+for (const [relativePath, content] of [
+  ['pages/index/index.vue', indexPage],
+  ['pages/ai-guide/ai-guide.vue', aiGuidePage],
+]) {
+  const lineCount = countSourceLines(content)
+  assert.ok(
+    lineCount <= MAX_APP_PAGE_LINES,
+    `${relativePath} should stay at or below ${MAX_APP_PAGE_LINES} lines; got ${lineCount}. Split components and services before adding more page code.`
+  )
+}
 
 assert.equal(
   packageJson.scripts.build,

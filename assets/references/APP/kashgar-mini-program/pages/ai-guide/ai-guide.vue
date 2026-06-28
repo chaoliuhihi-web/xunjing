@@ -2159,6 +2159,8 @@ loadChatHistory({ preferCache: true })
 </script>
 
 <style scoped>
+@import './ai-guide-theme.css';
+
 .kashgar-diary-generator {
 	position: relative;
 	min-height: 100vh;
@@ -3437,71 +3439,4 @@ loadChatHistory({ preferCache: true })
 	color: #6C766D;
 }
 
-.container {
-	background: linear-gradient(180deg, #F8F1E4 0%, #F2E8D7 46%, #EEF5EF 100%);
-}
-
-.bg-image {
-	opacity: 0.2;
-}
-
-.clear-history-btn {
-	background: rgba(255, 252, 244, 0.94);
-	border: 1rpx solid rgba(184, 129, 43, 0.16);
-	box-shadow: 0 10rpx 24rpx rgba(43, 57, 45, 0.12);
-}
-
-.user-avatar,
-.user-content,
-.send-btn-active {
-	background: linear-gradient(135deg, #244C41 0%, #367063 100%);
-	box-shadow: 0 8rpx 22rpx rgba(36, 76, 65, 0.2);
-}
-
-.ai-avatar {
-	border: 2rpx solid rgba(184, 129, 43, 0.28);
-	box-shadow: 0 8rpx 20rpx rgba(43, 57, 45, 0.12);
-}
-
-.ai-content {
-	background: rgba(255, 252, 244, 0.96);
-	color: #183B34;
-	border: 1rpx solid rgba(184, 129, 43, 0.14);
-	box-shadow: 0 12rpx 28rpx rgba(43, 57, 45, 0.08);
-}
-
-.ai-content .md-heading {
-	color: #183B34;
-}
-
-.message-status,
-.loading-dot {
-	color: #6C766D;
-}
-
-.input-area {
-	background: rgba(255, 252, 244, 0.96);
-	border-top-color: rgba(184, 129, 43, 0.16);
-	box-shadow: 0 -10rpx 30rpx rgba(43, 57, 45, 0.12);
-}
-
-.message-input,
-.upload-btn {
-	background: rgba(238, 245, 239, 0.92);
-	border: 1rpx solid rgba(184, 129, 43, 0.14);
-}
-
-.message-input:focus {
-	border-color: #B8812B;
-	background: #FFFCF4;
-}
-
-.follow-up-item {
-	background: rgba(255, 252, 244, 0.94);
-	border-color: rgba(184, 129, 43, 0.16);
-}
-
-.follow-up-text {
-	color: #244C41;
-}
 </style>
