@@ -34,7 +34,7 @@ const checkOwnerLane = {
   'xicheng-source-license': 'poi-data'
 }
 
-const releaseGateCommand = 'npm run xunjing:yudao:release:gate -- --stage production --expected-branch feature/xicheng-p0 --env-file /secure/path/production.env --runtime-seed-evidence qa/xicheng-yudao-runtime-seed-production-evidence.json --evidence-file qa/xicheng-yudao-release-evidence.json'
+const releaseGateCommand = 'npm run xunjing:yudao:release:gate -- --stage production --expected-branch feature/xicheng-p0 --env-file /secure/path/production.env --runtime-seed-evidence qa/xicheng-yudao-runtime-seed-production-evidence.json --production-seed-apply-evidence qa/xicheng-yudao-production-seed-apply-evidence.json --evidence-file qa/xicheng-yudao-release-evidence.json'
 const productionSeedApplyCommand = 'npm run xunjing:yudao:production-seed:apply -- --env-file /secure/path/production.env --seed-sql workbench/xicheng-poi-production-seed.sql --seed-evidence qa/xicheng-poi-production-seed-evidence.json --runtime-evidence-file qa/xicheng-yudao-runtime-seed-production-evidence.json --apply-evidence-file qa/xicheng-yudao-production-seed-apply-evidence.json --confirm-apply-xicheng-production-seed'
 
 const envTaskInstructions = [
