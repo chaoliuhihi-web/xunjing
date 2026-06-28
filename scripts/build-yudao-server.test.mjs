@@ -1,0 +1,109 @@
+import { createHash } from 'node:crypto'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
+import { afterEach, describe, expect, test } from 'vitest'
+
+import { buildYudaoServer } from './build-yudao-server.mjs'
+
+const tempDirs = []
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex')
+}
+
+async function createTempRoot() {
+  const rootDir = await mkdtemp(path.join(os.tmpdir(), 'xicheng-yudao-server-build-'))
+  tempDirs.push(rootDir)
+  await mkdir(path.join(rootDir, 'backend/yudao/yudao-server/target'), { recursive: true })
+  await writeFile(path.join(rootDir, 'backend/yudao/pom.xml'), '<project />\n')
+  return rootDir
+}
+
+afterEach(async () => {
+  while (tempDirs.length > 0) {
+    await rm(tempDirs.pop(), { recursive: true, force: true })
+  }
+})
+
+describe('Yudao server build wrapper', () => {
+  test('builds the Yudao server jar and writes secret-safe evidence', async () => {
+    const rootDir = await createTempRoot()
+    const jarFile = path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar')
+    const jarContent = 'deployable-yudao-jar'
+    const spawnCalls = []
+
+    const report = await buildYudaoServer({
+      rootDir,
+      evidenceFile: 'qa/xicheng-yudao-server-build-evidence.json',
+      spawnImpl: (command, args, options) => {
+        spawnCalls.push({ command, args, cwd: options.cwd })
+        mkdirSync(path.dirname(jarFile), { recursive: true })
+        writeFileSync(jarFile, jarContent)
+        return { status: 0, stdout: 'BUILD SUCCESS', stderr: '' }
+      },
+      checkedAt: '2026-06-28T12:00:00.000Z'
+    })
+
+    expect(spawnCalls).toEqual([{
+      command: 'mvn',
+      args: ['-pl', 'yudao-server', '-am', '-DskipTests', 'package'],
+      cwd: path.join(rootDir, 'backend/yudao')
+    }])
+    expect(report).toMatchObject({
+      artifactType: 'xicheng-yudao-server-build',
+      ok: true,
+      status: 'YUDAO_SERVER_JAR_BUILT',
+      summary: {
+        backendDir: path.join(rootDir, 'backend/yudao'),
+        jarFile,
+        jarSizeBytes: Buffer.byteLength(jarContent),
+        jarSha256: sha256(jarContent),
+        testsIncluded: false
+      }
+    })
+
+    const evidence = JSON.parse(await readFile(
+      path.join(rootDir, 'qa/xicheng-yudao-server-build-evidence.json'),
+      'utf8'
+    ))
+    expect(evidence.summary.jarSha256).toBe(sha256(jarContent))
+  })
+
+  test('fails closed when Maven does not produce a non-empty jar', async () => {
+    const rootDir = await createTempRoot()
+
+    await expect(buildYudaoServer({
+      rootDir,
+      spawnImpl: () => ({ status: 0, stdout: 'BUILD SUCCESS', stderr: '' })
+    })).rejects.toThrow('Yudao server jar is missing or empty after build')
+  })
+
+  test('reports a clear prerequisite error when Maven is unavailable', async () => {
+    const rootDir = await createTempRoot()
+
+    await expect(buildYudaoServer({
+      rootDir,
+      spawnImpl: () => ({
+        status: null,
+        error: Object.assign(new Error('spawnSync mvn ENOENT'), { code: 'ENOENT' }),
+        stdout: '',
+        stderr: ''
+      })
+    })).rejects.toThrow('Maven CLI is required to build Yudao server')
+  })
+
+  test('is exposed through npm scripts, blocker tasks and deployment docs', async () => {
+    const rootDir = path.resolve('.')
+    const packageJson = JSON.parse(await readFile(path.join(rootDir, 'package.json'), 'utf8'))
+    const taskExportScript = await readFile(path.join(rootDir, 'scripts/export-xicheng-yudao-release-blocker-tasks.mjs'), 'utf8')
+    const deployDoc = await readFile(path.join(rootDir, 'docs/02_开发规划/星河寻境业务平台部署说明.md'), 'utf8')
+    const statusDoc = await readFile(path.join(rootDir, 'docs/04_AI交接任务书/西城P0后台上线状态.md'), 'utf8')
+
+    expect(packageJson.scripts['xunjing:yudao:server:build']).toBe('node scripts/build-yudao-server.mjs')
+    expect(taskExportScript).toContain('npm run xunjing:yudao:server:build')
+    expect(deployDoc).toContain('npm run xunjing:yudao:server:build')
+    expect(statusDoc).toContain('npm run xunjing:yudao:server:build')
+  })
+})

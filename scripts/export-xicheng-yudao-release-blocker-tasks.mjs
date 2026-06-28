@@ -82,8 +82,8 @@ const checkTaskInstructions = {
   },
   'yudao-server-artifact': {
     taskDetail: 'Build and provide the deployable Yudao server jar for release gate.',
-    requiredEvidence: 'Release evidence records yudaoServerJarFile size and SHA-256.',
-    verificationCommand: 'npm run xunjing:yudao:release:gate -- --stage production --expected-branch feature/xicheng-p0 --env-file /secure/path/production.env --yudao-server-jar /secure/path/yudao-server.jar --evidence-file qa/xicheng-yudao-release-evidence.json'
+    requiredEvidence: 'Yudao server build evidence records yudao-server.jar size and SHA-256.',
+    verificationCommand: 'npm run xunjing:yudao:server:build -- --evidence-file qa/xicheng-yudao-server-build-evidence.json'
   },
   'yudao-ai-model-bootstrap': {
     taskDetail: 'Run the Yudao AI model bootstrap against production or preprod MySQL and provide its secret-safe evidence file.',
