@@ -139,6 +139,12 @@ export default {
 				icon: 'none'
 			})
 		},
+		showInspirationRouteUnavailable() {
+			uni.showToast({
+				title: '请先输入并匹配官方 POI',
+				icon: 'none'
+			})
+		},
 		async chooseInspirationImage() {
 			const confirmed = await this.confirmInspirationImagePurpose('上传攻略图片')
 			if (!confirmed) return
@@ -161,6 +167,14 @@ export default {
 			})
 		},
 		saveInspirationRoute({ silent = false, includeImageOnly = false } = {}) {
+			if (!includeImageOnly) {
+				this.matchedPois = extractXichengPoiMatches(this.rawText)
+				if (this.matchedPois.length === 0) {
+					this.showInspirationRouteUnavailable()
+					return false
+				}
+				this.route = buildXichengWalkRoute(this.matchedPois)
+			}
 			const route = {
 				...this.route,
 				rawTextExcerpt: this.createInspirationTextExcerpt(this.rawText),
@@ -219,6 +233,7 @@ export default {
 					icon: 'none'
 				})
 			}
+			return true
 		},
 		createInspirationTextExcerpt(text = '') {
 			return String(text || '').replace(/\s+/g, ' ').trim().slice(0, 80)
@@ -255,7 +270,8 @@ export default {
 			uni.setStorageSync(XICHENG_REGION_CONFIG.inspirationImportStorageKey, this.inspirationImports)
 		},
 		openTravelogue() {
-			this.saveInspirationRoute({ silent: true })
+			const saved = this.saveInspirationRoute({ silent: true })
+			if (!saved) return
 			uni.navigateTo({
 				url: `/pages/xicheng/travelogue/travelogue?mode=route&regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.region.sourceChannel)}&companionName=${encodeURIComponent(this.region.companionName)}`
 			})
