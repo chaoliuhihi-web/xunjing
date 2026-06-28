@@ -59,6 +59,12 @@ const requiredAiBootstrapEvidenceChecks = [
   'secret-redaction'
 ]
 
+const requiredVisionOcrEvidenceChecks = [
+  'vision-provider-request',
+  'vision-provider-smoke',
+  'secret-redaction'
+]
+
 const secretEvidenceKeys = [
   'MYSQL_PASSWORD',
   'REDIS_PASSWORD',
@@ -464,6 +470,93 @@ function checkVisionOcrService(env) {
       : `Missing, placeholder or non-HTTPS vision env: ${blockers.join(', ')}`,
     blockers.map((key) => `${key} must be configured for real photo/OCR recognition`)
   )
+}
+
+function resolveChatCompletionsUrl(baseUrl) {
+  const trimmed = String(baseUrl || '').trim().replace(/\/+$/, '')
+  return trimmed.endsWith('/chat/completions') ? trimmed : `${trimmed}/chat/completions`
+}
+
+function visionExpectedEndpoint(env) {
+  try {
+    return new URL(resolveChatCompletionsUrl(env.XUNJING_VISION_API_URL))
+  } catch {
+    return undefined
+  }
+}
+
+async function checkVisionOcrServiceEvidence({ rootDir, visionOcrEvidencePath, env, freshnessOptions }) {
+  const envCheck = checkVisionOcrService(env)
+  const blockers = [...(envCheck.blockers || [])]
+  const expectedEndpoint = visionExpectedEndpoint(env)
+  const ref = await loadEvidenceInput(rootDir, visionOcrEvidencePath)
+
+  if (!ref.path) {
+    blockers.push('Vision OCR smoke evidence is required before production release')
+  } else if (ref.error) {
+    blockers.push(`Vision OCR smoke evidence cannot be read: ${ref.error}`)
+  } else {
+    const evidence = ref.data || {}
+    const summary = evidenceSummary(evidence)
+    if (evidence.artifactType !== 'xicheng-vision-ocr-smoke') {
+      blockers.push('Vision OCR smoke evidence artifactType must be xicheng-vision-ocr-smoke')
+    }
+    blockers.push(...checkEvidenceTimestamp(evidence, 'Vision OCR smoke', freshnessOptions))
+    if (evidence.ok !== true) {
+      blockers.push('Vision OCR smoke evidence ok must be true')
+    }
+    if (evidence.status !== 'XICHENG_VISION_OCR_SMOKE_READY') {
+      blockers.push('Vision OCR smoke evidence status must be XICHENG_VISION_OCR_SMOKE_READY')
+    }
+    if (String(summary.model || '') !== String(env.XUNJING_VISION_MODEL || '')) {
+      blockers.push('Vision OCR smoke evidence model must match XUNJING_VISION_MODEL')
+    }
+    if (expectedEndpoint && String(summary.providerSmokeHost || '') !== expectedEndpoint.host) {
+      blockers.push('Vision OCR smoke evidence providerSmokeHost must match XUNJING_VISION_API_URL host')
+    }
+    if (expectedEndpoint && String(summary.providerSmokeEndpointPath || '') !== expectedEndpoint.pathname) {
+      blockers.push('Vision OCR smoke evidence providerSmokeEndpointPath must match XUNJING_VISION_API_URL')
+    }
+    if (Number(summary.providerSmokeHttpStatus || 0) !== 200) {
+      blockers.push('Vision OCR smoke evidence providerSmokeHttpStatus must be 200')
+    }
+    if (!isNonLocalEvidenceRef(summary.sampleImageRef)) {
+      blockers.push('Vision OCR smoke evidence sampleImageRef must be a non-local HTTPS, oss, cos or s3 reference')
+    }
+    if (!Array.isArray(summary.labels) || !summary.labels.includes('xunjing_vision_smoke')) {
+      blockers.push('Vision OCR smoke evidence labels must include xunjing_vision_smoke')
+    }
+    blockers.push(...checkEvidenceChecks(evidence, requiredVisionOcrEvidenceChecks, 'Vision OCR smoke'))
+    const leakedKeys = evidenceSecretLeaks(evidence, env)
+    if (leakedKeys.length > 0) {
+      blockers.push(`Vision OCR smoke evidence must not contain secret values: ${leakedKeys.join(', ')}`)
+    }
+    if (!hasNoEvidenceBlockers(evidence)) {
+      blockers.push(`Vision OCR smoke evidence contains blockers: ${evidence.blockers.join('; ')}`)
+    }
+  }
+
+  return {
+    ...check(
+      'vision-ocr-service',
+      blockers.length === 0,
+      blockers.length === 0
+        ? `OCR/vision service provider smoke evidence is ready: ${ref.path}`
+        : blockers.join('; '),
+      blockers
+    ),
+    summary: {
+      visionOcrEvidenceFile: ref.path,
+      visionOcrCheckedAt: ref.data?.checkedAt,
+      visionOcrModel: evidenceSummary(ref.data).model,
+      visionOcrProviderSmokeCheckedAt: evidenceSummary(ref.data).providerSmokeCheckedAt,
+      visionOcrProviderSmokeHost: evidenceSummary(ref.data).providerSmokeHost,
+      visionOcrProviderSmokeEndpointPath: evidenceSummary(ref.data).providerSmokeEndpointPath,
+      visionOcrProviderSmokeHttpStatus: evidenceSummary(ref.data).providerSmokeHttpStatus,
+      visionOcrSampleImageRef: evidenceSummary(ref.data).sampleImageRef,
+      visionOcrLabels: evidenceSummary(ref.data).labels
+    }
+  }
 }
 
 function checkObjectStorage(env) {
@@ -1112,6 +1205,7 @@ export async function verifyXichengYudaoReleaseReadiness({
   yudaoBaselineSqlPath,
   yudaoServerJarPath,
   aiBootstrapEvidencePath,
+  visionOcrEvidencePath,
   poiManifestEvidencePath,
   poiWorkbookEvidencePath,
   poiSeedEvidencePath,
@@ -1152,7 +1246,12 @@ export async function verifyXichengYudaoReleaseReadiness({
       env,
       freshnessOptions
     }),
-    checkVisionOcrService(env),
+    await checkVisionOcrServiceEvidence({
+      rootDir,
+      visionOcrEvidencePath,
+      env,
+      freshnessOptions
+    }),
     checkObjectStorage(env),
     await checkFullYudaoBaseline(rootDir, yudaoBaselineSqlPath || env.YUDAO_BASELINE_SQL),
     await checkYudaoServerArtifact(rootDir, yudaoServerJarPath || env.YUDAO_SERVER_JAR),
@@ -1202,6 +1301,7 @@ function buildReleaseEvidence(result) {
   const sourceRevisionSummary = result.checks.find((item) => item.name === 'release-source-revision')?.summary || {}
   const appApiDomainSummary = result.checks.find((item) => item.name === 'https-app-api-domain')?.summary || {}
   const aiBootstrapSummary = result.checks.find((item) => item.name === 'yudao-ai-model-bootstrap')?.summary || {}
+  const visionOcrSummary = result.checks.find((item) => item.name === 'vision-ocr-service')?.summary || {}
   const baselineSummary = result.checks.find((item) => item.name === 'full-yudao-baseline')?.summary || {}
   const serverArtifactSummary = result.checks.find((item) => item.name === 'yudao-server-artifact')?.summary || {}
   const productionPoiEvidenceSummary = result.checks.find((item) => item.name === 'xicheng-production-poi-evidence')?.summary || {}
@@ -1217,6 +1317,7 @@ function buildReleaseEvidence(result) {
       ...sourceRevisionSummary,
       ...appApiDomainSummary,
       ...aiBootstrapSummary,
+      ...visionOcrSummary,
       ...baselineSummary,
       ...serverArtifactSummary,
       ...productionPoiEvidenceSummary,
@@ -1263,6 +1364,8 @@ async function runCli() {
     yudaoServerJarPath: readArgValue(args, '--yudao-server-jar') || env.YUDAO_SERVER_JAR,
     aiBootstrapEvidencePath: readArgValue(args, '--ai-bootstrap-evidence') ||
       env.YUDAO_AI_BOOTSTRAP_EVIDENCE,
+    visionOcrEvidencePath: readArgValue(args, '--vision-ocr-evidence') ||
+      env.XICHENG_VISION_OCR_EVIDENCE,
     poiManifestEvidencePath: readArgValue(args, '--poi-manifest-evidence') ||
       process.env.XICHENG_POI_MANIFEST_EVIDENCE,
     poiWorkbookEvidencePath: readArgValue(args, '--poi-workbook-evidence') ||

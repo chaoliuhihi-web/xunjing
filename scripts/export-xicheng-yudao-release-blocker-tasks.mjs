@@ -88,6 +88,11 @@ const checkTaskInstructions = {
     requiredEvidence: 'Release evidence records aiBootstrapEvidenceFile and aiBootstrapModel from YUDAO_AI_MODEL_BOOTSTRAPPED evidence.',
     verificationCommand: 'npm run xunjing:ai:bootstrap -- --env-file /secure/path/production.env --evidence-file qa/xicheng-yudao-ai-bootstrap-evidence.json'
   },
+  'vision-ocr-service': {
+    taskDetail: 'Run the Xicheng OCR/vision provider smoke and provide its secret-safe evidence file.',
+    requiredEvidence: 'Release evidence records visionOcrEvidenceFile and provider smoke metadata from XICHENG_VISION_OCR_SMOKE_READY evidence.',
+    verificationCommand: 'npm run xunjing:vision:smoke -- --env-file /secure/path/production.env --image-url https://your-cdn.example.com/xicheng/smoke/baitasi-test-card.jpg --evidence-file qa/xicheng-vision-ocr-smoke-evidence.json'
+  },
   'xicheng-production-poi-evidence': {
     taskDetail: 'Generate reviewed POI workbook manifest and seed evidence from 80 approved Xicheng POIs.',
     requiredEvidence: 'Workbook manifest and seed gates output READY evidence with matching source hashes.',

@@ -51,6 +51,7 @@ function buildReleaseGateArgs({
     ...optionalArg(args, '--yudao-baseline-sql'),
     ...optionalArg(args, '--yudao-server-jar'),
     ...optionalArg(args, '--ai-bootstrap-evidence'),
+    ...optionalArg(args, '--vision-ocr-evidence'),
     ...optionalArg(args, '--poi-workbook-evidence'),
     ...optionalArg(args, '--poi-manifest-evidence'),
     ...optionalArg(args, '--poi-seed-evidence'),
