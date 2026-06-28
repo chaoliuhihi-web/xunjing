@@ -34,7 +34,19 @@ const checkOwnerLane = {
   'xicheng-source-license': 'poi-data'
 }
 
-const releaseGateCommand = 'npm run xunjing:yudao:release:gate -- --stage production --expected-branch feature/xicheng-p0 --env-file /secure/path/production.env --runtime-seed-evidence qa/xicheng-yudao-runtime-seed-production-evidence.json --production-seed-apply-evidence qa/xicheng-yudao-production-seed-apply-evidence.json --evidence-file qa/xicheng-yudao-release-evidence.json'
+const releaseGateEvidenceArgs = [
+  '--yudao-baseline-sql /secure/path/ruoyi-vue-pro.sql',
+  '--yudao-server-jar /secure/path/yudao-server.jar',
+  '--ai-bootstrap-evidence qa/xicheng-yudao-ai-bootstrap-evidence.json',
+  '--vision-ocr-evidence qa/xicheng-vision-ocr-smoke-evidence.json',
+  '--object-storage-evidence qa/xicheng-object-storage-smoke-evidence.json',
+  '--runtime-seed-evidence qa/xicheng-yudao-runtime-seed-production-evidence.json',
+  '--production-seed-apply-evidence qa/xicheng-yudao-production-seed-apply-evidence.json',
+  '--poi-workbook-evidence qa/xicheng-poi-review-workbook-evidence.json',
+  '--poi-manifest-evidence qa/xicheng-poi-manifest-evidence.json',
+  '--poi-seed-evidence qa/xicheng-poi-production-seed-evidence.json'
+]
+const releaseGateCommand = `npm run xunjing:yudao:release:gate -- --stage production --expected-branch feature/xicheng-p0 --env-file /secure/path/production.env ${releaseGateEvidenceArgs.join(' ')} --evidence-file qa/xicheng-yudao-release-evidence.json`
 const productionSeedApplyCommand = 'npm run xunjing:yudao:production-seed:apply -- --env-file /secure/path/production.env --seed-sql workbench/xicheng-poi-production-seed.sql --seed-evidence qa/xicheng-poi-production-seed-evidence.json --runtime-evidence-file qa/xicheng-yudao-runtime-seed-production-evidence.json --apply-evidence-file qa/xicheng-yudao-production-seed-apply-evidence.json --confirm-apply-xicheng-production-seed'
 
 const envTaskInstructions = [
@@ -79,7 +91,7 @@ const checkTaskInstructions = {
   'full-yudao-baseline': {
     taskDetail: 'Provide the complete controlled Yudao baseline SQL path for release gate.',
     requiredEvidence: 'Release evidence records yudaoBaselineSqlFile and matching yudaoBaselineSqlSha256.',
-    verificationCommand: 'npm run xunjing:yudao:release:gate -- --stage production --expected-branch feature/xicheng-p0 --env-file /secure/path/production.env --yudao-baseline-sql /secure/path/ruoyi-vue-pro.sql --evidence-file qa/xicheng-yudao-release-evidence.json'
+    verificationCommand: releaseGateCommand
   },
   'yudao-server-artifact': {
     taskDetail: 'Build and provide the deployable Yudao server jar for release gate.',

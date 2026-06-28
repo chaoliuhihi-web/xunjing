@@ -5,7 +5,19 @@ import path from 'node:path'
 import { afterEach, describe, expect, test } from 'vitest'
 
 const tempDirs = []
-const releaseGateCommand = 'npm run xunjing:yudao:release:gate -- --stage production --expected-branch feature/xicheng-p0 --env-file /secure/path/production.env --runtime-seed-evidence qa/xicheng-yudao-runtime-seed-production-evidence.json --production-seed-apply-evidence qa/xicheng-yudao-production-seed-apply-evidence.json --evidence-file qa/xicheng-yudao-release-evidence.json'
+const requiredReleaseGateEvidenceArgs = [
+  '--yudao-baseline-sql /secure/path/ruoyi-vue-pro.sql',
+  '--yudao-server-jar /secure/path/yudao-server.jar',
+  '--ai-bootstrap-evidence qa/xicheng-yudao-ai-bootstrap-evidence.json',
+  '--vision-ocr-evidence qa/xicheng-vision-ocr-smoke-evidence.json',
+  '--object-storage-evidence qa/xicheng-object-storage-smoke-evidence.json',
+  '--runtime-seed-evidence qa/xicheng-yudao-runtime-seed-production-evidence.json',
+  '--production-seed-apply-evidence qa/xicheng-yudao-production-seed-apply-evidence.json',
+  '--poi-workbook-evidence qa/xicheng-poi-review-workbook-evidence.json',
+  '--poi-manifest-evidence qa/xicheng-poi-manifest-evidence.json',
+  '--poi-seed-evidence qa/xicheng-poi-production-seed-evidence.json'
+]
+const releaseGateCommand = `npm run xunjing:yudao:release:gate -- --stage production --expected-branch feature/xicheng-p0 --env-file /secure/path/production.env ${requiredReleaseGateEvidenceArgs.join(' ')} --evidence-file qa/xicheng-yudao-release-evidence.json`
 const productionSeedApplyCommand = 'npm run xunjing:yudao:production-seed:apply -- --env-file /secure/path/production.env --seed-sql workbench/xicheng-poi-production-seed.sql --seed-evidence qa/xicheng-poi-production-seed-evidence.json --runtime-evidence-file qa/xicheng-yudao-runtime-seed-production-evidence.json --apply-evidence-file qa/xicheng-yudao-production-seed-apply-evidence.json --confirm-apply-xicheng-production-seed'
 
 async function createTempRoot() {
@@ -267,6 +279,58 @@ describe('xicheng Yudao release blocker task export', () => {
     expect(await readFile(path.join(rootDir, 'workbench/xicheng-yudao-release-blocker-tasks.csv'), 'utf8')).toBe(
       'checkName,blockerIndex,blocker,ownerLane,taskDetail,requiredEvidence,verificationCommand,taskStatus,sourceEvidenceFile,affectedPoiCount,affectedPoiCodes\n'
     )
+  })
+
+  test('exports complete release gate verification commands with all production evidence inputs', async () => {
+    const rootDir = await createTempRoot()
+    await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', {
+      artifactType: 'xicheng-yudao-release-readiness',
+      ok: false,
+      status: 'NOT_READY',
+      checkedAt: '2026-06-28T00:00:00.000Z',
+      summary: {
+        stage: 'production',
+        failedChecks: 3,
+        blockerCount: 3
+      },
+      checks: [
+        {
+          name: 'runtime-env',
+          ok: false,
+          blockers: ['MYSQL_HOST must not point to a local host for production']
+        },
+        {
+          name: 'full-yudao-baseline',
+          ok: false,
+          blockers: ['Complete Yudao baseline SQL is required before production release']
+        },
+        {
+          name: 'release-source-revision',
+          ok: false,
+          blockers: ['git worktree must be clean before release evidence generation']
+        }
+      ],
+      blockers: []
+    })
+
+    const result = runTaskExport([
+      '--root', rootDir,
+      '--release-evidence', 'qa/xicheng-yudao-release-evidence.json',
+      '--output', 'workbench/xicheng-yudao-release-blocker-tasks.csv'
+    ])
+
+    expect(result.status).toBe(0)
+    const report = JSON.parse(result.stdout)
+    const releaseGateCommands = report.tasks
+      .map((task) => task.verificationCommand)
+      .filter((command) => command.includes('npm run xunjing:yudao:release:gate'))
+
+    expect(releaseGateCommands.length).toBe(3)
+    for (const command of releaseGateCommands) {
+      for (const requiredArg of requiredReleaseGateEvidenceArgs) {
+        expect(command).toContain(requiredArg)
+      }
+    }
   })
 
   test('adds affected POI codes to runtime seed blocker rows', async () => {
