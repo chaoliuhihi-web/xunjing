@@ -319,7 +319,7 @@ function checkNoPlaceholderCells(pois) {
   }
 }
 
-function isWorkbookPoiRowReady(poi) {
+function workbookPoiRowBlockerGroups(poi) {
   const source = poi.source || {}
   const trigger = poi.trigger || {}
   const fieldEvidence = poi.fieldEvidence || {}
@@ -327,19 +327,28 @@ function isWorkbookPoiRowReady(poi) {
   const audit = poi.audit || {}
   const radius = Number(trigger.gpsRadiusMeters)
   const minConfidence = Number(trigger.minConfidence)
+  const blockerGroups = []
 
-  return /^xicheng-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(String(poi.poiCode || '')) &&
+  const identityOk = /^xicheng-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(String(poi.poiCode || '')) &&
     ['name', 'displayName', 'category', 'address'].every((field) => hasText(poi[field])) &&
     poi.priority === 'P0' &&
-    hasMinArray(poi.aliases, 2) &&
-    hasText(source.sourceTitle) &&
+    hasMinArray(poi.aliases, 2)
+  if (!identityOk) {
+    blockerGroups.push('poi-identity')
+  }
+
+  const sourceLicenseOk = hasText(source.sourceTitle) &&
     isHttpsUrl(source.sourceUrl) &&
     ['OFFICIAL', 'OFFICIAL_PUBLIC', 'AUTHORIZED', 'PARTNER'].includes(String(source.sourceType || '').toUpperCase()) &&
     isApproved(source.licenseStatus) &&
     isEvidenceRef(source.licenseEvidenceRef) &&
     hasText(source.licenseReviewedBy) &&
-    hasText(source.licenseReviewedAt) &&
-    poi.coordType === 'GCJ02' &&
+    hasText(source.licenseReviewedAt)
+  if (!sourceLicenseOk) {
+    blockerGroups.push('poi-source-license')
+  }
+
+  const fieldEvidenceOk = poi.coordType === 'GCJ02' &&
     Number.isFinite(Number(poi.latitude)) &&
     Number(poi.latitude) >= 39 &&
     Number(poi.latitude) <= 41 &&
@@ -360,30 +369,52 @@ function isWorkbookPoiRowReady(poi) {
     fieldEvidence.evidenceRefs.length > 0 &&
     fieldEvidence.evidenceRefs.every((ref) => isEvidenceRef(ref)) &&
     hasText(fieldEvidence.verifiedBy) &&
-    hasText(fieldEvidence.verifiedAt) &&
-    String(content.shortIntro || '').trim().length >= 20 &&
+    hasText(fieldEvidence.verifiedAt)
+  if (!fieldEvidenceOk) {
+    blockerGroups.push('poi-field-evidence')
+  }
+
+  const contentAuditOk = String(content.shortIntro || '').trim().length >= 20 &&
     hasMinArray(content.recommendedQuestions, 3) &&
     ['reviewStatus', 'geoStatus', 'licenseStatus'].every((field) => isApproved(audit[field])) &&
     isPublished(audit.status) &&
     hasText(audit.reviewedBy) &&
-    hasText(audit.reviewedAt) &&
-    !containsPlaceholderValue(poi)
+    hasText(audit.reviewedAt)
+  if (!contentAuditOk) {
+    blockerGroups.push('poi-content-audit')
+  }
+
+  if (containsPlaceholderValue(poi)) {
+    blockerGroups.push('no-placeholder-cells')
+  }
+
+  return blockerGroups
 }
 
 function summarizeWorkbookPoiRows(pois) {
   const pendingPoiCodes = []
+  const pendingPoiTasks = []
   let workbookReadyPoiCount = 0
   pois.forEach((poi, index) => {
-    if (isWorkbookPoiRowReady(poi)) {
+    const blockerGroups = workbookPoiRowBlockerGroups(poi)
+    if (blockerGroups.length === 0) {
       workbookReadyPoiCount += 1
     } else {
-      pendingPoiCodes.push(poiLabel(poi, index))
+      const poiCode = poiLabel(poi, index)
+      pendingPoiCodes.push(poiCode)
+      pendingPoiTasks.push({
+        poiCode,
+        poiIndex: index + 1,
+        workbookRowNumber: index + 2,
+        blockerGroups
+      })
     }
   })
   return {
     workbookReadyPoiCount,
     workbookPendingPoiCount: pendingPoiCodes.length,
-    pendingPoiCodes
+    pendingPoiCodes,
+    pendingPoiTasks
   }
 }
 
