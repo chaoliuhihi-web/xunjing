@@ -131,8 +131,8 @@ assert.match(
 
 assert.match(
   travelogue,
-  /createMemorialPdfSourceCards\(\)[\s\S]*this\.materials\.forEach[\s\S]*Array\.isArray\(material\.sources\)[\s\S]*title:\s*source\.title \|\| source\.name[\s\S]*excerpt:\s*source\.excerpt \|\| source\.summary \|\| source\.url[\s\S]*poiName:\s*material\.poiName \|\| ''[\s\S]*slice\(0, 8\)/,
-  'PDF memorial source cards should summarize reviewed material sources with POI attribution and a bounded card count'
+  /createMemorialPdfSourceCards\(\)[\s\S]*this\.materials[\s\S]*filter\(material => hasReviewableMaterialEvidence\(material\)\)[\s\S]*forEach[\s\S]*Array\.isArray\(material\.sources\)[\s\S]*title:\s*source\.title \|\| source\.name[\s\S]*excerpt:\s*source\.excerpt \|\| source\.summary \|\| source\.url[\s\S]*poiName:\s*material\.poiName \|\| ''[\s\S]*slice\(0, 8\)/,
+  'PDF memorial source cards should summarize reviewed sources from reviewable materials with POI attribution and a bounded card count'
 )
 
 assert.match(

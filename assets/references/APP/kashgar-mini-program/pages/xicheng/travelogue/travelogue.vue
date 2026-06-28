@@ -1746,25 +1746,27 @@ export default {
 		createMemorialPdfSourceCards() {
 			const seenCards = new Set()
 			const sourceCards = []
-			this.materials.forEach((material = {}, materialIndex) => {
-				const materialSources = Array.isArray(material.sources) ? material.sources : []
-				materialSources.forEach((source = {}, sourceIndex) => {
-					const title = source.title || source.name || ''
-					const excerpt = source.excerpt || source.summary || source.url || ''
-					if (!title && !excerpt) return
-					const cardKey = `${material.poiCode || material.poiName || materialIndex}:${title}:${excerpt}`
-					if (seenCards.has(cardKey)) return
-					seenCards.add(cardKey)
-					sourceCards.push({
-						sourceCardId: `source-card-${materialIndex}-${sourceIndex}`,
-						title: source.title || source.name,
-						excerpt: source.excerpt || source.summary || source.url,
-						url: source.url || '',
-						poiCode: material.poiCode || '',
-						poiName: material.poiName || ''
+			this.materials
+				.filter(material => hasReviewableMaterialEvidence(material))
+				.forEach((material = {}, materialIndex) => {
+					const materialSources = Array.isArray(material.sources) ? material.sources : []
+					materialSources.forEach((source = {}, sourceIndex) => {
+						const title = source.title || source.name || ''
+						const excerpt = source.excerpt || source.summary || source.url || ''
+						if (!title && !excerpt) return
+						const cardKey = `${material.poiCode || material.poiName || materialIndex}:${title}:${excerpt}`
+						if (seenCards.has(cardKey)) return
+						seenCards.add(cardKey)
+						sourceCards.push({
+							sourceCardId: `source-card-${materialIndex}-${sourceIndex}`,
+							title: source.title || source.name,
+							excerpt: source.excerpt || source.summary || source.url,
+							url: source.url || '',
+							poiCode: material.poiCode || '',
+							poiName: material.poiName || ''
+						})
 					})
 				})
-			})
 			return sourceCards.slice(0, 8)
 		},
 		createMemorialPdfTemplate(routeTitle, createdAt) {
