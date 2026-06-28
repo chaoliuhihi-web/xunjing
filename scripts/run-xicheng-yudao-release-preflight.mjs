@@ -13,6 +13,7 @@ const defaultHandoffOutputFile = 'workbench/xicheng-yudao-release-handoff.md'
 const defaultPoiWorkbookEvidenceFile = 'qa/xicheng-poi-review-workbook-evidence.json'
 const defaultPoiManifestEvidenceFile = 'qa/xicheng-poi-manifest-evidence.json'
 const defaultPoiSeedEvidenceFile = 'qa/xicheng-poi-production-seed-evidence.json'
+const defaultPoiSourceCoverageEvidenceFile = 'qa/xicheng-poi-source-coverage-evidence.json'
 const defaultAppReadinessEvidenceFile = 'qa/xicheng-app-readiness-evidence.json'
 const defaultReleasePackageEvidenceFile = 'qa/xicheng-release-evidence-package.json'
 const defaultStage = 'production'
@@ -66,6 +67,7 @@ function buildReleaseGateArgs({
     ...optionalArg(args, '--poi-workbook-evidence'),
     ...optionalArg(args, '--poi-manifest-evidence'),
     ...optionalArg(args, '--poi-seed-evidence'),
+    ...optionalArg(args, '--poi-source-coverage-evidence'),
     ...optionalArg(args, '--max-evidence-age-hours')
   ]
 }
@@ -81,6 +83,7 @@ function buildFinalEvidencePackageCommand({
   poiWorkbookEvidenceFile,
   poiManifestEvidenceFile,
   poiSeedEvidenceFile,
+  poiSourceCoverageEvidenceFile,
   appReadinessEvidenceFile,
   releasePackageEvidenceFile
 }) {
@@ -91,6 +94,7 @@ function buildFinalEvidencePackageCommand({
     '--poi-workbook-evidence', shellArg(poiWorkbookEvidenceFile),
     '--poi-manifest-evidence', shellArg(poiManifestEvidenceFile),
     '--poi-seed-evidence', shellArg(poiSeedEvidenceFile),
+    '--poi-source-coverage-evidence', shellArg(poiSourceCoverageEvidenceFile),
     '--app-readiness-evidence', shellArg(appReadinessEvidenceFile),
     '--evidence-file', shellArg(releasePackageEvidenceFile)
   ].join(' ')
@@ -184,6 +188,8 @@ export async function runXichengYudaoReleasePreflight({
   const poiWorkbookEvidenceFile = readArgValue(args, '--poi-workbook-evidence') || defaultPoiWorkbookEvidenceFile
   const poiManifestEvidenceFile = readArgValue(args, '--poi-manifest-evidence') || defaultPoiManifestEvidenceFile
   const poiSeedEvidenceFile = readArgValue(args, '--poi-seed-evidence') || defaultPoiSeedEvidenceFile
+  const poiSourceCoverageEvidenceFile = readArgValue(args, '--poi-source-coverage-evidence') ||
+    defaultPoiSourceCoverageEvidenceFile
   const appReadinessEvidenceFile = readArgValue(args, '--app-readiness-evidence') || defaultAppReadinessEvidenceFile
   const releasePackageEvidenceFile = readArgValue(args, '--release-package-evidence') ||
     readArgValue(args, '--package-evidence') ||
@@ -227,6 +233,7 @@ export async function runXichengYudaoReleasePreflight({
     poiWorkbookEvidenceFile,
     poiManifestEvidenceFile,
     poiSeedEvidenceFile,
+    poiSourceCoverageEvidenceFile,
     appReadinessEvidenceFile,
     releasePackageEvidenceFile
   })

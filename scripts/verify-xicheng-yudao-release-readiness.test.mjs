@@ -47,6 +47,12 @@ const requiredSeedEvidenceChecks = [
   'source-license-evidence',
   'source-documents'
 ]
+const requiredSourceCoverageEvidenceChecks = [
+  'source-review-file',
+  'source-pages',
+  'poi-source-coverage',
+  'secret-redaction'
+]
 const requiredVisionOcrEvidenceChecks = [
   'vision-provider-request',
   'vision-provider-smoke',
@@ -223,6 +229,7 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
   const manifestEvidencePath = path.join(rootDir, 'qa/xicheng-poi-manifest-evidence.json')
   const workbookEvidencePath = path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json')
   const seedEvidencePath = path.join(rootDir, 'qa/xicheng-poi-production-seed-evidence.json')
+  const sourceCoverageEvidencePath = path.join(rootDir, 'qa/xicheng-poi-source-coverage-evidence.json')
   const manifestSourcePath = path.join(rootDir, 'workbench/xicheng-production-pois.json')
   const workbookSourcePath = path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv')
   const seedSourcePath = path.join(rootDir, 'workbench/xicheng-poi-production-seed.sql')
@@ -308,10 +315,64 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
     checks: passedChecks(requiredSeedEvidenceChecks),
     blockers: []
   }, overrides.seed)
+  const sourceCoverageEvidence = mergeEvidence({
+    artifactType: 'xicheng-poi-source-coverage',
+    ok: true,
+    status: 'SOURCE_COVERAGE_READY',
+    checkedAt: freshCheckedAt(),
+    summary: {
+      sourceReviewRows: 2,
+      sourceGroupCount: 2,
+      poiCount: 80,
+      coveredPoiCount: 80,
+      uncoveredPoiCount: 0,
+      uncoveredPoiCodes: [],
+      sourcePageFetchMode: 'live',
+      sourcePages: [
+        {
+          sourceUrl: 'https://www.bjxch.gov.cn/reviewed-source-a.html',
+          fetchMode: 'live',
+          ok: true,
+          httpStatus: 200,
+          sourceTextLength: 4096,
+          sourceTextSha256: 'a'.repeat(64)
+        },
+        {
+          sourceUrl: 'https://www.bjxch.gov.cn/reviewed-source-b.html',
+          fetchMode: 'live',
+          ok: true,
+          httpStatus: 200,
+          sourceTextLength: 8192,
+          sourceTextSha256: 'b'.repeat(64)
+        }
+      ],
+      sourceGroups: [
+        {
+          sourceUrl: 'https://www.bjxch.gov.cn/reviewed-source-a.html',
+          sourceType: 'OFFICIAL_PUBLIC',
+          poiCount: 40,
+          coveredPoiCount: 40,
+          uncoveredPoiCount: 0,
+          uncoveredPoiCodes: []
+        },
+        {
+          sourceUrl: 'https://www.bjxch.gov.cn/reviewed-source-b.html',
+          sourceType: 'OFFICIAL_PUBLIC',
+          poiCount: 40,
+          coveredPoiCount: 40,
+          uncoveredPoiCount: 0,
+          uncoveredPoiCodes: []
+        }
+      ]
+    },
+    checks: passedChecks(requiredSourceCoverageEvidenceChecks),
+    blockers: []
+  }, overrides.sourceCoverage)
   await writeFile(manifestEvidencePath, `${JSON.stringify(manifestEvidence, null, 2)}\n`)
   await writeFile(workbookEvidencePath, `${JSON.stringify(workbookEvidence, null, 2)}\n`)
   await writeFile(seedEvidencePath, `${JSON.stringify(seedEvidence, null, 2)}\n`)
-  return { manifestEvidencePath, workbookEvidencePath, seedEvidencePath }
+  await writeFile(sourceCoverageEvidencePath, `${JSON.stringify(sourceCoverageEvidence, null, 2)}\n`)
+  return { manifestEvidencePath, workbookEvidencePath, seedEvidencePath, sourceCoverageEvidencePath }
 }
 
 async function writeAiBootstrapEvidence(rootDir, overrides = {}) {
@@ -538,7 +599,7 @@ describe('xicheng Yudao release readiness gate', () => {
 
   test('returns production candidate only when env, full baseline and 80 approved POIs are present', async () => {
     const rootDir = await createProductionReadyFixture()
-    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath, sourceCoverageEvidencePath } = await writeProductionPoiEvidence(rootDir)
     const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
     const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
     const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
@@ -566,6 +627,10 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(result.status).toBe('PRODUCTION_READY_CANDIDATE')
     expect(result.blockers).toEqual([])
     expect(result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')?.summary).toMatchObject({
+      sourceCoverageEvidenceFile: sourceCoverageEvidencePath,
+      sourceCoverageStatus: 'SOURCE_COVERAGE_READY',
+      sourceCoverageCoveredPoiCount: 80,
+      sourceCoverageUncoveredPoiCount: 0,
       workbookEvidenceFile: workbookEvidencePath,
       sourceWorkbookFile: path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv'),
       sourceWorkbookSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
@@ -619,6 +684,94 @@ describe('xicheng Yudao release readiness gate', () => {
       'xicheng-production-poi',
       'xicheng-source-license'
     ])
+  })
+
+  test('fails closed when POI source coverage evidence is missing', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath, sourceCoverageEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    await rm(sourceCoverageEvidencePath, { force: true })
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
+    const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
+    const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      aiBootstrapEvidencePath,
+      visionOcrEvidencePath,
+      objectStorageEvidencePath,
+      runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    expect(evidenceCheck?.ok).toBe(false)
+    expect(evidenceCheck?.blockers.join('\n')).toContain('POI source coverage evidence is required before production release')
+  })
+
+  test('fails closed when POI source coverage evidence still has uncovered POIs', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir, {
+      sourceCoverage: {
+        ok: false,
+        status: 'SOURCE_COVERAGE_REVIEW_REQUIRED',
+        summary: {
+          coveredPoiCount: 79,
+          uncoveredPoiCount: 1,
+          uncoveredPoiCodes: ['xicheng-baitasi']
+        },
+        checks: [
+          ...passedChecks(['source-review-file', 'source-pages', 'secret-redaction']),
+          {
+            name: 'poi-source-coverage',
+            ok: false,
+            detail: '1 POI names are not found in their assigned source pages',
+            blockers: ['xicheng-baitasi']
+          }
+        ],
+        blockers: ['1 POI names are not found in their assigned source pages']
+      }
+    })
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
+    const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
+    const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      aiBootstrapEvidencePath,
+      visionOcrEvidencePath,
+      objectStorageEvidencePath,
+      runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    expect(evidenceCheck?.ok).toBe(false)
+    expect(evidenceCheck?.blockers.join('\n')).toContain('source coverage evidence status must be SOURCE_COVERAGE_READY')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('source coverage evidence uncoveredPoiCount must be 0')
   })
 
   test('fails closed when production runtime seed evidence is missing', async () => {
@@ -993,6 +1146,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidenceCheck?.blockers).toEqual([
       'POI manifest evidence is required before production release',
       'POI workbook evidence is required before production release',
+      'POI source coverage evidence is required before production release',
       'POI seed SQL evidence is required before production release'
     ])
   })

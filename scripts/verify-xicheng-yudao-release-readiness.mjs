@@ -13,6 +13,7 @@ const allowedClockSkewMs = 5 * 60 * 1000
 const defaultExpectedGitBranch = 'feature/xicheng-p0'
 const expectedXichengRegionCode = 'beijing-xicheng'
 const expectedXichengPackageCode = 'XICHENG-MAP-001'
+const defaultPoiSourceCoverageEvidencePath = 'qa/xicheng-poi-source-coverage-evidence.json'
 
 const requiredManifestEvidenceChecks = [
   'manifest-shape',
@@ -50,6 +51,13 @@ const requiredSeedEvidenceChecks = [
   'field-evidence',
   'source-license-evidence',
   'source-documents'
+]
+
+const requiredSourceCoverageEvidenceChecks = [
+  'source-review-file',
+  'source-pages',
+  'poi-source-coverage',
+  'secret-redaction'
 ]
 
 const requiredAiBootstrapEvidenceChecks = [
@@ -1118,6 +1126,90 @@ async function validateSeedEvidence(ref, rootDir, freshnessOptions) {
   return blockers
 }
 
+function validateSourceCoveragePageSummaries(summary, blockers) {
+  const sourcePages = Array.isArray(summary.sourcePages) ? summary.sourcePages : []
+  if (sourcePages.length === 0) {
+    blockers.push('source coverage evidence must include sourcePages')
+    return
+  }
+  sourcePages.forEach((page) => {
+    const label = page?.sourceUrl || 'source page'
+    if (page?.ok !== true) {
+      blockers.push(`${label} source coverage page must be ok`)
+    }
+    if (Number(page?.sourceTextLength) <= 0) {
+      blockers.push(`${label} sourceTextLength must be positive`)
+    }
+    if (!/^[a-f0-9]{64}$/.test(String(page?.sourceTextSha256 || ''))) {
+      blockers.push(`${label} sourceTextSha256 must be a sha256 hex digest`)
+    }
+    if (hasValue(page?.text) || hasValue(page?.body) || hasValue(page?.html)) {
+      blockers.push(`${label} source coverage evidence must not store full source page text`)
+    }
+  })
+}
+
+function validateSourceCoverageGroups(summary, blockers) {
+  const groups = Array.isArray(summary.sourceGroups) ? summary.sourceGroups : []
+  if (groups.length === 0) {
+    blockers.push('source coverage evidence must include sourceGroups')
+    return
+  }
+  groups.forEach((group) => {
+    const label = group?.sourceUrl || 'source group'
+    if (Number(group?.poiCount) <= 0) {
+      blockers.push(`${label} source coverage group poiCount must be positive`)
+    }
+    if (Number(group?.uncoveredPoiCount) !== 0) {
+      blockers.push(`${label} source coverage group uncoveredPoiCount must be 0`)
+    }
+    if (Array.isArray(group?.uncoveredPoiCodes) && group.uncoveredPoiCodes.length > 0) {
+      blockers.push(`${label} source coverage group uncoveredPoiCodes must be empty`)
+    }
+  })
+}
+
+function validateSourceCoverageEvidence(ref, freshnessOptions, implicitDefault = false) {
+  const blockers = []
+  if (!ref.path || (implicitDefault && ref.error)) {
+    return ['POI source coverage evidence is required before production release']
+  }
+  if (ref.error) {
+    return [`POI source coverage evidence cannot be read: ${ref.error}`]
+  }
+  const evidence = ref.data || {}
+  const summary = evidenceSummary(evidence)
+  if (evidence.artifactType !== 'xicheng-poi-source-coverage') {
+    blockers.push('source coverage evidence artifactType must be xicheng-poi-source-coverage')
+  }
+  blockers.push(...checkEvidenceTimestamp(evidence, 'source coverage', freshnessOptions))
+  if (evidence.ok !== true) {
+    blockers.push('source coverage evidence ok must be true')
+  }
+  if (evidence.status !== 'SOURCE_COVERAGE_READY') {
+    blockers.push('source coverage evidence status must be SOURCE_COVERAGE_READY')
+  }
+  if (Number(summary.poiCount) < productionPoiTarget) {
+    blockers.push(`source coverage evidence must prove at least ${productionPoiTarget} POIs`)
+  }
+  if (Number(summary.coveredPoiCount) < productionPoiTarget) {
+    blockers.push(`source coverage evidence coveredPoiCount must be at least ${productionPoiTarget}`)
+  }
+  if (Number(summary.uncoveredPoiCount) !== 0) {
+    blockers.push('source coverage evidence uncoveredPoiCount must be 0')
+  }
+  if (!Array.isArray(summary.uncoveredPoiCodes) || summary.uncoveredPoiCodes.length !== 0) {
+    blockers.push('source coverage evidence uncoveredPoiCodes must be empty')
+  }
+  validateSourceCoveragePageSummaries(summary, blockers)
+  validateSourceCoverageGroups(summary, blockers)
+  blockers.push(...checkEvidenceChecks(evidence, requiredSourceCoverageEvidenceChecks, 'source coverage'))
+  if (!hasNoEvidenceBlockers(evidence)) {
+    blockers.push(`source coverage evidence contains blockers: ${evidence.blockers.join('; ')}`)
+  }
+  return blockers
+}
+
 async function checkXichengRuntimeSeedEvidence({
   rootDir,
   runtimeSeedEvidencePath,
@@ -1409,12 +1501,16 @@ async function checkXichengProductionPoiEvidence({
   rootDir,
   poiManifestEvidencePath,
   poiWorkbookEvidencePath,
+  poiSourceCoverageEvidencePath,
   poiSeedEvidencePath,
   freshnessOptions
 }) {
-  const [manifestEvidence, workbookEvidence, seedEvidence] = await Promise.all([
+  const implicitSourceCoverageEvidence = !hasValue(poiSourceCoverageEvidencePath)
+  const sourceCoverageEvidencePath = poiSourceCoverageEvidencePath || defaultPoiSourceCoverageEvidencePath
+  const [manifestEvidence, workbookEvidence, sourceCoverageEvidence, seedEvidence] = await Promise.all([
     loadEvidenceInput(rootDir, poiManifestEvidencePath),
     loadEvidenceInput(rootDir, poiWorkbookEvidencePath),
+    loadEvidenceInput(rootDir, sourceCoverageEvidencePath),
     loadEvidenceInput(rootDir, poiSeedEvidencePath)
   ])
   const [manifestBlockers, workbookBlockers, seedBlockers] = await Promise.all([
@@ -1422,9 +1518,15 @@ async function checkXichengProductionPoiEvidence({
     validateWorkbookEvidence(workbookEvidence, rootDir, freshnessOptions),
     validateSeedEvidence(seedEvidence, rootDir, freshnessOptions)
   ])
+  const sourceCoverageBlockers = validateSourceCoverageEvidence(
+    sourceCoverageEvidence,
+    freshnessOptions,
+    implicitSourceCoverageEvidence
+  )
   const blockers = [
     ...manifestBlockers,
     ...workbookBlockers,
+    ...sourceCoverageBlockers,
     ...seedBlockers,
     ...validatePoiEvidenceConsistency(rootDir, manifestEvidence.data, workbookEvidence.data, seedEvidence.data)
   ]
@@ -1437,6 +1539,9 @@ async function checkXichengProductionPoiEvidence({
   }
   if (seedEvidence.path) {
     details.push(`seed=${seedEvidence.path}`)
+  }
+  if (sourceCoverageEvidence.path && !sourceCoverageEvidence.error) {
+    details.push(`sourceCoverage=${sourceCoverageEvidence.path}`)
   }
 
   return {
@@ -1451,6 +1556,13 @@ async function checkXichengProductionPoiEvidence({
     summary: {
       manifestEvidenceFile: manifestEvidence.path,
       workbookEvidenceFile: workbookEvidence.path,
+      sourceCoverageEvidenceFile: sourceCoverageEvidence.path,
+      sourceCoverageStatus: sourceCoverageEvidence.data?.status,
+      sourceCoverageSourceGroupCount: evidenceSummary(sourceCoverageEvidence.data).sourceGroupCount,
+      sourceCoveragePoiCount: evidenceSummary(sourceCoverageEvidence.data).poiCount,
+      sourceCoverageCoveredPoiCount: evidenceSummary(sourceCoverageEvidence.data).coveredPoiCount,
+      sourceCoverageUncoveredPoiCount: evidenceSummary(sourceCoverageEvidence.data).uncoveredPoiCount,
+      sourceCoverageUncoveredPoiCodes: evidenceSummary(sourceCoverageEvidence.data).uncoveredPoiCodes,
       seedEvidenceFile: seedEvidence.path,
       poiManifestFile: evidenceSummary(manifestEvidence.data).manifestFile,
       poiManifestSha256: evidenceSummary(manifestEvidence.data).manifestSha256,
@@ -1563,6 +1675,7 @@ export async function verifyXichengYudaoReleaseReadiness({
   productionSeedApplyEvidencePath,
   poiManifestEvidencePath,
   poiWorkbookEvidencePath,
+  poiSourceCoverageEvidencePath,
   poiSeedEvidencePath,
   expectedGitBranch = defaultExpectedGitBranch,
   maxEvidenceAgeHours = defaultMaxEvidenceAgeHours,
@@ -1581,6 +1694,7 @@ export async function verifyXichengYudaoReleaseReadiness({
     rootDir,
     poiManifestEvidencePath,
     poiWorkbookEvidencePath,
+    poiSourceCoverageEvidencePath,
     poiSeedEvidencePath,
     freshnessOptions
   })
@@ -1757,6 +1871,8 @@ async function runCli() {
       process.env.XICHENG_POI_MANIFEST_EVIDENCE,
     poiWorkbookEvidencePath: readArgValue(args, '--poi-workbook-evidence') ||
       process.env.XICHENG_POI_WORKBOOK_EVIDENCE,
+    poiSourceCoverageEvidencePath: readArgValue(args, '--poi-source-coverage-evidence') ||
+      process.env.XICHENG_POI_SOURCE_COVERAGE_EVIDENCE,
     poiSeedEvidencePath: readArgValue(args, '--poi-seed-evidence') ||
       process.env.XICHENG_POI_SEED_EVIDENCE,
     expectedGitBranch: readArgValue(args, '--expected-branch') ||

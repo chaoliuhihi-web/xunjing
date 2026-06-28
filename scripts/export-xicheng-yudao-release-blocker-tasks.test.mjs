@@ -15,7 +15,8 @@ const requiredReleaseGateEvidenceArgs = [
   '--production-seed-apply-evidence qa/xicheng-yudao-production-seed-apply-evidence.json',
   '--poi-workbook-evidence qa/xicheng-poi-review-workbook-evidence.json',
   '--poi-manifest-evidence qa/xicheng-poi-manifest-evidence.json',
-  '--poi-seed-evidence qa/xicheng-poi-production-seed-evidence.json'
+  '--poi-seed-evidence qa/xicheng-poi-production-seed-evidence.json',
+  '--poi-source-coverage-evidence qa/xicheng-poi-source-coverage-evidence.json'
 ]
 const releaseGateCommand = `npm run xunjing:yudao:release:gate -- --stage production --expected-branch feature/xicheng-p0 --env-file /secure/path/production.env ${requiredReleaseGateEvidenceArgs.join(' ')} --evidence-file qa/xicheng-yudao-release-evidence.json`
 const productionSeedApplyCommand = 'npm run xunjing:yudao:production-seed:apply -- --env-file /secure/path/production.env --seed-sql workbench/xicheng-poi-production-seed.sql --seed-evidence qa/xicheng-poi-production-seed-evidence.json --runtime-evidence-file qa/xicheng-yudao-runtime-seed-production-evidence.json --apply-evidence-file qa/xicheng-yudao-production-seed-apply-evidence.json --confirm-apply-xicheng-production-seed'
@@ -105,7 +106,8 @@ describe('xicheng Yudao release blocker task export', () => {
           blockers: [
             'POI manifest evidence is required before production release',
             'POI workbook evidence is required before production release',
-            'POI seed SQL evidence is required before production release'
+            'POI seed SQL evidence is required before production release',
+            'POI source coverage evidence is required before production release'
           ]
         },
         {
@@ -136,6 +138,7 @@ describe('xicheng Yudao release blocker task export', () => {
         'Object storage smoke evidence is required before production release',
         'POI manifest evidence is required before production release',
         'POI workbook evidence is required before production release',
+        'POI source coverage evidence is required before production release',
         'Yudao runtime production seed evidence is required before production release',
         'Yudao production seed apply evidence is required before production release'
       ]
@@ -158,14 +161,14 @@ describe('xicheng Yudao release blocker task export', () => {
         sourceEvidenceFile: releaseEvidencePath,
         outputFile,
         failedCheckCount: 8,
-        taskCount: 12,
+        taskCount: 13,
         ownerLaneCounts: {
           'platform-ops': 3,
           'app-ops': 1,
           'ai-platform': 1,
           'vision-ocr': 1,
           'storage-ops': 1,
-          'poi-data': 5
+          'poi-data': 6
         },
         ownerLaneBreakdown: [
           {
@@ -190,11 +193,12 @@ describe('xicheng Yudao release blocker task export', () => {
           },
           {
             ownerLane: 'poi-data',
-            taskCount: 5,
+            taskCount: 6,
             checkNames: ['xicheng-production-poi-evidence', 'xicheng-production-seed-apply', 'xicheng-runtime-seed-evidence'],
             verificationCommands: [
               'npm run xunjing:xicheng:poi:manifest:gate -- --manifest workbench/xicheng-production-pois.json --evidence-file qa/xicheng-poi-manifest-evidence.json',
               'npm run xunjing:xicheng:poi:seed:verify -- --sql workbench/xicheng-poi-production-seed.sql --evidence-file qa/xicheng-poi-production-seed-evidence.json',
+              'npm run xunjing:xicheng:poi:source-coverage:audit -- --source-review workbench/xicheng-poi-source-review-summary.csv --evidence-file qa/xicheng-poi-source-coverage-evidence.json',
               'npm run xunjing:xicheng:poi:workbook:gate -- --workbook workbench/xicheng-production-pois.review-workbook.csv --evidence-file qa/xicheng-poi-review-workbook-evidence.json',
               productionSeedApplyCommand
             ]
@@ -231,6 +235,7 @@ describe('xicheng Yudao release blocker task export', () => {
     expect(csv).toContain(`xicheng-production-poi-evidence,1,POI manifest evidence is required before production release,poi-data,Generate production POI manifest evidence from the reviewed 80-row workbook.,Manifest gate outputs PRODUCTION_POI_MANIFEST_READY with review batch and source workbook hashes.,npm run xunjing:xicheng:poi:manifest:gate -- --manifest workbench/xicheng-production-pois.json --evidence-file qa/xicheng-poi-manifest-evidence.json,TODO,${releaseEvidencePath}`)
     expect(csv).toContain(`xicheng-production-poi-evidence,2,POI workbook evidence is required before production release,poi-data,Generate reviewed POI workbook evidence from 80 approved Xicheng POIs.,Workbook gate outputs XICHENG_POI_REVIEW_WORKBOOK_READY with pendingPoiTasks empty.,npm run xunjing:xicheng:poi:workbook:gate -- --workbook workbench/xicheng-production-pois.review-workbook.csv --evidence-file qa/xicheng-poi-review-workbook-evidence.json,TODO,${releaseEvidencePath}`)
     expect(csv).toContain(`xicheng-production-poi-evidence,3,POI seed SQL evidence is required before production release,poi-data,Generate and verify production POI seed SQL from the approved manifest.,Seed verify outputs PRODUCTION_POI_SEED_READY with sqlFile and sqlSha256.,npm run xunjing:xicheng:poi:seed:verify -- --sql workbench/xicheng-poi-production-seed.sql --evidence-file qa/xicheng-poi-production-seed-evidence.json,TODO,${releaseEvidencePath}`)
+    expect(csv).toContain(`xicheng-production-poi-evidence,4,POI source coverage evidence is required before production release,poi-data,Generate POI source coverage evidence from the source review summary.,Source coverage audit outputs SOURCE_COVERAGE_READY with uncoveredPoiCount=0.,npm run xunjing:xicheng:poi:source-coverage:audit -- --source-review workbench/xicheng-poi-source-review-summary.csv --evidence-file qa/xicheng-poi-source-coverage-evidence.json,TODO,${releaseEvidencePath}`)
     expect(csv).toContain(`xicheng-runtime-seed-evidence,1,Yudao runtime production seed evidence is required before production release,poi-data,Apply the approved Xicheng production seed to the target Yudao database and provide runtime seed evidence.,Production seed apply outputs YUDAO_XICHENG_PRODUCTION_SEED_APPLIED and writes YUDAO_XICHENG_PRODUCTION_SEED_READY runtime evidence.,${productionSeedApplyCommand},TODO,${releaseEvidencePath}`)
     expect(csv).toContain(`xicheng-production-seed-apply,1,Yudao production seed apply evidence is required before production release,poi-data,Run the controlled production seed apply command and provide apply evidence tied to the runtime seed evidence.,Release evidence records productionSeedApplyEvidenceFile with YUDAO_XICHENG_PRODUCTION_SEED_APPLIED and matching runtimeEvidenceFile.,${productionSeedApplyCommand},TODO,${releaseEvidencePath}`)
   })

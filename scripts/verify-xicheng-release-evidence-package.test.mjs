@@ -134,6 +134,7 @@ async function writeReleaseEvidenceFile(rootDir, overrides = {}) {
   const baseline = await writeYudaoBaselineFile(rootDir)
   const serverJar = await writeYudaoServerJarFile(rootDir)
   const poiSources = await writePoiSourceFiles(rootDir)
+  await writeSourceCoverageEvidenceFile(rootDir)
   return writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence({
     ...overrides,
     summary: {
@@ -145,6 +146,13 @@ async function writeReleaseEvidenceFile(rootDir, overrides = {}) {
       manifestEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-manifest-evidence.json'),
       workbookEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json'),
       seedEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-production-seed-evidence.json'),
+      sourceCoverageEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-source-coverage-evidence.json'),
+      sourceCoverageStatus: 'SOURCE_COVERAGE_READY',
+      sourceCoverageSourceGroupCount: 2,
+      sourceCoveragePoiCount: 80,
+      sourceCoverageCoveredPoiCount: 80,
+      sourceCoverageUncoveredPoiCount: 0,
+      sourceCoverageUncoveredPoiCodes: [],
       aiBootstrapEvidenceFile: path.join(rootDir, 'qa/xicheng-yudao-ai-bootstrap-evidence.json'),
       aiBootstrapModel: 'qwen-plus',
       aiBootstrapProviderSmokeHost: 'dashscope.aliyuncs.com',
@@ -237,6 +245,10 @@ async function writeSeedEvidenceFile(rootDir, overrides = {}) {
       ...(overrides.summary || {})
     }
   }))
+}
+
+async function writeSourceCoverageEvidenceFile(rootDir, overrides = {}) {
+  return writeJson(rootDir, 'qa/xicheng-poi-source-coverage-evidence.json', sourceCoverageEvidence(overrides))
 }
 
 function releaseEvidence(overrides = {}) {
@@ -377,6 +389,66 @@ function seedEvidence(overrides = {}) {
       { name: 'field-evidence', ok: true },
       { name: 'source-license-evidence', ok: true },
       { name: 'source-documents', ok: true }
+    ],
+    blockers: [],
+  }, overrides)
+}
+
+function sourceCoverageEvidence(overrides = {}) {
+  return mergeEvidence({
+    artifactType: 'xicheng-poi-source-coverage',
+    ok: true,
+    status: 'SOURCE_COVERAGE_READY',
+    checkedAt: freshCheckedAt(),
+    summary: {
+      sourceReviewFile: 'workbench/xicheng-poi-source-review-summary.csv',
+      sourceReviewRows: 2,
+      sourceGroupCount: 2,
+      poiCount: 80,
+      coveredPoiCount: 80,
+      uncoveredPoiCount: 0,
+      uncoveredPoiCodes: [],
+      sourcePageFetchMode: 'cache',
+      sourcePages: [
+        {
+          sourceUrl: 'https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html',
+          fetchMode: 'cache',
+          ok: true,
+          sourceTextLength: 6218,
+          sourceTextSha256: 'd'.repeat(64)
+        },
+        {
+          sourceUrl: 'https://www.bjxch.gov.cn/xcfw/whfw/xxxq/pnidpv736523.html',
+          fetchMode: 'cache',
+          ok: true,
+          sourceTextLength: 10136,
+          sourceTextSha256: 'e'.repeat(64)
+        }
+      ],
+      sourceGroups: [
+        {
+          sourceTitle: '3A级及以下旅游景区名录',
+          sourceUrl: 'https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html',
+          poiCount: 24,
+          coveredPoiCount: 24,
+          uncoveredPoiCount: 0,
+          uncoveredPoiCodes: []
+        },
+        {
+          sourceTitle: '西城区文物保护单位（81处）',
+          sourceUrl: 'https://www.bjxch.gov.cn/xcfw/whfw/xxxq/pnidpv736523.html',
+          poiCount: 56,
+          coveredPoiCount: 56,
+          uncoveredPoiCount: 0,
+          uncoveredPoiCodes: []
+        }
+      ]
+    },
+    checks: [
+      { name: 'source-review-file', ok: true },
+      { name: 'source-pages', ok: true },
+      { name: 'poi-source-coverage', ok: true },
+      { name: 'secret-redaction', ok: true }
     ],
     blockers: [],
   }, overrides)
@@ -524,6 +596,16 @@ function runPackageGate(args, options = {}) {
       path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json')
     )
   }
+  if (
+    !options.withoutDefaultSourceCoverageEvidence &&
+    rootDir &&
+    !resolvedArgs.includes('--poi-source-coverage-evidence')
+  ) {
+    resolvedArgs.push(
+      '--poi-source-coverage-evidence',
+      path.join(rootDir, 'qa/xicheng-poi-source-coverage-evidence.json')
+    )
+  }
   return spawnSync(process.execPath, [
     path.resolve('scripts/verify-xicheng-release-evidence-package.mjs'),
     ...resolvedArgs
@@ -546,6 +628,7 @@ describe('xicheng release evidence package gate', () => {
     const manifestPath = await writeManifestEvidenceFile(rootDir)
     const workbookPath = path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json')
     const seedPath = await writeSeedEvidenceFile(rootDir)
+    const sourceCoveragePath = await writeSourceCoverageEvidenceFile(rootDir)
     const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
     const outputPath = path.join(rootDir, 'qa/xicheng-release-evidence-package.json')
 
@@ -556,6 +639,7 @@ describe('xicheng release evidence package gate', () => {
       '--poi-manifest-evidence', manifestPath,
       '--poi-workbook-evidence', workbookPath,
       '--poi-seed-evidence', seedPath,
+      '--poi-source-coverage-evidence', sourceCoveragePath,
       '--app-readiness-evidence', appPath,
       '--evidence-file', 'qa/xicheng-release-evidence-package.json'
     ])
@@ -568,6 +652,7 @@ describe('xicheng release evidence package gate', () => {
       stage: 'production',
       releaseStatus: 'PRODUCTION_READY_CANDIDATE',
       poiWorkbookStatus: 'XICHENG_POI_REVIEW_WORKBOOK_READY',
+      poiSourceCoverageStatus: 'SOURCE_COVERAGE_READY',
       appReadinessCheckCount: 7,
       xichengRegionCode: 'beijing-xicheng',
       xichengPackageCode: 'XICHENG-MAP-001',
@@ -576,11 +661,14 @@ describe('xicheng release evidence package gate', () => {
       poiManifestEvidenceFile: manifestPath,
       poiWorkbookEvidenceFile: workbookPath,
       poiSeedEvidenceFile: seedPath,
+      poiSourceCoverageEvidenceFile: sourceCoveragePath,
       appReadinessEvidenceFile: appPath,
       sourceWorkbookFile: path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv'),
       sourceWorkbookSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
       workbookReadyPoiCount: 80,
       workbookPendingPoiCount: 0,
+      sourceCoverageCoveredPoiCount: 80,
+      sourceCoverageUncoveredPoiCount: 0,
       pendingPoiCodes: [],
       pendingPoiTasks: [],
       blockerCount: 0
@@ -589,12 +677,14 @@ describe('xicheng release evidence package gate', () => {
     const manifestEvidenceText = await readFile(manifestPath, 'utf8')
     const workbookEvidenceText = await readFile(workbookPath, 'utf8')
     const seedEvidenceText = await readFile(seedPath, 'utf8')
+    const sourceCoverageEvidenceText = await readFile(sourceCoveragePath, 'utf8')
     const appEvidenceText = await readFile(appPath, 'utf8')
     expect(report.evidenceFileSha256).toMatchObject({
       release: sha256(releaseEvidenceText),
       poiManifest: sha256(manifestEvidenceText),
       poiWorkbook: sha256(workbookEvidenceText),
       poiSeed: sha256(seedEvidenceText),
+      poiSourceCoverage: sha256(sourceCoverageEvidenceText),
       appReadiness: sha256(appEvidenceText)
     })
     expect(report.checks.map((check) => check.name)).toEqual([
@@ -603,6 +693,7 @@ describe('xicheng release evidence package gate', () => {
       'poi-manifest-evidence',
       'poi-workbook-evidence',
       'poi-seed-evidence',
+      'poi-source-coverage-evidence',
       'app-readiness-evidence',
       'evidence-consistency',
       'secret-safety'
@@ -633,6 +724,70 @@ describe('xicheng release evidence package gate', () => {
     expect(report.status).toBe('NOT_READY')
     expect(report.checks.map((check) => check.name)).toContain('poi-workbook-evidence')
     expect(report.blockers.join('\n')).toContain('workbook evidence is required')
+  })
+
+  test('fails closed when POI source coverage evidence is missing before packaging', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ], { withoutDefaultSourceCoverageEvidence: true })
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.checks.map((check) => check.name)).toContain('poi-source-coverage-evidence')
+    expect(report.blockers.join('\n')).toContain('source coverage evidence is required')
+  })
+
+  test('fails closed when POI source coverage evidence still has uncovered POIs', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const sourceCoveragePath = await writeSourceCoverageEvidenceFile(rootDir, {
+      ok: false,
+      status: 'SOURCE_COVERAGE_REVIEW_REQUIRED',
+      summary: {
+        coveredPoiCount: 79,
+        uncoveredPoiCount: 1,
+        uncoveredPoiCodes: ['xicheng-baitasi']
+      },
+      checks: [
+        { name: 'source-review-file', ok: true },
+        { name: 'source-pages', ok: true },
+        { name: 'poi-source-coverage', ok: false },
+        { name: 'secret-redaction', ok: true }
+      ],
+      blockers: ['1 POI names are not found in their assigned source pages']
+    })
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-source-coverage-evidence', sourceCoveragePath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.blockers.join('\n')).toContain('source coverage evidence status must be SOURCE_COVERAGE_READY')
+    expect(report.blockers.join('\n')).toContain('source coverage evidence uncoveredPoiCount must be 0')
+    expect(report.blockers.join('\n')).toContain('source coverage evidence check poi-source-coverage must be ok')
   })
 
   test('fails closed when workbook evidence does not match manifest workbook provenance', async () => {
@@ -1893,8 +2048,10 @@ describe('xicheng release evidence package gate', () => {
     expect(deployDoc).toContain('packageCode=XICHENG-MAP-001')
     expect(deployDoc).toContain('evidenceFileSha256')
     expect(deployDoc).toContain('summary.poiWorkbookEvidenceFile')
+    expect(deployDoc).toContain('summary.poiSourceCoverageEvidenceFile')
     expect(deployDoc).toContain('workbookReadyPoiCount')
     expect(deployDoc).toContain('workbookPendingPoiCount')
+    expect(deployDoc).toContain('sourceCoverageUncoveredPoiCount')
     expect(deployDoc).toContain('pendingPoiTasks')
     expect(deployDoc).toContain('release-source-revision')
     expect(deployDoc).toContain('summary.gitCommit')

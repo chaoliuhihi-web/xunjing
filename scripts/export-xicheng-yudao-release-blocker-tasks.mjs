@@ -44,7 +44,8 @@ const releaseGateEvidenceArgs = [
   '--production-seed-apply-evidence qa/xicheng-yudao-production-seed-apply-evidence.json',
   '--poi-workbook-evidence qa/xicheng-poi-review-workbook-evidence.json',
   '--poi-manifest-evidence qa/xicheng-poi-manifest-evidence.json',
-  '--poi-seed-evidence qa/xicheng-poi-production-seed-evidence.json'
+  '--poi-seed-evidence qa/xicheng-poi-production-seed-evidence.json',
+  '--poi-source-coverage-evidence qa/xicheng-poi-source-coverage-evidence.json'
 ]
 const releaseGateCommand = `npm run xunjing:yudao:release:gate -- --stage production --expected-branch feature/xicheng-p0 --env-file /secure/path/production.env ${releaseGateEvidenceArgs.join(' ')} --evidence-file qa/xicheng-yudao-release-evidence.json`
 const productionSeedApplyCommand = 'npm run xunjing:yudao:production-seed:apply -- --env-file /secure/path/production.env --seed-sql workbench/xicheng-poi-production-seed.sql --seed-evidence qa/xicheng-poi-production-seed-evidence.json --runtime-evidence-file qa/xicheng-yudao-runtime-seed-production-evidence.json --apply-evidence-file qa/xicheng-yudao-production-seed-apply-evidence.json --confirm-apply-xicheng-production-seed'
@@ -155,6 +156,11 @@ const poiEvidenceTaskInstructions = [
     taskDetail: 'Generate and verify production POI seed SQL from the approved manifest.',
     requiredEvidence: 'Seed verify outputs PRODUCTION_POI_SEED_READY with sqlFile and sqlSha256.',
     verificationCommand: 'npm run xunjing:xicheng:poi:seed:verify -- --sql workbench/xicheng-poi-production-seed.sql --evidence-file qa/xicheng-poi-production-seed-evidence.json'
+  }],
+  [/source coverage/i, {
+    taskDetail: 'Generate POI source coverage evidence from the source review summary.',
+    requiredEvidence: 'Source coverage audit outputs SOURCE_COVERAGE_READY with uncoveredPoiCount=0.',
+    verificationCommand: 'npm run xunjing:xicheng:poi:source-coverage:audit -- --source-review workbench/xicheng-poi-source-review-summary.csv --evidence-file qa/xicheng-poi-source-coverage-evidence.json'
   }]
 ]
 

@@ -78,6 +78,13 @@ const requiredSeedEvidenceChecks = [
   'source-documents'
 ]
 
+const requiredSourceCoverageEvidenceChecks = [
+  'source-review-file',
+  'source-pages',
+  'poi-source-coverage',
+  'secret-redaction'
+]
+
 const expectedXichengRegionCode = 'beijing-xicheng'
 const expectedXichengPackageCode = 'XICHENG-MAP-001'
 
@@ -609,6 +616,33 @@ function checkReleaseRuntimeSeedSummary(evidence) {
   return blockers
 }
 
+function checkReleaseSourceCoverageSummary(evidence) {
+  const blockers = []
+  const summary = summaryOf(evidence)
+  if (!hasText(summary.sourceCoverageEvidenceFile)) {
+    blockers.push('release evidence sourceCoverageEvidenceFile is required')
+  }
+  if (summary.sourceCoverageStatus !== 'SOURCE_COVERAGE_READY') {
+    blockers.push('release evidence sourceCoverageStatus must be SOURCE_COVERAGE_READY')
+  }
+  if (Number(summary.sourceCoverageSourceGroupCount) <= 0) {
+    blockers.push('release evidence sourceCoverageSourceGroupCount must be positive')
+  }
+  if (Number(summary.sourceCoveragePoiCount) < productionPoiTarget) {
+    blockers.push(`release evidence sourceCoveragePoiCount must be at least ${productionPoiTarget}`)
+  }
+  if (Number(summary.sourceCoverageCoveredPoiCount) < productionPoiTarget) {
+    blockers.push(`release evidence sourceCoverageCoveredPoiCount must be at least ${productionPoiTarget}`)
+  }
+  if (Number(summary.sourceCoverageUncoveredPoiCount) !== 0) {
+    blockers.push('release evidence sourceCoverageUncoveredPoiCount must be 0')
+  }
+  if (!Array.isArray(summary.sourceCoverageUncoveredPoiCodes) || summary.sourceCoverageUncoveredPoiCodes.length !== 0) {
+    blockers.push('release evidence sourceCoverageUncoveredPoiCodes must be empty')
+  }
+  return blockers
+}
+
 function checkReleaseProductionSeedApplySummary(evidence) {
   const blockers = []
   const summary = summaryOf(evidence)
@@ -693,6 +727,7 @@ async function checkReleaseEvidence(ref, stage, freshnessOptions) {
   blockers.push(...checkReleaseRuntimeEnvFingerprintSummary(evidence))
   blockers.push(...checkReleaseProviderSmokeSummary(evidence))
   blockers.push(...checkReleaseRuntimeSeedSummary(evidence))
+  blockers.push(...checkReleaseSourceCoverageSummary(evidence))
   blockers.push(...checkReleaseProductionSeedApplySummary(evidence))
   blockers.push(...await checkReleaseBaselineHash(evidence))
   blockers.push(...await checkReleaseServerArtifactHash(evidence))
@@ -896,6 +931,94 @@ async function checkSeedEvidence(ref, rootDir, freshnessOptions) {
   return check('poi-seed-evidence', blockers)
 }
 
+function checkSourceCoveragePageSummaries(summary, blockers) {
+  const sourcePages = Array.isArray(summary.sourcePages) ? summary.sourcePages : []
+  if (sourcePages.length === 0) {
+    blockers.push('source coverage evidence must include sourcePages')
+    return
+  }
+  sourcePages.forEach((page) => {
+    const label = page?.sourceUrl || 'source page'
+    if (!hasText(page?.sourceUrl)) {
+      blockers.push('source coverage evidence sourcePages must include sourceUrl')
+    }
+    if (page?.ok !== true) {
+      blockers.push(`source coverage evidence source page ${label} must be ok`)
+    }
+    if (!Number.isFinite(Number(page?.sourceTextLength)) || Number(page.sourceTextLength) <= 0) {
+      blockers.push(`source coverage evidence source page ${label} sourceTextLength must be positive`)
+    }
+    if (!/^[a-f0-9]{64}$/i.test(String(page?.sourceTextSha256 || ''))) {
+      blockers.push(`source coverage evidence source page ${label} sourceTextSha256 must be a sha256 hex digest`)
+    }
+  })
+}
+
+function checkSourceCoverageGroupSummaries(summary, blockers) {
+  const sourceGroups = Array.isArray(summary.sourceGroups) ? summary.sourceGroups : []
+  if (sourceGroups.length === 0) {
+    blockers.push('source coverage evidence must include sourceGroups')
+    return
+  }
+  sourceGroups.forEach((group) => {
+    const label = group?.sourceTitle || group?.sourceUrl || 'source group'
+    if (Number(group?.poiCount) <= 0) {
+      blockers.push(`source coverage evidence group ${label} poiCount must be positive`)
+    }
+    if (Number(group?.uncoveredPoiCount) !== 0) {
+      blockers.push(`source coverage evidence group ${label} uncoveredPoiCount must be 0`)
+    }
+    if (!Array.isArray(group?.uncoveredPoiCodes) || group.uncoveredPoiCodes.length !== 0) {
+      blockers.push(`source coverage evidence group ${label} uncoveredPoiCodes must be empty`)
+    }
+  })
+}
+
+function checkSourceCoverageEvidence(ref, freshnessOptions) {
+  const blockers = []
+  if (ref.error) {
+    blockers.push(ref.error)
+    return check('poi-source-coverage-evidence', blockers)
+  }
+  const evidence = ref.data || {}
+  const summary = summaryOf(evidence)
+  if (evidence.artifactType !== 'xicheng-poi-source-coverage') {
+    blockers.push('source coverage evidence artifactType must be xicheng-poi-source-coverage')
+  }
+  blockers.push(...checkEvidenceTimestamp(evidence, 'source coverage', freshnessOptions))
+  if (evidence.ok !== true) {
+    blockers.push('source coverage evidence ok must be true')
+  }
+  if (evidence.status !== 'SOURCE_COVERAGE_READY') {
+    blockers.push('source coverage evidence status must be SOURCE_COVERAGE_READY')
+  }
+  if (Number(summary.sourceReviewRows) <= 0) {
+    blockers.push('source coverage evidence sourceReviewRows must be positive')
+  }
+  if (Number(summary.sourceGroupCount) <= 0) {
+    blockers.push('source coverage evidence sourceGroupCount must be positive')
+  }
+  if (Number(summary.poiCount) < productionPoiTarget) {
+    blockers.push(`source coverage evidence poiCount must be at least ${productionPoiTarget}`)
+  }
+  if (Number(summary.coveredPoiCount) < productionPoiTarget) {
+    blockers.push(`source coverage evidence coveredPoiCount must be at least ${productionPoiTarget}`)
+  }
+  if (Number(summary.uncoveredPoiCount) !== 0) {
+    blockers.push('source coverage evidence uncoveredPoiCount must be 0')
+  }
+  if (!Array.isArray(summary.uncoveredPoiCodes) || summary.uncoveredPoiCodes.length !== 0) {
+    blockers.push('source coverage evidence uncoveredPoiCodes must be empty')
+  }
+  checkSourceCoveragePageSummaries(summary, blockers)
+  checkSourceCoverageGroupSummaries(summary, blockers)
+  blockers.push(...checkEvidenceChecks(evidence, requiredSourceCoverageEvidenceChecks, 'source coverage'))
+  if (blockersOf(evidence).length > 0) {
+    blockers.push(`source coverage evidence contains blockers: ${blockersOf(evidence).join('; ')}`)
+  }
+  return check('poi-source-coverage-evidence', blockers)
+}
+
 function checkAppReadinessEvidence(ref, stage, freshnessOptions) {
   const blockers = []
   if (ref.error) {
@@ -957,17 +1080,19 @@ function normalizeEvidencePath(rootDir, filePath) {
     : path.resolve(resolvedRoot, filePath)
 }
 
-function checkEvidenceConsistency({ rootDir, releaseRef, manifestRef, workbookRef, seedRef, appRef }) {
+function checkEvidenceConsistency({ rootDir, releaseRef, manifestRef, workbookRef, seedRef, sourceCoverageRef, appRef }) {
   const blockers = []
   const releaseSummary = summaryOf(releaseRef.data)
   const manifestSummary = summaryOf(manifestRef.data)
   const workbookSummary = summaryOf(workbookRef.data)
   const seedSummary = summaryOf(seedRef.data)
+  const sourceCoverageSummary = summaryOf(sourceCoverageRef.data)
   const appSummary = summaryOf(appRef.data)
   const appBaseUrl = appSummary.baseUrl || appRef.data?.baseUrl
   const releaseManifestEvidenceFile = normalizeEvidencePath(rootDir, releaseSummary.manifestEvidenceFile)
   const releaseWorkbookEvidenceFile = normalizeEvidencePath(rootDir, releaseSummary.workbookEvidenceFile)
   const releaseSeedEvidenceFile = normalizeEvidencePath(rootDir, releaseSummary.seedEvidenceFile)
+  const releaseSourceCoverageEvidenceFile = normalizeEvidencePath(rootDir, releaseSummary.sourceCoverageEvidenceFile)
 
   if (!releaseManifestEvidenceFile) {
     blockers.push('release evidence manifestEvidenceFile is required')
@@ -983,6 +1108,11 @@ function checkEvidenceConsistency({ rootDir, releaseRef, manifestRef, workbookRe
     blockers.push('release evidence seedEvidenceFile is required')
   } else if (seedRef.path && releaseSeedEvidenceFile !== path.resolve(seedRef.path)) {
     blockers.push('release and package seed evidence file must match')
+  }
+  if (!releaseSourceCoverageEvidenceFile) {
+    blockers.push('release evidence sourceCoverageEvidenceFile is required')
+  } else if (sourceCoverageRef.path && releaseSourceCoverageEvidenceFile !== path.resolve(sourceCoverageRef.path)) {
+    blockers.push('release and package source coverage evidence file must match')
   }
 
   for (const [releaseField, packageValue] of [
@@ -1041,6 +1171,13 @@ function checkEvidenceConsistency({ rootDir, releaseRef, manifestRef, workbookRe
     manifestSummary.reviewBatchEvidencePackageRef !== seedSummary.reviewBatchEvidencePackageRef
   ) {
     blockers.push('manifest and seed evidence reviewBatchEvidencePackageRef must match')
+  }
+  if (
+    Number.isFinite(Number(sourceCoverageSummary.poiCount)) &&
+    Number.isFinite(Number(workbookSummary.workbookRows)) &&
+    Number(sourceCoverageSummary.poiCount) !== Number(workbookSummary.workbookRows)
+  ) {
+    blockers.push('source coverage and workbook evidence POI counts must match')
   }
   if (
     manifestSummary.sourceWorkbookFile &&
@@ -1103,6 +1240,9 @@ function hasRawSecretLikeValue(value) {
   }
   const tokens = normalized.match(/[A-Za-z0-9_-]{10,}/g) || []
   return tokens.some((token) => {
+    if (token === 'secret-redaction') {
+      return false
+    }
     if (/^[A-Z][A-Z0-9_]*(?:PASSWORD|SECRET|TOKEN|API_?KEY|ACCESS_?KEY)[A-Z0-9_]*$/.test(token)) {
       return false
     }
@@ -1141,6 +1281,7 @@ export async function verifyXichengReleaseEvidencePackage({
   poiManifestEvidencePath,
   poiWorkbookEvidencePath,
   poiSeedEvidencePath,
+  poiSourceCoverageEvidencePath,
   appReadinessEvidencePath,
   maxEvidenceAgeHours = defaultMaxEvidenceAgeHours,
   now = new Date()
@@ -1154,9 +1295,10 @@ export async function verifyXichengReleaseEvidencePackage({
     loadJsonFile(rootDir, poiManifestEvidencePath, 'manifest'),
     loadJsonFile(rootDir, poiWorkbookEvidencePath, 'workbook'),
     loadJsonFile(rootDir, poiSeedEvidencePath, 'seed'),
+    loadJsonFile(rootDir, poiSourceCoverageEvidencePath, 'source coverage'),
     loadJsonFile(rootDir, appReadinessEvidencePath, 'app readiness')
   ])
-  const [releaseRef, manifestRef, workbookRef, seedRef, appRef] = evidenceRefs
+  const [releaseRef, manifestRef, workbookRef, seedRef, sourceCoverageRef, appRef] = evidenceRefs
   const freshnessOptions = {
     now,
     maxEvidenceAgeMs: maxEvidenceAgeHours * 60 * 60 * 1000
@@ -1167,8 +1309,9 @@ export async function verifyXichengReleaseEvidencePackage({
     await checkManifestEvidence(manifestRef, rootDir, freshnessOptions),
     await checkWorkbookEvidence(workbookRef, rootDir, freshnessOptions),
     await checkSeedEvidence(seedRef, rootDir, freshnessOptions),
+    checkSourceCoverageEvidence(sourceCoverageRef, freshnessOptions),
     checkAppReadinessEvidence(appRef, normalizedStage, freshnessOptions),
-    checkEvidenceConsistency({ rootDir, releaseRef, manifestRef, workbookRef, seedRef, appRef }),
+    checkEvidenceConsistency({ rootDir, releaseRef, manifestRef, workbookRef, seedRef, sourceCoverageRef, appRef }),
     checkSecretSafety(evidenceRefs)
   ]
   const blockers = checks.flatMap((item) => item.blockers)
@@ -1186,6 +1329,7 @@ export async function verifyXichengReleaseEvidencePackage({
       poiManifestStatus: manifestRef.data?.status,
       poiWorkbookStatus: workbookRef.data?.status,
       poiSeedStatus: seedRef.data?.status,
+      poiSourceCoverageStatus: sourceCoverageRef.data?.status,
       appReadinessCheckCount: countOkChecks(appRef.data),
       xichengRegionCode: summaryOf(manifestRef.data).regionCode,
       xichengPackageCode: summaryOf(manifestRef.data).packageCode,
@@ -1194,11 +1338,15 @@ export async function verifyXichengReleaseEvidencePackage({
       poiManifestEvidenceFile: manifestRef.path,
       poiWorkbookEvidenceFile: workbookRef.path,
       poiSeedEvidenceFile: seedRef.path,
+      poiSourceCoverageEvidenceFile: sourceCoverageRef.path,
       appReadinessEvidenceFile: appRef.path,
       sourceWorkbookFile: summaryOf(manifestRef.data).sourceWorkbookFile,
       sourceWorkbookSha256: summaryOf(manifestRef.data).sourceWorkbookSha256,
       workbookReadyPoiCount: summaryOf(workbookRef.data).workbookReadyPoiCount,
       workbookPendingPoiCount: summaryOf(workbookRef.data).workbookPendingPoiCount,
+      sourceCoverageCoveredPoiCount: summaryOf(sourceCoverageRef.data).coveredPoiCount,
+      sourceCoverageUncoveredPoiCount: summaryOf(sourceCoverageRef.data).uncoveredPoiCount,
+      sourceCoverageUncoveredPoiCodes: summaryOf(sourceCoverageRef.data).uncoveredPoiCodes,
       pendingPoiCodes: summaryOf(workbookRef.data).pendingPoiCodes,
       pendingPoiTasks: summaryOf(workbookRef.data).pendingPoiTasks,
       ...packageSourceRevisionSummary,
@@ -1213,6 +1361,7 @@ export async function verifyXichengReleaseEvidencePackage({
       poiManifest: manifestRef.path,
       poiWorkbook: workbookRef.path,
       poiSeed: seedRef.path,
+      poiSourceCoverage: sourceCoverageRef.path,
       appReadiness: appRef.path
     },
     evidenceFileSha256: {
@@ -1220,6 +1369,7 @@ export async function verifyXichengReleaseEvidencePackage({
       poiManifest: manifestRef.sha256,
       poiWorkbook: workbookRef.sha256,
       poiSeed: seedRef.sha256,
+      poiSourceCoverage: sourceCoverageRef.sha256,
       appReadiness: appRef.sha256
     },
     checks,
@@ -1270,6 +1420,8 @@ async function runCli() {
       process.env.XICHENG_POI_WORKBOOK_EVIDENCE,
     poiSeedEvidencePath: readArgValue(args, '--poi-seed-evidence') ||
       process.env.XICHENG_POI_SEED_EVIDENCE,
+    poiSourceCoverageEvidencePath: readArgValue(args, '--poi-source-coverage-evidence') ||
+      process.env.XICHENG_POI_SOURCE_COVERAGE_EVIDENCE,
     appReadinessEvidencePath: readArgValue(args, '--app-readiness-evidence') ||
       process.env.XICHENG_APP_READINESS_EVIDENCE,
     maxEvidenceAgeHours: parseMaxEvidenceAgeHours(
