@@ -137,12 +137,15 @@
 			</view>
 			<view v-if="routeCheckins.length > 0">
 				<view
-					v-for="checkin in routeCheckins.slice(0, 5)"
+					v-for="(checkin, index) in routeCheckins.slice(0, 5)"
 					:key="checkin.checkinId"
 					class="checkin-row"
 				>
 					<text class="material-title">{{ checkin.poiName || '西城文化点' }}</text>
 					<text class="material-meta">{{ createCheckinEventLabel(checkin) }}</text>
+					<view class="material-actions">
+						<button class="mini-button danger-mini-button" @click="deleteRouteCheckin(index)">删除打卡</button>
+					</view>
 				</view>
 			</view>
 			<text v-else class="empty-copy">从识别结果页点击“开始记录”后，会生成可审核的路线打卡事件。</text>
@@ -1192,6 +1195,19 @@ export default {
 		createCheckinEventLabel(checkin = {}) {
 			const checkinEventLabel = `${checkin.checkinType || '打卡事件'} · ${checkin.routeTitle || '西城 Citywalk'} · ${this.formatArtifactTime(checkin.checkedInAt)}`
 			return checkinEventLabel
+		},
+		deleteRouteCheckin(index) {
+			this.routeCheckins = this.routeCheckins.filter((_, checkinIndex) => checkinIndex !== index)
+			uni.setStorageSync(XICHENG_REGION_CONFIG.checkinStorageKey, this.routeCheckins)
+			if (!this.badgeUnlocked) {
+				this.badgeAwards = this.badgeAwards.filter(award => award && award.badgeCode !== this.routeBadgeCode)
+				uni.setStorageSync(XICHENG_REGION_CONFIG.badgeAwardStorageKey, this.badgeAwards)
+			}
+			this.saveDraft({ silent: true })
+			uni.showToast({
+				title: '路线打卡已删除',
+				icon: 'none'
+			})
 		},
 		formatCandidateConfirmationAudit(audit = {}) {
 			const candidateCount = Number(audit.candidateCount || 0)

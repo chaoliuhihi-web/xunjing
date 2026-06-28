@@ -54,7 +54,9 @@ for (const required of [
   '打卡事件',
   'checkinStorageKey',
   'checkinEventLabel',
-  'createCheckinEventLabel'
+  'createCheckinEventLabel',
+  'deleteRouteCheckin',
+  '删除打卡'
 ]) {
   assert.ok(travelogue.includes(required), `Travelogue should expose route check-in evidence ${required}`)
 }
@@ -69,6 +71,18 @@ assert.match(
   travelogue,
   /checkinCount\(\)[\s\S]*return this\.routeCheckins\.length/,
   'Travelogue should compute check-in count from restored route check-ins'
+)
+
+assert.match(
+  travelogue,
+  /v-for="\(\s*checkin,\s*index\s*\) in routeCheckins\.slice\(0, 5\)"[\s\S]*@click="deleteRouteCheckin\(index\)"[\s\S]*删除打卡/,
+  'Route check-in list should expose a per-check-in delete action for mis-trigger cleanup'
+)
+
+assert.match(
+  travelogue,
+  /deleteRouteCheckin\(index\)[\s\S]*this\.routeCheckins = this\.routeCheckins\.filter\(\(_, checkinIndex\) => checkinIndex !== index\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.checkinStorageKey, this\.routeCheckins\)[\s\S]*if \(!this\.badgeUnlocked\) \{[\s\S]*this\.badgeAwards = this\.badgeAwards\.filter\(award => award && award\.badgeCode !== this\.routeBadgeCode\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.badgeAwardStorageKey, this\.badgeAwards\)[\s\S]*this\.saveDraft\(\{ silent: true \}\)[\s\S]*路线打卡已删除/,
+  'Deleting a route check-in should update local storage, revoke the route badge when progress is no longer complete, and refresh the draft package'
 )
 
 assert.match(
