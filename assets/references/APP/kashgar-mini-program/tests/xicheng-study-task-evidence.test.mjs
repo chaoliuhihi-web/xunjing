@@ -136,8 +136,8 @@ assert.match(
 
 assert.match(
   travelogue,
-  /createShareArtifact\(assetType\)[\s\S]*studyTaskEvidenceCount:\s*this\.studyTaskEvidenceCount[\s\S]*studyTaskEvidence:\s*this\.completedStudyTaskEvidence/,
-  'Poster and PDF assets should include study task completion evidence'
+  /createShareArtifact\(assetType\)[\s\S]*publicStudyTaskEvidence:\s*this\.completedStudyTaskEvidence\.map\(evidence => this\.sanitizeStudyTaskEvidenceForPublicShare\(evidence\)\)[\s\S]*studyTaskEvidenceCount:\s*this\.studyTaskEvidenceCount/,
+  'Poster and PDF assets should include sanitized public study task completion evidence'
 )
 
 assert.match(

@@ -7,8 +7,10 @@ const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelog
 
 for (const required of [
   'sanitizeMaterialForPublicShare',
+  'sanitizeStudyTaskEvidenceForPublicShare',
   'createPublicRecordingSummary',
   'publicMaterials',
+  'publicStudyTaskEvidence',
   'publicRecordingSummary',
   "shareLocationPrecision: 'poi_area'",
   'exactCoordinatesHidden: true'
@@ -33,14 +35,34 @@ assert.doesNotMatch(
   'Public material sanitizer should not expose exact coordinates, EXIF location, track points, or stay points'
 )
 
+const studyEvidenceSanitizeBlock = travelogue.match(/sanitizeStudyTaskEvidenceForPublicShare\(evidence = \{\}\)[\s\S]*?\n\t\t\},\n\t\tcreatePublicRecordingSummary/)?.[0] || ''
+assert.ok(studyEvidenceSanitizeBlock, 'Travelogue should expose a bounded public study-task evidence sanitizer for share exports')
+
+for (const required of [
+  'taskId: evidence.taskId ||',
+  'taskText: evidence.taskText ||',
+  'evidenceType: evidence.evidenceType ||',
+  'answerText: evidence.answerText ||',
+  'hasPhoto: Boolean(evidence.photoPath)',
+  'completedAt: evidence.completedAt ||'
+]) {
+  assert.ok(studyEvidenceSanitizeBlock.includes(required), `Public study evidence sanitizer should preserve safe field ${required}`)
+}
+
+assert.doesNotMatch(
+  studyEvidenceSanitizeBlock,
+  /photoPath:|imagePath:|captureLocation|exifLocation|latitude|longitude/,
+  'Public study-task evidence sanitizer should not expose raw photo paths or exact location metadata'
+)
+
 assert.match(
   travelogue,
-  /createShareArtifact\(assetType\)[\s\S]*publicMaterials:\s*this\.materials\.map\(material => this\.sanitizeMaterialForPublicShare\(material\)\)[\s\S]*publicRecordingSummary:\s*this\.createPublicRecordingSummary\(\)[\s\S]*privacy:\s*\{[\s\S]*shareLocationPrecision:\s*'poi_area'[\s\S]*exactCoordinatesHidden:\s*true/,
-  'Generated poster and PDF assets should include only sanitized public materials and a public recording summary'
+  /createShareArtifact\(assetType\)[\s\S]*publicMaterials:\s*this\.materials\.map\(material => this\.sanitizeMaterialForPublicShare\(material\)\)[\s\S]*publicStudyTaskEvidence:\s*this\.completedStudyTaskEvidence\.map\(evidence => this\.sanitizeStudyTaskEvidenceForPublicShare\(evidence\)\)[\s\S]*publicRecordingSummary:\s*this\.createPublicRecordingSummary\(\)[\s\S]*privacy:\s*\{[\s\S]*shareLocationPrecision:\s*'poi_area'[\s\S]*exactCoordinatesHidden:\s*true/,
+  'Generated poster and PDF assets should include only sanitized public materials, study evidence, and recording summary'
 )
 
 assert.doesNotMatch(
   travelogue.match(/createShareArtifact\(assetType\)[\s\S]*?\n\t\t\},\n\t\tcreatePosterTemplate/)?.[0] || '',
-  /materials:\s*this\.materials|recordingSession:\s*this\.recordingSession|trackPoints:\s*this\.recordingSession\.trackPoints|stayPoints:\s*this\.recordingSession\.stayPoints/,
-  'Share assets should not embed raw materials, full recording sessions, or exact track arrays'
+  /materials:\s*this\.materials|studyTaskEvidence:\s*this\.completedStudyTaskEvidence|recordingSession:\s*this\.recordingSession|trackPoints:\s*this\.recordingSession\.trackPoints|stayPoints:\s*this\.recordingSession\.stayPoints/,
+  'Share assets should not embed raw materials, raw study-task evidence, full recording sessions, or exact track arrays'
 )

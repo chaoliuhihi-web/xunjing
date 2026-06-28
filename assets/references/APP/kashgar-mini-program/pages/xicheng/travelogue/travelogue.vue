@@ -1600,6 +1600,16 @@ export default {
 				capturedAt: material.capturedAt || material.takenAt || ''
 			}
 		},
+		sanitizeStudyTaskEvidenceForPublicShare(evidence = {}) {
+			return {
+				taskId: evidence.taskId || '',
+				taskText: evidence.taskText || '',
+				evidenceType: evidence.evidenceType || '',
+				answerText: evidence.answerText || '',
+				hasPhoto: Boolean(evidence.photoPath),
+				completedAt: evidence.completedAt || ''
+			}
+		},
 		createPublicRecordingSummary() {
 			return {
 				sessionStatus: this.recordingSession.status || 'idle',
@@ -1632,6 +1642,7 @@ export default {
 				companionName: XICHENG_REGION_CONFIG.companionName,
 				routeTitle,
 				publicMaterials: this.materials.map(material => this.sanitizeMaterialForPublicShare(material)),
+				publicStudyTaskEvidence: this.completedStudyTaskEvidence.map(evidence => this.sanitizeStudyTaskEvidenceForPublicShare(evidence)),
 				publicRecordingSummary: this.createPublicRecordingSummary(),
 				qualityReport: this.qualityReport,
 				filteredTrackPointCount: this.filteredTrackPointCount,
@@ -1651,7 +1662,6 @@ export default {
 				routeCheckins: this.routeCheckins,
 				checkinCount: this.checkinCount,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
-				studyTaskEvidence: this.completedStudyTaskEvidence,
 				activeBadgeAward: this.activeBadgeAward,
 				badgeAwardCount: this.badgeAwardCount,
 				recognitionFeedbackCount: this.recognitionFeedbackCount,
