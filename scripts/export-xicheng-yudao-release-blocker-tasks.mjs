@@ -265,19 +265,33 @@ function codeList(value) {
     : []
 }
 
-function affectedPoiCodesFor(evidence, checkName, blocker) {
-  if (checkName !== 'xicheng-runtime-seed-evidence') {
-    return []
-  }
+function runtimeSeedPendingPoiCodes(evidence) {
   const summary = evidence.summary || {}
   const geoCodes = codeList(summary.runtimeSeedGeoReviewRequiredPoiCodes)
   const licenseCodes = codeList(summary.runtimeSeedLicenseReviewRequiredPoiCodes)
+  return {
+    geoCodes,
+    licenseCodes,
+    allCodes: sortedUnique([...geoCodes, ...licenseCodes])
+  }
+}
+
+function affectedPoiCodesFor(evidence, checkName, blocker) {
+  if (![
+    'xicheng-production-poi-evidence',
+    'xicheng-runtime-seed-evidence',
+    'xicheng-production-poi',
+    'xicheng-source-license'
+  ].includes(checkName)) {
+    return []
+  }
+  const { geoCodes, licenseCodes, allCodes } = runtimeSeedPendingPoiCodes(evidence)
   const blockerText = String(blocker || '').toLowerCase()
   const mentionsGeo = /geo|coordinate/.test(blockerText)
   const mentionsLicense = /license/.test(blockerText)
 
   if (mentionsGeo && mentionsLicense) {
-    return sortedUnique([...geoCodes, ...licenseCodes])
+    return allCodes
   }
   if (mentionsGeo) {
     return geoCodes
@@ -286,7 +300,14 @@ function affectedPoiCodesFor(evidence, checkName, blocker) {
     return licenseCodes
   }
   if (/review_required|contains blockers/.test(blockerText)) {
-    return sortedUnique([...geoCodes, ...licenseCodes])
+    return allCodes
+  }
+  if ([
+    'xicheng-production-poi-evidence',
+    'xicheng-production-poi',
+    'xicheng-source-license'
+  ].includes(checkName)) {
+    return allCodes
   }
   return []
 }

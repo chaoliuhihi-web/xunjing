@@ -330,6 +330,93 @@ describe('xicheng Yudao release blocker task export', () => {
     expect(csv).toContain(`,3,xicheng-baitasi|xicheng-gongwangfu|xicheng-planetarium`)
   })
 
+  test('adds affected POI codes to production POI data blocker rows', async () => {
+    const rootDir = await createTempRoot()
+    const releaseEvidencePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', {
+      artifactType: 'xicheng-yudao-release-readiness',
+      ok: false,
+      status: 'NOT_READY',
+      checkedAt: '2026-06-28T00:00:00.000Z',
+      summary: {
+        stage: 'production',
+        failedChecks: 3,
+        blockerCount: 5,
+        runtimeSeedGeoReviewRequiredPoiCodes: [
+          'xicheng-baitasi',
+          'xicheng-gongwangfu'
+        ],
+        runtimeSeedLicenseReviewRequiredPoiCodes: [
+          'xicheng-gongwangfu',
+          'xicheng-planetarium'
+        ]
+      },
+      checks: [
+        {
+          name: 'xicheng-production-poi-evidence',
+          ok: false,
+          blockers: [
+            'POI workbook evidence is required before production release'
+          ]
+        },
+        {
+          name: 'xicheng-production-poi',
+          ok: false,
+          blockers: [
+            'xicheng seed must declare productionReady=true before production'
+          ]
+        },
+        {
+          name: 'xicheng-source-license',
+          ok: false,
+          blockers: [
+            'Xicheng seed still contains REVIEW_REQUIRED license or geo status',
+            '80 Xicheng POI rows are not fully approved for review/geo/license/status'
+          ]
+        }
+      ],
+      blockers: []
+    })
+
+    const result = runTaskExport([
+      '--root', rootDir,
+      '--release-evidence', 'qa/xicheng-yudao-release-evidence.json',
+      '--output', 'workbench/xicheng-yudao-release-blocker-tasks.csv'
+    ])
+
+    expect(result.status).toBe(0)
+    const report = JSON.parse(result.stdout)
+    expect(report.summary.taskCount).toBe(4)
+    expect(report.tasks).toEqual([
+      expect.objectContaining({
+        checkName: 'xicheng-production-poi-evidence',
+        affectedPoiCount: 3,
+        affectedPoiCodes: ['xicheng-baitasi', 'xicheng-gongwangfu', 'xicheng-planetarium']
+      }),
+      expect.objectContaining({
+        checkName: 'xicheng-production-poi',
+        affectedPoiCount: 3,
+        affectedPoiCodes: ['xicheng-baitasi', 'xicheng-gongwangfu', 'xicheng-planetarium']
+      }),
+      expect.objectContaining({
+        checkName: 'xicheng-source-license',
+        blocker: 'Xicheng seed still contains REVIEW_REQUIRED license or geo status',
+        affectedPoiCount: 3,
+        affectedPoiCodes: ['xicheng-baitasi', 'xicheng-gongwangfu', 'xicheng-planetarium']
+      }),
+      expect.objectContaining({
+        checkName: 'xicheng-source-license',
+        blocker: '80 Xicheng POI rows are not fully approved for review/geo/license/status',
+        affectedPoiCount: 3,
+        affectedPoiCodes: ['xicheng-baitasi', 'xicheng-gongwangfu', 'xicheng-planetarium']
+      })
+    ])
+
+    const csv = await readFile(path.join(rootDir, 'workbench/xicheng-yudao-release-blocker-tasks.csv'), 'utf8')
+    expect(csv).toContain(`xicheng-production-poi-evidence,1,POI workbook evidence is required before production release,poi-data,Generate reviewed POI workbook evidence from 80 approved Xicheng POIs.,Workbook gate outputs XICHENG_POI_REVIEW_WORKBOOK_READY with pendingPoiTasks empty.,npm run xunjing:xicheng:poi:workbook:gate -- --workbook workbench/xicheng-production-pois.review-workbook.csv --evidence-file qa/xicheng-poi-review-workbook-evidence.json,TODO,${releaseEvidencePath},3,xicheng-baitasi|xicheng-gongwangfu|xicheng-planetarium`)
+    expect(csv).toContain(`xicheng-production-poi,1,xicheng seed must declare productionReady=true before production,poi-data,Complete 80 approved Xicheng POIs and production seed readiness.,Seed evidence proves at least 80 productionReady approved Xicheng POIs.,npm run xunjing:xicheng:poi:seed:verify -- --sql workbench/xicheng-poi-production-seed.sql --evidence-file qa/xicheng-poi-production-seed-evidence.json,TODO,${releaseEvidencePath},3,xicheng-baitasi|xicheng-gongwangfu|xicheng-planetarium`)
+    expect(csv).toContain(`xicheng-source-license,1,Xicheng seed still contains REVIEW_REQUIRED license or geo status,poi-data,Approve all Xicheng POI source license geo and content review fields.,Manifest and seed evidence contain no REVIEW_REQUIRED or DRAFT POI values.,npm run xunjing:xicheng:poi:manifest:gate -- --manifest workbench/xicheng-production-pois.json --evidence-file qa/xicheng-poi-manifest-evidence.json,TODO,${releaseEvidencePath},3,xicheng-baitasi|xicheng-gongwangfu|xicheng-planetarium`)
+  })
+
   test('exposes the release task export through npm scripts and handoff docs', async () => {
     const packageJson = JSON.parse(await readFile(path.resolve('package.json'), 'utf8'))
     const deployDoc = await readFile(path.resolve('docs/02_开发规划/星河寻境业务平台部署说明.md'), 'utf8')
