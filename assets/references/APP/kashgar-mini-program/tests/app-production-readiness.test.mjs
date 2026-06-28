@@ -14,6 +14,7 @@ const packagePath = path.join(root, 'package.json')
 const manifestPath = path.join(root, 'manifest.json')
 const pagesPath = path.join(root, 'pages.json')
 const qaPath = path.join(root, 'design-qa.md')
+const kashgarHomeContentPath = path.join(root, 'pages', 'index', 'kashgar-home-content.js')
 const indexPage = fs.readFileSync(indexPath, 'utf8')
 const storyDetailPage = fs.readFileSync(storyDetailPath, 'utf8')
 const myPage = fs.readFileSync(myPath, 'utf8')
@@ -30,6 +31,9 @@ const manifestJson = readJsonc(manifestPath)
 const pagesJson = readJsonc(pagesPath)
 const projectConfigJson = readJsonc(projectConfigPath)
 const qaReport = fs.existsSync(qaPath) ? fs.readFileSync(qaPath, 'utf8') : ''
+const kashgarHomeSource = fs.existsSync(kashgarHomeContentPath)
+  ? `${indexPage}\n${fs.readFileSync(kashgarHomeContentPath, 'utf8')}`
+  : indexPage
 const MAX_APP_PAGE_LINES = 3500
 
 const countSourceLines = (content) => {
@@ -218,7 +222,7 @@ for (const required of [
   '/static/kashgar/note-baked-bun.png',
 ]) {
   assert.ok(
-    indexPage.includes(required),
+    kashgarHomeSource.includes(required),
     `homepage production source should include ${required}`
   )
 }

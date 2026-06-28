@@ -5,9 +5,11 @@ import path from 'node:path'
 const root = process.cwd()
 const indexPath = path.join(root, 'pages', 'index', 'index.vue')
 const aiGuidePath = path.join(root, 'pages', 'ai-guide', 'ai-guide.vue')
+const aiContentPath = path.join(root, 'pages', 'ai-guide', 'kashgar-ai-content.js')
 
 const indexPage = fs.readFileSync(indexPath, 'utf8')
 const aiGuidePage = fs.readFileSync(aiGuidePath, 'utf8')
+const aiGuideSource = `${aiGuidePage}\n${fs.readFileSync(aiContentPath, 'utf8')}`
 
 assert.match(
   indexPage,
@@ -41,7 +43,7 @@ const requiredSnippets = [
 ]
 
 for (const snippet of requiredSnippets) {
-  assert.ok(aiGuidePage.includes(snippet), `AI guide diary mode should include ${snippet}`)
+  assert.ok(aiGuideSource.includes(snippet), `AI guide diary mode should include ${snippet}`)
 }
 
 assert.match(

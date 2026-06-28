@@ -4,6 +4,8 @@ import path from 'node:path'
 
 const root = process.cwd()
 const indexPage = fs.readFileSync(path.join(root, 'pages', 'index', 'index.vue'), 'utf8')
+const kashgarHomeContent = fs.readFileSync(path.join(root, 'pages', 'index', 'kashgar-home-content.js'), 'utf8')
+const homeSource = `${indexPage}\n${kashgarHomeContent}`
 const pagesJson = fs.readFileSync(path.join(root, 'pages.json'), 'utf8')
 
 for (const required of [
@@ -52,7 +54,7 @@ for (const required of [
   '/static/kashgar/home-hero.png',
   '/static/kashgar/official-guide.png',
 ]) {
-  assert.ok(indexPage.includes(required), `Kashgar play home should include ${required}`)
+  assert.ok(homeSource.includes(required), `Kashgar play home should include ${required}`)
 }
 
 assert.match(

@@ -4,6 +4,8 @@ import path from 'node:path'
 
 const root = process.cwd()
 const aiGuide = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
+const aiContent = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'kashgar-ai-content.js'), 'utf8')
+const aiGuideSource = `${aiGuide}\n${aiContent}`
 
 for (const required of [
   'KASHGAR_AI_COMPANION_HOME_ENABLED',
@@ -23,7 +25,7 @@ for (const required of [
   '/static/kashgar/ai-place-gaotai.png',
 ]) {
   assert.ok(
-    aiGuide.includes(required),
+    aiGuideSource.includes(required),
     `AI guide companion home should include ${required}`
   )
 }

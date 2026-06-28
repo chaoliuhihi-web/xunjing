@@ -11,7 +11,7 @@ const countSourceLines = (content) => {
   return normalized.split('\n').length - (normalized.endsWith('\n') ? 1 : 0)
 }
 
-const PAGE_REFRACTOR_RESERVE_LINE_LIMIT = 3400
+const PAGE_REFRACTOR_RESERVE_LINE_LIMIT = 3200
 
 const indexPage = read('pages', 'index', 'index.vue')
 const aiGuidePage = read('pages', 'ai-guide', 'ai-guide.vue')
@@ -30,6 +30,17 @@ for (const [relativePath, content] of [
 assert.ok(
   exists('pages', 'index', 'index-theme.css'),
   'Index page should move trailing visual theme overrides into pages/index/index-theme.css'
+)
+
+assert.ok(
+  exists('pages', 'index', 'kashgar-home-content.js'),
+  'Index page should move static Kashgar home content into pages/index/kashgar-home-content.js'
+)
+
+assert.match(
+  indexPage,
+  /from '\.\/kashgar-home-content\.js'/,
+  'Index page should import extracted static Kashgar home content instead of keeping long arrays in the SFC'
 )
 
 assert.match(
@@ -52,6 +63,17 @@ for (const selector of ['.container', '.custom-nav::after', '.function-item', '.
 assert.ok(
   exists('pages', 'ai-guide', 'ai-guide-chat.css'),
   'AI guide page should move trailing chat composer/source styles into pages/ai-guide/ai-guide-chat.css'
+)
+
+assert.ok(
+  exists('pages', 'ai-guide', 'kashgar-ai-content.js'),
+  'AI guide page should move static Kashgar AI companion content into pages/ai-guide/kashgar-ai-content.js'
+)
+
+assert.match(
+  aiGuidePage,
+  /from '\.\/kashgar-ai-content\.js'/,
+  'AI guide page should import extracted static Kashgar AI content instead of keeping long arrays in the SFC'
 )
 
 assert.match(

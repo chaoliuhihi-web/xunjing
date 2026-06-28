@@ -4,6 +4,8 @@ import path from 'node:path'
 
 const root = process.cwd()
 const indexPage = fs.readFileSync(path.join(root, 'pages', 'index', 'index.vue'), 'utf8')
+const kashgarHomeContent = fs.readFileSync(path.join(root, 'pages', 'index', 'kashgar-home-content.js'), 'utf8')
+const homeSource = `${indexPage}\n${kashgarHomeContent}`
 
 for (const required of [
   'kashgar-travel-notes-home',
@@ -32,7 +34,7 @@ for (const required of [
   '/static/kashgar/note-window.png',
   '/static/kashgar/note-bazaar.png',
 ]) {
-  assert.ok(indexPage.includes(required), `Kashgar travel notes home should include ${required}`)
+  assert.ok(homeSource.includes(required), `Kashgar travel notes home should include ${required}`)
 }
 
 assert.match(
@@ -42,14 +44,14 @@ assert.match(
 )
 
 assert.match(
-  indexPage,
-  /kashgarMapShortcuts:\s*\[[\s\S]*route-guide[\s\S]*homestay[\s\S]*food[\s\S]*camera-city/,
+  homeSource,
+  /KASHGAR_MAP_SHORTCUTS\s*=\s*\[[\s\S]*route-guide[\s\S]*homestay[\s\S]*food[\s\S]*camera-city/,
   'Home should define the four Kashgar map shortcut entries from the reference'
 )
 
 assert.match(
-  indexPage,
-  /kashgarTravelNotes:\s*\[[\s\S]*note-old-city-winter[\s\S]*note-baked-bun[\s\S]*note-muqam[\s\S]*note-teahouse[\s\S]*note-window[\s\S]*note-bazaar/,
+  homeSource,
+  /KASHGAR_TRAVEL_NOTES\s*=\s*\[[\s\S]*note-old-city-winter[\s\S]*note-baked-bun[\s\S]*note-muqam[\s\S]*note-teahouse[\s\S]*note-window[\s\S]*note-bazaar/,
   'Home should define the six visible travel-note cards from the reference'
 )
 
