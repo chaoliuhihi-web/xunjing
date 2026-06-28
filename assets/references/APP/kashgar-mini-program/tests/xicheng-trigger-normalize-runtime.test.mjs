@@ -89,6 +89,33 @@ assert.equal(
   'Trigger normalization should uppercase backend safetyStatus before routing to recognition result and Xiaojing'
 )
 
+const blockedCandidateResult = normalizeXichengTriggerResult({
+  poiCode: '',
+  poiName: '',
+  requiresUserConfirm: true,
+  candidates: [
+    {
+      poiCode: 'xicheng-baitasi',
+      poiName: '白塔寺',
+      confidencePercent: 91,
+      safetyStatus: 'blocked',
+      suggestedQuestions: ['继续讲讲白塔寺'],
+      sources: [{ title: '不应继续追问的候选来源' }]
+    }
+  ]
+}, 'photo')
+
+assert.equal(
+  blockedCandidateResult.candidates[0].safetyStatus,
+  'BLOCKED',
+  'Trigger normalization should uppercase candidate safetyStatus before candidate confirmation'
+)
+assert.deepEqual(
+  blockedCandidateResult.candidates[0].suggestedQuestions,
+  [],
+  'Trigger normalization should clear candidate suggested questions when candidate safetyStatus is BLOCKED'
+)
+
 const decimalResult = normalizeXichengTriggerResult({
   poiCode: 'xicheng-shichahai',
   poiName: '什刹海',

@@ -218,6 +218,7 @@ const normalizeRecognitionCandidate = (candidate = {}) => ({
 	poiCode: candidate.poiCode || '',
 	poiName: candidate.poiName || '',
 	confidence: normalizeCandidateConfidence(candidate),
+	safetyStatus: normalizeXichengSafetyStatus(candidate.safetyStatus),
 	suggestedQuestions: normalizeSuggestedQuestions(candidate),
 	recommendedQuestions: normalizeSuggestedQuestions(candidate),
 	sources: normalizeXichengReviewedSources(candidate.sources)
@@ -386,6 +387,7 @@ export default {
 				confidence: selectedCandidate.confidence,
 				requiresUserConfirm: false,
 				reason: selectedCandidate.summary || this.result.reason,
+				safetyStatus: selectedCandidate.safetyStatus,
 				sources: selectedCandidate.sources,
 				suggestedQuestions: selectedCandidate.suggestedQuestions,
 				recommendedQuestions: selectedCandidate.suggestedQuestions,

@@ -43,6 +43,10 @@ export const isXichengDevelopmentFallbackAllowed = () => {
 }
 
 const normalizeSuggestedQuestions = (result = {}) => {
+	const safetyStatus = normalizeXichengSafetyStatus(result.safetyStatus)
+	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+		return []
+	}
 	if (Array.isArray(result.suggestedQuestions) && result.suggestedQuestions.length > 0) {
 		return result.suggestedQuestions
 	}
@@ -68,6 +72,7 @@ const normalizeXichengTriggerCandidate = (candidate = {}) => ({
 	poiCode: candidate.poiCode || '',
 	poiName: candidate.poiName || '',
 	confidence: normalizeConfidence(candidate),
+	safetyStatus: normalizeXichengSafetyStatus(candidate.safetyStatus),
 	sources: normalizeXichengReviewedSources(candidate.sources),
 	suggestedQuestions: normalizeSuggestedQuestions(candidate),
 	recommendedQuestions: normalizeSuggestedQuestions(candidate)
