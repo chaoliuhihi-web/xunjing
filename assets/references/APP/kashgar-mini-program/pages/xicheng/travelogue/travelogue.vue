@@ -852,9 +852,10 @@ export default {
 			const routePackageCode = decodeJourneyRouteValue(options.packageCode) || XICHENG_REGION_CONFIG.packageCode
 			const routeSceneCode = decodeJourneyRouteValue(options.sceneCode) || XICHENG_REGION_CONFIG.sceneCode
 			const routeSourceChannel = decodeJourneyRouteValue(options.sourceChannel) || XICHENG_REGION_CONFIG.sourceChannel
-			const routeSafetyStatus = decodeJourneyRouteValue(options.safetyStatus)
+			const routeSafetyStatus = normalizeXichengSafetyStatus(decodeJourneyRouteValue(options.safetyStatus))
+			const unsafeRouteSafetyStatus = ['BLOCKED', 'UNAVAILABLE'].includes(routeSafetyStatus)
 			const routePoiName = decodeJourneyRouteValue(options.poiName)
-			if (routePoiName && !materials.some(material => material && material.poiName === routePoiName)) {
+			if (routePoiName && !unsafeRouteSafetyStatus && !materials.some(material => material && material.poiName === routePoiName)) {
 				materials.unshift({
 					type: 'manual-entry',
 					regionCode: routeRegionCode,
@@ -892,9 +893,11 @@ export default {
 			}
 		},
 		shouldAutoStartRecording(options = {}) {
+			const routeSafetyStatus = normalizeXichengSafetyStatus(decodeJourneyRouteValue(options.safetyStatus))
 			return options.mode === 'record'
 				&& options.autoStart === '1'
 				&& this.recordingSession.status !== 'recording'
+				&& !['BLOCKED', 'UNAVAILABLE'].includes(routeSafetyStatus)
 		},
 		openPrivacyPolicy() {
 			uni.navigateTo({

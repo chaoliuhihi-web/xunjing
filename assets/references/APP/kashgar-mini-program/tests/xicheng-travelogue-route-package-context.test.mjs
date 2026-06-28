@@ -10,9 +10,11 @@ const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 
 const startRecordingBlock = scanResult.match(/startRecording\(\)[\s\S]*?\n\t\t\},\n\t\tcreateRouteCheckinEvent/)?.[0] || ''
 const loadJourneyBlock = travelogue.match(/async loadJourney\(options = \{\}\)[\s\S]*?\n\t\t\},\n\t\tshouldAutoStartRecording/)?.[0] || ''
+const shouldAutoStartBlock = travelogue.match(/shouldAutoStartRecording\(options = \{\}\)[\s\S]*?\n\t\t\},\n\t\topenPrivacyPolicy/)?.[0] || ''
 
 assert.ok(startRecordingBlock, 'Recognition result should expose startRecording')
 assert.ok(loadJourneyBlock, 'Travelogue should expose loadJourney')
+assert.ok(shouldAutoStartBlock, 'Travelogue should expose shouldAutoStartRecording')
 
 for (const required of [
   'mode=record',
@@ -34,7 +36,8 @@ for (const required of [
   'const routePackageCode = decodeJourneyRouteValue(options.packageCode) || XICHENG_REGION_CONFIG.packageCode',
   'const routeSceneCode = decodeJourneyRouteValue(options.sceneCode) || XICHENG_REGION_CONFIG.sceneCode',
   'const routeSourceChannel = decodeJourneyRouteValue(options.sourceChannel) || XICHENG_REGION_CONFIG.sourceChannel',
-  'const routeSafetyStatus = decodeJourneyRouteValue(options.safetyStatus)',
+  'const routeSafetyStatus = normalizeXichengSafetyStatus(decodeJourneyRouteValue(options.safetyStatus))',
+  'const unsafeRouteSafetyStatus = [\'BLOCKED\', \'UNAVAILABLE\'].includes(routeSafetyStatus)',
   'regionCode: routeRegionCode',
   'packageCode: routePackageCode',
   'sceneCode: routeSceneCode',
@@ -43,6 +46,18 @@ for (const required of [
 ]) {
   assert.ok(loadJourneyBlock.includes(required), `Travelogue route material should preserve ${required}`)
 }
+
+assert.match(
+  loadJourneyBlock,
+  /if \(routePoiName && !unsafeRouteSafetyStatus && !materials\.some\(material => material && material\.poiName === routePoiName\)\) \{/,
+  'Travelogue should not create route-only manual-entry materials from BLOCKED or UNAVAILABLE recognition route params'
+)
+
+assert.match(
+  shouldAutoStartBlock,
+  /const routeSafetyStatus = normalizeXichengSafetyStatus\(decodeJourneyRouteValue\(options\.safetyStatus\)\)[\s\S]*!\s*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(routeSafetyStatus\)/,
+  'Travelogue should not auto-start recording when route params carry BLOCKED or UNAVAILABLE safety status'
+)
 
 assert.doesNotMatch(
   loadJourneyBlock,
