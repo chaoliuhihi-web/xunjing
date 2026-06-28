@@ -1,0 +1,186 @@
+.qqq{
+	width: 100%;
+	height: 100px;
+}
+
+.container {
+	background:
+		linear-gradient(180deg, #F8F1E4 0%, #F2E8D7 42%, #EDF5EF 100%);
+	padding-bottom: 150px;
+}
+
+.custom-nav {
+	height: 236px;
+	padding: 24px 20px 22px;
+	border-bottom-left-radius: 34rpx;
+	border-bottom-right-radius: 34rpx;
+	overflow: hidden;
+	box-shadow: 0 18rpx 44rpx rgba(38, 48, 38, 0.16);
+}
+
+.custom-nav::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 58%;
+	background: linear-gradient(180deg, rgba(22, 45, 38, 0), rgba(22, 45, 38, 0.52));
+	pointer-events: none;
+}
+
+.nav-search-area {
+	position: absolute;
+	left: 24rpx;
+	right: 24rpx;
+	bottom: 24rpx;
+	z-index: 2;
+	width: auto;
+	margin-top: 0;
+}
+
+.search-box,
+.location-box {
+	min-height: 76rpx;
+	background: rgba(255, 252, 244, 0.92) !important;
+	border: 1rpx solid rgba(255, 255, 255, 0.72);
+	box-shadow: 0 8rpx 22rpx rgba(21, 38, 33, 0.16);
+	backdrop-filter: blur(8px);
+}
+
+.search-box {
+	border-radius: 999rpx;
+}
+
+.location-box {
+	flex-basis: 112rpx;
+	border-radius: 999rpx;
+}
+
+.search-input,
+.location-text {
+	color: #244C41;
+	font-weight: 600;
+}
+
+.banner {
+	height: 310rpx;
+	margin-top: 22rpx;
+	padding: 0 24rpx;
+}
+
+.swiper {
+	border-radius: 28rpx;
+	box-shadow: 0 14rpx 34rpx rgba(38, 48, 38, 0.14);
+}
+
+.section {
+	margin: 24rpx;
+	padding: 28rpx 26rpx;
+	background: rgba(255, 252, 244, 0.92);
+	border: 1rpx solid rgba(184, 129, 43, 0.16);
+	border-radius: 30rpx;
+	box-shadow: 0 14rpx 36rpx rgba(54, 68, 52, 0.08);
+}
+
+.cloud-bg {
+	opacity: 0.12;
+	filter: sepia(1) saturate(0.8);
+}
+
+.section-header {
+	margin-bottom: 22rpx;
+}
+
+.section-title {
+	font-size: 34rpx;
+	font-weight: 800;
+	color: #183B34;
+}
+
+.section-title::before {
+	content: '';
+	display: inline-block;
+	width: 10rpx;
+	height: 30rpx;
+	margin-right: 12rpx;
+	border-radius: 999rpx;
+	background: #B8812B;
+	vertical-align: -4rpx;
+}
+
+.function-grid {
+	justify-content: space-between;
+	gap: 14rpx;
+}
+
+.function-item {
+	flex: 1;
+	min-height: 166rpx;
+	padding: 18rpx 8rpx;
+	border-radius: 24rpx;
+	background: linear-gradient(180deg, rgba(255, 248, 232, 0.92), rgba(236, 246, 239, 0.9));
+	border: 1rpx solid rgba(184, 129, 43, 0.13);
+	box-sizing: border-box;
+}
+
+.function-icon {
+	width: 82rpx;
+	height: 82rpx;
+	border-radius: 24rpx;
+	box-shadow: 0 8rpx 18rpx rgba(70, 77, 57, 0.12);
+}
+
+.function-text {
+	font-size: 24rpx;
+	font-weight: 700;
+	color: #244C41;
+}
+
+.video-grid {
+	gap: 24rpx;
+}
+
+.video-card,
+.theater-card {
+	border-radius: 26rpx;
+	background: rgba(255, 252, 244, 0.96);
+	border: 1rpx solid rgba(184, 129, 43, 0.14);
+	box-shadow: 0 14rpx 32rpx rgba(43, 57, 45, 0.1);
+}
+
+.video-image-wrapper {
+	height: 220rpx;
+}
+
+.video-badge,
+.follow-btn:not(.followed) {
+	background: linear-gradient(135deg, #B8812B, #E1B55D);
+	color: #FFFFFF;
+}
+
+.video-title,
+.theater-title {
+	color: #183B34;
+}
+
+.video-desc,
+.theater-desc,
+.detail-text {
+	color: #6C766D;
+}
+
+.theater-image-wrapper {
+	height: 420rpx;
+}
+
+.location-tag {
+	background: rgba(238, 245, 239, 0.9);
+}
+
+.action-group {
+	border-color: rgba(184, 129, 43, 0.2);
+	background: rgba(255, 252, 244, 0.94);
+}
+
+/* CSS样式定义完成 */
