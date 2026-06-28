@@ -55,6 +55,7 @@ const requiredSeedEvidenceChecks = [
 const requiredAiBootstrapEvidenceChecks = [
   'ai-api-key-upsert',
   'default-chat-model-upsert',
+  'ai-provider-smoke',
   'secret-redaction'
 ]
 
@@ -411,7 +412,10 @@ async function checkYudaoAiBootstrapEvidence({ rootDir, aiBootstrapEvidencePath,
       aiBootstrapTenantId: evidenceSummary(ref.data).tenantId,
       aiBootstrapPlatform: evidenceSummary(ref.data).platform,
       aiBootstrapModel: evidenceSummary(ref.data).model,
-      aiBootstrapClient: evidenceSummary(ref.data).client
+      aiBootstrapClient: evidenceSummary(ref.data).client,
+      aiBootstrapProviderSmokeHost: evidenceSummary(ref.data).providerSmokeHost,
+      aiBootstrapProviderSmokeModel: evidenceSummary(ref.data).providerSmokeModel,
+      aiBootstrapProviderSmokeCheckedAt: evidenceSummary(ref.data).providerSmokeCheckedAt
     }
   }
 }

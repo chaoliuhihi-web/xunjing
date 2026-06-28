@@ -229,9 +229,100 @@ COMMIT;
 `.trimStart()
 }
 
+export function resolveChatCompletionsUrl(baseUrl) {
+  const trimmed = String(baseUrl || '').trim().replace(/\/+$/, '')
+  if (!trimmed) {
+    throw new Error('QWEN_BASE_URL is required for AI provider smoke')
+  }
+  if (trimmed.endsWith('/chat/completions')) {
+    return trimmed
+  }
+  return `${trimmed}/chat/completions`
+}
+
+export function buildAiProviderSmokeRequest(env) {
+  validateBootstrapEnv(env)
+  const url = resolveChatCompletionsUrl(env.QWEN_BASE_URL)
+  return {
+    url,
+    options: {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${env.QWEN_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: env.QWEN_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a connectivity smoke test. Reply with xunjing-ai-smoke-ok only.'
+          },
+          {
+            role: 'user',
+            content: 'Return xunjing-ai-smoke-ok.'
+          }
+        ],
+        temperature: 0,
+        max_tokens: 16
+      })
+    }
+  }
+}
+
+function providerContentFromResponse(data) {
+  return data?.choices?.[0]?.message?.content ||
+    data?.choices?.[0]?.text ||
+    data?.output?.text ||
+    ''
+}
+
+export async function checkAiProviderSmoke({
+  env,
+  fetchImpl = globalThis.fetch,
+  checkedAt = new Date().toISOString(),
+  nowMs = () => Date.now()
+}) {
+  if (typeof fetchImpl !== 'function') {
+    throw new Error('fetch is required for AI provider smoke')
+  }
+  const { url, options } = buildAiProviderSmokeRequest(env)
+  const endpoint = new URL(url)
+  const startedAt = nowMs()
+  let response
+  try {
+    response = await fetchImpl(url, options)
+  } catch (error) {
+    throw new Error(redact(`AI provider smoke request failed: ${error.message}`, env))
+  }
+  const rawBody = await response.text()
+  let parsedBody
+  try {
+    parsedBody = JSON.parse(rawBody)
+  } catch {
+    parsedBody = undefined
+  }
+  if (!response.ok) {
+    throw new Error(redact(`AI provider smoke returned HTTP ${response.status}`, env))
+  }
+  const assistantContent = providerContentFromResponse(parsedBody)
+  if (!assistantContent) {
+    throw new Error('AI provider smoke response did not contain assistant content')
+  }
+  return {
+    checkedAt,
+    baseUrlHost: endpoint.host,
+    endpointPath: endpoint.pathname,
+    model: env.QWEN_MODEL,
+    httpStatus: response.status,
+    responseTextLength: String(assistantContent).length,
+    latencyMs: Math.max(0, nowMs() - startedAt)
+  }
+}
+
 function redact(text, env) {
   let output = text
-  for (const key of ['MYSQL_PASSWORD', 'QWEN_API_KEY']) {
+  for (const key of ['MYSQL_PASSWORD', 'QWEN_API_KEY', 'DASHSCOPE_API_KEY']) {
     if (env[key]) {
       output = output.split(env[key]).join(`[REDACTED_${key}]`)
     }
@@ -260,7 +351,10 @@ export function resolveEvidenceFile(rootDir, evidenceFile) {
   return resolvedFile
 }
 
-export function buildAiBootstrapEvidence({ env, client, checkedAt = new Date().toISOString() }) {
+export function buildAiBootstrapEvidence({ env, client, providerSmoke, checkedAt = new Date().toISOString() }) {
+  if (!providerSmoke || providerSmoke.httpStatus !== 200 || !providerSmoke.responseTextLength) {
+    throw new Error('AI provider smoke evidence is required before building bootstrap evidence')
+  }
   const evidence = {
     artifactType: 'xicheng-yudao-ai-bootstrap',
     ok: true,
@@ -270,7 +364,13 @@ export function buildAiBootstrapEvidence({ env, client, checkedAt = new Date().t
       tenantId: String(env.XUNJING_TENANT_ID),
       platform: env.YUDAO_AI_PLATFORM || 'TongYi',
       model: env.QWEN_MODEL,
-      client
+      client,
+      providerSmokeCheckedAt: providerSmoke.checkedAt,
+      providerSmokeHost: providerSmoke.baseUrlHost,
+      providerSmokeEndpointPath: providerSmoke.endpointPath,
+      providerSmokeModel: providerSmoke.model,
+      providerSmokeHttpStatus: providerSmoke.httpStatus,
+      providerSmokeLatencyMs: providerSmoke.latencyMs
     },
     checks: [
       {
@@ -286,6 +386,21 @@ export function buildAiBootstrapEvidence({ env, client, checkedAt = new Date().t
         blockers: []
       },
       {
+        name: 'ai-provider-smoke',
+        ok: true,
+        detail: 'Configured AI provider returned a chat completion response',
+        summary: {
+          checkedAt: providerSmoke.checkedAt,
+          host: providerSmoke.baseUrlHost,
+          endpointPath: providerSmoke.endpointPath,
+          model: providerSmoke.model,
+          httpStatus: providerSmoke.httpStatus,
+          responseTextLength: providerSmoke.responseTextLength,
+          latencyMs: providerSmoke.latencyMs
+        },
+        blockers: []
+      },
+      {
         name: 'secret-redaction',
         ok: true,
         detail: 'Evidence excludes database passwords and AI API keys',
@@ -295,7 +410,7 @@ export function buildAiBootstrapEvidence({ env, client, checkedAt = new Date().t
     blockers: []
   }
   const serialized = JSON.stringify(evidence)
-  for (const key of ['MYSQL_PASSWORD', 'QWEN_API_KEY']) {
+  for (const key of ['MYSQL_PASSWORD', 'QWEN_API_KEY', 'DASHSCOPE_API_KEY']) {
     if (env[key] && serialized.includes(env[key])) {
       throw new Error(`bootstrap evidence must not contain ${key}`)
     }
@@ -318,6 +433,7 @@ async function runCli() {
   const envFile = readArgValue(args, '--env-file') || process.env.XUNJING_ENV_FILE
   const fileEnv = envFile ? await loadEnvFile(envFile) : {}
   const env = { ...process.env, ...fileEnv }
+  const providerSmoke = await checkAiProviderSmoke({ env })
   const sql = buildYudaoAiBootstrapSql(env)
   const invocation = resolveMysqlInvocation(env)
   const result = spawnSync(invocation.command, invocation.args, {
@@ -336,7 +452,8 @@ async function runCli() {
 
   const evidence = buildAiBootstrapEvidence({
     env,
-    client: invocation.client
+    client: invocation.client,
+    providerSmoke
   })
   await writeAiBootstrapEvidence({
     rootDir,
@@ -350,9 +467,11 @@ async function runCli() {
     tenantId: env.XUNJING_TENANT_ID,
     platform: env.YUDAO_AI_PLATFORM || 'TongYi',
     model: env.QWEN_MODEL,
+    providerSmokeHost: providerSmoke.baseUrlHost,
+    providerSmokeCheckedAt: providerSmoke.checkedAt,
     database: env.MYSQL_DATABASE,
     evidenceFile: readArgValue(args, '--evidence-file') || readArgValue(args, '--output') || undefined,
-    message: 'Yudao AI API key and default chat model bootstrapped without printing secrets'
+    message: 'Yudao AI API key and default chat model bootstrapped after provider smoke without printing secrets'
   }, null, 2))
 }
 

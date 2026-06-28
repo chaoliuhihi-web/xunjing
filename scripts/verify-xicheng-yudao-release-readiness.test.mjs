@@ -304,9 +304,15 @@ async function writeAiBootstrapEvidence(rootDir, overrides = {}) {
       tenantId: '1001',
       platform: 'TongYi',
       model: 'qwen-plus',
-      client: 'docker'
+      client: 'docker',
+      providerSmokeCheckedAt: freshCheckedAt(),
+      providerSmokeHost: 'dashscope.aliyuncs.com',
+      providerSmokeEndpointPath: '/compatible-mode/v1/chat/completions',
+      providerSmokeModel: 'qwen-plus',
+      providerSmokeHttpStatus: 200,
+      providerSmokeLatencyMs: 42
     },
-    checks: passedChecks(['ai-api-key-upsert', 'default-chat-model-upsert', 'secret-redaction']),
+    checks: passedChecks(['ai-api-key-upsert', 'default-chat-model-upsert', 'ai-provider-smoke', 'secret-redaction']),
     blockers: []
   }, overrides)
   await writeFile(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`)
@@ -612,6 +618,29 @@ describe('xicheng Yudao release readiness gate', () => {
     const aiCheck = result.checks.find((check) => check.name === 'yudao-ai-model-bootstrap')
     expect(aiCheck?.ok).toBe(false)
     expect(aiCheck?.blockers).toContain('Yudao AI bootstrap evidence is required before production release')
+  })
+
+  test('fails closed when Yudao AI bootstrap evidence lacks provider smoke proof', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir, {
+      checks: passedChecks(['ai-api-key-upsert', 'default-chat-model-upsert', 'secret-redaction'])
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      aiBootstrapEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const aiCheck = result.checks.find((check) => check.name === 'yudao-ai-model-bootstrap')
+    expect(aiCheck?.blockers).toContain('AI bootstrap evidence must include ai-provider-smoke')
   })
 
   test('fails closed when reviewed POI manifest and seed evidence are missing', async () => {
