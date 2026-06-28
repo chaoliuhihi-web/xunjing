@@ -22,7 +22,9 @@ for (const required of [
   'materialCount',
   'sourceCount',
   'posterStatus',
-  'pdfStatus'
+  'pdfStatus',
+  'withdrawReviewSubmission',
+  '撤回审核'
 ]) {
   assert.ok(travelogue.includes(required), `Travelogue page should support review submission evidence ${required}`)
 }
@@ -55,6 +57,18 @@ assert.match(
   travelogue,
   /uni\.getStorageSync\(XICHENG_REGION_CONFIG\.reviewStorageKey\)[\s\S]*this\.reviewSubmission/,
   'travelogue should restore the last review submission on load'
+)
+
+assert.match(
+  travelogue,
+  /v-if="reviewSubmission"[\s\S]*@click="withdrawReviewSubmission"[\s\S]*撤回审核/,
+  'review submission card should expose a withdraw action before local review/public handoff'
+)
+
+assert.match(
+  travelogue,
+  /withdrawReviewSubmission\(\)[\s\S]*const submittedAt = this\.reviewSubmission && this\.reviewSubmission\.submittedAt \? this\.reviewSubmission\.submittedAt : ''[\s\S]*const existingSubmissions = uni\.getStorageSync\(XICHENG_REGION_CONFIG\.reviewStorageKey\)[\s\S]*const remainingSubmissions = submittedAt[\s\S]*submission\.submittedAt !== submittedAt[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.reviewStorageKey, remainingSubmissions\)[\s\S]*this\.reviewSubmission = remainingSubmissions\[0\] \|\| null[\s\S]*this\.reviewText = this\.reviewSubmission \? this\.reviewSubmission\.reviewStatus : XICHENG_REGION_CONFIG\.reviewStatus\.draft[\s\S]*this\.saveDraft\(\{ silent: true \}\)[\s\S]*审核提交已撤回/,
+  'withdrawing a review submission should remove the current local package, restore draft review state when empty, and refresh the saved draft'
 )
 
 assert.doesNotMatch(

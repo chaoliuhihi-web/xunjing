@@ -305,6 +305,9 @@
 			</view>
 			<text class="section-desc">提交时间：{{ reviewSubmission.submittedAt }}</text>
 			<text class="section-desc">海报：{{ reviewSubmission.posterStatus }} · PDF：{{ reviewSubmission.pdfStatus }}</text>
+			<view class="material-actions">
+				<button class="mini-button danger-mini-button" @click="withdrawReviewSubmission">撤回审核</button>
+			</view>
 		</view>
 
 		<view class="section-card">
@@ -1478,6 +1481,22 @@ export default {
 			this.saveDraft({ silent: true })
 			uni.showToast({
 				title: '作品审核已提交',
+				icon: 'none'
+			})
+		},
+		withdrawReviewSubmission() {
+			const submittedAt = this.reviewSubmission && this.reviewSubmission.submittedAt ? this.reviewSubmission.submittedAt : ''
+			const existingSubmissions = uni.getStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey)
+			const submissions = Array.isArray(existingSubmissions) ? existingSubmissions : []
+			const remainingSubmissions = submittedAt
+				? submissions.filter(submission => submission && submission.submittedAt !== submittedAt)
+				: submissions.slice(1)
+			uni.setStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey, remainingSubmissions)
+			this.reviewSubmission = remainingSubmissions[0] || null
+			this.reviewText = this.reviewSubmission ? this.reviewSubmission.reviewStatus : XICHENG_REGION_CONFIG.reviewStatus.draft
+			this.saveDraft({ silent: true })
+			uni.showToast({
+				title: '审核提交已撤回',
 				icon: 'none'
 			})
 		},
