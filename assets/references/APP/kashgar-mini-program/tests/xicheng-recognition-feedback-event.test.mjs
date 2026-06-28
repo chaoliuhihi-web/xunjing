@@ -21,6 +21,7 @@ for (const required of [
   "eventType: 'ERROR_FEEDBACK'",
   'payloadJson: JSON.stringify',
   'normalizeXichengSafetyStatus',
+  'normalizeXichengReviewedSources',
   "'tenant-id': XICHENG_REGION_CONFIG.tenantId",
   'getXunjingUserTraceId()',
   'getYudaoCommonResultPayload(res)'
@@ -36,8 +37,8 @@ assert.match(
 
 assert.match(
   eventRequest,
-  /payloadJson:\s*JSON\.stringify\(\{[\s\S]*category:\s*feedback\.misTrigger \? 'recognition_wrong' : 'recognition_confirmed'[\s\S]*feedbackId:\s*feedback\.feedbackId \|\| ''[\s\S]*poiCode:\s*feedback\.poiCode \|\| ''[\s\S]*poiName:\s*feedback\.poiName \|\| ''[\s\S]*confidence:\s*feedback\.confidence \|\| 0[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(feedback\.safetyStatus\)[\s\S]*sourceCount:\s*Array\.isArray\(feedback\.sources\) \? feedback\.sources\.length : 0[\s\S]*severity:\s*feedback\.misTrigger \? 'WARN' : 'INFO'/,
-  'Recognition feedback event payload should send a bounded summary instead of raw source arrays'
+  /payloadJson:\s*JSON\.stringify\(\{[\s\S]*category:\s*feedback\.misTrigger \? 'recognition_wrong' : 'recognition_confirmed'[\s\S]*feedbackId:\s*feedback\.feedbackId \|\| ''[\s\S]*poiCode:\s*feedback\.poiCode \|\| ''[\s\S]*poiName:\s*feedback\.poiName \|\| ''[\s\S]*confidence:\s*feedback\.confidence \|\| 0[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(feedback\.safetyStatus\)[\s\S]*sourceCount:\s*normalizeXichengReviewedSources\(feedback\.sources\)\.length[\s\S]*severity:\s*feedback\.misTrigger \? 'WARN' : 'INFO'/,
+  'Recognition feedback event payload should send a bounded normalized-source summary instead of raw source arrays'
 )
 
 assert.doesNotMatch(
@@ -68,4 +69,53 @@ assert.match(
   scanResult,
   /createRecognitionFeedback\(feedbackType = 'correct'\)[\s\S]*eventType:\s*'ERROR_FEEDBACK'[\s\S]*syncStatus:\s*'local_pending'/,
   'Local feedback record should be marked as a pending ERROR_FEEDBACK event until backend reporting succeeds'
+)
+
+let eventRuntimeSource = eventRequest
+  .replace(
+    /import \{[\s\S]*?\} from '@\/request\/xunjingMultimodal\.js'/,
+    `const buildYudaoAppApiUrl = (path) => 'https://example.test/' + path
+const getXunjingUserTraceId = () => 'guest'
+const getYudaoCommonResultPayload = (res) => res && res.data && res.data.data ? res.data.data : {}`
+  )
+  .replace(
+    /import \{ normalizeXichengSafetyStatus \} from '@\/request\/xunjing\/safety\.js'/,
+    `const normalizeXichengSafetyStatus = (safetyStatus = '') => String(safetyStatus || '').trim().toUpperCase()`
+  )
+  .replace(
+    /import \{ normalizeXichengReviewedSources \} from '@\/request\/xunjing\/sources\.js'/,
+    `const normalizeXichengReviewedSources = (sources = []) => Array.isArray(sources)
+  ? sources.filter(source => source && (source.title || source.name || source.sourceTitle || source.sourceUrl || source.url || source.contentDigest || source.excerpt || source.summary))
+  : []`
+  )
+  .replace(
+    /import \{ XICHENG_REGION_CONFIG \} from '@\/config\/regions\/xicheng\.js'/,
+    `const XICHENG_REGION_CONFIG = Object.freeze({
+  packageCode: 'XICHENG-MAP-001',
+  sceneCode: 'xicheng-multimodal-trigger',
+  sourceChannel: 'APP_UNIAPP',
+  tenantId: '1'
+})`
+  )
+
+const { buildXichengRecognitionFeedbackEventPayload } = await import(
+  `data:text/javascript;base64,${Buffer.from(eventRuntimeSource).toString('base64')}`
+)
+const feedbackPayload = buildXichengRecognitionFeedbackEventPayload({
+  feedbackId: 'feedback-1',
+  poiCode: 'xicheng-baitasi',
+  poiName: '白塔寺',
+  safetyStatus: 'approved',
+  sources: [
+    { title: '西城审核资料' },
+    {},
+    { rawText: '只有内部原文不能作为运营已审核来源' }
+  ]
+})
+const parsedFeedbackPayload = JSON.parse(feedbackPayload.payloadJson)
+
+assert.equal(
+  parsedFeedbackPayload.sourceCount,
+  1,
+  'Recognition feedback event should count only normalized reviewed sources'
 )
