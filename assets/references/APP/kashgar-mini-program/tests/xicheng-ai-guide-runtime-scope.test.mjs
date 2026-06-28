@@ -89,8 +89,8 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /const requestXunjingAiChat\s*=\s*\(question\)[\s\S]*const context = xichengAiContext\.value \|\| \{\}[\s\S]*const aiConfig = getActiveXunjingAiConfig\(context\)[\s\S]*packageCode:\s*aiConfig\.packageCode[\s\S]*sceneCode:\s*aiConfig\.sceneCode[\s\S]*sourceChannel:\s*aiConfig\.sourceChannel[\s\S]*'tenant-id':\s*aiConfig\.tenantId/,
-  'AI chat request should send the active Xicheng tenant-id and package context when Xiaojing is opened from recognition'
+  /const requestXunjingAiChat\s*=\s*\(question\)[\s\S]*const context = xichengAiContext\.value \|\| \{\}[\s\S]*const aiConfig = getActiveXunjingAiConfig\(context\)[\s\S]*packageCode:\s*aiConfig\.packageCode[\s\S]*sceneCode:\s*aiConfig\.sceneCode[\s\S]*sourceChannel:\s*aiConfig\.sourceChannel[\s\S]*url:\s*buildYudaoAppApiUrl\(aiConfig\.apiPath\)[\s\S]*'tenant-id':\s*aiConfig\.tenantId/,
+  'AI chat request should send the active Xicheng tenant-id, API path, and package context when Xiaojing is opened from recognition'
 )
 
 assert.match(

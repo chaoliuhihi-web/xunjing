@@ -24,8 +24,8 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /const requestXunjingAiChat\s*=\s*\(question\)[\s\S]*uni\.request\(\{[\s\S]*url:\s*buildYudaoAppApiUrl\(XUNJING_AI_CONFIG\.apiPath\)[\s\S]*method:\s*'POST'/,
-  'AI guide should request the Yudao APP AI proxy through uni.request'
+  /const requestXunjingAiChat\s*=\s*\(question\)[\s\S]*const aiConfig = getActiveXunjingAiConfig\(context\)[\s\S]*uni\.request\(\{[\s\S]*url:\s*buildYudaoAppApiUrl\(aiConfig\.apiPath\)[\s\S]*method:\s*'POST'/,
+  'AI guide should request the Yudao APP AI proxy through the active AI config'
 )
 
 assert.match(

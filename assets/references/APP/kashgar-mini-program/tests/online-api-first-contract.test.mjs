@@ -73,7 +73,7 @@ for (const required of [
   "apiPath: 'app-api/xunjing/ai/chat'",
   "apiPath: 'app-api/xunjing/resource/package'",
   "apiPath: 'app-api/xunjing/resource/events'",
-  'buildYudaoAppApiUrl(XUNJING_AI_CONFIG.apiPath)',
+  'buildYudaoAppApiUrl(aiConfig.apiPath)',
   'buildYudaoAppApiUrl(resourceConfig.apiPath)',
   'buildYudaoAppApiUrl(eventConfig.apiPath)',
   "'tenant-id': aiConfig.tenantId",

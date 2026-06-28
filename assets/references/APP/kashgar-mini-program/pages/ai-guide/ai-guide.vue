@@ -1005,7 +1005,7 @@ const requestXunjingAiChat = (question) => {
 	}
 	const pendingRequest = new Promise((resolve, reject) => {
 		requestTask = uni.request({
-			url: buildYudaoAppApiUrl(XUNJING_AI_CONFIG.apiPath),
+			url: buildYudaoAppApiUrl(aiConfig.apiPath),
 			method: 'POST',
 			header: {
 				'Content-Type': 'application/json',
