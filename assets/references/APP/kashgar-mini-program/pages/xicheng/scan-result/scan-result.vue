@@ -135,7 +135,8 @@ const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
 	recommendedRoute: null,
 	safetyStatus: '',
 	sources: [],
-	candidates: []
+	candidates: [],
+	candidateConfirmationAudit: null
 })
 
 const normalizeSuggestedQuestions = (result = {}) => {
@@ -296,6 +297,7 @@ export default {
 		},
 		selectCandidate(candidate) {
 			const selectedCandidate = normalizeRecognitionCandidate(candidate)
+			const candidateConfirmationAudit = this.createCandidateConfirmationAudit(selectedCandidate)
 			this.result = normalizeResult({
 				...this.result,
 				...selectedCandidate,
@@ -306,13 +308,29 @@ export default {
 				reason: selectedCandidate.summary || this.result.reason,
 				sources: selectedCandidate.sources,
 				suggestedQuestions: selectedCandidate.suggestedQuestions,
-				recommendedQuestions: selectedCandidate.suggestedQuestions
+				recommendedQuestions: selectedCandidate.suggestedQuestions,
+				candidateConfirmationAudit
 			})
 			uni.setStorageSync(XICHENG_REGION_CONFIG.storageKey, this.result)
 			uni.showToast({
 				title: '已确认识别地点',
 				icon: 'none'
 			})
+		},
+		createCandidateConfirmationAudit(selectedCandidate) {
+			return {
+				auditType: 'recognition-candidate-confirmation',
+				candidateCount: this.candidateList.length,
+				candidatePoiCodes: this.candidateList
+					.map(candidate => candidate.poiCode)
+					.filter(Boolean),
+				selectedCandidatePoiCode: selectedCandidate.poiCode,
+				selectedCandidatePoiName: selectedCandidate.poiName,
+				selectedCandidateConfidence: selectedCandidate.confidence,
+				reviewedSourceCount: selectedCandidate.sources.length,
+				confirmationSource: 'user-selected-candidate',
+				confirmedAt: new Date().toISOString()
+			}
 		},
 		formatCandidateSummary(candidate = {}) {
 			return candidate.summary || `距离约 ${candidate.distanceMeters} 米`
@@ -331,6 +349,7 @@ export default {
 				sources: this.sourceList,
 				safetyStatus: this.result.safetyStatus || '',
 				recognitionFeedback: this.recognitionFeedback,
+				candidateConfirmationAudit: this.result.candidateConfirmationAudit || null,
 				capturedAt: new Date().toISOString()
 			}
 			const checkinEvent = this.createRouteCheckinEvent(material)
@@ -358,6 +377,7 @@ export default {
 				confidence: material.confidence,
 				sources: material.sources,
 				safetyStatus: material.safetyStatus || '',
+				candidateConfirmationAudit: material.candidateConfirmationAudit || null,
 				checkedInAt: material.capturedAt
 			}
 		},
@@ -403,6 +423,7 @@ export default {
 				sourceLabel: this.result.sourceLabel,
 				sources: this.sourceList,
 				safetyStatus: this.result.safetyStatus || '',
+				candidateConfirmationAudit: this.result.candidateConfirmationAudit || null,
 				feedbackNote: this.feedbackNote.trim(),
 				misTrigger: feedbackType === 'wrong',
 				reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,

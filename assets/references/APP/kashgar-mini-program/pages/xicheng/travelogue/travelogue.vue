@@ -161,6 +161,7 @@
 				>
 					<text class="material-title">{{ material.poiName || '西城文化点' }}</text>
 					<text class="material-meta">{{ material.sourceLabel || '识别素材' }} · {{ material.capturedAt || '刚刚' }}</text>
+					<text v-if="material.candidateConfirmationAudit" class="material-meta">候选确认：{{ formatCandidateConfirmationAudit(material.candidateConfirmationAudit) }}</text>
 					<text v-if="material.remarkText" class="material-meta">{{ material.remarkText }}</text>
 					<text v-if="material.locationHidden" class="material-meta">地点已隐藏 · {{ material.publicLocationLabel || '西城街区一带' }}</text>
 					<image v-if="material.imagePath" class="material-image" :src="material.imagePath" mode="aspectFill" />
@@ -317,6 +318,7 @@
 			<text class="section-desc">路线完成：{{ opsReport.routeCompletionRate }}% · 分享数：{{ opsReport.shareCount }}</text>
 			<text class="section-desc">热门 POI：{{ opsReport.hotPoiLabel }}</text>
 			<text class="section-desc">误触发：{{ opsReport.misTriggerCount }} · 识别反馈：{{ opsReport.recognitionFeedbackCount }}</text>
+			<text class="section-desc">候选确认：{{ opsReport.candidateConfirmationCount }} 条 · {{ opsReport.candidateConfirmedPoiLabel }}</text>
 			<text class="section-desc">安全拦截：{{ opsReport.safetyBlockedCount }} · 服务不可用：{{ opsReport.safetyUnavailableCount }}</text>
 			<text class="section-desc">轨迹质量：{{ opsReport.qualityReport.usableRate }}% 可用 · 异常点：{{ opsReport.filteredTrackPointCount }}</text>
 			<text class="section-desc">优化建议：{{ opsReport.optimizationSuggestionText }}</text>
@@ -573,6 +575,33 @@ export default {
 		recognitionFeedbackCount() {
 			return this.recognitionFeedbacks.length
 		},
+		candidateConfirmationAudits() {
+			const auditItems = [
+				...this.materials,
+				...this.routeCheckins,
+				...this.recognitionFeedbacks
+			]
+			const seenAuditKeys = new Set()
+			const audits = []
+			auditItems.forEach(item => {
+				const audit = item && item.candidateConfirmationAudit ? item.candidateConfirmationAudit : null
+				if (!audit) return
+				const auditKey = audit.confirmedAt || `${audit.selectedCandidatePoiCode || ''}:${audit.candidateCount || 0}:${audit.confirmationSource || ''}`
+				if (seenAuditKeys.has(auditKey)) return
+				seenAuditKeys.add(auditKey)
+				audits.push(audit)
+			})
+			return audits
+		},
+		candidateConfirmationCount() {
+			return this.candidateConfirmationAudits.length
+		},
+		candidateConfirmedPoiLabel() {
+			const poiNames = this.candidateConfirmationAudits
+				.map(audit => audit && audit.selectedCandidatePoiName ? audit.selectedCandidatePoiName : '')
+				.filter(Boolean)
+			return poiNames.length > 0 ? Array.from(new Set(poiNames)).join('、') : '暂无'
+		},
 		completedStudyTaskEvidence() {
 			return this.studyTaskEvidence.filter(evidence => evidence && evidence.completedAt)
 		},
@@ -630,6 +659,7 @@ export default {
 				badgeAwardCount: this.badgeAwardCount,
 				checkinCount: this.checkinCount,
 				recognitionFeedbackCount: this.recognitionFeedbackCount,
+				candidateConfirmationCount: this.candidateConfirmationCount,
 				shareCount: this.shareArtifacts.length,
 				misTriggerCount: this.misTriggerCount,
 				safetyStatusSummary: this.safetyStatusSummary,
@@ -641,6 +671,7 @@ export default {
 				pdfStatus: this.pdfStatus,
 				shareAssetCount: this.shareArtifacts.length,
 				hotPoiLabel: hotPois.length > 0 ? hotPois.map(poi => `${poi.poiName}(${poi.visitCount})`).join('、') : '暂无',
+				candidateConfirmedPoiLabel: this.candidateConfirmedPoiLabel,
 				optimizationSuggestionText: optimizationSuggestions.join('；'),
 				routePointCount: this.routePointCount,
 				stayPointCount: this.stayPointCount,
@@ -1059,6 +1090,11 @@ export default {
 			const checkinEventLabel = `${checkin.checkinType || '打卡事件'} · ${checkin.routeTitle || '西城 Citywalk'} · ${this.formatArtifactTime(checkin.checkedInAt)}`
 			return checkinEventLabel
 		},
+		formatCandidateConfirmationAudit(audit = {}) {
+			const candidateCount = Number(audit.candidateCount || 0)
+			const poiName = audit.selectedCandidatePoiName || '已确认 POI'
+			return `${poiName} · ${candidateCount} 个候选`
+		},
 		addRemarkMaterial() {
 			if (!this.remarkInput.trim()) {
 				uni.showToast({
@@ -1214,6 +1250,8 @@ export default {
 				inspirationImportCount: this.inspirationImportCount,
 				recognitionFeedbacks: this.recognitionFeedbacks,
 				recognitionFeedbackCount: this.recognitionFeedbackCount,
+				candidateConfirmationAudits: this.candidateConfirmationAudits,
+				candidateConfirmationCount: this.candidateConfirmationCount,
 				studyTaskEvidence: this.studyTaskEvidence,
 				badgeAwards: this.badgeAwards,
 				activeBadgeAward: this.activeBadgeAward,
@@ -1293,6 +1331,8 @@ export default {
 				inspirationImportCount: this.inspirationImportCount,
 				recognitionFeedbacks: this.recognitionFeedbacks,
 				recognitionFeedbackCount: this.recognitionFeedbackCount,
+				candidateConfirmationAudits: this.candidateConfirmationAudits,
+				candidateConfirmationCount: this.candidateConfirmationCount,
 				studyTaskEvidence: this.studyTaskEvidence,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
 				badgeAwards: this.badgeAwards,
@@ -1402,6 +1442,8 @@ export default {
 				activeBadgeAward: this.activeBadgeAward,
 				badgeAwardCount: this.badgeAwardCount,
 				recognitionFeedbackCount: this.recognitionFeedbackCount,
+				candidateConfirmationAudits: this.candidateConfirmationAudits,
+				candidateConfirmationCount: this.candidateConfirmationCount,
 				safetyStatusSummary: this.safetyStatusSummary,
 				safetyBlockedCount: this.safetyBlockedCount,
 				safetyUnavailableCount: this.safetyUnavailableCount,
