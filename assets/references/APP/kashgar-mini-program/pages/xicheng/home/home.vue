@@ -500,7 +500,7 @@ export default {
 		},
 		openXichengInspiration() {
 			uni.navigateTo({
-				url: `/pages/xicheng/inspiration/inspiration?regionCode=${encodeURIComponent(this.region.regionCode)}`
+				url: `/pages/xicheng/inspiration/inspiration?regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.region.sourceChannel)}&companionName=${encodeURIComponent(this.region.companionName)}`
 			})
 		}
 	}

@@ -65,6 +65,12 @@ for (const required of [
   assert.ok(home.includes(required), `Xicheng home should expose inspiration import entry ${required}`)
 }
 
+assert.match(
+  home,
+  /openXichengInspiration\(\)[\s\S]*\/pages\/xicheng\/inspiration\/inspiration\?[\s\S]*regionCode=\$\{encodeURIComponent\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeURIComponent\(this\.region\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeURIComponent\(this\.region\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeURIComponent\(this\.region\.sourceChannel\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.region\.companionName\)\}/,
+  'Home inspiration entry should preserve Xicheng package, scene, source channel, and companion context'
+)
+
 for (const required of [
   '导入灵感',
   '粘贴攻略文字',
