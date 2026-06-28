@@ -28,6 +28,10 @@ const requestImageInfoForTrigger = async () => null`
   : []`
   )
   .replace(
+    /import \{ normalizeXichengSafetyStatus \} from '@\/request\/xunjing\/safety\.js'/,
+    `const normalizeXichengSafetyStatus = (safetyStatus = '') => String(safetyStatus || '').trim().toUpperCase()`
+  )
+  .replace(
     /import \{[\s\S]*?\} from '@\/config\/regions\/xicheng\.js'/,
     `const XICHENG_REGION_CONFIG = Object.freeze({
   regionCode: 'beijing-xicheng',
@@ -72,6 +76,18 @@ assert.equal(
 assert.deepEqual(percentOnlyResult.suggestedQuestions, ['白塔寺为什么是西城地标？'])
 assert.equal(percentOnlyResult.sources[0].title, '西城审核资料')
 assert.equal(percentOnlyResult.safetyStatus, 'APPROVED')
+
+const lowercaseBlockedResult = normalizeXichengTriggerResult({
+  poiCode: 'xicheng-baitasi',
+  poiName: '白塔寺',
+  safetyStatus: 'blocked'
+}, 'scan')
+
+assert.equal(
+  lowercaseBlockedResult.safetyStatus,
+  'BLOCKED',
+  'Trigger normalization should uppercase backend safetyStatus before routing to recognition result and Xiaojing'
+)
 
 const decimalResult = normalizeXichengTriggerResult({
   poiCode: 'xicheng-shichahai',

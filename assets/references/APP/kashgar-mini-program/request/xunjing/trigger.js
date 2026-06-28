@@ -9,6 +9,7 @@ import {
 	requestCurrentLocationForTrigger,
 	requestImageInfoForTrigger
 } from '@/request/xunjingMultimodal.js'
+import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 import {
 	XICHENG_REGION_CONFIG,
@@ -103,7 +104,7 @@ export const normalizeXichengTriggerResult = (result = {}, source = '') => {
 		recommendedRoute: result.routeRecommendation || result.recommendedRoute || null,
 		sources,
 		candidates: normalizeXichengTriggerCandidates(result.candidates),
-		safetyStatus: result.safetyStatus || ''
+		safetyStatus: normalizeXichengSafetyStatus(result.safetyStatus)
 	}
 }
 
