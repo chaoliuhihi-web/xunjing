@@ -616,7 +616,7 @@ export default {
 			return this.recognitionFeedbacks.length
 		},
 		aiGuideMaterials() {
-			return this.materials.filter(material => material && material.type === 'ai-guide')
+			return this.materials.filter(material => material && material.type === 'ai-guide' && hasReviewableMaterialEvidence(material))
 		},
 		aiGuideMaterialCount() {
 			return this.aiGuideMaterials.length

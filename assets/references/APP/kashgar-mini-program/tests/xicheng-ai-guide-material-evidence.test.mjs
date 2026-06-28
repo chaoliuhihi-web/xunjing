@@ -77,8 +77,8 @@ assert.match(
 
 assert.match(
   travelogue,
-  /aiGuideMaterials\(\)[\s\S]*return this\.materials\.filter\(material => material && material\.type === 'ai-guide'\)[\s\S]*aiGuideMaterialCount\(\)[\s\S]*return this\.aiGuideMaterials\.length/,
-  'Travelogue should compute Xiaojing answer material count from local journey materials'
+  /aiGuideMaterials\(\)[\s\S]*return this\.materials\.filter\(material => material && material\.type === 'ai-guide' && hasReviewableMaterialEvidence\(material\)\)[\s\S]*aiGuideMaterialCount\(\)[\s\S]*return this\.aiGuideMaterials\.length/,
+  'Travelogue should compute Xiaojing answer material count only from reviewable source-backed local journey materials'
 )
 
 assert.match(
