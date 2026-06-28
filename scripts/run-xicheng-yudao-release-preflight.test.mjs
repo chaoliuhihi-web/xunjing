@@ -49,6 +49,7 @@ describe('xicheng Yudao release preflight', () => {
     const releaseEvidenceFile = path.join(rootDir, 'qa/xicheng-yudao-release-evidence.json')
     const tasksOutputFile = path.join(rootDir, 'workbench/xicheng-yudao-release-blocker-tasks.csv')
     const poiTasksOutputFile = path.join(rootDir, 'workbench/xicheng-yudao-release-poi-blocker-tasks.csv')
+    const handoffOutputFile = path.join(rootDir, 'workbench/xicheng-yudao-release-handoff.md')
 
     expect(report).toMatchObject({
       artifactType: 'xicheng-yudao-release-preflight',
@@ -58,6 +59,7 @@ describe('xicheng Yudao release preflight', () => {
         releaseEvidenceFile,
         tasksOutputFile,
         poiTasksOutputFile,
+        handoffOutputFile,
         finalEvidencePackageCommand: expect.stringContaining('npm run xunjing:xicheng:release:evidence:package'),
         poiTaskCount: expect.any(Number),
         releaseStatus: 'NOT_READY'
@@ -114,6 +116,18 @@ describe('xicheng Yudao release preflight', () => {
     expect(tasksCsv).toContain(releaseEvidenceFile)
     const poiTasksCsv = await readFile(poiTasksOutputFile, 'utf8')
     expect(poiTasksCsv).toContain('poiTaskKey,poiCode,checkName,blockerIndex,blocker,ownerLane,taskDetail,requiredEvidence,verificationCommand,taskStatus,sourceEvidenceFile')
+
+    const handoffMarkdown = await readFile(handoffOutputFile, 'utf8')
+    expect(handoffMarkdown).toContain('# Xicheng Yudao Release Handoff')
+    expect(handoffMarkdown).toContain('Status: `NOT_READY`')
+    expect(handoffMarkdown).toContain(`Release evidence: \`${releaseEvidenceFile}\``)
+    expect(handoffMarkdown).toContain(`Blocker tasks CSV: \`${tasksOutputFile}\``)
+    expect(handoffMarkdown).toContain(`POI tasks CSV: \`${poiTasksOutputFile}\``)
+    expect(handoffMarkdown).toContain('## Owner Lanes')
+    expect(handoffMarkdown).toContain('### platform-ops')
+    expect(handoffMarkdown).toContain('### poi-data')
+    expect(handoffMarkdown).toContain('npm run xunjing:xicheng:release:evidence:package')
+    expect(handoffMarkdown).toContain('Do not mark production ready until')
   })
 
   test('exposes the preflight through npm scripts and handoff docs', async () => {
@@ -128,5 +142,9 @@ describe('xicheng Yudao release preflight', () => {
     expect(statusDoc).toContain('npm run xunjing:yudao:release:preflight')
     expect(deployDoc).toContain('xicheng-yudao-release-poi-blocker-tasks.csv')
     expect(statusDoc).toContain('xicheng-yudao-release-poi-blocker-tasks.csv')
+    expect(deployDoc).toContain('xicheng-yudao-release-handoff.md')
+    expect(statusDoc).toContain('xicheng-yudao-release-handoff.md')
+    expect(deployDoc).toContain('--handoff-output')
+    expect(statusDoc).toContain('--handoff-output')
   })
 })

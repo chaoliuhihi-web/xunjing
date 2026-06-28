@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -9,6 +9,7 @@ const artifactType = 'xicheng-yudao-release-preflight'
 const defaultReleaseEvidenceFile = 'qa/xicheng-yudao-release-evidence.json'
 const defaultTasksOutputFile = 'workbench/xicheng-yudao-release-blocker-tasks.csv'
 const defaultPoiTasksOutputFile = 'workbench/xicheng-yudao-release-poi-blocker-tasks.csv'
+const defaultHandoffOutputFile = 'workbench/xicheng-yudao-release-handoff.md'
 const defaultPoiWorkbookEvidenceFile = 'qa/xicheng-poi-review-workbook-evidence.json'
 const defaultPoiManifestEvidenceFile = 'qa/xicheng-poi-manifest-evidence.json'
 const defaultPoiSeedEvidenceFile = 'qa/xicheng-poi-production-seed-evidence.json'
@@ -95,6 +96,72 @@ function buildFinalEvidencePackageCommand({
   ].join(' ')
 }
 
+function formatList(values) {
+  const items = Array.isArray(values) ? values.filter(Boolean) : []
+  if (items.length === 0) {
+    return '- None'
+  }
+  return items.map((value) => `- \`${value}\``).join('\n')
+}
+
+function buildHandoffMarkdown({
+  stage,
+  releaseEvidence,
+  taskReport,
+  releaseEvidenceFile,
+  tasksOutputFile,
+  poiTasksOutputFile,
+  finalEvidencePackageCommand
+}) {
+  const summary = releaseEvidence.summary || {}
+  const ownerLaneSections = (taskReport.summary.ownerLaneBreakdown || [])
+    .map((lane) => [
+      `### ${lane.ownerLane}`,
+      '',
+      `Task count: ${lane.taskCount}`,
+      '',
+      'Checks:',
+      formatList(lane.checkNames),
+      '',
+      'Verification commands:',
+      formatList(lane.verificationCommands)
+    ].join('\n'))
+    .join('\n\n')
+
+  return [
+    '# Xicheng Yudao Release Handoff',
+    '',
+    `Status: \`${releaseEvidence.status}\``,
+    `Stage: \`${stage}\``,
+    `Git commit: \`${summary.gitCommit || 'unknown'}\``,
+    `Git dirty: \`${summary.gitDirty === true ? 'true' : summary.gitDirty === false ? 'false' : 'unknown'}\``,
+    '',
+    `Failed checks: ${summary.failedChecks ?? 'unknown'}`,
+    `Blockers: ${summary.blockerCount ?? 'unknown'}`,
+    `Owner-lane tasks: ${taskReport.summary.taskCount ?? 0}`,
+    `POI tasks: ${taskReport.summary.poiTaskCount ?? 0}`,
+    '',
+    `Release evidence: \`${releaseEvidenceFile}\``,
+    `Blocker tasks CSV: \`${tasksOutputFile}\``,
+    `POI tasks CSV: \`${poiTasksOutputFile}\``,
+    '',
+    '## Owner Lanes',
+    '',
+    ownerLaneSections || 'No owner-lane blockers.',
+    '',
+    '## Final Evidence Package',
+    '',
+    'Run only after release gate, POI evidence, APP readiness, and production runtime seed evidence are all ready:',
+    '',
+    '```bash',
+    finalEvidencePackageCommand,
+    '```',
+    '',
+    'Do not mark production ready until release gate outputs `PRODUCTION_READY_CANDIDATE` and the final evidence package outputs `XICHENG_RELEASE_EVIDENCE_PACKAGE_READY`.',
+    ''
+  ].join('\n')
+}
+
 export async function runXichengYudaoReleasePreflight({
   rootDir = process.cwd(),
   args = []
@@ -112,6 +179,8 @@ export async function runXichengYudaoReleasePreflight({
   const poiTasksOutputFile = readArgValue(args, '--poi-tasks-output') ||
     readArgValue(args, '--poi-output') ||
     defaultPoiTasksOutputFile
+  const handoffOutputFile = readArgValue(args, '--handoff-output') ||
+    defaultHandoffOutputFile
   const poiWorkbookEvidenceFile = readArgValue(args, '--poi-workbook-evidence') || defaultPoiWorkbookEvidenceFile
   const poiManifestEvidenceFile = readArgValue(args, '--poi-manifest-evidence') || defaultPoiManifestEvidenceFile
   const poiSeedEvidenceFile = readArgValue(args, '--poi-seed-evidence') || defaultPoiSeedEvidenceFile
@@ -122,6 +191,7 @@ export async function runXichengYudaoReleasePreflight({
   const resolvedReleaseEvidenceFile = resolveRootFile(resolvedRoot, releaseEvidenceFile)
   const resolvedTasksOutputFile = resolveRootFile(resolvedRoot, tasksOutputFile)
   const resolvedPoiTasksOutputFile = resolveRootFile(resolvedRoot, poiTasksOutputFile)
+  const resolvedHandoffOutputFile = resolveRootFile(resolvedRoot, handoffOutputFile)
   const scriptDir = path.dirname(fileURLToPath(import.meta.url))
   const releaseGateScript = path.join(scriptDir, 'verify-xicheng-yudao-release-readiness.mjs')
 
@@ -151,6 +221,25 @@ export async function runXichengYudaoReleasePreflight({
     outputFile: tasksOutputFile,
     poiOutputFile: poiTasksOutputFile
   })
+  const finalEvidencePackageCommand = buildFinalEvidencePackageCommand({
+    stage,
+    releaseEvidenceFile,
+    poiWorkbookEvidenceFile,
+    poiManifestEvidenceFile,
+    poiSeedEvidenceFile,
+    appReadinessEvidenceFile,
+    releasePackageEvidenceFile
+  })
+  await mkdir(path.dirname(resolvedHandoffOutputFile), { recursive: true })
+  await writeFile(resolvedHandoffOutputFile, buildHandoffMarkdown({
+    stage,
+    releaseEvidence,
+    taskReport,
+    releaseEvidenceFile: resolvedReleaseEvidenceFile,
+    tasksOutputFile: resolvedTasksOutputFile,
+    poiTasksOutputFile: resolvedPoiTasksOutputFile,
+    finalEvidencePackageCommand
+  }))
   const ok = releaseEvidence.ok === true && taskReport.ok === true
 
   return {
@@ -164,21 +253,14 @@ export async function runXichengYudaoReleasePreflight({
       releaseEvidenceFile: resolvedReleaseEvidenceFile,
       tasksOutputFile: resolvedTasksOutputFile,
       poiTasksOutputFile: resolvedPoiTasksOutputFile,
+      handoffOutputFile: resolvedHandoffOutputFile,
       failedCheckCount: releaseEvidence.summary?.failedChecks,
       blockerCount: releaseEvidence.summary?.blockerCount,
       taskCount: taskReport.summary.taskCount,
       poiTaskCount: taskReport.summary.poiTaskCount,
       ownerLaneCounts: taskReport.summary.ownerLaneCounts,
       ownerLaneBreakdown: taskReport.summary.ownerLaneBreakdown,
-      finalEvidencePackageCommand: buildFinalEvidencePackageCommand({
-        stage,
-        releaseEvidenceFile,
-        poiWorkbookEvidenceFile,
-        poiManifestEvidenceFile,
-        poiSeedEvidenceFile,
-        appReadinessEvidenceFile,
-        releasePackageEvidenceFile
-      })
+      finalEvidencePackageCommand
     },
     release: {
       ok: releaseEvidence.ok === true,
