@@ -80,13 +80,19 @@ assert.equal(percentOnlyResult.safetyStatus, 'APPROVED')
 const lowercaseBlockedResult = normalizeXichengTriggerResult({
   poiCode: 'xicheng-baitasi',
   poiName: '白塔寺',
-  safetyStatus: 'blocked'
+  safetyStatus: 'blocked',
+  sources: [{ title: '不应展示的拦截来源' }]
 }, 'scan')
 
 assert.equal(
   lowercaseBlockedResult.safetyStatus,
   'BLOCKED',
   'Trigger normalization should uppercase backend safetyStatus before routing to recognition result and Xiaojing'
+)
+assert.deepEqual(
+  lowercaseBlockedResult.sources,
+  [],
+  'Trigger normalization should clear reviewed sources when safetyStatus is BLOCKED'
 )
 
 const blockedCandidateResult = normalizeXichengTriggerResult({
@@ -114,6 +120,11 @@ assert.deepEqual(
   blockedCandidateResult.candidates[0].suggestedQuestions,
   [],
   'Trigger normalization should clear candidate suggested questions when candidate safetyStatus is BLOCKED'
+)
+assert.deepEqual(
+  blockedCandidateResult.candidates[0].sources,
+  [],
+  'Trigger normalization should clear candidate sources when candidate safetyStatus is BLOCKED'
 )
 
 const decimalResult = normalizeXichengTriggerResult({

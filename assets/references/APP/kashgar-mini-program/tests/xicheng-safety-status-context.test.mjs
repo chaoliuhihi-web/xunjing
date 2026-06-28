@@ -12,6 +12,7 @@ const recognitionActionBlockedBlock = scanResult.match(/recognitionActionBlocked
 const askXiaojingBlock = scanResult.match(/askXiaojing\(question = ''\)[\s\S]*?\n\t\t\},\n\t\tselectCandidate/)?.[0] || ''
 const startRecordingBlock = scanResult.match(/startRecording\(\)[\s\S]*?\n\t\t\},\n\t\tcreateRouteCheckinEvent/)?.[0] || ''
 const normalizeSuggestedQuestionsBlock = scanResult.match(/const normalizeSuggestedQuestions\s*=\s*\(result = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
+const normalizeReviewedSourcesBlock = scanResult.match(/const normalizeReviewedSources\s*=\s*\(result = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const applyContextBlock = aiGuide.match(/const applyXichengAiContext\s*=\s*\(options = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const requestChatBlock = aiGuide.match(/const requestXunjingAiChat\s*=\s*\(question\) => \{[\s\S]*?\n\}\n\nconst escapeHtml/)?.[0] || ''
 
@@ -19,6 +20,7 @@ assert.ok(recognitionActionBlockedBlock, 'Recognition result should expose a cen
 assert.ok(askXiaojingBlock, 'Recognition result should expose askXiaojing')
 assert.ok(startRecordingBlock, 'Recognition result should expose startRecording')
 assert.ok(normalizeSuggestedQuestionsBlock, 'Recognition result should expose suggested-question normalization')
+assert.ok(normalizeReviewedSourcesBlock, 'Recognition result should expose reviewed-source normalization')
 
 assert.match(
   scanResult,
@@ -54,6 +56,24 @@ assert.match(
   normalizeSuggestedQuestionsBlock,
   /const safetyStatus = normalizeXichengSafetyStatus\(result\.safetyStatus\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*return \[\]/,
   'Recognition result should hide suggested questions when safetyStatus is BLOCKED or UNAVAILABLE'
+)
+
+assert.match(
+  normalizeReviewedSourcesBlock,
+  /const safetyStatus = normalizeXichengSafetyStatus\(result\.safetyStatus\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*return \[\][\s\S]*return normalizeXichengReviewedSources\(result\.sources\)/,
+  'Recognition result should hide reviewed sources when safetyStatus is BLOCKED or UNAVAILABLE'
+)
+
+assert.match(
+  scanResult,
+  /sources:\s*normalizeReviewedSources\(candidate\)[\s\S]*\}\)[\s\S]*const normalizeRecognitionCandidates/,
+  'Recognition candidate normalization should pass sources through the safety-aware source helper'
+)
+
+assert.match(
+  scanResult,
+  /sources:\s*normalizeReviewedSources\(result\)[\s\S]*candidates:\s*normalizeRecognitionCandidates\(result\.candidates\)/,
+  'Recognition result normalization should pass sources through the safety-aware source helper'
 )
 
 assert.match(

@@ -20,7 +20,7 @@ for (const required of [
 
 assert.match(
   scanResult,
-  /const normalizeRecognitionCandidate\s*=\s*\(candidate = \{\}\) => \(\{[\s\S]*poiCode:\s*candidate\.poiCode \|\| ''[\s\S]*poiName:\s*candidate\.poiName \|\| ''[\s\S]*confidence:\s*normalizeCandidateConfidence\(candidate\)[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(candidate\.safetyStatus\)[\s\S]*suggestedQuestions:\s*normalizeSuggestedQuestions\(candidate\)[\s\S]*sources:\s*normalizeXichengReviewedSources\(candidate\.sources\)/,
+  /const normalizeRecognitionCandidate\s*=\s*\(candidate = \{\}\) => \(\{[\s\S]*poiCode:\s*candidate\.poiCode \|\| ''[\s\S]*poiName:\s*candidate\.poiName \|\| ''[\s\S]*confidence:\s*normalizeCandidateConfidence\(candidate\)[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(candidate\.safetyStatus\)[\s\S]*suggestedQuestions:\s*normalizeSuggestedQuestions\(candidate\)[\s\S]*sources:\s*normalizeReviewedSources\(candidate\)/,
   'Recognition result page should normalize backend candidate POI, confidence, safety status, questions, and reviewed sources before display'
 )
 
@@ -44,6 +44,6 @@ assert.match(
 
 assert.match(
   triggerRequest,
-  /const normalizeXichengTriggerCandidate\s*=\s*\(candidate = \{\}\) => \(\{[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(candidate\.safetyStatus\)[\s\S]*sources:\s*normalizeXichengReviewedSources\(candidate\.sources\)[\s\S]*suggestedQuestions:\s*normalizeSuggestedQuestions\(candidate\)/,
+  /const normalizeXichengTriggerCandidate\s*=\s*\(candidate = \{\}\) => \(\{[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(candidate\.safetyStatus\)[\s\S]*sources:\s*normalizeReviewedSources\(candidate\)[\s\S]*suggestedQuestions:\s*normalizeSuggestedQuestions\(candidate\)/,
   'Trigger candidate normalization should preserve safety status, reviewed sources, and suggested questions for candidate confirmation'
 )

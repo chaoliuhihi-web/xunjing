@@ -56,6 +56,14 @@ const normalizeSuggestedQuestions = (result = {}) => {
 	return XICHENG_SUGGESTED_QUESTIONS
 }
 
+const normalizeReviewedSources = (result = {}) => {
+	const safetyStatus = normalizeXichengSafetyStatus(result.safetyStatus)
+	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+		return []
+	}
+	return normalizeXichengReviewedSources(result.sources)
+}
+
 const normalizeConfidence = (result = {}) => {
 	const hasConfidence = result.confidence !== undefined && result.confidence !== null && result.confidence !== ''
 	const rawConfidence = hasConfidence
@@ -73,7 +81,7 @@ const normalizeXichengTriggerCandidate = (candidate = {}) => ({
 	poiName: candidate.poiName || '',
 	confidence: normalizeConfidence(candidate),
 	safetyStatus: normalizeXichengSafetyStatus(candidate.safetyStatus),
-	sources: normalizeXichengReviewedSources(candidate.sources),
+	sources: normalizeReviewedSources(candidate),
 	suggestedQuestions: normalizeSuggestedQuestions(candidate),
 	recommendedQuestions: normalizeSuggestedQuestions(candidate)
 })
@@ -85,7 +93,7 @@ const normalizeXichengTriggerCandidates = (candidates = []) => Array.isArray(can
 export const normalizeXichengTriggerResult = (result = {}, source = '') => {
 	const confidence = normalizeConfidence(result)
 	const suggestedQuestions = normalizeSuggestedQuestions(result)
-	const sources = normalizeXichengReviewedSources(result.sources)
+	const sources = normalizeReviewedSources(result)
 	return {
 		...result,
 		regionCode: result.regionCode || XICHENG_REGION_CONFIG.regionCode,

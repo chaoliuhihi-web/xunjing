@@ -164,6 +164,14 @@ const normalizeSuggestedQuestions = (result = {}) => {
 	return XICHENG_SUGGESTED_QUESTIONS
 }
 
+const normalizeReviewedSources = (result = {}) => {
+	const safetyStatus = normalizeXichengSafetyStatus(result.safetyStatus)
+	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+		return []
+	}
+	return normalizeXichengReviewedSources(result.sources)
+}
+
 const decodeRouteValue = (value = '') => {
 	try {
 		return decodeURIComponent(String(value || ''))
@@ -221,7 +229,7 @@ const normalizeRecognitionCandidate = (candidate = {}) => ({
 	safetyStatus: normalizeXichengSafetyStatus(candidate.safetyStatus),
 	suggestedQuestions: normalizeSuggestedQuestions(candidate),
 	recommendedQuestions: normalizeSuggestedQuestions(candidate),
-	sources: normalizeXichengReviewedSources(candidate.sources)
+	sources: normalizeReviewedSources(candidate)
 })
 
 const normalizeRecognitionCandidates = (candidates = []) => Array.isArray(candidates)
@@ -242,7 +250,7 @@ const normalizeResult = (result = {}) => ({
 	routeRecommendation: result.routeRecommendation || result.recommendedRoute || null,
 	recommendedRoute: result.routeRecommendation || result.recommendedRoute || null,
 	safetyStatus: normalizeXichengSafetyStatus(result.safetyStatus),
-	sources: normalizeXichengReviewedSources(result.sources),
+	sources: normalizeReviewedSources(result),
 	candidates: normalizeRecognitionCandidates(result.candidates)
 })
 
