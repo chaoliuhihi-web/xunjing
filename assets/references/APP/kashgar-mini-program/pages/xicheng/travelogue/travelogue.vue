@@ -162,6 +162,7 @@
 					<text class="material-title">{{ material.poiName || '西城文化点' }}</text>
 					<text class="material-meta">{{ material.sourceLabel || '识别素材' }} · {{ material.capturedAt || '刚刚' }}</text>
 					<text v-if="material.candidateConfirmationAudit" class="material-meta">候选确认：{{ formatCandidateConfirmationAudit(material.candidateConfirmationAudit) }}</text>
+					<text v-if="material.aiAnswerExcerpt" class="material-meta">小京回答：{{ material.aiAnswerExcerpt }}</text>
 					<text v-if="material.remarkText" class="material-meta">{{ material.remarkText }}</text>
 					<text v-if="material.locationHidden" class="material-meta">地点已隐藏 · {{ material.publicLocationLabel || '西城街区一带' }}</text>
 					<image v-if="material.imagePath" class="material-image" :src="material.imagePath" mode="aspectFill" />
@@ -319,6 +320,7 @@
 			<text class="section-desc">热门 POI：{{ opsReport.hotPoiLabel }}</text>
 			<text class="section-desc">误触发：{{ opsReport.misTriggerCount }} · 识别反馈：{{ opsReport.recognitionFeedbackCount }}</text>
 			<text class="section-desc">候选确认：{{ opsReport.candidateConfirmationCount }} 条 · {{ opsReport.candidateConfirmedPoiLabel }}</text>
+			<text class="section-desc">小京讲解：{{ opsReport.aiGuideMaterialCount }} 条</text>
 			<text class="section-desc">安全拦截：{{ opsReport.safetyBlockedCount }} · 服务不可用：{{ opsReport.safetyUnavailableCount }}</text>
 			<text class="section-desc">轨迹质量：{{ opsReport.qualityReport.usableRate }}% 可用 · 异常点：{{ opsReport.filteredTrackPointCount }}</text>
 			<text class="section-desc">优化建议：{{ opsReport.optimizationSuggestionText }}</text>
@@ -345,6 +347,7 @@ export const hasXichengTravelogueDraftEvidence = ({
 			|| material.remarkText
 			|| material.imagePath
 			|| material.routeRecommendation
+			|| material.aiAnswerExcerpt
 			|| ['photo', 'remark', 'manual-entry'].includes(material.type)
 		)
 	})
@@ -395,17 +398,22 @@ export const createXichengTravelogueDraft = ({
 		.map(material => material && material.remarkText ? material.remarkText : '')
 		.filter(Boolean)
 		.slice(0, 2)
+	const aiGuideExcerpts = materials
+		.filter(material => material && material.type === 'ai-guide' && material.aiAnswerExcerpt)
+		.map(material => material.aiAnswerExcerpt)
+		.slice(0, 2)
 	const trackText = routePointCount > 0 ? `本次主动记录了 ${routePointCount} 个前台位置点，` : ''
 	const stayText = stayPointCount > 0 ? `本次标记了 ${stayPointCount} 个停留点，` : ''
 	const photoText = photoCount > 0 ? `现场补充了 ${photoCount} 张照片，` : ''
 	const remarkText = remarkTexts.length > 0 ? `用户备注提到：${remarkTexts.join('；')}。` : ''
+	const aiGuideText = aiGuideExcerpts.length > 0 ? `小京回答提到：${aiGuideExcerpts.join('；')}。` : ''
 	const completedStudyEvidence = studyTaskEvidence
 		.filter(evidence => evidence && evidence.completedAt)
 		.slice(0, 2)
 	const studyEvidenceText = completedStudyEvidence.length > 0
 		? `研学任务证据包括：${completedStudyEvidence.map(evidence => evidence.answerText || evidence.taskText || '照片观察').join('；')}。`
 		: ''
-	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒，${trackText}${stayText}${photoText}我们沿途完成了${taskText}。${remarkText}${studyEvidenceText}这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
+	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒，${trackText}${stayText}${photoText}我们沿途完成了${taskText}。${remarkText}${studyEvidenceText}${aiGuideText}这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
 }
 
 const createEmptyRecordingSession = () => ({
@@ -575,6 +583,12 @@ export default {
 		recognitionFeedbackCount() {
 			return this.recognitionFeedbacks.length
 		},
+		aiGuideMaterials() {
+			return this.materials.filter(material => material && material.type === 'ai-guide')
+		},
+		aiGuideMaterialCount() {
+			return this.aiGuideMaterials.length
+		},
 		candidateConfirmationAudits() {
 			const auditItems = [
 				...this.materials,
@@ -660,6 +674,7 @@ export default {
 				checkinCount: this.checkinCount,
 				recognitionFeedbackCount: this.recognitionFeedbackCount,
 				candidateConfirmationCount: this.candidateConfirmationCount,
+				aiGuideMaterialCount: this.aiGuideMaterialCount,
 				shareCount: this.shareArtifacts.length,
 				misTriggerCount: this.misTriggerCount,
 				safetyStatusSummary: this.safetyStatusSummary,
@@ -1252,6 +1267,7 @@ export default {
 				recognitionFeedbackCount: this.recognitionFeedbackCount,
 				candidateConfirmationAudits: this.candidateConfirmationAudits,
 				candidateConfirmationCount: this.candidateConfirmationCount,
+				aiGuideMaterialCount: this.aiGuideMaterialCount,
 				studyTaskEvidence: this.studyTaskEvidence,
 				badgeAwards: this.badgeAwards,
 				activeBadgeAward: this.activeBadgeAward,
@@ -1333,6 +1349,7 @@ export default {
 				recognitionFeedbackCount: this.recognitionFeedbackCount,
 				candidateConfirmationAudits: this.candidateConfirmationAudits,
 				candidateConfirmationCount: this.candidateConfirmationCount,
+				aiGuideMaterialCount: this.aiGuideMaterialCount,
 				studyTaskEvidence: this.studyTaskEvidence,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
 				badgeAwards: this.badgeAwards,
@@ -1444,6 +1461,7 @@ export default {
 				recognitionFeedbackCount: this.recognitionFeedbackCount,
 				candidateConfirmationAudits: this.candidateConfirmationAudits,
 				candidateConfirmationCount: this.candidateConfirmationCount,
+				aiGuideMaterialCount: this.aiGuideMaterialCount,
 				safetyStatusSummary: this.safetyStatusSummary,
 				safetyBlockedCount: this.safetyBlockedCount,
 				safetyUnavailableCount: this.safetyUnavailableCount,

@@ -604,6 +604,44 @@ const saveMessagesCache = () => {
 
 const loadMessagesCache = () => normalizeCachedMessages(uni.getStorageSync(getActiveChatCacheKey()) || [])
 
+const persistXichengAiGuideMaterial = ({ question = '', result = {}, assistantMessage = null } = {}) => {
+	const context = xichengAiContext.value || {}
+	if (!hasXichengAiContext(context)) return null
+	const assistantMessageContent = assistantMessage && assistantMessage.content ? assistantMessage.content : ''
+	const sources = normalizeXichengReviewedSources(result.sources)
+	const answerText = String(result.answer || assistantMessageContent || '')
+	const existingMaterials = uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey)
+	const materials = Array.isArray(existingMaterials) ? existingMaterials : []
+	const material = {
+		materialId: `ai-guide-${Date.now()}`,
+		type: 'ai-guide',
+		regionCode: context.regionCode || XICHENG_REGION_CONFIG.regionCode,
+		packageCode: context.packageCode || XICHENG_REGION_CONFIG.packageCode,
+		poiCode: context.poiCode || '',
+		poiName: context.poiName || '小京讲解',
+		sourceLabel: '小京讲解',
+		questionLength: String(question || '').length,
+		aiAnswerExcerpt: String(result.answer || assistantMessageContent || '').slice(0, 180),
+		answerLength: answerText.length,
+		sourceCount: sources.length,
+		sources: normalizeXichengReviewedSources(result.sources),
+		suggestedQuestions: Array.isArray(result.followUps) ? result.followUps : [],
+		safetyStatus: result.safetyStatus || '',
+		fallback: Boolean(result.fallback),
+		reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
+		publishStatus: 'private',
+		capturedAt: new Date().toISOString()
+	}
+	if (!material.aiAnswerExcerpt && !material.safetyStatus) {
+		return null
+	}
+	uni.setStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey, [
+		material,
+		...materials
+	].slice(0, 50))
+	return material
+}
+
 const setWelcomeMessage = () => {
 	const welcomeMessage = createWelcomeMessage()
 	messages.value = [welcomeMessage]
@@ -2016,6 +2054,11 @@ const sendMessage = async () => {
 	try {
 		const aiResult = await startXunjingAiRequest({
 			question: userMessage,
+			assistantMessage
+		})
+		persistXichengAiGuideMaterial({
+			question: userMessage,
+			result: aiResult,
 			assistantMessage
 		})
 		recordXunjingResourceEvent({
