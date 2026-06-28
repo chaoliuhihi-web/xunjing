@@ -109,10 +109,7 @@ describe('xicheng backend launch readiness', () => {
       expect(row).toContain("'beijing-xicheng'")
       expect(row).toContain("'P0'")
       expect(row).toContain("'GCJ02'")
-      expect(
-        row.includes("'sourceUrl',@xicheng_source_url") ||
-          row.includes("'sourceUrl',@xicheng_heritage_source_url")
-      ).toBe(true)
+      expect(row).toMatch(/'sourceUrl',@xicheng_[a-z0-9_]*source_url/)
       expect(row).toContain('"gpsRadiusMeters":')
       expect(row).toContain('"ocrKeywords":[')
       expect(row).toContain('"photoLabels":[')
@@ -129,6 +126,9 @@ describe('xicheng backend launch readiness', () => {
     expect(seed).toContain('INSERT INTO `xunjing_knowledge_document`')
     expect(seed).toContain("CONCAT(`name`, ' POI 级已审核来源')")
     expect(seed).toContain('xicheng-baitasi')
+    expect(seed).toContain('@xicheng_baitasi_source_url')
+    expect(seed).toContain('@xicheng_gongwangfu_source_url')
+    expect(seed).toContain('@xicheng_niujie_source_url')
     expect(seed).toContain('POI 级已审核来源')
     expect(seed).toContain("JSON_UNQUOTE(JSON_EXTRACT(`content_json`, '$.shortIntro'))")
     expect(seed).toContain("CONCAT(@xicheng_source_url, _utf8mb4'#%')")

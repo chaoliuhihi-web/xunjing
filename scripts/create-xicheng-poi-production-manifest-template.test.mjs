@@ -218,7 +218,8 @@ describe('xicheng POI production manifest template generator', () => {
       coordType: 'GCJ02',
       source: {
         sourceType: 'OFFICIAL_PUBLIC',
-        sourceUrl: 'https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html',
+        sourceTitle: '妙应寺白塔公开来源',
+        sourceUrl: 'https://www.bjxch.gov.cn/zt/xjkjmp/xxxq/pnidpv969571.html',
         licenseStatus: 'REVIEW_REQUIRED'
       },
       trigger: {
@@ -239,6 +240,9 @@ describe('xicheng POI production manifest template generator', () => {
     expect(manifest.pois[0].aliases).toContain('白塔寺')
     expect(manifest.pois[0].trigger.ocrKeywords).toContain('妙应寺白塔')
     expect(manifest.pois[0].content.recommendedQuestions).toHaveLength(3)
+    expect(manifest.pois.find((poi) => poi.poiCode === 'xicheng-gongwangfu').source.sourceUrl).toBe('https://s.visitbeijing.com.cn/attraction/117810')
+    expect(manifest.pois.find((poi) => poi.poiCode === 'xicheng-guomoruo').source.sourceUrl).toBe('https://wwj.beijing.gov.cn/bjww/wwjzzcslm/1737418/1738088/hxqbaqzckfbwg75/11038136/index.html')
+    expect(manifest.pois.find((poi) => poi.poiCode === 'xicheng-niujie').source.sourceUrl).toBe('https://www.visitbeijing.com.cn/article/4M2HM3VB4pD?device=amp&device=amp')
     expect(manifest.pois[23].poiCode).toBe('xicheng-financial-street')
     expect(manifest.pois[24].poiCode).toBe('xicheng-heritage-001-sanguanmiao')
     expect(manifest.pois[24].name).toBe('三官庙')

@@ -324,10 +324,7 @@ function assertXichengPoiSeedRow(row) {
   ]) {
     assertContains(row, snippet, `xunjing-seed-xicheng-p0.sql ${poiCode}`)
   }
-  if (
-    !row.includes("'sourceUrl',@xicheng_source_url") &&
-    !row.includes("'sourceUrl',@xicheng_heritage_source_url")
-  ) {
+  if (!/'sourceUrl',@xicheng_[a-z0-9_]*source_url/.test(row)) {
     throw new Error(`Xicheng POI seed row ${poiCode} must reference a tracked official source URL`)
   }
 

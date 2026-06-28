@@ -65,20 +65,32 @@ describe('xicheng POI production review pack', () => {
         importedPoiCount: 80,
         todoPoiSlots: 0,
         productionReady: false,
-        sourceReviewGroupCount: 2,
-        sourceReviewGroupBreakdown: [
-          {
+        sourceReviewGroupCount: 15,
+        sourceReviewGroupBreakdown: expect.arrayContaining([
+          expect.objectContaining({
+            sourceTitle: '妙应寺白塔公开来源',
+            sourceUrl: 'https://www.bjxch.gov.cn/zt/xjkjmp/xxxq/pnidpv969571.html',
+            sourceType: 'OFFICIAL_PUBLIC',
+            poiCount: 1
+          }),
+          expect.objectContaining({
             sourceUrl: 'https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html',
             sourceType: 'OFFICIAL_PUBLIC',
-            poiCount: 24
-          },
-          {
+            poiCount: 11
+          }),
+          expect.objectContaining({
+            sourceTitle: '北京旅游网：牛街',
+            sourceUrl: 'https://www.visitbeijing.com.cn/article/4M2HM3VB4pD?device=amp&device=amp',
+            sourceType: 'OFFICIAL_PUBLIC',
+            poiCount: 1
+          }),
+          expect.objectContaining({
             sourceTitle: '西城区文物保护单位（81处）',
             sourceUrl: 'https://www.bjxch.gov.cn/xcfw/whfw/xxxq/pnidpv736523.html',
             sourceType: 'OFFICIAL_PUBLIC',
             poiCount: 56
-          }
-        ],
+          })
+        ]),
         workbookGateStatus: 'NOT_READY',
         workbookReadyPoiCount: 0,
         workbookPendingPoiCount: 80,
@@ -160,8 +172,12 @@ describe('xicheng POI production review pack', () => {
 
     const sourceReview = await readFile(sourceReviewFile, 'utf8')
     expect(sourceReview).toContain('sourceTitle,sourceUrl,sourceType,poiCount,poiCodes,poiNames,licenseStatus,licenseEvidenceRef,licenseReviewedBy,licenseReviewedAt,nextAction')
-    expect(sourceReview).toContain('https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html,OFFICIAL_PUBLIC,24')
-    expect(sourceReview).toContain('xicheng-baitasi|xicheng-emperors-temple')
+    expect(sourceReview).toContain('妙应寺白塔公开来源,https://www.bjxch.gov.cn/zt/xjkjmp/xxxq/pnidpv969571.html,OFFICIAL_PUBLIC,1,xicheng-baitasi,妙应寺白塔')
+    expect(sourceReview).toContain('北京旅游网：恭王府,https://s.visitbeijing.com.cn/attraction/117810,OFFICIAL_PUBLIC,1,xicheng-gongwangfu,恭王府')
+    expect(sourceReview).toContain('https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html,OFFICIAL_PUBLIC,11')
+    expect(sourceReview).not.toContain('xicheng-baitasi|xicheng-emperors-temple')
+    expect(sourceReview).toContain('xicheng-emperors-temple|xicheng-shichahai')
+    expect(sourceReview).toContain('北京旅游网：牛街,https://www.visitbeijing.com.cn/article/4M2HM3VB4pD?device=amp&device=amp,OFFICIAL_PUBLIC,1,xicheng-niujie,牛街')
     expect(sourceReview).toContain('西城区文物保护单位（81处）,https://www.bjxch.gov.cn/xcfw/whfw/xxxq/pnidpv736523.html,OFFICIAL_PUBLIC,56')
     expect(sourceReview).toContain('xicheng-heritage-001-sanguanmiao|xicheng-heritage-002-jingyesi')
     expect(sourceReview).toContain('Approve source license once per source group and attach non-local evidence refs to every POI row.')
@@ -176,7 +192,7 @@ describe('xicheng POI production review pack', () => {
         workbookEvidenceFile,
         reviewTasksFile,
         sourceReviewFile,
-        sourceReviewGroupCount: 2,
+        sourceReviewGroupCount: 15,
         workbookGateStatus: 'NOT_READY',
         reviewTaskStatus: 'REVIEW_TASKS_REQUIRED'
       }

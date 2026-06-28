@@ -101,7 +101,7 @@ function approvedSourceReviewCsv() {
       '西城首批文旅 POI 公开来源索引',
       sourceUrl,
       'OFFICIAL_PUBLIC',
-      '24',
+      '11',
       '',
       '',
       'APPROVED',
@@ -156,17 +156,17 @@ describe('xicheng POI source review workbook apply', () => {
         workbookRows: 80,
         sourceReviewRows: 2,
         approvedSourceGroupCount: 1,
-        appliedPoiCount: 24,
-        pendingSourcePoiCount: 56
+        appliedPoiCount: 11,
+        pendingSourcePoiCount: 69
       }
     })
-    expect(report.blockers).toContain('56 workbook POIs still require source license review')
+    expect(report.blockers).toContain('69 workbook POIs still require source license review')
     expect(report.note).toContain('not production evidence')
 
     const rows = workbookRows(await readFile(outputFile, 'utf8'))
-    const baitasi = rows.find((row) => row.poiCode === 'xicheng-baitasi')
+    const emperorsTemple = rows.find((row) => row.poiCode === 'xicheng-emperors-temple')
     const heritage = rows.find((row) => row.poiCode === 'xicheng-heritage-001-sanguanmiao')
-    expect(baitasi).toMatchObject({
+    expect(emperorsTemple).toMatchObject({
       sourceUrl,
       sourceType: 'OFFICIAL_PUBLIC',
       licenseStatus: 'APPROVED',
@@ -189,7 +189,7 @@ describe('xicheng POI source review workbook apply', () => {
       {
         sourceUrl,
         sourceType: 'OFFICIAL_PUBLIC',
-        poiCount: 24,
+        poiCount: 11,
         licenseEvidenceRef: 'oss://xunjing-review/xicheng/source-license/a-level-directory-approval.pdf'
       }
     ])
