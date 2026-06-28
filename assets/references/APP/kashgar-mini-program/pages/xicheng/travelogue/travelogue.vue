@@ -1682,7 +1682,9 @@ export default {
 				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
 				companionName: XICHENG_REGION_CONFIG.companionName,
 				routeTitle,
-				publicMaterials: this.materials.map(material => this.sanitizeMaterialForPublicShare(material)),
+				publicMaterials: this.materials
+					.filter(material => hasReviewableMaterialEvidence(material))
+					.map(material => this.sanitizeMaterialForPublicShare(material)),
 				publicStudyTaskEvidence: this.completedStudyTaskEvidence.map(evidence => this.sanitizeStudyTaskEvidenceForPublicShare(evidence)),
 				publicRouteCheckins: this.routeCheckins.map(checkin => this.sanitizeRouteCheckinForPublicShare(checkin)),
 				publicCandidateConfirmationSummary: this.createPublicCandidateConfirmationSummary(),
