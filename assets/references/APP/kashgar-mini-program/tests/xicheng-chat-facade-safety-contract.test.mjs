@@ -38,8 +38,8 @@ assert.match(
 
 assert.match(
   normalizeResponseBlock,
-  /followUps:\s*suggestedQuestions/,
-  'Xicheng chat response normalization should expose followUps as an alias of suggestedQuestions for APP material and chat reuse'
+  /const safeSuggestedQuestions = safetyStatus === 'BLOCKED' \? \[\] : suggestedQuestions[\s\S]*followUps:\s*safeSuggestedQuestions/,
+  'Xicheng chat response normalization should expose safe followUps while clearing prompts for BLOCKED responses'
 )
 
 assert.match(
@@ -64,4 +64,56 @@ assert.doesNotMatch(
   chatRequest,
   /Authorization['"]?\s*:\s*`Bearer|pat_[A-Za-z0-9]{20,}|https:\/\/api\.coze\.cn|sk-[A-Za-z0-9]{20,}/,
   'Xicheng chat facade should not introduce client-side AI secrets'
+)
+
+let runtimeChatSource = chatRequest
+  .replace(
+    /import \{[\s\S]*?\} from '@\/request\/xunjingMultimodal\.js'/,
+    `const buildYudaoAppApiUrl = (path) => 'https://example.test/' + path
+const getXunjingUserTraceId = () => 'guest'
+const getYudaoCommonResultPayload = (res) => res && res.data && res.data.data ? res.data.data : {}`
+  )
+  .replace(
+    /import \{ normalizeXichengSafetyStatus \} from '@\/request\/xunjing\/safety\.js'/,
+    `const normalizeXichengSafetyStatus = (safetyStatus = '') => String(safetyStatus || '').trim().toUpperCase()`
+  )
+  .replace(
+    /import \{ normalizeXichengReviewedSources \} from '@\/request\/xunjing\/sources\.js'/,
+    `const normalizeXichengReviewedSources = (sources = []) => Array.isArray(sources) ? sources : []`
+  )
+  .replace(
+    /import \{ XICHENG_REGION_CONFIG \} from '@\/config\/regions\/xicheng\.js'/,
+    `const XICHENG_REGION_CONFIG = Object.freeze({
+  packageCode: 'XICHENG-MAP-001',
+  regionCode: 'beijing-xicheng',
+  aiSceneCode: 'xicheng-ai-guide',
+  sourceChannel: 'APP_UNIAPP',
+  companionName: '小京',
+  tenantId: '1'
+})`
+  )
+
+const { normalizeXichengAiChatResponse } = await import(
+  `data:text/javascript;base64,${Buffer.from(runtimeChatSource).toString('base64')}`
+)
+
+const blockedResponse = normalizeXichengAiChatResponse({
+  answer: '后端不应展示的未审核回答',
+  safetyStatus: 'blocked',
+  suggestedQuestions: ['继续讲讲白塔寺'],
+  sources: [{ title: '未使用来源' }],
+  logId: 'blocked-log-1'
+})
+
+assert.deepEqual(
+  blockedResponse,
+  {
+    answer: '无已审核来源，不能回答',
+    suggestedQuestions: [],
+    followUps: [],
+    sources: [],
+    safetyStatus: 'BLOCKED',
+    logId: 'blocked-log-1'
+  },
+  'Xicheng chat facade should fail closed for BLOCKED responses without follow-ups or reviewed sources'
 )

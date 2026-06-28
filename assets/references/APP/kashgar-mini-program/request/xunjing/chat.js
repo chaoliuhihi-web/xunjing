@@ -31,10 +31,11 @@ export const normalizeXichengAiChatResponse = (payload = {}) => {
 			? payload.recommendedQuestions
 			: []
 	const safetyStatus = normalizeXichengSafetyStatus(payload.safetyStatus)
+	const safeSuggestedQuestions = safetyStatus === 'BLOCKED' ? [] : suggestedQuestions
 	return {
 		answer: safetyStatus === 'BLOCKED' ? XICHENG_BLOCKED_ANSWER : payload.answer ? String(payload.answer) : '',
-		suggestedQuestions,
-		followUps: suggestedQuestions,
+		suggestedQuestions: safeSuggestedQuestions,
+		followUps: safeSuggestedQuestions,
 		sources: safetyStatus === 'BLOCKED' ? [] : normalizeXichengReviewedSources(payload.sources),
 		safetyStatus,
 		logId: payload.logId || ''
