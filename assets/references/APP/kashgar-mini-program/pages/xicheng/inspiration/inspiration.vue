@@ -202,6 +202,8 @@ export default {
 					poiName: stop.poiName,
 					sourceLabel: '灵感导入路线',
 					sources: [],
+					reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
+					publishStatus: 'private',
 					capturedAt: route.updatedAt
 				}))
 			const imageMaterial = this.imagePath
@@ -216,6 +218,8 @@ export default {
 					imagePath: this.imagePath,
 					sourceLabel: '上传攻略图片',
 					sources: [],
+					reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
+					publishStatus: 'private',
 					capturedAt: route.updatedAt
 				}]
 				: []

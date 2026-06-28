@@ -138,8 +138,20 @@ assert.match(
 
 assert.match(
   saveRouteBlock,
+  /route\.stops\.map\(stop => \(\{[\s\S]*type:\s*'inspiration-poi'[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  'Inspiration route POI materials should be pending review and private before share or review handoff'
+)
+
+assert.match(
+  saveRouteBlock,
   /type:\s*'inspiration-image'[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel/,
   'Inspiration image material should carry package, scene, and source channel for review and operations attribution'
+)
+
+assert.match(
+  saveRouteBlock,
+  /type:\s*'inspiration-image'[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  'Inspiration image material should be pending review and private before share or review handoff'
 )
 
 assert.match(
