@@ -63,6 +63,9 @@ describe('xicheng POI production review pack', () => {
     expect(report.nextCommands).toContain(
       'npm run xunjing:xicheng:poi:workbook:gate -- --workbook workbench/xicheng-production-pois.review-workbook.csv --evidence-file qa/xicheng-poi-review-workbook-evidence.json'
     )
+    expect(report.nextCommands).toContain(
+      'npm run xunjing:xicheng:poi:tasks:export -- --workbook-evidence qa/xicheng-poi-review-workbook-evidence.json --output workbench/xicheng-poi-review-tasks.csv'
+    )
 
     const manifest = JSON.parse(await readFile(outputFile, 'utf8'))
     expect(manifest.seedSource).toMatchObject({

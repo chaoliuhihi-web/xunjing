@@ -335,6 +335,9 @@ describe('xicheng POI production manifest template generator', () => {
       'npm run xunjing:xicheng:poi:workbook:gate -- --workbook workbench/xicheng-production-pois.review-workbook.csv --evidence-file qa/xicheng-poi-review-workbook-evidence.json'
     )
     expect(reviewPacket.nextCommands).toContain(
+      'npm run xunjing:xicheng:poi:tasks:export -- --workbook-evidence qa/xicheng-poi-review-workbook-evidence.json --output workbench/xicheng-poi-review-tasks.csv'
+    )
+    expect(reviewPacket.nextCommands).toContain(
       'npm run xunjing:xicheng:poi:manifest:from-workbook -- --workbook workbench/xicheng-production-pois.review-workbook.csv --output workbench/xicheng-production-pois.json --production-ready --batch-code xicheng-p0-poi-review-YYYYMMDD --data-owner xicheng-cultural-tourism-review-team --source-compiled-by xicheng-source-compiler --source-compiled-at YYYY-MM-DD --reviewed-by xicheng-production-reviewer --reviewed-at YYYY-MM-DD --evidence-package-ref oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-YYYYMMDD.zip'
     )
     expect(reviewPacket.nextCommands).toContain(
@@ -363,11 +366,13 @@ describe('xicheng POI production manifest template generator', () => {
     expect(deployDoc).toContain('--review-checklist workbench/xicheng-production-pois.review-checklist.csv')
     expect(deployDoc).toContain('--review-workbook workbench/xicheng-production-pois.review-workbook.csv')
     expect(deployDoc).toContain('--review-packet workbench/xicheng-production-pois.review-packet.json')
+    expect(deployDoc).toContain('npm run xunjing:xicheng:poi:tasks:export')
     expect(statusDoc).toContain('npm run xunjing:xicheng:poi:manifest:template')
     expect(statusDoc).toContain('模板不会通过 production manifest gate')
     expect(statusDoc).toContain('--seed-sql backend/yudao/sql/mysql/xunjing-seed-xicheng-p0.sql')
     expect(statusDoc).toContain('--review-checklist workbench/xicheng-production-pois.review-checklist.csv')
     expect(statusDoc).toContain('--review-workbook workbench/xicheng-production-pois.review-workbook.csv')
     expect(statusDoc).toContain('--review-packet workbench/xicheng-production-pois.review-packet.json')
+    expect(statusDoc).toContain('npm run xunjing:xicheng:poi:tasks:export')
   })
 })

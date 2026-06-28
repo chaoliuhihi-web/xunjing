@@ -467,6 +467,7 @@ function buildReviewPacket({
     },
     nextCommands: [
       `npm run xunjing:xicheng:poi:workbook:gate -- --workbook ${workbookPath || 'workbench/xicheng-production-pois.review-workbook.csv'} --evidence-file qa/xicheng-poi-review-workbook-evidence.json`,
+      'npm run xunjing:xicheng:poi:tasks:export -- --workbook-evidence qa/xicheng-poi-review-workbook-evidence.json --output workbench/xicheng-poi-review-tasks.csv',
       `npm run xunjing:xicheng:poi:manifest:from-workbook -- --workbook ${workbookPath || 'workbench/xicheng-production-pois.review-workbook.csv'} --output ${productionManifestPath} --production-ready --batch-code xicheng-p0-poi-review-YYYYMMDD --data-owner xicheng-cultural-tourism-review-team --source-compiled-by xicheng-source-compiler --source-compiled-at YYYY-MM-DD --reviewed-by xicheng-production-reviewer --reviewed-at YYYY-MM-DD --evidence-package-ref oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-YYYYMMDD.zip`,
       `npm run xunjing:xicheng:poi:manifest:gate -- --manifest ${productionManifestPath} --evidence-file qa/xicheng-poi-manifest-evidence.json`,
       `npm run xunjing:xicheng:poi:seed:generate -- --manifest ${productionManifestPath} --output ${productionSeedPath} --evidence-file qa/xicheng-poi-production-seed-generation-evidence.json`,
