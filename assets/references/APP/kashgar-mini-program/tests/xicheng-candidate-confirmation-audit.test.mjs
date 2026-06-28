@@ -90,8 +90,8 @@ assert.match(
 
 assert.match(
   travelogue,
-  /createShareArtifact\(assetType\)[\s\S]*candidateConfirmationAudits:\s*this\.candidateConfirmationAudits[\s\S]*candidateConfirmationCount:\s*this\.candidateConfirmationCount/,
-  'Poster and PDF assets should include candidate confirmation audit counts'
+  /createShareArtifact\(assetType\)[\s\S]*publicCandidateConfirmationSummary:\s*this\.createPublicCandidateConfirmationSummary\(\)[\s\S]*candidateConfirmationCount:\s*this\.candidateConfirmationCount/,
+  'Poster and PDF assets should include a sanitized public candidate confirmation summary and count'
 )
 
 assert.match(

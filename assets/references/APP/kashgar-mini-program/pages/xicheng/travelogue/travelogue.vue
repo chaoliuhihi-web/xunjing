@@ -1610,6 +1610,15 @@ export default {
 				completedAt: evidence.completedAt || ''
 			}
 		},
+		createPublicCandidateConfirmationSummary() {
+			const confirmedPoiNames = this.candidateConfirmationAudits
+				.map(audit => audit && audit.selectedCandidatePoiName ? audit.selectedCandidatePoiName : '')
+				.filter(Boolean)
+			return {
+				candidateConfirmationCount: this.candidateConfirmationCount,
+				confirmedPoiNames: Array.from(new Set(confirmedPoiNames)).slice(0, 5)
+			}
+		},
 		createPublicRecordingSummary() {
 			return {
 				sessionStatus: this.recordingSession.status || 'idle',
@@ -1643,6 +1652,7 @@ export default {
 				routeTitle,
 				publicMaterials: this.materials.map(material => this.sanitizeMaterialForPublicShare(material)),
 				publicStudyTaskEvidence: this.completedStudyTaskEvidence.map(evidence => this.sanitizeStudyTaskEvidenceForPublicShare(evidence)),
+				publicCandidateConfirmationSummary: this.createPublicCandidateConfirmationSummary(),
 				publicRecordingSummary: this.createPublicRecordingSummary(),
 				qualityReport: this.qualityReport,
 				filteredTrackPointCount: this.filteredTrackPointCount,
@@ -1665,7 +1675,6 @@ export default {
 				activeBadgeAward: this.activeBadgeAward,
 				badgeAwardCount: this.badgeAwardCount,
 				recognitionFeedbackCount: this.recognitionFeedbackCount,
-				candidateConfirmationAudits: this.candidateConfirmationAudits,
 				candidateConfirmationCount: this.candidateConfirmationCount,
 				aiGuideMaterialCount: this.aiGuideMaterialCount,
 				safetyStatusSummary: this.safetyStatusSummary,
