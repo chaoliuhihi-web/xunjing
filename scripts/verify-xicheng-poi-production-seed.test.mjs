@@ -151,6 +151,11 @@ describe('xicheng POI production seed SQL gate', () => {
       '--output', 'tmp/xicheng-poi-production-seed.sql'
     ])
     expect(generated.status).toBe(0)
+    const generatedSql = await readFile(sqlPath, 'utf8')
+    expect(generatedSql).toContain('"packageCount":1')
+    expect(generatedSql).toContain('"reviewedKnowledgeCount":80')
+    expect(generatedSql).toContain('"mapPointCount":80')
+    expect(generatedSql).toContain('"qrCodeCount":1')
 
     const result = runSeedGate([
       '--sql', sqlPath,

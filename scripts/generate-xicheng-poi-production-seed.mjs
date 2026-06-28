@@ -194,14 +194,24 @@ function buildKnowledgeRow(poi) {
 }
 
 function buildMetrics(manifest) {
+  const poiCount = manifest.pois.length
   return {
     p0Ready: true,
     productionReady: true,
     regionCode: manifest.regionCode,
     packageCode: manifest.packageCode,
+    packageCount: 1,
+    reviewedKnowledgeCount: poiCount,
+    reviewedMediaCount: 0,
+    mapPointCount: poiCount,
+    globeModelCount: 0,
+    qrCodeCount: 1,
+    interactionCount: 0,
+    mediaUsageCount: 0,
+    aiGenerationCount: 0,
     reviewBatchCode: manifest.reviewBatch?.batchCode,
     reviewBatchEvidencePackageRef: manifest.reviewBatch?.evidencePackageRef,
-    poiSeedCount: manifest.pois.length,
+    poiSeedCount: poiCount,
     targetP0PoiCount: Number(manifest.targetP0PoiCount),
     sourceLicenseStatus: 'APPROVED',
     geoStatus: 'APPROVED',

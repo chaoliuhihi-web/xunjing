@@ -355,7 +355,7 @@ INSERT INTO `xunjing_public_report`
 (`project_id`, `school_id`, `title`, `report_period`, `metrics_json`, `status`, `generated_at`, `creator`, `create_time`, `updater`, `update_time`, `deleted`, `tenant_id`)
 VALUES
 (@project_id, @school_id, '西城 P0 后台本地候选状态', '2026-P0-LOCAL-CANDIDATE',
- '{"p0Ready":false,"p0LocalCandidate":true,"productionReady":false,"regionCode":"beijing-xicheng","packageCode":"XICHENG-MAP-001","poiSeedCount":80,"targetP0PoiCount":80,"knowledgeDocumentCount":84,"aiEvalCaseCount":5,"quotaRuleCount":4,"remainingBlockers":["真实微信 AppID","HTTPS 后端域名","OCR/视觉识别服务","上传凭证/对象存储","真实 AI Key","80 个候选 POI 已填充，仍需来源授权、坐标和现场识别复核"]}',
+ '{"p0Ready":false,"p0LocalCandidate":true,"productionReady":false,"regionCode":"beijing-xicheng","packageCode":"XICHENG-MAP-001","packageCount":1,"reviewedKnowledgeCount":84,"reviewedMediaCount":0,"mapPointCount":80,"globeModelCount":0,"qrCodeCount":1,"interactionCount":0,"mediaUsageCount":0,"aiGenerationCount":0,"poiSeedCount":80,"targetP0PoiCount":80,"knowledgeDocumentCount":84,"aiEvalCaseCount":5,"quotaRuleCount":4,"remainingBlockers":["真实微信 AppID","HTTPS 后端域名","OCR/视觉识别服务","上传凭证/对象存储","真实 AI Key","80 个候选 POI 已填充，仍需来源授权、坐标和现场识别复核"]}',
  'GENERATED', NOW(), 'admin', NOW(), 'admin', NOW(), b'0', @tenant_id);
 
 SET FOREIGN_KEY_CHECKS = 1;

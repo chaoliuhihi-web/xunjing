@@ -23,6 +23,7 @@ const defaultPaths = {
   workbookEvidenceFile: 'qa/xicheng-poi-review-workbook-evidence.json',
   reviewTasksFile: 'workbench/xicheng-poi-review-tasks.csv',
   sourceReviewFile: 'workbench/xicheng-poi-source-review-summary.csv',
+  productionReviewFile: 'workbench/xicheng-poi-production-review-summary.csv',
   reviewPackEvidenceFile: 'qa/xicheng-poi-production-review-pack-evidence.json'
 }
 
@@ -153,6 +154,66 @@ function sourceReviewGroupBreakdown(groups) {
   }))
 }
 
+function buildProductionReviewRows(manifest) {
+  const pois = Array.isArray(manifest?.pois) ? manifest.pois : []
+  return pois.map((poi) => {
+    const fieldEvidence = poi.fieldEvidence || {}
+    const audit = poi.audit || {}
+    return {
+      poiCode: poi.poiCode,
+      photoEvidenceStatus: fieldEvidence.photoEvidenceStatus || 'REVIEW_REQUIRED',
+      triggerSmokeStatus: fieldEvidence.triggerSmokeStatus || 'NOT_RUN',
+      fieldEvidenceRefs: Array.isArray(fieldEvidence.evidenceRefs)
+        ? fieldEvidence.evidenceRefs.join('|')
+        : '',
+      fieldVerifiedBy: fieldEvidence.verifiedBy || '',
+      fieldVerifiedAt: fieldEvidence.verifiedAt || '',
+      reviewStatus: audit.reviewStatus || 'REVIEW_REQUIRED',
+      geoStatus: audit.geoStatus || 'REVIEW_REQUIRED',
+      auditLicenseStatus: audit.licenseStatus || 'REVIEW_REQUIRED',
+      status: audit.status || 'DRAFT',
+      reviewedBy: audit.reviewedBy || '',
+      reviewedAt: audit.reviewedAt || '',
+      nextAction: 'Attach field evidence, pass trigger smoke, approve geo/content/license audit, and keep evidence refs non-local.'
+    }
+  })
+}
+
+function buildProductionReviewCsv(rows) {
+  return [
+    csvRow([
+      'poiCode',
+      'photoEvidenceStatus',
+      'triggerSmokeStatus',
+      'fieldEvidenceRefs',
+      'fieldVerifiedBy',
+      'fieldVerifiedAt',
+      'reviewStatus',
+      'geoStatus',
+      'auditLicenseStatus',
+      'status',
+      'reviewedBy',
+      'reviewedAt',
+      'nextAction'
+    ]),
+    ...rows.map((row) => csvRow([
+      row.poiCode,
+      row.photoEvidenceStatus,
+      row.triggerSmokeStatus,
+      row.fieldEvidenceRefs,
+      row.fieldVerifiedBy,
+      row.fieldVerifiedAt,
+      row.reviewStatus,
+      row.geoStatus,
+      row.auditLicenseStatus,
+      row.status,
+      row.reviewedBy,
+      row.reviewedAt,
+      row.nextAction
+    ]))
+  ].join('\n') + '\n'
+}
+
 export async function createXichengPoiProductionReviewPack({
   rootDir = process.cwd(),
   outputFile = defaultPaths.outputFile,
@@ -163,6 +224,7 @@ export async function createXichengPoiProductionReviewPack({
   workbookEvidenceFile = defaultPaths.workbookEvidenceFile,
   reviewTasksFile = defaultPaths.reviewTasksFile,
   sourceReviewFile = defaultPaths.sourceReviewFile,
+  productionReviewFile = defaultPaths.productionReviewFile,
   reviewPackEvidenceFile = defaultPaths.reviewPackEvidenceFile,
   count = 80
 } = {}) {
@@ -184,6 +246,10 @@ export async function createXichengPoiProductionReviewPack({
   const resolvedSourceReviewFile = resolveEvidenceFile(resolvedRootDir, sourceReviewFile)
   await mkdir(path.dirname(resolvedSourceReviewFile), { recursive: true })
   await writeFile(resolvedSourceReviewFile, buildSourceReviewCsv(sourceReviewGroups))
+  const productionReviewRows = buildProductionReviewRows(manifest)
+  const resolvedProductionReviewFile = resolveEvidenceFile(resolvedRootDir, productionReviewFile)
+  await mkdir(path.dirname(resolvedProductionReviewFile), { recursive: true })
+  await writeFile(resolvedProductionReviewFile, buildProductionReviewCsv(productionReviewRows))
   const workbookGateReport = await verifyXichengPoiReviewWorkbook({
     rootDir: resolvedRootDir,
     workbookFile: reviewWorkbookFile,
@@ -219,6 +285,8 @@ export async function createXichengPoiProductionReviewPack({
       sourceReviewFile: resolvedSourceReviewFile,
       sourceReviewGroupCount: sourceReviewGroups.length,
       sourceReviewGroupBreakdown: sourceReviewGroupBreakdown(sourceReviewGroups),
+      productionReviewFile: resolvedProductionReviewFile,
+      productionReviewRowCount: productionReviewRows.length,
       reviewPackEvidenceFile: resolvedReviewPackEvidenceFile,
       nextCommandCount: Array.isArray(reviewPacket.nextCommands)
         ? reviewPacket.nextCommands.length
@@ -250,6 +318,7 @@ async function runCli() {
     workbookEvidenceFile: readArgValue(args, '--workbook-evidence') || defaultPaths.workbookEvidenceFile,
     reviewTasksFile: readArgValue(args, '--review-tasks') || defaultPaths.reviewTasksFile,
     sourceReviewFile: readArgValue(args, '--source-review') || defaultPaths.sourceReviewFile,
+    productionReviewFile: readArgValue(args, '--production-review') || defaultPaths.productionReviewFile,
     reviewPackEvidenceFile: readArgValue(args, '--evidence-file') || defaultPaths.reviewPackEvidenceFile,
     count: readArgValue(args, '--count') || 80
   })

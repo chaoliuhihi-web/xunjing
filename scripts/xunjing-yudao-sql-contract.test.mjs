@@ -72,6 +72,10 @@ describe('xunjing yudao sql contract', () => {
     expect(seed).toContain('https://www.bjxch.gov.cn/xcfw/whfw/xxxq/pnidpv736523.html')
     expect(seed).toContain('"targetP0PoiCount":80')
     expect(seed).toContain('"productionReady":false')
+    expect(seed).toContain('"packageCount":1')
+    expect(seed).toContain('"reviewedKnowledgeCount":84')
+    expect(seed).toContain('"mapPointCount":80')
+    expect(seed).toContain('"qrCodeCount":1')
   })
 
   test('includes Yudao AI management schema in independent platform initialization', async () => {

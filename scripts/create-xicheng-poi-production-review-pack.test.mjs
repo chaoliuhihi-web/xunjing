@@ -46,6 +46,7 @@ describe('xicheng POI production review pack', () => {
     const workbookEvidenceFile = path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json')
     const reviewTasksFile = path.join(rootDir, 'workbench/xicheng-poi-review-tasks.csv')
     const sourceReviewFile = path.join(rootDir, 'workbench/xicheng-poi-source-review-summary.csv')
+    const productionReviewFile = path.join(rootDir, 'workbench/xicheng-poi-production-review-summary.csv')
     const reviewPackEvidenceFile = path.join(rootDir, 'qa/xicheng-poi-production-review-pack-evidence.json')
 
     expect(report).toMatchObject({
@@ -60,6 +61,7 @@ describe('xicheng POI production review pack', () => {
         workbookEvidenceFile,
         reviewTasksFile,
         sourceReviewFile,
+        productionReviewFile,
         reviewPackEvidenceFile,
         poiSlots: 80,
         importedPoiCount: 80,
@@ -198,6 +200,11 @@ describe('xicheng POI production review pack', () => {
     expect(sourceReview).toContain('xicheng-heritage-001-sanguanmiao|xicheng-heritage-002-jingyesi')
     expect(sourceReview).toContain('Approve source license once per source group and attach non-local evidence refs to every POI row.')
 
+    const productionReview = await readFile(productionReviewFile, 'utf8')
+    expect(productionReview).toContain('poiCode,photoEvidenceStatus,triggerSmokeStatus,fieldEvidenceRefs,fieldVerifiedBy,fieldVerifiedAt,reviewStatus,geoStatus,auditLicenseStatus,status,reviewedBy,reviewedAt,nextAction')
+    expect(productionReview).toContain('xicheng-baitasi,REVIEW_REQUIRED,NOT_RUN,,,,REVIEW_REQUIRED,REVIEW_REQUIRED,REVIEW_REQUIRED,DRAFT,,,"Attach field evidence, pass trigger smoke, approve geo/content/license audit, and keep evidence refs non-local."')
+    expect(productionReview).toContain('xicheng-heritage-001-sanguanmiao,REVIEW_REQUIRED,NOT_RUN,,,,REVIEW_REQUIRED,REVIEW_REQUIRED,REVIEW_REQUIRED,DRAFT,,,"Attach field evidence, pass trigger smoke, approve geo/content/license audit, and keep evidence refs non-local."')
+
     const reviewPackEvidence = JSON.parse(await readFile(reviewPackEvidenceFile, 'utf8'))
     expect(reviewPackEvidence).toMatchObject({
       artifactType: 'xicheng-poi-production-review-pack',
@@ -208,6 +215,8 @@ describe('xicheng POI production review pack', () => {
         workbookEvidenceFile,
         reviewTasksFile,
         sourceReviewFile,
+        productionReviewFile,
+        productionReviewRowCount: 80,
         sourceReviewGroupCount: 25,
         workbookGateStatus: 'NOT_READY',
         reviewTaskStatus: 'REVIEW_TASKS_REQUIRED'
@@ -241,9 +250,11 @@ describe('xicheng POI production review pack', () => {
     expect(deployDoc).toContain('qa/xicheng-poi-review-workbook-evidence.json')
     expect(deployDoc).toContain('workbench/xicheng-poi-review-tasks.csv')
     expect(deployDoc).toContain('workbench/xicheng-poi-source-review-summary.csv')
+    expect(deployDoc).toContain('workbench/xicheng-poi-production-review-summary.csv')
     expect(deployDoc).toContain('--workbook-evidence qa/xicheng-poi-review-workbook-evidence.json')
     expect(deployDoc).toContain('--review-tasks workbench/xicheng-poi-review-tasks.csv')
     expect(deployDoc).toContain('--source-review workbench/xicheng-poi-source-review-summary.csv')
+    expect(deployDoc).toContain('--production-review workbench/xicheng-poi-production-review-summary.csv')
     expect(deployDoc).toContain('--evidence-file qa/xicheng-poi-production-review-pack-evidence.json')
     expect(statusDoc).toContain('npm run xunjing:xicheng:poi:review:pack')
     expect(statusDoc).toContain('qa/xicheng-poi-production-review-pack-evidence.json')
@@ -251,6 +262,7 @@ describe('xicheng POI production review pack', () => {
     expect(statusDoc).toContain('reviewTaskStatus')
     expect(statusDoc).toContain('reviewTaskOwnerLaneBreakdown')
     expect(statusDoc).toContain('sourceReviewGroupBreakdown')
+    expect(statusDoc).toContain('productionReviewRowCount')
     expect(deployDoc).toContain('npm run xunjing:xicheng:poi:source-review:apply')
     expect(deployDoc).toContain('reviewTaskOwnerLaneBreakdown')
   })
