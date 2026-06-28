@@ -408,6 +408,8 @@ import request from '@/request/request.js'
 import { buildTencentMapSignedUrl } from '@/request/qqMapSign.js'
 import { resolveXunjingMultimodalTrigger, requestCurrentLocationForTrigger } from '@/request/xunjingMultimodal.js'
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
+import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
+import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 import {
 	KASHGAR_ACTIONS,
 	KASHGAR_MAP_SHORTCUTS,
@@ -705,6 +707,20 @@ export default {
 				location
 			})
 		},
+		normalizeXichengMultimodalSources(trigger = {}) {
+			const safetyStatus = normalizeXichengSafetyStatus(trigger.safetyStatus)
+			if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+				return []
+			}
+			return normalizeXichengReviewedSources(trigger.sources)
+		},
+		normalizeXichengMultimodalSuggestedQuestions(trigger = {}) {
+			const safetyStatus = normalizeXichengSafetyStatus(trigger.safetyStatus)
+			if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+				return []
+			}
+			return Array.isArray(trigger.suggestedQuestions) ? trigger.suggestedQuestions : []
+		},
 		persistXichengMultimodalRecognition(trigger = {}) {
 			if (!trigger || !trigger.poiCode) return
 			uni.setStorageSync(XICHENG_REGION_CONFIG.storageKey, {
@@ -716,8 +732,8 @@ export default {
 				companionName: trigger.companionName || XICHENG_REGION_CONFIG.companionName,
 				source: trigger.source || trigger.triggerType || 'multimodal',
 				sourceLabel: trigger.sourceLabel || '文本识别',
-				sources: Array.isArray(trigger.sources) ? trigger.sources : [],
-				suggestedQuestions: Array.isArray(trigger.suggestedQuestions) ? trigger.suggestedQuestions : []
+				sources: this.normalizeXichengMultimodalSources(trigger),
+				suggestedQuestions: this.normalizeXichengMultimodalSuggestedQuestions(trigger)
 			})
 		},
 		normalizeXunjingTriggerTargetPath(trigger = {}) {
@@ -734,7 +750,7 @@ export default {
 				companionName: trigger.companionName || XICHENG_REGION_CONFIG.companionName,
 				intent: trigger.intent,
 				confidence: trigger.confidence,
-				safetyStatus: trigger.safetyStatus || '',
+				safetyStatus: normalizeXichengSafetyStatus(trigger.safetyStatus),
 				trigger: 'multimodal'
 			})
 			if (trigger.intent === 'route' || trigger.action === 'open_route_recommendation') {

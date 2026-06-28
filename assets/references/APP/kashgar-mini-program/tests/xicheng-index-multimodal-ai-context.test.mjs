@@ -17,13 +17,25 @@ assert.match(
   'Index multimodal entry should reuse Xicheng region config for official APP context'
 )
 
+assert.match(
+  indexPage,
+  /import \{ normalizeXichengSafetyStatus \} from '@\/request\/xunjing\/safety\.js'/,
+  'Index multimodal entry should reuse the shared Xicheng safety status normalizer'
+)
+
+assert.match(
+  indexPage,
+  /import \{ normalizeXichengReviewedSources \} from '@\/request\/xunjing\/sources\.js'/,
+  'Index multimodal entry should reuse the shared reviewed source normalizer'
+)
+
 for (const required of [
   'regionCode: trigger.regionCode || XICHENG_REGION_CONFIG.regionCode',
   'packageCode: trigger.packageCode || XICHENG_REGION_CONFIG.packageCode',
   'sceneCode: trigger.sceneCode || XICHENG_REGION_CONFIG.sceneCode',
   'sourceChannel: trigger.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel',
   'companionName: trigger.companionName || XICHENG_REGION_CONFIG.companionName',
-  'safetyStatus: trigger.safetyStatus || \'\'',
+  'safetyStatus: normalizeXichengSafetyStatus(trigger.safetyStatus)',
   'trigger: \'multimodal\''
 ]) {
   assert.ok(targetPathBlock.includes(required), `Index multimodal target URL should carry ${required}`)
@@ -37,8 +49,23 @@ assert.match(
 
 assert.match(
   indexPage,
-  /persistXichengMultimodalRecognition\(trigger = \{\}\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.storageKey[\s\S]*sources:\s*Array\.isArray\(trigger\.sources\) \? trigger\.sources : \[\][\s\S]*suggestedQuestions:\s*Array\.isArray\(trigger\.suggestedQuestions\) \? trigger\.suggestedQuestions : \[\]/,
-  'Index should cache reviewed sources and suggested questions for the Xiaojing page instead of dropping them from the direct multimodal path'
+  /persistXichengMultimodalRecognition\(trigger = \{\}\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.storageKey[\s\S]*sources:\s*this\.normalizeXichengMultimodalSources\(trigger\)[\s\S]*suggestedQuestions:\s*this\.normalizeXichengMultimodalSuggestedQuestions\(trigger\)/,
+  'Index should cache safety-aware reviewed sources and suggested questions for the Xiaojing page'
+)
+
+const persistedSourcesBlock = indexPage.match(/normalizeXichengMultimodalSources\(trigger = \{\}\)[\s\S]*?\n\t\t\},/)?.[0] || ''
+const persistedQuestionsBlock = indexPage.match(/normalizeXichengMultimodalSuggestedQuestions\(trigger = \{\}\)[\s\S]*?\n\t\t\},/)?.[0] || ''
+
+assert.match(
+  persistedSourcesBlock,
+  /const safetyStatus = normalizeXichengSafetyStatus\(trigger\.safetyStatus\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*return \[\][\s\S]*return normalizeXichengReviewedSources\(trigger\.sources\)/,
+  'Index should clear cached reviewed sources when multimodal recognition is BLOCKED or UNAVAILABLE'
+)
+
+assert.match(
+  persistedQuestionsBlock,
+  /const safetyStatus = normalizeXichengSafetyStatus\(trigger\.safetyStatus\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*return \[\][\s\S]*Array\.isArray\(trigger\.suggestedQuestions\) \? trigger\.suggestedQuestions : \[\]/,
+  'Index should clear cached suggested questions when multimodal recognition is BLOCKED or UNAVAILABLE'
 )
 
 assert.doesNotMatch(
