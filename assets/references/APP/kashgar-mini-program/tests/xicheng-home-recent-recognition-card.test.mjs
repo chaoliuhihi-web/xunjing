@@ -5,6 +5,7 @@ import path from 'node:path'
 const root = process.cwd()
 const home = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'home', 'home.vue'), 'utf8')
 const continueRecentSource = home.match(/continueRecentRecognitionWithXiaojing\(\)[\s\S]*?\n\t\t\},\n\t\taskXiaojing/)?.[0] || ''
+const unsafeRecentStatusSource = home.match(/recentRecognitionUnsafeSafetyStatus\(\)[\s\S]*?\n\t\t\},\n\t\tcontinueRecentRecognitionWithXiaojing/)?.[0] || ''
 
 for (const required of [
   '最近识别',
@@ -62,6 +63,24 @@ assert.match(
   continueRecentSource,
   /this\.recentRecognitionNeedsCandidateConfirmation\(\)[\s\S]*请先查看识别结果并选择官方 POI[\s\S]*return[\s\S]*this\.recentRecognitionMissingOfficialPoi\(\)[\s\S]*暂无官方 POI 匹配，不能问小京[\s\S]*return[\s\S]*this\.recentRecognitionUnsafeSafetyStatus\(\)[\s\S]*无已审核来源，不能问小京[\s\S]*return[\s\S]*\/pages\/ai-guide\/ai-guide\?/,
   'Recent recognition should not bypass candidate, official POI, or reviewed-source safety gates when continuing into Xiaojing'
+)
+
+assert.match(
+  home,
+  /import \{ normalizeXichengSafetyStatus \} from '@\/request\/xunjing\/safety\.js'/,
+  'Xicheng home should reuse the shared safetyStatus normalizer for recent recognition gates'
+)
+
+assert.match(
+  unsafeRecentStatusSource,
+  /const status = normalizeXichengSafetyStatus\(this\.recentRecognition && this\.recentRecognition\.safetyStatus\)[\s\S]*return \['BLOCKED', 'UNAVAILABLE'\]\.includes\(status\)/,
+  'Recent recognition safety gate should normalize legacy cached safetyStatus values before deciding whether Xiaojing can answer'
+)
+
+assert.doesNotMatch(
+  unsafeRecentStatusSource,
+  /String\(\(this\.recentRecognition && this\.recentRecognition\.safetyStatus\) \|\| ''\)\.toUpperCase\(\)/,
+  'Recent recognition safety gate should not hand-roll safetyStatus normalization without trim support'
 )
 
 assert.doesNotMatch(

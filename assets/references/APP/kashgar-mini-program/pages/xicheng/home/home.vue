@@ -169,6 +169,7 @@ import {
 	resolveXichengPhotoTrigger,
 	resolveXichengTextTrigger
 } from '@/request/xunjing/trigger.js'
+import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 
 export default {
 	data() {
@@ -402,7 +403,7 @@ export default {
 			return !recognition.poiCode || !recognition.poiName
 		},
 		recentRecognitionUnsafeSafetyStatus() {
-			const status = String((this.recentRecognition && this.recentRecognition.safetyStatus) || '').toUpperCase()
+			const status = normalizeXichengSafetyStatus(this.recentRecognition && this.recentRecognition.safetyStatus)
 			return ['BLOCKED', 'UNAVAILABLE'].includes(status)
 		},
 		continueRecentRecognitionWithXiaojing() {
