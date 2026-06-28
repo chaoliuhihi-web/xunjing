@@ -18,6 +18,7 @@
     "xunjing:yudao:release:gate": "node scripts/verify-xicheng-yudao-release-readiness.mjs",
     "xunjing:yudao:release:preflight": "node scripts/run-xicheng-yudao-release-preflight.mjs",
     "xunjing:yudao:release:tasks:export": "node scripts/export-xicheng-yudao-release-blocker-tasks.mjs",
+    "xunjing:yudao:runtime-seed:verify": "node scripts/verify-xicheng-yudao-runtime-seed.mjs",
     "xunjing:xicheng:poi:review:pack": "node scripts/create-xicheng-poi-production-review-pack.mjs",
     "xunjing:xicheng:poi:manifest:template": "node scripts/create-xicheng-poi-production-manifest-template.mjs",
     "xunjing:xicheng:poi:workbook:gate": "node scripts/verify-xicheng-poi-review-workbook.mjs",
