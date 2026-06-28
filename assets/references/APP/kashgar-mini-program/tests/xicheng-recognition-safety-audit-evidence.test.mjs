@@ -15,14 +15,14 @@ assert.ok(createFeedbackBlock, 'Recognition result should expose createRecogniti
 
 assert.match(
   startRecordingBlock,
-  /safetyStatus:\s*this\.result\.safetyStatus \|\| ''/,
-  'Recognition materials saved for travelogue review should preserve backend safetyStatus'
+  /safetyStatus:\s*normalizeXichengSafetyStatus\(this\.result\.safetyStatus\)/,
+  'Recognition materials saved for travelogue review should preserve normalized backend safetyStatus'
 )
 
 assert.match(
   createCheckinBlock,
-  /safetyStatus:\s*material\.safetyStatus \|\| ''/,
-  'Route check-in events should preserve recognition safetyStatus for operations audit'
+  /safetyStatus:\s*normalizeXichengSafetyStatus\(material\.safetyStatus\)/,
+  'Route check-in events should preserve normalized recognition safetyStatus for operations audit'
 )
 
 assert.match(

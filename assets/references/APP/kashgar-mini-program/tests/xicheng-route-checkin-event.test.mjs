@@ -37,8 +37,8 @@ assert.match(
 
 assert.match(
   scanResult,
-  /createRouteCheckinEvent\(material\)[\s\S]*checkinId:\s*`checkin-\$\{Date\.now\(\)\}`[\s\S]*checkinType:\s*'recognition-poi'[\s\S]*routeTitle:\s*this\.recommendedRoute && this\.recommendedRoute\.title \? this\.recommendedRoute\.title : '西城 Citywalk'[\s\S]*poiCode:\s*material\.poiCode[\s\S]*poiName:\s*material\.poiName[\s\S]*sources:\s*material\.sources[\s\S]*checkedInAt:\s*material\.capturedAt/,
-  'Route check-in event should include route, POI, sources, and timestamp evidence'
+  /createRouteCheckinEvent\(material\)[\s\S]*checkinId:\s*`checkin-\$\{Date\.now\(\)\}`[\s\S]*checkinType:\s*'recognition-poi'[\s\S]*routeTitle:\s*this\.recommendedRoute && this\.recommendedRoute\.title \? this\.recommendedRoute\.title : '西城 Citywalk'[\s\S]*poiCode:\s*material\.poiCode[\s\S]*poiName:\s*material\.poiName[\s\S]*sources:\s*material\.sources[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(material\.safetyStatus\)[\s\S]*checkedInAt:\s*material\.capturedAt/,
+  'Route check-in event should include route, POI, sources, normalized safety status, and timestamp evidence'
 )
 
 assert.match(

@@ -79,6 +79,18 @@ assert.match(
 )
 
 assert.match(
+  scanResult,
+  /startRecording\(\)[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(this\.result\.safetyStatus\)[\s\S]*const checkinEvent = this\.createRouteCheckinEvent\(material\)/,
+  'Recognition result should persist normalized safetyStatus into local journey materials before creating route check-ins'
+)
+
+assert.match(
+  scanResult,
+  /createRouteCheckinEvent\(material\)[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(material\.safetyStatus\)/,
+  'Recognition result should persist normalized safetyStatus into local route check-in events'
+)
+
+assert.match(
   eventRequest,
   /safetyStatus:\s*normalizeXichengSafetyStatus\(feedback\.safetyStatus\)/,
   'Recognition feedback event payload should send normalized safetyStatus to Yudao'
