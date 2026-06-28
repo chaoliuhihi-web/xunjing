@@ -207,6 +207,22 @@ export default {
 				? cached
 				: null
 		},
+		confirmImageRecognitionPurpose(actionLabel = '图片识别') {
+			return new Promise(resolve => {
+				uni.showModal({
+					title: `${actionLabel}用途说明`,
+					content: '照片或图片仅用于本次西城 POI 识别和本地游记素材生成，不默认公开；不会用于模型评估或运营纠错，除非你另行授权。',
+					confirmText: '继续',
+					cancelText: '取消',
+					success: (res) => {
+						resolve(Boolean(res.confirm))
+					},
+					fail: () => {
+						resolve(false)
+					}
+				})
+			})
+		},
 		async resolveTextAndOpenResult(text = '', source = 'ocr') {
 			if (this.recognizing) return
 			this.recognizing = true
@@ -245,8 +261,10 @@ export default {
 				}
 			})
 		},
-		startOcrRecognition() {
+		async startOcrRecognition() {
 			if (this.recognizing) return
+			const confirmed = await this.confirmImageRecognitionPurpose('OCR识别')
+			if (!confirmed) return
 			uni.chooseImage({
 				count: 1,
 				sizeType: ['compressed'],
@@ -311,8 +329,10 @@ export default {
 			}
 			this.resolveTextAndOpenResult(text, 'text')
 		},
-		startPhotoRecognition() {
+		async startPhotoRecognition() {
 			if (this.recognizing) return
+			const confirmed = await this.confirmImageRecognitionPurpose('拍照识别')
+			if (!confirmed) return
 			uni.chooseImage({
 				count: 1,
 				sizeType: ['compressed'],

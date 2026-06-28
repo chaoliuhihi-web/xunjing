@@ -40,7 +40,19 @@ assert.match(
 
 assert.match(
   home,
-  /startPhotoRecognition\(\)[\s\S]*uni\.chooseImage\(\{[\s\S]*const filePath = res\.tempFilePaths[\s\S]*if\s*\(!filePath\)\s*\{[\s\S]*this\.handleRecognitionUnavailable\('photo'\)[\s\S]*return[\s\S]*resolveXichengPhotoTrigger\(\{ filePath \}\)/,
+  /confirmImageRecognitionPurpose\(actionLabel = '图片识别'\)[\s\S]*uni\.showModal\(\{[\s\S]*title:\s*`\$\{actionLabel\}用途说明`[\s\S]*仅用于本次西城 POI 识别[\s\S]*不默认公开[\s\S]*不会用于模型评估或运营纠错，除非你另行授权/,
+  'Image recognition should explain purpose, non-public default, and no model-evaluation or ops-correction reuse before opening camera or album'
+)
+
+assert.match(
+  home,
+  /startOcrRecognition\(\)[\s\S]*const confirmed = await this\.confirmImageRecognitionPurpose\('OCR识别'\)[\s\S]*if \(!confirmed\) return[\s\S]*uni\.chooseImage/,
+  'OCR image recognition should ask for image-use confirmation before opening the camera or album picker'
+)
+
+assert.match(
+  home,
+  /startPhotoRecognition\(\)[\s\S]*const confirmed = await this\.confirmImageRecognitionPurpose\('拍照识别'\)[\s\S]*if \(!confirmed\) return[\s\S]*uni\.chooseImage\(\{[\s\S]*const filePath = res\.tempFilePaths[\s\S]*if\s*\(!filePath\)\s*\{[\s\S]*this\.handleRecognitionUnavailable\('photo'\)[\s\S]*return[\s\S]*resolveXichengPhotoTrigger\(\{ filePath \}\)/,
   'Photo recognition should surface an unavailable state when camera or album returns no image file'
 )
 
