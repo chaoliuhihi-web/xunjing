@@ -10,6 +10,7 @@ const productionPoiTarget = 80
 const allowedEvidenceDirs = new Set(['qa', 'tmp', 'workbench'])
 const defaultMaxEvidenceAgeHours = 24
 const allowedClockSkewMs = 5 * 60 * 1000
+const defaultExpectedGitBranch = 'feature/xicheng-p0'
 const expectedXichengRegionCode = 'beijing-xicheng'
 const expectedXichengPackageCode = 'XICHENG-MAP-001'
 
@@ -106,7 +107,7 @@ function gitOutput(rootDir, args) {
   }
 }
 
-function checkReleaseSourceRevision(rootDir) {
+function checkReleaseSourceRevision(rootDir, expectedGitBranch = defaultExpectedGitBranch) {
   const isGitWorkTree = gitOutput(rootDir, ['rev-parse', '--is-inside-work-tree']) === 'true'
   if (!isGitWorkTree) {
     return {
@@ -117,7 +118,8 @@ function checkReleaseSourceRevision(rootDir) {
         []
       ),
       summary: {
-        gitAvailable: false
+        gitAvailable: false,
+        expectedGitBranch
       }
     }
   }
@@ -130,6 +132,9 @@ function checkReleaseSourceRevision(rootDir) {
 
   if (!/^[a-f0-9]{40}$/i.test(gitCommit)) {
     blockers.push('git commit SHA must be available before release evidence generation')
+  }
+  if (hasValue(expectedGitBranch) && gitBranch !== expectedGitBranch) {
+    blockers.push(`git branch must be ${expectedGitBranch} before release evidence generation`)
   }
   if (dirtyEntries.length > 0) {
     blockers.push('git worktree must be clean before release evidence generation')
@@ -147,6 +152,7 @@ function checkReleaseSourceRevision(rootDir) {
     summary: {
       gitAvailable: true,
       gitBranch,
+      expectedGitBranch,
       gitCommit,
       gitDirty: dirtyEntries.length > 0,
       gitDirtyFileCount: dirtyEntries.length
@@ -960,6 +966,7 @@ export async function verifyXichengYudaoReleaseReadiness({
   poiManifestEvidencePath,
   poiWorkbookEvidencePath,
   poiSeedEvidencePath,
+  expectedGitBranch = defaultExpectedGitBranch,
   maxEvidenceAgeHours = defaultMaxEvidenceAgeHours,
   now = new Date()
 } = {}) {
@@ -984,7 +991,7 @@ export async function verifyXichengYudaoReleaseReadiness({
     : undefined
 
   const checks = [
-    checkReleaseSourceRevision(rootDir),
+    checkReleaseSourceRevision(rootDir, expectedGitBranch),
     checkRuntimeEnv(env, normalizedStage),
     checkVectorEmbeddingRuntime(env, normalizedStage),
     checkHttpsAppApiDomain(env),
@@ -1101,6 +1108,9 @@ async function runCli() {
       process.env.XICHENG_POI_WORKBOOK_EVIDENCE,
     poiSeedEvidencePath: readArgValue(args, '--poi-seed-evidence') ||
       process.env.XICHENG_POI_SEED_EVIDENCE,
+    expectedGitBranch: readArgValue(args, '--expected-branch') ||
+      process.env.XICHENG_RELEASE_EXPECTED_BRANCH ||
+      defaultExpectedGitBranch,
     maxEvidenceAgeHours: parseMaxEvidenceAgeHours(
       readArgValue(args, '--max-evidence-age-hours') || process.env.XICHENG_MAX_EVIDENCE_AGE_HOURS
     )

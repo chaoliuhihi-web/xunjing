@@ -410,6 +410,34 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(revisionCheck?.blockers.join('\n')).toContain('git worktree must be clean before release evidence generation')
   })
 
+  test('fails closed when a git-backed release root is not on the expected handoff branch', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    await initCleanGitRepo(rootDir)
+    runGit(rootDir, ['checkout', '-b', 'workbench/unified-release'])
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    const revisionCheck = result.checks.find((check) => check.name === 'release-source-revision')
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    expect(revisionCheck?.ok).toBe(false)
+    expect(revisionCheck?.summary).toMatchObject({
+      gitAvailable: true,
+      gitBranch: 'workbench/unified-release',
+      expectedGitBranch: 'feature/xicheng-p0',
+      gitDirty: false
+    })
+    expect(revisionCheck?.blockers).toContain('git branch must be feature/xicheng-p0 before release evidence generation')
+  })
+
   test('fails closed when the deployable Yudao server jar artifact is missing', async () => {
     const rootDir = await createProductionReadyFixture()
     const yudaoServerJarPath = path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar')
@@ -1074,12 +1102,15 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(deployDoc).toContain('release evidence summary 会直接提升这些行级 POI 完成数')
     expect(deployDoc).toContain('release-source-revision')
     expect(deployDoc).toContain('summary.gitCommit')
+    expect(deployDoc).toContain('--expected-branch feature/xicheng-p0')
+    expect(deployDoc).toContain('summary.expectedGitBranch')
     expect(statusDoc).toContain('workbookReadyPoiCount')
     expect(statusDoc).toContain('workbookPendingPoiCount')
     expect(statusDoc).toContain('pendingPoiTasks')
     expect(statusDoc).toContain('package summary 里直接展示 workbook 行级完成数')
     expect(statusDoc).toContain('release-source-revision')
     expect(statusDoc).toContain('summary.gitCommit')
+    expect(statusDoc).toContain('--expected-branch feature/xicheng-p0')
     expect(deployDoc).toContain('seed evidence 的 `summary.sqlFile`')
     expect(deployDoc).toContain('sourceWorkbookSha256')
     expect(deployDoc).toContain('poiManifestSha256')
