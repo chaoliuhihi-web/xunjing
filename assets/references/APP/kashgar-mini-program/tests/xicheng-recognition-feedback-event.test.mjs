@@ -37,8 +37,8 @@ assert.match(
 
 assert.match(
   eventRequest,
-  /payloadJson:\s*JSON\.stringify\(\{[\s\S]*category:\s*feedback\.misTrigger \? 'recognition_wrong' : 'recognition_confirmed'[\s\S]*feedbackId:\s*feedback\.feedbackId \|\| ''[\s\S]*poiCode:\s*feedback\.poiCode \|\| ''[\s\S]*poiName:\s*feedback\.poiName \|\| ''[\s\S]*confidence:\s*feedback\.confidence \|\| 0[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(feedback\.safetyStatus\)[\s\S]*sourceCount:\s*normalizeXichengReviewedSources\(feedback\.sources\)\.length[\s\S]*severity:\s*feedback\.misTrigger \? 'WARN' : 'INFO'/,
-  'Recognition feedback event payload should send a bounded normalized-source summary instead of raw source arrays'
+  /const getRecognitionFeedbackSourceCount\s*=\s*\(feedback = \{\}\) => \{[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(feedback\.safetyStatus\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*return 0[\s\S]*return normalizeXichengReviewedSources\(feedback\.sources\)\.length[\s\S]*payloadJson:\s*JSON\.stringify\(\{[\s\S]*category:\s*feedback\.misTrigger \? 'recognition_wrong' : 'recognition_confirmed'[\s\S]*feedbackId:\s*feedback\.feedbackId \|\| ''[\s\S]*poiCode:\s*feedback\.poiCode \|\| ''[\s\S]*poiName:\s*feedback\.poiName \|\| ''[\s\S]*confidence:\s*feedback\.confidence \|\| 0[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(feedback\.safetyStatus\)[\s\S]*sourceCount:\s*getRecognitionFeedbackSourceCount\(feedback\)[\s\S]*severity:\s*feedback\.misTrigger \? 'WARN' : 'INFO'/,
+  'Recognition feedback event payload should send a safety-aware bounded normalized-source summary instead of raw source arrays'
 )
 
 assert.doesNotMatch(
@@ -118,4 +118,21 @@ assert.equal(
   parsedFeedbackPayload.sourceCount,
   1,
   'Recognition feedback event should count only normalized reviewed sources'
+)
+
+const blockedFeedbackPayload = buildXichengRecognitionFeedbackEventPayload({
+  feedbackId: 'feedback-blocked',
+  poiCode: 'xicheng-baitasi',
+  poiName: '白塔寺',
+  safetyStatus: 'blocked',
+  sources: [
+    { title: '旧缓存来源不应计入阻断事件' }
+  ]
+})
+const parsedBlockedFeedbackPayload = JSON.parse(blockedFeedbackPayload.payloadJson)
+
+assert.equal(
+  parsedBlockedFeedbackPayload.sourceCount,
+  0,
+  'Recognition feedback event should not count stale reviewed sources when safetyStatus is BLOCKED'
 )

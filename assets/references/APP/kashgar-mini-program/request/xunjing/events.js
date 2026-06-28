@@ -9,6 +9,14 @@ import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 
 export const XICHENG_RESOURCE_EVENT_API_PATH = 'app-api/xunjing/resource/events'
 
+const getRecognitionFeedbackSourceCount = (feedback = {}) => {
+	const safetyStatus = normalizeXichengSafetyStatus(feedback.safetyStatus)
+	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+		return 0
+	}
+	return normalizeXichengReviewedSources(feedback.sources).length
+}
+
 export const buildXichengRecognitionFeedbackEventPayload = (feedback = {}) => ({
 	packageCode: feedback.packageCode || XICHENG_REGION_CONFIG.packageCode,
 	sceneCode: feedback.sceneCode || XICHENG_REGION_CONFIG.sceneCode,
@@ -25,7 +33,7 @@ export const buildXichengRecognitionFeedbackEventPayload = (feedback = {}) => ({
 		confidence: feedback.confidence || 0,
 		safetyStatus: normalizeXichengSafetyStatus(feedback.safetyStatus),
 		sourceLabel: feedback.sourceLabel || '',
-		sourceCount: normalizeXichengReviewedSources(feedback.sources).length,
+		sourceCount: getRecognitionFeedbackSourceCount(feedback),
 		severity: feedback.misTrigger ? 'WARN' : 'INFO'
 	})
 })
