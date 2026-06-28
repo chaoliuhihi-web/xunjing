@@ -387,6 +387,10 @@ export default {
 			})
 		},
 		openScanResult(trigger = {}, source = '') {
+			if (this.isBlockedDevelopmentRecognitionCache(trigger)) {
+				this.handleRecognitionUnavailable(source || 'text')
+				return
+			}
 			const result = {
 				...trigger,
 				source,

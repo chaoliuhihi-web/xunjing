@@ -67,3 +67,9 @@ assert.match(
   /loadRecentRecognition\(\)[\s\S]*if \(this\.isBlockedDevelopmentRecognitionCache\(cached\)\) \{[\s\S]*uni\.removeStorageSync\(XICHENG_REGION_CONFIG\.storageKey\)[\s\S]*this\.recentRecognition = null[\s\S]*return/,
   'Xicheng home should clear stale development fixture cache instead of showing it as a production recent recognition'
 )
+
+assert.match(
+  home,
+  /openScanResult\(trigger = \{\}, source = ''\)[\s\S]*if \(this\.isBlockedDevelopmentRecognitionCache\(trigger\)\) \{[\s\S]*this\.handleRecognitionUnavailable\(source \|\| 'text'\)[\s\S]*return[\s\S]*uni\.setStorageSync\(this\.region\.storageKey, result\)/,
+  'Xicheng home should not persist or navigate development fixture recognition payloads when production does not allow fixtures'
+)
