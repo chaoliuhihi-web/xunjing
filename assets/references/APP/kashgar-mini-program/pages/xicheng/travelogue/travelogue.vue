@@ -351,6 +351,12 @@ import { requestCurrentLocationForTrigger } from '@/request/xunjing/trigger.js'
 import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 
+export const XICHENG_PLANNING_ONLY_MATERIAL_TYPES = Object.freeze([
+	'official-route-poi',
+	'inspiration-poi',
+	'inspiration-image'
+])
+
 export const isUnsafeSourceBlockedMaterial = (material = {}) => {
 	const safetyStatus = normalizeXichengSafetyStatus(material.safetyStatus)
 	return ['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)
@@ -367,6 +373,14 @@ export const hasReviewableMaterialEvidence = (material = {}) => {
 		|| material.aiAnswerExcerpt
 		|| ['photo', 'remark', 'manual-entry'].includes(material.type)
 	)
+}
+
+export const hasReviewableWorkMaterialEvidence = (material = {}) => {
+	if (!material) return false
+	if (XICHENG_PLANNING_ONLY_MATERIAL_TYPES.includes(material.type)) {
+		return false
+	}
+	return hasReviewableMaterialEvidence(material)
 }
 
 export const getReviewableMaterialSources = (material = {}) => {
@@ -408,14 +422,17 @@ export const hasXichengReviewableWorkEvidence = ({
 	studyTaskEvidence = [],
 	routeCheckins = []
 } = {}) => {
-	const hasJourneyEvidence = hasXichengTravelogueDraftEvidence({
-		materials,
-		recordingSession,
-		studyTaskEvidence
+	const hasMaterialEvidence = Array.isArray(materials) && materials.some(material => {
+		return hasReviewableWorkMaterialEvidence(material)
 	})
+	const hasTrackEvidence = Boolean(recordingSession && (
+		(Array.isArray(recordingSession.trackPoints) && recordingSession.trackPoints.length > 0)
+		|| (Array.isArray(recordingSession.stayPoints) && recordingSession.stayPoints.length > 0)
+	))
+	const hasStudyEvidence = Array.isArray(studyTaskEvidence) && studyTaskEvidence.some(evidence => evidence && evidence.completedAt)
 	const hasRouteCheckinEvidence = Array.isArray(routeCheckins)
 		&& routeCheckins.some(checkin => hasReviewableRouteCheckinEvidence(checkin))
-	return hasJourneyEvidence || hasRouteCheckinEvidence
+	return hasMaterialEvidence || hasTrackEvidence || hasStudyEvidence || hasRouteCheckinEvidence
 }
 
 export const createXichengTravelogueDraft = ({

@@ -6,10 +6,13 @@ const root = process.cwd()
 const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
 
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const workEvidenceBlock = travelogue.match(/export const hasXichengReviewableWorkEvidence\s*=\s*\(\{[\s\S]*?\n\}/)?.[0] || ''
 
 for (const required of [
   'hasReviewableJourneyEvidence',
   'hasXichengReviewableWorkEvidence',
+  'hasReviewableWorkMaterialEvidence',
+  'XICHENG_PLANNING_ONLY_MATERIAL_TYPES',
   'showWorkEvidenceRequiredToast',
   '请先补充真实素材再'
 ]) {
@@ -21,8 +24,28 @@ for (const required of [
 
 assert.match(
   travelogue,
-  /hasXichengReviewableWorkEvidence\s*=\s*\(\{[\s\S]*materials = \[\][\s\S]*recordingSession = null[\s\S]*studyTaskEvidence = \[\][\s\S]*routeCheckins = \[\][\s\S]*hasXichengTravelogueDraftEvidence\(\{[\s\S]*materials[\s\S]*recordingSession[\s\S]*studyTaskEvidence[\s\S]*\}\)[\s\S]*hasRouteCheckinEvidence[\s\S]*return hasJourneyEvidence \|\| hasRouteCheckinEvidence/,
-  'Work publishing should require real journey evidence or actual route checkins, not route planning alone'
+  /XICHENG_PLANNING_ONLY_MATERIAL_TYPES[\s\S]*official-route-poi[\s\S]*inspiration-poi[\s\S]*inspiration-image/,
+  'Planning-only route and inspiration materials should be named separately from reviewable journey evidence'
+)
+
+assert.match(
+  travelogue,
+  /hasReviewableWorkMaterialEvidence\s*=\s*\(material = \{\}\) => \{[\s\S]*XICHENG_PLANNING_ONLY_MATERIAL_TYPES\.includes\(material\.type\)[\s\S]*return false[\s\S]*return hasReviewableMaterialEvidence\(material\)/,
+  'Work material evidence should reject planning-only route imports before using the broader draft evidence check'
+)
+
+assert.match(
+  travelogue,
+  /hasXichengReviewableWorkEvidence\s*=\s*\(\{[\s\S]*materials = \[\][\s\S]*recordingSession = null[\s\S]*studyTaskEvidence = \[\][\s\S]*routeCheckins = \[\][\s\S]*hasMaterialEvidence[\s\S]*hasReviewableWorkMaterialEvidence[\s\S]*hasTrackEvidence[\s\S]*hasStudyEvidence[\s\S]*hasRouteCheckinEvidence[\s\S]*return hasMaterialEvidence \|\| hasTrackEvidence \|\| hasStudyEvidence \|\| hasRouteCheckinEvidence/,
+  'Work publishing should require real journey material, track, study, or actual route check-in evidence'
+)
+
+assert.ok(workEvidenceBlock, 'Work evidence helper block should be extractable for focused safety assertions')
+
+assert.doesNotMatch(
+  workEvidenceBlock,
+  /hasXichengTravelogueDraftEvidence\(/,
+  'Work evidence gate must not reuse the broader travelogue draft gate because route planning can create draft evidence'
 )
 
 assert.match(
