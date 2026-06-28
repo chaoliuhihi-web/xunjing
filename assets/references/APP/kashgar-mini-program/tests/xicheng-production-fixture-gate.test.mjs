@@ -5,6 +5,7 @@ import path from 'node:path'
 const root = process.cwd()
 const triggerRequest = fs.readFileSync(path.join(root, 'request', 'xunjing', 'trigger.js'), 'utf8')
 const regionConfig = fs.readFileSync(path.join(root, 'config', 'regions', 'xicheng.js'), 'utf8')
+const home = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'home', 'home.vue'), 'utf8')
 
 const fallbackGate = triggerRequest.match(/export const isXichengDevelopmentFallbackAllowed\s*=\s*\(\)\s*=>\s*\{[\s\S]*?\n\}/)?.[0] || ''
 
@@ -47,4 +48,22 @@ assert.match(
   regionConfig,
   /XICHENG_DEVELOPMENT_TRIGGER_FIXTURE[\s\S]*developmentOnly:\s*true[\s\S]*notForProduction:\s*true/,
   'The fixture should remain clearly labeled as development-only and not-for-production'
+)
+
+assert.match(
+  home,
+  /import \{[\s\S]*isXichengDevelopmentFallbackAllowed[\s\S]*\} from '@\/request\/xunjing\/trigger\.js'/,
+  'Xicheng home should import the shared development fixture gate before restoring cached recognition results'
+)
+
+assert.match(
+  home,
+  /isBlockedDevelopmentRecognitionCache\(recognition = \{\}\)[\s\S]*recognition\.developmentOnly \|\| recognition\.notForProduction \|\| recognition\.triggerType === 'development-fixture'[\s\S]*!isXichengDevelopmentFallbackAllowed\(\)/,
+  'Xicheng home should detect stale development-only recognition cache when production does not allow fixtures'
+)
+
+assert.match(
+  home,
+  /loadRecentRecognition\(\)[\s\S]*if \(this\.isBlockedDevelopmentRecognitionCache\(cached\)\) \{[\s\S]*uni\.removeStorageSync\(XICHENG_REGION_CONFIG\.storageKey\)[\s\S]*this\.recentRecognition = null[\s\S]*return/,
+  'Xicheng home should clear stale development fixture cache instead of showing it as a production recent recognition'
 )

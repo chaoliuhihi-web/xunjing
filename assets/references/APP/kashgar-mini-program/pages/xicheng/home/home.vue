@@ -164,6 +164,7 @@ import {
 	XICHENG_REGION_CONFIG
 } from '@/config/regions/xicheng.js'
 import {
+	isXichengDevelopmentFallbackAllowed,
 	requestCurrentLocationForTrigger,
 	resolveXichengOcrImageTrigger,
 	resolveXichengPhotoTrigger,
@@ -200,8 +201,21 @@ export default {
 		this.loadRecentRecognition()
 	},
 	methods: {
+		isBlockedDevelopmentRecognitionCache(recognition = {}) {
+			const developmentRecognition = Boolean(
+				recognition && (
+					recognition.developmentOnly || recognition.notForProduction || recognition.triggerType === 'development-fixture'
+				)
+			)
+			return developmentRecognition && !isXichengDevelopmentFallbackAllowed()
+		},
 		loadRecentRecognition() {
 			const cached = uni.getStorageSync(XICHENG_REGION_CONFIG.storageKey)
+			if (this.isBlockedDevelopmentRecognitionCache(cached)) {
+				uni.removeStorageSync(XICHENG_REGION_CONFIG.storageKey)
+				this.recentRecognition = null
+				return
+			}
 			this.recentRecognition = cached && typeof cached === 'object' && (cached.poiCode || cached.poiName)
 				? cached
 				: null
