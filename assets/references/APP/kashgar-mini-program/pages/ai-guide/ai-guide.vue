@@ -550,10 +550,13 @@ const persistXichengAiGuideMaterial = ({ question = '', result = {}, assistantMe
 	const context = xichengAiContext.value || {}
 	if (!hasXichengAiContext(context)) return null
 	const assistantMessageContent = assistantMessage && assistantMessage.content ? assistantMessage.content : ''
-	const sources = normalizeXichengReviewedSources(result.sources)
-	const suggestedQuestions = Array.isArray(result.followUps)
-		? result.followUps
-		: Array.isArray(result.suggestedQuestions) ? result.suggestedQuestions : []
+	const materialSafetyStatus = normalizeXichengSafetyStatus(result.safetyStatus)
+	const unsafeMaterialSafetyStatus = ['BLOCKED', 'UNAVAILABLE'].includes(materialSafetyStatus)
+	const sources = unsafeMaterialSafetyStatus ? [] : normalizeXichengReviewedSources(result.sources)
+	const suggestedQuestions = unsafeMaterialSafetyStatus ? []
+		: Array.isArray(result.followUps)
+			? result.followUps
+			: Array.isArray(result.suggestedQuestions) ? result.suggestedQuestions : []
 	const answerText = String(result.answer || assistantMessageContent || '')
 	const existingMaterials = uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey)
 	const materials = Array.isArray(existingMaterials) ? existingMaterials : []
@@ -571,9 +574,9 @@ const persistXichengAiGuideMaterial = ({ question = '', result = {}, assistantMe
 		aiAnswerExcerpt: String(result.answer || assistantMessageContent || '').slice(0, 180),
 		answerLength: answerText.length,
 		sourceCount: sources.length,
-		sources: normalizeXichengReviewedSources(result.sources),
+		sources,
 		suggestedQuestions,
-		safetyStatus: normalizeXichengSafetyStatus(result.safetyStatus),
+		safetyStatus: materialSafetyStatus,
 		fallback: Boolean(result.fallback),
 		reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
 		publishStatus: 'private',

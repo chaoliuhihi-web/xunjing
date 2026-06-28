@@ -26,7 +26,7 @@ for (const required of [
 
 assert.match(
   aiGuide,
-  /const persistXichengAiGuideMaterial\s*=\s*\(\{ question = '', result = \{\}, assistantMessage = null \} = \{\}\) => \{[\s\S]*if \(!hasXichengAiContext\(context\)\) return null[\s\S]*const suggestedQuestions = Array\.isArray\(result\.followUps\)[\s\S]*\? result\.followUps[\s\S]*Array\.isArray\(result\.suggestedQuestions\)[\s\S]*result\.suggestedQuestions[\s\S]*uni\.getStorageSync\(XICHENG_REGION_CONFIG\.materialsStorageKey\)[\s\S]*type:\s*'ai-guide'[\s\S]*sourceLabel:\s*'小京讲解'[\s\S]*aiAnswerExcerpt:\s*String\(result\.answer \|\| assistantMessageContent \|\| ''\)\.slice\(0, 180\)[\s\S]*sources:\s*normalizeXichengReviewedSources\(result\.sources\)[\s\S]*suggestedQuestions[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.materialsStorageKey/,
+  /const persistXichengAiGuideMaterial\s*=\s*\(\{ question = '', result = \{\}, assistantMessage = null \} = \{\}\) => \{[\s\S]*if \(!hasXichengAiContext\(context\)\) return null[\s\S]*const materialSafetyStatus = normalizeXichengSafetyStatus\(result\.safetyStatus\)[\s\S]*const sources = unsafeMaterialSafetyStatus \? \[\] : normalizeXichengReviewedSources\(result\.sources\)[\s\S]*const suggestedQuestions = unsafeMaterialSafetyStatus \? \[\][\s\S]*Array\.isArray\(result\.suggestedQuestions\) \? result\.suggestedQuestions : \[\][\s\S]*uni\.getStorageSync\(XICHENG_REGION_CONFIG\.materialsStorageKey\)[\s\S]*type:\s*'ai-guide'[\s\S]*sourceLabel:\s*'小京讲解'[\s\S]*aiAnswerExcerpt:\s*String\(result\.answer \|\| assistantMessageContent \|\| ''\)\.slice\(0, 180\)[\s\S]*sourceCount:\s*sources\.length[\s\S]*sources,[\s\S]*suggestedQuestions[\s\S]*safetyStatus:\s*materialSafetyStatus[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.materialsStorageKey/,
   'AI guide should create a local reviewable material from Xiaojing answer, reviewed sources, follow-ups, and safety status'
 )
 
@@ -42,10 +42,16 @@ assert.ok(persistBlock, 'AI guide should expose a persistXichengAiGuideMaterial 
 for (const required of [
   'sceneCode: XICHENG_REGION_CONFIG.aiSceneCode',
   'sourceChannel: context.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel',
-  'safetyStatus: normalizeXichengSafetyStatus(result.safetyStatus)'
+  'safetyStatus: materialSafetyStatus'
 ]) {
   assert.ok(persistBlock.includes(required), `Xiaojing answer material should preserve operations attribution ${required}`)
 }
+
+assert.match(
+  persistBlock,
+  /const materialSafetyStatus = normalizeXichengSafetyStatus\(result\.safetyStatus\)[\s\S]*const unsafeMaterialSafetyStatus = \['BLOCKED', 'UNAVAILABLE'\]\.includes\(materialSafetyStatus\)[\s\S]*const sources = unsafeMaterialSafetyStatus \? \[\] : normalizeXichengReviewedSources\(result\.sources\)[\s\S]*const suggestedQuestions = unsafeMaterialSafetyStatus \? \[\]/,
+  'Xiaojing answer material persistence should fail closed by clearing reviewed sources and follow-ups for BLOCKED or UNAVAILABLE results'
+)
 
 assert.doesNotMatch(
   persistBlock,

@@ -68,7 +68,7 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /safetyStatus:\s*normalizeXichengSafetyStatus\(result\.safetyStatus\)/,
+  /const materialSafetyStatus = normalizeXichengSafetyStatus\(result\.safetyStatus\)[\s\S]*safetyStatus:\s*materialSafetyStatus/,
   'AI guide should persist normalized safetyStatus into local Xiaojing answer materials'
 )
 
