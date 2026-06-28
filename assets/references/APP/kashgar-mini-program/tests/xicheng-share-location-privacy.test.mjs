@@ -5,6 +5,12 @@ import path from 'node:path'
 const root = process.cwd()
 const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
 
+assert.match(
+  travelogue,
+  /import \{ normalizeXichengSafetyStatus \} from '@\/request\/xunjing\/safety\.js'/,
+  'Travelogue public share exports should reuse the shared Xicheng safety status normalizer'
+)
+
 for (const required of [
   'sanitizeRouteRecommendationForPublicShare',
   'sanitizeMaterialForPublicShare',
@@ -30,6 +36,7 @@ for (const required of [
   'publicLocationLabel: material.publicLocationLabel || this.createPublicLocationLabel(material)',
   'locationHidden: true',
   'sourceCount: Array.isArray(material.sources) ? material.sources.length : 0',
+  'safetyStatus: normalizeXichengSafetyStatus(material.safetyStatus)',
   "remarkExcerpt: String(material.remarkText || '').slice(0, 80)",
   'routeRecommendation: this.sanitizeRouteRecommendationForPublicShare(material.routeRecommendation)'
 ]) {
@@ -38,8 +45,8 @@ for (const required of [
 
 assert.doesNotMatch(
   sanitizeBlock,
-  /remarkText:\s*material\.remarkText|routeRecommendation:\s*material\.routeRecommendation|captureLocation|exifLocation|nearestTrackPoint|latitude|longitude|trackPoints|stayPoints/,
-  'Public material sanitizer should not expose raw remarkText, raw routeRecommendation, exact coordinates, EXIF location, track points, or stay points'
+  /remarkText:\s*material\.remarkText|routeRecommendation:\s*material\.routeRecommendation|safetyStatus:\s*material\.safetyStatus\s*\|\||captureLocation|exifLocation|nearestTrackPoint|latitude|longitude|trackPoints|stayPoints/,
+  'Public material sanitizer should not expose raw remarkText, raw routeRecommendation, raw safetyStatus, exact coordinates, EXIF location, track points, or stay points'
 )
 
 const routeRecommendationSanitizeBlock = travelogue.match(/sanitizeRouteRecommendationForPublicShare\(routeRecommendation = null\)[\s\S]*?\n\t\t\},\n\t\tsanitizeMaterialForPublicShare/)?.[0] || ''
@@ -98,7 +105,7 @@ for (const required of [
   'poiCode: checkin.poiCode ||',
   'poiName: checkin.poiName ||',
   'sourceLabel: checkin.sourceLabel ||',
-  'safetyStatus: checkin.safetyStatus ||',
+  'safetyStatus: normalizeXichengSafetyStatus(checkin.safetyStatus)',
   'checkedInAt: checkin.checkedInAt ||'
 ]) {
   assert.ok(routeCheckinSanitizeBlock.includes(required), `Public route check-in sanitizer should preserve safe field ${required}`)
@@ -106,8 +113,8 @@ for (const required of [
 
 assert.doesNotMatch(
   routeCheckinSanitizeBlock,
-  /sources|candidateConfirmationAudit|candidatePoiCodes|candidatePoiNames|selectedCandidateConfidence|reviewedSourceCount|captureLocation|exifLocation|nearestTrackPoint|latitude|longitude/,
-  'Public route check-in sanitizer should not expose reviewed sources, raw candidate audits, confidence, source counts, or exact location metadata'
+  /sources|candidateConfirmationAudit|candidatePoiCodes|candidatePoiNames|selectedCandidateConfidence|reviewedSourceCount|safetyStatus:\s*checkin\.safetyStatus\s*\|\||captureLocation|exifLocation|nearestTrackPoint|latitude|longitude/,
+  'Public route check-in sanitizer should not expose reviewed sources, raw candidate audits, confidence, source counts, raw safetyStatus, or exact location metadata'
 )
 
 const candidateSummaryBlock = travelogue.match(/createPublicCandidateConfirmationSummary\(\)[\s\S]*?\n\t\t\},\n\t\tcreatePublicRecordingSummary/)?.[0] || ''

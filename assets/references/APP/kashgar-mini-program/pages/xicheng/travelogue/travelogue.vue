@@ -347,6 +347,7 @@
 <script>
 import { XICHENG_OFFICIAL_POIS, XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import { requestCurrentLocationForTrigger } from '@/request/xunjing/trigger.js'
+import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 
 export const isUnsafeSourceBlockedMaterial = (material = {}) => {
 	const safetyStatus = String(material.safetyStatus || '').toUpperCase()
@@ -1613,7 +1614,7 @@ export default {
 				hasPhoto: Boolean(material.imagePath),
 				routeRecommendation: this.sanitizeRouteRecommendationForPublicShare(material.routeRecommendation),
 				sourceCount: Array.isArray(material.sources) ? material.sources.length : 0,
-				safetyStatus: material.safetyStatus || '',
+				safetyStatus: normalizeXichengSafetyStatus(material.safetyStatus),
 				publicLocationLabel: material.publicLocationLabel || this.createPublicLocationLabel(material),
 				locationHidden: true,
 				capturedAt: material.capturedAt || material.takenAt || ''
@@ -1638,7 +1639,7 @@ export default {
 				poiCode: checkin.poiCode || '',
 				poiName: checkin.poiName || '',
 				sourceLabel: checkin.sourceLabel || '',
-				safetyStatus: checkin.safetyStatus || '',
+				safetyStatus: normalizeXichengSafetyStatus(checkin.safetyStatus),
 				checkedInAt: checkin.checkedInAt || ''
 			}
 		},
