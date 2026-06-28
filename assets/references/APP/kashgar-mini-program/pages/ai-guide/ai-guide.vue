@@ -2022,8 +2022,15 @@ const sendMessage = async () => {
 				fallback: Boolean(aiResult && aiResult.fallback),
 				sourceCount: aiResult && Array.isArray(aiResult.sources) ? aiResult.sources.length : 0,
 				followUpCount: aiResult && Array.isArray(aiResult.followUps) ? aiResult.followUps.length : 0,
+				answerLength: aiResult && aiResult.answer ? String(aiResult.answer).length : 0,
+				packageCode: xichengAiContext.value.packageCode || XICHENG_REGION_CONFIG.packageCode,
+				sceneCode: XICHENG_REGION_CONFIG.aiSceneCode,
+				sourceChannel: xichengAiContext.value.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
 				regionCode: xichengAiContext.value.regionCode || '',
-				poiCode: xichengAiContext.value.poiCode || ''
+				poiCode: xichengAiContext.value.poiCode || '',
+				poiName: xichengAiContext.value.poiName || '',
+				safetyStatus: aiResult && aiResult.safetyStatus ? aiResult.safetyStatus : xichengAiContext.value.safetyStatus || '',
+				blocked: normalizeXichengSafetyStatus(aiResult && aiResult.safetyStatus ? aiResult.safetyStatus : '') === 'BLOCKED'
 			}
 		})
 		speakVisibleAssistantReply(assistantMessage, aiResult.answer)
