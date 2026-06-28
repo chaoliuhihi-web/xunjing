@@ -19,6 +19,8 @@ for (const required of [
   'autoStart=1',
   'regionCode=${encodeURIComponent(this.result.regionCode || XICHENG_REGION_CONFIG.regionCode)}',
   'packageCode=${encodeURIComponent(this.result.packageCode || XICHENG_REGION_CONFIG.packageCode)}',
+  'sceneCode=${encodeURIComponent(this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode)}',
+  'sourceChannel=${encodeURIComponent(this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel)}',
   "poiCode=${encodeURIComponent(this.result.poiCode || '')}",
   "poiName=${encodeURIComponent(this.result.poiName || '')}",
   'companionName=${encodeURIComponent(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}',
@@ -30,9 +32,13 @@ for (const required of [
 for (const required of [
   'const routeRegionCode = decodeJourneyRouteValue(options.regionCode) || XICHENG_REGION_CONFIG.regionCode',
   'const routePackageCode = decodeJourneyRouteValue(options.packageCode) || XICHENG_REGION_CONFIG.packageCode',
+  'const routeSceneCode = decodeJourneyRouteValue(options.sceneCode) || XICHENG_REGION_CONFIG.sceneCode',
+  'const routeSourceChannel = decodeJourneyRouteValue(options.sourceChannel) || XICHENG_REGION_CONFIG.sourceChannel',
   'const routeSafetyStatus = decodeJourneyRouteValue(options.safetyStatus)',
   'regionCode: routeRegionCode',
   'packageCode: routePackageCode',
+  'sceneCode: routeSceneCode',
+  'sourceChannel: routeSourceChannel',
   'safetyStatus: routeSafetyStatus'
 ]) {
   assert.ok(loadJourneyBlock.includes(required), `Travelogue route material should preserve ${required}`)
