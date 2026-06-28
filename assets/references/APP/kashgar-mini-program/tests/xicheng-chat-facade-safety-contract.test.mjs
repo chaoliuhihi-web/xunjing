@@ -14,6 +14,8 @@ assert.ok(normalizeResponseBlock, 'Xicheng chat facade should expose normalizeXi
 for (const required of [
   'packageCode: context.packageCode || XICHENG_REGION_CONFIG.packageCode',
   'regionCode: context.regionCode || XICHENG_REGION_CONFIG.regionCode',
+  'sceneCode: context.sceneCode || XICHENG_REGION_CONFIG.aiSceneCode',
+  'sourceChannel: context.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel',
   'poiCode: context.poiCode ||',
   'poiName: context.poiName ||',
   'companionName: context.companionName || XICHENG_REGION_CONFIG.companionName',

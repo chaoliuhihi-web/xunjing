@@ -15,7 +15,7 @@ export const buildXichengAiChatPayload = ({ question = '', context = {} } = {}) 
 	regionCode: context.regionCode || XICHENG_REGION_CONFIG.regionCode,
 	question,
 	sceneCode: context.sceneCode || XICHENG_REGION_CONFIG.aiSceneCode,
-	sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
+	sourceChannel: context.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
 	userTraceId: getXunjingUserTraceId(),
 	poiCode: context.poiCode || '',
 	poiName: context.poiName || '',
