@@ -609,6 +609,9 @@ const persistXichengAiGuideMaterial = ({ question = '', result = {}, assistantMe
 	if (!hasXichengAiContext(context)) return null
 	const assistantMessageContent = assistantMessage && assistantMessage.content ? assistantMessage.content : ''
 	const sources = normalizeXichengReviewedSources(result.sources)
+	const suggestedQuestions = Array.isArray(result.followUps)
+		? result.followUps
+		: Array.isArray(result.suggestedQuestions) ? result.suggestedQuestions : []
 	const answerText = String(result.answer || assistantMessageContent || '')
 	const existingMaterials = uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey)
 	const materials = Array.isArray(existingMaterials) ? existingMaterials : []
@@ -625,7 +628,7 @@ const persistXichengAiGuideMaterial = ({ question = '', result = {}, assistantMe
 		answerLength: answerText.length,
 		sourceCount: sources.length,
 		sources: normalizeXichengReviewedSources(result.sources),
-		suggestedQuestions: Array.isArray(result.followUps) ? result.followUps : [],
+		suggestedQuestions,
 		safetyStatus: result.safetyStatus || '',
 		fallback: Boolean(result.fallback),
 		reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,

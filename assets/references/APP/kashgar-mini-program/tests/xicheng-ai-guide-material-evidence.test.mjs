@@ -16,6 +16,7 @@ for (const required of [
   'questionLength',
   'sourceCount',
   'suggestedQuestions',
+  'result.suggestedQuestions',
   'materialsStorageKey'
 ]) {
   assert.ok(aiGuide.includes(required), `AI guide should persist Xiaojing answer material token ${required}`)
@@ -23,7 +24,7 @@ for (const required of [
 
 assert.match(
   aiGuide,
-  /const persistXichengAiGuideMaterial\s*=\s*\(\{ question = '', result = \{\}, assistantMessage = null \} = \{\}\) => \{[\s\S]*if \(!hasXichengAiContext\(context\)\) return null[\s\S]*uni\.getStorageSync\(XICHENG_REGION_CONFIG\.materialsStorageKey\)[\s\S]*type:\s*'ai-guide'[\s\S]*sourceLabel:\s*'小京讲解'[\s\S]*aiAnswerExcerpt:\s*String\(result\.answer \|\| assistantMessageContent \|\| ''\)\.slice\(0, 180\)[\s\S]*sources:\s*normalizeXichengReviewedSources\(result\.sources\)[\s\S]*suggestedQuestions:\s*Array\.isArray\(result\.followUps\) \? result\.followUps : \[\][\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.materialsStorageKey/,
+  /const persistXichengAiGuideMaterial\s*=\s*\(\{ question = '', result = \{\}, assistantMessage = null \} = \{\}\) => \{[\s\S]*if \(!hasXichengAiContext\(context\)\) return null[\s\S]*const suggestedQuestions = Array\.isArray\(result\.followUps\)[\s\S]*\? result\.followUps[\s\S]*Array\.isArray\(result\.suggestedQuestions\)[\s\S]*result\.suggestedQuestions[\s\S]*uni\.getStorageSync\(XICHENG_REGION_CONFIG\.materialsStorageKey\)[\s\S]*type:\s*'ai-guide'[\s\S]*sourceLabel:\s*'小京讲解'[\s\S]*aiAnswerExcerpt:\s*String\(result\.answer \|\| assistantMessageContent \|\| ''\)\.slice\(0, 180\)[\s\S]*sources:\s*normalizeXichengReviewedSources\(result\.sources\)[\s\S]*suggestedQuestions[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.materialsStorageKey/,
   'AI guide should create a local reviewable material from Xiaojing answer, reviewed sources, follow-ups, and safety status'
 )
 
