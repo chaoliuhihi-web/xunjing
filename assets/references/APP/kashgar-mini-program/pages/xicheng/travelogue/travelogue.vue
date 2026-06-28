@@ -333,6 +333,25 @@
 import { XICHENG_OFFICIAL_POIS, XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import { requestCurrentLocationForTrigger } from '@/request/xunjing/trigger.js'
 
+export const isUnsafeSourceBlockedMaterial = (material = {}) => {
+	const safetyStatus = String(material.safetyStatus || '').toUpperCase()
+	const hasReviewedSources = Array.isArray(material.sources) && material.sources.length > 0
+	return ['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus) && !hasReviewedSources
+}
+
+export const hasReviewableMaterialEvidence = (material = {}) => {
+	if (!material || isUnsafeSourceBlockedMaterial(material)) return false
+	return Boolean(
+		material.poiCode
+		|| material.poiName
+		|| material.remarkText
+		|| material.imagePath
+		|| material.routeRecommendation
+		|| material.aiAnswerExcerpt
+		|| ['photo', 'remark', 'manual-entry'].includes(material.type)
+	)
+}
+
 export const hasXichengTravelogueDraftEvidence = ({
 	materials = [],
 	recordingSession = null,
@@ -341,15 +360,7 @@ export const hasXichengTravelogueDraftEvidence = ({
 } = {}) => {
 	const hasMaterialEvidence = Array.isArray(materials) && materials.some(material => {
 		if (!material) return false
-		return Boolean(
-			material.poiCode
-			|| material.poiName
-			|| material.remarkText
-			|| material.imagePath
-			|| material.routeRecommendation
-			|| material.aiAnswerExcerpt
-			|| ['photo', 'remark', 'manual-entry'].includes(material.type)
-		)
+		return hasReviewableMaterialEvidence(material)
 	})
 	const hasTrackEvidence = Boolean(recordingSession && (
 		(Array.isArray(recordingSession.trackPoints) && recordingSession.trackPoints.length > 0)
@@ -399,7 +410,7 @@ export const createXichengTravelogueDraft = ({
 		.filter(Boolean)
 		.slice(0, 2)
 	const aiGuideExcerpts = materials
-		.filter(material => material && material.type === 'ai-guide' && material.aiAnswerExcerpt)
+		.filter(material => material && material.type === 'ai-guide' && material.aiAnswerExcerpt && hasReviewableMaterialEvidence(material))
 		.map(material => material.aiAnswerExcerpt)
 		.slice(0, 2)
 	const trackText = routePointCount > 0 ? `本次主动记录了 ${routePointCount} 个前台位置点，` : ''

@@ -54,7 +54,7 @@ for (const required of [
 
 assert.match(
   travelogue,
-  /hasXichengTravelogueDraftEvidence\s*=\s*\(\{[\s\S]*material\.aiAnswerExcerpt[\s\S]*return hasMaterialEvidence/,
+  /hasReviewableMaterialEvidence\s*=\s*\(material = \{\}\) => \{[\s\S]*material\.aiAnswerExcerpt[\s\S]*\}[\s\S]*hasXichengTravelogueDraftEvidence\s*=\s*\(\{[\s\S]*return hasReviewableMaterialEvidence\(material\)[\s\S]*return hasMaterialEvidence/,
   'Travelogue evidence gate should treat Xiaojing answer excerpts as valid journey evidence'
 )
 
