@@ -35,7 +35,7 @@ export const normalizeXichengAiChatResponse = (payload = {}) => {
 		answer: safetyStatus === 'BLOCKED' ? XICHENG_BLOCKED_ANSWER : payload.answer ? String(payload.answer) : '',
 		suggestedQuestions,
 		followUps: suggestedQuestions,
-		sources: normalizeXichengReviewedSources(payload.sources),
+		sources: safetyStatus === 'BLOCKED' ? [] : normalizeXichengReviewedSources(payload.sources),
 		safetyStatus,
 		logId: payload.logId || ''
 	}

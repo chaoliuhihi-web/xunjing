@@ -17,7 +17,7 @@ assert.ok(
 
 for (const required of [
   'XICHENG_BLOCKED_ANSWER',
-  'sources: getXichengContextSources()',
+  'sources: []',
   'suggestedQuestions: []',
   "safetyStatus: 'BLOCKED'",
   'blockedRequest.abort = () => {}',
@@ -30,6 +30,12 @@ assert.doesNotMatch(
   blockedContextBlock,
   /createLocalXichengAiFallback|createLocalXunjingAiFallback|uni\.request/,
   'Blocked Xicheng contexts should not fall through to local fallback or a network request before refusing to answer'
+)
+
+assert.doesNotMatch(
+  blockedContextBlock,
+  /sources:\s*getXichengContextSources\(\)|sources:\s*result\.sources|normalizeXichengReviewedSources/,
+  'Blocked Xicheng contexts should not attach recognition or backend sources to a no-reviewed-source refusal'
 )
 
 assert.ok(

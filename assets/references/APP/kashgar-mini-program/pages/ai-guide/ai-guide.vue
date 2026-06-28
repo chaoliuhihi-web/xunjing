@@ -967,7 +967,7 @@ const requestXunjingAiChat = (question) => {
 	if (hasXichengAiContext(context) && normalizeXichengSafetyStatus(context.safetyStatus) === 'BLOCKED') {
 		const blockedRequest = Promise.resolve({
 			answer: XICHENG_BLOCKED_ANSWER,
-			sources: getXichengContextSources(),
+			sources: [],
 			suggestedQuestions: [],
 			safetyStatus: 'BLOCKED'
 		})
@@ -1626,14 +1626,14 @@ const startXunjingAiRequest = ({ question, assistantMessage }) => {
 				if (result && normalizeXichengSafetyStatus(result.safetyStatus) === 'BLOCKED') {
 					appendAnswerContent(state, XICHENG_BLOCKED_ANSWER)
 					state.followUps = []
-					state.sources = result.sources || []
+					state.sources = []
 					state.safetyStatus = 'BLOCKED'
 					state.streamFinished = true
 					flushStreamContent(state)
 					commitAssistantMessage(assistantMessage, {
 						isPending: false,
 						followUps: [],
-						sources: result.sources,
+						sources: [],
 						safetyStatus: 'BLOCKED'
 					})
 					saveMessagesCache()
@@ -1641,7 +1641,7 @@ const startXunjingAiRequest = ({ question, assistantMessage }) => {
 					settleRequest(() => resolve({
 						answer: state.fullContent,
 						followUps: [],
-						sources: result.sources,
+						sources: [],
 						safetyStatus: 'BLOCKED'
 					}))
 					return

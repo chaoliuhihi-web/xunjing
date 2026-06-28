@@ -135,8 +135,8 @@ assert.match(
 
 assert.match(
   blockedAiBranch,
-  /if\s*\(\s*result\s*&&\s*normalizeXichengSafetyStatus\(result\.safetyStatus\)\s*===\s*'BLOCKED'\s*\)[\s\S]*XICHENG_BLOCKED_ANSWER[\s\S]*sources:\s*result\.sources/,
-  'AI guide should render BLOCKED as a blocked answer with sources metadata instead of using local fallback'
+  /if\s*\(\s*result\s*&&\s*normalizeXichengSafetyStatus\(result\.safetyStatus\)\s*===\s*'BLOCKED'\s*\)[\s\S]*XICHENG_BLOCKED_ANSWER[\s\S]*sources:\s*\[\]/,
+  'AI guide should render BLOCKED as a blocked answer without sources instead of using local fallback'
 )
 
 assert.doesNotMatch(

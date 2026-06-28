@@ -47,6 +47,12 @@ assert.match(
 )
 
 assert.match(
+  normalizeResponseBlock,
+  /sources:\s*safetyStatus === 'BLOCKED'\s*\?\s*\[\]\s*:\s*normalizeXichengReviewedSources\(payload\.sources\)/,
+  'Xicheng chat response normalization should fail closed and clear sources when safetyStatus is BLOCKED'
+)
+
+assert.match(
   chatRequest,
   /'tenant-id':\s*XICHENG_REGION_CONFIG\.tenantId/,
   'Xicheng chat request should keep tenant-id on /app-api/xunjing/** calls'
