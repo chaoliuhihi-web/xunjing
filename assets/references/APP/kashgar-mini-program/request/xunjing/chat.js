@@ -3,6 +3,7 @@ import {
 	getXunjingUserTraceId,
 	getYudaoCommonResultPayload
 } from '@/request/xunjingMultimodal.js'
+import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 
@@ -20,7 +21,7 @@ export const buildXichengAiChatPayload = ({ question = '', context = {} } = {}) 
 	poiName: context.poiName || '',
 	companionName: context.companionName || XICHENG_REGION_CONFIG.companionName,
 	recognitionConfidence: context.confidence || null,
-	safetyStatus: context.safetyStatus || ''
+	safetyStatus: normalizeXichengSafetyStatus(context.safetyStatus)
 })
 
 export const normalizeXichengAiChatResponse = (payload = {}) => {
@@ -29,7 +30,7 @@ export const normalizeXichengAiChatResponse = (payload = {}) => {
 		: Array.isArray(payload.recommendedQuestions)
 			? payload.recommendedQuestions
 			: []
-	const safetyStatus = payload.safetyStatus || ''
+	const safetyStatus = normalizeXichengSafetyStatus(payload.safetyStatus)
 	return {
 		answer: safetyStatus === 'BLOCKED' ? XICHENG_BLOCKED_ANSWER : payload.answer ? String(payload.answer) : '',
 		suggestedQuestions,

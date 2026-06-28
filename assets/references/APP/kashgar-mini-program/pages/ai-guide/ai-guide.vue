@@ -316,6 +316,7 @@ import TabBar from '@/components/tab-bar/tab-bar.vue'
 import config from '@/request/config.js'
 import { resolveXunjingPhotoTrigger } from '@/request/xunjingMultimodal.js'
 import { normalizeXichengAiChatResponse } from '@/request/xunjing/chat.js'
+import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 
@@ -682,7 +683,7 @@ const normalizeXichengAiContext = (options = {}) => ({
 	poiName: decodeRouteValue(options.poiName),
 	companionName: decodeRouteValue(options.companionName),
 	confidence: decodeRouteValue(options.confidence),
-	safetyStatus: decodeRouteValue(options.safetyStatus)
+	safetyStatus: normalizeXichengSafetyStatus(decodeRouteValue(options.safetyStatus))
 })
 
 const createEmptyXichengRecognitionContext = () => ({
@@ -709,7 +710,7 @@ const loadCachedXichengRecognitionContext = (context = {}) => {
 		poiName: cached.poiName || '',
 		confidence: cached.confidence || '',
 		sourceLabel: cached.sourceLabel || '',
-		safetyStatus: cached.safetyStatus || '',
+		safetyStatus: normalizeXichengSafetyStatus(cached.safetyStatus),
 		sources: normalizeXichengReviewedSources(cached.sources)
 	}
 }
@@ -739,7 +740,7 @@ const applyXichengAiContext = (options = {}) => {
 		companionName: context.companionName || XICHENG_REGION_CONFIG.companionName,
 		confidence: context.confidence || cachedRecognition.confidence,
 		sourceLabel: cachedRecognition.sourceLabel,
-		safetyStatus: context.safetyStatus || cachedRecognition.safetyStatus,
+		safetyStatus: normalizeXichengSafetyStatus(context.safetyStatus || cachedRecognition.safetyStatus),
 		sources: cachedRecognition.sources
 	}
 	return xichengAiContext.value
@@ -955,7 +956,7 @@ const normalizeXunjingAiResponse = (res) => {
 		: payload && Array.isArray(payload.recommendedQuestions)
 			? payload.recommendedQuestions
 			: []
-	const safetyStatus = payload && payload.safetyStatus ? String(payload.safetyStatus) : ''
+	const safetyStatus = normalizeXichengSafetyStatus(payload && payload.safetyStatus ? payload.safetyStatus : '')
 	const answer = safetyStatus === 'BLOCKED'
 		? XICHENG_BLOCKED_ANSWER
 		: payload && payload.answer
@@ -1026,7 +1027,7 @@ const createXunjingResultFollowUps = (result = {}) => {
 const requestXunjingAiChat = (question) => {
 	let requestTask = null
 	const context = xichengAiContext.value || {}
-	if (hasXichengAiContext(context) && context.safetyStatus === 'BLOCKED') {
+	if (hasXichengAiContext(context) && normalizeXichengSafetyStatus(context.safetyStatus) === 'BLOCKED') {
 		const blockedRequest = Promise.resolve({
 			answer: XICHENG_BLOCKED_ANSWER,
 			sources: getXichengContextSources(),
@@ -1051,7 +1052,7 @@ const requestXunjingAiChat = (question) => {
 		requestPayload.poiName = context.poiName
 		requestPayload.companionName = context.companionName || XICHENG_REGION_CONFIG.companionName
 		requestPayload.recognitionConfidence = context.confidence || ''
-		requestPayload.safetyStatus = context.safetyStatus || ''
+		requestPayload.safetyStatus = normalizeXichengSafetyStatus(context.safetyStatus)
 	}
 	const pendingRequest = new Promise((resolve, reject) => {
 		requestTask = uni.request({
@@ -1685,7 +1686,7 @@ const startXunjingAiRequest = ({ question, assistantMessage }) => {
 					settleRequest(() => reject({ type: 'INTERRUPTED' }))
 					return
 				}
-				if (result && result.safetyStatus === 'BLOCKED') {
+				if (result && normalizeXichengSafetyStatus(result.safetyStatus) === 'BLOCKED') {
 					appendAnswerContent(state, XICHENG_BLOCKED_ANSWER)
 					state.followUps = []
 					state.sources = result.sources || []

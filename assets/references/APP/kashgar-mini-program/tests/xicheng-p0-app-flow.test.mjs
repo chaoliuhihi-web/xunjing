@@ -27,7 +27,7 @@ const combined = [
   scanResult,
   aiGuide
 ].join('\n')
-const blockedAiBranch = aiGuide.match(/if\s*\(\s*result\s*&&\s*result\.safetyStatus\s*===\s*'BLOCKED'\s*\)\s*\{[\s\S]*?\n\s*\}\n\s*if\s*\(\s*result\s*&&\s*result\.fallback\s*\)/)?.[0] || ''
+const blockedAiBranch = aiGuide.match(/if\s*\(\s*result\s*&&\s*normalizeXichengSafetyStatus\(result\.safetyStatus\)\s*===\s*'BLOCKED'\s*\)\s*\{[\s\S]*?\n\s*\}\n\s*if\s*\(\s*result\s*&&\s*result\.fallback\s*\)/)?.[0] || ''
 
 for (const required of [
   'XICHENG_REGION_CONFIG',
@@ -135,7 +135,7 @@ assert.match(
 
 assert.match(
   blockedAiBranch,
-  /if\s*\(\s*result\s*&&\s*result\.safetyStatus\s*===\s*'BLOCKED'\s*\)[\s\S]*XICHENG_BLOCKED_ANSWER[\s\S]*sources:\s*result\.sources/,
+  /if\s*\(\s*result\s*&&\s*normalizeXichengSafetyStatus\(result\.safetyStatus\)\s*===\s*'BLOCKED'\s*\)[\s\S]*XICHENG_BLOCKED_ANSWER[\s\S]*sources:\s*result\.sources/,
   'AI guide should render BLOCKED as a blocked answer with sources metadata instead of using local fallback'
 )
 

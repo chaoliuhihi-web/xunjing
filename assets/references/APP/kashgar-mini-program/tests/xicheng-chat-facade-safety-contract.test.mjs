@@ -17,7 +17,7 @@ for (const required of [
   'poiCode: context.poiCode ||',
   'poiName: context.poiName ||',
   'companionName: context.companionName || XICHENG_REGION_CONFIG.companionName',
-  "safetyStatus: context.safetyStatus || ''"
+  'safetyStatus: normalizeXichengSafetyStatus(context.safetyStatus)'
 ]) {
   assert.ok(buildPayloadBlock.includes(required), `Xicheng chat payload should include ${required}`)
 }
@@ -30,7 +30,7 @@ assert.match(
 
 assert.match(
   normalizeResponseBlock,
-  /const safetyStatus = payload\.safetyStatus \|\| ''/,
+  /const safetyStatus = normalizeXichengSafetyStatus\(payload\.safetyStatus\)/,
   'Xicheng chat response normalization should keep safetyStatus as a first-class field'
 )
 

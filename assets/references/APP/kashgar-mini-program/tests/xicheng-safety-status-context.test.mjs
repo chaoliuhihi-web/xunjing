@@ -20,14 +20,14 @@ assert.match(
 
 assert.match(
   scanResult,
-  /const normalizeRouteOptions = \(options = \{\}\) => \(\{[\s\S]*safetyStatus:\s*decodeRouteValue\(options\.safetyStatus\)/,
-  'Recognition result route options should decode safetyStatus from navigation params'
+  /const normalizeRouteOptions = \(options = \{\}\) => \(\{[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(decodeRouteValue\(options\.safetyStatus\)\)/,
+  'Recognition result route options should decode and normalize safetyStatus from navigation params'
 )
 
 assert.match(
   scanResult,
-  /const normalizeResult = \(result = \{\}\) => \(\{[\s\S]*safetyStatus:\s*result\.safetyStatus \|\| ''/,
-  'Recognition result normalization should preserve backend safetyStatus such as BLOCKED'
+  /const normalizeResult = \(result = \{\}\) => \(\{[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(result\.safetyStatus\)/,
+  'Recognition result normalization should preserve backend safetyStatus such as BLOCKED after normalization'
 )
 
 assert.match(
@@ -50,25 +50,25 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /const normalizeXichengAiContext = \(options = \{\}\) => \(\{[\s\S]*safetyStatus:\s*decodeRouteValue\(options\.safetyStatus\)/,
-  'AI guide should decode safetyStatus from route params'
+  /const normalizeXichengAiContext = \(options = \{\}\) => \(\{[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(decodeRouteValue\(options\.safetyStatus\)\)/,
+  'AI guide should decode and normalize safetyStatus from route params'
 )
 
 assert.match(
   aiGuide,
-  /const loadCachedXichengRecognitionContext\s*=\s*\(context = \{\}\) => \{[\s\S]*safetyStatus:\s*cached\.safetyStatus \|\| ''/,
+  /const loadCachedXichengRecognitionContext\s*=\s*\(context = \{\}\) => \{[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(cached\.safetyStatus\)/,
   'AI guide should restore safetyStatus from the matching cached recognition context'
 )
 
 assert.match(
   applyContextBlock,
-  /safetyStatus:\s*context\.safetyStatus \|\| cachedRecognition\.safetyStatus/,
+  /safetyStatus:\s*normalizeXichengSafetyStatus\(context\.safetyStatus \|\| cachedRecognition\.safetyStatus\)/,
   'AI guide should merge route and cached safetyStatus into Xiaojing context'
 )
 
 assert.match(
   requestChatBlock,
-  /requestPayload\.safetyStatus = context\.safetyStatus \|\| ''/,
+  /requestPayload\.safetyStatus = normalizeXichengSafetyStatus\(context\.safetyStatus\)/,
   'AI chat request should send the active recognition safetyStatus to the Yudao APP API'
 )
 

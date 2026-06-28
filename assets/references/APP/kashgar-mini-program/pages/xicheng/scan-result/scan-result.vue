@@ -118,6 +118,7 @@ import {
 	XICHENG_REGION_CONFIG,
 	XICHENG_SUGGESTED_QUESTIONS
 } from '@/config/regions/xicheng.js'
+import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 
 const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
@@ -164,7 +165,7 @@ const normalizeRouteOptions = (options = {}) => ({
 	poiCode: decodeRouteValue(options.poiCode),
 	poiName: decodeRouteValue(options.poiName),
 	companionName: decodeRouteValue(options.companionName),
-	safetyStatus: decodeRouteValue(options.safetyStatus)
+	safetyStatus: normalizeXichengSafetyStatus(decodeRouteValue(options.safetyStatus))
 })
 
 const selectCachedRecognitionForRoute = (cached = {}, options = {}) => {
@@ -221,7 +222,7 @@ const normalizeResult = (result = {}) => ({
 	recommendedQuestions: normalizeSuggestedQuestions(result),
 	routeRecommendation: result.routeRecommendation || result.recommendedRoute || null,
 	recommendedRoute: result.routeRecommendation || result.recommendedRoute || null,
-	safetyStatus: result.safetyStatus || '',
+	safetyStatus: normalizeXichengSafetyStatus(result.safetyStatus),
 	sources: normalizeXichengReviewedSources(result.sources),
 	candidates: normalizeRecognitionCandidates(result.candidates)
 })
