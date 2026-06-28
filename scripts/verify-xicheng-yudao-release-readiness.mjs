@@ -470,6 +470,33 @@ function isRegularNonEmptySql(filePath) {
   return stat.isFile() && stat.size > 0
 }
 
+function detectBaselineCredentialFindings(sql) {
+  const findings = new Set()
+  for (const line of sql.split(/\r?\n/)) {
+    if (/INSERT INTO `infra_file_config`/i.test(line) &&
+      /(?:accessKey|accessSecret|"password")/i.test(line) &&
+      !line.includes('<redacted-storage-credential>')) {
+      findings.add('infra_file_config')
+    }
+    if (/INSERT INTO `system_mail_account`/i.test(line) && !line.includes('<redacted-mail-password>')) {
+      findings.add('system_mail_account')
+    }
+    if (/INSERT INTO `system_sms_channel`/i.test(line) && !line.includes('<redacted-sms-credential>')) {
+      findings.add('system_sms_channel')
+    }
+  }
+  for (const [name, pattern] of [
+    ['aliyun-access-key', /\bLTAI[0-9A-Za-z]{16,}\b/],
+    ['dingtalk-secret', /\bSEC[0-9A-Za-z]{32,}\b/],
+    ['smtp-auth-code', /\b[A-Z0-9]{16,}\b/]
+  ]) {
+    if (pattern.test(sql)) {
+      findings.add(name)
+    }
+  }
+  return [...findings].sort()
+}
+
 function resolveBaselineSqlPath(rootDir, yudaoBaselineSqlPath) {
   if (!hasValue(yudaoBaselineSqlPath)) {
     return path.join(rootDir, 'backend/yudao/sql/mysql/ruoyi-vue-pro.sql')
@@ -499,6 +526,11 @@ async function checkFullYudaoBaseline(rootDir, yudaoBaselineSqlPath) {
   } else {
     const sql = await readTextIfExists(baselinePath)
     summary.yudaoBaselineSqlSha256 = sha256(sql)
+    const credentialFindings = detectBaselineCredentialFindings(sql)
+    if (credentialFindings.length > 0) {
+      summary.yudaoBaselineCredentialFindings = credentialFindings
+      blockers.push(`complete Yudao baseline SQL must not contain raw provider credentials: ${credentialFindings.join(', ')}`)
+    }
     for (const snippet of [
       'system_users',
       'system_tenant',

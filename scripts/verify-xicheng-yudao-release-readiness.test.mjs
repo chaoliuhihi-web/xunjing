@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm, writeFile, readFile } from 'node:fs/promises'
+import { appendFile, mkdtemp, mkdir, rm, writeFile, readFile } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import os from 'node:os'
@@ -326,7 +326,7 @@ afterEach(async () => {
 })
 
 describe('xicheng Yudao release readiness gate', () => {
-  test('keeps the current repo NOT_READY for production until full baseline and reviewed POIs exist', async () => {
+  test('keeps the current repo NOT_READY for production until reviewed POI evidence exists', async () => {
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
       rootDir: process.cwd(),
@@ -335,13 +335,12 @@ describe('xicheng Yudao release readiness gate', () => {
 
     expect(result.ok).toBe(false)
     expect(result.status).toBe('NOT_READY')
-    expect(result.checks.find((check) => check.name === 'full-yudao-baseline')?.ok).toBe(false)
+    expect(result.checks.find((check) => check.name === 'full-yudao-baseline')?.ok).toBe(true)
     expect(result.checks.map((check) => check.name)).toContain('yudao-server-artifact')
     expect(result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')?.ok).toBe(false)
     expect(result.checks.find((check) => check.name === 'xicheng-production-poi')?.detail).toContain('productionReady=true')
     expect(result.checks.find((check) => check.name === 'xicheng-source-license')?.ok).toBe(false)
     expect(result.blockers).toEqual(expect.arrayContaining([
-      expect.stringContaining('complete Yudao baseline'),
       expect.stringContaining('POI manifest evidence is required'),
       expect.stringContaining('xicheng seed must declare productionReady=true'),
       expect.stringContaining('80 Xicheng POI rows are not fully approved')
@@ -564,6 +563,45 @@ describe('xicheng Yudao release readiness gate', () => {
       yudaoBaselineSqlFile: externalBaselinePath,
       yudaoBaselineSqlSha256: sha256(await readFile(externalBaselinePath, 'utf8'))
     })
+  })
+
+  test('fails closed when the Yudao baseline SQL contains raw provider credentials', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const baselinePath = path.join(rootDir, 'backend/yudao/sql/mysql/ruoyi-vue-pro.sql')
+    const cloudAccessKey = ['LT', 'AI', '1234567890ABCDEF'].join('')
+    const cloudAccessSecret = ['raw', 'cloud', 'provider', 'secret'].join('-')
+    const smtpAuthCode = ['SMTP', 'AUTH', 'CODE', '12345678'].join('')
+    const storageConfig = JSON.stringify({
+      accessKey: ['ad', 'min'].join(''),
+      accessSecret: ['pass', 'word'].join('')
+    })
+    await appendFile(
+      baselinePath,
+      [
+        '',
+        `INSERT INTO \`system_sms_channel\` (\`api_key\`, \`api_secret\`) VALUES ('${cloudAccessKey}', '${cloudAccessSecret}');`,
+        `INSERT INTO \`system_mail_account\` (\`mail\`, \`password\`) VALUES ('mail@example.com', '${smtpAuthCode}');`,
+        `INSERT INTO \`infra_file_config\` (\`config\`) VALUES ('${storageConfig}');`
+      ].join('\n')
+    )
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      aiBootstrapEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    const baselineCheck = result.checks.find((check) => check.name === 'full-yudao-baseline')
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    expect(baselineCheck?.ok).toBe(false)
+    expect(baselineCheck?.blockers.join('\n')).toContain('complete Yudao baseline SQL must not contain raw provider credentials')
   })
 
   test('uses the production POI seed SQL referenced by seed evidence instead of forcing the local candidate seed', async () => {
