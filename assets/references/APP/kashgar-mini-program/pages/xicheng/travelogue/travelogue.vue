@@ -1249,11 +1249,15 @@ export default {
 				type: 'remark',
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
 				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				sceneCode: XICHENG_REGION_CONFIG.sceneCode,
+				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
 				poiCode: '',
 				poiName: '现场备注',
 				sourceLabel: '用户备注',
 				remarkText: this.remarkInput.trim(),
 				sources: [],
+				reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
+				publishStatus: 'private',
 				capturedAt: new Date().toISOString()
 			}
 			this.materials = [material, ...this.materials].slice(0, 50)
@@ -1348,6 +1352,8 @@ export default {
 						type: 'photo',
 						regionCode: XICHENG_REGION_CONFIG.regionCode,
 						packageCode: XICHENG_REGION_CONFIG.packageCode,
+						sceneCode: XICHENG_REGION_CONFIG.sceneCode,
+						sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
 						poiCode: '',
 						poiName: '现场照片',
 						sourceLabel: '补充照片',
@@ -1361,6 +1367,8 @@ export default {
 						captureLocation: this.normalizeCaptureLocationForMaterial(captureLocation),
 						nearestTrackPoint: photoTrackPoint || this.findNearestTrackPoint(takenAt),
 						sources: [],
+						reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
+						publishStatus: 'private',
 						capturedAt: takenAt
 					}
 					this.materials = [material, ...this.materials].slice(0, 50)

@@ -6,6 +6,21 @@ const root = process.cwd()
 const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
 
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const getBlock = (source, pattern, label) => {
+  const block = source.match(pattern)?.[0] || ''
+  assert.ok(block, `Should find ${label}`)
+  return block
+}
+const addRemarkMaterialBlock = getBlock(
+  travelogue,
+  /addRemarkMaterial\(\)[\s\S]*?\n\t\t\},\n\t\tnormalizeCaptureLocationForMaterial/,
+  'addRemarkMaterial block'
+)
+const addPhotoMaterialBlock = getBlock(
+  travelogue,
+  /addPhotoMaterial\(\)[\s\S]*?\n\t\t\},\n\t\thasReviewableJourneyEvidence/,
+  'addPhotoMaterial block'
+)
 
 for (const required of [
   '现场备注',
@@ -54,9 +69,21 @@ assert.match(
 )
 
 assert.match(
+  addRemarkMaterialBlock,
+  /type:\s*'remark'[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  'Remark materials should carry Xicheng attribution and private review status for operations review'
+)
+
+assert.match(
   travelogue,
   /addPhotoMaterial\(\)[\s\S]*uni\.chooseImage\(\{[\s\S]*type:\s*'photo'[\s\S]*imagePath:\s*filePath[\s\S]*this\.persistJourneyMaterials\(\)/,
   'Adding a photo should use chooseImage and persist a local photo material'
+)
+
+assert.match(
+  addPhotoMaterialBlock,
+  /type:\s*'photo'[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  'Photo materials should carry Xicheng attribution and private review status for operations review'
 )
 
 assert.match(
