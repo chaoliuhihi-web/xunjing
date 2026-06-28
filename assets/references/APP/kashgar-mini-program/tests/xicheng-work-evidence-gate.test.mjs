@@ -9,6 +9,7 @@ const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 
 for (const required of [
   'hasReviewableJourneyEvidence',
+  'hasXichengReviewableWorkEvidence',
   'showWorkEvidenceRequiredToast',
   '请先补充真实素材再'
 ]) {
@@ -20,8 +21,20 @@ for (const required of [
 
 assert.match(
   travelogue,
-  /hasReviewableJourneyEvidence\(\)\s*\{[\s\S]*return hasXichengTravelogueDraftEvidence\(\{[\s\S]*materials:\s*this\.materials[\s\S]*routeRecommendation:\s*this\.recognizedRoute[\s\S]*recordingSession:\s*this\.recordingSession[\s\S]*studyTaskEvidence:\s*this\.studyTaskEvidence[\s\S]*\}\)/,
-  'Poster, PDF, and review submission should reuse the central journey evidence gate'
+  /hasXichengReviewableWorkEvidence\s*=\s*\(\{[\s\S]*materials = \[\][\s\S]*recordingSession = null[\s\S]*studyTaskEvidence = \[\][\s\S]*routeCheckins = \[\][\s\S]*hasXichengTravelogueDraftEvidence\(\{[\s\S]*materials[\s\S]*recordingSession[\s\S]*studyTaskEvidence[\s\S]*\}\)[\s\S]*hasRouteCheckinEvidence[\s\S]*return hasJourneyEvidence \|\| hasRouteCheckinEvidence/,
+  'Work publishing should require real journey evidence or actual route checkins, not route planning alone'
+)
+
+assert.match(
+  travelogue,
+  /hasReviewableJourneyEvidence\(\)\s*\{[\s\S]*return hasXichengReviewableWorkEvidence\(\{[\s\S]*materials:\s*this\.materials[\s\S]*recordingSession:\s*this\.recordingSession[\s\S]*studyTaskEvidence:\s*this\.studyTaskEvidence[\s\S]*routeCheckins:\s*this\.routeCheckins[\s\S]*\}\)/,
+  'Poster, PDF, and review submission should reuse the stricter work evidence gate'
+)
+
+assert.doesNotMatch(
+  travelogue,
+  /hasReviewableJourneyEvidence\(\)\s*\{[\s\S]*routeRecommendation:\s*this\.recognizedRoute[\s\S]*\}/,
+  'Route planning/import alone must not unlock poster, PDF, or review submission'
 )
 
 assert.match(

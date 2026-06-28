@@ -374,6 +374,12 @@ export const getReviewableMaterialSources = (material = {}) => {
 	return normalizeXichengReviewedSources(material.sources)
 }
 
+export function hasReviewableRouteCheckinEvidence(checkin = {}) {
+	const safetyStatus = normalizeXichengSafetyStatus(checkin.safetyStatus)
+	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) return false
+	return Boolean(checkin.poiCode || checkin.poiName || checkin.routeTitle)
+}
+
 export const hasXichengTravelogueDraftEvidence = ({
 	materials = [],
 	recordingSession = null,
@@ -394,6 +400,22 @@ export const hasXichengTravelogueDraftEvidence = ({
 		|| (Array.isArray(routeRecommendation.stops) && routeRecommendation.stops.length > 0)
 	))
 	return hasMaterialEvidence || hasTrackEvidence || hasStudyEvidence || hasRouteEvidence
+}
+
+export const hasXichengReviewableWorkEvidence = ({
+	materials = [],
+	recordingSession = null,
+	studyTaskEvidence = [],
+	routeCheckins = []
+} = {}) => {
+	const hasJourneyEvidence = hasXichengTravelogueDraftEvidence({
+		materials,
+		recordingSession,
+		studyTaskEvidence
+	})
+	const hasRouteCheckinEvidence = Array.isArray(routeCheckins)
+		&& routeCheckins.some(checkin => hasReviewableRouteCheckinEvidence(checkin))
+	return hasJourneyEvidence || hasRouteCheckinEvidence
 }
 
 export const createXichengTravelogueDraft = ({
@@ -1394,11 +1416,11 @@ export default {
 			})
 		},
 		hasReviewableJourneyEvidence() {
-			return hasXichengTravelogueDraftEvidence({
+			return hasXichengReviewableWorkEvidence({
 				materials: this.materials,
-				routeRecommendation: this.recognizedRoute,
 				recordingSession: this.recordingSession,
-				studyTaskEvidence: this.studyTaskEvidence
+				studyTaskEvidence: this.studyTaskEvidence,
+				routeCheckins: this.routeCheckins
 			})
 		},
 		showWorkEvidenceRequiredToast(actionLabel = '生成作品') {
@@ -1650,9 +1672,7 @@ export default {
 			}
 		},
 		hasReviewableRouteCheckinEvidence(checkin = {}) {
-			const safetyStatus = normalizeXichengSafetyStatus(checkin.safetyStatus)
-			if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) return false
-			return Boolean(checkin.poiCode || checkin.poiName || checkin.routeTitle)
+			return hasReviewableRouteCheckinEvidence(checkin)
 		},
 		createPublicCandidateConfirmationSummary() {
 			const confirmedPoiNames = this.candidateConfirmationAudits
