@@ -598,6 +598,7 @@ async function validateWorkbookEvidence(ref, rootDir, freshnessOptions) {
   const placeholderCount = Number(summary.placeholderCount)
   const readyPoiCount = Number(summary.workbookReadyPoiCount)
   const pendingPoiCount = Number(summary.workbookPendingPoiCount)
+  const pendingPoiTasks = summary.pendingPoiTasks
   if (
     !Number.isFinite(workbookRows) ||
     workbookRows < productionPoiTarget ||
@@ -622,6 +623,9 @@ async function validateWorkbookEvidence(ref, rootDir, freshnessOptions) {
     summary.pendingPoiCodes.length !== 0
   ) {
     blockers.push('workbook evidence must prove there are no pending POI rows')
+  }
+  if (!Array.isArray(pendingPoiTasks) || pendingPoiTasks.length !== 0) {
+    blockers.push('workbook evidence must prove there are no pending POI tasks')
   }
   blockers.push(...checkEvidenceChecks(evidence, requiredWorkbookEvidenceChecks, 'workbook'))
   if (!hasNoEvidenceBlockers(evidence)) {
@@ -791,6 +795,7 @@ async function checkXichengProductionPoiEvidence({
       workbookReadyPoiCount: evidenceSummary(workbookEvidence.data).workbookReadyPoiCount,
       workbookPendingPoiCount: evidenceSummary(workbookEvidence.data).workbookPendingPoiCount,
       pendingPoiCodes: evidenceSummary(workbookEvidence.data).pendingPoiCodes,
+      pendingPoiTasks: evidenceSummary(workbookEvidence.data).pendingPoiTasks,
       poiSeedSqlFile: evidenceSummary(seedEvidence.data).sqlFile,
       poiSeedSqlSha256: evidenceSummary(seedEvidence.data).sqlSha256,
       productionPoiSeedSqlFile: evidenceSummary(seedEvidence.data).sqlFile

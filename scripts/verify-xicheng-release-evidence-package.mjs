@@ -547,6 +547,7 @@ async function checkWorkbookEvidence(ref, rootDir, freshnessOptions) {
   const placeholderCount = Number(summary.placeholderCount)
   const readyPoiCount = Number(summary.workbookReadyPoiCount)
   const pendingPoiCount = Number(summary.workbookPendingPoiCount)
+  const pendingPoiTasks = summary.pendingPoiTasks
   if (
     !Number.isFinite(workbookRows) ||
     workbookRows < productionPoiTarget ||
@@ -571,6 +572,9 @@ async function checkWorkbookEvidence(ref, rootDir, freshnessOptions) {
     summary.pendingPoiCodes.length !== 0
   ) {
     blockers.push('workbook evidence must prove there are no pending POI rows')
+  }
+  if (!Array.isArray(pendingPoiTasks) || pendingPoiTasks.length !== 0) {
+    blockers.push('workbook evidence must prove there are no pending POI tasks')
   }
   blockers.push(...await checkEvidenceSourceHash(rootDir, evidence, 'workbook', 'workbookFile', 'workbookSha256'))
   blockers.push(...checkEvidenceChecks(evidence, requiredWorkbookEvidenceChecks, 'workbook'))
@@ -883,6 +887,7 @@ export async function verifyXichengReleaseEvidencePackage({
       workbookReadyPoiCount: summaryOf(workbookRef.data).workbookReadyPoiCount,
       workbookPendingPoiCount: summaryOf(workbookRef.data).workbookPendingPoiCount,
       pendingPoiCodes: summaryOf(workbookRef.data).pendingPoiCodes,
+      pendingPoiTasks: summaryOf(workbookRef.data).pendingPoiTasks,
       totalChecks: checks.length,
       passedChecks: checks.filter((item) => item.ok).length,
       failedChecks: checks.filter((item) => !item.ok).length,

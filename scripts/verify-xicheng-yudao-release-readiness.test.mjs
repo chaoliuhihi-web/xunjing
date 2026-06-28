@@ -238,7 +238,8 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
       placeholderCount: 0,
       workbookReadyPoiCount: 80,
       workbookPendingPoiCount: 0,
-      pendingPoiCodes: []
+      pendingPoiCodes: [],
+      pendingPoiTasks: []
     },
     checks: passedChecks(requiredWorkbookEvidenceChecks),
     blockers: []
@@ -340,7 +341,8 @@ describe('xicheng Yudao release readiness gate', () => {
       sourceWorkbookSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
       workbookReadyPoiCount: 80,
       workbookPendingPoiCount: 0,
-      pendingPoiCodes: []
+      pendingPoiCodes: [],
+      pendingPoiTasks: []
     })
     expect(result.checks.map((check) => check.name)).toEqual([
       'runtime-env',
@@ -538,6 +540,31 @@ describe('xicheng Yudao release readiness gate', () => {
     const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
     expect(evidenceCheck?.blockers.join('\n')).toContain('workbook evidence must prove 80 ready POI rows')
     expect(evidenceCheck?.blockers.join('\n')).toContain('workbook evidence must prove there are no pending POI rows')
+  })
+
+  test('fails closed when workbook evidence lacks pending task proof', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir, {
+      workbook: {
+        summary: {
+          pendingPoiTasks: undefined
+        }
+      }
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('workbook evidence must prove there are no pending POI tasks')
   })
 
   test('fails closed when workbook evidence does not match manifest source workbook provenance', async () => {
@@ -908,7 +935,8 @@ describe('xicheng Yudao release readiness gate', () => {
       poiSeedSqlSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
       workbookReadyPoiCount: 80,
       workbookPendingPoiCount: 0,
-      pendingPoiCodes: []
+      pendingPoiCodes: [],
+      pendingPoiTasks: []
     })
     expect(evidence.checks.find((check) => check.name === 'full-yudao-baseline')?.detail).toContain(externalBaselinePath)
   })
@@ -955,9 +983,11 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(deployDoc).toContain('--poi-workbook-evidence')
     expect(deployDoc).toContain('workbookReadyPoiCount')
     expect(deployDoc).toContain('workbookPendingPoiCount')
+    expect(deployDoc).toContain('pendingPoiTasks')
     expect(deployDoc).toContain('release evidence summary 会直接提升这些行级 POI 完成数')
     expect(statusDoc).toContain('workbookReadyPoiCount')
     expect(statusDoc).toContain('workbookPendingPoiCount')
+    expect(statusDoc).toContain('pendingPoiTasks')
     expect(statusDoc).toContain('package summary 里直接展示 workbook 行级完成数')
     expect(deployDoc).toContain('seed evidence 的 `summary.sqlFile`')
     expect(deployDoc).toContain('sourceWorkbookSha256')

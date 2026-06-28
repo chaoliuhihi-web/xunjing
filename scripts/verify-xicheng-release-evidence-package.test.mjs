@@ -250,7 +250,8 @@ function workbookEvidence(overrides = {}) {
       placeholderCount: 0,
       workbookReadyPoiCount: 80,
       workbookPendingPoiCount: 0,
-      pendingPoiCodes: []
+      pendingPoiCodes: [],
+      pendingPoiTasks: []
     },
     checks: [
       { name: 'workbook-file', ok: true },
@@ -499,6 +500,7 @@ describe('xicheng release evidence package gate', () => {
       workbookReadyPoiCount: 80,
       workbookPendingPoiCount: 0,
       pendingPoiCodes: [],
+      pendingPoiTasks: [],
       blockerCount: 0
     })
     const releaseEvidenceText = await readFile(releasePath, 'utf8')
@@ -645,6 +647,34 @@ describe('xicheng release evidence package gate', () => {
     expect(report.status).toBe('NOT_READY')
     expect(report.blockers.join('\n')).toContain('workbook evidence must prove 80 ready POI rows')
     expect(report.blockers.join('\n')).toContain('workbook evidence must prove there are no pending POI rows')
+  })
+
+  test('fails closed when workbook evidence lacks pending task proof', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const workbookPath = await writeWorkbookEvidenceFile(rootDir, {
+      summary: {
+        pendingPoiTasks: undefined
+      }
+    })
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-workbook-evidence', workbookPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.blockers.join('\n')).toContain('workbook evidence must prove there are no pending POI tasks')
   })
 
   test('fails closed when POI evidence was generated before field evidence gates existed', async () => {
@@ -1496,5 +1526,6 @@ describe('xicheng release evidence package gate', () => {
     expect(deployDoc).toContain('summary.poiWorkbookEvidenceFile')
     expect(deployDoc).toContain('workbookReadyPoiCount')
     expect(deployDoc).toContain('workbookPendingPoiCount')
+    expect(deployDoc).toContain('pendingPoiTasks')
   })
 })
