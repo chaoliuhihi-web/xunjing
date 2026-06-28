@@ -4,6 +4,12 @@ import { pathToFileURL } from 'node:url'
 import {
   writeXichengPoiProductionManifestTemplate
 } from './create-xicheng-poi-production-manifest-template.mjs'
+import {
+  verifyXichengPoiReviewWorkbook
+} from './verify-xicheng-poi-review-workbook.mjs'
+import {
+  exportXichengPoiReviewTasks
+} from './export-xicheng-poi-review-tasks.mjs'
 
 const artifactType = 'xicheng-poi-production-review-pack'
 
@@ -12,7 +18,9 @@ const defaultPaths = {
   seedSqlFile: 'backend/yudao/sql/mysql/xunjing-seed-xicheng-p0.sql',
   reviewChecklistFile: 'workbench/xicheng-production-pois.review-checklist.csv',
   reviewWorkbookFile: 'workbench/xicheng-production-pois.review-workbook.csv',
-  reviewPacketFile: 'workbench/xicheng-production-pois.review-packet.json'
+  reviewPacketFile: 'workbench/xicheng-production-pois.review-packet.json',
+  workbookEvidenceFile: 'qa/xicheng-poi-review-workbook-evidence.json',
+  reviewTasksFile: 'workbench/xicheng-poi-review-tasks.csv'
 }
 
 function readArgValue(args, name) {
@@ -41,6 +49,8 @@ export async function createXichengPoiProductionReviewPack({
   reviewChecklistFile = defaultPaths.reviewChecklistFile,
   reviewWorkbookFile = defaultPaths.reviewWorkbookFile,
   reviewPacketFile = defaultPaths.reviewPacketFile,
+  workbookEvidenceFile = defaultPaths.workbookEvidenceFile,
+  reviewTasksFile = defaultPaths.reviewTasksFile,
   count = 80
 } = {}) {
   const resolvedRootDir = path.resolve(rootDir)
@@ -55,6 +65,18 @@ export async function createXichengPoiProductionReviewPack({
   })
   const resolvedReviewPacketFile = resolveRootPath(resolvedRootDir, reviewPacketFile)
   const reviewPacket = JSON.parse(await readFile(resolvedReviewPacketFile, 'utf8'))
+  const workbookGateReport = await verifyXichengPoiReviewWorkbook({
+    rootDir: resolvedRootDir,
+    workbookFile: reviewWorkbookFile,
+    evidenceFile: workbookEvidenceFile
+  })
+  const reviewTaskReport = await exportXichengPoiReviewTasks({
+    rootDir: resolvedRootDir,
+    workbookEvidenceFile,
+    outputFile: reviewTasksFile
+  })
+  const resolvedWorkbookEvidenceFile = resolveRootPath(resolvedRootDir, workbookEvidenceFile)
+  const resolvedReviewTasksFile = resolveRootPath(resolvedRootDir, reviewTasksFile)
 
   return {
     artifactType,
@@ -65,13 +87,23 @@ export async function createXichengPoiProductionReviewPack({
       ...templateReport.summary,
       reviewPacketFile: resolvedReviewPacketFile,
       reviewPacketStatus: reviewPacket.status,
+      workbookEvidenceFile: resolvedWorkbookEvidenceFile,
+      workbookGateStatus: workbookGateReport.status,
+      workbookReadyPoiCount: workbookGateReport.summary?.workbookReadyPoiCount,
+      workbookPendingPoiCount: workbookGateReport.summary?.workbookPendingPoiCount,
+      reviewTasksFile: resolvedReviewTasksFile,
+      reviewTaskStatus: reviewTaskReport.status,
+      reviewTaskCount: reviewTaskReport.summary?.taskCount,
       nextCommandCount: Array.isArray(reviewPacket.nextCommands)
         ? reviewPacket.nextCommands.length
         : 0
     },
     nextCommands: reviewPacket.nextCommands || [],
-    blockers: reviewPacket.blockers || [
-      'review workbook still contains TODO or REVIEW_REQUIRED placeholders'
+    blockers: [
+      ...(reviewPacket.blockers || [
+        'review workbook still contains TODO or REVIEW_REQUIRED placeholders'
+      ]),
+      ...(reviewTaskReport.blockers || [])
     ],
     note: 'This review pack is a draft handoff artifact only. It is not production evidence and must fail production gates until reviewed real POI data is filled.'
   }
@@ -86,6 +118,8 @@ async function runCli() {
     reviewChecklistFile: readArgValue(args, '--review-checklist') || defaultPaths.reviewChecklistFile,
     reviewWorkbookFile: readArgValue(args, '--review-workbook') || defaultPaths.reviewWorkbookFile,
     reviewPacketFile: readArgValue(args, '--review-packet') || defaultPaths.reviewPacketFile,
+    workbookEvidenceFile: readArgValue(args, '--workbook-evidence') || defaultPaths.workbookEvidenceFile,
+    reviewTasksFile: readArgValue(args, '--review-tasks') || defaultPaths.reviewTasksFile,
     count: readArgValue(args, '--count') || 80
   })
   console.log(JSON.stringify(report, null, 2))

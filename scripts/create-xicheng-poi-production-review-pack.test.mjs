@@ -43,6 +43,8 @@ describe('xicheng POI production review pack', () => {
     const reviewChecklistFile = path.join(rootDir, 'workbench/xicheng-production-pois.review-checklist.csv')
     const reviewWorkbookFile = path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv')
     const reviewPacketFile = path.join(rootDir, 'workbench/xicheng-production-pois.review-packet.json')
+    const workbookEvidenceFile = path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json')
+    const reviewTasksFile = path.join(rootDir, 'workbench/xicheng-poi-review-tasks.csv')
 
     expect(report).toMatchObject({
       artifactType: 'xicheng-poi-production-review-pack',
@@ -53,13 +55,20 @@ describe('xicheng POI production review pack', () => {
         reviewChecklistFile,
         reviewWorkbookFile,
         reviewPacketFile,
+        workbookEvidenceFile,
+        reviewTasksFile,
         poiSlots: 80,
         importedPoiCount: 24,
         todoPoiSlots: 56,
-        productionReady: false
+        productionReady: false,
+        workbookGateStatus: 'NOT_READY',
+        workbookReadyPoiCount: 0,
+        workbookPendingPoiCount: 80,
+        reviewTaskStatus: 'REVIEW_TASKS_REQUIRED'
       }
     })
     expect(report.blockers).toContain('review workbook still contains TODO or REVIEW_REQUIRED placeholders')
+    expect(report.blockers).toContain('workbook review tasks remain; complete ownerLane CSV rows before production release')
     expect(report.nextCommands).toContain(
       'npm run xunjing:xicheng:poi:workbook:gate -- --workbook workbench/xicheng-production-pois.review-workbook.csv --evidence-file qa/xicheng-poi-review-workbook-evidence.json'
     )
@@ -78,6 +87,23 @@ describe('xicheng POI production review pack', () => {
     const workbook = await readFile(reviewWorkbookFile, 'utf8')
     expect(workbook).toContain('TODO-xicheng-poi-025')
     expect(workbook).toContain('REVIEW_REQUIRED')
+
+    const workbookEvidence = JSON.parse(await readFile(workbookEvidenceFile, 'utf8'))
+    expect(workbookEvidence).toMatchObject({
+      artifactType: 'xicheng-poi-review-workbook-readiness',
+      ok: false,
+      status: 'NOT_READY',
+      summary: {
+        workbookFile: reviewWorkbookFile,
+        workbookRows: 80,
+        workbookPendingPoiCount: 80
+      }
+    })
+
+    const reviewTasks = await readFile(reviewTasksFile, 'utf8')
+    expect(reviewTasks).toContain('workbookRowNumber,poiIndex,poiCode,blockerGroup,ownerLane,taskStatus,sourceEvidenceFile')
+    expect(reviewTasks).toContain('TODO-xicheng-poi-025')
+    expect(reviewTasks).toContain('source-license')
 
     const reviewPacket = JSON.parse(await readFile(reviewPacketFile, 'utf8'))
     expect(reviewPacket).toMatchObject({
@@ -103,6 +129,12 @@ describe('xicheng POI production review pack', () => {
       'node scripts/create-xicheng-poi-production-review-pack.mjs'
     )
     expect(deployDoc).toContain('npm run xunjing:xicheng:poi:review:pack')
+    expect(deployDoc).toContain('qa/xicheng-poi-review-workbook-evidence.json')
+    expect(deployDoc).toContain('workbench/xicheng-poi-review-tasks.csv')
+    expect(deployDoc).toContain('--workbook-evidence qa/xicheng-poi-review-workbook-evidence.json')
+    expect(deployDoc).toContain('--review-tasks workbench/xicheng-poi-review-tasks.csv')
     expect(statusDoc).toContain('npm run xunjing:xicheng:poi:review:pack')
+    expect(statusDoc).toContain('workbookGateStatus')
+    expect(statusDoc).toContain('reviewTaskStatus')
   })
 })
