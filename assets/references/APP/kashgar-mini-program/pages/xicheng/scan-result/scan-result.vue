@@ -253,6 +253,10 @@ const normalizeResult = (result = {}) => ({
 	sourceChannel: result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
 	companionName: result.companionName || XICHENG_REGION_CONFIG.companionName,
 	poiName: result.poiName || XICHENG_EMPTY_RECOGNITION_RESULT.poiName,
+	confidence: normalizeCandidateConfidence(result),
+	confidencePercent: result.confidencePercent !== undefined && result.confidencePercent !== null && result.confidencePercent !== ''
+		? Math.round(Number(result.confidencePercent))
+		: Math.round(normalizeCandidateConfidence(result) * 100),
 	suggestedQuestions: normalizeSuggestedQuestions(result),
 	recommendedQuestions: normalizeSuggestedQuestions(result),
 	routeRecommendation: normalizeRecommendedRoute(result),
@@ -272,6 +276,10 @@ export default {
 	},
 	computed: {
 		confidencePercent() {
+			const explicitPercent = Number(this.result.confidencePercent)
+			if (Number.isFinite(explicitPercent)) {
+				return Math.round(explicitPercent)
+			}
 			return Math.round(Number(this.result.confidence || 0) * 100)
 		},
 		suggestedQuestions() {
