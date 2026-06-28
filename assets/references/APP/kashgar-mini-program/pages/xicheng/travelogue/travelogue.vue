@@ -348,6 +348,7 @@
 import { XICHENG_OFFICIAL_POIS, XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import { requestCurrentLocationForTrigger } from '@/request/xunjing/trigger.js'
 import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
+import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 
 export const isUnsafeSourceBlockedMaterial = (material = {}) => {
 	const safetyStatus = normalizeXichengSafetyStatus(material.safetyStatus)
@@ -369,7 +370,7 @@ export const hasReviewableMaterialEvidence = (material = {}) => {
 
 export const getReviewableMaterialSources = (material = {}) => {
 	if (!hasReviewableMaterialEvidence(material)) return []
-	return Array.isArray(material.sources) ? material.sources : []
+	return normalizeXichengReviewedSources(material.sources)
 }
 
 export const hasXichengTravelogueDraftEvidence = ({

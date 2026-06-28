@@ -12,6 +12,7 @@ for (const required of [
   'isUnsafeSourceBlockedMaterial',
   'hasReviewableMaterialEvidence',
   'getReviewableMaterialSources',
+  'normalizeXichengReviewedSources',
   "['BLOCKED', 'UNAVAILABLE']"
 ]) {
   assert.ok(
@@ -40,8 +41,8 @@ assert.match(
 
 assert.match(
   travelogue,
-  /getReviewableMaterialSources\s*=\s*\(material = \{\}\) => \{[\s\S]*if \(!hasReviewableMaterialEvidence\(material\)\) return \[\][\s\S]*return Array\.isArray\(material\.sources\) \? material\.sources : \[\]/,
-  'Reviewable source helper should clear sources for unsafe materials before source counts or public share cards use them'
+  /getReviewableMaterialSources\s*=\s*\(material = \{\}\) => \{[\s\S]*if \(!hasReviewableMaterialEvidence\(material\)\) return \[\][\s\S]*return normalizeXichengReviewedSources\(material\.sources\)/,
+  'Reviewable source helper should clear unsafe materials and normalize cached sources before source counts or public share cards use them'
 )
 
 assert.match(
