@@ -133,6 +133,7 @@ async function writeYudaoServerJarFile(rootDir) {
 async function writeReleaseEvidenceFile(rootDir, overrides = {}) {
   const baseline = await writeYudaoBaselineFile(rootDir)
   const serverJar = await writeYudaoServerJarFile(rootDir)
+  const poiSources = await writePoiSourceFiles(rootDir)
   return writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', releaseEvidence({
     ...overrides,
     summary: {
@@ -144,6 +145,12 @@ async function writeReleaseEvidenceFile(rootDir, overrides = {}) {
       manifestEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-manifest-evidence.json'),
       workbookEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json'),
       seedEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-production-seed-evidence.json'),
+      poiManifestFile: poiSources.manifestFile,
+      poiManifestSha256: poiSources.manifestSha256,
+      sourceWorkbookFile: poiSources.workbookFile,
+      sourceWorkbookSha256: poiSources.workbookSha256,
+      poiSeedSqlFile: poiSources.sqlFile,
+      poiSeedSqlSha256: poiSources.sqlSha256,
       ...(overrides.summary || {})
     }
   }))
@@ -1015,6 +1022,39 @@ describe('xicheng release evidence package gate', () => {
     expect(report.blockers.join('\n')).toContain('release and package seed evidence file must match')
   })
 
+  test('fails closed when release evidence POI source hashes do not match package inputs', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
+      summary: {
+        poiManifestFile: path.join(rootDir, 'workbench/xicheng-production-pois.json'),
+        poiManifestSha256: 'b'.repeat(64),
+        sourceWorkbookFile: path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv'),
+        sourceWorkbookSha256: 'c'.repeat(64),
+        poiSeedSqlFile: path.join(rootDir, 'workbench/xicheng-poi-production-seed.sql'),
+        poiSeedSqlSha256: 'd'.repeat(64)
+      }
+    })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.blockers.join('\n')).toContain('release and package poiManifestSha256 must match')
+    expect(report.blockers.join('\n')).toContain('release and package sourceWorkbookSha256 must match')
+    expect(report.blockers.join('\n')).toContain('release and package poiSeedSqlSha256 must match')
+  })
+
   test('fails closed when release evidence lacks Yudao baseline hash metadata', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeReleaseEvidenceFile(rootDir, {
@@ -1541,6 +1581,38 @@ describe('xicheng release evidence package gate', () => {
     const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
     expect(evidence.status).toBe('NOT_READY')
     expect(evidence.blockers.join('\n')).toContain('manifest evidence checkedAt must be within the last 24 hours')
+  })
+
+  test('does not treat secret environment variable names as raw secret values', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
+      diagnostics: {
+        requiredEnvNames: [
+          'OSS_SECRET_KEY',
+          'WX_MP_SECRET',
+          'INTERNAL_AUTH_TOKEN',
+          'QWEN_API_KEY'
+        ]
+      }
+    })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(0)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('XICHENG_RELEASE_EVIDENCE_PACKAGE_READY')
+    expect(report.checks.find((check) => check.name === 'secret-safety')).toMatchObject({
+      ok: true
+    })
   })
 
   test('fails closed for incomplete APP evidence or raw secret-like values', async () => {

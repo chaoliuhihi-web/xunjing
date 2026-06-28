@@ -799,6 +799,35 @@ function checkEvidenceConsistency({ rootDir, releaseRef, manifestRef, workbookRe
     blockers.push('release and package seed evidence file must match')
   }
 
+  for (const [releaseField, packageValue] of [
+    ['poiManifestFile', manifestSummary.manifestFile],
+    ['sourceWorkbookFile', workbookSummary.workbookFile],
+    ['poiSeedSqlFile', seedSummary.sqlFile]
+  ]) {
+    const releaseValue = releaseSummary[releaseField]
+    if (!hasText(releaseValue)) {
+      blockers.push(`release evidence ${releaseField} is required`)
+    } else if (
+      packageValue &&
+      normalizeEvidencePath(rootDir, releaseValue) !== normalizeEvidencePath(rootDir, packageValue)
+    ) {
+      blockers.push(`release and package ${releaseField} must match`)
+    }
+  }
+
+  for (const [releaseField, packageValue] of [
+    ['poiManifestSha256', manifestSummary.manifestSha256],
+    ['sourceWorkbookSha256', workbookSummary.workbookSha256],
+    ['poiSeedSqlSha256', seedSummary.sqlSha256]
+  ]) {
+    const releaseValue = String(releaseSummary[releaseField] || '')
+    if (!/^[a-f0-9]{64}$/i.test(releaseValue)) {
+      blockers.push(`release evidence ${releaseField} must be a sha256 hex digest`)
+    } else if (packageValue && releaseValue !== String(packageValue)) {
+      blockers.push(`release and package ${releaseField} must match`)
+    }
+  }
+
   if (
     manifestSummary.regionCode &&
     seedSummary.regionCode &&
@@ -879,11 +908,17 @@ function hasRawSecretLikeValue(value) {
   if (normalized.length < 10) {
     return false
   }
-  return /^sk-[A-Za-z0-9_-]{12,}$/.test(normalized) ||
-    /^AKIA[A-Z0-9]{12,}$/.test(normalized) ||
-    /(?:password|secret|token|api[-_]?key|access[-_]?key)[-_][A-Za-z0-9_-]{6,}/i.test(normalized) ||
-    /[A-Za-z0-9_-]{6,}[-_](?:password|secret|token|api[-_]?key|access[-_]?key)/i.test(normalized) ||
-    /(?:prod|production|real|live)[-_][A-Za-z0-9_-]*(?:password|secret|token|key)/i.test(normalized)
+  const tokens = normalized.match(/[A-Za-z0-9_-]{10,}/g) || []
+  return tokens.some((token) => {
+    if (/^[A-Z][A-Z0-9_]*(?:PASSWORD|SECRET|TOKEN|API_?KEY|ACCESS_?KEY)[A-Z0-9_]*$/.test(token)) {
+      return false
+    }
+    return /^sk-[A-Za-z0-9_-]{12,}$/.test(token) ||
+      /^AKIA[A-Z0-9]{12,}$/.test(token) ||
+      /(?:password|secret|token|api[-_]?key|access[-_]?key)[-_][A-Za-z0-9_-]{6,}/i.test(token) ||
+      /[A-Za-z0-9_-]{6,}[-_](?:password|secret|token|api[-_]?key|access[-_]?key)/i.test(token) ||
+      /(?:prod|production|real|live)[-_][A-Za-z0-9_-]*(?:password|secret|token|key)/i.test(token)
+  })
 }
 
 function checkSecretSafety(refs) {
