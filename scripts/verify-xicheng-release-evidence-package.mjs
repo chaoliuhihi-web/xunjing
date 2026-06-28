@@ -24,6 +24,7 @@ const requiredReleaseChecks = [
   'full-yudao-baseline',
   'yudao-server-artifact',
   'xicheng-production-poi-evidence',
+  'xicheng-runtime-seed-evidence',
   'xicheng-production-poi',
   'xicheng-source-license'
 ]
@@ -568,6 +569,45 @@ function checkReleaseProviderSmokeSummary(evidence) {
   return blockers
 }
 
+function checkReleaseRuntimeSeedSummary(evidence) {
+  const blockers = []
+  const summary = summaryOf(evidence)
+  if (!hasText(summary.runtimeSeedEvidenceFile)) {
+    blockers.push('release evidence runtimeSeedEvidenceFile is required')
+  }
+  if (summary.runtimeSeedReadinessMode !== 'production') {
+    blockers.push('release evidence runtimeSeedReadinessMode must be production')
+  }
+  if (summary.runtimeSeedProductionReady !== true) {
+    blockers.push('release evidence runtimeSeedProductionReady must be true')
+  }
+  if (summary.runtimeSeedLocalCandidateReady !== true) {
+    blockers.push('release evidence runtimeSeedLocalCandidateReady must be true')
+  }
+  if (Number(summary.runtimeSeedPoiTotal) < productionPoiTarget) {
+    blockers.push(`release evidence runtimeSeedPoiTotal must be at least ${productionPoiTarget}`)
+  }
+  if (Number(summary.runtimeSeedPoiApprovedPublished) < productionPoiTarget) {
+    blockers.push(`release evidence runtimeSeedPoiApprovedPublished must be at least ${productionPoiTarget}`)
+  }
+  if (Number(summary.runtimeSeedKnowledgeDocuments) < productionPoiTarget + 4) {
+    blockers.push('release evidence runtimeSeedKnowledgeDocuments must be at least 84')
+  }
+  if (Number(summary.runtimeSeedMapPoints) < productionPoiTarget) {
+    blockers.push(`release evidence runtimeSeedMapPoints must be at least ${productionPoiTarget}`)
+  }
+  if (Number(summary.runtimeSeedGeoReviewRequired) !== 0) {
+    blockers.push('release evidence runtimeSeedGeoReviewRequired must be 0')
+  }
+  if (Number(summary.runtimeSeedLicenseReviewRequired) !== 0) {
+    blockers.push('release evidence runtimeSeedLicenseReviewRequired must be 0')
+  }
+  if (Number(summary.runtimeSeedProductionBlockerCount) !== 0) {
+    blockers.push('release evidence runtimeSeedProductionBlockerCount must be 0')
+  }
+  return blockers
+}
+
 async function checkReleaseEvidence(ref, stage, freshnessOptions) {
   const blockers = []
   if (ref.error) {
@@ -602,6 +642,7 @@ async function checkReleaseEvidence(ref, stage, freshnessOptions) {
   blockers.push(...checkReleaseSourceRevisionSummary(evidence))
   blockers.push(...checkReleaseRuntimeEnvFingerprintSummary(evidence))
   blockers.push(...checkReleaseProviderSmokeSummary(evidence))
+  blockers.push(...checkReleaseRuntimeSeedSummary(evidence))
   blockers.push(...await checkReleaseBaselineHash(evidence))
   blockers.push(...await checkReleaseServerArtifactHash(evidence))
   blockers.push(...checkEvidenceChecks(evidence, requiredReleaseChecks, 'release'))

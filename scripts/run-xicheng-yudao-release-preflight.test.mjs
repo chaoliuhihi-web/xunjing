@@ -38,6 +38,7 @@ describe('xicheng Yudao release preflight', () => {
     const result = runPreflight([
       '--root', rootDir,
       '--env-file', 'ops/xunjing-platform.env.example',
+      '--runtime-seed-evidence', 'tmp/xicheng-yudao-runtime-seed-production-evidence.json',
       '--release-evidence', 'qa/xicheng-yudao-release-evidence.json',
       '--tasks-output', 'workbench/xicheng-yudao-release-blocker-tasks.csv'
     ])
@@ -70,7 +71,10 @@ describe('xicheng Yudao release preflight', () => {
     const releaseEvidence = JSON.parse(await readFile(releaseEvidenceFile, 'utf8'))
     expect(releaseEvidence).toMatchObject({
       artifactType: 'xicheng-yudao-release-readiness',
-      status: 'NOT_READY'
+      status: 'NOT_READY',
+      summary: {
+        runtimeSeedEvidenceFile: path.join(rootDir, 'tmp/xicheng-yudao-runtime-seed-production-evidence.json')
+      }
     })
 
     const tasksCsv = await readFile(tasksOutputFile, 'utf8')

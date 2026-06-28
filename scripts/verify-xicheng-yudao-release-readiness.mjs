@@ -73,6 +73,17 @@ const requiredObjectStorageEvidenceChecks = [
   'secret-redaction'
 ]
 
+const requiredRuntimeSeedEvidenceChecks = [
+  'resource-package',
+  'poi-count',
+  'poi-approval',
+  'knowledge-documents',
+  'map-points',
+  'qr-code',
+  'local-candidate-report',
+  'secret-redaction'
+]
+
 const secretEvidenceKeys = [
   'MYSQL_PASSWORD',
   'REDIS_PASSWORD',
@@ -1100,6 +1111,117 @@ async function validateSeedEvidence(ref, rootDir, freshnessOptions) {
   return blockers
 }
 
+async function checkXichengRuntimeSeedEvidence({
+  rootDir,
+  runtimeSeedEvidencePath,
+  env,
+  freshnessOptions
+}) {
+  const ref = await loadEvidenceInput(rootDir, runtimeSeedEvidencePath)
+  const blockers = []
+  if (!ref.path) {
+    blockers.push('Yudao runtime production seed evidence is required before production release')
+  } else if (ref.error) {
+    blockers.push(`Yudao runtime production seed evidence cannot be read: ${ref.error}`)
+  } else {
+    const evidence = ref.data || {}
+    const summary = evidenceSummary(evidence)
+    if (evidence.artifactType !== 'xicheng-yudao-runtime-seed') {
+      blockers.push('runtime seed evidence artifactType must be xicheng-yudao-runtime-seed')
+    }
+    blockers.push(...checkEvidenceTimestamp(evidence, 'runtime seed', freshnessOptions))
+    if (evidence.ok !== true) {
+      blockers.push('runtime seed evidence ok must be true')
+    }
+    if (evidence.status !== 'YUDAO_XICHENG_PRODUCTION_SEED_READY') {
+      blockers.push('runtime seed evidence status must be YUDAO_XICHENG_PRODUCTION_SEED_READY')
+    }
+    if (summary.readinessMode !== 'production') {
+      blockers.push('runtime seed evidence readinessMode must be production')
+    }
+    if (String(summary.tenantId || '') !== String(env.XUNJING_TENANT_ID || '')) {
+      blockers.push('runtime seed evidence tenantId must match XUNJING_TENANT_ID')
+    }
+    if (String(summary.database || '') !== String(env.MYSQL_DATABASE || '')) {
+      blockers.push('runtime seed evidence database must match MYSQL_DATABASE')
+    }
+    if (summary.regionCode !== expectedXichengRegionCode) {
+      blockers.push('runtime seed evidence regionCode must be beijing-xicheng')
+    }
+    if (summary.packageCode !== expectedXichengPackageCode) {
+      blockers.push('runtime seed evidence packageCode must be XICHENG-MAP-001')
+    }
+    if (summary.localCandidateReady !== true) {
+      blockers.push('runtime seed evidence localCandidateReady must be true')
+    }
+    if (summary.productionReady !== true) {
+      blockers.push('runtime seed evidence productionReady must be true')
+    }
+    if (Number(summary.poiTotal) < productionPoiTarget) {
+      blockers.push(`runtime seed evidence must prove at least ${productionPoiTarget} POIs`)
+    }
+    if (Number(summary.poiApprovedPublished) < productionPoiTarget) {
+      blockers.push(`runtime seed evidence must prove at least ${productionPoiTarget} approved and published POIs`)
+    }
+    if (Number(summary.knowledgeDocuments) < productionPoiTarget + 4) {
+      blockers.push('runtime seed evidence must prove at least 84 knowledge documents')
+    }
+    if (Number(summary.mapPoints) < productionPoiTarget) {
+      blockers.push(`runtime seed evidence must prove at least ${productionPoiTarget} map points`)
+    }
+    if (Number(summary.poiGeoReviewRequired) !== 0) {
+      blockers.push('runtime seed evidence poiGeoReviewRequired must be 0')
+    }
+    if (Number(summary.poiLicenseReviewRequired) !== 0) {
+      blockers.push('runtime seed evidence poiLicenseReviewRequired must be 0')
+    }
+    if (Number(summary.publicReportProductionReady) < 1) {
+      blockers.push('runtime seed evidence must include a production-ready public report')
+    }
+    if (!Array.isArray(summary.productionBlockers) || summary.productionBlockers.length > 0) {
+      blockers.push('runtime seed evidence productionBlockers must be empty')
+    }
+    blockers.push(...checkEvidenceChecks(evidence, requiredRuntimeSeedEvidenceChecks, 'runtime seed'))
+    const leakedKeys = evidenceSecretLeaks(evidence, env)
+    if (leakedKeys.length > 0) {
+      blockers.push(`runtime seed evidence must not contain secret values: ${leakedKeys.join(', ')}`)
+    }
+    if (!hasNoEvidenceBlockers(evidence)) {
+      blockers.push(`runtime seed evidence contains blockers: ${evidence.blockers.join('; ')}`)
+    }
+  }
+
+  const summary = evidenceSummary(ref.data)
+  return {
+    ...check(
+      'xicheng-runtime-seed-evidence',
+      blockers.length === 0,
+      blockers.length === 0
+        ? `Yudao runtime production seed evidence is ready: ${ref.path}`
+        : blockers.join('; '),
+      blockers
+    ),
+    summary: {
+      runtimeSeedEvidenceFile: ref.path,
+      runtimeSeedCheckedAt: ref.data?.checkedAt,
+      runtimeSeedReadinessMode: summary.readinessMode,
+      runtimeSeedTenantId: summary.tenantId,
+      runtimeSeedDatabase: summary.database,
+      runtimeSeedProductionReady: summary.productionReady,
+      runtimeSeedLocalCandidateReady: summary.localCandidateReady,
+      runtimeSeedPoiTotal: summary.poiTotal,
+      runtimeSeedPoiApprovedPublished: summary.poiApprovedPublished,
+      runtimeSeedKnowledgeDocuments: summary.knowledgeDocuments,
+      runtimeSeedMapPoints: summary.mapPoints,
+      runtimeSeedGeoReviewRequired: summary.poiGeoReviewRequired,
+      runtimeSeedLicenseReviewRequired: summary.poiLicenseReviewRequired,
+      runtimeSeedProductionBlockerCount: Array.isArray(summary.productionBlockers)
+        ? summary.productionBlockers.length
+        : undefined
+    }
+  }
+}
+
 function normalizeEvidencePath(rootDir, filePath) {
   if (!hasValue(filePath)) {
     return undefined
@@ -1315,6 +1437,7 @@ export async function verifyXichengYudaoReleaseReadiness({
   aiBootstrapEvidencePath,
   visionOcrEvidencePath,
   objectStorageEvidencePath,
+  runtimeSeedEvidencePath,
   poiManifestEvidencePath,
   poiWorkbookEvidencePath,
   poiSeedEvidencePath,
@@ -1370,6 +1493,12 @@ export async function verifyXichengYudaoReleaseReadiness({
     await checkFullYudaoBaseline(rootDir, yudaoBaselineSqlPath || env.YUDAO_BASELINE_SQL),
     await checkYudaoServerArtifact(rootDir, yudaoServerJarPath || env.YUDAO_SERVER_JAR),
     productionPoiEvidenceCheck,
+    await checkXichengRuntimeSeedEvidence({
+      rootDir,
+      runtimeSeedEvidencePath,
+      env,
+      freshnessOptions
+    }),
     await checkXichengProductionPoi(rootDir, productionPoiSeedSqlPath),
     await checkXichengSourceLicense(rootDir, productionPoiSeedSqlPath)
   ]
@@ -1420,6 +1549,7 @@ function buildReleaseEvidence(result) {
   const baselineSummary = result.checks.find((item) => item.name === 'full-yudao-baseline')?.summary || {}
   const serverArtifactSummary = result.checks.find((item) => item.name === 'yudao-server-artifact')?.summary || {}
   const productionPoiEvidenceSummary = result.checks.find((item) => item.name === 'xicheng-production-poi-evidence')?.summary || {}
+  const runtimeSeedSummary = result.checks.find((item) => item.name === 'xicheng-runtime-seed-evidence')?.summary || {}
   return {
     artifactType: 'xicheng-yudao-release-readiness',
     summary: {
@@ -1437,6 +1567,7 @@ function buildReleaseEvidence(result) {
       ...baselineSummary,
       ...serverArtifactSummary,
       ...productionPoiEvidenceSummary,
+      ...runtimeSeedSummary,
       ...result.runtimeEnvSummary
     },
     ...result
@@ -1484,6 +1615,8 @@ async function runCli() {
       env.XICHENG_VISION_OCR_EVIDENCE,
     objectStorageEvidencePath: readArgValue(args, '--object-storage-evidence') ||
       env.XICHENG_OBJECT_STORAGE_EVIDENCE,
+    runtimeSeedEvidencePath: readArgValue(args, '--runtime-seed-evidence') ||
+      env.XICHENG_RUNTIME_SEED_EVIDENCE,
     poiManifestEvidencePath: readArgValue(args, '--poi-manifest-evidence') ||
       process.env.XICHENG_POI_MANIFEST_EVIDENCE,
     poiWorkbookEvidencePath: readArgValue(args, '--poi-workbook-evidence') ||

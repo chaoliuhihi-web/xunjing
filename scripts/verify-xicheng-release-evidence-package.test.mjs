@@ -159,6 +159,17 @@ async function writeReleaseEvidenceFile(rootDir, overrides = {}) {
       objectStorageDeleteHttpStatus: 204,
       objectStorageReadBackMatches: true,
       objectStorageDeleted: true,
+      runtimeSeedEvidenceFile: path.join(rootDir, 'qa/xicheng-yudao-runtime-seed-production-evidence.json'),
+      runtimeSeedReadinessMode: 'production',
+      runtimeSeedProductionReady: true,
+      runtimeSeedLocalCandidateReady: true,
+      runtimeSeedPoiTotal: 80,
+      runtimeSeedPoiApprovedPublished: 80,
+      runtimeSeedKnowledgeDocuments: 84,
+      runtimeSeedMapPoints: 80,
+      runtimeSeedGeoReviewRequired: 0,
+      runtimeSeedLicenseReviewRequired: 0,
+      runtimeSeedProductionBlockerCount: 0,
       poiManifestFile: poiSources.manifestFile,
       poiManifestSha256: poiSources.manifestSha256,
       sourceWorkbookFile: poiSources.workbookFile,
@@ -224,8 +235,8 @@ function releaseEvidence(overrides = {}) {
     summary: {
       stage: 'production',
       status: 'PRODUCTION_READY_CANDIDATE',
-      totalChecks: 14,
-      passedChecks: 14,
+      totalChecks: 15,
+      passedChecks: 15,
       failedChecks: 0,
       blockerCount: 0,
       gitAvailable: true,
@@ -253,6 +264,7 @@ function releaseEvidence(overrides = {}) {
       { name: 'full-yudao-baseline', ok: true },
       { name: 'yudao-server-artifact', ok: true },
       { name: 'xicheng-production-poi-evidence', ok: true },
+      { name: 'xicheng-runtime-seed-evidence', ok: true },
       { name: 'xicheng-production-poi', ok: true },
       { name: 'xicheng-source-license', ok: true }
     ],
@@ -1054,6 +1066,45 @@ describe('xicheng release evidence package gate', () => {
     expect(report.blockers.join('\n')).toContain('release evidence objectStorageEvidenceFile is required')
     expect(report.blockers.join('\n')).toContain('release evidence objectStoragePutHttpStatus must be 2xx')
     expect(report.blockers.join('\n')).toContain('release evidence objectStorageReadBackMatches must be true')
+  })
+
+  test('fails closed when release evidence omits runtime seed summary', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
+      summary: {
+        runtimeSeedEvidenceFile: undefined,
+        runtimeSeedReadinessMode: undefined,
+        runtimeSeedProductionReady: undefined,
+        runtimeSeedLocalCandidateReady: undefined,
+        runtimeSeedPoiTotal: undefined,
+        runtimeSeedPoiApprovedPublished: undefined,
+        runtimeSeedKnowledgeDocuments: undefined,
+        runtimeSeedMapPoints: undefined,
+        runtimeSeedGeoReviewRequired: undefined,
+        runtimeSeedLicenseReviewRequired: undefined,
+        runtimeSeedProductionBlockerCount: undefined
+      },
+      checks: releaseEvidence().checks.filter((check) => check.name !== 'xicheng-runtime-seed-evidence')
+    })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.blockers.join('\n')).toContain('release evidence must include xicheng-runtime-seed-evidence')
+    expect(report.blockers.join('\n')).toContain('release evidence runtimeSeedEvidenceFile is required')
+    expect(report.blockers.join('\n')).toContain('release evidence runtimeSeedProductionReady must be true')
   })
 
   test('fails closed when release evidence references different POI evidence files than the package inputs', async () => {

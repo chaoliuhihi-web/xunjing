@@ -28,11 +28,12 @@ const checkOwnerLane = {
   'full-yudao-baseline': 'yudao-deploy',
   'yudao-server-artifact': 'yudao-deploy',
   'xicheng-production-poi-evidence': 'poi-data',
+  'xicheng-runtime-seed-evidence': 'poi-data',
   'xicheng-production-poi': 'poi-data',
   'xicheng-source-license': 'poi-data'
 }
 
-const releaseGateCommand = 'npm run xunjing:yudao:release:gate -- --stage production --expected-branch feature/xicheng-p0 --env-file /secure/path/production.env --evidence-file qa/xicheng-yudao-release-evidence.json'
+const releaseGateCommand = 'npm run xunjing:yudao:release:gate -- --stage production --expected-branch feature/xicheng-p0 --env-file /secure/path/production.env --runtime-seed-evidence qa/xicheng-yudao-runtime-seed-production-evidence.json --evidence-file qa/xicheng-yudao-release-evidence.json'
 
 const envTaskInstructions = [
   [/^XUNJING_APP_API_BASE_URL$/, {
@@ -102,6 +103,11 @@ const checkTaskInstructions = {
     taskDetail: 'Generate reviewed POI workbook manifest and seed evidence from 80 approved Xicheng POIs.',
     requiredEvidence: 'Workbook manifest and seed gates output READY evidence with matching source hashes.',
     verificationCommand: 'npm run xunjing:xicheng:poi:review:pack'
+  },
+  'xicheng-runtime-seed-evidence': {
+    taskDetail: 'Apply the approved Xicheng production seed to the target Yudao database and provide runtime seed evidence.',
+    requiredEvidence: 'Runtime seed verifier outputs YUDAO_XICHENG_PRODUCTION_SEED_READY with productionReady=true and no productionBlockers.',
+    verificationCommand: 'npm run xunjing:yudao:runtime-seed:verify -- --mode production --env-file /secure/path/production.env --evidence-file qa/xicheng-yudao-runtime-seed-production-evidence.json'
   },
   'xicheng-production-poi': {
     taskDetail: 'Complete 80 approved Xicheng POIs and production seed readiness.',

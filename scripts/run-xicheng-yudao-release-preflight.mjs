@@ -53,6 +53,7 @@ function buildReleaseGateArgs({
     ...optionalArg(args, '--ai-bootstrap-evidence'),
     ...optionalArg(args, '--vision-ocr-evidence'),
     ...optionalArg(args, '--object-storage-evidence'),
+    ...optionalArg(args, '--runtime-seed-evidence'),
     ...optionalArg(args, '--poi-workbook-evidence'),
     ...optionalArg(args, '--poi-manifest-evidence'),
     ...optionalArg(args, '--poi-seed-evidence'),
