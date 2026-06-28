@@ -1,0 +1,342 @@
+.kashgar-travel-notes-home {
+	min-height: 100vh;
+	padding: 0 22rpx 250rpx;
+	background:
+		linear-gradient(180deg, rgba(255, 249, 238, 0.96) 0%, rgba(255, 249, 238, 0.82) 18%, rgba(248, 244, 238, 0.94) 42%, #FFFFFF 100%),
+		#FFF8EC;
+	overflow: hidden;
+	font-family: "PingFang SC", "Songti SC", sans-serif;
+}
+
+.kashgar-home-sky {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	height: 180rpx;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.kashgar-home-mountain {
+	width: 100%;
+	height: 100%;
+	opacity: 0.34;
+	filter: saturate(0.82);
+}
+
+.kashgar-home-nav {
+	position: relative;
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding-top: 42rpx;
+}
+
+.kashgar-home-brand {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+}
+
+.kashgar-home-brand-avatar {
+	width: 55rpx;
+	height: 55rpx;
+	border-radius: 50%;
+	border: 3rpx solid rgba(255, 255, 255, 0.86);
+	box-shadow: 0 6rpx 14rpx rgba(92, 64, 32, 0.13);
+}
+
+.kashgar-home-brand-copy {
+	display: flex;
+	flex-direction: column;
+}
+
+.kashgar-home-brand-name {
+	font-size: 28rpx;
+	line-height: 31rpx;
+	font-weight: 900;
+	color: #2D1B10;
+}
+
+.kashgar-home-brand-sub {
+	margin-top: 2rpx;
+	font-size: 17rpx;
+	line-height: 20rpx;
+	color: #665543;
+}
+
+.kashgar-home-capsule {
+	width: 118rpx;
+	height: 52rpx;
+	border-radius: 999rpx;
+	background: rgba(255, 255, 255, 0.76);
+	border: 1rpx solid rgba(83, 56, 26, 0.1);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12rpx;
+	color: #11100D;
+	font-size: 26rpx;
+}
+
+.kashgar-home-capsule-line {
+	width: 1rpx;
+	height: 30rpx;
+	background: rgba(62, 47, 31, 0.16);
+}
+
+.kashgar-home-ring {
+	font-size: 36rpx;
+	line-height: 36rpx;
+	font-weight: 800;
+}
+
+.kashgar-search-row {
+	position: relative;
+	z-index: 2;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 18rpx;
+	margin-top: 18rpx;
+}
+
+.kashgar-search-box {
+	height: 56rpx;
+	border-radius: 999rpx;
+	background: rgba(223, 213, 198, 0.66);
+	display: flex;
+	align-items: center;
+	padding: 0 24rpx;
+	box-sizing: border-box;
+	gap: 10rpx;
+	color: #8C8176;
+}
+
+.kashgar-search-icon {
+	font-size: 28rpx;
+	color: #786E63;
+}
+
+.kashgar-search-placeholder {
+	font-size: 23rpx;
+	line-height: 28rpx;
+	color: #8B8176;
+	white-space: nowrap;
+}
+
+.kashgar-search-city {
+	height: 56rpx;
+	display: flex;
+	align-items: center;
+	gap: 8rpx;
+	color: #5B452A;
+	font-size: 23rpx;
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+.kashgar-search-pin {
+	color: #8B6127;
+	font-size: 21rpx;
+}
+
+.kashgar-search-arrow {
+	color: #7B674F;
+	font-size: 22rpx;
+}
+
+.kashgar-travel-banner {
+	position: relative;
+	z-index: 2;
+	height: 236rpx;
+	margin-top: 16rpx;
+	border-radius: 24rpx;
+	overflow: hidden;
+	background: #B9854F;
+	box-shadow: 0 14rpx 34rpx rgba(80, 61, 36, 0.13);
+}
+
+.kashgar-travel-banner-image {
+	width: 100%;
+	height: 100%;
+}
+
+.kashgar-map-section-head,
+.kashgar-notes-section-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin: 18rpx 4rpx 12rpx;
+}
+
+.kashgar-map-section-title,
+.kashgar-notes-title {
+	position: relative;
+	font-family: "Songti SC", "STSong", serif;
+	font-size: 30rpx;
+	line-height: 38rpx;
+	font-weight: 900;
+	color: #2D2116;
+}
+
+.kashgar-map-section-title::after,
+.kashgar-notes-title::after {
+	content: '';
+	position: absolute;
+	left: -4rpx;
+	right: -8rpx;
+	bottom: -2rpx;
+	height: 10rpx;
+	border-radius: 999rpx;
+	background: rgba(198, 140, 65, 0.22);
+	z-index: -1;
+}
+
+.kashgar-map-section-more,
+.kashgar-notes-more {
+	display: flex;
+	align-items: center;
+	gap: 5rpx;
+	color: #967457;
+	font-size: 21rpx;
+	font-weight: 700;
+}
+
+.kashgar-map-shortcuts {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 22rpx;
+	padding: 0 4rpx;
+}
+
+.kashgar-map-shortcut {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	min-width: 0;
+}
+
+.kashgar-map-shortcut-image {
+	width: 80rpx;
+	height: 80rpx;
+	border-radius: 18rpx;
+	background: #E9D7B7;
+	border: 3rpx solid rgba(255, 255, 255, 0.9);
+	box-shadow: 0 8rpx 18rpx rgba(98, 73, 38, 0.12);
+}
+
+.kashgar-map-shortcut-title {
+	margin-top: 9rpx;
+	color: #4F3B2D;
+	font-size: 21rpx;
+	line-height: 25rpx;
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+.kashgar-travel-note-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 15rpx;
+}
+
+.kashgar-travel-note-card {
+	min-width: 0;
+	border-radius: 18rpx;
+	overflow: hidden;
+	background: rgba(255, 255, 255, 0.96);
+	border: 1rpx solid rgba(202, 171, 128, 0.2);
+	box-shadow: 0 10rpx 24rpx rgba(98, 73, 38, 0.1);
+}
+
+.kashgar-note-cover-wrap {
+	position: relative;
+	height: 116rpx;
+	background: #D2B68C;
+	overflow: hidden;
+}
+
+.kashgar-note-cover {
+	width: 100%;
+	height: 100%;
+}
+
+.kashgar-note-tag {
+	position: absolute;
+	left: 8rpx;
+	top: 8rpx;
+	max-width: 150rpx;
+	padding: 4rpx 10rpx;
+	border-radius: 999rpx;
+	background: rgba(255, 248, 233, 0.9);
+	color: #7D542A;
+	font-size: 17rpx;
+	font-weight: 800;
+	line-height: 20rpx;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.kashgar-note-likes {
+	position: absolute;
+	right: 8rpx;
+	top: 8rpx;
+	display: flex;
+	align-items: center;
+	gap: 3rpx;
+	color: #FFFFFF;
+	text-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.28);
+	font-size: 18rpx;
+	font-weight: 700;
+}
+
+.kashgar-note-body {
+	padding: 10rpx 10rpx 12rpx;
+	box-sizing: border-box;
+}
+
+.kashgar-note-title {
+	display: block;
+	color: #2B1B12;
+	font-size: 23rpx;
+	line-height: 28rpx;
+	font-weight: 900;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.kashgar-note-desc {
+	display: block;
+	margin-top: 5rpx;
+	height: 58rpx;
+	color: #6E5A48;
+	font-size: 19rpx;
+	line-height: 29rpx;
+	overflow: hidden;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
+.kashgar-note-meta {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8rpx;
+	margin-top: 8rpx;
+	color: #8B7A6B;
+	font-size: 17rpx;
+	line-height: 20rpx;
+	white-space: nowrap;
+}
+
+.kashgar-note-meta text {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}

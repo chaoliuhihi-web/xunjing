@@ -1,0 +1,430 @@
+.kashgar-ai-home {
+	position: relative;
+	min-height: 100vh;
+	padding: 0 28rpx 240rpx;
+	box-sizing: border-box;
+	background: linear-gradient(180deg, #FBF4E8 0%, #FFF8ED 42%, #F7EFE4 100%);
+	overflow: hidden;
+}
+
+.kashgar-ai-home::before {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	height: 260rpx;
+	background: linear-gradient(180deg, rgba(226, 203, 169, 0.34), rgba(255, 248, 238, 0));
+	pointer-events: none;
+}
+
+.kashgar-ai-topbar {
+	position: relative;
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: 76rpx;
+	padding-top: 14rpx;
+}
+
+.kashgar-ai-clock {
+	font-size: 30rpx;
+	line-height: 38rpx;
+	font-weight: 800;
+	color: #111111;
+}
+
+.kashgar-ai-capsule {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 20rpx;
+	width: 148rpx;
+	height: 56rpx;
+	border-radius: 999rpx;
+	background: rgba(255, 255, 255, 0.76);
+	border: 1rpx solid rgba(123, 91, 55, 0.12);
+}
+
+.kashgar-ai-dot {
+	font-size: 28rpx;
+	line-height: 28rpx;
+	font-weight: 900;
+	color: #201A15;
+	letter-spacing: 2rpx;
+}
+
+.kashgar-ai-capsule-line {
+	width: 1rpx;
+	height: 34rpx;
+	background: rgba(64, 47, 32, 0.18);
+}
+
+.kashgar-ai-circle {
+	width: 30rpx;
+	height: 30rpx;
+	box-sizing: border-box;
+	border: 7rpx solid #111111;
+	border-radius: 50%;
+}
+
+.kashgar-ai-title-row {
+	position: relative;
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 92rpx;
+}
+
+.kashgar-ai-mountain {
+	position: absolute;
+	left: 60rpx;
+	top: 8rpx;
+	width: 180rpx;
+	height: 68rpx;
+	opacity: 0.34;
+	background: linear-gradient(135deg, transparent 38%, rgba(152, 116, 72, 0.28) 39%, transparent 41%);
+}
+
+.kashgar-ai-title {
+	font-size: 42rpx;
+	line-height: 56rpx;
+	font-weight: 900;
+	color: #2E1E13;
+	letter-spacing: 0;
+}
+
+.kashgar-ai-hero {
+	position: relative;
+	z-index: 2;
+	height: 410rpx;
+	border-radius: 28rpx;
+	overflow: hidden;
+	background: #E7CDA8;
+	box-shadow: 0 18rpx 42rpx rgba(99, 67, 31, 0.14);
+}
+
+.kashgar-ai-hero-image {
+	width: 100%;
+	height: 100%;
+	display: block;
+}
+
+.kashgar-ai-hero-button {
+	position: absolute;
+	right: 28rpx;
+	bottom: 34rpx;
+	display: flex;
+	align-items: center;
+	gap: 14rpx;
+	min-width: 210rpx;
+	height: 58rpx;
+	padding: 0 26rpx;
+	box-sizing: border-box;
+	border-radius: 999rpx;
+	background: rgba(255, 251, 242, 0.94);
+	color: #6A421E;
+	font-size: 26rpx;
+	font-weight: 800;
+	box-shadow: 0 10rpx 24rpx rgba(79, 51, 24, 0.16);
+}
+
+.kashgar-ai-chat-icon {
+	position: relative;
+	width: 28rpx;
+	height: 22rpx;
+	border: 4rpx solid #81572D;
+	border-radius: 8rpx;
+	box-sizing: border-box;
+}
+
+.kashgar-ai-chat-icon::after {
+	content: '';
+	position: absolute;
+	left: 5rpx;
+	bottom: -8rpx;
+	width: 10rpx;
+	height: 10rpx;
+	border-left: 4rpx solid #81572D;
+	border-bottom: 4rpx solid #81572D;
+	transform: rotate(-35deg);
+}
+
+.kashgar-ai-action-panel {
+	position: relative;
+	z-index: 3;
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 12rpx;
+	margin: -24rpx 8rpx 0;
+	padding: 20rpx 18rpx;
+	border-radius: 26rpx;
+	background: rgba(255, 252, 247, 0.96);
+	box-shadow: 0 14rpx 38rpx rgba(104, 69, 35, 0.12);
+}
+
+.kashgar-ai-action {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8rpx;
+	color: #6B421F;
+	font-size: 24rpx;
+	font-weight: 800;
+}
+
+.kashgar-ai-action-icon {
+	position: relative;
+	width: 44rpx;
+	height: 44rpx;
+	color: #8A5D2E;
+}
+
+.kashgar-ai-action-listen {
+	box-sizing: border-box;
+	border: 5rpx solid #8A5D2E;
+	border-radius: 50%;
+}
+
+.kashgar-ai-action-listen::before,
+.kashgar-ai-action-listen::after {
+	content: '';
+	position: absolute;
+	top: 18rpx;
+	width: 10rpx;
+	height: 26rpx;
+	border-radius: 8rpx;
+	background: #8A5D2E;
+}
+
+.kashgar-ai-action-listen::before {
+	left: -8rpx;
+}
+
+.kashgar-ai-action-listen::after {
+	right: -8rpx;
+}
+
+.kashgar-ai-action-guide {
+	box-sizing: border-box;
+	border: 4rpx solid #8A5D2E;
+	border-radius: 6rpx;
+}
+
+.kashgar-ai-action-guide::before {
+	content: '';
+	position: absolute;
+	left: 21rpx;
+	top: -4rpx;
+	bottom: -4rpx;
+	width: 4rpx;
+	background: #8A5D2E;
+}
+
+.kashgar-ai-action-place {
+	box-sizing: border-box;
+	width: 42rpx;
+	height: 42rpx;
+	margin-top: 2rpx;
+	border: 7rpx solid #8A5D2E;
+	border-radius: 50% 50% 50% 0;
+	transform: rotate(-45deg);
+}
+
+.kashgar-ai-action-place::after {
+	content: '';
+	position: absolute;
+	left: 10rpx;
+	top: 10rpx;
+	width: 8rpx;
+	height: 8rpx;
+	border-radius: 50%;
+	background: #8A5D2E;
+}
+
+.kashgar-ai-action-question {
+	box-sizing: border-box;
+	border: 4rpx solid #8A5D2E;
+	border-radius: 12rpx;
+}
+
+.kashgar-ai-action-question::after {
+	content: '';
+	position: absolute;
+	left: 9rpx;
+	bottom: -10rpx;
+	width: 14rpx;
+	height: 14rpx;
+	border-left: 4rpx solid #8A5D2E;
+	border-bottom: 4rpx solid #8A5D2E;
+	transform: rotate(-35deg);
+}
+
+.kashgar-ai-card {
+	position: relative;
+	z-index: 2;
+	margin: 12rpx 4rpx 0;
+	padding: 18rpx;
+	border-radius: 24rpx;
+	background: rgba(255, 252, 247, 0.94);
+	box-shadow: 0 12rpx 34rpx rgba(104, 69, 35, 0.1);
+}
+
+.kashgar-ai-section-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 10rpx;
+}
+
+.kashgar-ai-section-title {
+	font-size: 30rpx;
+	line-height: 40rpx;
+	font-weight: 900;
+	color: #2E1E13;
+}
+
+.kashgar-ai-refresh,
+.kashgar-ai-more {
+	font-size: 24rpx;
+	line-height: 32rpx;
+	color: #9B6530;
+	font-weight: 700;
+}
+
+.kashgar-ai-question {
+	display: flex;
+	align-items: center;
+	gap: 16rpx;
+	min-height: 42rpx;
+	padding: 0 18rpx;
+	margin-top: 7rpx;
+	border-radius: 999rpx;
+	background: rgba(250, 244, 235, 0.86);
+	color: #5B4431;
+	font-size: 23rpx;
+	line-height: 30rpx;
+}
+
+.kashgar-ai-question-dot {
+	width: 16rpx;
+	height: 16rpx;
+	border-radius: 50%;
+	background: #E59A44;
+	box-shadow: inset 0 0 0 5rpx rgba(255, 255, 255, 0.7);
+	flex-shrink: 0;
+}
+
+.kashgar-ai-place-section {
+	min-height: 238rpx;
+	padding-bottom: 72rpx;
+}
+
+.kashgar-ai-place-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 14rpx;
+}
+
+.kashgar-ai-place-card {
+	position: relative;
+	overflow: hidden;
+	border-radius: 18rpx;
+	background: #FFFFFF;
+	box-shadow: 0 10rpx 26rpx rgba(104, 69, 35, 0.1);
+}
+
+.kashgar-ai-place-image {
+	display: block;
+	width: 100%;
+	height: 110rpx;
+}
+
+.kashgar-ai-place-badge {
+	position: absolute;
+	left: 8rpx;
+	top: 8rpx;
+	min-width: 58rpx;
+	height: 30rpx;
+	padding: 0 10rpx;
+	border-radius: 999rpx;
+	background: #4FBF73;
+	color: #FFFFFF;
+	font-size: 20rpx;
+	line-height: 30rpx;
+	font-weight: 900;
+}
+
+.kashgar-ai-place-card:nth-child(2) .kashgar-ai-place-badge {
+	background: #E59A44;
+}
+
+.kashgar-ai-place-card:nth-child(3) .kashgar-ai-place-badge {
+	background: #5F94D8;
+}
+
+.kashgar-ai-place-body {
+	padding: 10rpx 12rpx 12rpx;
+}
+
+.kashgar-ai-place-title {
+	display: block;
+	font-size: 22rpx;
+	line-height: 30rpx;
+	font-weight: 900;
+	color: #2F2117;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.kashgar-ai-place-desc {
+	display: block;
+	margin-top: 4rpx;
+	font-size: 19rpx;
+	line-height: 26rpx;
+	color: #7E6958;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.kashgar-ai-join {
+	position: absolute;
+	right: 24rpx;
+	bottom: 56rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 14rpx;
+	width: 250rpx;
+	height: 64rpx;
+	border-radius: 999rpx;
+	background: linear-gradient(135deg, #52BE74, #28A866);
+	color: #FFFFFF;
+	font-size: 28rpx;
+	font-weight: 900;
+	box-shadow: 0 12rpx 28rpx rgba(41, 139, 84, 0.22);
+}
+
+.kashgar-ai-join-icon {
+	position: relative;
+	width: 30rpx;
+	height: 22rpx;
+	border: 4rpx solid rgba(255, 255, 255, 0.95);
+	border-radius: 50%;
+}
+
+.kashgar-ai-join-icon::after {
+	content: '';
+	position: absolute;
+	right: -14rpx;
+	top: 6rpx;
+	width: 18rpx;
+	height: 14rpx;
+	border-top: 4rpx solid rgba(255, 255, 255, 0.95);
+	border-right: 4rpx solid rgba(255, 255, 255, 0.95);
+	border-radius: 0 8rpx 0 0;
+}

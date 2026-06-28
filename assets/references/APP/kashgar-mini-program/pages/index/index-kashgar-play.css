@@ -1,0 +1,474 @@
+.kashgar-play-home {
+	padding: 42rpx 28rpx 248rpx;
+	background:
+		linear-gradient(180deg, rgba(255, 249, 236, 0.98), rgba(255, 250, 241, 0.86) 42%, #FFFDFC 100%),
+		url('/static/kashgar/home-top-mountains.png') center top / cover no-repeat,
+		#FFF6E9;
+	font-family: "PingFang SC", "Songti SC", sans-serif;
+}
+
+.kashgar-play-nav-right {
+	display: flex;
+	align-items: center;
+	gap: 10rpx;
+	color: #4E3320;
+	font-size: 25rpx;
+	font-weight: 800;
+}
+
+.kashgar-play-nav-pin {
+	color: #8D5C2B;
+}
+
+.kashgar-play-hero {
+	position: relative;
+	min-height: 284rpx;
+	margin-top: 16rpx;
+	overflow: hidden;
+}
+
+.kashgar-play-chat-cta {
+	position: absolute;
+	z-index: 4;
+	right: 64rpx;
+	top: 640rpx;
+	width: 250rpx;
+	height: 76rpx;
+	margin: 0;
+	padding: 0;
+	border-radius: 999rpx;
+	background: rgba(255, 248, 234, 0);
+	color: rgba(125, 79, 39, 0);
+	font-size: 26rpx;
+	line-height: 32rpx;
+	font-weight: 900;
+	box-shadow: none;
+}
+
+.kashgar-hero {
+	position: relative;
+	min-height: 320rpx;
+	padding-top: 40rpx;
+	overflow: hidden;
+}
+
+.kashgar-hero-building {
+	position: absolute;
+	right: -80rpx;
+	top: 78rpx;
+	width: 520rpx;
+	height: 292rpx;
+	opacity: 0.72;
+	border-bottom-left-radius: 160rpx;
+}
+
+.kashgar-status {
+	position: relative;
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.kashgar-brand {
+	display: flex;
+	align-items: center;
+	min-height: 64rpx;
+}
+
+.kashgar-brand-name {
+	font-size: 42rpx;
+	font-weight: 800;
+	color: #4B2B14;
+	letter-spacing: 0;
+}
+
+.kashgar-city {
+	display: flex;
+	align-items: center;
+	padding: 12rpx 18rpx;
+	border-radius: 999rpx;
+	background: rgba(255, 248, 238, 0.8);
+	color: #5A3518;
+	font-size: 24rpx;
+	font-weight: 700;
+}
+
+.kashgar-title-wrap {
+	position: relative;
+	z-index: 2;
+	display: flex;
+	flex-direction: column;
+	margin-top: 36rpx;
+}
+
+.kashgar-title {
+	font-size: 64rpx;
+	line-height: 72rpx;
+	font-weight: 900;
+	color: #4A2914;
+	letter-spacing: 0;
+}
+
+.kashgar-title-line {
+	width: 220rpx;
+	height: 6rpx;
+	margin: 14rpx 0 16rpx;
+	border-radius: 999rpx;
+	background: #8C572A;
+}
+
+.kashgar-subtitle {
+	font-size: 26rpx;
+	line-height: 36rpx;
+	color: #654129;
+}
+
+.kashgar-chat-card {
+	position: relative;
+	z-index: 3;
+	width: 100%;
+	height: 260rpx;
+	margin-top: -8rpx;
+	border-radius: 28rpx;
+	overflow: hidden;
+	background: #E8D0AE;
+	box-shadow: 0 18rpx 44rpx rgba(108, 67, 25, 0.14);
+}
+
+.kashgar-chat-image {
+	width: 100%;
+	height: 100%;
+}
+
+.kashgar-action-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 18rpx;
+	margin-top: 14rpx;
+}
+
+.kashgar-action-card {
+	position: relative;
+	min-height: 120rpx;
+	padding: 18rpx 16rpx;
+	box-sizing: border-box;
+	border-radius: 24rpx;
+	overflow: hidden;
+	box-shadow: 0 16rpx 34rpx rgba(106, 67, 29, 0.12);
+}
+
+.kashgar-action-green {
+	background: linear-gradient(145deg, #69BF80, #4BA767);
+}
+
+.kashgar-action-gold {
+	background: linear-gradient(145deg, #F2B668, #DF8741);
+}
+
+.kashgar-action-blue {
+	background: linear-gradient(145deg, #70BCE3, #469BD1);
+}
+
+.kashgar-action-title {
+	display: block;
+	font-size: 26rpx;
+	line-height: 32rpx;
+	font-weight: 800;
+	color: #FFFFFF;
+}
+
+.kashgar-action-desc {
+	display: block;
+	margin-top: 4rpx;
+	font-size: 21rpx;
+	line-height: 28rpx;
+	color: rgba(255, 255, 255, 0.88);
+}
+
+.kashgar-action-symbol {
+	position: absolute;
+	right: 18rpx;
+	bottom: 16rpx;
+	width: 58rpx;
+	height: 58rpx;
+	color: #FFFFFF;
+	opacity: 0.92;
+}
+
+.kashgar-symbol-scan,
+.kashgar-symbol-route,
+.kashgar-symbol-camera {
+	position: relative;
+	width: 100%;
+	height: 100%;
+}
+
+.kashgar-symbol-corner {
+	position: absolute;
+	width: 17rpx;
+	height: 17rpx;
+	border-color: rgba(255, 255, 255, 0.96);
+}
+
+.kashgar-symbol-corner-tl {
+	left: 0;
+	top: 0;
+	border-left: 5rpx solid;
+	border-top: 5rpx solid;
+	border-top-left-radius: 6rpx;
+}
+
+.kashgar-symbol-corner-tr {
+	right: 0;
+	top: 0;
+	border-right: 5rpx solid;
+	border-top: 5rpx solid;
+	border-top-right-radius: 6rpx;
+}
+
+.kashgar-symbol-corner-bl {
+	left: 0;
+	bottom: 0;
+	border-left: 5rpx solid;
+	border-bottom: 5rpx solid;
+	border-bottom-left-radius: 6rpx;
+}
+
+.kashgar-symbol-corner-br {
+	right: 0;
+	bottom: 0;
+	border-right: 5rpx solid;
+	border-bottom: 5rpx solid;
+	border-bottom-right-radius: 6rpx;
+}
+
+.kashgar-symbol-scan-line {
+	position: absolute;
+	left: 12rpx;
+	right: 12rpx;
+	top: 27rpx;
+	height: 4rpx;
+	border-radius: 999rpx;
+	background: rgba(255, 255, 255, 0.95);
+}
+
+.kashgar-symbol-route-line {
+	position: absolute;
+	left: 6rpx;
+	right: 10rpx;
+	bottom: 12rpx;
+	height: 28rpx;
+	border-left: 5rpx solid rgba(255, 255, 255, 0.95);
+	border-bottom: 5rpx solid rgba(255, 255, 255, 0.95);
+	border-radius: 0 0 0 16rpx;
+}
+
+.kashgar-symbol-pin {
+	position: absolute;
+	right: 2rpx;
+	top: 0;
+	width: 34rpx;
+	height: 34rpx;
+	border: 6rpx solid rgba(255, 255, 255, 0.95);
+	border-radius: 50% 50% 50% 0;
+	transform: rotate(-45deg);
+}
+
+.kashgar-symbol-pin::after {
+	content: '';
+	position: absolute;
+	left: 8rpx;
+	top: 8rpx;
+	width: 8rpx;
+	height: 8rpx;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.95);
+}
+
+.kashgar-symbol-camera {
+	box-sizing: border-box;
+	margin-top: 10rpx;
+	width: 58rpx;
+	height: 42rpx;
+	border: 6rpx solid rgba(255, 255, 255, 0.95);
+	border-radius: 10rpx;
+}
+
+.kashgar-symbol-camera::before {
+	content: '';
+	position: absolute;
+	left: 12rpx;
+	top: -11rpx;
+	width: 20rpx;
+	height: 10rpx;
+	border-radius: 8rpx 8rpx 0 0;
+	background: rgba(255, 255, 255, 0.95);
+}
+
+.kashgar-symbol-lens {
+	position: absolute;
+	left: 18rpx;
+	top: 10rpx;
+	width: 16rpx;
+	height: 16rpx;
+	border: 5rpx solid rgba(255, 255, 255, 0.95);
+	border-radius: 50%;
+}
+
+.kashgar-symbol-flash {
+	position: absolute;
+	right: 7rpx;
+	top: 8rpx;
+	width: 7rpx;
+	height: 7rpx;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.95);
+}
+
+.kashgar-section-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin: 16rpx 4rpx 10rpx;
+}
+
+.kashgar-section-title {
+	font-size: 32rpx;
+	line-height: 44rpx;
+	font-weight: 900;
+	color: #3D2617;
+}
+
+.kashgar-more {
+	font-size: 24rpx;
+	color: #9B6530;
+}
+
+.kashgar-place-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 18rpx;
+}
+
+.kashgar-place-card {
+	overflow: hidden;
+	border-radius: 16rpx;
+	background: rgba(255, 252, 247, 0.94);
+	box-shadow: 0 12rpx 30rpx rgba(108, 67, 25, 0.1);
+}
+
+.kashgar-place-image {
+	display: block;
+	width: 100%;
+	height: 96rpx;
+}
+
+.kashgar-place-body {
+	padding: 8rpx 12rpx 10rpx;
+}
+
+.kashgar-place-title {
+	display: block;
+	font-size: 22rpx;
+	line-height: 30rpx;
+	font-weight: 800;
+	color: #3E2819;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.kashgar-place-desc {
+	display: block;
+	margin-top: 4rpx;
+	font-size: 19rpx;
+	line-height: 26rpx;
+	color: #9B806B;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.kashgar-guide-strip {
+	position: relative;
+	height: 104rpx;
+	margin-top: 12rpx;
+	border-radius: 24rpx;
+	overflow: hidden;
+	background: #C89B62;
+}
+
+.kashgar-guide-image {
+	width: 100%;
+	height: 100%;
+}
+
+.kashgar-guide-mask {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 14rpx 20rpx;
+	box-sizing: border-box;
+	background: linear-gradient(90deg, rgba(253, 242, 221, 0.96), rgba(238, 202, 151, 0.62), rgba(122, 77, 30, 0.52));
+}
+
+.kashgar-guide-copy {
+	display: flex;
+	flex-direction: column;
+}
+
+.kashgar-guide-kicker {
+	font-size: 22rpx;
+	line-height: 28rpx;
+	font-weight: 800;
+	color: #74491E;
+}
+
+.kashgar-guide-title {
+	margin-top: 4rpx;
+	font-size: 28rpx;
+	line-height: 34rpx;
+	font-weight: 900;
+	color: #4A2C18;
+}
+
+.kashgar-guide-desc {
+	margin-top: 4rpx;
+	font-size: 20rpx;
+	line-height: 28rpx;
+	color: #73533B;
+}
+
+.kashgar-guide-button {
+	min-width: 150rpx;
+	padding: 13rpx 22rpx;
+	border-radius: 999rpx;
+	background: rgba(104, 62, 22, 0.82);
+	color: #FFFFFF;
+	font-size: 22rpx;
+	font-weight: 800;
+	text-align: center;
+}
+
+.kashgar-enter {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 28rpx;
+	height: 66rpx;
+	margin-top: 12rpx;
+	border-radius: 999rpx;
+	background: linear-gradient(180deg, #93622F, #704315);
+	color: #FFFFFF;
+	font-size: 32rpx;
+	font-weight: 900;
+	box-shadow: 0 18rpx 34rpx rgba(98, 59, 21, 0.18);
+}
+
+.kashgar-enter-arrow {
+	font-size: 36rpx;
+	line-height: 36rpx;
+}

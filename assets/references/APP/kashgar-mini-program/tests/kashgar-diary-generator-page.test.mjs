@@ -9,7 +9,8 @@ const aiContentPath = path.join(root, 'pages', 'ai-guide', 'kashgar-ai-content.j
 
 const indexPage = fs.readFileSync(indexPath, 'utf8')
 const aiGuidePage = fs.readFileSync(aiGuidePath, 'utf8')
-const aiGuideSource = `${aiGuidePage}\n${fs.readFileSync(aiContentPath, 'utf8')}`
+const aiGuideStyle = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide-kashgar-diary.css'), 'utf8')
+const aiGuideSource = `${aiGuidePage}\n${fs.readFileSync(aiContentPath, 'utf8')}\n${aiGuideStyle}`
 
 assert.match(
   indexPage,
@@ -65,13 +66,13 @@ assert.match(
 )
 
 assert.match(
-  aiGuidePage,
+  aiGuideSource,
   /\.kashgar-diary-hero\s*\{[\s\S]*?height:\s*370rpx;/,
   'diary generator hero should be compact enough to keep actions in the first mobile viewport'
 )
 
 assert.match(
-  aiGuidePage,
+  aiGuideSource,
   /\.kashgar-diary-action\s*\{[\s\S]*?height:\s*66rpx;/,
   'diary generator bottom actions should use compact first-viewport sizing'
 )

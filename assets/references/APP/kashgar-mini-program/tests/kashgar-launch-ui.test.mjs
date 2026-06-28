@@ -4,6 +4,8 @@ import path from 'node:path'
 
 const root = process.cwd()
 const indexPage = fs.readFileSync(path.join(root, 'pages', 'index', 'index.vue'), 'utf8')
+const indexKashgarNotesStyle = fs.readFileSync(path.join(root, 'pages', 'index', 'index-kashgar-notes.css'), 'utf8')
+const indexSource = `${indexPage}\n${indexKashgarNotesStyle}`
 const tabBar = fs.readFileSync(path.join(root, 'components', 'tab-bar', 'tab-bar.vue'), 'utf8')
 
 assert.ok(
@@ -18,25 +20,25 @@ assert.match(
 )
 
 assert.match(
-  indexPage,
+  indexSource,
   /\.kashgar-travel-notes-home\s*\{[\s\S]*padding:\s*0\s+22rpx\s+250rpx/,
   'Kashgar travel-notes home should leave enough bottom padding for the fixed APP tab bar'
 )
 
 assert.match(
-  indexPage,
+  indexSource,
   /\.kashgar-travel-banner\s*\{[\s\S]*height:\s*236rpx/,
   'Kashgar travel banner should be compact enough for the first viewport reference layout'
 )
 
 assert.match(
-  indexPage,
+  indexSource,
   /\.kashgar-note-cover-wrap\s*\{[\s\S]*height:\s*116rpx/,
   'Kashgar travel note cards should keep a compact image ratio'
 )
 
 assert.match(
-  indexPage,
+  indexSource,
   /\.kashgar-travel-note-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
   'Kashgar travel notes should use the reference two-column grid'
 )

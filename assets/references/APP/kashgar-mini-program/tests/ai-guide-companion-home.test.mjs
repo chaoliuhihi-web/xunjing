@@ -5,7 +5,8 @@ import path from 'node:path'
 const root = process.cwd()
 const aiGuide = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
 const aiContent = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'kashgar-ai-content.js'), 'utf8')
-const aiGuideSource = `${aiGuide}\n${aiContent}`
+const aiGuideKashgarHome = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide-kashgar-home.css'), 'utf8')
+const aiGuideSource = `${aiGuide}\n${aiContent}\n${aiGuideKashgarHome}`
 
 for (const required of [
   'KASHGAR_AI_COMPANION_HOME_ENABLED',
@@ -50,12 +51,12 @@ const compactRules = [
 ]
 
 for (const [pattern, maxValue, message] of compactRules) {
-  const match = aiGuide.match(pattern)
+  const match = aiGuideSource.match(pattern)
   assert.ok(match, message)
   assert.ok(Number(match[1]) <= maxValue, message)
 }
 
-const joinBottomMatch = aiGuide.match(/\.kashgar-ai-join\s*\{[\s\S]*?bottom:\s*(\d+)rpx/)
+const joinBottomMatch = aiGuideSource.match(/\.kashgar-ai-join\s*\{[\s\S]*?bottom:\s*(\d+)rpx/)
 assert.ok(joinBottomMatch, 'AI companion join button should declare a bottom offset inside the selected-places card')
 assert.ok(
   Number(joinBottomMatch[1]) >= 52,

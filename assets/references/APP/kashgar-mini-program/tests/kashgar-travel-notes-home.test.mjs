@@ -5,7 +5,8 @@ import path from 'node:path'
 const root = process.cwd()
 const indexPage = fs.readFileSync(path.join(root, 'pages', 'index', 'index.vue'), 'utf8')
 const kashgarHomeContent = fs.readFileSync(path.join(root, 'pages', 'index', 'kashgar-home-content.js'), 'utf8')
-const homeSource = `${indexPage}\n${kashgarHomeContent}`
+const kashgarNotesStyle = fs.readFileSync(path.join(root, 'pages', 'index', 'index-kashgar-notes.css'), 'utf8')
+const homeSource = `${indexPage}\n${kashgarHomeContent}\n${kashgarNotesStyle}`
 
 for (const required of [
   'kashgar-travel-notes-home',
@@ -56,7 +57,7 @@ assert.match(
 )
 
 assert.match(
-  indexPage,
+  homeSource,
   /\.kashgar-travel-note-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
   'Travel-note feed should keep the two-column reference layout'
 )

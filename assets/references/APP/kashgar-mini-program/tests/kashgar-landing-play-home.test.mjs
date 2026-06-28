@@ -5,7 +5,9 @@ import path from 'node:path'
 const root = process.cwd()
 const indexPage = fs.readFileSync(path.join(root, 'pages', 'index', 'index.vue'), 'utf8')
 const kashgarHomeContent = fs.readFileSync(path.join(root, 'pages', 'index', 'kashgar-home-content.js'), 'utf8')
-const homeSource = `${indexPage}\n${kashgarHomeContent}`
+const kashgarLandingStyle = fs.readFileSync(path.join(root, 'pages', 'index', 'index-kashgar-landing.css'), 'utf8')
+const kashgarPlayStyle = fs.readFileSync(path.join(root, 'pages', 'index', 'index-kashgar-play.css'), 'utf8')
+const homeSource = `${indexPage}\n${kashgarHomeContent}\n${kashgarLandingStyle}\n${kashgarPlayStyle}`
 const pagesJson = fs.readFileSync(path.join(root, 'pages.json'), 'utf8')
 
 for (const required of [
@@ -22,7 +24,7 @@ for (const required of [
   '/static/kashgar/map-illustration.png',
   '/static/tabbar/ai_companion_avatar.png',
 ]) {
-  assert.ok(indexPage.includes(required), `Kashgar landing entry should include ${required}`)
+  assert.ok(homeSource.includes(required), `Kashgar landing entry should include ${required}`)
 }
 
 assert.match(

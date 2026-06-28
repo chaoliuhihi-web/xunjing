@@ -11,7 +11,7 @@ const countSourceLines = (content) => {
   return normalized.split('\n').length - (normalized.endsWith('\n') ? 1 : 0)
 }
 
-const PAGE_REFRACTOR_RESERVE_LINE_LIMIT = 3200
+const PAGE_REFRACTOR_RESERVE_LINE_LIMIT = 3000
 
 const indexPage = read('pages', 'index', 'index.vue')
 const aiGuidePage = read('pages', 'ai-guide', 'ai-guide.vue')
@@ -49,6 +49,22 @@ assert.match(
   'Index page should attach extracted theme CSS as a separate scoped style block after the base page style'
 )
 
+for (const cssFile of [
+  'index-kashgar-landing.css',
+  'index-kashgar-play.css',
+  'index-kashgar-notes.css',
+]) {
+  assert.ok(
+    exists('pages', 'index', cssFile),
+    `Index page should keep Kashgar-specific styles in pages/index/${cssFile} instead of the large SFC`
+  )
+  assert.match(
+    indexPage,
+    new RegExp(`<style\\s+scoped\\s+src="\\./${cssFile}"><\\/style>`),
+    `Index page should attach extracted ${cssFile} as a separate scoped style block`
+  )
+}
+
 const indexTheme = exists('pages', 'index', 'index-theme.css')
   ? read('pages', 'index', 'index-theme.css')
   : ''
@@ -81,6 +97,21 @@ assert.match(
   /<style\s+scoped\s+src="\.\/ai-guide-chat\.css"><\/style>/,
   'AI guide should attach extracted chat CSS as a separate scoped style block after the base page style'
 )
+
+for (const cssFile of [
+  'ai-guide-kashgar-diary.css',
+  'ai-guide-kashgar-home.css',
+]) {
+  assert.ok(
+    exists('pages', 'ai-guide', cssFile),
+    `AI guide should keep Kashgar-specific styles in pages/ai-guide/${cssFile} instead of the large SFC`
+  )
+  assert.match(
+    aiGuidePage,
+    new RegExp(`<style\\s+scoped\\s+src="\\./${cssFile}"><\\/style>`),
+    `AI guide should attach extracted ${cssFile} as a separate scoped style block`
+  )
+}
 
 const aiGuideChat = exists('pages', 'ai-guide', 'ai-guide-chat.css')
   ? read('pages', 'ai-guide', 'ai-guide-chat.css')
