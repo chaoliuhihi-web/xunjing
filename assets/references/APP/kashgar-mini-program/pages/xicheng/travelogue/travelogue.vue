@@ -409,8 +409,9 @@ export const createXichengTravelogueDraft = ({
 	})) {
 		return `请先通过识别、开始记录、补充照片或现场备注积累真实素材，再生成西城游记草稿。小京会基于真实照片、轨迹、识别事件、停留点、研学任务证据和用户备注整理内容，不会替用户编造路线。`
 	}
+	const reviewableMaterials = materials.filter(material => hasReviewableMaterialEvidence(material))
 	const poiNames = Array.from(new Set(
-		materials
+		reviewableMaterials
 			.map(material => material && material.poiName ? material.poiName : '')
 			.filter(Boolean)
 	))
@@ -424,13 +425,13 @@ export const createXichengTravelogueDraft = ({
 		? routeRecommendation.title
 		: poiNames.length > 0 ? poiNames.join('、') : '本次西城 Citywalk'
 	const taskText = parentChildTasks.length > 0 ? parentChildTasks.slice(0, 2).join('；') : '完成现场观察'
-	const photoCount = materials.filter(material => material && material.type === 'photo').length
-	const remarkTexts = materials
+	const photoCount = reviewableMaterials.filter(material => material && material.type === 'photo').length
+	const remarkTexts = reviewableMaterials
 		.map(material => material && material.remarkText ? material.remarkText : '')
 		.filter(Boolean)
 		.slice(0, 2)
-	const aiGuideExcerpts = materials
-		.filter(material => material && material.type === 'ai-guide' && material.aiAnswerExcerpt && hasReviewableMaterialEvidence(material))
+	const aiGuideExcerpts = reviewableMaterials
+		.filter(material => material && material.type === 'ai-guide' && material.aiAnswerExcerpt)
 		.map(material => material.aiAnswerExcerpt)
 		.slice(0, 2)
 	const trackText = routePointCount > 0 ? `本次主动记录了 ${routePointCount} 个前台位置点，` : ''

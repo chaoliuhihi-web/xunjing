@@ -71,8 +71,8 @@ assert.match(
 
 assert.match(
   travelogue,
-  /createXichengTravelogueDraft\s*=\s*\(\{[\s\S]*const aiGuideExcerpts = materials[\s\S]*material\.type === 'ai-guide'[\s\S]*material\.aiAnswerExcerpt[\s\S]*const aiGuideText = aiGuideExcerpts\.length > 0[\s\S]*小京回答提到/,
-  'Travelogue draft generator should fold Xiaojing answer excerpts into the generated draft'
+  /createXichengTravelogueDraft\s*=\s*\(\{[\s\S]*const reviewableMaterials = materials\.filter\(material => hasReviewableMaterialEvidence\(material\)\)[\s\S]*const aiGuideExcerpts = reviewableMaterials[\s\S]*material\.type === 'ai-guide'[\s\S]*material\.aiAnswerExcerpt[\s\S]*const aiGuideText = aiGuideExcerpts\.length > 0[\s\S]*小京回答提到/,
+  'Travelogue draft generator should fold reviewable Xiaojing answer excerpts into the generated draft'
 )
 
 assert.match(

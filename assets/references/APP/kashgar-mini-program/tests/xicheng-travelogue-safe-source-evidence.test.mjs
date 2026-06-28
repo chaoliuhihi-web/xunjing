@@ -58,8 +58,8 @@ assert.match(
 
 assert.match(
   travelogue,
-  /const aiGuideExcerpts = materials[\s\S]*filter\(material => material && material\.type === 'ai-guide' && material\.aiAnswerExcerpt && hasReviewableMaterialEvidence\(material\)\)[\s\S]*map\(material => material\.aiAnswerExcerpt\)/,
-  'Travelogue draft generator should not fold source-less BLOCKED or UNAVAILABLE Xiaojing excerpts into a generated draft'
+  /const reviewableMaterials = materials\.filter\(material => hasReviewableMaterialEvidence\(material\)\)[\s\S]*const poiNames = Array\.from\(new Set\([\s\S]*reviewableMaterials[\s\S]*const photoCount = reviewableMaterials\.filter\(material => material && material\.type === 'photo'\)\.length[\s\S]*const remarkTexts = reviewableMaterials[\s\S]*const aiGuideExcerpts = reviewableMaterials[\s\S]*filter\(material => material && material\.type === 'ai-guide' && material\.aiAnswerExcerpt\)[\s\S]*map\(material => material\.aiAnswerExcerpt\)/,
+  'Travelogue draft generator should only fold reviewable POIs, photos, remarks, and Xiaojing excerpts into a generated draft'
 )
 
 assert.doesNotMatch(
