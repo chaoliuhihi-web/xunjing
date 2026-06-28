@@ -11,12 +11,14 @@ const aiGuide = read('pages', 'ai-guide', 'ai-guide.vue')
 const recognitionActionBlockedBlock = scanResult.match(/recognitionActionBlocked\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
 const askXiaojingBlock = scanResult.match(/askXiaojing\(question = ''\)[\s\S]*?\n\t\t\},\n\t\tselectCandidate/)?.[0] || ''
 const startRecordingBlock = scanResult.match(/startRecording\(\)[\s\S]*?\n\t\t\},\n\t\tcreateRouteCheckinEvent/)?.[0] || ''
+const normalizeSuggestedQuestionsBlock = scanResult.match(/const normalizeSuggestedQuestions\s*=\s*\(result = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const applyContextBlock = aiGuide.match(/const applyXichengAiContext\s*=\s*\(options = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const requestChatBlock = aiGuide.match(/const requestXunjingAiChat\s*=\s*\(question\) => \{[\s\S]*?\n\}\n\nconst escapeHtml/)?.[0] || ''
 
 assert.ok(recognitionActionBlockedBlock, 'Recognition result should expose a central action-blocking computed value')
 assert.ok(askXiaojingBlock, 'Recognition result should expose askXiaojing')
 assert.ok(startRecordingBlock, 'Recognition result should expose startRecording')
+assert.ok(normalizeSuggestedQuestionsBlock, 'Recognition result should expose suggested-question normalization')
 
 assert.match(
   scanResult,
@@ -46,6 +48,12 @@ assert.match(
   scanResult,
   /sourceEmptyCopy\(\)[\s\S]*this\.result\.safetyStatus === 'BLOCKED'[\s\S]*无已审核来源，不能回答[\s\S]*this\.result\.safetyStatus === 'UNAVAILABLE'[\s\S]*小京暂时无法获取已审核来源，请稍后再试/,
   'Recognition result empty-source copy should fail closed for BLOCKED and UNAVAILABLE safety states'
+)
+
+assert.match(
+  normalizeSuggestedQuestionsBlock,
+  /const safetyStatus = normalizeXichengSafetyStatus\(result\.safetyStatus\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*return \[\]/,
+  'Recognition result should hide suggested questions when safetyStatus is BLOCKED or UNAVAILABLE'
 )
 
 assert.match(

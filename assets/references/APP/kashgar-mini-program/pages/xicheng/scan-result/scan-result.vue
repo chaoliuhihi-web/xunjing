@@ -151,6 +151,10 @@ const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
 })
 
 const normalizeSuggestedQuestions = (result = {}) => {
+	const safetyStatus = normalizeXichengSafetyStatus(result.safetyStatus)
+	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+		return []
+	}
 	if (Array.isArray(result.suggestedQuestions) && result.suggestedQuestions.length > 0) {
 		return result.suggestedQuestions
 	}
