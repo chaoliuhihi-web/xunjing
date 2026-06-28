@@ -19,6 +19,8 @@ for (const required of [
   'submitReviewPackage',
   'reviewStorageKey',
   'submittedAt',
+  'publicPreview',
+  'createReviewPublicPreview',
   'materialCount',
   'sourceCount',
   'posterStatus',
@@ -51,6 +53,30 @@ assert.match(
   travelogue,
   /submitReviewPackage\(\)[\s\S]*reviewReadinessSummary:\s*this\.reviewReadinessSummary[\s\S]*sourceReadinessStatus:\s*this\.reviewReadinessSummary\.sourceReadinessStatus[\s\S]*reviewBlockerCount:\s*this\.reviewReadinessSummary\.reviewBlockers\.length/,
   'review payload should carry source readiness and blocker count for operations triage'
+)
+
+assert.match(
+  travelogue,
+  /submitReviewPackage\(\)[\s\S]*publicPreview:\s*this\.createReviewPublicPreview\(\)/,
+  'review payload should include a sanitized public preview so operators do not use raw review evidence as share content'
+)
+
+assert.match(
+  travelogue,
+  /createReviewPublicPreview\(\)[\s\S]*const publicRouteCheckins = this\.routeCheckins[\s\S]*filter\(checkin => this\.hasReviewableRouteCheckinEvidence\(checkin\)\)[\s\S]*map\(checkin => this\.sanitizeRouteCheckinForPublicShare\(checkin\)\)[\s\S]*const publicMaterials = this\.materials[\s\S]*filter\(material => hasReviewableMaterialEvidence\(material\)\)[\s\S]*map\(material => this\.sanitizeMaterialForPublicShare\(material\)\)[\s\S]*publicStudyTaskEvidence:\s*this\.completedStudyTaskEvidence\.map\(evidence => this\.sanitizeStudyTaskEvidenceForPublicShare\(evidence\)\)[\s\S]*publicRecordingSummary:\s*this\.createPublicRecordingSummary\(\)[\s\S]*privacy:\s*\{[\s\S]*shareLocationPrecision:\s*'poi_area'[\s\S]*exactCoordinatesHidden:\s*true/,
+  'review public preview should reuse the public-share sanitizers for materials, route check-ins, study evidence, and recording summary'
+)
+
+assert.doesNotMatch(
+  travelogue.match(/\n\t\tcreateReviewPublicPreview\(\)[\s\S]*?\n\t\t\},\n\t\tcreateShareArtifact/)?.[0] || '',
+  /materials:\s*this\.materials|routeCheckins:\s*this\.routeCheckins|studyTaskEvidence:\s*this\.studyTaskEvidence|recordingSession:\s*this\.recordingSession|trackPoints|stayPoints|latitude|longitude|photoPath|imagePath|captureLocation|exifLocation/,
+  'review public preview should not embed raw materials, check-ins, study evidence, recording sessions, exact coordinates, or local photo paths'
+)
+
+assert.match(
+  travelogue,
+  /公开预览[\s\S]*reviewSubmission\.publicPreview\.materialCount[\s\S]*reviewSubmission\.publicPreview\.checkinCount[\s\S]*reviewSubmission\.publicPreview\.studyTaskEvidenceCount/,
+  'review submission card should show sanitized public preview counts for operator acceptance'
 )
 
 assert.match(

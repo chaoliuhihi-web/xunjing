@@ -305,6 +305,9 @@
 			</view>
 			<text class="section-desc">提交时间：{{ reviewSubmission.submittedAt }}</text>
 			<text class="section-desc">海报：{{ reviewSubmission.posterStatus }} · PDF：{{ reviewSubmission.pdfStatus }}</text>
+			<text v-if="reviewSubmission.publicPreview" class="section-desc">
+				公开预览：素材 {{ reviewSubmission.publicPreview.materialCount }} · 打卡 {{ reviewSubmission.publicPreview.checkinCount }} · 研学 {{ reviewSubmission.publicPreview.studyTaskEvidenceCount }}
+			</text>
 			<view class="material-actions">
 				<button class="mini-button danger-mini-button" @click="withdrawReviewSubmission">撤回审核</button>
 			</view>
@@ -1621,6 +1624,7 @@ export default {
 				reviewedSourceCount: this.reviewReadinessSummary.reviewedSourceCount,
 				reviewBlockers: this.reviewReadinessSummary.reviewBlockers,
 				reviewBlockerCount: this.reviewReadinessSummary.reviewBlockers.length,
+				publicPreview: this.createReviewPublicPreview(),
 				reviewStatus: this.reviewText,
 				submittedAt,
 				materialCount: this.materialCount,
@@ -1733,6 +1737,31 @@ export default {
 				qualityReport: this.qualityReport,
 				shareTrackDefault: 'private',
 				exactTrackHidden: true
+			}
+		},
+		createReviewPublicPreview() {
+			const publicRouteCheckins = this.routeCheckins
+				.filter(checkin => this.hasReviewableRouteCheckinEvidence(checkin))
+				.map(checkin => this.sanitizeRouteCheckinForPublicShare(checkin))
+			const publicMaterials = this.materials
+				.filter(material => hasReviewableMaterialEvidence(material))
+				.map(material => this.sanitizeMaterialForPublicShare(material))
+			const publicStudyTaskEvidence = this.completedStudyTaskEvidence
+				.map(evidence => this.sanitizeStudyTaskEvidenceForPublicShare(evidence))
+			return {
+				publicMaterials,
+				publicRouteCheckins,
+				publicStudyTaskEvidence,
+				publicCandidateConfirmationSummary: this.createPublicCandidateConfirmationSummary(),
+				publicRecordingSummary: this.createPublicRecordingSummary(),
+				materialCount: publicMaterials.length,
+				checkinCount: publicRouteCheckins.length,
+				studyTaskEvidenceCount: publicStudyTaskEvidence.length,
+				privacy: {
+					shareLocationPrecision: 'poi_area',
+					shareTrackDefault: 'private',
+					exactCoordinatesHidden: true
+				}
 			}
 		},
 		createShareArtifact(assetType) {
