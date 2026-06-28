@@ -273,22 +273,25 @@ export default {
 			return Array.isArray(this.result.sources) ? this.result.sources : []
 		},
 		safetyStatusLabel() {
-			if (this.result.safetyStatus === 'BLOCKED') return '已拦截'
-			if (this.result.safetyStatus === 'UNAVAILABLE') return '来源服务不可用'
+			const safetyStatus = normalizeXichengSafetyStatus(this.result.safetyStatus)
+			if (safetyStatus === 'BLOCKED') return '已拦截'
+			if (safetyStatus === 'UNAVAILABLE') return '来源服务不可用'
 			if (this.sourceList.length > 0) return '来源可用'
 			return '待审核'
 		},
 		sourceEmptyCopy() {
-			if (this.result.safetyStatus === 'BLOCKED') {
+			const safetyStatus = normalizeXichengSafetyStatus(this.result.safetyStatus)
+			if (safetyStatus === 'BLOCKED') {
 				return '无已审核来源，不能回答'
 			}
-			if (this.result.safetyStatus === 'UNAVAILABLE') {
+			if (safetyStatus === 'UNAVAILABLE') {
 				return '小京暂时无法获取已审核来源，请稍后再试'
 			}
 			return '暂无已审核来源，小京会按后台审核状态回答。'
 		},
 		unsafeRecognitionSafetyStatus() {
-			return ['BLOCKED', 'UNAVAILABLE'].includes(this.result.safetyStatus)
+			const safetyStatus = normalizeXichengSafetyStatus(this.result.safetyStatus)
+			return ['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)
 		},
 		candidateList() {
 			return normalizeRecognitionCandidates(this.result.candidates)
