@@ -498,17 +498,21 @@ const normalizeCachedMessages = (list) => {
 	return list
 		.filter(item => item && (item.role === 'user' || item.role === 'assistant'))
 		.filter(item => !(item.role === 'assistant' && item.isPending && !item.content))
-		.map(item => ({
-			id: item.id || createMessageId(),
-			role: item.role,
-			content: item.content || '',
-			images: Array.isArray(item.images) ? item.images : [],
-			followUps: Array.isArray(item.followUps) ? item.followUps : [],
-			sources: normalizeXichengReviewedSources(item.sources),
-			safetyStatus: item.safetyStatus || '',
-			isPending: false,
-			interrupted: Boolean(item.interrupted)
-		}))
+		.map(item => {
+			const safetyStatus = normalizeXichengSafetyStatus(item.safetyStatus)
+			const unsafeSafetyStatus = ['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)
+			return {
+				id: item.id || createMessageId(),
+				role: item.role,
+				content: item.content || '',
+				images: Array.isArray(item.images) ? item.images : [],
+				followUps: unsafeSafetyStatus ? [] : Array.isArray(item.followUps) ? item.followUps : [],
+				sources: unsafeSafetyStatus ? [] : normalizeXichengReviewedSources(item.sources),
+				safetyStatus,
+				isPending: false,
+				interrupted: Boolean(item.interrupted)
+			}
+		})
 }
 
 const getActiveXichengCacheScope = () => {
