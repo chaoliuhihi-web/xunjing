@@ -162,8 +162,14 @@ assert.match(
 
 assert.match(
   inspiration,
-  /extractXichengPoiMatches\s*=\s*\(text = ''[\s\S]*XICHENG_OFFICIAL_POIS[\s\S]*poi\.aliases[\s\S]*includes/,
+  /extractXichengPoiMatches\s*=\s*\(text = ''[\s\S]*XICHENG_OFFICIAL_POIS[\s\S]*poi\.aliases[\s\S]*normalized\.indexOf\(String\(alias\)\.toLowerCase\(\)\)/,
   'Inspiration page should extract route candidates by matching text against official Xicheng POI aliases'
+)
+
+assert.match(
+  inspiration,
+  /extractXichengPoiMatches\s*=\s*\(text = ''[\s\S]*matchIndex[\s\S]*aliasIndex[\s\S]*Number\.MAX_SAFE_INTEGER[\s\S]*sort\(\(left, right\) => left\.matchIndex - right\.matchIndex/,
+  'Inspiration POI extraction should preserve the order of place names in the imported guide text instead of official config order'
 )
 
 assert.match(

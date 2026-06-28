@@ -77,9 +77,21 @@ import {
 
 export const extractXichengPoiMatches = (text = '') => {
 	const normalized = String(text || '').toLowerCase()
-	return XICHENG_OFFICIAL_POIS.filter(poi => (
-		poi.aliases.some(alias => normalized.includes(String(alias).toLowerCase()))
-	))
+	return XICHENG_OFFICIAL_POIS
+		.map(poi => {
+			const matchIndex = poi.aliases.reduce((aliasIndex, alias) => {
+				const index = normalized.indexOf(String(alias).toLowerCase())
+				if (index < 0) return aliasIndex
+				return Math.min(aliasIndex, index)
+			}, Number.MAX_SAFE_INTEGER)
+			return {
+				poi,
+				matchIndex
+			}
+		})
+		.filter(item => item.matchIndex !== Number.MAX_SAFE_INTEGER)
+		.sort((left, right) => left.matchIndex - right.matchIndex)
+		.map(item => item.poi)
 }
 
 export const buildXichengWalkRoute = (pois = []) => {
