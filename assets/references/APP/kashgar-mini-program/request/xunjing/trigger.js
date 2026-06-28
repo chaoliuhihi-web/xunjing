@@ -72,23 +72,30 @@ const normalizeRecommendedRoute = (result = {}) => {
 	return result.routeRecommendation || result.recommendedRoute || null
 }
 
+const clampConfidence = (value) => Math.min(1, Math.max(0, value))
+
+const clampConfidencePercent = (value) => Math.min(100, Math.max(0, value))
+
 const normalizeConfidence = (result = {}) => {
 	const hasConfidence = result.confidence !== undefined && result.confidence !== null && result.confidence !== ''
-	const rawConfidence = hasConfidence
+	const numericValue = hasConfidence
 		? Number(result.confidence)
-		: Number(result.confidencePercent || 0) / 100
+		: Number(result.confidencePercent)
+	const rawConfidence = hasConfidence
+		? numericValue
+		: numericValue / 100
 	if (!Number.isFinite(rawConfidence)) {
 		return 0
 	}
-	return rawConfidence > 1 ? rawConfidence / 100 : rawConfidence
+	return clampConfidence(hasConfidence && rawConfidence > 1 ? rawConfidence / 100 : rawConfidence)
 }
 
 const normalizeConfidencePercent = (result = {}, confidence = normalizeConfidence(result)) => {
 	const explicitPercent = Number(result.confidencePercent)
 	if (result.confidencePercent !== undefined && result.confidencePercent !== null && result.confidencePercent !== '' && Number.isFinite(explicitPercent)) {
-		return Math.round(explicitPercent)
+		return clampConfidencePercent(Math.round(explicitPercent))
 	}
-	return Math.round(confidence * 100)
+	return clampConfidencePercent(Math.round(confidence * 100))
 }
 
 const normalizeXichengTriggerCandidate = (candidate = {}) => ({

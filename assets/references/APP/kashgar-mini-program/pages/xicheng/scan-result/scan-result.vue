@@ -219,22 +219,30 @@ const selectCachedRecognitionForRoute = (cached = {}, options = {}) => {
 	return cached
 }
 
+const clampConfidence = (value) => Math.min(1, Math.max(0, value))
+
+const clampConfidencePercent = (value) => Math.min(100, Math.max(0, value))
+
 const normalizeCandidateConfidence = (candidate = {}) => {
-	const rawConfidence = candidate.confidence !== undefined && candidate.confidence !== null && candidate.confidence !== ''
+	const hasConfidence = candidate.confidence !== undefined && candidate.confidence !== null && candidate.confidence !== ''
+	const numericValue = hasConfidence
 		? Number(candidate.confidence)
-		: Number(candidate.confidencePercent || 0) / 100
+		: Number(candidate.confidencePercent)
+	const rawConfidence = hasConfidence
+		? numericValue
+		: numericValue / 100
 	if (!Number.isFinite(rawConfidence)) {
 		return 0
 	}
-	return rawConfidence > 1 ? rawConfidence / 100 : rawConfidence
+	return clampConfidence(hasConfidence && rawConfidence > 1 ? rawConfidence / 100 : rawConfidence)
 }
 
 const normalizeConfidencePercent = (result = {}) => {
 	const explicitPercent = Number(result.confidencePercent)
 	if (result.confidencePercent !== undefined && result.confidencePercent !== null && result.confidencePercent !== '' && Number.isFinite(explicitPercent)) {
-		return Math.round(explicitPercent)
+		return clampConfidencePercent(Math.round(explicitPercent))
 	}
-	return Math.round(normalizeCandidateConfidence(result) * 100)
+	return clampConfidencePercent(Math.round(normalizeCandidateConfidence(result) * 100))
 }
 
 const normalizeRecognitionCandidate = (candidate = {}) => ({

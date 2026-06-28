@@ -186,3 +186,37 @@ assert.equal(
   0,
   'Trigger normalization should not pass NaN confidencePercent into recognition result cache or UI'
 )
+
+const overRangePercentResult = normalizeXichengTriggerResult({
+  poiCode: 'xicheng-guangji-si',
+  poiName: '广济寺',
+  confidencePercent: 150
+}, 'photo')
+
+assert.equal(
+  overRangePercentResult.confidence,
+  1,
+  'Trigger normalization should clamp over-range backend confidencePercent to full confidence'
+)
+assert.equal(
+  overRangePercentResult.confidencePercent,
+  100,
+  'Trigger normalization should clamp over-range confidencePercent before result-page display'
+)
+
+const negativePercentResult = normalizeXichengTriggerResult({
+  poiCode: 'xicheng-shichahai',
+  poiName: '什刹海',
+  confidencePercent: -20
+}, 'gps')
+
+assert.equal(
+  negativePercentResult.confidence,
+  0,
+  'Trigger normalization should clamp negative confidencePercent to zero confidence'
+)
+assert.equal(
+  negativePercentResult.confidencePercent,
+  0,
+  'Trigger normalization should clamp negative confidencePercent before result-page display'
+)
