@@ -38,7 +38,7 @@ describe('Yudao server build wrapper', () => {
       rootDir,
       evidenceFile: 'qa/xicheng-yudao-server-build-evidence.json',
       spawnImpl: (command, args, options) => {
-        spawnCalls.push({ command, args, cwd: options.cwd })
+        spawnCalls.push({ command, args, cwd: options.cwd, maxBuffer: options.maxBuffer })
         mkdirSync(path.dirname(jarFile), { recursive: true })
         writeFileSync(jarFile, jarContent)
         return { status: 0, stdout: 'BUILD SUCCESS', stderr: '' }
@@ -48,14 +48,16 @@ describe('Yudao server build wrapper', () => {
 
     expect(spawnCalls).toEqual([{
       command: 'mvn',
-      args: ['-pl', 'yudao-server', '-am', '-DskipTests', 'package'],
-      cwd: path.join(rootDir, 'backend/yudao')
+      args: ['--batch-mode', '--no-transfer-progress', '-pl', 'yudao-server', '-am', '-DskipTests', 'package'],
+      cwd: path.join(rootDir, 'backend/yudao'),
+      maxBuffer: 128 * 1024 * 1024
     }])
     expect(report).toMatchObject({
       artifactType: 'xicheng-yudao-server-build',
       ok: true,
       status: 'YUDAO_SERVER_JAR_BUILT',
       summary: {
+        buildMethod: 'mvn',
         backendDir: path.join(rootDir, 'backend/yudao'),
         jarFile,
         jarSizeBytes: Buffer.byteLength(jarContent),
@@ -69,6 +71,77 @@ describe('Yudao server build wrapper', () => {
       'utf8'
     ))
     expect(evidence.summary.jarSha256).toBe(sha256(jarContent))
+  })
+
+  test('falls back to Docker Maven builder when local Maven is unavailable in auto mode', async () => {
+    const rootDir = await createTempRoot()
+    const jarFile = path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar')
+    const jarContent = 'docker-built-yudao-jar'
+    const spawnCalls = []
+
+    const report = await buildYudaoServer({
+      rootDir,
+      evidenceFile: 'qa/xicheng-yudao-server-build-evidence.json',
+      spawnImpl: (command, args, options) => {
+        spawnCalls.push({ command, args, cwd: options.cwd, maxBuffer: options.maxBuffer })
+        if (command === 'mvn') {
+          return {
+            status: null,
+            error: Object.assign(new Error('spawnSync mvn ENOENT'), { code: 'ENOENT' }),
+            stdout: '',
+            stderr: ''
+          }
+        }
+        mkdirSync(path.dirname(jarFile), { recursive: true })
+        writeFileSync(jarFile, jarContent)
+        return { status: 0, stdout: 'BUILD SUCCESS', stderr: '' }
+      },
+      checkedAt: '2026-06-28T12:00:00.000Z'
+    })
+
+    expect(spawnCalls).toEqual([
+      {
+        command: 'mvn',
+        args: ['--batch-mode', '--no-transfer-progress', '-pl', 'yudao-server', '-am', '-DskipTests', 'package'],
+        cwd: path.join(rootDir, 'backend/yudao'),
+        maxBuffer: 128 * 1024 * 1024
+      },
+      {
+        command: 'docker',
+        args: [
+          'run',
+          '--rm',
+          '-v',
+          `${path.join(rootDir, 'backend/yudao')}:/workspace`,
+          '-w',
+          '/workspace',
+          'maven:3.9.9-eclipse-temurin-17',
+          'mvn',
+          '--batch-mode',
+          '--no-transfer-progress',
+          '-pl',
+          'yudao-server',
+          '-am',
+          '-DskipTests',
+          'package'
+        ],
+        cwd: rootDir,
+        maxBuffer: 128 * 1024 * 1024
+      }
+    ])
+    expect(report).toMatchObject({
+      artifactType: 'xicheng-yudao-server-build',
+      ok: true,
+      status: 'YUDAO_SERVER_JAR_BUILT',
+      summary: {
+        buildMethod: 'docker',
+        dockerCommand: 'docker',
+        dockerImage: 'maven:3.9.9-eclipse-temurin-17',
+        jarFile,
+        jarSizeBytes: Buffer.byteLength(jarContent),
+        jarSha256: sha256(jarContent)
+      }
+    })
   })
 
   test('fails closed when Maven does not produce a non-empty jar', async () => {
@@ -85,6 +158,7 @@ describe('Yudao server build wrapper', () => {
 
     await expect(buildYudaoServer({
       rootDir,
+      builder: 'mvn',
       spawnImpl: () => ({
         status: null,
         error: Object.assign(new Error('spawnSync mvn ENOENT'), { code: 'ENOENT' }),
@@ -104,6 +178,10 @@ describe('Yudao server build wrapper', () => {
     expect(packageJson.scripts['xunjing:yudao:server:build']).toBe('node scripts/build-yudao-server.mjs')
     expect(taskExportScript).toContain('npm run xunjing:yudao:server:build')
     expect(deployDoc).toContain('npm run xunjing:yudao:server:build')
+    expect(deployDoc).toContain('--builder docker')
+    expect(deployDoc).toContain('buildMethod')
     expect(statusDoc).toContain('npm run xunjing:yudao:server:build')
+    expect(statusDoc).toContain('--builder docker')
+    expect(statusDoc).toContain('buildMethod')
   })
 })
