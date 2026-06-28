@@ -95,6 +95,18 @@ assert.match(
 )
 
 assert.match(
+  chooseInspirationImageBlock,
+  /const filePath = res\.tempFilePaths && res\.tempFilePaths\[0\] \? res\.tempFilePaths\[0\] : ''[\s\S]*if \(!filePath\) \{[\s\S]*this\.showInspirationImageUnavailable\(\)[\s\S]*return[\s\S]*this\.imagePath = filePath[\s\S]*this\.saveInspirationRoute\(\{ silent: true, includeImageOnly: true \}\)/,
+  'Inspiration image import should not create image-only evidence when the picker returns no image file'
+)
+
+assert.match(
+  chooseInspirationImageBlock,
+  /fail:\s*\(\) => \{[\s\S]*this\.showInspirationImageUnavailable\(\)/,
+  'Inspiration image import should surface an unavailable state when album or camera selection fails'
+)
+
+assert.match(
   saveRouteBlock,
   /if \(!includeImageOnly\) \{[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.inspirationStorageKey, route\)[\s\S]*\}[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.materialsStorageKey/,
   'Image-only inspiration upload should not persist an active route until text extraction or POI confirmation has produced a route'

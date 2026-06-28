@@ -133,6 +133,12 @@ export default {
 				})
 			})
 		},
+		showInspirationImageUnavailable() {
+			uni.showToast({
+				title: '未获得可用攻略图片，请重新选择',
+				icon: 'none'
+			})
+		},
 		async chooseInspirationImage() {
 			const confirmed = await this.confirmInspirationImagePurpose('上传攻略图片')
 			if (!confirmed) return
@@ -141,8 +147,16 @@ export default {
 				sizeType: ['compressed'],
 				sourceType: ['album', 'camera'],
 				success: (res) => {
-					this.imagePath = res.tempFilePaths && res.tempFilePaths[0] ? res.tempFilePaths[0] : ''
+					const filePath = res.tempFilePaths && res.tempFilePaths[0] ? res.tempFilePaths[0] : ''
+					if (!filePath) {
+						this.showInspirationImageUnavailable()
+						return
+					}
+					this.imagePath = filePath
 					this.saveInspirationRoute({ silent: true, includeImageOnly: true })
+				},
+				fail: () => {
+					this.showInspirationImageUnavailable()
 				}
 			})
 		},
