@@ -52,8 +52,8 @@ assert.match(
 
 assert.match(
   computedBlock,
-  /recognizedRoute\(\)[\s\S]*this\.materials\.find\(material => material && hasReviewableMaterialEvidence\(material\) && material\.routeRecommendation\)[\s\S]*return routeMaterial \? routeMaterial\.routeRecommendation : null/,
-  'Travelogue recognized route should ignore stale routeRecommendation values on BLOCKED or UNAVAILABLE materials'
+  /recognizedRoute\(\)[\s\S]*this\.materials\.find\(material => material && hasReviewableMaterialEvidence\(material\) && material\.routeRecommendation\)[\s\S]*if \(routeMaterial\) return routeMaterial\.routeRecommendation[\s\S]*return this\.importedRoute \|\| null/,
+  'Travelogue recognized route should ignore stale routeRecommendation values on BLOCKED or UNAVAILABLE materials while retaining the active imported route'
 )
 
 assert.match(

@@ -796,7 +796,8 @@ export default {
 		},
 		recognizedRoute() {
 			const routeMaterial = this.materials.find(material => material && hasReviewableMaterialEvidence(material) && material.routeRecommendation)
-			return routeMaterial ? routeMaterial.routeRecommendation : null
+			if (routeMaterial) return routeMaterial.routeRecommendation
+			return this.importedRoute || null
 		},
 		recognizedRouteStops() {
 			if (!this.recognizedRoute) return []

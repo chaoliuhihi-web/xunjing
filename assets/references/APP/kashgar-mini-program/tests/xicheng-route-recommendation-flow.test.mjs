@@ -62,8 +62,8 @@ for (const required of [
 
 assert.match(
   travelogue,
-  /recognizedRoute\(\)[\s\S]*this\.materials\.find\([\s\S]*material\.routeRecommendation/,
-  'Travelogue should derive the recognized route from recorded recognition materials'
+  /recognizedRoute\(\)[\s\S]*const routeMaterial = this\.materials\.find\([\s\S]*material\.routeRecommendation[\s\S]*if \(routeMaterial\) return routeMaterial\.routeRecommendation[\s\S]*return this\.importedRoute \|\| null/,
+  'Travelogue should derive the active route from recorded recognition materials, then fall back to the imported official route'
 )
 
 assert.match(
