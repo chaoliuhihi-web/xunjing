@@ -6,6 +6,8 @@ const root = process.cwd()
 const aiGuidePath = path.join(root, 'pages', 'ai-guide', 'ai-guide.vue')
 const aiGuide = fs.readFileSync(aiGuidePath, 'utf8')
 const askEventSource = aiGuide.match(/recordXunjingResourceEvent\(\{\s*eventType:\s*'ASK'[\s\S]*?\n\s*\}\)/)?.[0] || ''
+const sendMessageSource = aiGuide.match(/const sendMessage = async \(\) => \{[\s\S]*?\n\}\n\nconst sendInitialQuestion/)?.[0] || ''
+const sendFailureCatchSource = sendMessageSource.match(/catch \(error\) \{[\s\S]*?console\.error\('调用 AI 失败:', error\)[\s\S]*?uni\.showToast\(\{[\s\S]*?发送失败[\s\S]*?\n\s*\}/)?.[0] || ''
 
 assert.match(
   aiGuide,
@@ -95,6 +97,30 @@ assert.doesNotMatch(
   askEventSource,
   /question:\s*userMessage/,
   'Resource event payloads should avoid storing the raw user question in client-side analytics'
+)
+
+assert.match(
+  sendFailureCatchSource,
+  /recordXunjingResourceEvent\(\{[\s\S]*eventType:\s*'ERROR_FEEDBACK'[\s\S]*page:\s*'ai-guide'[\s\S]*category:\s*'ai_request_failed'[\s\S]*severity:\s*'ERROR'[\s\S]*questionLength:\s*userMessage\.length/,
+  'AI guide should report non-interrupted send failures as ERROR_FEEDBACK events for operations triage'
+)
+
+for (const required of [
+  'packageCode: xichengAiContext.value.packageCode || XICHENG_REGION_CONFIG.packageCode',
+  'sceneCode: XICHENG_REGION_CONFIG.aiSceneCode',
+  'sourceChannel: xichengAiContext.value.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel',
+  "regionCode: xichengAiContext.value.regionCode || ''",
+  "poiCode: xichengAiContext.value.poiCode || ''",
+  "poiName: xichengAiContext.value.poiName || ''",
+  "safetyStatus: xichengAiContext.value.safetyStatus || ''"
+]) {
+  assert.ok(sendFailureCatchSource.includes(required), `AI failure event payload should include ${required}`)
+}
+
+assert.doesNotMatch(
+  sendFailureCatchSource,
+  /question:\s*userMessage|inputText\.value|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
+  'AI failure event payload should not include the raw user question or client-side secrets'
 )
 
 for (const required of [

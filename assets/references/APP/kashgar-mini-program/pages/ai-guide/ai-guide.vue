@@ -2039,6 +2039,22 @@ const sendMessage = async () => {
 			return
 		}
 		console.error('调用 AI 失败:', error)
+		recordXunjingResourceEvent({
+			eventType: 'ERROR_FEEDBACK',
+			payload: {
+				page: 'ai-guide',
+				category: 'ai_request_failed',
+				severity: 'ERROR',
+				questionLength: userMessage.length,
+				packageCode: xichengAiContext.value.packageCode || XICHENG_REGION_CONFIG.packageCode,
+				sceneCode: XICHENG_REGION_CONFIG.aiSceneCode,
+				sourceChannel: xichengAiContext.value.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
+				regionCode: xichengAiContext.value.regionCode || '',
+				poiCode: xichengAiContext.value.poiCode || '',
+				poiName: xichengAiContext.value.poiName || '',
+				safetyStatus: xichengAiContext.value.safetyStatus || ''
+			}
+		})
 
 		// 更新错误提示
 		commitAssistantMessage(assistantMessage, {
