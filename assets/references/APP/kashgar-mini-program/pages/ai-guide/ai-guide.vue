@@ -1673,17 +1673,18 @@ const startXunjingAiRequest = ({ question, assistantMessage }) => {
 					appendAnswerContent(state, result.answer)
 					state.followUps = result.followUps || []
 					state.sources = result.sources || []
+					state.safetyStatus = result.safetyStatus || ''
 					state.streamFinished = true
 					flushStreamContent(state)
 					commitAssistantMessage(assistantMessage, {
 						isPending: false,
 						followUps: result.followUps || [],
 						sources: result.sources || [],
-						safetyStatus: result.safetyStatus || ''
+						safetyStatus: state.safetyStatus
 					})
 					saveMessagesCache()
 					clearActiveStreamIfMatch(requestController.id)
-					settleRequest(() => resolve({ answer: state.fullContent, followUps: state.followUps, sources: state.sources, fallback: true }))
+					settleRequest(() => resolve({ answer: state.fullContent, followUps: state.followUps, sources: state.sources, safetyStatus: state.safetyStatus, fallback: true }))
 					return
 				}
 				appendAnswerContent(state, result.answer)

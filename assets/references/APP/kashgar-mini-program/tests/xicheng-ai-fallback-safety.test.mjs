@@ -36,3 +36,9 @@ assert.match(
   /hasXichengAiContext\(context\)[\s\S]*createLocalXichengAiFallback\(question, context\)[\s\S]*createLocalKashgarAiFallback\(question\)/,
   'Generic AI fallback should keep Kashgar local fallback while routing Xicheng contexts to the safe unavailable fallback'
 )
+
+assert.match(
+  aiGuide,
+  /if \(result && result\.fallback\) \{[\s\S]*state\.safetyStatus = result\.safetyStatus \|\| ''[\s\S]*safetyStatus:\s*state\.safetyStatus[\s\S]*settleRequest\(\(\) => resolve\(\{ answer:\s*state\.fullContent,\s*followUps:\s*state\.followUps,\s*sources:\s*state\.sources,\s*safetyStatus:\s*state\.safetyStatus,\s*fallback:\s*true \}\)\)/,
+  'Streaming fallback result should preserve UNAVAILABLE safetyStatus for material persistence and operations events'
+)
