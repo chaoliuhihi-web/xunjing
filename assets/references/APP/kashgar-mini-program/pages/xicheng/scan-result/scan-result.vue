@@ -475,6 +475,8 @@ export default {
 				sources: material.sources,
 				safetyStatus: material.safetyStatus || '',
 				candidateConfirmationAudit: material.candidateConfirmationAudit || null,
+				reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
+				publishStatus: 'private',
 				checkedInAt: material.capturedAt
 			}
 		},

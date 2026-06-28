@@ -43,6 +43,12 @@ assert.match(
 
 assert.match(
   scanResult,
+  /createRouteCheckinEvent\(material\)[\s\S]*candidateConfirmationAudit:\s*material\.candidateConfirmationAudit \|\| null,\s*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending,\s*publishStatus:\s*'private',\s*checkedInAt:\s*material\.capturedAt/,
+  'Route check-in event should be pending review and private before route passport, sharing, or review handoff'
+)
+
+assert.match(
+  scanResult,
   /persistRouteCheckinEvent\(checkinEvent\)[\s\S]*const existingCheckins = uni\.getStorageSync\(XICHENG_REGION_CONFIG\.checkinStorageKey\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.checkinStorageKey/,
   'Route check-in event should be stored independently from journey materials'
 )
