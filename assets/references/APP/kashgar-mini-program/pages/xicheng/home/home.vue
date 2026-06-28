@@ -359,18 +359,20 @@ export default {
 				source,
 				regionCode: this.region.regionCode,
 				packageCode: this.region.packageCode,
+				sceneCode: trigger.sceneCode || this.region.sceneCode,
+				sourceChannel: trigger.sourceChannel || this.region.sourceChannel,
 				companionName: this.region.companionName
 			}
 			uni.setStorageSync(this.region.storageKey, result)
 			this.recentRecognition = result
 			uni.navigateTo({
-				url: `/pages/xicheng/scan-result/scan-result?source=${encodeURIComponent(source)}&regionCode=${encodeURIComponent(result.regionCode || this.region.regionCode)}&packageCode=${encodeURIComponent(result.packageCode || this.region.packageCode)}&poiCode=${encodeURIComponent(result.poiCode || '')}&poiName=${encodeURIComponent(result.poiName || '')}&companionName=${encodeURIComponent(result.companionName || this.region.companionName)}&safetyStatus=${encodeURIComponent(result.safetyStatus || '')}`
+				url: `/pages/xicheng/scan-result/scan-result?source=${encodeURIComponent(source)}&regionCode=${encodeURIComponent(result.regionCode || this.region.regionCode)}&packageCode=${encodeURIComponent(result.packageCode || this.region.packageCode)}&sceneCode=${encodeURIComponent(result.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeURIComponent(result.sourceChannel || this.region.sourceChannel)}&poiCode=${encodeURIComponent(result.poiCode || '')}&poiName=${encodeURIComponent(result.poiName || '')}&companionName=${encodeURIComponent(result.companionName || this.region.companionName)}&safetyStatus=${encodeURIComponent(result.safetyStatus || '')}`
 			})
 		},
 		openRecentRecognition() {
 			if (!this.recentRecognition) return
 			uni.navigateTo({
-				url: `/pages/xicheng/scan-result/scan-result?source=${encodeURIComponent(this.recentRecognition.source || '')}&regionCode=${encodeURIComponent(this.recentRecognition.regionCode || this.region.regionCode)}&packageCode=${encodeURIComponent(this.recentRecognition.packageCode || this.region.packageCode)}&poiCode=${encodeURIComponent(this.recentRecognition.poiCode || '')}&poiName=${encodeURIComponent(this.recentRecognition.poiName || '')}&companionName=${encodeURIComponent(this.recentRecognition.companionName || this.region.companionName)}&safetyStatus=${encodeURIComponent(this.recentRecognition.safetyStatus || '')}`
+				url: `/pages/xicheng/scan-result/scan-result?source=${encodeURIComponent(this.recentRecognition.source || '')}&regionCode=${encodeURIComponent(this.recentRecognition.regionCode || this.region.regionCode)}&packageCode=${encodeURIComponent(this.recentRecognition.packageCode || this.region.packageCode)}&sceneCode=${encodeURIComponent(this.recentRecognition.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.recentRecognition.sourceChannel || this.region.sourceChannel)}&poiCode=${encodeURIComponent(this.recentRecognition.poiCode || '')}&poiName=${encodeURIComponent(this.recentRecognition.poiName || '')}&companionName=${encodeURIComponent(this.recentRecognition.companionName || this.region.companionName)}&safetyStatus=${encodeURIComponent(this.recentRecognition.safetyStatus || '')}`
 			})
 		},
 		continueRecentRecognitionWithXiaojing() {
@@ -380,6 +382,8 @@ export default {
 				`question=${encodeURIComponent(prompt)}`,
 				`regionCode=${encodeURIComponent(this.recentRecognition.regionCode || this.region.regionCode)}`,
 				`packageCode=${encodeURIComponent(this.recentRecognition.packageCode || this.region.packageCode)}`,
+				`sceneCode=${encodeURIComponent(this.recentRecognition.sceneCode || this.region.sceneCode)}`,
+				`sourceChannel=${encodeURIComponent(this.recentRecognition.sourceChannel || this.region.sourceChannel)}`,
 				`poiCode=${encodeURIComponent(this.recentRecognition.poiCode || '')}`,
 				`poiName=${encodeURIComponent(this.recentRecognition.poiName || '')}`,
 				`companionName=${encodeURIComponent(this.recentRecognition.companionName || this.region.companionName)}`,
@@ -392,7 +396,7 @@ export default {
 		},
 		askXiaojing() {
 			uni.navigateTo({
-				url: `/pages/ai-guide/ai-guide?regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&companionName=${encodeURIComponent(this.region.companionName)}`
+				url: `/pages/ai-guide/ai-guide?regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.aiSceneCode || this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.region.sourceChannel)}&companionName=${encodeURIComponent(this.region.companionName)}`
 			})
 		},
 		openRecommendedRoute(route = {}) {
