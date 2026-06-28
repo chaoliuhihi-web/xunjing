@@ -26,8 +26,8 @@ assert.match(
 
 assert.match(
   onLoadBlock,
-  /const selectedCached = selectCachedRecognitionForRoute\(cached, options\)[\s\S]*\.\.\.\(selectedCached \|\| \{\}\)/,
-  'Recognition result onLoad should only merge a cache object after route consistency checks'
+  /const cachedBlockedByProductionFixture = this\.isBlockedDevelopmentRecognitionCache\(cached\)[\s\S]*const selectedCached = cachedBlockedByProductionFixture[\s\S]*\? null[\s\S]*: selectCachedRecognitionForRoute\(cached, options\)[\s\S]*\.\.\.\(selectedCached \|\| \{\}\)/,
+  'Recognition result onLoad should only merge a cache object after production fixture and route consistency checks'
 )
 
 for (const required of [

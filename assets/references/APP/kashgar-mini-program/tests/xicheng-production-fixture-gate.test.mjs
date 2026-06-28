@@ -6,6 +6,7 @@ const root = process.cwd()
 const triggerRequest = fs.readFileSync(path.join(root, 'request', 'xunjing', 'trigger.js'), 'utf8')
 const regionConfig = fs.readFileSync(path.join(root, 'config', 'regions', 'xicheng.js'), 'utf8')
 const home = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'home', 'home.vue'), 'utf8')
+const scanResult = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
 
 const fallbackGate = triggerRequest.match(/export const isXichengDevelopmentFallbackAllowed\s*=\s*\(\)\s*=>\s*\{[\s\S]*?\n\}/)?.[0] || ''
 
@@ -72,4 +73,22 @@ assert.match(
   home,
   /openScanResult\(trigger = \{\}, source = ''\)[\s\S]*if \(this\.isBlockedDevelopmentRecognitionCache\(trigger\)\) \{[\s\S]*this\.handleRecognitionUnavailable\(source \|\| 'text'\)[\s\S]*return[\s\S]*uni\.setStorageSync\(this\.region\.storageKey, result\)/,
   'Xicheng home should not persist or navigate development fixture recognition payloads when production does not allow fixtures'
+)
+
+assert.match(
+  scanResult,
+  /import \{ isXichengDevelopmentFallbackAllowed \} from '@\/request\/xunjing\/trigger\.js'/,
+  'Xicheng recognition result page should reuse the shared production-safe development fixture gate'
+)
+
+assert.match(
+  scanResult,
+  /isBlockedDevelopmentRecognitionCache\(recognition = \{\}\)[\s\S]*recognition\.developmentOnly \|\| recognition\.notForProduction \|\| recognition\.triggerType === 'development-fixture'[\s\S]*!isXichengDevelopmentFallbackAllowed\(\)/,
+  'Xicheng recognition result page should detect stale development-only recognition cache in production'
+)
+
+assert.match(
+  scanResult,
+  /const cachedBlockedByProductionFixture = this\.isBlockedDevelopmentRecognitionCache\(cached\)[\s\S]*if \(cachedBlockedByProductionFixture\) \{[\s\S]*uni\.removeStorageSync\(XICHENG_REGION_CONFIG\.storageKey\)[\s\S]*const selectedCached = cachedBlockedByProductionFixture[\s\S]*\? null[\s\S]*: selectCachedRecognitionForRoute\(cached, options\)/,
+  'Xicheng recognition result page should clear stale development fixture cache before normalizing the result'
 )

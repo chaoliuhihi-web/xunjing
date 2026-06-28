@@ -134,6 +134,7 @@ import { submitXichengRecognitionFeedbackEvent } from '@/request/xunjing/events.
 import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
 import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
+import { isXichengDevelopmentFallbackAllowed } from '@/request/xunjing/trigger.js'
 
 const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
 	regionCode: XICHENG_REGION_CONFIG.regionCode,
@@ -364,7 +365,13 @@ export default {
 	onLoad(options = {}) {
 		const cached = uni.getStorageSync(XICHENG_REGION_CONFIG.storageKey)
 		const routeOptions = normalizeRouteOptions(options)
-		const selectedCached = selectCachedRecognitionForRoute(cached, options)
+		const cachedBlockedByProductionFixture = this.isBlockedDevelopmentRecognitionCache(cached)
+		if (cachedBlockedByProductionFixture) {
+			uni.removeStorageSync(XICHENG_REGION_CONFIG.storageKey)
+		}
+		const selectedCached = cachedBlockedByProductionFixture
+			? null
+			: selectCachedRecognitionForRoute(cached, options)
 		this.result = normalizeResult({
 			...(selectedCached || {}),
 			source: routeOptions.source || (selectedCached && selectedCached.source) || '',
@@ -380,6 +387,14 @@ export default {
 		this.loadRecognitionFeedback()
 	},
 	methods: {
+		isBlockedDevelopmentRecognitionCache(recognition = {}) {
+			const developmentRecognition = Boolean(
+				recognition && (
+					recognition.developmentOnly || recognition.notForProduction || recognition.triggerType === 'development-fixture'
+				)
+			)
+			return developmentRecognition && !isXichengDevelopmentFallbackAllowed()
+		},
 		requireOfficialPoiConfirmation(actionLabel = '继续') {
 			uni.showToast({
 				title: `请先选择官方 POI 再${actionLabel}`,
