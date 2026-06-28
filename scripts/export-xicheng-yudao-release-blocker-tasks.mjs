@@ -31,6 +31,74 @@ const checkOwnerLane = {
   'xicheng-source-license': 'poi-data'
 }
 
+const releaseGateCommand = 'npm run xunjing:yudao:release:gate -- --stage production --env-file /secure/path/production.env --evidence-file qa/xicheng-yudao-release-evidence.json'
+
+const envTaskInstructions = [
+  [/^XUNJING_APP_API_BASE_URL$/, {
+    taskDetail: 'Configure a non-local HTTPS APP API backend domain in the production env.',
+    requiredEvidence: 'Release evidence records a non-local HTTPS appApiBaseUrl from production env.',
+    verificationCommand: releaseGateCommand
+  }],
+  [/^(MYSQL_|REDIS_|SPRING_PROFILES_ACTIVE$|INTERNAL_AUTH_TOKEN$)/, {
+    taskDetail: 'Configure production MySQL host credentials and profile settings.',
+    requiredEvidence: 'Release gate runtime-env check passes without local host or placeholder database values.',
+    verificationCommand: releaseGateCommand
+  }],
+  [/^WX_/, {
+    taskDetail: 'Configure real WeChat MP and Mini Program credentials outside Git.',
+    requiredEvidence: 'Release gate real-wechat-app check passes using production secret store values.',
+    verificationCommand: releaseGateCommand
+  }],
+  [/^(QWEN_|DASHSCOPE_|SPRING_AI_|QDRANT_)/, {
+    taskDetail: 'Configure real AI provider embedding and Qdrant runtime settings.',
+    requiredEvidence: 'Release gate AI and vector checks pass with real provider and Qdrant values.',
+    verificationCommand: releaseGateCommand
+  }],
+  [/^XUNJING_VISION_/, {
+    taskDetail: 'Configure real OCR and vision recognition endpoint key and model.',
+    requiredEvidence: 'Release gate vision-ocr-service check passes with non-local HTTPS service values.',
+    verificationCommand: releaseGateCommand
+  }],
+  [/^OSS_/, {
+    taskDetail: 'Configure production object storage endpoint bucket prefix and credentials.',
+    requiredEvidence: 'Release gate object-storage check passes without local or placeholder values.',
+    verificationCommand: releaseGateCommand
+  }]
+]
+
+const checkTaskInstructions = {
+  'release-source-revision': {
+    taskDetail: 'Use a clean feature/xicheng-p0 checkout for release evidence.',
+    requiredEvidence: 'Release evidence records gitDirty=false and the expected Git commit.',
+    verificationCommand: releaseGateCommand
+  },
+  'full-yudao-baseline': {
+    taskDetail: 'Provide the complete controlled Yudao baseline SQL path for release gate.',
+    requiredEvidence: 'Release evidence records yudaoBaselineSqlFile and matching yudaoBaselineSqlSha256.',
+    verificationCommand: 'npm run xunjing:yudao:release:gate -- --stage production --env-file /secure/path/production.env --yudao-baseline-sql /secure/path/ruoyi-vue-pro.sql --evidence-file qa/xicheng-yudao-release-evidence.json'
+  },
+  'yudao-server-artifact': {
+    taskDetail: 'Build and provide the deployable Yudao server jar for release gate.',
+    requiredEvidence: 'Release evidence records yudaoServerJarFile size and SHA-256.',
+    verificationCommand: 'npm run xunjing:yudao:release:gate -- --stage production --env-file /secure/path/production.env --yudao-server-jar /secure/path/yudao-server.jar --evidence-file qa/xicheng-yudao-release-evidence.json'
+  },
+  'xicheng-production-poi-evidence': {
+    taskDetail: 'Generate reviewed POI workbook manifest and seed evidence from 80 approved Xicheng POIs.',
+    requiredEvidence: 'Workbook manifest and seed gates output READY evidence with matching source hashes.',
+    verificationCommand: 'npm run xunjing:xicheng:poi:review:pack'
+  },
+  'xicheng-production-poi': {
+    taskDetail: 'Complete 80 approved Xicheng POIs and production seed readiness.',
+    requiredEvidence: 'Seed evidence proves at least 80 productionReady approved Xicheng POIs.',
+    verificationCommand: 'npm run xunjing:xicheng:poi:seed:verify -- --sql workbench/xicheng-poi-production-seed.sql --evidence-file qa/xicheng-poi-production-seed-evidence.json'
+  },
+  'xicheng-source-license': {
+    taskDetail: 'Approve all Xicheng POI source license geo and content review fields.',
+    requiredEvidence: 'Manifest and seed evidence contain no REVIEW_REQUIRED or DRAFT POI values.',
+    verificationCommand: 'npm run xunjing:xicheng:poi:manifest:gate -- --manifest workbench/xicheng-production-pois.json --evidence-file qa/xicheng-poi-manifest-evidence.json'
+  }
+}
+
 function readArgValue(args, name) {
   const equalPrefix = `${name}=`
   const equalArg = args.find((arg) => arg.startsWith(equalPrefix))
@@ -75,6 +143,19 @@ function ownerLaneFor(checkName, blocker) {
     'release-manager'
 }
 
+function taskInstructionFor(checkName, blocker) {
+  const envKey = String(blocker || '').match(/\b[A-Z][A-Z0-9_]{2,}\b/)?.[0]
+  const envInstruction = envTaskInstructions.find(([pattern]) => pattern.test(String(envKey || '')))
+  if (envInstruction) {
+    return envInstruction[1]
+  }
+  return checkTaskInstructions[checkName] || {
+    taskDetail: `Resolve release gate blocker for ${checkName}.`,
+    requiredEvidence: 'Release gate re-run records this blocker as resolved in evidence JSON.',
+    verificationCommand: releaseGateCommand
+  }
+}
+
 function expandBlockers(blocker) {
   const text = String(blocker || '').trim()
   const envMatch = text.match(/^Missing or placeholder production env:\s*(.+)$/)
@@ -102,6 +183,7 @@ function buildTaskRows(evidence, sourceEvidenceFile) {
           blockerIndex: checkTaskIndex + expandedIndex + 1,
           blocker: expandedBlocker,
           ownerLane: ownerLaneFor(item.name, expandedBlocker),
+          ...taskInstructionFor(item.name, expandedBlocker),
           taskStatus: 'TODO',
           sourceEvidenceFile
         }))
@@ -126,6 +208,9 @@ function buildCsv(taskRows) {
     'blockerIndex',
     'blocker',
     'ownerLane',
+    'taskDetail',
+    'requiredEvidence',
+    'verificationCommand',
     'taskStatus',
     'sourceEvidenceFile'
   ]
@@ -134,6 +219,9 @@ function buildCsv(taskRows) {
     row.blockerIndex,
     row.blocker,
     row.ownerLane,
+    row.taskDetail,
+    row.requiredEvidence,
+    row.verificationCommand,
     row.taskStatus,
     row.sourceEvidenceFile
   ]))
