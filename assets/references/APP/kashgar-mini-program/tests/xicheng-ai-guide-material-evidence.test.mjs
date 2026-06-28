@@ -15,6 +15,8 @@ for (const required of [
   'aiAnswerExcerpt',
   'questionLength',
   'sourceCount',
+  'sceneCode',
+  'sourceChannel',
   'suggestedQuestions',
   'result.suggestedQuestions',
   'materialsStorageKey'
@@ -36,6 +38,13 @@ assert.match(
 
 const persistBlock = aiGuide.match(/const persistXichengAiGuideMaterial\s*=\s*\(\{[\s\S]*?\n\}/)?.[0] || ''
 assert.ok(persistBlock, 'AI guide should expose a persistXichengAiGuideMaterial helper')
+
+for (const required of [
+  'sceneCode: XICHENG_REGION_CONFIG.aiSceneCode',
+  'sourceChannel: context.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel'
+]) {
+  assert.ok(persistBlock.includes(required), `Xiaojing answer material should preserve operations attribution ${required}`)
+}
 
 assert.doesNotMatch(
   persistBlock,

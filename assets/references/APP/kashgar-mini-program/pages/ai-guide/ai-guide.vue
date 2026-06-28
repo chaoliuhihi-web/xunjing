@@ -621,6 +621,8 @@ const persistXichengAiGuideMaterial = ({ question = '', result = {}, assistantMe
 		type: 'ai-guide',
 		regionCode: context.regionCode || XICHENG_REGION_CONFIG.regionCode,
 		packageCode: context.packageCode || XICHENG_REGION_CONFIG.packageCode,
+		sceneCode: XICHENG_REGION_CONFIG.aiSceneCode,
+		sourceChannel: context.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
 		poiCode: context.poiCode || '',
 		poiName: context.poiName || '小京讲解',
 		sourceLabel: '小京讲解',
