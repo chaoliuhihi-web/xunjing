@@ -24,6 +24,18 @@ describe('xunjing yudao runtime config contract', () => {
     expect(config).toContain('enabled: ${DASHSCOPE_AGENT_ENABLED:false}')
   })
 
+  test('base application config maps WeChat env vars to Yudao wx starter properties', async () => {
+    const config = await readFile(resolve(rootDir, resourcesDir, 'application.yaml'), 'utf8')
+
+    expect(config).toContain(`wx:
+  mp:
+    app-id: \${WX_MP_APP_ID:}
+    secret: \${WX_MP_SECRET:}
+  miniapp:
+    appid: \${WX_MINIAPP_APPID:}
+    secret: \${WX_MINIAPP_SECRET:}`)
+  })
+
   test('server runtime only packages modules needed by Xunjing P0', async () => {
     const serverPom = await readFile(resolve(rootDir, 'backend/yudao/yudao-server/pom.xml'), 'utf8')
 
