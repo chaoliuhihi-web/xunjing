@@ -225,15 +225,20 @@ function buildTaskRows(evidence, sourceEvidenceFile) {
       let checkTaskIndex = 0
       return blockers.flatMap((blocker) => {
         const expandedBlockers = expandBlockers(blocker)
-        return expandedBlockers.map((expandedBlocker, expandedIndex) => ({
-          checkName: item.name,
-          blockerIndex: checkTaskIndex + expandedIndex + 1,
-          blocker: expandedBlocker,
-          ownerLane: ownerLaneFor(item.name, expandedBlocker),
-          ...taskInstructionFor(item.name, expandedBlocker),
-          taskStatus: 'TODO',
-          sourceEvidenceFile
-        }))
+        return expandedBlockers.map((expandedBlocker, expandedIndex) => {
+          const affectedPoiCodes = affectedPoiCodesFor(evidence, item.name, expandedBlocker)
+          return {
+            checkName: item.name,
+            blockerIndex: checkTaskIndex + expandedIndex + 1,
+            blocker: expandedBlocker,
+            ownerLane: ownerLaneFor(item.name, expandedBlocker),
+            affectedPoiCount: affectedPoiCodes.length,
+            affectedPoiCodes,
+            ...taskInstructionFor(item.name, expandedBlocker),
+            taskStatus: 'TODO',
+            sourceEvidenceFile
+          }
+        })
           .map((row) => {
             checkTaskIndex += 1
             return row
@@ -252,6 +257,38 @@ function summarizeOwnerLanes(taskRows) {
 function sortedUnique(values) {
   return [...new Set(values.filter((value) => String(value || '').trim().length > 0))]
     .sort((left, right) => String(left).localeCompare(String(right)))
+}
+
+function codeList(value) {
+  return Array.isArray(value)
+    ? value.map((item) => String(item || '').trim()).filter(Boolean)
+    : []
+}
+
+function affectedPoiCodesFor(evidence, checkName, blocker) {
+  if (checkName !== 'xicheng-runtime-seed-evidence') {
+    return []
+  }
+  const summary = evidence.summary || {}
+  const geoCodes = codeList(summary.runtimeSeedGeoReviewRequiredPoiCodes)
+  const licenseCodes = codeList(summary.runtimeSeedLicenseReviewRequiredPoiCodes)
+  const blockerText = String(blocker || '').toLowerCase()
+  const mentionsGeo = /geo|coordinate/.test(blockerText)
+  const mentionsLicense = /license/.test(blockerText)
+
+  if (mentionsGeo && mentionsLicense) {
+    return sortedUnique([...geoCodes, ...licenseCodes])
+  }
+  if (mentionsGeo) {
+    return geoCodes
+  }
+  if (mentionsLicense) {
+    return licenseCodes
+  }
+  if (/review_required|contains blockers/.test(blockerText)) {
+    return sortedUnique([...geoCodes, ...licenseCodes])
+  }
+  return []
 }
 
 function summarizeOwnerLaneBreakdown(taskRows) {
@@ -287,7 +324,9 @@ function buildCsv(taskRows) {
     'requiredEvidence',
     'verificationCommand',
     'taskStatus',
-    'sourceEvidenceFile'
+    'sourceEvidenceFile',
+    'affectedPoiCount',
+    'affectedPoiCodes'
   ]
   const rows = taskRows.map((row) => csvRow([
     row.checkName,
@@ -298,7 +337,9 @@ function buildCsv(taskRows) {
     row.requiredEvidence,
     row.verificationCommand,
     row.taskStatus,
-    row.sourceEvidenceFile
+    row.sourceEvidenceFile,
+    row.affectedPoiCount || 0,
+    Array.isArray(row.affectedPoiCodes) ? row.affectedPoiCodes.join('|') : ''
   ]))
   return `${[header.join(','), ...rows].join('\n')}\n`
 }

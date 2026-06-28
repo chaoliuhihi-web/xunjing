@@ -256,8 +256,78 @@ describe('xicheng Yudao release blocker task export', () => {
       }
     })
     expect(await readFile(path.join(rootDir, 'workbench/xicheng-yudao-release-blocker-tasks.csv'), 'utf8')).toBe(
-      'checkName,blockerIndex,blocker,ownerLane,taskDetail,requiredEvidence,verificationCommand,taskStatus,sourceEvidenceFile\n'
+      'checkName,blockerIndex,blocker,ownerLane,taskDetail,requiredEvidence,verificationCommand,taskStatus,sourceEvidenceFile,affectedPoiCount,affectedPoiCodes\n'
     )
+  })
+
+  test('adds affected POI codes to runtime seed blocker rows', async () => {
+    const rootDir = await createTempRoot()
+    const releaseEvidencePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', {
+      artifactType: 'xicheng-yudao-release-readiness',
+      ok: false,
+      status: 'NOT_READY',
+      checkedAt: '2026-06-28T00:00:00.000Z',
+      summary: {
+        stage: 'production',
+        failedChecks: 1,
+        blockerCount: 2,
+        runtimeSeedGeoReviewRequiredPoiCodes: [
+          'xicheng-baitasi',
+          'xicheng-gongwangfu'
+        ],
+        runtimeSeedLicenseReviewRequiredPoiCodes: [
+          'xicheng-gongwangfu',
+          'xicheng-planetarium'
+        ]
+      },
+      checks: [
+        {
+          name: 'xicheng-runtime-seed-evidence',
+          ok: false,
+          blockers: [
+            'runtime seed evidence poiGeoReviewRequired must be 0',
+            'runtime seed evidence poiLicenseReviewRequired must be 0',
+            'runtime seed evidence contains blockers: 2 Xicheng POIs still require coordinate review; 2 Xicheng POIs still require source license review'
+          ]
+        }
+      ],
+      blockers: []
+    })
+
+    const result = runTaskExport([
+      '--root', rootDir,
+      '--release-evidence', 'qa/xicheng-yudao-release-evidence.json',
+      '--output', 'workbench/xicheng-yudao-release-blocker-tasks.csv'
+    ])
+
+    expect(result.status).toBe(0)
+    const report = JSON.parse(result.stdout)
+    expect(report.summary.taskCount).toBe(3)
+    expect(report.tasks).toEqual([
+      expect.objectContaining({
+        checkName: 'xicheng-runtime-seed-evidence',
+        blocker: 'runtime seed evidence poiGeoReviewRequired must be 0',
+        affectedPoiCount: 2,
+        affectedPoiCodes: ['xicheng-baitasi', 'xicheng-gongwangfu']
+      }),
+      expect.objectContaining({
+        checkName: 'xicheng-runtime-seed-evidence',
+        blocker: 'runtime seed evidence poiLicenseReviewRequired must be 0',
+        affectedPoiCount: 2,
+        affectedPoiCodes: ['xicheng-gongwangfu', 'xicheng-planetarium']
+      }),
+      expect.objectContaining({
+        checkName: 'xicheng-runtime-seed-evidence',
+        affectedPoiCount: 3,
+        affectedPoiCodes: ['xicheng-baitasi', 'xicheng-gongwangfu', 'xicheng-planetarium']
+      })
+    ])
+
+    const csv = await readFile(path.join(rootDir, 'workbench/xicheng-yudao-release-blocker-tasks.csv'), 'utf8')
+    expect(csv).toContain('sourceEvidenceFile,affectedPoiCount,affectedPoiCodes')
+    expect(csv).toContain(`xicheng-runtime-seed-evidence,1,runtime seed evidence poiGeoReviewRequired must be 0,poi-data,Apply the approved Xicheng production seed to the target Yudao database and provide runtime seed evidence.,Production seed apply outputs YUDAO_XICHENG_PRODUCTION_SEED_APPLIED and writes YUDAO_XICHENG_PRODUCTION_SEED_READY runtime evidence.,${productionSeedApplyCommand},TODO,${releaseEvidencePath},2,xicheng-baitasi|xicheng-gongwangfu`)
+    expect(csv).toContain(`xicheng-runtime-seed-evidence,2,runtime seed evidence poiLicenseReviewRequired must be 0,poi-data,Apply the approved Xicheng production seed to the target Yudao database and provide runtime seed evidence.,Production seed apply outputs YUDAO_XICHENG_PRODUCTION_SEED_APPLIED and writes YUDAO_XICHENG_PRODUCTION_SEED_READY runtime evidence.,${productionSeedApplyCommand},TODO,${releaseEvidencePath},2,xicheng-gongwangfu|xicheng-planetarium`)
+    expect(csv).toContain(`,3,xicheng-baitasi|xicheng-gongwangfu|xicheng-planetarium`)
   })
 
   test('exposes the release task export through npm scripts and handoff docs', async () => {
