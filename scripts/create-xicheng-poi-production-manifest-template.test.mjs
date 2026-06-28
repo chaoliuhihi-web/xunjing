@@ -242,6 +242,7 @@ describe('xicheng POI production manifest template generator', () => {
     expect(manifest.pois[23].poiCode).toBe('xicheng-financial-street')
     expect(manifest.pois[24].poiCode).toBe('xicheng-heritage-001-sanguanmiao')
     expect(manifest.pois[24].name).toBe('三官庙')
+    expect(manifest.pois[24].source.sourceUrl).toBe('https://www.bjxch.gov.cn/xcfw/whfw/xxxq/pnidpv736523.html')
 
     const gateEvidenceFile = path.join(rootDir, 'tmp/prefilled-manifest-gate-evidence.json')
     const gateResult = runManifestGate([
@@ -266,6 +267,7 @@ describe('xicheng POI production manifest template generator', () => {
     expect(checklistLines[1]).toContain('audit.reviewStatus=APPROVED')
     expect(checklistLines[25]).toContain('xicheng-heritage-001-sanguanmiao')
     expect(checklistLines[25]).toContain('三官庙')
+    expect(checklistLines[25]).toContain('https://www.bjxch.gov.cn/xcfw/whfw/xxxq/pnidpv736523.html')
     expect(checklistLines[25]).toContain('source.licenseEvidenceRef')
 
     const workbook = await readFile(workbookFile, 'utf8')
@@ -313,6 +315,7 @@ describe('xicheng POI production manifest template generator', () => {
     expect(workbookLines[1]).toContain('REVIEW_REQUIRED')
     expect(workbookLines[25]).toContain('xicheng-heritage-001-sanguanmiao')
     expect(workbookLines[25]).toContain('三官庙')
+    expect(workbookLines[25]).toContain('https://www.bjxch.gov.cn/xcfw/whfw/xxxq/pnidpv736523.html')
 
     const reviewPacket = JSON.parse(await readFile(reviewPacketFile, 'utf8'))
     expect(reviewPacket).toMatchObject({

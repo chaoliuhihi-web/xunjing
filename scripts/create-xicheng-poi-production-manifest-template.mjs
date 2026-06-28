@@ -152,14 +152,46 @@ function extractPoiValuesSql(sql) {
   return sql.slice(valuesIndex + 'VALUES'.length)
 }
 
-function extractXichengSourceUrl(sql) {
-  const match = sql.match(/SET\s+@xicheng_source_url\s*:=\s*'((?:''|[^'])*)'/i)
-  return match ? match[1].replaceAll("''", "'") : ''
+function extractSqlVariables(sql) {
+  const variables = new Map()
+  const pattern = /SET\s+@([a-zA-Z0-9_]+)\s*:=\s*'((?:''|[^'])*)'/gi
+  let match = pattern.exec(sql)
+  while (match) {
+    variables.set(match[1], match[2].replaceAll("''", "'"))
+    match = pattern.exec(sql)
+  }
+  return variables
 }
 
-function createPoiTemplateFromSeedRow(row, index, sourceUrl) {
+function resolveSqlValueToken(token, variables) {
+  const trimmed = String(token || '').trim()
+  if (trimmed.startsWith('@')) {
+    return variables.get(trimmed.slice(1)) || ''
+  }
+  return sqlStringValue(trimmed)
+}
+
+function parseMysqlJsonObject(token, variables) {
+  const trimmed = String(token || '').trim()
+  if (!trimmed.toUpperCase().startsWith('JSON_OBJECT(') || !trimmed.endsWith(')')) {
+    return {}
+  }
+  const inner = trimmed.slice(trimmed.indexOf('(') + 1, -1)
+  const values = splitSqlTopLevelValues(`(${inner})`)
+  const object = {}
+  for (let index = 0; index < values.length - 1; index += 2) {
+    const key = sqlStringValue(values[index])
+    object[key] = resolveSqlValueToken(values[index + 1], variables)
+  }
+  return object
+}
+
+function createPoiTemplateFromSeedRow(row, index, variables) {
   const values = splitSqlTopLevelValues(row)
+  const source = parseMysqlJsonObject(values[12], variables)
   const content = parseJsonString(values[14], {})
+  const sourceTitle = content.sourceTitle || source.sourceTitle || `${sqlStringValue(values[3])} 公开来源待复核`
+  const sourceUrl = content.sourceUrl || source.sourceUrl || ''
   return {
     ...createPoiTemplate(index),
     poiCode: sqlStringValue(values[1]),
@@ -175,7 +207,7 @@ function createPoiTemplateFromSeedRow(row, index, sourceUrl) {
     longitude: Number(values[10]),
     coordType: sqlStringValue(values[11]),
     source: {
-      sourceTitle: `${sqlStringValue(values[3])} 公开来源待复核`,
+      sourceTitle,
       sourceUrl,
       sourceType: 'OFFICIAL_PUBLIC',
       licenseStatus: 'REVIEW_REQUIRED',
@@ -202,9 +234,9 @@ function createPoiTemplateFromSeedRow(row, index, sourceUrl) {
 }
 
 export function importPoiTemplatesFromLocalSeedSql(sql) {
-  const sourceUrl = extractXichengSourceUrl(sql)
+  const variables = extractSqlVariables(sql)
   return splitSqlRows(extractPoiValuesSql(sql))
-    .map((row, index) => createPoiTemplateFromSeedRow(row, index, sourceUrl))
+    .map((row, index) => createPoiTemplateFromSeedRow(row, index, variables))
     .filter((poi) => poi.poiCode.startsWith('xicheng-'))
 }
 
