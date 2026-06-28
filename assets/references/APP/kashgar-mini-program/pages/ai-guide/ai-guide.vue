@@ -569,7 +569,7 @@ const persistXichengAiGuideMaterial = ({ question = '', result = {}, assistantMe
 		sourceCount: sources.length,
 		sources: normalizeXichengReviewedSources(result.sources),
 		suggestedQuestions,
-		safetyStatus: result.safetyStatus || '',
+		safetyStatus: normalizeXichengSafetyStatus(result.safetyStatus),
 		fallback: Boolean(result.fallback),
 		reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
 		publishStatus: 'private',

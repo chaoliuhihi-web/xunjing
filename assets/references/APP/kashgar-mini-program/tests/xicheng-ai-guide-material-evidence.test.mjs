@@ -41,7 +41,8 @@ assert.ok(persistBlock, 'AI guide should expose a persistXichengAiGuideMaterial 
 
 for (const required of [
   'sceneCode: XICHENG_REGION_CONFIG.aiSceneCode',
-  'sourceChannel: context.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel'
+  'sourceChannel: context.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel',
+  'safetyStatus: normalizeXichengSafetyStatus(result.safetyStatus)'
 ]) {
   assert.ok(persistBlock.includes(required), `Xiaojing answer material should preserve operations attribution ${required}`)
 }

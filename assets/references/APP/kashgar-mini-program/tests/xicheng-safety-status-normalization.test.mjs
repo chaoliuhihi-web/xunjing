@@ -66,6 +66,12 @@ assert.match(
 )
 
 assert.match(
+  aiGuide,
+  /safetyStatus:\s*normalizeXichengSafetyStatus\(result\.safetyStatus\)/,
+  'AI guide should persist normalized safetyStatus into local Xiaojing answer materials'
+)
+
+assert.match(
   scanResult,
   /normalizeXichengSafetyStatus\(decodeRouteValue\(options\.safetyStatus\)\)/,
   'Recognition result should normalize route safetyStatus before carrying it into Xiaojing'
