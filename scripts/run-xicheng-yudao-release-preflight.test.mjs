@@ -40,13 +40,15 @@ describe('xicheng Yudao release preflight', () => {
       '--env-file', 'ops/xunjing-platform.env.example',
       '--runtime-seed-evidence', 'tmp/xicheng-yudao-runtime-seed-production-evidence.json',
       '--release-evidence', 'qa/xicheng-yudao-release-evidence.json',
-      '--tasks-output', 'workbench/xicheng-yudao-release-blocker-tasks.csv'
+      '--tasks-output', 'workbench/xicheng-yudao-release-blocker-tasks.csv',
+      '--poi-tasks-output', 'workbench/xicheng-yudao-release-poi-blocker-tasks.csv'
     ])
 
     expect(result.status).toBe(1)
     const report = JSON.parse(result.stdout)
     const releaseEvidenceFile = path.join(rootDir, 'qa/xicheng-yudao-release-evidence.json')
     const tasksOutputFile = path.join(rootDir, 'workbench/xicheng-yudao-release-blocker-tasks.csv')
+    const poiTasksOutputFile = path.join(rootDir, 'workbench/xicheng-yudao-release-poi-blocker-tasks.csv')
 
     expect(report).toMatchObject({
       artifactType: 'xicheng-yudao-release-preflight',
@@ -55,6 +57,8 @@ describe('xicheng Yudao release preflight', () => {
       summary: {
         releaseEvidenceFile,
         tasksOutputFile,
+        poiTasksOutputFile,
+        poiTaskCount: expect.any(Number),
         releaseStatus: 'NOT_READY'
       }
     })
@@ -100,6 +104,8 @@ describe('xicheng Yudao release preflight', () => {
     const tasksCsv = await readFile(tasksOutputFile, 'utf8')
     expect(tasksCsv).toContain('checkName,blockerIndex,blocker,ownerLane,taskDetail,requiredEvidence,verificationCommand,taskStatus,sourceEvidenceFile')
     expect(tasksCsv).toContain(releaseEvidenceFile)
+    const poiTasksCsv = await readFile(poiTasksOutputFile, 'utf8')
+    expect(poiTasksCsv).toContain('poiTaskKey,poiCode,checkName,blockerIndex,blocker,ownerLane,taskDetail,requiredEvidence,verificationCommand,taskStatus,sourceEvidenceFile')
   })
 
   test('exposes the preflight through npm scripts and handoff docs', async () => {
@@ -112,5 +118,7 @@ describe('xicheng Yudao release preflight', () => {
     )
     expect(deployDoc).toContain('npm run xunjing:yudao:release:preflight')
     expect(statusDoc).toContain('npm run xunjing:yudao:release:preflight')
+    expect(deployDoc).toContain('xicheng-yudao-release-poi-blocker-tasks.csv')
+    expect(statusDoc).toContain('xicheng-yudao-release-poi-blocker-tasks.csv')
   })
 })

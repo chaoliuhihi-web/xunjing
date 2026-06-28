@@ -8,6 +8,7 @@ import { exportXichengYudaoReleaseBlockerTasks } from './export-xicheng-yudao-re
 const artifactType = 'xicheng-yudao-release-preflight'
 const defaultReleaseEvidenceFile = 'qa/xicheng-yudao-release-evidence.json'
 const defaultTasksOutputFile = 'workbench/xicheng-yudao-release-blocker-tasks.csv'
+const defaultPoiTasksOutputFile = 'workbench/xicheng-yudao-release-poi-blocker-tasks.csv'
 const defaultStage = 'production'
 const defaultExpectedBranch = 'feature/xicheng-p0'
 const defaultEnvFile = 'ops/xunjing-platform.env.example'
@@ -75,8 +76,12 @@ export async function runXichengYudaoReleasePreflight({
   const tasksOutputFile = readArgValue(args, '--tasks-output') ||
     readArgValue(args, '--output') ||
     defaultTasksOutputFile
+  const poiTasksOutputFile = readArgValue(args, '--poi-tasks-output') ||
+    readArgValue(args, '--poi-output') ||
+    defaultPoiTasksOutputFile
   const resolvedReleaseEvidenceFile = resolveRootFile(resolvedRoot, releaseEvidenceFile)
   const resolvedTasksOutputFile = resolveRootFile(resolvedRoot, tasksOutputFile)
+  const resolvedPoiTasksOutputFile = resolveRootFile(resolvedRoot, poiTasksOutputFile)
   const scriptDir = path.dirname(fileURLToPath(import.meta.url))
   const releaseGateScript = path.join(scriptDir, 'verify-xicheng-yudao-release-readiness.mjs')
 
@@ -103,7 +108,8 @@ export async function runXichengYudaoReleasePreflight({
   const taskReport = await exportXichengYudaoReleaseBlockerTasks({
     rootDir: resolvedRoot,
     releaseEvidenceFile,
-    outputFile: tasksOutputFile
+    outputFile: tasksOutputFile,
+    poiOutputFile: poiTasksOutputFile
   })
   const ok = releaseEvidence.ok === true && taskReport.ok === true
 
@@ -117,9 +123,11 @@ export async function runXichengYudaoReleasePreflight({
       releaseStatus: releaseEvidence.status,
       releaseEvidenceFile: resolvedReleaseEvidenceFile,
       tasksOutputFile: resolvedTasksOutputFile,
+      poiTasksOutputFile: resolvedPoiTasksOutputFile,
       failedCheckCount: releaseEvidence.summary?.failedChecks,
       blockerCount: releaseEvidence.summary?.blockerCount,
       taskCount: taskReport.summary.taskCount,
+      poiTaskCount: taskReport.summary.poiTaskCount,
       ownerLaneCounts: taskReport.summary.ownerLaneCounts,
       ownerLaneBreakdown: taskReport.summary.ownerLaneBreakdown
     },
