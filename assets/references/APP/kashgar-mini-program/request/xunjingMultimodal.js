@@ -3,7 +3,7 @@ import config from './config.js'
 export const XUNJING_MULTIMODAL_TRIGGER_CONFIG = {
 	apiPath: 'app-api/xunjing/triggers/resolve',
 	regionCode: 'beijing-xicheng',
-	packageCode: '',
+	packageCode: 'XICHENG-MAP-001',
 	sceneCode: 'xicheng-multimodal-trigger',
 	sourceChannel: 'APP_UNIAPP',
 	tenantId: config.XunjingTenantId || '1'

@@ -10,6 +10,7 @@ const home = fs.readFileSync(path.join(root, 'pages', 'index', 'index.vue'), 'ut
 for (const required of [
   "apiPath: 'app-api/xunjing/triggers/resolve'",
   "regionCode: 'beijing-xicheng'",
+  "packageCode: 'XICHENG-MAP-001'",
   "sceneCode: 'xicheng-multimodal-trigger'",
   "sourceChannel: 'APP_UNIAPP'",
   "'tenant-id': XUNJING_MULTIMODAL_TRIGGER_CONFIG.tenantId",
