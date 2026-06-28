@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -88,6 +89,17 @@ function check(name, blockers) {
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex')
+}
+
+function gitOutput(rootDir, args) {
+  try {
+    return execFileSync('git', ['-C', rootDir, ...args], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe']
+    }).trim()
+  } catch {
+    return undefined
+  }
 }
 
 function readArgValue(args, name) {
@@ -506,6 +518,54 @@ async function checkReleaseEvidence(ref, stage, freshnessOptions) {
   return check('release-gate-evidence', blockers)
 }
 
+function checkPackageSourceRevision(rootDir, releaseRef) {
+  const releaseSummary = summaryOf(releaseRef.data)
+  const isGitWorkTree = gitOutput(rootDir, ['rev-parse', '--is-inside-work-tree']) === 'true'
+  if (!isGitWorkTree) {
+    return {
+      ...check('package-source-revision', []),
+      detail: 'Git source revision metadata is unavailable for this package root',
+      summary: {
+        packageGitAvailable: false,
+        releaseGitCommit: releaseSummary.gitCommit
+      }
+    }
+  }
+
+  const packageGitBranch = gitOutput(rootDir, ['rev-parse', '--abbrev-ref', 'HEAD']) || 'UNKNOWN'
+  const packageGitCommit = gitOutput(rootDir, ['rev-parse', 'HEAD']) || ''
+  const gitStatusShort = gitOutput(rootDir, ['status', '--short']) || ''
+  const dirtyEntries = gitStatusShort.split(/\r?\n/).filter(Boolean)
+  const releaseGitCommit = String(releaseSummary.gitCommit || '')
+  const blockers = []
+
+  if (!/^[a-f0-9]{40}$/i.test(packageGitCommit)) {
+    blockers.push('package git commit SHA must be available before release evidence package generation')
+  }
+  if (dirtyEntries.length > 0) {
+    blockers.push('package git worktree must be clean before release evidence package generation')
+  }
+  if (
+    /^[a-f0-9]{40}$/i.test(packageGitCommit) &&
+    /^[a-f0-9]{40}$/i.test(releaseGitCommit) &&
+    packageGitCommit !== releaseGitCommit
+  ) {
+    blockers.push('release evidence summary.gitCommit must match current package checkout commit')
+  }
+
+  return {
+    ...check('package-source-revision', blockers),
+    summary: {
+      packageGitAvailable: true,
+      packageGitBranch,
+      packageGitCommit,
+      packageGitDirty: dirtyEntries.length > 0,
+      packageGitDirtyFileCount: dirtyEntries.length,
+      releaseGitCommit
+    }
+  }
+}
+
 async function checkManifestEvidence(ref, rootDir, freshnessOptions) {
   const blockers = []
   if (ref.error) {
@@ -875,6 +935,7 @@ export async function verifyXichengReleaseEvidencePackage({
   }
   const checks = [
     await checkReleaseEvidence(releaseRef, normalizedStage, freshnessOptions),
+    checkPackageSourceRevision(rootDir, releaseRef),
     await checkManifestEvidence(manifestRef, rootDir, freshnessOptions),
     await checkWorkbookEvidence(workbookRef, rootDir, freshnessOptions),
     await checkSeedEvidence(seedRef, rootDir, freshnessOptions),
@@ -884,6 +945,7 @@ export async function verifyXichengReleaseEvidencePackage({
   ]
   const blockers = checks.flatMap((item) => item.blockers)
   const ok = checks.every((item) => item.ok)
+  const packageSourceRevisionSummary = checks.find((item) => item.name === 'package-source-revision')?.summary || {}
 
   return {
     artifactType,
@@ -911,6 +973,7 @@ export async function verifyXichengReleaseEvidencePackage({
       workbookPendingPoiCount: summaryOf(workbookRef.data).workbookPendingPoiCount,
       pendingPoiCodes: summaryOf(workbookRef.data).pendingPoiCodes,
       pendingPoiTasks: summaryOf(workbookRef.data).pendingPoiTasks,
+      ...packageSourceRevisionSummary,
       totalChecks: checks.length,
       passedChecks: checks.filter((item) => item.ok).length,
       failedChecks: checks.filter((item) => !item.ok).length,

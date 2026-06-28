@@ -26,6 +26,27 @@ function sha256(value) {
   return createHash('sha256').update(value).digest('hex')
 }
 
+function runGit(rootDir, args) {
+  const result = spawnSync('git', args, {
+    cwd: rootDir,
+    encoding: 'utf8'
+  })
+  if (result.status !== 0) {
+    throw new Error(`git ${args.join(' ')} failed: ${result.stderr || result.stdout}`)
+  }
+  return result.stdout.trim()
+}
+
+function initCleanGitRepo(rootDir) {
+  runGit(rootDir, ['init'])
+  runGit(rootDir, ['checkout', '-b', 'feature/xicheng-p0'])
+  runGit(rootDir, ['config', 'user.name', 'Xicheng Package Test'])
+  runGit(rootDir, ['config', 'user.email', 'xicheng-package@example.com'])
+  runGit(rootDir, ['add', '.'])
+  runGit(rootDir, ['commit', '-m', 'fixture'])
+  return runGit(rootDir, ['rev-parse', 'HEAD'])
+}
+
 function mergeEvidence(base, overrides) {
   return {
     ...base,
@@ -523,6 +544,7 @@ describe('xicheng release evidence package gate', () => {
     })
     expect(report.checks.map((check) => check.name)).toEqual([
       'release-gate-evidence',
+      'package-source-revision',
       'poi-manifest-evidence',
       'poi-workbook-evidence',
       'poi-seed-evidence',
@@ -1057,6 +1079,43 @@ describe('xicheng release evidence package gate', () => {
     expect(evidence.blockers.join('\n')).toContain('release evidence summary.gitCommit must be a 40-character git commit SHA')
   })
 
+  test('fails closed when release evidence git commit does not match the package checkout', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
+      summary: {
+        gitCommit: '0'.repeat(40)
+      }
+    })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+    const currentGitCommit = initCleanGitRepo(rootDir)
+    const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath,
+      '--evidence-file', 'tmp/xicheng-release-evidence-package.json'
+    ])
+
+    expect(result.status).toBe(1)
+    const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
+    const revisionCheck = evidence.checks.find((check) => check.name === 'package-source-revision')
+    expect(evidence.status).toBe('NOT_READY')
+    expect(revisionCheck).toMatchObject({
+      ok: false,
+      summary: {
+        packageGitCommit: currentGitCommit,
+        releaseGitCommit: '0'.repeat(40)
+      }
+    })
+    expect(evidence.blockers.join('\n')).toContain('release evidence summary.gitCommit must match current package checkout commit')
+  })
+
   test('fails closed when POI source hash metadata is missing from package inputs', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeReleaseEvidenceFile(rootDir)
@@ -1569,5 +1628,7 @@ describe('xicheng release evidence package gate', () => {
     expect(deployDoc).toContain('pendingPoiTasks')
     expect(deployDoc).toContain('release-source-revision')
     expect(deployDoc).toContain('summary.gitCommit')
+    expect(deployDoc).toContain('package-source-revision')
+    expect(deployDoc).toContain('summary.packageGitCommit')
   })
 })
