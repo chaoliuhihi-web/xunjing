@@ -6,6 +6,7 @@ const root = process.cwd()
 const aiGuidePath = path.join(root, 'pages', 'ai-guide', 'ai-guide.vue')
 const aiGuide = fs.readFileSync(aiGuidePath, 'utf8')
 const askEventSource = aiGuide.match(/recordXunjingResourceEvent\(\{\s*eventType:\s*'ASK'[\s\S]*?\n\s*\}\)/)?.[0] || ''
+const viewEventSource = aiGuide.match(/recordXunjingResourceEvent\(\{\s*eventType:\s*'VIEW'[\s\S]*?\n\s*\}\)/)?.[0] || ''
 const sendMessageSource = aiGuide.match(/const sendMessage = async \(\) => \{[\s\S]*?\n\}\n\nconst sendInitialQuestion/)?.[0] || ''
 const sendFailureCatchSource = sendMessageSource.match(/catch \(error\) \{[\s\S]*?console\.error\('调用 AI 失败:', error\)[\s\S]*?uni\.showToast\(\{[\s\S]*?发送失败[\s\S]*?\n\s*\}/)?.[0] || ''
 
@@ -73,6 +74,23 @@ assert.match(
   aiGuide,
   /onLoad\(\(options = \{\}\) => \{[\s\S]*const context = applyXichengAiContext\(options\)[\s\S]*loadXunjingPackageDetail\(context\)[\s\S]*recordXunjingResourceEvent\(\{[\s\S]*eventType:\s*'VIEW'[\s\S]*page:\s*'ai-guide'/,
   'AI guide should start public package loading and record a non-blocking page view during page load'
+)
+
+for (const required of [
+  'packageCode: context.packageCode || XICHENG_REGION_CONFIG.packageCode',
+  'sceneCode: context.sceneCode || XICHENG_REGION_CONFIG.aiSceneCode',
+  'sourceChannel: context.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel',
+  "poiName: context.poiName || ''",
+  "safetyStatus: context.safetyStatus || ''",
+  "companionName: context.companionName || XICHENG_REGION_CONFIG.companionName"
+]) {
+  assert.ok(viewEventSource.includes(required), `Xicheng VIEW event payload should include operations field ${required}`)
+}
+
+assert.doesNotMatch(
+  viewEventSource,
+  /question:\s*options\.question|decodeRouteValue\(options\.question\)|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
+  'AI guide VIEW event payload should not include the raw initial question or client-side secrets'
 )
 
 assert.match(

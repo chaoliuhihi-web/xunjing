@@ -2101,8 +2101,14 @@ onLoad((options = {}) => {
 			page: 'ai-guide',
 			entryMode: options.mode || '',
 			hasInitialQuestion: Boolean(options.question),
+			packageCode: context.packageCode || XICHENG_REGION_CONFIG.packageCode,
+			sceneCode: context.sceneCode || XICHENG_REGION_CONFIG.aiSceneCode,
+			sourceChannel: context.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
 			regionCode: context.regionCode || '',
-			poiCode: context.poiCode || ''
+			poiCode: context.poiCode || '',
+			poiName: context.poiName || '',
+			safetyStatus: context.safetyStatus || '',
+			companionName: context.companionName || XICHENG_REGION_CONFIG.companionName
 		}
 	})
 	if (KASHGAR_DIARY_GENERATOR_ENABLED && options.mode === 'diary') {
