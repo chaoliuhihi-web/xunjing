@@ -9,6 +9,7 @@ import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 
 export const XICHENG_AI_CHAT_API_PATH = 'app-api/xunjing/ai/chat'
 const XICHENG_BLOCKED_ANSWER = '无已审核来源，不能回答'
+const XICHENG_UNAVAILABLE_ANSWER = '小京暂时无法获取已审核来源，请稍后再试'
 
 export const buildXichengAiChatPayload = ({ question = '', context = {} } = {}) => ({
 	packageCode: context.packageCode || XICHENG_REGION_CONFIG.packageCode,
@@ -31,12 +32,19 @@ export const normalizeXichengAiChatResponse = (payload = {}) => {
 			? payload.recommendedQuestions
 			: []
 	const safetyStatus = normalizeXichengSafetyStatus(payload.safetyStatus)
-	const safeSuggestedQuestions = safetyStatus === 'BLOCKED' ? [] : suggestedQuestions
+	const sourceBackedAnswerUnavailable = ['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)
+	const safeSuggestedQuestions = sourceBackedAnswerUnavailable ? [] : suggestedQuestions
+	const safeSources = sourceBackedAnswerUnavailable ? [] : normalizeXichengReviewedSources(payload.sources)
+	const answer = safetyStatus === 'BLOCKED'
+		? XICHENG_BLOCKED_ANSWER
+		: safetyStatus === 'UNAVAILABLE'
+			? XICHENG_UNAVAILABLE_ANSWER
+			: payload.answer ? String(payload.answer) : ''
 	return {
-		answer: safetyStatus === 'BLOCKED' ? XICHENG_BLOCKED_ANSWER : payload.answer ? String(payload.answer) : '',
+		answer,
 		suggestedQuestions: safeSuggestedQuestions,
 		followUps: safeSuggestedQuestions,
-		sources: safetyStatus === 'BLOCKED' ? [] : normalizeXichengReviewedSources(payload.sources),
+		sources: safeSources,
 		safetyStatus,
 		logId: payload.logId || ''
 	}

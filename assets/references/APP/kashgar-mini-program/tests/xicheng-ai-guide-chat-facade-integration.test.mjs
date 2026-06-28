@@ -27,13 +27,19 @@ assert.match(
 
 for (const required of [
   "const XICHENG_BLOCKED_ANSWER = '无已审核来源，不能回答'",
+  "const XICHENG_UNAVAILABLE_ANSWER = '小京暂时无法获取已审核来源，请稍后再试'",
   'suggestedQuestions',
   'sources',
-  'safetyStatus',
-  "safetyStatus === 'BLOCKED' ? XICHENG_BLOCKED_ANSWER"
+  'safetyStatus'
 ]) {
   assert.ok(chatFacade.includes(required), `Xicheng chat facade should remain the authority for ${required}`)
 }
+
+assert.match(
+  chatFacade,
+  /const answer = safetyStatus === 'BLOCKED'[\s\S]*XICHENG_BLOCKED_ANSWER[\s\S]*safetyStatus === 'UNAVAILABLE'[\s\S]*XICHENG_UNAVAILABLE_ANSWER/,
+  'Xicheng chat facade should remain the authority for blocked and unavailable answer copy'
+)
 
 assert.doesNotMatch(
   normalizeBlock,
