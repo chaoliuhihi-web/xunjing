@@ -159,7 +159,7 @@ describe('xicheng POI production review pack', () => {
     expect(reviewTasks).toContain('sourceTitle|sourceUrl|sourceType|licenseStatus|licenseEvidenceRef|licenseReviewedBy|licenseReviewedAt')
 
     const sourceReview = await readFile(sourceReviewFile, 'utf8')
-    expect(sourceReview).toContain('sourceTitle,sourceUrl,sourceType,poiCount,poiCodes,poiNames,licenseStatus,nextAction')
+    expect(sourceReview).toContain('sourceTitle,sourceUrl,sourceType,poiCount,poiCodes,poiNames,licenseStatus,licenseEvidenceRef,licenseReviewedBy,licenseReviewedAt,nextAction')
     expect(sourceReview).toContain('https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html,OFFICIAL_PUBLIC,24')
     expect(sourceReview).toContain('xicheng-baitasi|xicheng-emperors-temple')
     expect(sourceReview).toContain('西城区文物保护单位（81处）,https://www.bjxch.gov.cn/xcfw/whfw/xxxq/pnidpv736523.html,OFFICIAL_PUBLIC,56')
@@ -219,6 +219,7 @@ describe('xicheng POI production review pack', () => {
     expect(statusDoc).toContain('reviewTaskStatus')
     expect(statusDoc).toContain('reviewTaskOwnerLaneBreakdown')
     expect(statusDoc).toContain('sourceReviewGroupBreakdown')
+    expect(deployDoc).toContain('npm run xunjing:xicheng:poi:source-review:apply')
     expect(deployDoc).toContain('reviewTaskOwnerLaneBreakdown')
   })
 })

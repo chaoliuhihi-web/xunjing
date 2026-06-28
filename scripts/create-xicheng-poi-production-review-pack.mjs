@@ -105,13 +105,28 @@ function buildSourceReviewGroups(manifest) {
     poiCodes: group.poiCodes,
     poiNames: group.poiNames,
     licenseStatus: Array.from(group.licenseStatuses).filter(Boolean).join('|') || 'REVIEW_REQUIRED',
+    licenseEvidenceRef: '',
+    licenseReviewedBy: '',
+    licenseReviewedAt: '',
     nextAction: 'Approve source license once per source group and attach non-local evidence refs to every POI row.'
   }))
 }
 
 function buildSourceReviewCsv(groups) {
   return [
-    csvRow(['sourceTitle', 'sourceUrl', 'sourceType', 'poiCount', 'poiCodes', 'poiNames', 'licenseStatus', 'nextAction']),
+    csvRow([
+      'sourceTitle',
+      'sourceUrl',
+      'sourceType',
+      'poiCount',
+      'poiCodes',
+      'poiNames',
+      'licenseStatus',
+      'licenseEvidenceRef',
+      'licenseReviewedBy',
+      'licenseReviewedAt',
+      'nextAction'
+    ]),
     ...groups.map((group) => csvRow([
       group.sourceTitle,
       group.sourceUrl,
@@ -120,6 +135,9 @@ function buildSourceReviewCsv(groups) {
       group.poiCodes.join('|'),
       group.poiNames.join('|'),
       group.licenseStatus,
+      group.licenseEvidenceRef,
+      group.licenseReviewedBy,
+      group.licenseReviewedAt,
       group.nextAction
     ]))
   ].join('\n') + '\n'
