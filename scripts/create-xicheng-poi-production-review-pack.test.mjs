@@ -45,6 +45,7 @@ describe('xicheng POI production review pack', () => {
     const reviewPacketFile = path.join(rootDir, 'workbench/xicheng-production-pois.review-packet.json')
     const workbookEvidenceFile = path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json')
     const reviewTasksFile = path.join(rootDir, 'workbench/xicheng-poi-review-tasks.csv')
+    const reviewPackEvidenceFile = path.join(rootDir, 'qa/xicheng-poi-production-review-pack-evidence.json')
 
     expect(report).toMatchObject({
       artifactType: 'xicheng-poi-production-review-pack',
@@ -57,6 +58,7 @@ describe('xicheng POI production review pack', () => {
         reviewPacketFile,
         workbookEvidenceFile,
         reviewTasksFile,
+        reviewPackEvidenceFile,
         poiSlots: 80,
         importedPoiCount: 24,
         todoPoiSlots: 56,
@@ -105,6 +107,20 @@ describe('xicheng POI production review pack', () => {
     expect(reviewTasks).toContain('TODO-xicheng-poi-025')
     expect(reviewTasks).toContain('source-license')
 
+    const reviewPackEvidence = JSON.parse(await readFile(reviewPackEvidenceFile, 'utf8'))
+    expect(reviewPackEvidence).toMatchObject({
+      artifactType: 'xicheng-poi-production-review-pack',
+      ok: false,
+      status: 'REVIEW_DATA_REQUIRED',
+      summary: {
+        reviewPackEvidenceFile,
+        workbookEvidenceFile,
+        reviewTasksFile,
+        workbookGateStatus: 'NOT_READY',
+        reviewTaskStatus: 'REVIEW_TASKS_REQUIRED'
+      }
+    })
+
     const reviewPacket = JSON.parse(await readFile(reviewPacketFile, 'utf8'))
     expect(reviewPacket).toMatchObject({
       artifactType: 'xicheng-poi-production-review-packet',
@@ -133,7 +149,9 @@ describe('xicheng POI production review pack', () => {
     expect(deployDoc).toContain('workbench/xicheng-poi-review-tasks.csv')
     expect(deployDoc).toContain('--workbook-evidence qa/xicheng-poi-review-workbook-evidence.json')
     expect(deployDoc).toContain('--review-tasks workbench/xicheng-poi-review-tasks.csv')
+    expect(deployDoc).toContain('--evidence-file qa/xicheng-poi-production-review-pack-evidence.json')
     expect(statusDoc).toContain('npm run xunjing:xicheng:poi:review:pack')
+    expect(statusDoc).toContain('qa/xicheng-poi-production-review-pack-evidence.json')
     expect(statusDoc).toContain('workbookGateStatus')
     expect(statusDoc).toContain('reviewTaskStatus')
   })

@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import {
@@ -12,6 +12,7 @@ import {
 } from './export-xicheng-poi-review-tasks.mjs'
 
 const artifactType = 'xicheng-poi-production-review-pack'
+const allowedEvidenceDirs = new Set(['qa', 'tmp', 'workbench'])
 
 const defaultPaths = {
   outputFile: 'workbench/xicheng-production-pois.prefilled.json',
@@ -20,7 +21,8 @@ const defaultPaths = {
   reviewWorkbookFile: 'workbench/xicheng-production-pois.review-workbook.csv',
   reviewPacketFile: 'workbench/xicheng-production-pois.review-packet.json',
   workbookEvidenceFile: 'qa/xicheng-poi-review-workbook-evidence.json',
-  reviewTasksFile: 'workbench/xicheng-poi-review-tasks.csv'
+  reviewTasksFile: 'workbench/xicheng-poi-review-tasks.csv',
+  reviewPackEvidenceFile: 'qa/xicheng-poi-production-review-pack-evidence.json'
 }
 
 function readArgValue(args, name) {
@@ -42,6 +44,22 @@ function resolveRootPath(rootDir, filePath) {
     : path.resolve(rootDir, filePath)
 }
 
+function resolveEvidenceFile(rootDir, filePath) {
+  const resolvedRoot = path.resolve(rootDir)
+  const resolvedFile = resolveRootPath(resolvedRoot, filePath)
+  const relativePath = path.relative(resolvedRoot, resolvedFile)
+  const [topLevelDir] = relativePath.split(path.sep)
+  if (
+    !relativePath ||
+    relativePath.startsWith('..') ||
+    path.isAbsolute(relativePath) ||
+    !allowedEvidenceDirs.has(topLevelDir)
+  ) {
+    throw new Error('evidence file must be under qa/, tmp/ or workbench/')
+  }
+  return resolvedFile
+}
+
 export async function createXichengPoiProductionReviewPack({
   rootDir = process.cwd(),
   outputFile = defaultPaths.outputFile,
@@ -51,6 +69,7 @@ export async function createXichengPoiProductionReviewPack({
   reviewPacketFile = defaultPaths.reviewPacketFile,
   workbookEvidenceFile = defaultPaths.workbookEvidenceFile,
   reviewTasksFile = defaultPaths.reviewTasksFile,
+  reviewPackEvidenceFile = defaultPaths.reviewPackEvidenceFile,
   count = 80
 } = {}) {
   const resolvedRootDir = path.resolve(rootDir)
@@ -77,8 +96,9 @@ export async function createXichengPoiProductionReviewPack({
   })
   const resolvedWorkbookEvidenceFile = resolveRootPath(resolvedRootDir, workbookEvidenceFile)
   const resolvedReviewTasksFile = resolveRootPath(resolvedRootDir, reviewTasksFile)
+  const resolvedReviewPackEvidenceFile = resolveEvidenceFile(resolvedRootDir, reviewPackEvidenceFile)
 
-  return {
+  const report = {
     artifactType,
     ok: false,
     status: 'REVIEW_DATA_REQUIRED',
@@ -94,6 +114,7 @@ export async function createXichengPoiProductionReviewPack({
       reviewTasksFile: resolvedReviewTasksFile,
       reviewTaskStatus: reviewTaskReport.status,
       reviewTaskCount: reviewTaskReport.summary?.taskCount,
+      reviewPackEvidenceFile: resolvedReviewPackEvidenceFile,
       nextCommandCount: Array.isArray(reviewPacket.nextCommands)
         ? reviewPacket.nextCommands.length
         : 0
@@ -107,6 +128,9 @@ export async function createXichengPoiProductionReviewPack({
     ],
     note: 'This review pack is a draft handoff artifact only. It is not production evidence and must fail production gates until reviewed real POI data is filled.'
   }
+  await mkdir(path.dirname(resolvedReviewPackEvidenceFile), { recursive: true })
+  await writeFile(resolvedReviewPackEvidenceFile, `${JSON.stringify(report, null, 2)}\n`)
+  return report
 }
 
 async function runCli() {
@@ -120,6 +144,7 @@ async function runCli() {
     reviewPacketFile: readArgValue(args, '--review-packet') || defaultPaths.reviewPacketFile,
     workbookEvidenceFile: readArgValue(args, '--workbook-evidence') || defaultPaths.workbookEvidenceFile,
     reviewTasksFile: readArgValue(args, '--review-tasks') || defaultPaths.reviewTasksFile,
+    reviewPackEvidenceFile: readArgValue(args, '--evidence-file') || defaultPaths.reviewPackEvidenceFile,
     count: readArgValue(args, '--count') || 80
   })
   console.log(JSON.stringify(report, null, 2))
