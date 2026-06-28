@@ -12,6 +12,8 @@ for (const required of [
   '可能匹配地点',
   'candidateList',
   'selectCandidate(candidate)',
+  'isUnsafeCandidate(candidate)',
+  'showUnsafeCandidateToast',
   'normalizeRecognitionCandidates',
   'uni.setStorageSync(XICHENG_REGION_CONFIG.storageKey, this.result)'
 ]) {
@@ -32,8 +34,14 @@ assert.match(
 
 assert.match(
   scanResult,
-  /selectCandidate\(candidate\)[\s\S]*const selectedCandidate = normalizeRecognitionCandidate\(candidate\)[\s\S]*poiCode:\s*selectedCandidate\.poiCode[\s\S]*poiName:\s*selectedCandidate\.poiName[\s\S]*requiresUserConfirm:\s*false[\s\S]*safetyStatus:\s*selectedCandidate\.safetyStatus[\s\S]*sources:\s*selectedCandidate\.sources[\s\S]*suggestedQuestions:\s*selectedCandidate\.suggestedQuestions[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.storageKey, this\.result\)/,
-  'Selecting a candidate should update the active POI and safety context, then persist it for Xiaojing source hydration'
+  /selectCandidate\(candidate\)[\s\S]*const selectedCandidate = normalizeRecognitionCandidate\(candidate\)[\s\S]*if \(this\.isUnsafeCandidate\(selectedCandidate\)\) \{[\s\S]*this\.showUnsafeCandidateToast\(selectedCandidate\)[\s\S]*return[\s\S]*poiCode:\s*selectedCandidate\.poiCode[\s\S]*poiName:\s*selectedCandidate\.poiName[\s\S]*requiresUserConfirm:\s*false[\s\S]*safetyStatus:\s*selectedCandidate\.safetyStatus[\s\S]*sources:\s*selectedCandidate\.sources[\s\S]*suggestedQuestions:\s*selectedCandidate\.suggestedQuestions[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.storageKey, this\.result\)/,
+  'Selecting a safe candidate should update the active POI and safety context, while unsafe candidates are blocked before persistence'
+)
+
+assert.match(
+  scanResult,
+  /isUnsafeCandidate\(candidate = \{\}\)[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(candidate\.safetyStatus\)[\s\S]*return \['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)/,
+  'Candidate confirmation should detect BLOCKED or UNAVAILABLE candidate safety status before selection'
 )
 
 assert.match(

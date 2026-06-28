@@ -29,6 +29,7 @@
 				v-for="candidate in candidateList"
 				:key="candidate.poiCode || candidate.poiName"
 				class="candidate-row"
+				:class="{ 'candidate-row-disabled': isUnsafeCandidate(candidate) }"
 				@click="selectCandidate(candidate)"
 			>
 				<view>
@@ -37,7 +38,10 @@
 						{{ formatCandidateSummary(candidate) }}
 					</text>
 				</view>
-				<text class="candidate-confidence">{{ Math.round(Number(candidate.confidence || 0) * 100) }}%</text>
+				<view class="candidate-side">
+					<text class="candidate-confidence">{{ Math.round(Number(candidate.confidence || 0) * 100) }}%</text>
+					<text v-if="isUnsafeCandidate(candidate)" class="candidate-safety">{{ candidateSafetyLabel(candidate) }}</text>
+				</view>
 			</view>
 		</view>
 
@@ -357,6 +361,23 @@ export default {
 				icon: 'none'
 			})
 		},
+		isUnsafeCandidate(candidate = {}) {
+			const safetyStatus = normalizeXichengSafetyStatus(candidate.safetyStatus)
+			return ['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)
+		},
+		candidateSafetyLabel(candidate = {}) {
+			const safetyStatus = normalizeXichengSafetyStatus(candidate.safetyStatus)
+			if (safetyStatus === 'BLOCKED') return '已拦截'
+			if (safetyStatus === 'UNAVAILABLE') return '来源不可用'
+			return ''
+		},
+		showUnsafeCandidateToast(candidate = {}) {
+			const safetyStatus = normalizeXichengSafetyStatus(candidate.safetyStatus)
+			uni.showToast({
+				title: safetyStatus === 'UNAVAILABLE' ? '来源服务不可用，不能确认' : '无已审核来源，不能确认',
+				icon: 'none'
+			})
+		},
 		askXiaojing(question = '') {
 			if (this.pendingCandidateConfirmation) {
 				this.requireOfficialPoiConfirmation('问小京')
@@ -389,6 +410,10 @@ export default {
 		},
 		selectCandidate(candidate) {
 			const selectedCandidate = normalizeRecognitionCandidate(candidate)
+			if (this.isUnsafeCandidate(selectedCandidate)) {
+				this.showUnsafeCandidateToast(selectedCandidate)
+				return
+			}
 			const candidateConfirmationAudit = this.createCandidateConfirmationAudit(selectedCandidate)
 			this.result = normalizeResult({
 				...this.result,
@@ -757,11 +782,21 @@ export default {
 	background: #FAFCFA;
 }
 
+.candidate-row-disabled {
+	background: #FFF7F5;
+	border-color: #F4C7C3;
+}
+
 .candidate-title,
 .candidate-desc,
 .candidate-confidence {
 	display: block;
 	line-height: 1.5;
+}
+
+.candidate-side {
+	flex-shrink: 0;
+	text-align: right;
 }
 
 .candidate-title {
@@ -777,10 +812,16 @@ export default {
 }
 
 .candidate-confidence {
-	flex-shrink: 0;
 	font-size: 28rpx;
 	font-weight: 700;
 	color: #1F6E5A;
+}
+
+.candidate-safety {
+	display: block;
+	margin-top: 4rpx;
+	font-size: 22rpx;
+	color: #B42318;
 }
 
 .source-row {
