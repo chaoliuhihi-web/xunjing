@@ -56,8 +56,8 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /normalizeXichengSafetyStatus\(context\.safetyStatus\) === 'BLOCKED'/,
-  'AI guide should short-circuit BLOCKED contexts after normalizing safetyStatus'
+  /const contextSafetyStatus = normalizeXichengSafetyStatus\(context\.safetyStatus\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(contextSafetyStatus\)/,
+  'AI guide should short-circuit BLOCKED and UNAVAILABLE contexts after normalizing safetyStatus'
 )
 
 assert.match(

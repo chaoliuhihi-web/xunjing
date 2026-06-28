@@ -6,45 +6,47 @@ const root = process.cwd()
 const aiGuide = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
 
 const requestChatBlock = aiGuide.match(/const requestXunjingAiChat\s*=\s*\(question\) => \{[\s\S]*?\n\}\n\nconst escapeHtml/)?.[0] || ''
-const blockedContextBlock = requestChatBlock.match(/if\s*\(hasXichengAiContext\(context\) && normalizeXichengSafetyStatus\(context\.safetyStatus\) === 'BLOCKED'\)\s*\{[\s\S]*?\n\t\}/)?.[0] || ''
+const unsafeContextBlock = requestChatBlock.match(/const contextSafetyStatus = normalizeXichengSafetyStatus\(context\.safetyStatus\)[\s\S]*?if\s*\(hasXichengAiContext\(context\) && \['BLOCKED', 'UNAVAILABLE'\]\.includes\(contextSafetyStatus\)\)\s*\{[\s\S]*?\n\t\}/)?.[0] || ''
 
 assert.ok(requestChatBlock, 'AI guide should expose requestXunjingAiChat')
 
 assert.ok(
-  blockedContextBlock,
-  'AI guide should short-circuit when the active Xicheng recognition context is already BLOCKED'
+  unsafeContextBlock,
+  'AI guide should short-circuit when the active Xicheng recognition context is already BLOCKED or UNAVAILABLE'
 )
 
 for (const required of [
   'XICHENG_BLOCKED_ANSWER',
+  'XICHENG_UNAVAILABLE_ANSWER',
+  "contextSafetyStatus === 'BLOCKED'",
   'sources: []',
   'suggestedQuestions: []',
-  "safetyStatus: 'BLOCKED'",
-  'blockedRequest.abort = () => {}',
-  'return blockedRequest'
+  'safetyStatus: contextSafetyStatus',
+  'unsafeRequest.abort = () => {}',
+  'return unsafeRequest'
 ]) {
-  assert.ok(blockedContextBlock.includes(required), `Blocked context short-circuit should include ${required}`)
+  assert.ok(unsafeContextBlock.includes(required), `Unsafe context short-circuit should include ${required}`)
 }
 
 assert.doesNotMatch(
-  blockedContextBlock,
+  unsafeContextBlock,
   /createLocalXichengAiFallback|createLocalXunjingAiFallback|uni\.request/,
-  'Blocked Xicheng contexts should not fall through to local fallback or a network request before refusing to answer'
+  'Unsafe Xicheng contexts should not fall through to local fallback or a network request before refusing to answer'
 )
 
 assert.doesNotMatch(
-  blockedContextBlock,
+  unsafeContextBlock,
   /sources:\s*getXichengContextSources\(\)|sources:\s*result\.sources|normalizeXichengReviewedSources/,
-  'Blocked Xicheng contexts should not attach recognition or backend sources to a no-reviewed-source refusal'
+  'Unsafe Xicheng contexts should not attach recognition or backend sources to a no-reviewed-source refusal'
 )
 
 assert.ok(
-  requestChatBlock.indexOf(blockedContextBlock) < requestChatBlock.indexOf('uni.request({'),
-  'Blocked context guard should run before starting the AI network request'
+  requestChatBlock.indexOf(unsafeContextBlock) < requestChatBlock.indexOf('uni.request({'),
+  'Unsafe context guard should run before starting the AI network request'
 )
 
 assert.doesNotMatch(
-  blockedContextBlock,
+  unsafeContextBlock,
   /先按西城试运营资料|本地导览资料|历史沿革|建筑细节|街区生活|亲子研学观察|推荐：从/,
-  'Blocked context guard should not fabricate guide or route content'
+  'Unsafe context guard should not fabricate guide or route content'
 )

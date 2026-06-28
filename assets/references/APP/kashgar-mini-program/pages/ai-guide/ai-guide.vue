@@ -976,15 +976,16 @@ const createXunjingResultFollowUps = (result = {}) => {
 const requestXunjingAiChat = (question) => {
 	let requestTask = null
 	const context = xichengAiContext.value || {}
-	if (hasXichengAiContext(context) && normalizeXichengSafetyStatus(context.safetyStatus) === 'BLOCKED') {
-		const blockedRequest = Promise.resolve({
-			answer: XICHENG_BLOCKED_ANSWER,
+	const contextSafetyStatus = normalizeXichengSafetyStatus(context.safetyStatus)
+	if (hasXichengAiContext(context) && ['BLOCKED', 'UNAVAILABLE'].includes(contextSafetyStatus)) {
+		const unsafeRequest = Promise.resolve({
+			answer: contextSafetyStatus === 'BLOCKED' ? XICHENG_BLOCKED_ANSWER : XICHENG_UNAVAILABLE_ANSWER,
 			sources: [],
 			suggestedQuestions: [],
-			safetyStatus: 'BLOCKED'
+			safetyStatus: contextSafetyStatus
 		})
-		blockedRequest.abort = () => {}
-		return blockedRequest
+		unsafeRequest.abort = () => {}
+		return unsafeRequest
 	}
 	const aiConfig = getActiveXunjingAiConfig(context)
 	const requestQuestion = buildXichengContextQuestion(question, context)
