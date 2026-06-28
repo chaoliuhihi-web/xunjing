@@ -732,6 +732,7 @@ export default {
 				companionName: trigger.companionName || XICHENG_REGION_CONFIG.companionName,
 				source: trigger.source || trigger.triggerType || 'multimodal',
 				sourceLabel: trigger.sourceLabel || '文本识别',
+				safetyStatus: normalizeXichengSafetyStatus(trigger.safetyStatus),
 				sources: this.normalizeXichengMultimodalSources(trigger),
 				suggestedQuestions: this.normalizeXichengMultimodalSuggestedQuestions(trigger)
 			})

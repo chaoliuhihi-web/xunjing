@@ -49,8 +49,8 @@ assert.match(
 
 assert.match(
   indexPage,
-  /persistXichengMultimodalRecognition\(trigger = \{\}\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.storageKey[\s\S]*sources:\s*this\.normalizeXichengMultimodalSources\(trigger\)[\s\S]*suggestedQuestions:\s*this\.normalizeXichengMultimodalSuggestedQuestions\(trigger\)/,
-  'Index should cache safety-aware reviewed sources and suggested questions for the Xiaojing page'
+  /persistXichengMultimodalRecognition\(trigger = \{\}\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.storageKey[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(trigger\.safetyStatus\)[\s\S]*sources:\s*this\.normalizeXichengMultimodalSources\(trigger\)[\s\S]*suggestedQuestions:\s*this\.normalizeXichengMultimodalSuggestedQuestions\(trigger\)/,
+  'Index should cache normalized safetyStatus plus safety-aware reviewed sources and suggested questions for the Xiaojing page'
 )
 
 const persistedSourcesBlock = indexPage.match(/normalizeXichengMultimodalSources\(trigger = \{\}\)[\s\S]*?\n\t\t\},/)?.[0] || ''
