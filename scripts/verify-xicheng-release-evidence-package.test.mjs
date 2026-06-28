@@ -218,7 +218,8 @@ function releaseEvidence(overrides = {}) {
       gitBranch: 'feature/xicheng-p0',
       gitCommit: 'a'.repeat(40),
       gitDirty: false,
-      gitDirtyFileCount: 0
+      gitDirtyFileCount: 0,
+      appApiBaseUrl: 'https://xunjing-api.xingheai.net'
     },
     checks: [
       { name: 'release-source-revision', ok: true },
@@ -1271,6 +1272,40 @@ describe('xicheng release evidence package gate', () => {
     expect(evidence.blockers.join('\n')).toContain('app readiness evidence tenantId is required')
   })
 
+  test('fails closed when app readiness evidence targets a different backend domain than release evidence', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
+      summary: {
+        appApiBaseUrl: 'https://xunjing-api.xingheai.net'
+      }
+    })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence({
+      summary: {
+        baseUrl: 'https://xunjing-staging-api.xingheai.net'
+      }
+    }))
+    const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath,
+      '--evidence-file', 'tmp/xicheng-release-evidence-package.json'
+    ])
+
+    expect(result.status).toBe(1)
+    const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
+    expect(evidence.status).toBe('NOT_READY')
+    expect(evidence.blockers.join('\n')).toContain(
+      'app readiness evidence baseUrl must match release evidence appApiBaseUrl'
+    )
+  })
+
   test('fails closed when APP readiness evidence was not generated with live Xicheng checks', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeReleaseEvidenceFile(rootDir)
@@ -1680,6 +1715,8 @@ describe('xicheng release evidence package gate', () => {
     expect(deployDoc).toContain('XICHENG_RELEASE_EVIDENCE_PACKAGE_READY')
     expect(deployDoc).toContain('xunjing-platform-readiness')
     expect(deployDoc).toContain('summary.tenantId')
+    expect(deployDoc).toContain('summary.baseUrl')
+    expect(deployDoc).toContain('summary.appApiBaseUrl')
     expect(deployDoc).toContain('summary.staticOnly=false')
     expect(deployDoc).toContain('summary.includeXichengAppCheck=true')
     expect(deployDoc).toContain('summary.includeXichengTriggerCheck=true')
@@ -1702,5 +1739,6 @@ describe('xicheng release evidence package gate', () => {
     expect(deployDoc).toContain('summary.gitCommit')
     expect(deployDoc).toContain('package-source-revision')
     expect(deployDoc).toContain('summary.packageGitCommit')
+    expect(deployDoc).toContain('APP API 域名一致性')
   })
 })

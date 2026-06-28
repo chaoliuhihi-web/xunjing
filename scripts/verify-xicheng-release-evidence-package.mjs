@@ -197,6 +197,19 @@ function isNonLocalHttpsUrl(value) {
   }
 }
 
+function normalizedBaseUrl(value) {
+  try {
+    const url = new URL(value)
+    if (url.protocol !== 'https:') {
+      return undefined
+    }
+    const pathname = url.pathname.replace(/\/+$/, '')
+    return `${url.origin}${pathname}`
+  } catch {
+    return undefined
+  }
+}
+
 function hasText(value) {
   return String(value || '').trim().length > 0
 }
@@ -508,6 +521,9 @@ async function checkReleaseEvidence(ref, stage, freshnessOptions) {
   if (Number(summary.failedChecks) !== 0 || Number(summary.blockerCount) !== 0) {
     blockers.push('release evidence summary must have zero failed checks and zero blockers')
   }
+  if (!isNonLocalHttpsUrl(summary.appApiBaseUrl)) {
+    blockers.push('release evidence appApiBaseUrl must be a non-local HTTPS URL')
+  }
   blockers.push(...checkReleaseSourceRevisionSummary(evidence))
   blockers.push(...await checkReleaseBaselineHash(evidence))
   blockers.push(...await checkReleaseServerArtifactHash(evidence))
@@ -779,6 +795,7 @@ function checkEvidenceConsistency({ rootDir, releaseRef, manifestRef, workbookRe
   const workbookSummary = summaryOf(workbookRef.data)
   const seedSummary = summaryOf(seedRef.data)
   const appSummary = summaryOf(appRef.data)
+  const appBaseUrl = appSummary.baseUrl || appRef.data?.baseUrl
   const releaseManifestEvidenceFile = normalizeEvidencePath(rootDir, releaseSummary.manifestEvidenceFile)
   const releaseWorkbookEvidenceFile = normalizeEvidencePath(rootDir, releaseSummary.workbookEvidenceFile)
   const releaseSeedEvidenceFile = normalizeEvidencePath(rootDir, releaseSummary.seedEvidenceFile)
@@ -884,6 +901,13 @@ function checkEvidenceConsistency({ rootDir, releaseRef, manifestRef, workbookRe
     appSummary.xichengPackageCode !== manifestSummary.packageCode
   ) {
     blockers.push('app readiness and manifest evidence packageCode must match')
+  }
+  if (
+    normalizedBaseUrl(releaseSummary.appApiBaseUrl) &&
+    normalizedBaseUrl(appBaseUrl) &&
+    normalizedBaseUrl(releaseSummary.appApiBaseUrl) !== normalizedBaseUrl(appBaseUrl)
+  ) {
+    blockers.push('app readiness evidence baseUrl must match release evidence appApiBaseUrl')
   }
   return check('evidence-consistency', blockers)
 }

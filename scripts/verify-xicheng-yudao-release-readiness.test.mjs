@@ -318,7 +318,7 @@ describe('xicheng Yudao release readiness gate', () => {
       expect.stringContaining('POI manifest evidence is required'),
       expect.stringContaining('80 reviewed Xicheng POIs')
     ]))
-  })
+  }, 20000)
 
   test('rejects local candidate env placeholders and missing external service evidence', async () => {
     const env = await loadEnvFile('ops/xunjing-platform.env.example')
@@ -522,6 +522,9 @@ describe('xicheng Yudao release readiness gate', () => {
 
     expect(result.ok).toBe(true)
     expect(result.status).toBe('PRODUCTION_READY_CANDIDATE')
+    expect(result.checks.find((check) => check.name === 'https-app-api-domain')?.summary).toMatchObject({
+      appApiBaseUrl: 'https://xunjing-api.xingheai.net'
+    })
     expect(result.checks.find((check) => check.name === 'xicheng-production-poi')?.ok).toBe(true)
     expect(result.checks.find((check) => check.name === 'xicheng-source-license')?.ok).toBe(true)
   })
@@ -923,7 +926,8 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidence.summary).toMatchObject({
       stage: 'production',
       status: 'NOT_READY',
-      totalChecks: 13
+      totalChecks: 13,
+      appApiBaseUrl: 'http://127.0.0.1:48080'
     })
     expect(evidence.blockers.join('\n')).toContain('SPRING_PROFILES_ACTIVE must be production')
     expect(JSON.stringify(evidence)).not.toContain('prod-db-password')

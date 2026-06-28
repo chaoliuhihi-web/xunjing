@@ -284,14 +284,19 @@ function checkHttpsAppApiDomain(env) {
   if (!isHttpsUrl(env.XUNJING_APP_API_BASE_URL)) {
     blockers.push('XUNJING_APP_API_BASE_URL must be a real HTTPS backend domain')
   }
-  return check(
-    'https-app-api-domain',
-    blockers.length === 0,
-    blockers.length === 0
-      ? 'APP API base URL is HTTPS and non-local'
-      : blockers.join('; '),
-    blockers
-  )
+  return {
+    ...check(
+      'https-app-api-domain',
+      blockers.length === 0,
+      blockers.length === 0
+        ? 'APP API base URL is HTTPS and non-local'
+        : blockers.join('; '),
+      blockers
+    ),
+    summary: {
+      appApiBaseUrl: String(env.XUNJING_APP_API_BASE_URL || '').trim()
+    }
+  }
 }
 
 function checkRealWechatApp(env) {
@@ -1032,6 +1037,7 @@ function resolveEvidenceFile(rootDir, evidenceFile) {
 
 function buildReleaseEvidence(result) {
   const sourceRevisionSummary = result.checks.find((item) => item.name === 'release-source-revision')?.summary || {}
+  const appApiDomainSummary = result.checks.find((item) => item.name === 'https-app-api-domain')?.summary || {}
   const baselineSummary = result.checks.find((item) => item.name === 'full-yudao-baseline')?.summary || {}
   const serverArtifactSummary = result.checks.find((item) => item.name === 'yudao-server-artifact')?.summary || {}
   const productionPoiEvidenceSummary = result.checks.find((item) => item.name === 'xicheng-production-poi-evidence')?.summary || {}
@@ -1045,6 +1051,7 @@ function buildReleaseEvidence(result) {
       failedChecks: result.checks.filter((item) => !item.ok).length,
       blockerCount: result.blockers.length,
       ...sourceRevisionSummary,
+      ...appApiDomainSummary,
       ...baselineSummary,
       ...serverArtifactSummary,
       ...productionPoiEvidenceSummary
