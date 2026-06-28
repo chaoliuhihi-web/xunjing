@@ -100,6 +100,22 @@ function buildFinalEvidencePackageCommand({
   ].join(' ')
 }
 
+function buildPoiEvidenceBootstrapCommand() {
+  return [
+    'npm run xunjing:xicheng:poi:review:pack --',
+    '--evidence-file', shellArg('qa/xicheng-poi-production-review-pack-evidence.json'),
+    '--workbook-evidence', shellArg('qa/xicheng-poi-review-workbook-evidence.json'),
+    '--review-tasks', shellArg('workbench/xicheng-poi-review-tasks.csv'),
+    '--source-review', shellArg('workbench/xicheng-poi-source-review-summary.csv'),
+    '--production-review', shellArg('workbench/xicheng-poi-production-review-summary.csv')
+  ].join(' ')
+}
+
+function needsPoiEvidenceBootstrap(releaseEvidence) {
+  const checks = Array.isArray(releaseEvidence?.checks) ? releaseEvidence.checks : []
+  return checks.some((check) => check?.name === 'xicheng-production-poi-evidence' && check.ok !== true)
+}
+
 function formatList(values) {
   const items = Array.isArray(values) ? values.filter(Boolean) : []
   if (items.length === 0) {
@@ -115,6 +131,7 @@ function buildHandoffMarkdown({
   releaseEvidenceFile,
   tasksOutputFile,
   poiTasksOutputFile,
+  poiEvidenceBootstrapCommand,
   finalEvidencePackageCommand
 }) {
   const summary = releaseEvidence.summary || {}
@@ -152,6 +169,17 @@ function buildHandoffMarkdown({
     '## Owner Lanes',
     '',
     ownerLaneSections || 'No owner-lane blockers.',
+    '',
+    ...(poiEvidenceBootstrapCommand ? [
+      '## POI Evidence Bootstrap',
+      '',
+      'Run this first when POI tasks are empty because production POI workbook, manifest, or seed evidence has not been generated yet:',
+      '',
+      '```bash',
+      poiEvidenceBootstrapCommand,
+      '```',
+      ''
+    ] : []),
     '',
     '## Final Evidence Package',
     '',
@@ -237,6 +265,9 @@ export async function runXichengYudaoReleasePreflight({
     appReadinessEvidenceFile,
     releasePackageEvidenceFile
   })
+  const poiEvidenceBootstrapCommand = needsPoiEvidenceBootstrap(releaseEvidence)
+    ? buildPoiEvidenceBootstrapCommand()
+    : undefined
   await mkdir(path.dirname(resolvedHandoffOutputFile), { recursive: true })
   await writeFile(resolvedHandoffOutputFile, buildHandoffMarkdown({
     stage,
@@ -245,6 +276,7 @@ export async function runXichengYudaoReleasePreflight({
     releaseEvidenceFile: resolvedReleaseEvidenceFile,
     tasksOutputFile: resolvedTasksOutputFile,
     poiTasksOutputFile: resolvedPoiTasksOutputFile,
+    poiEvidenceBootstrapCommand,
     finalEvidencePackageCommand
   }))
   const ok = releaseEvidence.ok === true && taskReport.ok === true
@@ -267,6 +299,7 @@ export async function runXichengYudaoReleasePreflight({
       poiTaskCount: taskReport.summary.poiTaskCount,
       ownerLaneCounts: taskReport.summary.ownerLaneCounts,
       ownerLaneBreakdown: taskReport.summary.ownerLaneBreakdown,
+      poiEvidenceBootstrapCommand,
       finalEvidencePackageCommand
     },
     release: {

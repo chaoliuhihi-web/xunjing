@@ -61,6 +61,7 @@ describe('xicheng Yudao release preflight', () => {
         poiTasksOutputFile,
         handoffOutputFile,
         finalEvidencePackageCommand: expect.stringContaining('npm run xunjing:xicheng:release:evidence:package'),
+        poiEvidenceBootstrapCommand: expect.stringContaining('npm run xunjing:xicheng:poi:review:pack'),
         poiTaskCount: expect.any(Number),
         releaseStatus: 'NOT_READY'
       }
@@ -73,6 +74,7 @@ describe('xicheng Yudao release preflight', () => {
     expect(report.summary.finalEvidencePackageCommand).toContain('--poi-source-coverage-evidence qa/xicheng-poi-source-coverage-evidence.json')
     expect(report.summary.finalEvidencePackageCommand).toContain('--app-readiness-evidence qa/xicheng-app-readiness-evidence.json')
     expect(report.summary.finalEvidencePackageCommand).toContain('--evidence-file qa/xicheng-release-evidence-package.json')
+    expect(report.summary.poiEvidenceBootstrapCommand).toContain('--production-review workbench/xicheng-poi-production-review-summary.csv')
     expect(report.summary.taskCount).toBeGreaterThan(0)
     expect(report.summary.ownerLaneCounts).toMatchObject({
       'platform-ops': expect.any(Number),
@@ -127,6 +129,9 @@ describe('xicheng Yudao release preflight', () => {
     expect(handoffMarkdown).toContain('## Owner Lanes')
     expect(handoffMarkdown).toContain('### platform-ops')
     expect(handoffMarkdown).toContain('### poi-data')
+    expect(handoffMarkdown).toContain('## POI Evidence Bootstrap')
+    expect(handoffMarkdown).toContain('npm run xunjing:xicheng:poi:review:pack')
+    expect(handoffMarkdown).toContain('workbench/xicheng-poi-production-review-summary.csv')
     expect(handoffMarkdown).toContain('npm run xunjing:xicheng:release:evidence:package')
     expect(handoffMarkdown).toContain('Do not mark production ready until')
   })
@@ -147,5 +152,13 @@ describe('xicheng Yudao release preflight', () => {
     expect(statusDoc).toContain('xicheng-yudao-release-handoff.md')
     expect(deployDoc).toContain('--handoff-output')
     expect(statusDoc).toContain('--handoff-output')
+    expect(deployDoc).toContain('summary.poiEvidenceBootstrapCommand')
+    expect(statusDoc).toContain('summary.poiEvidenceBootstrapCommand')
+    expect(deployDoc).toContain('POI Evidence Bootstrap')
+    expect(statusDoc).toContain('POI Evidence Bootstrap')
+    expect(deployDoc).toContain('tenant-id: 1')
+    expect(statusDoc).toContain('tenant-id: 1')
+    expect(deployDoc).toContain('YUDAO_XICHENG_LOCAL_SEED_READY')
+    expect(statusDoc).toContain('YUDAO_XICHENG_LOCAL_SEED_READY')
   })
 })
