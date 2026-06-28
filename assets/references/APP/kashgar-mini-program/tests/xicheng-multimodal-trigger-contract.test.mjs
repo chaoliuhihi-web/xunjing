@@ -63,8 +63,8 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /resolveXunjingPhotoTrigger\(\{[\s\S]*filePath[\s\S]*text:\s*inputText\.value[\s\S]*ocrText:\s*inputText\.value/,
-  'AI guide photo entry should pass local photo and OCR/text hints to multimodal trigger'
+  /resolveXichengPhotoTrigger\(\{[\s\S]*filePath[\s\S]*text:\s*inputText\.value[\s\S]*ocrText:\s*inputText\.value/,
+  'AI guide photo entry should pass local photo and OCR/text hints through the Xicheng trigger facade'
 )
 
 assert.match(

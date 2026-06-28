@@ -314,7 +314,7 @@ import { onShow, onUnload, onLoad, onReady } from '@dcloudio/uni-app'
 import CustomNav from '@/components/custom-nav/custom-nav.vue'
 import TabBar from '@/components/tab-bar/tab-bar.vue'
 import config from '@/request/config.js'
-import { resolveXunjingPhotoTrigger } from '@/request/xunjingMultimodal.js'
+import { resolveXichengPhotoTrigger } from '@/request/xunjing/trigger.js'
 import { normalizeXichengAiChatResponse } from '@/request/xunjing/chat.js'
 import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
 import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
@@ -714,6 +714,32 @@ const getXichengContextSources = () => {
 		return []
 	}
 	return normalizeXichengReviewedSources(context.sources)
+}
+
+const applyXichengPhotoTriggerContext = (trigger = {}) => {
+	const safetyStatus = normalizeXichengSafetyStatus(trigger.safetyStatus)
+	const unsafeSafetyStatus = ['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)
+	const recognitionContext = {
+		...trigger,
+		regionCode: trigger.regionCode || XICHENG_REGION_CONFIG.regionCode,
+		packageCode: trigger.packageCode || XICHENG_REGION_CONFIG.packageCode,
+		sceneCode: trigger.sceneCode || XICHENG_REGION_CONFIG.sceneCode,
+		sourceChannel: trigger.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
+		poiCode: trigger.poiCode || '',
+		poiName: trigger.poiName || '',
+		companionName: trigger.companionName || XICHENG_REGION_CONFIG.companionName,
+		confidence: trigger.confidence || '',
+		sourceLabel: trigger.sourceLabel || '',
+		safetyStatus,
+		sources: unsafeSafetyStatus ? [] : normalizeXichengReviewedSources(trigger.sources),
+		suggestedQuestions: unsafeSafetyStatus ? [] : Array.isArray(trigger.suggestedQuestions) ? trigger.suggestedQuestions : []
+	}
+	uni.setStorageSync(XICHENG_REGION_CONFIG.storageKey, recognitionContext)
+	xichengAiContext.value = {
+		...xichengAiContext.value,
+		...recognitionContext
+	}
+	return recognitionContext
 }
 
 const getActiveXunjingResourceConfig = (context = xichengAiContext.value) => {
@@ -1872,6 +1898,13 @@ const buildXunjingTriggerAssistantContent = (trigger) => {
 	if (!trigger || !trigger.poiName) {
 		return '我已经收到这张照片，并尝试结合当前位置、OCR文字和图片识别信号判断。当前没有稳定匹配到西城文化点，你可以补一句“这是哪里”或拍到更完整的门头/说明牌，我会继续识别。'
 	}
+	const safetyStatus = normalizeXichengSafetyStatus(trigger.safetyStatus)
+	if (safetyStatus === 'BLOCKED') {
+		return XICHENG_BLOCKED_ANSWER
+	}
+	if (safetyStatus === 'UNAVAILABLE') {
+		return XICHENG_UNAVAILABLE_ANSWER
+	}
 	const confidence = Math.round(Number(trigger.confidence || 0) * 100)
 	const confirmCopy = trigger.requiresUserConfirm ? '我还需要你确认一下。' : '已达到自动触发阈值。'
 	if (trigger.intent === 'route') {
@@ -1889,6 +1922,13 @@ const buildXunjingTriggerAssistantContent = (trigger) => {
 const createXunjingTriggerFollowUps = (trigger) => {
 	if (!trigger || !trigger.poiName) {
 		return ['帮我识别这张照片', '我在西城，附近有什么文化点？', '生成一段照片游记']
+	}
+	const safetyStatus = normalizeXichengSafetyStatus(trigger.safetyStatus)
+	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+		return []
+	}
+	if (Array.isArray(trigger.suggestedQuestions) && trigger.suggestedQuestions.length > 0) {
+		return trigger.suggestedQuestions.slice(0, 3)
 	}
 	return [
 		`讲讲${trigger.poiName}`,
@@ -1927,12 +1967,15 @@ const uploadAndSendImage = async (filePath) => {
 
 		let trigger = null
 		let content = ''
+		let activeRecognitionContext = createEmptyXichengRecognitionContext()
 		try {
-			trigger = await resolveXunjingPhotoTrigger({
+			trigger = await resolveXichengPhotoTrigger({
 				filePath,
 				text: inputText.value,
 				ocrText: inputText.value
 			})
+			activeRecognitionContext = applyXichengPhotoTriggerContext(trigger)
+			loadXunjingPackageDetail(activeRecognitionContext)
 			content = buildXunjingTriggerAssistantContent(trigger)
 			recordXunjingResourceEvent({
 				eventType: 'MEDIA_USE',
@@ -1942,7 +1985,10 @@ const uploadAndSendImage = async (filePath) => {
 					intent: trigger && trigger.intent,
 					action: trigger && trigger.action,
 					poiCode: trigger && trigger.poiCode,
+					poiName: trigger && trigger.poiName,
 					confidence: trigger && trigger.confidence,
+					sourceCount: activeRecognitionContext.sources.length,
+					safetyStatus: activeRecognitionContext.safetyStatus,
 					requiresUserConfirm: trigger && trigger.requiresUserConfirm
 				}
 			})
@@ -1953,7 +1999,9 @@ const uploadAndSendImage = async (filePath) => {
 		commitAssistantMessage(assistantMessage, {
 			isPending: false,
 			content,
-			followUps: createXunjingTriggerFollowUps(trigger)
+			followUps: createXunjingTriggerFollowUps(trigger),
+			sources: activeRecognitionContext.sources,
+			safetyStatus: activeRecognitionContext.safetyStatus
 		})
 		saveMessagesCache()
 		uni.showToast({

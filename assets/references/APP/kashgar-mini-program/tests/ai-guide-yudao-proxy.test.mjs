@@ -197,13 +197,13 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /import \{ resolveXunjingPhotoTrigger \} from '@\/request\/xunjingMultimodal\.js'/,
-  'AI guide should use the shared Xunjing multimodal trigger request module for photo recognition'
+  /import \{ resolveXichengPhotoTrigger \} from '@\/request\/xunjing\/trigger\.js'/,
+  'AI guide should use the Xicheng trigger facade for photo recognition so sources and safetyStatus are normalized'
 )
 
 assert.match(
   aiGuide,
-  /const uploadAndSendImage\s*=\s*async\s*\(filePath\)[\s\S]*resolveXunjingPhotoTrigger\(\{[\s\S]*filePath[\s\S]*ocrText:\s*inputText\.value[\s\S]*recordXunjingResourceEvent\(\{[\s\S]*eventType:\s*'MEDIA_USE'/,
+  /const uploadAndSendImage\s*=\s*async\s*\(filePath\)[\s\S]*resolveXichengPhotoTrigger\(\{[\s\S]*filePath[\s\S]*ocrText:\s*inputText\.value[\s\S]*recordXunjingResourceEvent\(\{[\s\S]*eventType:\s*'MEDIA_USE'/,
   'Image selection should call the Yudao multimodal trigger backend and record a non-blocking media event'
 )
 
