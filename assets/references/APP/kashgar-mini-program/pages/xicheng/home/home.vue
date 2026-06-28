@@ -171,6 +171,8 @@ import {
 } from '@/request/xunjing/trigger.js'
 import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 
+const XICHENG_EMPTY_RECOGNITION_POI_NAME = '待确认西城文化点'
+
 export default {
 	data() {
 		return {
@@ -400,7 +402,7 @@ export default {
 		},
 		recentRecognitionMissingOfficialPoi() {
 			const recognition = this.recentRecognition || {}
-			return !recognition.poiCode || !recognition.poiName
+			return !recognition.poiCode || !recognition.poiName || recognition.poiName === XICHENG_EMPTY_RECOGNITION_POI_NAME
 		},
 		recentRecognitionUnsafeSafetyStatus() {
 			const status = normalizeXichengSafetyStatus(this.recentRecognition && this.recentRecognition.safetyStatus)

@@ -6,6 +6,7 @@ const root = process.cwd()
 const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
 
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
+const home = read('pages', 'xicheng', 'home', 'home.vue')
 
 for (const required of [
   'missingOfficialPoiContext',
@@ -61,8 +62,20 @@ assert.match(
   'Start recording should not persist journey material before a recognition result has official poiCode and poiName'
 )
 
+assert.match(
+  home,
+  /const XICHENG_EMPTY_RECOGNITION_POI_NAME\s*=\s*'待确认西城文化点'/,
+  'Xicheng home should share the empty recognition POI placeholder used by the result page gate'
+)
+
+assert.match(
+  home,
+  /recentRecognitionMissingOfficialPoi\(\)[\s\S]*return !recognition\.poiCode \|\| !recognition\.poiName \|\| recognition\.poiName === XICHENG_EMPTY_RECOGNITION_POI_NAME/,
+  'Recent recognition Xiaojing entry should treat the empty placeholder name as missing official POI context'
+)
+
 assert.doesNotMatch(
-  scanResult,
+  `${scanResult}\n${home}`,
   /\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
   'Official POI context gate should stay local and must not introduce backend calls or client-side secrets'
 )
