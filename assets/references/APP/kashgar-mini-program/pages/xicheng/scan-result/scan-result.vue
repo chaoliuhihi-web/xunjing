@@ -229,6 +229,14 @@ const normalizeCandidateConfidence = (candidate = {}) => {
 	return rawConfidence > 1 ? rawConfidence / 100 : rawConfidence
 }
 
+const normalizeConfidencePercent = (result = {}) => {
+	const explicitPercent = Number(result.confidencePercent)
+	if (result.confidencePercent !== undefined && result.confidencePercent !== null && result.confidencePercent !== '' && Number.isFinite(explicitPercent)) {
+		return Math.round(explicitPercent)
+	}
+	return Math.round(normalizeCandidateConfidence(result) * 100)
+}
+
 const normalizeRecognitionCandidate = (candidate = {}) => ({
 	...candidate,
 	poiCode: candidate.poiCode || '',
@@ -254,9 +262,7 @@ const normalizeResult = (result = {}) => ({
 	companionName: result.companionName || XICHENG_REGION_CONFIG.companionName,
 	poiName: result.poiName || XICHENG_EMPTY_RECOGNITION_RESULT.poiName,
 	confidence: normalizeCandidateConfidence(result),
-	confidencePercent: result.confidencePercent !== undefined && result.confidencePercent !== null && result.confidencePercent !== ''
-		? Math.round(Number(result.confidencePercent))
-		: Math.round(normalizeCandidateConfidence(result) * 100),
+	confidencePercent: normalizeConfidencePercent(result),
 	suggestedQuestions: normalizeSuggestedQuestions(result),
 	recommendedQuestions: normalizeSuggestedQuestions(result),
 	routeRecommendation: normalizeRecommendedRoute(result),

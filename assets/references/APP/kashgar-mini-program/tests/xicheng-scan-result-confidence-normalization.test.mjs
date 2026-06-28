@@ -13,7 +13,7 @@ assert.match(
 
 assert.match(
   scanResult,
-  /const normalizeResult = \(result = \{\}\) => \(\{[\s\S]*confidence:\s*normalizeCandidateConfidence\(result\)[\s\S]*confidencePercent:\s*result\.confidencePercent !== undefined[\s\S]*Math\.round\(normalizeCandidateConfidence\(result\) \* 100\)/,
+  /const normalizeConfidencePercent\s*=\s*\(result = \{\}\)[\s\S]*Number\.isFinite\(explicitPercent\)[\s\S]*Math\.round\(normalizeCandidateConfidence\(result\) \* 100\)[\s\S]*const normalizeResult = \(result = \{\}\) => \(\{[\s\S]*confidence:\s*normalizeCandidateConfidence\(result\)[\s\S]*confidencePercent:\s*normalizeConfidencePercent\(result\)/,
   'Recognition result page should normalize main result confidence and confidencePercent before display'
 )
 

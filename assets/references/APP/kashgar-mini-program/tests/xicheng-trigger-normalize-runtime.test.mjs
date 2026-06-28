@@ -169,3 +169,20 @@ const decimalResult = normalizeXichengTriggerResult({
 
 assert.equal(decimalResult.confidence, 0.72)
 assert.equal(decimalResult.confidencePercent, 72)
+
+const invalidPercentResult = normalizeXichengTriggerResult({
+  poiCode: 'xicheng-lidai-diwangmiao',
+  poiName: '历代帝王庙',
+  confidencePercent: 'not-a-number'
+}, 'ocr')
+
+assert.equal(
+  invalidPercentResult.confidence,
+  0,
+  'Trigger normalization should treat invalid confidencePercent as zero decimal confidence'
+)
+assert.equal(
+  invalidPercentResult.confidencePercent,
+  0,
+  'Trigger normalization should not pass NaN confidencePercent into recognition result cache or UI'
+)

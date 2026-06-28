@@ -83,6 +83,14 @@ const normalizeConfidence = (result = {}) => {
 	return rawConfidence > 1 ? rawConfidence / 100 : rawConfidence
 }
 
+const normalizeConfidencePercent = (result = {}, confidence = normalizeConfidence(result)) => {
+	const explicitPercent = Number(result.confidencePercent)
+	if (result.confidencePercent !== undefined && result.confidencePercent !== null && result.confidencePercent !== '' && Number.isFinite(explicitPercent)) {
+		return Math.round(explicitPercent)
+	}
+	return Math.round(confidence * 100)
+}
+
 const normalizeXichengTriggerCandidate = (candidate = {}) => ({
 	...candidate,
 	poiCode: candidate.poiCode || '',
@@ -117,9 +125,7 @@ export const normalizeXichengTriggerResult = (result = {}, source = '') => {
 		source,
 		sourceLabel: result.sourceLabel || resolveXichengSourceLabel(source),
 		confidence,
-		confidencePercent: result.confidencePercent !== undefined && result.confidencePercent !== null && result.confidencePercent !== ''
-			? Math.round(Number(result.confidencePercent))
-			: Math.round(confidence * 100),
+		confidencePercent: normalizeConfidencePercent(result, confidence),
 		requiresUserConfirm: result.requiresUserConfirm !== false,
 		suggestedQuestions,
 		recommendedQuestions: suggestedQuestions,
