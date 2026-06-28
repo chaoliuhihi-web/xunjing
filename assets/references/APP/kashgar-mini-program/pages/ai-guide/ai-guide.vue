@@ -403,6 +403,8 @@ const chatListPaddingTop = computed(() => `${navBarHeight.value + 10}px`)
 const xichengAiContext = ref({
 	regionCode: '',
 	packageCode: '',
+	sceneCode: '',
+	sourceChannel: '',
 	poiCode: '',
 	poiName: '',
 	companionName: '',
@@ -616,6 +618,8 @@ const decodeRouteValue = (value = '') => {
 const normalizeXichengAiContext = (options = {}) => ({
 	regionCode: decodeRouteValue(options.regionCode),
 	packageCode: decodeRouteValue(options.packageCode),
+	sceneCode: decodeRouteValue(options.sceneCode),
+	sourceChannel: decodeRouteValue(options.sourceChannel),
 	poiCode: decodeRouteValue(options.poiCode),
 	poiName: decodeRouteValue(options.poiName),
 	companionName: decodeRouteValue(options.companionName),
@@ -624,6 +628,8 @@ const normalizeXichengAiContext = (options = {}) => ({
 })
 
 const createEmptyXichengRecognitionContext = () => ({
+	sceneCode: '',
+	sourceChannel: '',
 	poiCode: '',
 	poiName: '',
 	confidence: '',
@@ -643,6 +649,8 @@ const loadCachedXichengRecognitionContext = (context = {}) => {
 		return createEmptyXichengRecognitionContext()
 	}
 	return {
+		sceneCode: cached.sceneCode || '',
+		sourceChannel: cached.sourceChannel || '',
 		poiCode: cached.poiCode || '',
 		poiName: cached.poiName || '',
 		confidence: cached.confidence || '',
@@ -658,6 +666,8 @@ const applyXichengAiContext = (options = {}) => {
 		xichengAiContext.value = {
 			regionCode: '',
 			packageCode: '',
+			sceneCode: '',
+			sourceChannel: '',
 			poiCode: '',
 			poiName: '',
 			companionName: '',
@@ -672,6 +682,8 @@ const applyXichengAiContext = (options = {}) => {
 	xichengAiContext.value = {
 		regionCode: context.regionCode || XICHENG_REGION_CONFIG.regionCode,
 		packageCode: context.packageCode || XICHENG_REGION_CONFIG.packageCode,
+		sceneCode: context.sceneCode || cachedRecognition.sceneCode || XICHENG_REGION_CONFIG.aiSceneCode,
+		sourceChannel: context.sourceChannel || cachedRecognition.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
 		poiCode: context.poiCode || cachedRecognition.poiCode,
 		poiName: context.poiName || cachedRecognition.poiName,
 		companionName: context.companionName || XICHENG_REGION_CONFIG.companionName,
