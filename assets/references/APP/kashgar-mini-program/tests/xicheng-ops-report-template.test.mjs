@@ -64,6 +64,18 @@ assert.match(
   'Travelogue UI should expose city operations report template fields for local acceptance review'
 )
 
+assert.match(
+  travelogue,
+  /试运营日报[\s\S]*识别、路线、分享、审核来源和安全状态/,
+  'City operations report UI should present a ready trial-operations report instead of a future backend placeholder'
+)
+
+assert.doesNotMatch(
+  travelogue,
+  /上线后可替换|后端真实|待替换/,
+  'City operations report UI should not ship future backend replacement placeholder copy'
+)
+
 assert.doesNotMatch(
   travelogue,
   /\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,

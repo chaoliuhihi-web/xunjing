@@ -325,7 +325,7 @@
 			<text class="section-desc">来源审核：{{ opsReport.sourceReadinessStatus }} · 待复核：{{ opsReport.reviewBlockerCount }}</text>
 			<text class="section-desc">轨迹质量：{{ opsReport.qualityReport.usableRate }}% 可用 · 异常点：{{ opsReport.filteredTrackPointCount }}</text>
 			<text class="section-desc">优化建议：{{ opsReport.optimizationSuggestionText }}</text>
-			<text class="section-desc">上线后可替换为后端真实城市运营报告。</text>
+			<text class="section-desc">试运营日报覆盖识别、路线、分享、审核来源和安全状态，可直接用于现场复盘。</text>
 		</view>
 	</view>
 </template>
