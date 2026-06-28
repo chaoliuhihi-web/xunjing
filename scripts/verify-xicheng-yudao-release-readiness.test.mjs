@@ -1079,7 +1079,12 @@ describe('xicheng Yudao release readiness gate', () => {
       stage: 'production',
       status: 'NOT_READY',
       totalChecks: 14,
-      appApiBaseUrl: 'http://127.0.0.1:48080'
+      appApiBaseUrl: 'http://127.0.0.1:48080',
+      runtimeEnvFingerprintMode: 'redacted-runtime-env-v1',
+      runtimeEnvRequiredKeyCount: expect.any(Number),
+      runtimeEnvPresentKeyCount: expect.any(Number),
+      runtimeEnvNonSecretSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+      runtimeEnvSecretPresenceSha256: expect.stringMatching(/^[a-f0-9]{64}$/)
     })
     expect(evidence.blockers.join('\n')).toContain('SPRING_PROFILES_ACTIVE must be production')
     expect(JSON.stringify(evidence)).not.toContain('prod-db-password')
@@ -1146,7 +1151,12 @@ describe('xicheng Yudao release readiness gate', () => {
       workbookReadyPoiCount: 80,
       workbookPendingPoiCount: 0,
       pendingPoiCodes: [],
-      pendingPoiTasks: []
+      pendingPoiTasks: [],
+      runtimeEnvFingerprintMode: 'redacted-runtime-env-v1',
+      runtimeEnvRequiredKeyCount: expect.any(Number),
+      runtimeEnvPresentKeyCount: expect.any(Number),
+      runtimeEnvNonSecretSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+      runtimeEnvSecretPresenceSha256: expect.stringMatching(/^[a-f0-9]{64}$/)
     })
     expect(evidence.checks.find((check) => check.name === 'full-yudao-baseline')?.detail).toContain(externalBaselinePath)
   })
@@ -1234,6 +1244,8 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(deployDoc).toContain('summary.gitCommit')
     expect(deployDoc).toContain('--expected-branch feature/xicheng-p0')
     expect(deployDoc).toContain('summary.expectedGitBranch')
+    expect(deployDoc).toContain('runtimeEnvFingerprintMode')
+    expect(deployDoc).toContain('runtimeEnvNonSecretSha256')
     expect(statusDoc).toContain('workbookReadyPoiCount')
     expect(statusDoc).toContain('workbookPendingPoiCount')
     expect(statusDoc).toContain('pendingPoiTasks')
@@ -1241,6 +1253,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(statusDoc).toContain('release-source-revision')
     expect(statusDoc).toContain('summary.gitCommit')
     expect(statusDoc).toContain('--expected-branch feature/xicheng-p0')
+    expect(statusDoc).toContain('runtimeEnvFingerprintMode')
     expect(deployDoc).toContain('seed evidence 的 `summary.sqlFile`')
     expect(deployDoc).toContain('sourceWorkbookSha256')
     expect(deployDoc).toContain('poiManifestSha256')

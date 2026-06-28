@@ -111,6 +111,36 @@ const requiredProductionEnvKeys = [
   'INTERNAL_AUTH_TOKEN'
 ]
 
+const runtimeEnvFingerprintMode = 'redacted-runtime-env-v1'
+
+function isSensitiveRuntimeEnvKey(key) {
+  return /(PASSWORD|SECRET|TOKEN|API_?KEY|ACCESS_?KEY|APP_ID|APPID)/i.test(String(key || ''))
+}
+
+function buildRuntimeEnvSummary(env) {
+  const requiredKeys = [...requiredProductionEnvKeys].sort()
+  const presentKeys = requiredKeys.filter((key) => hasValue(env[key]))
+  const placeholderKeys = requiredKeys.filter((key) => isPlaceholder(env[key]))
+  const nonSensitivePairs = requiredKeys
+    .filter((key) => !isSensitiveRuntimeEnvKey(key))
+    .map((key) => [key, String(env[key] || '')])
+  const sensitivePresence = requiredKeys
+    .filter((key) => isSensitiveRuntimeEnvKey(key))
+    .map((key) => [key, isPlaceholder(env[key]) ? 'missing-or-placeholder' : 'present'])
+
+  return {
+    runtimeEnvFingerprintMode,
+    runtimeEnvRequiredKeyCount: requiredKeys.length,
+    runtimeEnvPresentKeyCount: presentKeys.length,
+    runtimeEnvMissingKeyCount: requiredKeys.length - presentKeys.length,
+    runtimeEnvPlaceholderKeyCount: placeholderKeys.length,
+    runtimeEnvNonSensitiveKeyCount: nonSensitivePairs.length,
+    runtimeEnvSensitiveKeyCount: sensitivePresence.length,
+    runtimeEnvNonSecretSha256: sha256(JSON.stringify(nonSensitivePairs)),
+    runtimeEnvSecretPresenceSha256: sha256(JSON.stringify(sensitivePresence))
+  }
+}
+
 function check(name, ok, detail, blockers = []) {
   return { name, ok, detail, blockers }
 }
@@ -1141,6 +1171,7 @@ export async function verifyXichengYudaoReleaseReadiness({
     stage: normalizedStage,
     maxEvidenceAgeHours,
     checkedAt: new Date().toISOString(),
+    runtimeEnvSummary: buildRuntimeEnvSummary(env),
     checks,
     blockers
   }
@@ -1188,7 +1219,8 @@ function buildReleaseEvidence(result) {
       ...aiBootstrapSummary,
       ...baselineSummary,
       ...serverArtifactSummary,
-      ...productionPoiEvidenceSummary
+      ...productionPoiEvidenceSummary,
+      ...result.runtimeEnvSummary
     },
     ...result
   }

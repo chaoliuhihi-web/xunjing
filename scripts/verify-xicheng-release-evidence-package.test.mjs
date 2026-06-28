@@ -219,7 +219,12 @@ function releaseEvidence(overrides = {}) {
       gitCommit: 'a'.repeat(40),
       gitDirty: false,
       gitDirtyFileCount: 0,
-      appApiBaseUrl: 'https://xunjing-api.xingheai.net'
+      appApiBaseUrl: 'https://xunjing-api.xingheai.net',
+      runtimeEnvFingerprintMode: 'redacted-runtime-env-v1',
+      runtimeEnvRequiredKeyCount: 40,
+      runtimeEnvPresentKeyCount: 40,
+      runtimeEnvNonSecretSha256: 'b'.repeat(64),
+      runtimeEnvSecretPresenceSha256: 'c'.repeat(64)
     },
     checks: [
       { name: 'release-source-revision', ok: true },
@@ -1121,6 +1126,38 @@ describe('xicheng release evidence package gate', () => {
     expect(evidence.blockers.join('\n')).toContain('release evidence summary.gitCommit must be a 40-character git commit SHA')
   })
 
+  test('fails closed when release evidence lacks runtime env fingerprint metadata', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
+      summary: {
+        runtimeEnvFingerprintMode: undefined,
+        runtimeEnvRequiredKeyCount: undefined,
+        runtimeEnvPresentKeyCount: undefined,
+        runtimeEnvNonSecretSha256: undefined,
+        runtimeEnvSecretPresenceSha256: undefined
+      }
+    })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+    const outputPath = path.join(rootDir, 'tmp/xicheng-release-evidence-package.json')
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath,
+      '--evidence-file', 'tmp/xicheng-release-evidence-package.json'
+    ])
+
+    expect(result.status).toBe(1)
+    const evidence = JSON.parse(await readFile(outputPath, 'utf8'))
+    expect(evidence.blockers.join('\n')).toContain('release evidence runtimeEnvFingerprintMode must be redacted-runtime-env-v1')
+    expect(evidence.blockers.join('\n')).toContain('release evidence runtimeEnvNonSecretSha256 must be a sha256 hex digest')
+    expect(evidence.blockers.join('\n')).toContain('release evidence runtimeEnvSecretPresenceSha256 must be a sha256 hex digest')
+  })
+
   test('fails closed when release evidence git commit does not match the package checkout', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeReleaseEvidenceFile(rootDir, {
@@ -1741,5 +1778,7 @@ describe('xicheng release evidence package gate', () => {
     expect(deployDoc).toContain('package-source-revision')
     expect(deployDoc).toContain('summary.packageGitCommit')
     expect(deployDoc).toContain('APP API 域名一致性')
+    expect(deployDoc).toContain('runtimeEnvFingerprintMode')
+    expect(deployDoc).toContain('runtimeEnvNonSecretSha256')
   })
 })

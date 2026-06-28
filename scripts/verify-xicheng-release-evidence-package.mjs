@@ -494,6 +494,27 @@ function checkReleaseSourceRevisionSummary(evidence) {
   return blockers
 }
 
+function checkReleaseRuntimeEnvFingerprintSummary(evidence) {
+  const blockers = []
+  const summary = summaryOf(evidence)
+  if (summary.runtimeEnvFingerprintMode !== 'redacted-runtime-env-v1') {
+    blockers.push('release evidence runtimeEnvFingerprintMode must be redacted-runtime-env-v1')
+  }
+  if (!Number.isFinite(Number(summary.runtimeEnvRequiredKeyCount)) || Number(summary.runtimeEnvRequiredKeyCount) <= 0) {
+    blockers.push('release evidence runtimeEnvRequiredKeyCount must be a positive number')
+  }
+  if (!Number.isFinite(Number(summary.runtimeEnvPresentKeyCount)) || Number(summary.runtimeEnvPresentKeyCount) <= 0) {
+    blockers.push('release evidence runtimeEnvPresentKeyCount must be a positive number')
+  }
+  if (!/^[a-f0-9]{64}$/i.test(String(summary.runtimeEnvNonSecretSha256 || ''))) {
+    blockers.push('release evidence runtimeEnvNonSecretSha256 must be a sha256 hex digest')
+  }
+  if (!/^[a-f0-9]{64}$/i.test(String(summary.runtimeEnvSecretPresenceSha256 || ''))) {
+    blockers.push('release evidence runtimeEnvSecretPresenceSha256 must be a sha256 hex digest')
+  }
+  return blockers
+}
+
 async function checkReleaseEvidence(ref, stage, freshnessOptions) {
   const blockers = []
   if (ref.error) {
@@ -526,6 +547,7 @@ async function checkReleaseEvidence(ref, stage, freshnessOptions) {
     blockers.push('release evidence appApiBaseUrl must be a non-local HTTPS URL')
   }
   blockers.push(...checkReleaseSourceRevisionSummary(evidence))
+  blockers.push(...checkReleaseRuntimeEnvFingerprintSummary(evidence))
   blockers.push(...await checkReleaseBaselineHash(evidence))
   blockers.push(...await checkReleaseServerArtifactHash(evidence))
   blockers.push(...checkEvidenceChecks(evidence, requiredReleaseChecks, 'release'))
