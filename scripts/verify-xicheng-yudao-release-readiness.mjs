@@ -14,6 +14,8 @@ const defaultExpectedGitBranch = 'feature/xicheng-p0'
 const expectedXichengRegionCode = 'beijing-xicheng'
 const expectedXichengPackageCode = 'XICHENG-MAP-001'
 const defaultPoiSourceCoverageEvidencePath = 'qa/xicheng-poi-source-coverage-evidence.json'
+const defaultPoiSourceReviewApplyEvidencePath = 'qa/xicheng-poi-source-review-apply-evidence.json'
+const defaultPoiProductionReviewApplyEvidencePath = 'qa/xicheng-poi-production-review-apply-evidence.json'
 
 const requiredManifestEvidenceChecks = [
   'manifest-shape',
@@ -1210,6 +1212,133 @@ function validateSourceCoverageEvidence(ref, freshnessOptions, implicitDefault =
   return blockers
 }
 
+async function validateSourceReviewApplyEvidence(ref, {
+  rootDir,
+  freshnessOptions,
+  sourceCoverageEvidence,
+  implicitDefault = false
+}) {
+  const blockers = []
+  if (!ref.path || (implicitDefault && ref.error)) {
+    return ['POI source review apply evidence is required before production release']
+  }
+  if (ref.error) {
+    return [`POI source review apply evidence cannot be read: ${ref.error}`]
+  }
+  const evidence = ref.data || {}
+  const summary = evidenceSummary(evidence)
+  if (evidence.artifactType !== 'xicheng-poi-source-review-apply') {
+    blockers.push('source review apply evidence artifactType must be xicheng-poi-source-review-apply')
+  }
+  blockers.push(...checkEvidenceTimestamp(evidence, 'source review apply', freshnessOptions))
+  blockers.push(...await checkEvidenceSourceHash(rootDir, evidence, 'source review apply', 'outputFile', 'outputSha256'))
+  if (evidence.ok !== true) {
+    blockers.push('source review apply evidence ok must be true')
+  }
+  if (evidence.status !== 'SOURCE_REVIEW_APPLIED') {
+    blockers.push('source review apply evidence status must be SOURCE_REVIEW_APPLIED')
+  }
+  if (Number(summary.appliedPoiCount) < productionPoiTarget) {
+    blockers.push(`source review apply evidence appliedPoiCount must be at least ${productionPoiTarget}`)
+  }
+  if (Number(summary.pendingSourcePoiCount) !== 0) {
+    blockers.push('source review apply evidence pendingSourcePoiCount must be 0')
+  }
+  if (summary.sourceCoverageStatus !== 'SOURCE_COVERAGE_READY') {
+    blockers.push('source review apply evidence sourceCoverageStatus must be SOURCE_COVERAGE_READY')
+  }
+  if (Number(summary.sourceCoverageUncoveredPoiCount) !== 0) {
+    blockers.push('source review apply evidence sourceCoverageUncoveredPoiCount must be 0')
+  }
+  if (
+    sourceCoverageEvidence?.path &&
+    normalizeEvidencePath(rootDir, summary.sourceCoverageEvidenceFile) !== sourceCoverageEvidence.path
+  ) {
+    blockers.push('source review apply evidence sourceCoverageEvidenceFile must match --poi-source-coverage-evidence')
+  }
+  if (!hasNoEvidenceBlockers(evidence)) {
+    blockers.push(`source review apply evidence contains blockers: ${evidence.blockers.join('; ')}`)
+  }
+  return blockers
+}
+
+async function validateProductionReviewApplyEvidence(ref, {
+  rootDir,
+  freshnessOptions,
+  workbookEvidence,
+  sourceReviewApplyEvidence,
+  implicitDefault = false
+}) {
+  const blockers = []
+  if (!ref.path || (implicitDefault && ref.error)) {
+    return ['POI production review apply evidence is required before production release']
+  }
+  if (ref.error) {
+    return [`POI production review apply evidence cannot be read: ${ref.error}`]
+  }
+  const evidence = ref.data || {}
+  const summary = evidenceSummary(evidence)
+  const workbookSummary = evidenceSummary(workbookEvidence?.data)
+  const sourceReviewSummary = evidenceSummary(sourceReviewApplyEvidence?.data)
+  if (evidence.artifactType !== 'xicheng-poi-production-review-apply') {
+    blockers.push('production review apply evidence artifactType must be xicheng-poi-production-review-apply')
+  }
+  blockers.push(...checkEvidenceTimestamp(evidence, 'production review apply', freshnessOptions))
+  blockers.push(...await checkEvidenceSourceHash(rootDir, evidence, 'production review apply', 'outputFile', 'outputSha256'))
+  if (evidence.ok !== true) {
+    blockers.push('production review apply evidence ok must be true')
+  }
+  if (evidence.status !== 'PRODUCTION_REVIEW_APPLIED') {
+    blockers.push('production review apply evidence status must be PRODUCTION_REVIEW_APPLIED')
+  }
+  if (Number(summary.appliedPoiCount) < productionPoiTarget) {
+    blockers.push(`production review apply evidence appliedPoiCount must be at least ${productionPoiTarget}`)
+  }
+  if (Number(summary.pendingProductionReviewPoiCount) !== 0) {
+    blockers.push('production review apply evidence pendingProductionReviewPoiCount must be 0')
+  }
+  if (summary.sourceReviewApplyStatus !== 'SOURCE_REVIEW_APPLIED') {
+    blockers.push('production review apply evidence sourceReviewApplyStatus must be SOURCE_REVIEW_APPLIED')
+  }
+  if (Number(summary.sourceReviewPendingSourcePoiCount) !== 0) {
+    blockers.push('production review apply evidence sourceReviewPendingSourcePoiCount must be 0')
+  }
+  if (summary.sourceCoverageStatus !== 'SOURCE_COVERAGE_READY') {
+    blockers.push('production review apply evidence sourceCoverageStatus must be SOURCE_COVERAGE_READY')
+  }
+  if (Number(summary.sourceCoverageUncoveredPoiCount) !== 0) {
+    blockers.push('production review apply evidence sourceCoverageUncoveredPoiCount must be 0')
+  }
+  if (
+    sourceReviewApplyEvidence?.path &&
+    normalizeEvidencePath(rootDir, summary.sourceReviewApplyEvidenceFile) !== sourceReviewApplyEvidence.path
+  ) {
+    blockers.push('production review apply evidence sourceReviewApplyEvidenceFile must match --poi-source-review-apply-evidence')
+  }
+  if (
+    sourceReviewSummary.outputFile &&
+    normalizeEvidencePath(rootDir, summary.workbookFile) !== normalizeEvidencePath(rootDir, sourceReviewSummary.outputFile)
+  ) {
+    blockers.push('production review apply evidence workbookFile must match source review apply outputFile')
+  }
+  if (
+    workbookSummary.workbookFile &&
+    normalizeEvidencePath(rootDir, summary.outputFile) !== normalizeEvidencePath(rootDir, workbookSummary.workbookFile)
+  ) {
+    blockers.push('production review apply evidence outputFile must match workbook evidence workbookFile')
+  }
+  if (
+    workbookSummary.workbookSha256 &&
+    summary.outputSha256 !== workbookSummary.workbookSha256
+  ) {
+    blockers.push('production review apply evidence outputSha256 must match workbook evidence workbookSha256')
+  }
+  if (!hasNoEvidenceBlockers(evidence)) {
+    blockers.push(`production review apply evidence contains blockers: ${evidence.blockers.join('; ')}`)
+  }
+  return blockers
+}
+
 async function checkXichengRuntimeSeedEvidence({
   rootDir,
   runtimeSeedEvidencePath,
@@ -1502,15 +1631,31 @@ async function checkXichengProductionPoiEvidence({
   poiManifestEvidencePath,
   poiWorkbookEvidencePath,
   poiSourceCoverageEvidencePath,
+  poiSourceReviewApplyEvidencePath,
+  poiProductionReviewApplyEvidencePath,
   poiSeedEvidencePath,
   freshnessOptions
 }) {
   const implicitSourceCoverageEvidence = !hasValue(poiSourceCoverageEvidencePath)
+  const implicitSourceReviewApplyEvidence = !hasValue(poiSourceReviewApplyEvidencePath)
+  const implicitProductionReviewApplyEvidence = !hasValue(poiProductionReviewApplyEvidencePath)
   const sourceCoverageEvidencePath = poiSourceCoverageEvidencePath || defaultPoiSourceCoverageEvidencePath
-  const [manifestEvidence, workbookEvidence, sourceCoverageEvidence, seedEvidence] = await Promise.all([
+  const sourceReviewApplyEvidencePath = poiSourceReviewApplyEvidencePath || defaultPoiSourceReviewApplyEvidencePath
+  const productionReviewApplyEvidencePath = poiProductionReviewApplyEvidencePath ||
+    defaultPoiProductionReviewApplyEvidencePath
+  const [
+    manifestEvidence,
+    workbookEvidence,
+    sourceCoverageEvidence,
+    sourceReviewApplyEvidence,
+    productionReviewApplyEvidence,
+    seedEvidence
+  ] = await Promise.all([
     loadEvidenceInput(rootDir, poiManifestEvidencePath),
     loadEvidenceInput(rootDir, poiWorkbookEvidencePath),
     loadEvidenceInput(rootDir, sourceCoverageEvidencePath),
+    loadEvidenceInput(rootDir, sourceReviewApplyEvidencePath),
+    loadEvidenceInput(rootDir, productionReviewApplyEvidencePath),
     loadEvidenceInput(rootDir, poiSeedEvidencePath)
   ])
   const [manifestBlockers, workbookBlockers, seedBlockers] = await Promise.all([
@@ -1523,10 +1668,25 @@ async function checkXichengProductionPoiEvidence({
     freshnessOptions,
     implicitSourceCoverageEvidence
   )
+  const sourceReviewApplyBlockers = await validateSourceReviewApplyEvidence(sourceReviewApplyEvidence, {
+    rootDir,
+    freshnessOptions,
+    sourceCoverageEvidence,
+    implicitDefault: implicitSourceReviewApplyEvidence
+  })
+  const productionReviewApplyBlockers = await validateProductionReviewApplyEvidence(productionReviewApplyEvidence, {
+    rootDir,
+    freshnessOptions,
+    workbookEvidence,
+    sourceReviewApplyEvidence,
+    implicitDefault: implicitProductionReviewApplyEvidence
+  })
   const blockers = [
     ...manifestBlockers,
     ...workbookBlockers,
     ...sourceCoverageBlockers,
+    ...sourceReviewApplyBlockers,
+    ...productionReviewApplyBlockers,
     ...seedBlockers,
     ...validatePoiEvidenceConsistency(rootDir, manifestEvidence.data, workbookEvidence.data, seedEvidence.data)
   ]
@@ -1542,6 +1702,12 @@ async function checkXichengProductionPoiEvidence({
   }
   if (sourceCoverageEvidence.path && !sourceCoverageEvidence.error) {
     details.push(`sourceCoverage=${sourceCoverageEvidence.path}`)
+  }
+  if (sourceReviewApplyEvidence.path && !sourceReviewApplyEvidence.error) {
+    details.push(`sourceReviewApply=${sourceReviewApplyEvidence.path}`)
+  }
+  if (productionReviewApplyEvidence.path && !productionReviewApplyEvidence.error) {
+    details.push(`productionReviewApply=${productionReviewApplyEvidence.path}`)
   }
 
   return {
@@ -1563,6 +1729,14 @@ async function checkXichengProductionPoiEvidence({
       sourceCoverageCoveredPoiCount: evidenceSummary(sourceCoverageEvidence.data).coveredPoiCount,
       sourceCoverageUncoveredPoiCount: evidenceSummary(sourceCoverageEvidence.data).uncoveredPoiCount,
       sourceCoverageUncoveredPoiCodes: evidenceSummary(sourceCoverageEvidence.data).uncoveredPoiCodes,
+      sourceReviewApplyEvidenceFile: sourceReviewApplyEvidence.path,
+      sourceReviewApplyStatus: sourceReviewApplyEvidence.data?.status,
+      sourceReviewAppliedPoiCount: evidenceSummary(sourceReviewApplyEvidence.data).appliedPoiCount,
+      sourceReviewPendingSourcePoiCount: evidenceSummary(sourceReviewApplyEvidence.data).pendingSourcePoiCount,
+      productionReviewApplyEvidenceFile: productionReviewApplyEvidence.path,
+      productionReviewApplyStatus: productionReviewApplyEvidence.data?.status,
+      productionReviewAppliedPoiCount: evidenceSummary(productionReviewApplyEvidence.data).appliedPoiCount,
+      productionReviewPendingPoiCount: evidenceSummary(productionReviewApplyEvidence.data).pendingProductionReviewPoiCount,
       seedEvidenceFile: seedEvidence.path,
       poiManifestFile: evidenceSummary(manifestEvidence.data).manifestFile,
       poiManifestSha256: evidenceSummary(manifestEvidence.data).manifestSha256,
@@ -1676,6 +1850,8 @@ export async function verifyXichengYudaoReleaseReadiness({
   poiManifestEvidencePath,
   poiWorkbookEvidencePath,
   poiSourceCoverageEvidencePath,
+  poiSourceReviewApplyEvidencePath,
+  poiProductionReviewApplyEvidencePath,
   poiSeedEvidencePath,
   expectedGitBranch = defaultExpectedGitBranch,
   maxEvidenceAgeHours = defaultMaxEvidenceAgeHours,
@@ -1695,6 +1871,8 @@ export async function verifyXichengYudaoReleaseReadiness({
     poiManifestEvidencePath,
     poiWorkbookEvidencePath,
     poiSourceCoverageEvidencePath,
+    poiSourceReviewApplyEvidencePath,
+    poiProductionReviewApplyEvidencePath,
     poiSeedEvidencePath,
     freshnessOptions
   })
@@ -1873,6 +2051,10 @@ async function runCli() {
       process.env.XICHENG_POI_WORKBOOK_EVIDENCE,
     poiSourceCoverageEvidencePath: readArgValue(args, '--poi-source-coverage-evidence') ||
       process.env.XICHENG_POI_SOURCE_COVERAGE_EVIDENCE,
+    poiSourceReviewApplyEvidencePath: readArgValue(args, '--poi-source-review-apply-evidence') ||
+      process.env.XICHENG_POI_SOURCE_REVIEW_APPLY_EVIDENCE,
+    poiProductionReviewApplyEvidencePath: readArgValue(args, '--poi-production-review-apply-evidence') ||
+      process.env.XICHENG_POI_PRODUCTION_REVIEW_APPLY_EVIDENCE,
     poiSeedEvidencePath: readArgValue(args, '--poi-seed-evidence') ||
       process.env.XICHENG_POI_SEED_EVIDENCE,
     expectedGitBranch: readArgValue(args, '--expected-branch') ||

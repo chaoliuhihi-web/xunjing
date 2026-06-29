@@ -14,6 +14,8 @@ const defaultPoiWorkbookEvidenceFile = 'qa/xicheng-poi-review-workbook-evidence.
 const defaultPoiManifestEvidenceFile = 'qa/xicheng-poi-manifest-evidence.json'
 const defaultPoiSeedEvidenceFile = 'qa/xicheng-poi-production-seed-evidence.json'
 const defaultPoiSourceCoverageEvidenceFile = 'qa/xicheng-poi-source-coverage-evidence.json'
+const defaultPoiSourceReviewApplyEvidenceFile = 'qa/xicheng-poi-source-review-apply-evidence.json'
+const defaultPoiProductionReviewApplyEvidenceFile = 'qa/xicheng-poi-production-review-apply-evidence.json'
 const defaultAppReadinessEvidenceFile = 'qa/xicheng-app-readiness-evidence.json'
 const defaultReleasePackageEvidenceFile = 'qa/xicheng-release-evidence-package.json'
 const defaultStage = 'production'
@@ -68,6 +70,8 @@ function buildReleaseGateArgs({
     ...optionalArg(args, '--poi-manifest-evidence'),
     ...optionalArg(args, '--poi-seed-evidence'),
     ...optionalArg(args, '--poi-source-coverage-evidence'),
+    ...optionalArg(args, '--poi-source-review-apply-evidence'),
+    ...optionalArg(args, '--poi-production-review-apply-evidence'),
     ...optionalArg(args, '--max-evidence-age-hours')
   ]
 }
@@ -84,6 +88,8 @@ function buildFinalEvidencePackageCommand({
   poiManifestEvidenceFile,
   poiSeedEvidenceFile,
   poiSourceCoverageEvidenceFile,
+  poiSourceReviewApplyEvidenceFile,
+  poiProductionReviewApplyEvidenceFile,
   appReadinessEvidenceFile,
   releasePackageEvidenceFile
 }) {
@@ -95,6 +101,8 @@ function buildFinalEvidencePackageCommand({
     '--poi-manifest-evidence', shellArg(poiManifestEvidenceFile),
     '--poi-seed-evidence', shellArg(poiSeedEvidenceFile),
     '--poi-source-coverage-evidence', shellArg(poiSourceCoverageEvidenceFile),
+    '--poi-source-review-apply-evidence', shellArg(poiSourceReviewApplyEvidenceFile),
+    '--poi-production-review-apply-evidence', shellArg(poiProductionReviewApplyEvidenceFile),
     '--app-readiness-evidence', shellArg(appReadinessEvidenceFile),
     '--evidence-file', shellArg(releasePackageEvidenceFile)
   ].join(' ')
@@ -218,6 +226,10 @@ export async function runXichengYudaoReleasePreflight({
   const poiSeedEvidenceFile = readArgValue(args, '--poi-seed-evidence') || defaultPoiSeedEvidenceFile
   const poiSourceCoverageEvidenceFile = readArgValue(args, '--poi-source-coverage-evidence') ||
     defaultPoiSourceCoverageEvidenceFile
+  const poiSourceReviewApplyEvidenceFile = readArgValue(args, '--poi-source-review-apply-evidence') ||
+    defaultPoiSourceReviewApplyEvidenceFile
+  const poiProductionReviewApplyEvidenceFile = readArgValue(args, '--poi-production-review-apply-evidence') ||
+    defaultPoiProductionReviewApplyEvidenceFile
   const appReadinessEvidenceFile = readArgValue(args, '--app-readiness-evidence') || defaultAppReadinessEvidenceFile
   const releasePackageEvidenceFile = readArgValue(args, '--release-package-evidence') ||
     readArgValue(args, '--package-evidence') ||
@@ -262,6 +274,8 @@ export async function runXichengYudaoReleasePreflight({
     poiManifestEvidenceFile,
     poiSeedEvidenceFile,
     poiSourceCoverageEvidenceFile,
+    poiSourceReviewApplyEvidenceFile,
+    poiProductionReviewApplyEvidenceFile,
     appReadinessEvidenceFile,
     releasePackageEvidenceFile
   })

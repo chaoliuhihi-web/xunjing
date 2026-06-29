@@ -230,8 +230,11 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
   const workbookEvidencePath = path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json')
   const seedEvidencePath = path.join(rootDir, 'qa/xicheng-poi-production-seed-evidence.json')
   const sourceCoverageEvidencePath = path.join(rootDir, 'qa/xicheng-poi-source-coverage-evidence.json')
+  const sourceReviewApplyEvidencePath = path.join(rootDir, 'qa/xicheng-poi-source-review-apply-evidence.json')
+  const productionReviewApplyEvidencePath = path.join(rootDir, 'qa/xicheng-poi-production-review-apply-evidence.json')
   const manifestSourcePath = path.join(rootDir, 'workbench/xicheng-production-pois.json')
-  const workbookSourcePath = path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv')
+  const sourceAppliedWorkbookPath = path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.source-applied.csv')
+  const workbookSourcePath = path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.production-applied.csv')
   const seedSourcePath = path.join(rootDir, 'workbench/xicheng-poi-production-seed.sql')
   await mkdir(path.dirname(manifestEvidencePath), { recursive: true })
   await mkdir(path.dirname(manifestSourcePath), { recursive: true })
@@ -250,7 +253,9 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
     })
   ].join('\n')
   const seedSource = overrides.seedSource || productionSeedSql()
+  const sourceAppliedWorkbookSource = `${workbookSource}\n`
   await writeFile(manifestSourcePath, manifestSource)
+  await writeFile(sourceAppliedWorkbookPath, sourceAppliedWorkbookSource)
   await writeFile(workbookSourcePath, workbookSource)
   await writeFile(seedSourcePath, seedSource)
   const manifestEvidence = mergeEvidence({
@@ -368,11 +373,71 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
     checks: passedChecks(requiredSourceCoverageEvidenceChecks),
     blockers: []
   }, overrides.sourceCoverage)
+  const sourceReviewApplyEvidence = mergeEvidence({
+    artifactType: 'xicheng-poi-source-review-apply',
+    ok: true,
+    status: 'SOURCE_REVIEW_APPLIED',
+    checkedAt: freshCheckedAt(),
+    summary: {
+      workbookFile: path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv'),
+      sourceReviewFile: path.join(rootDir, 'workbench/xicheng-poi-source-review-summary.csv'),
+      sourceCoverageEvidenceFile: sourceCoverageEvidencePath,
+      sourceCoverageStatus: 'SOURCE_COVERAGE_READY',
+      sourceCoverageCoveredPoiCount: 80,
+      sourceCoverageUncoveredPoiCount: 0,
+      outputFile: sourceAppliedWorkbookPath,
+      evidenceFile: sourceReviewApplyEvidencePath,
+      workbookRows: 80,
+      sourceReviewRows: 2,
+      approvedSourceGroupCount: 2,
+      appliedPoiCount: 80,
+      pendingSourcePoiCount: 0,
+      pendingSourcePoiCodes: [],
+      outputSha256: sha256(sourceAppliedWorkbookSource)
+    },
+    blockers: []
+  }, overrides.sourceReviewApply)
+  const productionReviewApplyEvidence = mergeEvidence({
+    artifactType: 'xicheng-poi-production-review-apply',
+    ok: true,
+    status: 'PRODUCTION_REVIEW_APPLIED',
+    checkedAt: freshCheckedAt(),
+    summary: {
+      workbookFile: sourceAppliedWorkbookPath,
+      productionReviewFile: path.join(rootDir, 'workbench/xicheng-poi-production-review-summary.csv'),
+      sourceReviewApplyEvidenceFile: sourceReviewApplyEvidencePath,
+      sourceReviewApplyStatus: 'SOURCE_REVIEW_APPLIED',
+      sourceReviewAppliedPoiCount: 80,
+      sourceReviewPendingSourcePoiCount: 0,
+      sourceCoverageStatus: 'SOURCE_COVERAGE_READY',
+      sourceCoverageUncoveredPoiCount: 0,
+      outputFile: workbookSourcePath,
+      evidenceFile: productionReviewApplyEvidencePath,
+      workbookRows: 80,
+      productionReviewRows: 80,
+      approvedReviewRowCount: 80,
+      appliedPoiCount: 80,
+      pendingProductionReviewPoiCount: 0,
+      pendingProductionReviewPoiCodes: [],
+      appliedReviewRows: [],
+      outputSha256: sha256(workbookSource)
+    },
+    blockers: []
+  }, overrides.productionReviewApply)
   await writeFile(manifestEvidencePath, `${JSON.stringify(manifestEvidence, null, 2)}\n`)
   await writeFile(workbookEvidencePath, `${JSON.stringify(workbookEvidence, null, 2)}\n`)
   await writeFile(seedEvidencePath, `${JSON.stringify(seedEvidence, null, 2)}\n`)
   await writeFile(sourceCoverageEvidencePath, `${JSON.stringify(sourceCoverageEvidence, null, 2)}\n`)
-  return { manifestEvidencePath, workbookEvidencePath, seedEvidencePath, sourceCoverageEvidencePath }
+  await writeFile(sourceReviewApplyEvidencePath, `${JSON.stringify(sourceReviewApplyEvidence, null, 2)}\n`)
+  await writeFile(productionReviewApplyEvidencePath, `${JSON.stringify(productionReviewApplyEvidence, null, 2)}\n`)
+  return {
+    manifestEvidencePath,
+    workbookEvidencePath,
+    seedEvidencePath,
+    sourceCoverageEvidencePath,
+    sourceReviewApplyEvidencePath,
+    productionReviewApplyEvidencePath
+  }
 }
 
 async function writeAiBootstrapEvidence(rootDir, overrides = {}) {
@@ -599,7 +664,14 @@ describe('xicheng Yudao release readiness gate', () => {
 
   test('returns production candidate only when env, full baseline and 80 approved POIs are present', async () => {
     const rootDir = await createProductionReadyFixture()
-    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath, sourceCoverageEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const {
+      manifestEvidencePath,
+      workbookEvidencePath,
+      seedEvidencePath,
+      sourceCoverageEvidencePath,
+      sourceReviewApplyEvidencePath,
+      productionReviewApplyEvidencePath
+    } = await writeProductionPoiEvidence(rootDir)
     const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
     const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
     const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
@@ -631,8 +703,16 @@ describe('xicheng Yudao release readiness gate', () => {
       sourceCoverageStatus: 'SOURCE_COVERAGE_READY',
       sourceCoverageCoveredPoiCount: 80,
       sourceCoverageUncoveredPoiCount: 0,
+      sourceReviewApplyEvidenceFile: sourceReviewApplyEvidencePath,
+      sourceReviewApplyStatus: 'SOURCE_REVIEW_APPLIED',
+      sourceReviewAppliedPoiCount: 80,
+      sourceReviewPendingSourcePoiCount: 0,
+      productionReviewApplyEvidenceFile: productionReviewApplyEvidencePath,
+      productionReviewApplyStatus: 'PRODUCTION_REVIEW_APPLIED',
+      productionReviewAppliedPoiCount: 80,
+      productionReviewPendingPoiCount: 0,
       workbookEvidenceFile: workbookEvidencePath,
-      sourceWorkbookFile: path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv'),
+      sourceWorkbookFile: path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.production-applied.csv'),
       sourceWorkbookSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
       workbookReadyPoiCount: 80,
       workbookPendingPoiCount: 0,
@@ -718,6 +798,48 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(result.status).toBe('NOT_READY')
     expect(evidenceCheck?.ok).toBe(false)
     expect(evidenceCheck?.blockers.join('\n')).toContain('POI source coverage evidence is required before production release')
+  })
+
+  test('fails closed when POI source and production review apply evidence is missing', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const {
+      manifestEvidencePath,
+      workbookEvidencePath,
+      seedEvidencePath,
+      sourceReviewApplyEvidencePath,
+      productionReviewApplyEvidencePath
+    } = await writeProductionPoiEvidence(rootDir)
+    await rm(sourceReviewApplyEvidencePath, { force: true })
+    await rm(productionReviewApplyEvidencePath, { force: true })
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
+    const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
+    const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      aiBootstrapEvidencePath,
+      visionOcrEvidencePath,
+      objectStorageEvidencePath,
+      runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    expect(evidenceCheck?.ok).toBe(false)
+    expect(evidenceCheck?.blockers.join('\n')).toContain('POI source review apply evidence is required before production release')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('POI production review apply evidence is required before production release')
   })
 
   test('fails closed when POI source coverage evidence still has uncovered POIs', async () => {
@@ -1147,6 +1269,8 @@ describe('xicheng Yudao release readiness gate', () => {
       'POI manifest evidence is required before production release',
       'POI workbook evidence is required before production release',
       'POI source coverage evidence is required before production release',
+      'POI source review apply evidence is required before production release',
+      'POI production review apply evidence is required before production release',
       'POI seed SQL evidence is required before production release'
     ])
   })
@@ -1617,7 +1741,7 @@ describe('xicheng Yudao release readiness gate', () => {
       seedEvidenceFile: seedEvidencePath,
       poiManifestFile: path.join(rootDir, 'workbench/xicheng-production-pois.json'),
       poiManifestSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
-      sourceWorkbookFile: path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv'),
+      sourceWorkbookFile: path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.production-applied.csv'),
       sourceWorkbookSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
       poiSeedSqlFile: path.join(rootDir, 'workbench/xicheng-poi-production-seed.sql'),
       poiSeedSqlSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
