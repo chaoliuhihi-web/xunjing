@@ -80,8 +80,8 @@
 
 		<view class="inspiration-panel xicheng-paper-card" @click="openXichengInspiration">
 			<view>
-				<text class="inspiration-title">一键导入灵感</text>
-				<text class="inspiration-desc">粘贴攻略文字或地点清单，AI 提取地点并匹配官方 POI。</text>
+				<text class="inspiration-title">一键抄作业</text>
+				<text class="inspiration-desc">一键导入灵感：粘贴攻略文字或地点清单，AI 提取地点并匹配官方 POI。</text>
 			</view>
 			<text class="inspiration-action">生成路线</text>
 		</view>

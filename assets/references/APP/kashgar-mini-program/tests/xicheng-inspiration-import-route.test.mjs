@@ -58,6 +58,7 @@ for (const required of [
 }
 
 for (const required of [
+  '一键抄作业',
   '一键导入灵感',
   'AI 提取地点',
   'openXichengInspiration',
