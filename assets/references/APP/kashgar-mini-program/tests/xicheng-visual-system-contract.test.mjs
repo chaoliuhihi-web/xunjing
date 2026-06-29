@@ -14,6 +14,7 @@ const scanResult = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'scan-
 const routeDetail = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'route-detail', 'route-detail.vue'), 'utf8')
 const travelogue = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
 const aiGuide = fs.readFileSync(path.join(appRoot, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
+const qaReport = fs.readFileSync(path.join(appRoot, 'design-qa.md'), 'utf8')
 
 const mockupDir = path.join(appReferenceRoot, 'xicheng-multimodal', 'design-mockups')
 const requiredMockups = [
@@ -108,4 +109,21 @@ for (const token of [
   'activeAiAvatar'
 ]) {
   assert.ok(aiGuide.includes(token), `ai-guide.vue should support Xicheng chat visual token ${token}`)
+}
+
+for (const required of [
+  'Xicheng P0 Visual QA',
+  '01-home-xiaojing-xicheng.png',
+  '02-recognition-result-baitasi.png',
+  '03-ask-xiaojing-chat.png',
+  '04-route-detail-baitasi-culture.png',
+  '05-travelogue-generation.png',
+  '10-xicheng-footprint.png',
+  '11-travelogue-editor-share.png',
+  'home -> scan-result -> xiaojing -> route-detail -> travelogue',
+  'official POI source context remains visible in Xiaojing',
+  'current-head-ai-guide-from-official-poi-smoke.png',
+  'final result: passed'
+]) {
+  assert.ok(qaReport.includes(required), `Xicheng design QA report should include ${required}`)
 }

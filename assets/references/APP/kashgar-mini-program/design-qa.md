@@ -1,3 +1,15 @@
+**Xicheng P0 Visual QA**
+- Reference design pack: `01-home-xiaojing-xicheng.png`, `02-recognition-result-baitasi.png`, `03-ask-xiaojing-chat.png`, `04-route-detail-baitasi-culture.png`, `05-travelogue-generation.png`, `06-scan-entry.png`, `07-route-list.png`, `08-poi-guide-baitasi.png`, `09-ai-guide-playback.png`, `10-xicheng-footprint.png`, and `11-travelogue-editor-share.png`.
+- Covered flow: `home -> scan-result -> xiaojing -> route-detail -> travelogue`.
+- Screens covered by source: 西城首页、小京形象、扫一扫/拍照/OCR/GPS/文本识别入口、白塔寺识别结果、已审核来源、小京问答、路线详情、路线护照、生成游记草稿、分享海报、PDF纪念册、作品审核、本地足迹和运营报告。
+- Implementation surface: `pages/xicheng/home/home.vue`, `pages/xicheng/scan-result/scan-result.vue`, `pages/ai-guide/ai-guide.vue`, `pages/xicheng/route-detail/route-detail.vue`, `pages/xicheng/inspiration/inspiration.vue`, and `pages/xicheng/travelogue/travelogue.vue`.
+- Current smoke artifact: `/tmp/xicheng-p0-current/current-head-ai-guide-from-official-poi-smoke.png`.
+- Current smoke result: direct 白塔寺 scan-result route renders official POI confidence, reviewed source card, and recommended route; tapping 问小京 opens Xiaojing with `regionCode`, `packageCode`, `poiCode`, `poiName`, and companion context preserved.
+- Source safety result: official POI source context remains visible in Xiaojing, and empty-source copy is not shown for the verified 白塔寺 path.
+- Visual alignment: the first viewport uses the shared 西城 warm paper surface, ink green hierarchy, gold section accents, rounded paper cards, Xiaojing avatar, compact action chips, and bottom-safe spacing defined in `styles/xicheng-theme.scss`.
+- Operations-readiness coverage: local journey materials, route passport progress, parent-child study task evidence, share assets, review package, sanitized public preview, local data clear, track quality, safety status counts, and city operations report are present in the travelogue surface.
+- Remaining release gate: production launch still requires non-local HTTPS APP readiness evidence and production Yudao/AI/Qdrant/OCR/OSS/POI evidence; the current visual QA only proves APP front-end flow and source-context behavior.
+
 **Source Visual Truth**
 - Launch source: `/Users/bruce/Developer/work/AI文旅/01_星河寻境/assets/references/APP/参考图/ChatGPT Image 2026年6月21日 00_46_15 (1).png`
 - Play home source: `/Users/bruce/Developer/work/AI文旅/01_星河寻境/assets/references/APP/参考图/ChatGPT Image 2026年6月21日 00_46_16 (2).png`
