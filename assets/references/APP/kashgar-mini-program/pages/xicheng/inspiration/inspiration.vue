@@ -86,6 +86,9 @@ import {
 	XICHENG_REGION_CONFIG
 } from '@/config/regions/xicheng.js'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
+import { createXichengRouteOutputValue } from '@/request/xunjing/routeParams.js'
+
+const encodeRouteValue = (value = '') => createXichengRouteOutputValue(value, { platform: process.env.UNI_PLATFORM })
 
 export const extractXichengPoiMatches = (text = '') => {
 	const normalized = String(text || '').toLowerCase()
@@ -313,7 +316,7 @@ export default {
 			const saved = this.saveInspirationRoute({ silent: true })
 			if (!saved) return
 			uni.navigateTo({
-				url: `/pages/xicheng/travelogue/travelogue?mode=route&regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.region.sourceChannel)}&companionName=${encodeURIComponent(this.region.companionName)}`
+				url: `/pages/xicheng/travelogue/travelogue?mode=route&regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&companionName=${encodeRouteValue(this.region.companionName)}`
 			})
 		}
 	}

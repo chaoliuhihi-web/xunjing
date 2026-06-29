@@ -14,6 +14,7 @@ assert.ok(
 const routeParamsSource = read('request', 'xunjing', 'routeParams.js')
 const home = read('pages', 'xicheng', 'home', 'home.vue')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
+const inspiration = read('pages', 'xicheng', 'inspiration', 'inspiration.vue')
 const aiGuide = read('pages', 'ai-guide', 'ai-guide.vue')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 const routeDetail = read('pages', 'xicheng', 'route-detail', 'route-detail.vue')
@@ -47,17 +48,22 @@ for (const [label, source] of [
   )
 }
 
-assert.match(
-  home,
-  /import \{ createXichengRouteOutputValue \} from '@\/request\/xunjing\/routeParams\.js'/,
-  'Home should import the shared outbound route helper'
-)
+for (const [label, source] of [
+  ['Home', home],
+  ['Inspiration', inspiration]
+]) {
+  assert.match(
+    source,
+    /import \{ createXichengRouteOutputValue \} from '@\/request\/xunjing\/routeParams\.js'/,
+    `${label} should import the shared outbound route helper`
+  )
 
-assert.match(
-  home,
-  /const encodeRouteValue = \(value = ''\) => createXichengRouteOutputValue\(value, \{ platform: process\.env\.UNI_PLATFORM \}\)/,
-  'Home should use the shared H5-safe outbound route helper before navigating'
-)
+  assert.match(
+    source,
+    /const encodeRouteValue = \(value = ''\) => createXichengRouteOutputValue\(value, \{ platform: process\.env\.UNI_PLATFORM \}\)/,
+    `${label} should use the shared H5-safe outbound route helper before navigating`
+  )
+}
 
 for (const [label, source] of [
   ['Scan result', scanResult],

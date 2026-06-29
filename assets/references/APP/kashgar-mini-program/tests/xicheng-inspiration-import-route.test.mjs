@@ -195,7 +195,7 @@ assert.match(
 
 assert.match(
   openTravelogueBlock,
-  /const saved = this\.saveInspirationRoute\(\{ silent: true \}\)[\s\S]*if \(!saved\) return[\s\S]*regionCode=\$\{encodeURIComponent\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeURIComponent\(this\.region\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeURIComponent\(this\.region\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeURIComponent\(this\.region\.sourceChannel\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.region\.companionName\)\}/,
+  /const saved = this\.saveInspirationRoute\(\{ silent: true \}\)[\s\S]*if \(!saved\) return[\s\S]*regionCode=\$\{encodeRouteValue\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeRouteValue\(this\.region\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeRouteValue\(this\.region\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeRouteValue\(this\.region\.sourceChannel\)\}[\s\S]*companionName=\$\{encodeRouteValue\(this\.region\.companionName\)\}/,
   'Inspiration openTravelogue should only navigate after a route is saved and preserve package, scene, source channel, and companion context'
 )
 
