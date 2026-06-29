@@ -44,20 +44,20 @@ assert.match(
 
 assert.match(
   normalizeResponseBlock,
-  /const sourceBackedAnswerUnavailable = isXichengUnsafeSafetyStatus\(safetyStatus\)[\s\S]*const safeSuggestedQuestions = sourceBackedAnswerUnavailable \? \[\] : suggestedQuestions[\s\S]*followUps:\s*safeSuggestedQuestions/,
-  'Xicheng chat response normalization should expose safe followUps while clearing prompts for BLOCKED or UNAVAILABLE responses'
+  /const reviewedSources = normalizeXichengReviewedSources\(payload\.sources\)[\s\S]*const sourceBackedAnswerUnavailable = isXichengUnsafeSafetyStatus\(safetyStatus\) \|\| reviewedSources\.length === 0[\s\S]*const safeSuggestedQuestions = sourceBackedAnswerUnavailable \? \[\] : suggestedQuestions[\s\S]*followUps:\s*safeSuggestedQuestions/,
+  'Xicheng chat response normalization should expose safe followUps while clearing prompts for unsafe or source-missing responses'
 )
 
 assert.match(
   normalizeResponseBlock,
-  /const answer = safetyStatus === 'BLOCKED'\s*\?\s*XICHENG_BLOCKED_ANSWER[\s\S]*safetyStatus === 'UNAVAILABLE'\s*\?\s*XICHENG_UNAVAILABLE_ANSWER[\s\S]*answer,/,
-  'Xicheng chat response normalization should convert BLOCKED responses into the exact refused answer'
+  /const answer = responseSafetyStatus === 'BLOCKED'\s*\?\s*XICHENG_BLOCKED_ANSWER[\s\S]*responseSafetyStatus === 'UNAVAILABLE'\s*\?\s*XICHENG_UNAVAILABLE_ANSWER[\s\S]*answer,/,
+  'Xicheng chat response normalization should convert BLOCKED or source-missing responses into exact refused copy'
 )
 
 assert.match(
   normalizeResponseBlock,
-  /const safeSources = sourceBackedAnswerUnavailable \? \[\] : normalizeXichengReviewedSources\(payload\.sources\)[\s\S]*sources:\s*safeSources/,
-  'Xicheng chat response normalization should fail closed and clear sources when safetyStatus is BLOCKED or UNAVAILABLE'
+  /const safeSources = sourceBackedAnswerUnavailable \? \[\] : reviewedSources[\s\S]*sources:\s*safeSources/,
+  'Xicheng chat response normalization should fail closed and clear sources when safetyStatus is unsafe or reviewed sources are missing'
 )
 
 assert.match(
@@ -144,4 +144,25 @@ assert.deepEqual(
     logId: 'unavailable-log-1'
   },
   'Xicheng chat facade should fail closed for UNAVAILABLE responses without follow-ups or reviewed sources'
+)
+
+const sourceMissingResponse = normalizeXichengAiChatResponse({
+  answer: '后端异常返回的无来源回答不应展示',
+  safetyStatus: 'PASSED',
+  suggestedQuestions: ['继续追问无来源回答'],
+  sources: [],
+  logId: 'missing-source-log-1'
+})
+
+assert.deepEqual(
+  sourceMissingResponse,
+  {
+    answer: '小京暂时无法获取已审核来源，请稍后再试',
+    suggestedQuestions: [],
+    followUps: [],
+    sources: [],
+    safetyStatus: 'UNAVAILABLE',
+    logId: 'missing-source-log-1'
+  },
+  'Xicheng chat facade should fail closed when a nominally safe response has no reviewed sources'
 )

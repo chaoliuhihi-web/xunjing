@@ -32,12 +32,16 @@ export const normalizeXichengAiChatResponse = (payload = {}) => {
 			? payload.recommendedQuestions
 			: []
 	const safetyStatus = normalizeXichengSafetyStatus(payload.safetyStatus)
-	const sourceBackedAnswerUnavailable = isXichengUnsafeSafetyStatus(safetyStatus)
+	const reviewedSources = normalizeXichengReviewedSources(payload.sources)
+	const sourceBackedAnswerUnavailable = isXichengUnsafeSafetyStatus(safetyStatus) || reviewedSources.length === 0
+	const responseSafetyStatus = sourceBackedAnswerUnavailable && !isXichengUnsafeSafetyStatus(safetyStatus)
+		? 'UNAVAILABLE'
+		: safetyStatus
 	const safeSuggestedQuestions = sourceBackedAnswerUnavailable ? [] : suggestedQuestions
-	const safeSources = sourceBackedAnswerUnavailable ? [] : normalizeXichengReviewedSources(payload.sources)
-	const answer = safetyStatus === 'BLOCKED'
+	const safeSources = sourceBackedAnswerUnavailable ? [] : reviewedSources
+	const answer = responseSafetyStatus === 'BLOCKED'
 		? XICHENG_BLOCKED_ANSWER
-		: safetyStatus === 'UNAVAILABLE'
+		: responseSafetyStatus === 'UNAVAILABLE'
 			? XICHENG_UNAVAILABLE_ANSWER
 			: payload.answer ? String(payload.answer) : ''
 	return {
@@ -45,7 +49,7 @@ export const normalizeXichengAiChatResponse = (payload = {}) => {
 		suggestedQuestions: safeSuggestedQuestions,
 		followUps: safeSuggestedQuestions,
 		sources: safeSources,
-		safetyStatus,
+		safetyStatus: responseSafetyStatus,
 		logId: payload.logId || ''
 	}
 }

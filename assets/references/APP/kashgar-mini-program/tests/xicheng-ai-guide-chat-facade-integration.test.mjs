@@ -37,8 +37,8 @@ for (const required of [
 
 assert.match(
   chatFacade,
-  /const answer = safetyStatus === 'BLOCKED'[\s\S]*XICHENG_BLOCKED_ANSWER[\s\S]*safetyStatus === 'UNAVAILABLE'[\s\S]*XICHENG_UNAVAILABLE_ANSWER/,
-  'Xicheng chat facade should remain the authority for blocked and unavailable answer copy'
+  /const answer = responseSafetyStatus === 'BLOCKED'[\s\S]*XICHENG_BLOCKED_ANSWER[\s\S]*responseSafetyStatus === 'UNAVAILABLE'[\s\S]*XICHENG_UNAVAILABLE_ANSWER/,
+  'Xicheng chat facade should remain the authority for blocked, unavailable, and source-missing answer copy'
 )
 
 assert.doesNotMatch(
