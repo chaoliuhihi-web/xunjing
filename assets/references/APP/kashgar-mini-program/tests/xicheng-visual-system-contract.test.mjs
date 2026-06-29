@@ -9,6 +9,7 @@ const appReferenceRoot = path.resolve(root, '..')
 const themePath = path.join(appRoot, 'styles', 'xicheng-theme.scss')
 const appVue = fs.readFileSync(path.join(appRoot, 'App.vue'), 'utf8')
 const home = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'home', 'home.vue'), 'utf8')
+const inspiration = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'inspiration', 'inspiration.vue'), 'utf8')
 const scanResult = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
 const travelogue = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
 const aiGuide = fs.readFileSync(path.join(appRoot, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
@@ -57,6 +58,7 @@ assert.match(
 
 for (const [fileName, source] of [
   ['home.vue', home],
+  ['inspiration.vue', inspiration],
   ['scan-result.vue', scanResult],
   ['travelogue.vue', travelogue]
 ]) {
@@ -67,6 +69,14 @@ for (const [fileName, source] of [
   ]) {
     assert.ok(source.includes(className), `${fileName} should use ${className} from the shared visual theme`)
   }
+}
+
+for (const token of [
+  'xicheng-inspiration-shell',
+  'xicheng-inspiration-hero',
+  'xicheng-inspiration-actions'
+]) {
+  assert.ok(inspiration.includes(token), `inspiration.vue should support Xicheng inspiration visual token ${token}`)
 }
 
 for (const token of [

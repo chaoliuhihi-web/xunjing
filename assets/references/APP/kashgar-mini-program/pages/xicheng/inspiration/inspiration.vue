@@ -1,15 +1,26 @@
 <template>
-	<view class="xicheng-inspiration">
-		<view class="hero">
-			<text class="eyebrow">一键抄作业</text>
-			<text class="title">导入灵感</text>
-			<text class="subtitle">粘贴攻略文字、地点清单或上传攻略图片，先做本地 AI提取地点，再匹配官方 POI 生成可走路线。</text>
+	<view class="xicheng-inspiration xicheng-designed-page xicheng-bottom-safe xicheng-inspiration-shell">
+		<view class="hero xicheng-paper-card xicheng-inspiration-hero">
+			<view class="inspiration-hero-main">
+				<view class="inspiration-hero-copy">
+					<text class="eyebrow">一键抄作业</text>
+					<text class="title">导入灵感</text>
+					<text class="subtitle">粘贴攻略文字、地点清单或上传攻略图片，先做本地 AI提取地点，再匹配官方 POI 生成可走路线。</text>
+				</view>
+				<view class="inspiration-companion">
+					<image class="inspiration-companion-avatar" :src="region.companionAvatar" mode="aspectFit" />
+					<view class="inspiration-companion-bubble xicheng-companion-bubble">
+						<text class="companion-name">{{ region.companionName }}</text>
+						<text class="companion-line">我帮你把灵感变成可走路线</text>
+					</view>
+				</view>
+			</view>
 		</view>
 
-		<view class="section-card">
+		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">粘贴攻略文字</text>
-				<button class="tiny-button" @click="fillExample">示例</button>
+				<button class="tiny-button xicheng-secondary-action" @click="fillExample">示例</button>
 			</view>
 			<textarea
 				class="input-area"
@@ -21,10 +32,10 @@
 				<text class="upload-title">上传攻略图片</text>
 				<text class="upload-desc">{{ imagePath ? '已添加图片素材' : '首版只保存图片素材，地点仍以文字确认结果为准' }}</text>
 			</view>
-			<button class="primary-button" @click="runExtraction">AI提取地点</button>
+			<button class="primary-button xicheng-primary-action" @click="runExtraction">AI提取地点</button>
 		</view>
 
-		<view class="section-card">
+		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">匹配官方 POI</text>
 				<text class="section-badge">{{ matchedPois.length }} 个</text>
@@ -45,7 +56,7 @@
 			<text v-else class="empty-copy">请输入白塔寺、历代帝王庙、什刹海、北海或大栅栏等西城官方 POI。</text>
 		</view>
 
-		<view class="section-card">
+		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">生成可走路线</text>
 				<text class="section-badge">{{ route.durationText }}</text>
@@ -61,9 +72,9 @@
 					{{ index + 1 }}. {{ stop.poiName }}
 				</text>
 			</view>
-			<view class="action-row">
-				<button class="primary-button" @click="saveInspirationRoute">加入路线护照</button>
-				<button class="ghost-button" @click="openTravelogue">打开素材盒</button>
+			<view class="action-row xicheng-inspiration-actions">
+				<button class="primary-button xicheng-primary-action" @click="saveInspirationRoute">加入路线护照</button>
+				<button class="ghost-button xicheng-secondary-action" @click="openTravelogue">打开素材盒</button>
 			</view>
 		</view>
 	</view>
@@ -309,19 +320,78 @@ export default {
 	min-height: 100vh;
 	padding: 36rpx 28rpx 56rpx;
 	box-sizing: border-box;
-	background: #F7F5EE;
-	color: #172B4D;
+	color: #102F29;
+}
+
+.xicheng-inspiration-shell {
+	position: relative;
 }
 
 .hero,
 .section-card {
-	border-radius: 8rpx;
-	background: #FFFFFF;
-	box-shadow: 0 12rpx 36rpx rgba(31, 41, 51, 0.08);
+	border: 1rpx solid rgba(255, 255, 255, 0.78);
+	border-radius: 34rpx;
+	background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(250, 246, 237, 0.88));
+	box-shadow: 0 18rpx 46rpx rgba(28, 35, 32, 0.10);
+	overflow: hidden;
 }
 
 .hero {
 	padding: 36rpx 32rpx;
+}
+
+.inspiration-hero-main {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 24rpx;
+}
+
+.inspiration-hero-copy {
+	flex: 1;
+	min-width: 0;
+}
+
+.inspiration-companion {
+	width: 228rpx;
+	flex-shrink: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.inspiration-companion-avatar {
+	width: 208rpx;
+	height: 268rpx;
+	border-radius: 30rpx;
+	background: #E7EFE8;
+}
+
+.inspiration-companion-bubble {
+	width: 100%;
+	margin-top: 14rpx;
+	padding: 14rpx 12rpx;
+	border-radius: 26rpx;
+	box-sizing: border-box;
+}
+
+.companion-name,
+.companion-line {
+	display: block;
+	text-align: center;
+}
+
+.companion-name {
+	font-size: 24rpx;
+	font-weight: 700;
+	color: #173F35;
+}
+
+.companion-line {
+	margin-top: 4rpx;
+	font-size: 22rpx;
+	line-height: 1.4;
+	color: #746F68;
 }
 
 .eyebrow,
@@ -341,7 +411,7 @@ export default {
 	margin-top: 12rpx;
 	font-size: 44rpx;
 	font-weight: 700;
-	color: #122033;
+	color: #102F29;
 }
 
 .subtitle {
@@ -361,29 +431,40 @@ export default {
 }
 
 .section-title {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
 	font-size: 30rpx;
 	font-weight: 700;
-	color: #122033;
+	color: #102F29;
+}
+
+.section-title::before {
+	content: '';
+	width: 8rpx;
+	height: 34rpx;
+	border-radius: 999rpx;
+	background: #B5945E;
 }
 
 .section-badge,
 .poi-status {
 	flex-shrink: 0;
 	padding: 8rpx 14rpx;
-	border-radius: 8rpx;
-	background: #EEF5F1;
+	border-radius: 999rpx;
+	background: rgba(181, 148, 94, 0.12);
 	font-size: 22rpx;
-	color: #1F6E5A;
+	color: #173F35;
 }
 
 .tiny-button {
 	width: 108rpx;
 	height: 56rpx;
 	line-height: 56rpx;
-	border-radius: 8rpx;
-	background: #EEF5F1;
+	border-radius: 18rpx;
+	background: rgba(255, 252, 246, 0.86);
 	font-size: 22rpx;
-	color: #1F6E5A;
+	color: #173F35;
 }
 
 .input-area {
@@ -391,8 +472,9 @@ export default {
 	min-height: 260rpx;
 	margin-top: 20rpx;
 	padding: 22rpx;
-	border-radius: 8rpx;
-	background: #F9FAFB;
+	border: 1rpx solid rgba(181, 148, 94, 0.14);
+	border-radius: 24rpx;
+	background: rgba(255, 252, 246, 0.84);
 	box-sizing: border-box;
 	font-size: 26rpx;
 	line-height: 1.7;
@@ -407,8 +489,9 @@ export default {
 	gap: 20rpx;
 	margin-top: 18rpx;
 	padding: 20rpx;
-	border-radius: 8rpx;
-	background: #F2F4F7;
+	border: 1rpx solid rgba(181, 148, 94, 0.14);
+	border-radius: 24rpx;
+	background: rgba(255, 252, 246, 0.76);
 }
 
 .upload-title,
@@ -436,8 +519,8 @@ export default {
 	display: block;
 	margin-top: 12rpx;
 	padding: 18rpx;
-	border-radius: 8rpx;
-	background: #F2F4F7;
+	border-radius: 22rpx;
+	background: rgba(255, 252, 246, 0.82);
 	font-size: 26rpx;
 	color: #344054;
 }
@@ -453,7 +536,7 @@ export default {
 .ghost-button {
 	height: 84rpx;
 	line-height: 84rpx;
-	border-radius: 8rpx;
+	border-radius: 28rpx;
 	font-size: 28rpx;
 }
 
@@ -466,5 +549,9 @@ export default {
 .ghost-button {
 	background: #E8ECE7;
 	color: #1F6E5A;
+}
+
+.xicheng-inspiration-actions .primary-button {
+	margin-top: 0;
 }
 </style>
