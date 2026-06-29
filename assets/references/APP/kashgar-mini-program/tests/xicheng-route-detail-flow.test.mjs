@@ -63,6 +63,18 @@ for (const required of [
 
 assert.match(
   routeDetail,
+  /import \{ createXichengOfficialPoiSources \} from '@\/request\/xunjing\/officialPoi\.js'/,
+  'Route detail should reuse the shared official POI source helper for route passport materials'
+)
+
+assert.match(
+  routeDetail,
+  /createRouteMaterials\(capturedAt\)[\s\S]*this\.routeStopCards\.map\(stop => \{[\s\S]*const sources = createXichengOfficialPoiSources\(stop\)[\s\S]*return \{[\s\S]*type:\s*'official-route-poi'[\s\S]*sourceLabel:\s*'官方路线详情'[\s\S]*sources,[\s\S]*sourceCount:\s*sources\.length[\s\S]*reviewStatus:\s*this\.region\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  'Route detail POI materials should carry approved official POI source cards so travelogue, PDF, and review evidence stay traceable'
+)
+
+assert.match(
+  routeDetail,
   /askStopGuide\(stop = \{\}\)[\s\S]*question=\$\{encodeURIComponent\(question\)\}[\s\S]*regionCode=\$\{encodeURIComponent\(this\.routeOptions\.regionCode \|\| this\.region\.regionCode\)\}[\s\S]*poiCode=\$\{encodeURIComponent\(stop\.poiCode \|\| ''\)\}[\s\S]*poiName=\$\{encodeURIComponent\(stop\.poiName \|\| ''\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.routeOptions\.companionName \|\| this\.region\.companionName\)\}/,
   'Route detail stop guide entry should navigate to Xiaojing with regionCode, poiCode, poiName, and companionName'
 )

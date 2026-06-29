@@ -87,6 +87,7 @@ import {
 	XICHENG_RECOMMENDED_ROUTES,
 	XICHENG_REGION_CONFIG
 } from '@/config/regions/xicheng.js'
+import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
 
 const normalizeRouteOptions = (options = {}) => ({
@@ -150,22 +151,26 @@ export default {
 			}
 		},
 		createRouteMaterials(capturedAt) {
-			return this.routeStopCards.map(stop => ({
-				type: 'official-route-poi',
-				regionCode: this.routeOptions.regionCode || this.region.regionCode,
-				packageCode: this.routeOptions.packageCode || this.region.packageCode,
-				sceneCode: this.routeOptions.sceneCode || this.region.sceneCode,
-				sourceChannel: this.routeOptions.sourceChannel || this.region.sourceChannel,
-				poiCode: stop.poiCode,
-				poiName: stop.poiName,
-				routeCode: this.activeRoute.routeCode,
-				routeTitle: this.activeRoute.title,
-				sourceLabel: '官方路线详情',
-				sources: [],
-				reviewStatus: this.region.reviewStatus.pending,
-				publishStatus: 'private',
-				capturedAt
-			}))
+			return this.routeStopCards.map(stop => {
+				const sources = createXichengOfficialPoiSources(stop)
+				return {
+					type: 'official-route-poi',
+					regionCode: this.routeOptions.regionCode || this.region.regionCode,
+					packageCode: this.routeOptions.packageCode || this.region.packageCode,
+					sceneCode: this.routeOptions.sceneCode || this.region.sceneCode,
+					sourceChannel: this.routeOptions.sourceChannel || this.region.sourceChannel,
+					poiCode: stop.poiCode,
+					poiName: stop.poiName,
+					routeCode: this.activeRoute.routeCode,
+					routeTitle: this.activeRoute.title,
+					sourceLabel: '官方路线详情',
+					sources,
+					sourceCount: sources.length,
+					reviewStatus: this.region.reviewStatus.pending,
+					publishStatus: 'private',
+					capturedAt
+				}
+			})
 		},
 		persistRoutePassport() {
 			const routePayload = this.createRoutePayload()
