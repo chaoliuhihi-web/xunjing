@@ -40,7 +40,7 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /decodeRouteValue\(options\.question\)/,
+  /decodeRouteValue\(routeOptions\.question\)/,
   'AI guide page should safely decode the incoming map voice question'
 )
 

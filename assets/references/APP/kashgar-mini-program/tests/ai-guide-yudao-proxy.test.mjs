@@ -84,7 +84,7 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /onLoad\(\(options = \{\}\) => \{[\s\S]*const context = applyXichengAiContext\(options\)[\s\S]*loadXunjingPackageDetail\(context\)[\s\S]*recordXunjingResourceEvent\(\{[\s\S]*eventType:\s*'VIEW'[\s\S]*page:\s*'ai-guide'/,
+  /onLoad\(\(options = \{\}\) => \{[\s\S]*const context = refreshXichengAiRouteContext\(\{ routeOptions: options, preferCache: false \}\) \|\| xichengAiContext\.value[\s\S]*loadXunjingPackageDetail\(context\)[\s\S]*recordXunjingResourceEvent\(\{[\s\S]*eventType:\s*'VIEW'[\s\S]*page:\s*'ai-guide'/,
   'AI guide should start public package loading and record a non-blocking page view during page load'
 )
 

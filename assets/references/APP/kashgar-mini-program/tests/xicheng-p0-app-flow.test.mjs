@@ -159,7 +159,7 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /hasXichengAiContext\(context\) && !options\.question[\s\S]*showAiCompanionHome\.value = false[\s\S]*setWelcomeMessage\(\)/,
+  /hasXichengAiContext\(context\)[\s\S]*showAiCompanionHome\.value = false[\s\S]*hasInitialQuestion[\s\S]*setWelcomeMessage\(\)/,
   'AI guide should open the Xiaojing chat shell instead of the Kashgar companion home when Xicheng context has no initial question'
 )
 

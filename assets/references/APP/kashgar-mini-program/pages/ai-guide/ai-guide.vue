@@ -469,6 +469,7 @@ let lastScrollAt = 0
 let historyScrollTimer = null
 let shouldStartNewConversationAfterInterrupt = false
 let initialQuestionHandled = false
+let initialQuestionHandledText = ''
 let speechAudioContext = null
 let speechRequestSeed = 0
 let speechFileSeed = 0
@@ -690,6 +691,37 @@ const getUserTraceId = () => {
 }
 
 const decodeRouteValue = decodeXichengRouteValue
+
+const getCurrentXichengAiRouteOptions = () => {
+	const options = {}
+	try {
+		if (typeof getCurrentPages === 'function') {
+			const pages = getCurrentPages()
+			const currentPage = Array.isArray(pages) && pages.length > 0 ? pages[pages.length - 1] : null
+			if (currentPage && currentPage.options && typeof currentPage.options === 'object') {
+				Object.assign(options, currentPage.options)
+			}
+		}
+	} catch (error) {
+		// H5 and native runtimes expose route options differently; hash parsing below is the fallback.
+	}
+	try {
+		const currentHash = typeof location !== 'undefined' && location.hash ? String(location.hash) : ''
+		const queryIndex = currentHash.indexOf('?')
+		if (queryIndex >= 0 && typeof URLSearchParams !== 'undefined') {
+			const params = new URLSearchParams(currentHash.slice(queryIndex + 1))
+			params.forEach((value, key) => {
+				options[key] = decodeRouteValue(value)
+			})
+		}
+	} catch (error) {
+		return options
+	}
+	if (options.safetyStatus) {
+		options.safetyStatus = normalizeXichengSafetyStatus(decodeRouteValue(options.safetyStatus))
+	}
+	return options
+}
 
 const normalizeXichengAiContext = (options = {}) => ({
 	regionCode: decodeRouteValue(options.regionCode),
@@ -2293,10 +2325,11 @@ const sendMessage = async () => {
 }
 
 const sendInitialQuestion = async (questionText) => {
-	if (initialQuestionHandled) return
 	const question = String(questionText || '').trim()
 	if (!question) return
+	if (initialQuestionHandled && initialQuestionHandledText === question) return
 	initialQuestionHandled = true
+	initialQuestionHandledText = question
 	await loadChatHistory({ preferCache: true })
 	if (hasCompletedInitialQuestionInMessages(question)) {
 		scheduleHistoryScrollToBottom()
@@ -2307,19 +2340,61 @@ const sendInitialQuestion = async (questionText) => {
 	sendMessage()
 }
 
+const refreshXichengAiRouteContext = ({ routeOptions = getCurrentXichengAiRouteOptions(), preferCache = true } = {}) => {
+	if (KASHGAR_DIARY_GENERATOR_ENABLED && routeOptions.mode === 'diary') {
+		openKashgarDiaryGenerator()
+		return null
+	}
+	const previousScope = getActiveXichengCacheScope()
+	const context = applyXichengAiContext(routeOptions)
+	const nextScope = getActiveXichengCacheScope()
+	const scopeChanged = previousScope !== nextScope
+	const hasInitialQuestion = Boolean(routeOptions.question)
+	if (scopeChanged) {
+		initialQuestionHandled = false
+		initialQuestionHandledText = ''
+		messages.value = []
+	}
+	if (hasXichengAiContext(context)) {
+		showKashgarDiaryGenerator.value = false
+		showAiCompanionHome.value = false
+		if (hasInitialQuestion) {
+			sendInitialQuestion(decodeRouteValue(routeOptions.question))
+			return context
+		}
+		const cachedMessages = preferCache && !scopeChanged ? loadMessagesCache() : []
+		if (cachedMessages.length > 0) {
+			messages.value = cachedMessages
+			scheduleHistoryScrollToBottom()
+			return context
+		}
+		setWelcomeMessage()
+		return context
+	}
+	if (hasInitialQuestion) {
+		showAiCompanionHome.value = false
+		sendInitialQuestion(decodeRouteValue(routeOptions.question))
+		return context
+	}
+	if (preferCache) {
+		const cachedMessages = loadMessagesCache()
+		if (cachedMessages.length > 0) {
+			messages.value = cachedMessages
+			scheduleHistoryScrollToBottom()
+		}
+	}
+	return context
+}
+
 onShow(() => {
 	if (activeStream.value) {
 		return
 	}
-	const cachedMessages = loadMessagesCache()
-	if (cachedMessages.length > 0) {
-		messages.value = cachedMessages
-		scheduleHistoryScrollToBottom()
-	}
+	refreshXichengAiRouteContext({ preferCache: true })
 })
 
 onLoad((options = {}) => {
-	const context = applyXichengAiContext(options)
+	const context = refreshXichengAiRouteContext({ routeOptions: options, preferCache: false }) || xichengAiContext.value
 	loadXunjingPackageDetail(context)
 	recordXunjingResourceEvent({
 		eventType: 'VIEW',
@@ -2338,18 +2413,8 @@ onLoad((options = {}) => {
 		}
 	})
 	if (KASHGAR_DIARY_GENERATOR_ENABLED && options.mode === 'diary') {
-		openKashgarDiaryGenerator()
 		return
 	}
-	if (hasXichengAiContext(context) && !options.question) {
-		showKashgarDiaryGenerator.value = false
-		showAiCompanionHome.value = false
-		setWelcomeMessage()
-		return
-	}
-	if (!options.question) return
-	showAiCompanionHome.value = false
-	sendInitialQuestion(decodeRouteValue(options.question))
 })
 
 onReady(() => {

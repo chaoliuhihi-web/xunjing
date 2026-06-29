@@ -65,7 +65,7 @@ assert.ok(
 
 assert.match(
   aiGuide,
-  /onLoad\(\(options = \{\}\) => \{[\s\S]*showAiCompanionHome\.value = false[\s\S]*sendInitialQuestion/,
+  /const refreshXichengAiRouteContext\s*=[\s\S]*hasInitialQuestion[\s\S]*showAiCompanionHome\.value = false[\s\S]*sendInitialQuestion/,
   'AI guide should skip the companion home when opened with an explicit question route'
 )
 

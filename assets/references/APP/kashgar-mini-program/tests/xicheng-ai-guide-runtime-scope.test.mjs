@@ -101,6 +101,6 @@ assert.match(
 
 assert.match(
   onLoadBlock,
-  /const context = applyXichengAiContext\(options\)[\s\S]*loadXunjingPackageDetail\(context\)/,
+  /const context = refreshXichengAiRouteContext\(\{ routeOptions: options, preferCache: false \}\) \|\| xichengAiContext\.value[\s\S]*loadXunjingPackageDetail\(context\)/,
   'AI guide onLoad should apply Xicheng route context before loading the active package detail'
 )

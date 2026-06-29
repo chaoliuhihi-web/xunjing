@@ -6,6 +6,7 @@ const root = process.cwd()
 const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
 
 const aiGuide = read('pages', 'ai-guide', 'ai-guide.vue')
+const refreshRouteContextBlock = aiGuide.match(/const refreshXichengAiRouteContext\s*=\s*\(\{[\s\S]*?\n\}/)?.[0] || ''
 
 assert.match(
   aiGuide,
@@ -14,8 +15,8 @@ assert.match(
 )
 
 assert.match(
-  aiGuide,
-  /onLoad\(\(options = \{\}\) => \{[\s\S]*if \(!options\.question\) return[\s\S]*showAiCompanionHome\.value = false[\s\S]*sendInitialQuestion\(decodeRouteValue\(options\.question\)\)/,
+  refreshRouteContextBlock,
+  /routeOptions\.question[\s\S]*showAiCompanionHome\.value = false[\s\S]*sendInitialQuestion\(decodeRouteValue\(routeOptions\.question\)\)/,
   'AI guide should decode the initial question through the safe helper before sending it to Xiaojing'
 )
 
