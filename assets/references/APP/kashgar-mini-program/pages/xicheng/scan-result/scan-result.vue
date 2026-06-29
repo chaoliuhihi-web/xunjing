@@ -564,7 +564,7 @@ export default {
 			})
 		},
 		selectCandidate(candidate) {
-			const selectedCandidate = normalizeRecognitionCandidate(candidate)
+			const selectedCandidate = normalizeRecognitionCandidate(applyXichengOfficialPoiDefaults(candidate))
 			if (this.isUnsafeCandidate(selectedCandidate)) {
 				this.showUnsafeCandidateToast(selectedCandidate)
 				return
@@ -581,6 +581,7 @@ export default {
 				requiresUserConfirm: false,
 				reason: selectedCandidate.summary || this.result.reason,
 				safetyStatus: selectedCandidate.safetyStatus,
+				officialPoiMatched: selectedCandidate.officialPoiMatched,
 				sources: retainedReviewedSources,
 				suggestedQuestions: selectedCandidate.suggestedQuestions,
 				recommendedQuestions: selectedCandidate.suggestedQuestions,
