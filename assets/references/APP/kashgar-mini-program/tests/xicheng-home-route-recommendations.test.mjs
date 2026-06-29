@@ -80,13 +80,13 @@ assert.match(
 
 assert.match(
   home,
-  /openRecommendedRoute\(route = \{\}\)[\s\S]*\/pages\/xicheng\/travelogue\/travelogue\?mode=route[\s\S]*regionCode=\$\{encodeURIComponent\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeURIComponent\(this\.region\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeURIComponent\(this\.region\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeURIComponent\(this\.region\.sourceChannel\)\}[\s\S]*routeCode=\$\{encodeURIComponent\(route\.routeCode \|\| ''\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.region\.companionName\)\}/,
+  /openRecommendedRoute\(route = \{\}\)[\s\S]*\/pages\/xicheng\/travelogue\/travelogue\?mode=route[\s\S]*regionCode=\$\{encodeRouteValue\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeRouteValue\(this\.region\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeRouteValue\(this\.region\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeRouteValue\(this\.region\.sourceChannel\)\}[\s\S]*routeCode=\$\{encodeRouteValue\(route\.routeCode \|\| ''\)\}[\s\S]*companionName=\$\{encodeRouteValue\(this\.region\.companionName\)\}/,
   'Home recommended route navigation should preserve Xicheng region, package, scene, source channel, route, and companion context'
 )
 
 assert.match(
   home,
-  /openXichengTravelogue\(mode = 'record'\)[\s\S]*\/pages\/xicheng\/travelogue\/travelogue\?mode=\$\{encodeURIComponent\(mode\)\}[\s\S]*regionCode=\$\{encodeURIComponent\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeURIComponent\(this\.region\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeURIComponent\(this\.region\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeURIComponent\(this\.region\.sourceChannel\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.region\.companionName\)\}/,
+  /openXichengTravelogue\(mode = 'record'\)[\s\S]*\/pages\/xicheng\/travelogue\/travelogue\?mode=\$\{encodeRouteValue\(mode\)\}[\s\S]*regionCode=\$\{encodeRouteValue\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeRouteValue\(this\.region\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeRouteValue\(this\.region\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeRouteValue\(this\.region\.sourceChannel\)\}[\s\S]*companionName=\$\{encodeRouteValue\(this\.region\.companionName\)\}/,
   'Home direct travelogue entry should preserve scene and source channel for review and city operations attribution'
 )
 

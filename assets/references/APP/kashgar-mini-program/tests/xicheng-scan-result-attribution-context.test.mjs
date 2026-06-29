@@ -83,29 +83,29 @@ const createRecognitionFeedbackBlock = getBlock(
 for (const required of [
   'sceneCode: trigger.sceneCode || this.region.sceneCode',
   'sourceChannel: trigger.sourceChannel || this.region.sourceChannel',
-  'sceneCode=${encodeURIComponent(result.sceneCode || this.region.sceneCode)}',
-  'sourceChannel=${encodeURIComponent(result.sourceChannel || this.region.sourceChannel)}'
+  'sceneCode=${encodeRouteValue(result.sceneCode || this.region.sceneCode)}',
+  'sourceChannel=${encodeRouteValue(result.sourceChannel || this.region.sourceChannel)}'
 ]) {
   assert.ok(openScanResultBlock.includes(required), `Fresh recognition should carry attribution field ${required}`)
 }
 
 for (const required of [
-  'sceneCode=${encodeURIComponent(this.recentRecognition.sceneCode || this.region.sceneCode)}',
-  'sourceChannel=${encodeURIComponent(this.recentRecognition.sourceChannel || this.region.sourceChannel)}'
+  'sceneCode=${encodeRouteValue(this.recentRecognition.sceneCode || this.region.sceneCode)}',
+  'sourceChannel=${encodeRouteValue(this.recentRecognition.sourceChannel || this.region.sourceChannel)}'
 ]) {
   assert.ok(openRecentRecognitionBlock.includes(required), `Recent recognition route should carry attribution field ${required}`)
 }
 
 for (const required of [
-  'sceneCode=${encodeURIComponent(this.recentRecognition.sceneCode || this.region.sceneCode)}',
-  'sourceChannel=${encodeURIComponent(this.recentRecognition.sourceChannel || this.region.sourceChannel)}'
+  'sceneCode=${encodeRouteValue(this.recentRecognition.sceneCode || this.region.sceneCode)}',
+  'sourceChannel=${encodeRouteValue(this.recentRecognition.sourceChannel || this.region.sourceChannel)}'
 ]) {
   assert.ok(continueRecentRecognitionBlock.includes(required), `Recent recognition Xiaojing query should carry ${required}`)
 }
 
 for (const required of [
-  'sceneCode=${encodeURIComponent(this.region.aiSceneCode || this.region.sceneCode)}',
-  'sourceChannel=${encodeURIComponent(this.region.sourceChannel)}'
+  'sceneCode=${encodeRouteValue(this.region.aiSceneCode || this.region.sceneCode)}',
+  'sourceChannel=${encodeRouteValue(this.region.sourceChannel)}'
 ]) {
   assert.ok(homeAskXiaojingBlock.includes(required), `Direct Xiaojing entry should carry ${required}`)
 }

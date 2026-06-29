@@ -242,9 +242,11 @@ import {
 	resolveXichengTextTrigger
 } from '@/request/xunjing/trigger.js'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
+import { createXichengRouteOutputValue } from '@/request/xunjing/routeParams.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 
 const XICHENG_EMPTY_RECOGNITION_POI_NAME = '待确认西城文化点'
+const encodeRouteValue = (value = '') => createXichengRouteOutputValue(value, { platform: process.env.UNI_PLATFORM })
 
 export default {
 	data() {
@@ -538,13 +540,13 @@ export default {
 			uni.setStorageSync(this.region.storageKey, result)
 			this.recentRecognition = result
 			uni.navigateTo({
-				url: `/pages/xicheng/scan-result/scan-result?source=${encodeURIComponent(source)}&regionCode=${encodeURIComponent(result.regionCode || this.region.regionCode)}&packageCode=${encodeURIComponent(result.packageCode || this.region.packageCode)}&sceneCode=${encodeURIComponent(result.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeURIComponent(result.sourceChannel || this.region.sourceChannel)}&poiCode=${encodeURIComponent(result.poiCode || '')}&poiName=${encodeURIComponent(result.poiName || '')}&companionName=${encodeURIComponent(result.companionName || this.region.companionName)}&safetyStatus=${encodeURIComponent(result.safetyStatus || '')}`
+				url: `/pages/xicheng/scan-result/scan-result?source=${encodeRouteValue(source)}&regionCode=${encodeRouteValue(result.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(result.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(result.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(result.sourceChannel || this.region.sourceChannel)}&poiCode=${encodeRouteValue(result.poiCode || '')}&poiName=${encodeRouteValue(result.poiName || '')}&companionName=${encodeRouteValue(result.companionName || this.region.companionName)}&safetyStatus=${encodeRouteValue(result.safetyStatus || '')}`
 			})
 		},
 		openRecentRecognition() {
 			if (!this.recentRecognition) return
 			uni.navigateTo({
-				url: `/pages/xicheng/scan-result/scan-result?source=${encodeURIComponent(this.recentRecognition.source || '')}&regionCode=${encodeURIComponent(this.recentRecognition.regionCode || this.region.regionCode)}&packageCode=${encodeURIComponent(this.recentRecognition.packageCode || this.region.packageCode)}&sceneCode=${encodeURIComponent(this.recentRecognition.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.recentRecognition.sourceChannel || this.region.sourceChannel)}&poiCode=${encodeURIComponent(this.recentRecognition.poiCode || '')}&poiName=${encodeURIComponent(this.recentRecognition.poiName || '')}&companionName=${encodeURIComponent(this.recentRecognition.companionName || this.region.companionName)}&safetyStatus=${encodeURIComponent(this.recentRecognition.safetyStatus || '')}`
+				url: `/pages/xicheng/scan-result/scan-result?source=${encodeRouteValue(this.recentRecognition.source || '')}&regionCode=${encodeRouteValue(this.recentRecognition.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(this.recentRecognition.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(this.recentRecognition.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.recentRecognition.sourceChannel || this.region.sourceChannel)}&poiCode=${encodeRouteValue(this.recentRecognition.poiCode || '')}&poiName=${encodeRouteValue(this.recentRecognition.poiName || '')}&companionName=${encodeRouteValue(this.recentRecognition.companionName || this.region.companionName)}&safetyStatus=${encodeRouteValue(this.recentRecognition.safetyStatus || '')}`
 			})
 		},
 		recentRecognitionNeedsCandidateConfirmation() {
@@ -589,16 +591,16 @@ export default {
 			}
 			const prompt = this.recentRecognition.poiName ? `讲讲${this.recentRecognition.poiName}` : '讲讲这个西城文化点'
 			const query = [
-				`question=${encodeURIComponent(prompt)}`,
-				`regionCode=${encodeURIComponent(this.recentRecognition.regionCode || this.region.regionCode)}`,
-				`packageCode=${encodeURIComponent(this.recentRecognition.packageCode || this.region.packageCode)}`,
-				`sceneCode=${encodeURIComponent(this.recentRecognition.sceneCode || this.region.sceneCode)}`,
-				`sourceChannel=${encodeURIComponent(this.recentRecognition.sourceChannel || this.region.sourceChannel)}`,
-				`poiCode=${encodeURIComponent(this.recentRecognition.poiCode || '')}`,
-				`poiName=${encodeURIComponent(this.recentRecognition.poiName || '')}`,
-				`companionName=${encodeURIComponent(this.recentRecognition.companionName || this.region.companionName)}`,
-				`confidence=${encodeURIComponent(String(this.recentRecognition.confidence || ''))}`,
-				`safetyStatus=${encodeURIComponent(this.recentRecognition.safetyStatus || '')}`
+				`question=${encodeRouteValue(prompt)}`,
+				`regionCode=${encodeRouteValue(this.recentRecognition.regionCode || this.region.regionCode)}`,
+				`packageCode=${encodeRouteValue(this.recentRecognition.packageCode || this.region.packageCode)}`,
+				`sceneCode=${encodeRouteValue(this.recentRecognition.sceneCode || this.region.sceneCode)}`,
+				`sourceChannel=${encodeRouteValue(this.recentRecognition.sourceChannel || this.region.sourceChannel)}`,
+				`poiCode=${encodeRouteValue(this.recentRecognition.poiCode || '')}`,
+				`poiName=${encodeRouteValue(this.recentRecognition.poiName || '')}`,
+				`companionName=${encodeRouteValue(this.recentRecognition.companionName || this.region.companionName)}`,
+				`confidence=${encodeRouteValue(String(this.recentRecognition.confidence || ''))}`,
+				`safetyStatus=${encodeRouteValue(this.recentRecognition.safetyStatus || '')}`
 			].join('&')
 			uni.navigateTo({
 				url: `/pages/ai-guide/ai-guide?${query}`
@@ -606,7 +608,7 @@ export default {
 		},
 		askXiaojing() {
 			uni.navigateTo({
-				url: `/pages/ai-guide/ai-guide?regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.aiSceneCode || this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.region.sourceChannel)}&companionName=${encodeURIComponent(this.region.companionName)}`
+				url: `/pages/ai-guide/ai-guide?regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.aiSceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&companionName=${encodeRouteValue(this.region.companionName)}`
 			})
 		},
 		handleXichengP0FlowAction(key = 'guide') {
@@ -659,7 +661,7 @@ export default {
 		},
 		openRecommendedRouteDetail(route = {}) {
 			uni.navigateTo({
-				url: `/pages/xicheng/route-detail/route-detail?routeCode=${encodeURIComponent(route.routeCode || '')}&regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.region.sourceChannel)}&companionName=${encodeURIComponent(this.region.companionName)}`
+				url: `/pages/xicheng/route-detail/route-detail?routeCode=${encodeRouteValue(route.routeCode || '')}&regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&companionName=${encodeRouteValue(this.region.companionName)}`
 			})
 		},
 		openRecommendedRoute(route = {}) {
@@ -706,17 +708,17 @@ export default {
 				...materials
 			].slice(0, 80))
 			uni.navigateTo({
-				url: `/pages/xicheng/travelogue/travelogue?mode=route&regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.region.sourceChannel)}&routeCode=${encodeURIComponent(route.routeCode || '')}&companionName=${encodeURIComponent(this.region.companionName)}`
+				url: `/pages/xicheng/travelogue/travelogue?mode=route&regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&routeCode=${encodeRouteValue(route.routeCode || '')}&companionName=${encodeRouteValue(this.region.companionName)}`
 			})
 		},
 		openXichengTravelogue(mode = 'record') {
 			uni.navigateTo({
-				url: `/pages/xicheng/travelogue/travelogue?mode=${encodeURIComponent(mode)}&autoStart=${encodeURIComponent(mode === 'record' ? '1' : '')}&regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.region.sourceChannel)}&companionName=${encodeURIComponent(this.region.companionName)}`
+				url: `/pages/xicheng/travelogue/travelogue?mode=${encodeRouteValue(mode)}&autoStart=${encodeRouteValue(mode === 'record' ? '1' : '')}&regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&companionName=${encodeRouteValue(this.region.companionName)}`
 			})
 		},
 		openXichengInspiration() {
 			uni.navigateTo({
-				url: `/pages/xicheng/inspiration/inspiration?regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.region.sourceChannel)}&companionName=${encodeURIComponent(this.region.companionName)}`
+				url: `/pages/xicheng/inspiration/inspiration?regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&companionName=${encodeRouteValue(this.region.companionName)}`
 			})
 		}
 	}

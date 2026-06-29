@@ -11,13 +11,13 @@ const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 
 assert.match(
   home,
-  /openXichengTravelogue\(mode = 'record'\)[\s\S]*autoStart=\$\{encodeURIComponent\(mode === 'record' \? '1' : ''\)\}/,
+  /openXichengTravelogue\(mode = 'record'\)[\s\S]*autoStart=\$\{encodeRouteValue\(mode === 'record' \? '1' : ''\)\}/,
   'Home start-record entry should pass autoStart=1 only for explicit record mode'
 )
 
 assert.match(
   home,
-  /openXichengTravelogue\(mode = 'record'\)[\s\S]*regionCode=\$\{encodeURIComponent\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeURIComponent\(this\.region\.packageCode\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.region\.companionName\)\}/,
+  /openXichengTravelogue\(mode = 'record'\)[\s\S]*regionCode=\$\{encodeRouteValue\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeRouteValue\(this\.region\.packageCode\)\}[\s\S]*companionName=\$\{encodeRouteValue\(this\.region\.companionName\)\}/,
   'Home travelogue entry should carry regionCode, packageCode, and companionName for direct record/draft attribution'
 )
 

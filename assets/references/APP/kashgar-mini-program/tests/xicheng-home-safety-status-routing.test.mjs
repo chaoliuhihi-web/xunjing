@@ -15,19 +15,19 @@ assert.ok(continueRecentBlock, 'Xicheng home should expose continueRecentRecogni
 
 assert.match(
   openScanResultBlock,
-  /safetyStatus=\$\{encodeURIComponent\(result\.safetyStatus \|\| ''\)\}/,
+  /safetyStatus=\$\{encodeRouteValue\(result\.safetyStatus \|\| ''\)\}/,
   'Fresh recognition result route should carry backend safetyStatus such as BLOCKED'
 )
 
 assert.match(
   openRecentRecognitionBlock,
-  /safetyStatus=\$\{encodeURIComponent\(this\.recentRecognition\.safetyStatus \|\| ''\)\}/,
+  /safetyStatus=\$\{encodeRouteValue\(this\.recentRecognition\.safetyStatus \|\| ''\)\}/,
   'Recent recognition result route should carry cached safetyStatus without relying on result-page storage recovery'
 )
 
 assert.match(
   continueRecentBlock,
-  /`safetyStatus=\$\{encodeURIComponent\(this\.recentRecognition\.safetyStatus \|\| ''\)\}`/,
+  /`safetyStatus=\$\{encodeRouteValue\(this\.recentRecognition\.safetyStatus \|\| ''\)\}`/,
   'Continuing a recent recognition into Xiaojing should carry safetyStatus in the chat route'
 )
 

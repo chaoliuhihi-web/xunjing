@@ -69,7 +69,7 @@ for (const required of [
 
 assert.match(
   home,
-  /openXichengInspiration\(\)[\s\S]*\/pages\/xicheng\/inspiration\/inspiration\?[\s\S]*regionCode=\$\{encodeURIComponent\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeURIComponent\(this\.region\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeURIComponent\(this\.region\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeURIComponent\(this\.region\.sourceChannel\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.region\.companionName\)\}/,
+  /openXichengInspiration\(\)[\s\S]*\/pages\/xicheng\/inspiration\/inspiration\?[\s\S]*regionCode=\$\{encodeRouteValue\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeRouteValue\(this\.region\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeRouteValue\(this\.region\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeRouteValue\(this\.region\.sourceChannel\)\}[\s\S]*companionName=\$\{encodeRouteValue\(this\.region\.companionName\)\}/,
   'Home inspiration entry should preserve Xicheng package, scene, source channel, and companion context'
 )
 

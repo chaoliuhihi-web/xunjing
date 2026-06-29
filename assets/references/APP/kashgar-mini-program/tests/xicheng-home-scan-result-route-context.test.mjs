@@ -12,23 +12,23 @@ assert.ok(openScanResultBlock, 'Xicheng home should expose openScanResult')
 assert.ok(openRecentRecognitionBlock, 'Xicheng home should expose openRecentRecognition')
 
 for (const required of [
-  'source=${encodeURIComponent(source)}',
-  'regionCode=${encodeURIComponent(result.regionCode || this.region.regionCode)}',
-  'packageCode=${encodeURIComponent(result.packageCode || this.region.packageCode)}',
-  "poiCode=${encodeURIComponent(result.poiCode || '')}",
-  "poiName=${encodeURIComponent(result.poiName || '')}",
-  'companionName=${encodeURIComponent(result.companionName || this.region.companionName)}'
+  'source=${encodeRouteValue(source)}',
+  'regionCode=${encodeRouteValue(result.regionCode || this.region.regionCode)}',
+  'packageCode=${encodeRouteValue(result.packageCode || this.region.packageCode)}',
+  "poiCode=${encodeRouteValue(result.poiCode || '')}",
+  "poiName=${encodeRouteValue(result.poiName || '')}",
+  'companionName=${encodeRouteValue(result.companionName || this.region.companionName)}'
 ]) {
   assert.ok(openScanResultBlock.includes(required), `Fresh recognition result route should carry ${required}`)
 }
 
 for (const required of [
-  "source=${encodeURIComponent(this.recentRecognition.source || '')}",
-  'regionCode=${encodeURIComponent(this.recentRecognition.regionCode || this.region.regionCode)}',
-  'packageCode=${encodeURIComponent(this.recentRecognition.packageCode || this.region.packageCode)}',
-  "poiCode=${encodeURIComponent(this.recentRecognition.poiCode || '')}",
-  "poiName=${encodeURIComponent(this.recentRecognition.poiName || '')}",
-  'companionName=${encodeURIComponent(this.recentRecognition.companionName || this.region.companionName)}'
+  "source=${encodeRouteValue(this.recentRecognition.source || '')}",
+  'regionCode=${encodeRouteValue(this.recentRecognition.regionCode || this.region.regionCode)}',
+  'packageCode=${encodeRouteValue(this.recentRecognition.packageCode || this.region.packageCode)}',
+  "poiCode=${encodeRouteValue(this.recentRecognition.poiCode || '')}",
+  "poiName=${encodeRouteValue(this.recentRecognition.poiName || '')}",
+  'companionName=${encodeRouteValue(this.recentRecognition.companionName || this.region.companionName)}'
 ]) {
   assert.ok(openRecentRecognitionBlock.includes(required), `Recent recognition result route should carry ${required}`)
 }

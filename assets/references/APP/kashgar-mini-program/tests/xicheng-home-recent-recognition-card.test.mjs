@@ -48,16 +48,16 @@ assert.match(
 
 assert.match(
   home,
-  /openRecentRecognition\(\)[\s\S]*\/pages\/xicheng\/scan-result\/scan-result\?[\s\S]*poiCode=\$\{encodeURIComponent\(this\.recentRecognition\.poiCode \|\| ''\)\}/,
+  /openRecentRecognition\(\)[\s\S]*\/pages\/xicheng\/scan-result\/scan-result\?[\s\S]*poiCode=\$\{encodeRouteValue\(this\.recentRecognition\.poiCode \|\| ''\)\}/,
   'Recent recognition card should navigate back to the recognition result page with poiCode'
 )
 
 for (const required of [
   '/pages/ai-guide/ai-guide?',
-  'regionCode=${encodeURIComponent(this.recentRecognition.regionCode || this.region.regionCode)}',
-  "poiCode=${encodeURIComponent(this.recentRecognition.poiCode || '')}",
-  "poiName=${encodeURIComponent(this.recentRecognition.poiName || '')}",
-  "question=${encodeURIComponent(prompt)}"
+  'regionCode=${encodeRouteValue(this.recentRecognition.regionCode || this.region.regionCode)}',
+  "poiCode=${encodeRouteValue(this.recentRecognition.poiCode || '')}",
+  "poiName=${encodeRouteValue(this.recentRecognition.poiName || '')}",
+  "question=${encodeRouteValue(prompt)}"
 ]) {
   assert.ok(continueRecentSource.includes(required), `Recent recognition card should carry Xiaojing query part ${required}`)
 }
