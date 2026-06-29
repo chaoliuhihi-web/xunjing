@@ -67,7 +67,9 @@ export const requestXichengAiChat = ({ question = '', context = {} } = {}) => {
 			data: buildXichengAiChatPayload({ question, context }),
 			success: (res) => {
 				if (res && res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
-					reject(new Error(`西城小京接口异常:${res.statusCode}`))
+					const error = new Error(`西城小京接口异常:${res.statusCode}`)
+					error.yudaoHttpStatusCode = Number(res.statusCode)
+					reject(error)
 					return
 				}
 				try {

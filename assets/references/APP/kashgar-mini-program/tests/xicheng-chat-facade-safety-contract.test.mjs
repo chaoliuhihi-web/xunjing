@@ -77,7 +77,14 @@ let runtimeChatSource = chatRequest
     /import \{[\s\S]*?\} from '@\/request\/xunjingMultimodal\.js'/,
     `const buildYudaoAppApiUrl = (path) => 'https://example.test/' + path
 const getXunjingUserTraceId = () => 'guest'
-const getYudaoCommonResultPayload = (res) => res && res.data && res.data.data ? res.data.data : {}`
+const getYudaoCommonResultPayload = (res) => {
+  if (res && res.data && res.data.code !== undefined && Number(res.data.code) !== 0) {
+    const error = new Error(res.data.msg || res.data.message || 'Yudao CommonResult failed')
+    error.yudaoCommonResultCode = Number(res.data.code)
+    throw error
+  }
+  return res && res.data && res.data.data ? res.data.data : {}
+}`
   )
   .replace(
     /import \{[^}]*normalizeXichengSafetyStatus[^}]*\} from '@\/request\/xunjing\/safety\.js'/,
@@ -100,9 +107,20 @@ const isXichengUnsafeSafetyStatus = (safetyStatus = '') => ['BLOCKED', 'UNAVAILA
 })`
   )
 
-const { normalizeXichengAiChatResponse } = await import(
+const { normalizeXichengAiChatResponse, requestXichengAiChat } = await import(
   `data:text/javascript;base64,${Buffer.from(runtimeChatSource).toString('base64')}`
 )
+
+let lastRequestOptions = null
+const installChatRequestMock = (handler) => {
+  lastRequestOptions = null
+  globalThis.uni = {
+    request: (options) => {
+      lastRequestOptions = options
+      handler(options)
+    }
+  }
+}
 
 const blockedResponse = normalizeXichengAiChatResponse({
   answer: '后端不应展示的未审核回答',
@@ -166,3 +184,35 @@ assert.deepEqual(
   },
   'Xicheng chat facade should fail closed when a nominally safe response has no reviewed sources'
 )
+
+installChatRequestMock((options) => options.success?.({ statusCode: 503, data: { msg: 'service unavailable' } }))
+await assert.rejects(
+  () => requestXichengAiChat({
+    question: '讲讲白塔寺',
+    context: { poiCode: 'xicheng-baitasi', poiName: '妙应寺白塔', safetyStatus: 'PASSED' }
+  }),
+  (error) => {
+    assert.match(error.message, /西城小京接口异常:503/)
+    assert.equal(error.yudaoHttpStatusCode, 503)
+    return true
+  },
+  'Xicheng chat facade should preserve HTTP status codes so callers can fail closed instead of treating guard failures as source-backed fallback'
+)
+assert.equal(lastRequestOptions.header['tenant-id'], '1')
+assert.equal(lastRequestOptions.data.poiCode, 'xicheng-baitasi')
+
+installChatRequestMock((options) => options.success?.({ statusCode: 200, data: { code: 401, msg: '账号未登录' } }))
+await assert.rejects(
+  () => requestXichengAiChat({
+    question: '讲讲白塔寺',
+    context: { poiCode: 'xicheng-baitasi', poiName: '妙应寺白塔', safetyStatus: 'PASSED' }
+  }),
+  (error) => {
+    assert.equal(error.yudaoCommonResultCode, 401)
+    assert.match(error.message, /账号未登录/)
+    return true
+  },
+  'Xicheng chat facade should preserve CommonResult business codes for backend auth or guard failures'
+)
+
+delete globalThis.uni
