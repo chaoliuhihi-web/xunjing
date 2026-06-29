@@ -3071,15 +3071,11 @@ export default {
 }
 
 .xicheng-travelogue-actions {
-	position: sticky;
-	z-index: 5;
-	bottom: calc(20rpx + env(safe-area-inset-bottom));
 	padding: 14rpx;
 	border: 1rpx solid rgba(255, 255, 255, 0.74);
 	border-radius: 34rpx;
 	background: rgba(255, 253, 248, 0.92);
 	box-shadow: 0 18rpx 46rpx rgba(28, 35, 32, 0.12);
-	backdrop-filter: blur(12rpx);
 }
 
 .ghost-button {

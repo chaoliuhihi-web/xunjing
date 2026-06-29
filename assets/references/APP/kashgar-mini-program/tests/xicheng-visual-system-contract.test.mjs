@@ -93,6 +93,14 @@ for (const token of [
   assert.ok(travelogue.includes(token), `travelogue.vue should support Xicheng travelogue visual token ${token}`)
 }
 
+const travelogueActionsStyle = travelogue.match(/\.xicheng-travelogue-actions\s*\{[\s\S]*?\n\}/)?.[0] || ''
+assert.ok(travelogueActionsStyle, 'travelogue.vue should style the Xicheng travelogue action group')
+assert.doesNotMatch(
+  travelogueActionsStyle,
+  /position:\s*(sticky|fixed)/,
+  'Travelogue share, PDF, and review actions should stay in the page flow instead of overlaying the generated draft preview'
+)
+
 for (const token of [
   'xicheng-route-detail',
   'route-hero',
