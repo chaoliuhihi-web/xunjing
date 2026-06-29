@@ -10,6 +10,7 @@ const themePath = path.join(appRoot, 'styles', 'xicheng-theme.scss')
 const appVue = fs.readFileSync(path.join(appRoot, 'App.vue'), 'utf8')
 const home = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'home', 'home.vue'), 'utf8')
 const scanResult = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
+const aiGuide = fs.readFileSync(path.join(appRoot, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
 
 const mockupDir = path.join(appReferenceRoot, 'xicheng-multimodal', 'design-mockups')
 const requiredMockups = [
@@ -64,4 +65,13 @@ for (const [fileName, source] of [
   ]) {
     assert.ok(source.includes(className), `${fileName} should use ${className} from the shared visual theme`)
   }
+}
+
+for (const token of [
+  'xicheng-chat-shell',
+  'xicheng-chat-container',
+  'chatNavTitle',
+  'activeAiAvatar'
+]) {
+  assert.ok(aiGuide.includes(token), `ai-guide.vue should support Xicheng chat visual token ${token}`)
 }

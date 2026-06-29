@@ -1,5 +1,5 @@
 <template>
-	<view class="container">
+	<view class="container" :class="isXichengChatMode ? ['xicheng-designed-page', 'xicheng-chat-container'] : []">
 		<view v-if="showKashgarDiaryGenerator" class="kashgar-diary-generator">
 			<view class="kashgar-diary-bg"></view>
 			<view class="kashgar-diary-topbar">
@@ -178,15 +178,15 @@
 			<tab-bar :current="1" />
 		</view>
 
-		<view v-else class="ai-chat-shell">
+		<view v-else class="ai-chat-shell" :class="{ 'xicheng-chat-shell': isXichengChatMode }">
 		<!-- 背景图 -->
-		<image class="bg-image" :src="BG_IMAGE" mode="aspectFill"></image>
+		<image class="bg-image" :class="{ 'xicheng-chat-bg-image': isXichengChatMode }" :src="BG_IMAGE" mode="aspectFill"></image>
 
 		<!-- 自定义导航栏 -->
 		<custom-nav
-			title="AI小导游"
+			:title="chatNavTitle"
 			:left-icon="UrlImg + '/baidu_map/weatch/images/left.png'"
-			background-color="#FFFFFF"
+			:background-color="isXichengChatMode ? '#FFF8EC' : '#FFFFFF'"
 			@leftClick="goBack"
 			@navHeight="handleNavHeight"
 		/>
@@ -231,7 +231,7 @@
 					<view v-else class="message-ai-wrapper">
 						<view v-if="msg.isPending || msg.content" class="message-ai">
 							<view class="message-avatar ai-avatar">
-								<image class="ai-avatar-image" :src="AI_AVATAR" mode="aspectFill"></image>
+								<image class="ai-avatar-image" :src="activeAiAvatar" mode="aspectFill"></image>
 							</view>
 							<!-- 内容为空时显示加载动画 -->
 							<view v-if="msg.isPending && !msg.content" class="message-content ai-content loading-content">
@@ -706,6 +706,20 @@ const hasXichengAiContext = (context = xichengAiContext.value) => (
 		|| Boolean(context.poiName)
 	)
 )
+
+const isXichengChatMode = computed(() => hasXichengAiContext())
+
+const chatNavTitle = computed(() => {
+	const context = xichengAiContext.value || {}
+	if (!hasXichengAiContext(context)) {
+		return 'AI小导游'
+	}
+	return context.poiName ? `${context.poiName} · 小京` : '小京 AI讲解'
+})
+
+const activeAiAvatar = computed(() => (
+	isXichengChatMode.value ? XICHENG_REGION_CONFIG.companionAvatar : AI_AVATAR
+))
 
 const getXichengContextSources = () => {
 	const context = xichengAiContext.value || {}
@@ -2403,3 +2417,127 @@ loadChatHistory({ preferCache: true })
 <style scoped src="./ai-guide-kashgar-diary.css"></style>
 <style scoped src="./ai-guide-kashgar-home.css"></style>
 <style scoped src="./ai-guide-chat.css"></style>
+<style scoped>
+.xicheng-chat-container {
+	background:
+		linear-gradient(180deg, rgba(255, 253, 248, 0.98) 0%, #F8F3EA 48%, #EEF5EF 100%);
+	color: #102F29;
+}
+
+.xicheng-chat-shell .xicheng-chat-bg-image {
+	display: none;
+}
+
+.xicheng-chat-shell .content {
+	background: transparent;
+}
+
+.xicheng-chat-shell .chat-list {
+	padding-left: 30rpx;
+	padding-right: 30rpx;
+}
+
+.xicheng-chat-shell .message-ai {
+	margin-top: 36rpx;
+}
+
+.xicheng-chat-shell .message-user {
+	padding-right: 0;
+}
+
+.xicheng-chat-shell .message-content-wrapper {
+	max-width: 72%;
+}
+
+.xicheng-chat-shell .ai-avatar,
+.xicheng-chat-shell .user-avatar {
+	width: 68rpx;
+	height: 68rpx;
+	box-shadow: 0 10rpx 24rpx rgba(28, 35, 32, 0.10);
+}
+
+.xicheng-chat-shell .ai-avatar {
+	background: rgba(255, 252, 246, 0.92);
+	border: 1rpx solid rgba(181, 148, 94, 0.22);
+}
+
+.xicheng-chat-shell .user-avatar {
+	background: #173F35;
+}
+
+.xicheng-chat-shell .ai-content,
+.xicheng-chat-shell .message-source-list,
+.xicheng-chat-shell .follow-up-item {
+	border: 1rpx solid rgba(255, 255, 255, 0.78);
+	background:
+		linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(250, 246, 237, 0.88));
+	box-shadow: 0 14rpx 34rpx rgba(28, 35, 32, 0.08);
+}
+
+.xicheng-chat-shell .ai-content {
+	max-width: 72%;
+	color: #102F29;
+	border-radius: 28rpx 28rpx 28rpx 8rpx;
+}
+
+.xicheng-chat-shell .user-content {
+	background:
+		linear-gradient(180deg, #234D42 0%, #102F29 100%);
+	color: #FFF9EC;
+	border-radius: 28rpx 28rpx 8rpx 28rpx;
+	box-shadow: 0 12rpx 26rpx rgba(16, 47, 41, 0.18);
+}
+
+.xicheng-chat-shell .message-source-list {
+	margin-left: 84rpx;
+	margin-right: 0;
+	border-radius: 28rpx;
+}
+
+.xicheng-chat-shell .message-source-heading,
+.xicheng-chat-shell .message-source-title {
+	color: #173F35;
+}
+
+.xicheng-chat-shell .message-source-desc,
+.xicheng-chat-shell .follow-up-text {
+	color: #746F68;
+}
+
+.xicheng-chat-shell .follow-up-list {
+	padding-left: 84rpx;
+	padding-right: 0;
+}
+
+.xicheng-chat-shell .follow-up-item {
+	border-radius: 24rpx;
+}
+
+.xicheng-chat-shell .input-area {
+	border-top: 1rpx solid rgba(181, 148, 94, 0.18);
+	background: rgba(255, 248, 236, 0.94);
+	box-shadow: 0 -12rpx 32rpx rgba(28, 35, 32, 0.08);
+}
+
+.xicheng-chat-shell .upload-btn,
+.xicheng-chat-shell .message-input {
+	border: 1rpx solid rgba(181, 148, 94, 0.24);
+	background: rgba(255, 252, 246, 0.88);
+}
+
+.xicheng-chat-shell .message-input {
+	color: #102F29;
+}
+
+.xicheng-chat-shell .message-input:focus {
+	border-color: rgba(181, 148, 94, 0.48);
+	background: #FFFDF8;
+}
+
+.xicheng-chat-shell .send-btn-active {
+	background:
+		linear-gradient(180deg, #234D42 0%, #102F29 100%);
+	color: #FFF9EC;
+	box-shadow: 0 10rpx 22rpx rgba(16, 47, 41, 0.18);
+}
+</style>
