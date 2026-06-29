@@ -2002,6 +2002,8 @@ export default {
 		},
 		createPublicRecordingSummary() {
 			return {
+				routeCode: this.recordingSession.routeCode || '',
+				routeTitle: this.recordingSession.routeTitle || '',
 				sessionStatus: this.recordingSession.status || 'idle',
 				startedAt: this.recordingSession.startedAt || '',
 				finishedAt: this.recordingSession.finishedAt || '',

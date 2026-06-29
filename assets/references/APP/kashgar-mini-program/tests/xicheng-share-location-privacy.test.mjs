@@ -141,6 +141,27 @@ assert.doesNotMatch(
   'Public candidate confirmation summary should not expose raw candidate set, confidence, source counts, or internal confirmation metadata'
 )
 
+const recordingSummaryBlock = travelogue.match(/createPublicRecordingSummary\(\)[\s\S]*?\n\t\t\},\n\t\tcreateReviewPublicPreview/)?.[0] || ''
+assert.ok(recordingSummaryBlock, 'Travelogue should expose a bounded public recording summary for share exports')
+
+for (const required of [
+  'routeCode: this.recordingSession.routeCode ||',
+  'routeTitle: this.recordingSession.routeTitle ||',
+  'sessionStatus: this.recordingSession.status ||',
+  'routePointCount: this.routePointCount',
+  'stayPointCount: this.stayPointCount',
+  'shareTrackDefault: \'private\'',
+  'exactTrackHidden: true'
+]) {
+  assert.ok(recordingSummaryBlock.includes(required), `Public recording summary should preserve safe route and recording field ${required}`)
+}
+
+assert.doesNotMatch(
+  recordingSummaryBlock,
+  /trackPoints|stayPoints|filteredTrackPoints|latitude|longitude/,
+  'Public recording summary should not expose exact track arrays, filtered track arrays, or coordinates'
+)
+
 assert.match(
   travelogue,
   /createShareArtifact\(assetType\)[\s\S]*const publicRouteCheckins = this\.routeCheckins[\s\S]*filter\(checkin => this\.hasReviewableRouteCheckinEvidence\(checkin\)\)[\s\S]*map\(checkin => this\.sanitizeRouteCheckinForPublicShare\(checkin\)\)[\s\S]*const publicMaterials = this\.materials[\s\S]*filter\(material => hasReviewableMaterialEvidence\(material\)\)[\s\S]*map\(material => this\.sanitizeMaterialForPublicShare\(material\)\)[\s\S]*const publicPhotoMaterialCount = publicMaterials\.filter\(material => material && material\.type === 'photo'\)\.length[\s\S]*const publicRemarkMaterialCount = publicMaterials\.filter\(material => material && material\.type === 'remark'\)\.length[\s\S]*const publicAiGuideMaterialCount = publicMaterials\.filter\(material => material && material\.type === 'ai-guide'\)\.length[\s\S]*publicMaterials,[\s\S]*publicStudyTaskEvidence:\s*this\.completedStudyTaskEvidence\.map\(evidence => this\.sanitizeStudyTaskEvidenceForPublicShare\(evidence\)\)[\s\S]*publicRouteCheckins,[\s\S]*checkinCount:\s*publicRouteCheckins\.length[\s\S]*materialCount:\s*publicMaterials\.length[\s\S]*photoMaterialCount:\s*publicPhotoMaterialCount[\s\S]*remarkMaterialCount:\s*publicRemarkMaterialCount[\s\S]*aiGuideMaterialCount:\s*publicAiGuideMaterialCount[\s\S]*privacy:\s*\{[\s\S]*shareLocationPrecision:\s*'poi_area'[\s\S]*exactCoordinatesHidden:\s*true/,
