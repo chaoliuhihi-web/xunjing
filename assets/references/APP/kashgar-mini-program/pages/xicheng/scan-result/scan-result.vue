@@ -420,7 +420,7 @@ export default {
 			return '0%'
 		},
 		suggestedQuestions() {
-			return this.result.suggestedQuestions || createXichengPoiSuggestedQuestions(this.result.poiName)
+			return normalizeSuggestedQuestions(this.result)
 		},
 		sourceList() {
 			return Array.isArray(this.result.sources) ? this.result.sources : []
