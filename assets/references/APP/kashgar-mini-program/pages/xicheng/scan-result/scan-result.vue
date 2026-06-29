@@ -1,9 +1,35 @@
 <template>
 	<view class="scan-result xicheng-designed-page xicheng-bottom-safe">
+		<view class="scan-result-topbar">
+			<view class="scan-result-back" @click="goBack"></view>
+			<text class="scan-result-title">识别结果</text>
+			<view class="scan-result-share"></view>
+		</view>
+
 		<view class="result-card xicheng-paper-card">
-			<text class="label">{{ result.sourceLabel }}</text>
-			<text class="poi-name">{{ result.poiName }}</text>
-			<text class="reason">{{ result.reason || '小京已结合扫码、拍照、OCR和定位信号完成识别。' }}</text>
+			<view class="result-hero-layout">
+				<image
+					v-if="resultVisualImage"
+					class="result-poi-image"
+					:src="resultVisualImage"
+					mode="aspectFill"
+				/>
+				<view class="result-hero-copy">
+					<text class="label">{{ result.sourceLabel }}</text>
+					<text class="poi-name">{{ result.poiName }}</text>
+					<text class="reason">{{ result.reason || '小京已结合扫码、拍照、OCR和定位信号完成识别。' }}</text>
+					<view class="result-source-signals">
+						<view
+							v-for="signal in recognitionSignalItems"
+							:key="signal.key"
+							class="result-source-signal"
+						>
+							<text class="result-source-signal-label">{{ signal.label }}</text>
+							<text class="result-source-signal-value">{{ signal.value }}</text>
+						</view>
+					</view>
+				</view>
+			</view>
 			<view class="meta-grid">
 				<view>
 					<text class="meta-value">{{ confidenceDisplay }}</text>
@@ -16,6 +42,13 @@
 				<view>
 					<text class="meta-value">{{ safetyStatusLabel }}</text>
 					<text class="meta-label">审核状态</text>
+				</view>
+			</view>
+			<view class="result-companion-card">
+				<image class="result-companion-avatar" :src="region.companionAvatar" mode="aspectFit" />
+				<view class="result-companion-copy xicheng-companion-bubble">
+					<text class="result-companion-title">小京已为你匹配到这里</text>
+					<text class="result-companion-desc">{{ recognitionActionBlocked ? questionSectionTitle : '可以继续听讲解、问路线或生成游记素材。' }}</text>
 				</view>
 			</view>
 		</view>
@@ -354,6 +387,7 @@ const normalizeResult = (result = {}) => ({
 export default {
 	data() {
 		return {
+			region: XICHENG_REGION_CONFIG,
 			result: normalizeResult(),
 			feedbackNote: '',
 			recognitionFeedback: null
@@ -388,6 +422,11 @@ export default {
 		sourceList() {
 			return Array.isArray(this.result.sources) ? this.result.sources : []
 		},
+		resultVisualImage() {
+			return this.region && this.region.visualAssets
+				? this.region.visualAssets.heroLandmark || ''
+				: ''
+		},
 		safetyStatusLabel() {
 			const safetyStatus = normalizeXichengSafetyStatus(this.result.safetyStatus)
 			if (safetyStatus === 'BLOCKED') return '已拦截'
@@ -414,6 +453,27 @@ export default {
 				return '小京暂时无法获取已审核来源，不能问小京'
 			}
 			return '暂无可继续追问的问题'
+		},
+		recognitionSignalItems() {
+			const sourceCount = this.sourceList.length
+			const safetyLabel = this.safetyStatusLabel
+			return [
+				{
+					key: 'source-label',
+					label: '识别方式',
+					value: this.result.sourceLabel || '识别结果'
+				},
+				{
+					key: 'reviewed-source',
+					label: '审核来源',
+					value: sourceCount > 0 ? `${sourceCount} 条可用` : safetyLabel
+				},
+				{
+					key: 'official-poi',
+					label: '官方匹配',
+					value: this.result.officialPoiMatched ? '已确认 POI' : this.result.requiresUserConfirm ? '待确认' : '待匹配'
+				}
+			]
 		},
 		candidateSectionBadge() {
 			if (this.pendingCandidateConfirmation) return '请选择官方 POI'
@@ -489,6 +549,22 @@ export default {
 		this.loadRecognitionFeedback()
 	},
 	methods: {
+		goBack() {
+			if (uni.navigateBack) {
+				uni.navigateBack({
+					delta: 1,
+					fail: () => {
+						uni.reLaunch({
+							url: '/pages/xicheng/home/home'
+						})
+					}
+				})
+				return
+			}
+			uni.reLaunch({
+				url: '/pages/xicheng/home/home'
+			})
+		},
 		isBlockedDevelopmentRecognitionCache(recognition = {}) {
 			return isXichengDevelopmentRecognitionCacheBlocked(recognition)
 		},
@@ -790,9 +866,74 @@ export default {
 <style scoped>
 .scan-result {
 	min-height: 100vh;
-	padding: 40rpx 28rpx 56rpx;
+	padding: 30rpx 28rpx 56rpx;
 	box-sizing: border-box;
 	color: #102F29;
+}
+
+.scan-result-topbar {
+	display: grid;
+	grid-template-columns: 72rpx minmax(0, 1fr) 72rpx;
+	align-items: center;
+	min-height: 72rpx;
+	margin-bottom: 22rpx;
+}
+
+.scan-result-title {
+	font-size: 34rpx;
+	line-height: 1.3;
+	font-weight: 700;
+	text-align: center;
+	color: #102F29;
+}
+
+.scan-result-back,
+.scan-result-share {
+	position: relative;
+	width: 64rpx;
+	height: 64rpx;
+	border-radius: 999rpx;
+	background: rgba(255, 253, 248, 0.78);
+	box-shadow: 0 10rpx 24rpx rgba(16, 47, 41, 0.08);
+}
+
+.scan-result-back::before {
+	content: '';
+	position: absolute;
+	left: 26rpx;
+	top: 20rpx;
+	width: 18rpx;
+	height: 18rpx;
+	border-left: 5rpx solid #173F35;
+	border-bottom: 5rpx solid #173F35;
+	transform: rotate(45deg);
+}
+
+.scan-result-share::before,
+.scan-result-share::after {
+	content: '';
+	position: absolute;
+	box-sizing: border-box;
+}
+
+.scan-result-share::before {
+	right: 18rpx;
+	top: 16rpx;
+	width: 30rpx;
+	height: 30rpx;
+	border: 4rpx solid #173F35;
+	border-top: 0;
+	border-radius: 6rpx;
+}
+
+.scan-result-share::after {
+	right: 16rpx;
+	top: 12rpx;
+	width: 18rpx;
+	height: 18rpx;
+	border-top: 4rpx solid #173F35;
+	border-right: 4rpx solid #173F35;
+	transform: rotate(-45deg);
 }
 
 .result-card,
@@ -803,6 +944,27 @@ export default {
 .feedback-card {
 	padding: 32rpx;
 	border-radius: 34rpx;
+}
+
+.result-hero-layout {
+	display: flex;
+	align-items: stretch;
+	gap: 24rpx;
+}
+
+.result-poi-image {
+	width: 250rpx;
+	height: 360rpx;
+	flex-shrink: 0;
+	border-radius: 26rpx;
+	background: rgba(181, 148, 94, 0.14);
+	object-fit: cover;
+	overflow: hidden;
+}
+
+.result-hero-copy {
+	flex: 1;
+	min-width: 0;
 }
 
 .label,
@@ -826,6 +988,36 @@ export default {
 	margin-top: 16rpx;
 }
 
+.result-source-signals {
+	display: grid;
+	gap: 12rpx;
+	margin-top: 22rpx;
+}
+
+.result-source-signal {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16rpx;
+	min-height: 54rpx;
+	padding: 10rpx 14rpx;
+	border-radius: 18rpx;
+	background: rgba(23, 63, 53, 0.08);
+	box-sizing: border-box;
+}
+
+.result-source-signal-label,
+.result-source-signal-value {
+	font-size: 22rpx;
+	line-height: 1.35;
+	color: #173F35;
+}
+
+.result-source-signal-value {
+	font-weight: 700;
+	text-align: right;
+}
+
 .meta-grid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -844,6 +1036,55 @@ export default {
 	font-size: 32rpx;
 	font-weight: 700;
 	color: #173F35;
+}
+
+.result-companion-card {
+	display: flex;
+	align-items: center;
+	gap: 18rpx;
+	margin-top: 28rpx;
+}
+
+.result-companion-avatar {
+	width: 92rpx;
+	height: 92rpx;
+	flex-shrink: 0;
+	border-radius: 999rpx;
+	background: rgba(23, 63, 53, 0.08);
+	box-shadow: 0 10rpx 24rpx rgba(16, 47, 41, 0.10);
+}
+
+.result-companion-copy {
+	flex: 1;
+	min-width: 0;
+	padding: 18rpx 22rpx;
+	border-radius: 24rpx;
+	box-sizing: border-box;
+}
+
+.result-companion-copy.xicheng-companion-bubble::before {
+	left: -10rpx;
+	top: 34rpx;
+	margin-left: 0;
+	transform: rotate(45deg);
+}
+
+.result-companion-title,
+.result-companion-desc {
+	display: block;
+	line-height: 1.5;
+}
+
+.result-companion-title {
+	font-size: 26rpx;
+	font-weight: 700;
+	color: #173F35;
+}
+
+.result-companion-desc {
+	margin-top: 4rpx;
+	font-size: 22rpx;
+	color: #746F68;
 }
 
 .question-card {

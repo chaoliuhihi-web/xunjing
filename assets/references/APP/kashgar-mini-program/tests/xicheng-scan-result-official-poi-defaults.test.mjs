@@ -5,6 +5,7 @@ import path from 'node:path'
 const root = process.cwd()
 const scanResult = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
 const officialPoiSources = fs.readFileSync(path.join(root, 'request', 'xunjing', 'officialPoi.js'), 'utf8')
+const regionConfig = fs.readFileSync(path.join(root, 'config', 'regions', 'xicheng.js'), 'utf8')
 
 assert.match(
   scanResult,
@@ -64,4 +65,48 @@ assert.match(
   scanResult,
   /<text class="meta-value">\{\{ confidenceDisplay \}\}<\/text>\s*<text class="meta-label">\{\{ confidenceMetaLabel \}\}<\/text>/,
   'Recognition result first meta tile should render the dynamic confidence or official-matching label'
+)
+
+for (const required of [
+  'class="scan-result-topbar"',
+  'class="result-hero-layout"',
+  'class="result-poi-image"',
+  ':src="resultVisualImage"',
+  'class="result-source-signal"',
+  'recognitionSignalItems',
+  'class="result-companion-card"',
+  ':src="region.companionAvatar"',
+  '小京已为你匹配到这里'
+]) {
+  assert.ok(scanResult.includes(required), `Recognition result visual shell should include ${required}`)
+}
+
+assert.match(
+  scanResult,
+  /resultVisualImage\(\)[\s\S]*this\.region\.visualAssets[\s\S]*heroLandmark/,
+  'Recognition result page should reuse compact region visual assets for the POI card image'
+)
+
+assert.match(
+  scanResult,
+  /recognitionSignalItems\(\)[\s\S]*const sourceCount = this\.sourceList\.length[\s\S]*const safetyLabel = this\.safetyStatusLabel[\s\S]*this\.result\.sourceLabel/,
+  'Recognition result page should summarize source label, reviewed source count, and safety label as visible detection signals'
+)
+
+assert.match(
+  scanResult,
+  /\.result-poi-image\s*\{[\s\S]*width:\s*250rpx[\s\S]*height:\s*360rpx[\s\S]*object-fit:\s*cover/,
+  'Recognition result POI image should use stable dimensions so the first card matches the visual reference without layout shift'
+)
+
+assert.match(
+  regionConfig,
+  /visualAssets:\s*\{[\s\S]*heroLandmark:\s*'\/static\/xicheng\/scene-baitasi-waterfront\.jpg'/,
+  'Recognition result page should rely on the shared compact visual asset exposed by region config'
+)
+
+assert.doesNotMatch(
+  scanResult,
+  /xicheng-multimodal\/design-mockups|02-recognition-result-baitasi\.png/,
+  'Recognition result page should not ship or reference full-page mockup screenshots as runtime UI'
 )
