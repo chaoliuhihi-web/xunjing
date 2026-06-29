@@ -1,0 +1,129 @@
+$xicheng-ink-green: #173F35;
+$xicheng-ink-deep: #102F29;
+$xicheng-gold: #B5945E;
+$xicheng-paper: #F8F3EA;
+$xicheng-paper-deep: #EFE6D8;
+$xicheng-line: rgba(181, 148, 94, 0.22);
+$xicheng-muted: #746F68;
+$xicheng-shadow: rgba(28, 35, 32, 0.10);
+
+.xicheng-designed-page {
+	min-height: 100vh;
+	background:
+		linear-gradient(180deg, rgba(255, 253, 248, 0.96) 0%, $xicheng-paper 46%, #F3EFE6 100%);
+	color: $xicheng-ink-deep;
+}
+
+.xicheng-designed-page::before {
+	content: '';
+	position: fixed;
+	left: 0;
+	right: 0;
+	top: 0;
+	height: 430rpx;
+	pointer-events: none;
+	background:
+		linear-gradient(135deg, rgba(181, 148, 94, 0.10) 0 1rpx, transparent 1rpx 46rpx),
+		linear-gradient(45deg, rgba(23, 63, 53, 0.05) 0 1rpx, transparent 1rpx 54rpx);
+	opacity: 0.44;
+}
+
+.xicheng-paper-card {
+	position: relative;
+	border: 1rpx solid rgba(255, 255, 255, 0.78);
+	border-radius: 34rpx;
+	background:
+		linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(250, 246, 237, 0.88));
+	box-shadow: 0 18rpx 46rpx $xicheng-shadow;
+	overflow: hidden;
+}
+
+.xicheng-paper-card::after {
+	content: '';
+	position: absolute;
+	left: 28rpx;
+	right: 28rpx;
+	bottom: 0;
+	height: 1rpx;
+	background: linear-gradient(90deg, transparent, $xicheng-line, transparent);
+}
+
+.xicheng-primary-action,
+button.xicheng-primary-action {
+	background:
+		linear-gradient(180deg, #234D42 0%, $xicheng-ink-deep 100%) !important;
+	color: #FFF9EC !important;
+	box-shadow: 0 12rpx 26rpx rgba(16, 47, 41, 0.22);
+}
+
+.xicheng-primary-action[disabled],
+button.xicheng-primary-action[disabled],
+.xicheng-primary-action.uni-button-disabled {
+	background: #9AA79F !important;
+	color: rgba(255, 249, 236, 0.72) !important;
+	box-shadow: none !important;
+	opacity: 0.72;
+}
+
+.xicheng-secondary-action,
+button.xicheng-secondary-action {
+	border: 1rpx solid rgba(181, 148, 94, 0.36);
+	background: rgba(255, 252, 246, 0.86) !important;
+	color: $xicheng-ink-green !important;
+}
+
+.xicheng-secondary-action[disabled],
+button.xicheng-secondary-action[disabled],
+.xicheng-secondary-action.uni-button-disabled {
+	border-color: rgba(181, 148, 94, 0.18);
+	background: rgba(244, 239, 230, 0.70) !important;
+	color: rgba(116, 111, 104, 0.68) !important;
+	box-shadow: none !important;
+	opacity: 0.72;
+}
+
+.xicheng-companion-bubble {
+	position: relative;
+	border: 1rpx solid rgba(181, 148, 94, 0.18);
+	background: rgba(255, 253, 248, 0.90);
+	box-shadow: 0 12rpx 30rpx rgba(28, 35, 32, 0.08);
+}
+
+.xicheng-companion-bubble::before {
+	content: '';
+	position: absolute;
+	left: 50%;
+	top: -15rpx;
+	margin-left: -14rpx;
+	width: 28rpx;
+	height: 28rpx;
+	background: inherit;
+	border-left: 1rpx solid rgba(181, 148, 94, 0.18);
+	border-bottom: 1rpx solid rgba(181, 148, 94, 0.18);
+	transform: rotate(45deg);
+}
+
+.xicheng-bottom-safe {
+	padding-bottom: calc(44rpx + env(safe-area-inset-bottom));
+}
+
+.xicheng-section-label {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+	color: $xicheng-ink-deep;
+	font-weight: 700;
+}
+
+.xicheng-section-label::before {
+	content: '';
+	width: 8rpx;
+	height: 34rpx;
+	border-radius: 999rpx;
+	background: $xicheng-gold;
+}
+
+.xicheng-soft-divider {
+	height: 1rpx;
+	background: linear-gradient(90deg, transparent, $xicheng-line, transparent);
+}

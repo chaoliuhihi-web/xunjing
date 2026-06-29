@@ -1,6 +1,6 @@
 <template>
-	<view class="scan-result">
-		<view class="result-card">
+	<view class="scan-result xicheng-designed-page xicheng-bottom-safe">
+		<view class="result-card xicheng-paper-card">
 			<text class="label">{{ result.sourceLabel }}</text>
 			<text class="poi-name">{{ result.poiName }}</text>
 			<text class="reason">{{ result.reason || '小京已结合扫码、拍照、OCR和定位信号完成识别。' }}</text>
@@ -20,8 +20,8 @@
 			</view>
 		</view>
 
-		<view v-if="candidateList.length > 0" class="candidate-card">
-			<view class="section-head">
+		<view v-if="candidateList.length > 0" class="candidate-card xicheng-paper-card">
+			<view class="section-head xicheng-section-label">
 				<text class="section-title">可能匹配地点</text>
 				<text class="section-badge">请选择官方 POI</text>
 			</view>
@@ -45,8 +45,8 @@
 			</view>
 		</view>
 
-		<view v-if="recommendedRoute" class="route-card">
-			<view class="section-head">
+		<view v-if="recommendedRoute" class="route-card xicheng-paper-card">
+			<view class="section-head xicheng-section-label">
 				<text class="section-title">推荐路线</text>
 				<text class="section-badge">{{ recommendedRoute.durationText || recommendedRoute.duration || '可加入路线护照' }}</text>
 			</view>
@@ -65,7 +65,7 @@
 			</view>
 		</view>
 
-		<view class="question-card">
+		<view class="question-card xicheng-paper-card">
 			<text class="section-title">可以继续问小京</text>
 			<view
 				v-for="question in suggestedQuestions"
@@ -78,7 +78,7 @@
 			<text v-if="suggestedQuestions.length === 0" class="question-empty">{{ questionEmptyCopy }}</text>
 		</view>
 
-		<view class="source-card">
+		<view class="source-card xicheng-paper-card">
 			<text class="section-title">已审核来源</text>
 			<view v-if="sourceList.length > 0">
 				<view
@@ -95,8 +95,8 @@
 			<text v-else class="source-empty">{{ sourceEmptyCopy }}</text>
 		</view>
 
-		<view class="feedback-card">
-			<view class="section-head">
+		<view class="feedback-card xicheng-paper-card">
+			<view class="section-head xicheng-section-label">
 				<text class="section-title">识别反馈</text>
 				<text class="section-badge">{{ recognitionFeedback ? recognitionFeedback.feedbackLabel : '待反馈' }}</text>
 			</view>
@@ -107,20 +107,20 @@
 				auto-height
 			/>
 			<view class="feedback-actions">
-				<button class="ghost-button" @click="submitRecognitionFeedback('correct')">识别准确</button>
-				<button class="ghost-button danger-button" @click="submitRecognitionFeedback('wrong')">识别有误</button>
+				<button class="ghost-button xicheng-secondary-action" @click="submitRecognitionFeedback('correct')">识别准确</button>
+				<button class="ghost-button danger-button xicheng-secondary-action" @click="submitRecognitionFeedback('wrong')">识别有误</button>
 			</view>
 			<text v-if="recognitionFeedback" class="source-empty">
 				已记录为{{ recognitionFeedback.reviewStatus }}反馈，运营可用于 POI 纠错。
 			</text>
 			<view v-if="recognitionFeedback" class="feedback-actions">
-				<button class="ghost-button danger-button" @click="withdrawRecognitionFeedback">撤回反馈</button>
+				<button class="ghost-button danger-button xicheng-secondary-action" @click="withdrawRecognitionFeedback">撤回反馈</button>
 			</view>
 		</view>
 
 		<view class="bottom-actions">
-			<button class="primary-button" :disabled="recognitionActionBlocked" @click="askXiaojing()">问问小京</button>
-			<button class="ghost-button" :disabled="recognitionActionBlocked" @click="startRecording">开始记录</button>
+			<button class="primary-button xicheng-primary-action" :disabled="recognitionActionBlocked" @click="askXiaojing()">问问小京</button>
+			<button class="ghost-button xicheng-secondary-action" :disabled="recognitionActionBlocked" @click="startRecording">开始记录</button>
 		</view>
 	</view>
 </template>
@@ -686,10 +686,9 @@ export default {
 <style scoped>
 .scan-result {
 	min-height: 100vh;
-	padding: 36rpx 28rpx 48rpx;
+	padding: 40rpx 28rpx 56rpx;
 	box-sizing: border-box;
-	background: #F7F5EE;
-	color: #172B4D;
+	color: #102F29;
 }
 
 .result-card,
@@ -699,9 +698,7 @@ export default {
 .source-card,
 .feedback-card {
 	padding: 32rpx;
-	border-radius: 8rpx;
-	background: #FFFFFF;
-	box-shadow: 0 12rpx 36rpx rgba(31, 41, 51, 0.08);
+	border-radius: 34rpx;
 }
 
 .label,
@@ -710,7 +707,7 @@ export default {
 	display: block;
 	font-size: 24rpx;
 	line-height: 1.6;
-	color: #667085;
+	color: #746F68;
 }
 
 .poi-name {
@@ -718,7 +715,7 @@ export default {
 	margin-top: 12rpx;
 	font-size: 44rpx;
 	font-weight: 700;
-	color: #122033;
+	color: #102F29;
 }
 
 .reason {
@@ -734,15 +731,15 @@ export default {
 
 .meta-grid > view {
 	padding: 20rpx;
-	border-radius: 8rpx;
-	background: #EEF5F1;
+	border-radius: 24rpx;
+	background: rgba(23, 63, 53, 0.08);
 }
 
 .meta-value {
 	display: block;
 	font-size: 32rpx;
 	font-weight: 700;
-	color: #1F6E5A;
+	color: #173F35;
 }
 
 .question-card {
@@ -769,6 +766,7 @@ export default {
 	display: block;
 	font-size: 30rpx;
 	font-weight: 700;
+	color: #102F29;
 }
 
 .section-head {
@@ -778,13 +776,21 @@ export default {
 	gap: 16rpx;
 }
 
+.section-head.xicheng-section-label {
+	justify-content: flex-start;
+}
+
+.section-head.xicheng-section-label .section-badge {
+	margin-left: auto;
+}
+
 .section-badge {
 	flex-shrink: 0;
 	padding: 8rpx 14rpx;
-	border-radius: 8rpx;
-	background: #EEF5F1;
+	border-radius: 999rpx;
+	background: rgba(181, 148, 94, 0.16);
 	font-size: 22rpx;
-	color: #1F6E5A;
+	color: #173F35;
 }
 
 .route-title {
@@ -792,7 +798,7 @@ export default {
 	margin-top: 18rpx;
 	font-size: 28rpx;
 	font-weight: 700;
-	color: #1F2933;
+	color: #102F29;
 }
 
 .route-desc {
@@ -800,7 +806,7 @@ export default {
 	margin-top: 10rpx;
 	font-size: 24rpx;
 	line-height: 1.55;
-	color: #667085;
+	color: #746F68;
 }
 
 .route-steps {
@@ -811,19 +817,19 @@ export default {
 	display: block;
 	margin-top: 12rpx;
 	padding: 18rpx;
-	border-radius: 8rpx;
-	background: #F2F4F7;
+	border-radius: 22rpx;
+	background: rgba(23, 63, 53, 0.08);
 	font-size: 26rpx;
-	color: #344054;
+	color: #173F35;
 }
 
 .question-row {
 	margin-top: 18rpx;
 	padding: 22rpx;
-	border-radius: 8rpx;
-	background: #F2F4F7;
+	border-radius: 22rpx;
+	background: rgba(255, 252, 246, 0.72);
 	font-size: 26rpx;
-	color: #344054;
+	color: #173F35;
 }
 
 .question-empty {
@@ -841,9 +847,9 @@ export default {
 	gap: 20rpx;
 	margin-top: 18rpx;
 	padding: 22rpx;
-	border-radius: 8rpx;
-	border: 1rpx solid #D9E7DF;
-	background: #FAFCFA;
+	border-radius: 24rpx;
+	border: 1rpx solid rgba(181, 148, 94, 0.24);
+	background: rgba(255, 252, 246, 0.72);
 }
 
 .candidate-row-disabled {
@@ -866,19 +872,19 @@ export default {
 .candidate-title {
 	font-size: 28rpx;
 	font-weight: 700;
-	color: #1F2933;
+	color: #102F29;
 }
 
 .candidate-desc {
 	margin-top: 6rpx;
 	font-size: 24rpx;
-	color: #667085;
+	color: #746F68;
 }
 
 .candidate-confidence {
 	font-size: 28rpx;
 	font-weight: 700;
-	color: #1F6E5A;
+	color: #173F35;
 }
 
 .candidate-safety {
@@ -891,9 +897,9 @@ export default {
 .source-row {
 	margin-top: 18rpx;
 	padding: 22rpx;
-	border-radius: 8rpx;
-	border: 1rpx solid #D9E7DF;
-	background: #FAFCFA;
+	border-radius: 24rpx;
+	border: 1rpx solid rgba(181, 148, 94, 0.24);
+	background: rgba(255, 252, 246, 0.72);
 }
 
 .source-title,
@@ -906,14 +912,14 @@ export default {
 .source-title {
 	font-size: 26rpx;
 	font-weight: 700;
-	color: #1F2933;
+	color: #102F29;
 }
 
 .source-desc,
 .source-empty {
 	margin-top: 8rpx;
 	font-size: 24rpx;
-	color: #667085;
+	color: #746F68;
 }
 
 .feedback-input {
@@ -922,10 +928,11 @@ export default {
 	margin-top: 20rpx;
 	padding: 20rpx;
 	box-sizing: border-box;
-	border-radius: 8rpx;
-	background: #F2F4F7;
+	border: 1rpx solid rgba(181, 148, 94, 0.24);
+	border-radius: 24rpx;
+	background: rgba(255, 252, 246, 0.72);
 	font-size: 26rpx;
-	color: #344054;
+	color: #173F35;
 }
 
 .feedback-actions {
@@ -951,7 +958,7 @@ export default {
 	flex: 1;
 	height: 84rpx;
 	line-height: 84rpx;
-	border-radius: 8rpx;
+	border-radius: 28rpx;
 	font-size: 28rpx;
 }
 

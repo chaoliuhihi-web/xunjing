@@ -34,13 +34,13 @@ assert.match(
 
 assert.match(
   scanResult,
-  /<button class="primary-button" :disabled="recognitionActionBlocked" @click="askXiaojing\(\)">问问小京<\/button>/,
+  /<button class="[^"]*\bprimary-button\b[^"]*" :disabled="recognitionActionBlocked" @click="askXiaojing\(\)">问问小京<\/button>/,
   'Primary Xiaojing action should be disabled when the official POI context is missing'
 )
 
 assert.match(
   scanResult,
-  /<button class="ghost-button" :disabled="recognitionActionBlocked" @click="startRecording">开始记录<\/button>/,
+  /<button class="[^"]*\bghost-button\b[^"]*" :disabled="recognitionActionBlocked" @click="startRecording">开始记录<\/button>/,
   'Start recording should be disabled when the official POI context is missing'
 )
 

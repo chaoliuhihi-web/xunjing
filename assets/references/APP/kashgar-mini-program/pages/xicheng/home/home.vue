@@ -1,19 +1,19 @@
 <template>
-	<view class="xicheng-home">
-		<view class="hero">
+	<view class="xicheng-home xicheng-designed-page xicheng-bottom-safe">
+		<view class="hero xicheng-paper-card">
 			<view class="hero-main">
 				<view class="hero-copy">
 					<text class="eyebrow">{{ region.cityName }}</text>
 					<text class="title">小京 AI旅伴</text>
 					<text class="subtitle">拍照、OCR、定位识别后，直接进入讲解、路线和游记草稿。</text>
 					<view class="hero-actions">
-						<button class="primary-button" :disabled="recognizing" @click="startPhotoRecognition">拍照识别</button>
-						<button class="ghost-button" :disabled="recognizing" @click="askXiaojing">问问小京</button>
+						<button class="primary-button xicheng-primary-action" :disabled="recognizing" @click="startPhotoRecognition">拍照识别</button>
+						<button class="ghost-button xicheng-secondary-action" :disabled="recognizing" @click="askXiaojing">问问小京</button>
 					</view>
 				</view>
 				<view class="companion-visual">
 					<image class="xiaojing-avatar" :src="region.companionAvatar" mode="aspectFit" />
-					<view class="companion-bubble">
+					<view class="companion-bubble xicheng-companion-bubble">
 						<text class="companion-name">{{ region.companionName }}</text>
 						<text class="companion-line">我陪你看懂西城</text>
 					</view>
@@ -21,7 +21,7 @@
 			</view>
 		</view>
 
-		<view class="inspiration-panel" @click="openXichengInspiration">
+		<view class="inspiration-panel xicheng-paper-card" @click="openXichengInspiration">
 			<view>
 				<text class="inspiration-title">一键导入灵感</text>
 				<text class="inspiration-desc">粘贴攻略文字或地点清单，AI 提取地点并匹配官方 POI。</text>
@@ -29,7 +29,7 @@
 			<text class="inspiration-action">生成路线</text>
 		</view>
 
-		<view v-if="recentRecognition" class="recent-panel">
+		<view v-if="recentRecognition" class="recent-panel xicheng-paper-card">
 			<view class="recent-copy">
 				<text class="recent-kicker">最近识别</text>
 				<text class="recent-title">{{ recentRecognition.poiName || '西城文化点' }}</text>
@@ -39,46 +39,46 @@
 				<text class="recent-status">{{ recentRecognitionStatusCopy }}</text>
 			</view>
 			<view class="recent-actions">
-				<button class="primary-button" :disabled="recentRecognitionActionBlocked" @click="continueRecentRecognitionWithXiaojing">继续问小京</button>
-				<button class="ghost-button" @click="openRecentRecognition">查看识别结果</button>
+				<button class="primary-button xicheng-primary-action" :disabled="recentRecognitionActionBlocked" @click="continueRecentRecognitionWithXiaojing">继续问小京</button>
+				<button class="ghost-button xicheng-secondary-action" @click="openRecentRecognition">查看识别结果</button>
 			</view>
 		</view>
 
 		<view class="quick-grid">
-			<view class="quick-card" @click="startScanRecognition">
+			<view class="quick-card xicheng-paper-card" @click="startScanRecognition">
 				<text class="quick-title">扫一扫</text>
 				<text class="quick-desc">识别二维码、展牌和门票</text>
 			</view>
-			<view class="quick-card" @click="startPhotoRecognition">
+			<view class="quick-card xicheng-paper-card" @click="startPhotoRecognition">
 				<text class="quick-title">拍照识别</text>
 				<text class="quick-desc">识别门头、文物和说明牌</text>
 			</view>
-			<view class="quick-card" @click="startGpsRecognition">
+			<view class="quick-card xicheng-paper-card" @click="startGpsRecognition">
 				<text class="quick-title">GPS定位</text>
 				<text class="quick-desc">用当前位置识别附近文化点</text>
 			</view>
-			<view class="quick-card" @click="startOcrRecognition">
+			<view class="quick-card xicheng-paper-card" @click="startOcrRecognition">
 				<text class="quick-title">OCR识别</text>
 				<text class="quick-desc">从图片文字提取地点线索</text>
 			</view>
-			<view class="quick-card" @click="startTextRecognition">
+			<view class="quick-card xicheng-paper-card" @click="startTextRecognition">
 				<text class="quick-title">文本识别</text>
 				<text class="quick-desc">粘贴地点、展牌或攻略文字</text>
 			</view>
-			<view class="quick-card" @click="askXiaojing">
+			<view class="quick-card xicheng-paper-card" @click="askXiaojing">
 				<text class="quick-title">问问小京</text>
 				<text class="quick-desc">继续咨询路线和讲解</text>
 			</view>
 		</view>
 
-		<view class="text-recognition-panel">
+		<view class="text-recognition-panel xicheng-paper-card">
 			<textarea
 				v-model="textRecognitionInput"
 				class="text-recognition-input"
 				placeholder="输入白塔寺、什刹海，或粘贴展牌/攻略文字"
 				auto-height
 			/>
-			<button class="primary-button" :disabled="recognizing" @click="startTextRecognition">文本识别</button>
+			<button class="primary-button xicheng-primary-action" :disabled="recognizing" @click="startTextRecognition">文本识别</button>
 		</view>
 
 		<view class="flow-strip">
@@ -88,8 +88,8 @@
 			<text>生成游记草稿</text>
 		</view>
 
-		<view class="route-recommendation-section">
-			<view class="section-head">
+		<view class="route-recommendation-section xicheng-paper-card">
+			<view class="section-head xicheng-section-label">
 				<view>
 					<text class="section-kicker">官方路线</text>
 					<text class="section-title">路线推荐</text>
@@ -99,7 +99,7 @@
 			<view
 				v-for="route in recommendedRoutes.slice(0, 3)"
 				:key="route.routeCode"
-				class="recommended-route-card"
+				class="recommended-route-card xicheng-paper-card"
 				@click="openRecommendedRoute(route)"
 			>
 				<view class="route-card-header">
@@ -124,32 +124,32 @@
 					</text>
 				</view>
 				<view class="route-card-action">
-					<button class="mini-button" @click.stop="openRecommendedRoute(route)">加入路线护照</button>
+					<button class="mini-button xicheng-secondary-action" @click.stop="openRecommendedRoute(route)">加入路线护照</button>
 				</view>
 			</view>
 		</view>
 
-		<view class="journey-panel">
+		<view class="journey-panel xicheng-paper-card">
 			<view>
 				<text class="journey-title">西城 Citywalk 记录</text>
 				<text class="journey-desc">把识别点、照片、备注和任务沉淀为旅行素材盒。</text>
 			</view>
 			<view class="journey-actions">
-				<button class="primary-button" @click="openXichengTravelogue('record')">开始记录 Citywalk</button>
-				<button class="ghost-button" @click="openXichengTravelogue('draft')">生成游记草稿</button>
+				<button class="primary-button xicheng-primary-action" @click="openXichengTravelogue('record')">开始记录 Citywalk</button>
+				<button class="ghost-button xicheng-secondary-action" @click="openXichengTravelogue('draft')">生成游记草稿</button>
 			</view>
 		</view>
 
 		<view class="ops-section">
-			<view class="ops-card">
+			<view class="ops-card xicheng-paper-card">
 				<text class="ops-title">{{ routePassport.title }}</text>
 				<text class="ops-desc">{{ routePassport.thresholdText }}</text>
 			</view>
-			<view class="ops-card">
+			<view class="ops-card xicheng-paper-card">
 				<text class="ops-title">亲子研学任务</text>
 				<text class="ops-desc">{{ parentChildTasks[0] }}</text>
 			</view>
-			<view class="ops-card">
+			<view class="ops-card xicheng-paper-card">
 				<text class="ops-title">分享海报</text>
 				<text class="ops-desc">{{ sharePoster.subtitle }}</text>
 			</view>
@@ -544,17 +544,17 @@ export default {
 <style scoped>
 .xicheng-home {
 	min-height: 100vh;
-	padding: 36rpx 28rpx 48rpx;
+	padding: 40rpx 28rpx 56rpx;
 	box-sizing: border-box;
-	background: #F7F5EE;
-	color: #1F2933;
+	color: #102F29;
 }
 
 .hero {
-	padding: 40rpx 32rpx;
-	border-radius: 8rpx;
-	background: #FFFFFF;
-	box-shadow: 0 12rpx 36rpx rgba(31, 41, 51, 0.08);
+	padding: 44rpx 34rpx;
+	border-radius: 34rpx;
+	background:
+		linear-gradient(145deg, rgba(255, 253, 247, 0.96), rgba(239, 230, 216, 0.82));
+	box-shadow: 0 20rpx 52rpx rgba(28, 35, 32, 0.12);
 }
 
 .hero-main {
@@ -580,16 +580,16 @@ export default {
 .xiaojing-avatar {
 	width: 208rpx;
 	height: 268rpx;
-	border-radius: 8rpx;
-	background: #EEF5F1;
+	border-radius: 30rpx;
+	background: #E7EFE8;
 }
 
 .companion-bubble {
 	width: 100%;
 	margin-top: 14rpx;
 	padding: 14rpx 12rpx;
-	border-radius: 8rpx;
-	background: #F7F5EE;
+	border-radius: 26rpx;
+	background: rgba(255, 253, 248, 0.92);
 	box-sizing: border-box;
 }
 
@@ -602,14 +602,14 @@ export default {
 .companion-name {
 	font-size: 24rpx;
 	font-weight: 700;
-	color: #1F6E5A;
+	color: #173F35;
 }
 
 .companion-line {
 	margin-top: 4rpx;
 	font-size: 22rpx;
 	line-height: 1.4;
-	color: #667085;
+	color: #746F68;
 }
 
 .eyebrow,
@@ -620,7 +620,7 @@ export default {
 	display: block;
 	font-size: 24rpx;
 	line-height: 1.6;
-	color: #667085;
+	color: #746F68;
 }
 
 .title {
@@ -628,7 +628,7 @@ export default {
 	margin-top: 12rpx;
 	font-size: 48rpx;
 	font-weight: 700;
-	color: #122033;
+	color: #102F29;
 }
 
 .subtitle {
@@ -646,7 +646,7 @@ export default {
 	flex: 1;
 	height: 84rpx;
 	line-height: 84rpx;
-	border-radius: 8rpx;
+	border-radius: 28rpx;
 	font-size: 28rpx;
 }
 
@@ -667,10 +667,11 @@ export default {
 	gap: 20rpx;
 	margin-top: 28rpx;
 	padding: 28rpx;
-	border-radius: 8rpx;
-	background: #122033;
-	color: #FFFFFF;
-	box-shadow: 0 12rpx 36rpx rgba(31, 41, 51, 0.12);
+	border-radius: 32rpx;
+	background:
+		linear-gradient(135deg, #173F35 0%, #102F29 100%);
+	color: #FFF9EC;
+	box-shadow: 0 18rpx 44rpx rgba(16, 47, 41, 0.18);
 }
 
 .inspiration-title {
@@ -684,25 +685,23 @@ export default {
 	margin-top: 10rpx;
 	font-size: 24rpx;
 	line-height: 1.55;
-	color: rgba(255, 255, 255, 0.76);
+	color: rgba(255, 249, 236, 0.76);
 }
 
 .inspiration-action {
 	flex-shrink: 0;
 	padding: 12rpx 18rpx;
-	border-radius: 8rpx;
-	background: #F2C94C;
+	border-radius: 999rpx;
+	background: #B5945E;
 	font-size: 24rpx;
 	font-weight: 700;
-	color: #122033;
+	color: #FFF9EC;
 }
 
 .text-recognition-panel {
 	margin-top: 28rpx;
 	padding: 24rpx;
-	border-radius: 8rpx;
-	background: #FFFFFF;
-	box-shadow: 0 8rpx 24rpx rgba(31, 41, 51, 0.06);
+	border-radius: 32rpx;
 }
 
 .text-recognition-input {
@@ -710,12 +709,12 @@ export default {
 	min-height: 112rpx;
 	padding: 20rpx;
 	box-sizing: border-box;
-	border: 2rpx solid #D6E3DC;
-	border-radius: 8rpx;
-	background: #F9FBFA;
+	border: 2rpx solid rgba(181, 148, 94, 0.22);
+	border-radius: 24rpx;
+	background: rgba(255, 252, 246, 0.76);
 	font-size: 26rpx;
 	line-height: 1.5;
-	color: #122033;
+	color: #102F29;
 }
 
 .text-recognition-panel .primary-button {
@@ -726,9 +725,7 @@ export default {
 .recent-panel {
 	margin-top: 28rpx;
 	padding: 28rpx;
-	border-radius: 8rpx;
-	background: #FFFFFF;
-	box-shadow: 0 12rpx 36rpx rgba(31, 41, 51, 0.08);
+	border-radius: 32rpx;
 }
 
 .recent-copy {
@@ -739,7 +736,7 @@ export default {
 	display: block;
 	font-size: 24rpx;
 	line-height: 1.5;
-	color: #1F6E5A;
+	color: #B5945E;
 }
 
 .recent-title {
@@ -747,7 +744,7 @@ export default {
 	margin-top: 8rpx;
 	font-size: 34rpx;
 	font-weight: 700;
-	color: #122033;
+	color: #102F29;
 }
 
 .recent-desc {
@@ -755,7 +752,7 @@ export default {
 	margin-top: 8rpx;
 	font-size: 24rpx;
 	line-height: 1.55;
-	color: #667085;
+	color: #746F68;
 }
 
 .recent-status {
@@ -763,7 +760,7 @@ export default {
 	margin-top: 10rpx;
 	font-size: 24rpx;
 	line-height: 1.4;
-	color: #1F6E5A;
+	color: #173F35;
 }
 
 .recent-actions {
@@ -784,8 +781,7 @@ export default {
 .ops-card {
 	min-height: 150rpx;
 	padding: 24rpx;
-	border-radius: 8rpx;
-	background: #FFFFFF;
+	border-radius: 30rpx;
 	box-sizing: border-box;
 }
 
@@ -794,7 +790,7 @@ export default {
 	display: block;
 	font-size: 30rpx;
 	font-weight: 700;
-	color: #172B4D;
+	color: #173F35;
 }
 
 .quick-desc,
@@ -815,20 +811,18 @@ export default {
 	justify-content: center;
 	min-height: 76rpx;
 	padding: 8rpx;
-	border-radius: 8rpx;
-	background: #E8ECE7;
+	border-radius: 999rpx;
+	background: rgba(181, 148, 94, 0.15);
 	font-size: 22rpx;
 	text-align: center;
-	color: #344054;
+	color: #173F35;
 	box-sizing: border-box;
 }
 
 .route-recommendation-section {
 	margin-top: 28rpx;
 	padding: 30rpx;
-	border-radius: 8rpx;
-	background: #FFFFFF;
-	box-shadow: 0 12rpx 36rpx rgba(31, 41, 51, 0.08);
+	border-radius: 34rpx;
 }
 
 .section-head,
@@ -841,11 +835,19 @@ export default {
 	gap: 18rpx;
 }
 
+.section-head.xicheng-section-label {
+	justify-content: flex-start;
+}
+
+.section-head.xicheng-section-label .section-link {
+	margin-left: auto;
+}
+
 .section-kicker {
 	display: block;
 	font-size: 22rpx;
 	line-height: 1.4;
-	color: #1F6E5A;
+	color: #B5945E;
 }
 
 .section-title {
@@ -853,22 +855,22 @@ export default {
 	margin-top: 6rpx;
 	font-size: 34rpx;
 	font-weight: 700;
-	color: #122033;
+	color: #102F29;
 }
 
 .section-link {
 	flex-shrink: 0;
 	font-size: 24rpx;
 	font-weight: 700;
-	color: #1F6E5A;
+	color: #173F35;
 }
 
 .recommended-route-card {
 	margin-top: 22rpx;
 	padding: 24rpx;
-	border: 2rpx solid #D6E3DC;
-	border-radius: 8rpx;
-	background: #F9FBFA;
+	border: 1rpx solid rgba(181, 148, 94, 0.18);
+	border-radius: 28rpx;
+	background: rgba(255, 252, 246, 0.70);
 	box-sizing: border-box;
 }
 
@@ -881,7 +883,7 @@ export default {
 	font-size: 30rpx;
 	font-weight: 700;
 	line-height: 1.35;
-	color: #122033;
+	color: #102F29;
 }
 
 .route-desc {
@@ -889,16 +891,16 @@ export default {
 	margin-top: 8rpx;
 	font-size: 24rpx;
 	line-height: 1.55;
-	color: #667085;
+	color: #746F68;
 }
 
 .route-theme {
 	flex-shrink: 0;
 	padding: 8rpx 12rpx;
-	border-radius: 8rpx;
-	background: #EEF5F1;
+	border-radius: 999rpx;
+	background: rgba(181, 148, 94, 0.16);
 	font-size: 22rpx;
-	color: #1F6E5A;
+	color: #173F35;
 }
 
 .route-meta {
@@ -909,10 +911,10 @@ export default {
 
 .route-meta text {
 	padding: 8rpx 12rpx;
-	border-radius: 8rpx;
-	background: #FFFFFF;
+	border-radius: 999rpx;
+	background: rgba(255, 255, 255, 0.62);
 	font-size: 22rpx;
-	color: #344054;
+	color: #746F68;
 }
 
 .route-stops {
@@ -924,10 +926,10 @@ export default {
 
 .route-stop {
 	padding: 8rpx 12rpx;
-	border-radius: 8rpx;
-	background: #E8ECE7;
+	border-radius: 999rpx;
+	background: rgba(23, 63, 53, 0.08);
 	font-size: 22rpx;
-	color: #344054;
+	color: #173F35;
 }
 
 .route-card-action {
@@ -939,25 +941,23 @@ export default {
 	min-width: 180rpx;
 	height: 64rpx;
 	line-height: 64rpx;
-	border-radius: 8rpx;
-	background: #1F6E5A;
+	border-radius: 999rpx;
+	background: #FFF9EC;
 	font-size: 24rpx;
-	color: #FFFFFF;
+	color: #173F35;
 }
 
 .journey-panel {
 	margin-top: 28rpx;
 	padding: 32rpx;
-	border-radius: 8rpx;
-	background: #FFFFFF;
-	box-shadow: 0 12rpx 36rpx rgba(31, 41, 51, 0.08);
+	border-radius: 34rpx;
 }
 
 .journey-title {
 	display: block;
 	font-size: 32rpx;
 	font-weight: 700;
-	color: #122033;
+	color: #102F29;
 }
 
 .journey-desc {
@@ -965,7 +965,7 @@ export default {
 	margin-top: 10rpx;
 	font-size: 24rpx;
 	line-height: 1.6;
-	color: #667085;
+	color: #746F68;
 }
 
 .journey-actions {

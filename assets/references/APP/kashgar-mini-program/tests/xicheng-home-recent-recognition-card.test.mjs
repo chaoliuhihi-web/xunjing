@@ -100,7 +100,7 @@ assert.match(
 
 assert.match(
   home,
-  /<button class="primary-button" :disabled="recentRecognitionActionBlocked" @click="continueRecentRecognitionWithXiaojing">继续问小京<\/button>/,
+  /<button class="[^"]*\bprimary-button\b[^"]*" :disabled="recentRecognitionActionBlocked" @click="continueRecentRecognitionWithXiaojing">继续问小京<\/button>/,
   'Recent recognition card should disable the Xiaojing continuation button until official POI and reviewed-source gates are satisfied'
 )
 
