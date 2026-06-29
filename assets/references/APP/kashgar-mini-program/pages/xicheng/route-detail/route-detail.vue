@@ -241,7 +241,7 @@ export default {
 		startRouteRecording() {
 			this.persistRoutePassport()
 			uni.navigateTo({
-				url: `/pages/xicheng/travelogue/travelogue?mode=record&regionCode=${encodeRouteValue(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeOptions.sourceChannel || this.region.sourceChannel)}&routeCode=${encodeRouteValue(this.activeRoute.routeCode || '')}&companionName=${encodeRouteValue(this.routeOptions.companionName || this.region.companionName)}`
+				url: `/pages/xicheng/travelogue/travelogue?mode=record&autoStart=1&regionCode=${encodeRouteValue(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeOptions.sourceChannel || this.region.sourceChannel)}&routeCode=${encodeRouteValue(this.activeRoute.routeCode || '')}&companionName=${encodeRouteValue(this.routeOptions.companionName || this.region.companionName)}`
 			})
 		},
 		getStopThumbnail(stop = {}, index = 0) {
