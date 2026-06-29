@@ -2386,6 +2386,12 @@ const refreshXichengAiRouteContext = ({ routeOptions = getCurrentXichengAiRouteO
 	return context
 }
 
+const handleXichengH5RouteHashChange = () => {
+	interruptCurrentResponse({ showStatus: false })
+	stopAiSpeech()
+	refreshXichengAiRouteContext({ preferCache: true })
+}
+
 onShow(() => {
 	if (activeStream.value) {
 		return
@@ -2394,6 +2400,10 @@ onShow(() => {
 })
 
 onLoad((options = {}) => {
+	if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+		window.removeEventListener('hashchange', handleXichengH5RouteHashChange)
+		window.addEventListener('hashchange', handleXichengH5RouteHashChange)
+	}
 	const context = refreshXichengAiRouteContext({ routeOptions: options, preferCache: false }) || xichengAiContext.value
 	loadXunjingPackageDetail(context)
 	recordXunjingResourceEvent({
@@ -2422,6 +2432,9 @@ onReady(() => {
 })
 
 onUnload(() => {
+	if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+		window.removeEventListener('hashchange', handleXichengH5RouteHashChange)
+	}
 	clearPendingUiTimers()
 	destroyAiSpeech()
 	saveMessagesCache()

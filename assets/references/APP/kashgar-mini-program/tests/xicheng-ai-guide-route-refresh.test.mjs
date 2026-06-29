@@ -9,6 +9,8 @@ const currentRouteOptionsBlock = aiGuide.match(/const getCurrentXichengAiRouteOp
 const refreshBlock = aiGuide.match(/const refreshXichengAiRouteContext\s*=\s*\(\{[\s\S]*?\n\}/)?.[0] || ''
 const onShowBlock = aiGuide.match(/onShow\(\(\) => \{[\s\S]*?\n\}\)/)?.[0] || ''
 const onLoadBlock = aiGuide.match(/onLoad\(\(options = \{\}\) => \{[\s\S]*?\n\}\)/)?.[0] || ''
+const hashRouteRefreshBlock = aiGuide.match(/const handleXichengH5RouteHashChange\s*=\s*\(\) => \{[\s\S]*?\n\}/)?.[0] || ''
+const onUnloadBlock = aiGuide.match(/onUnload\(\(\) => \{[\s\S]*?\n\}\)/)?.[0] || ''
 
 assert.ok(
   currentRouteOptionsBlock,
@@ -53,4 +55,26 @@ assert.ok(
 assert.ok(
   onLoadBlock.includes('refreshXichengAiRouteContext({ routeOptions: options, preferCache: false })'),
   'onLoad should share the same route refresh path as onShow'
+)
+
+assert.ok(
+  hashRouteRefreshBlock.includes('refreshXichengAiRouteContext({ preferCache: true })'),
+  'AI guide should refresh Xicheng context when an H5 hash-only route change keeps the same page instance alive'
+)
+
+assert.ok(
+  hashRouteRefreshBlock.includes('interruptCurrentResponse({ showStatus: false })'),
+  'AI guide should interrupt a stale in-flight answer before applying a new H5 hash route context'
+)
+
+assert.match(
+  aiGuide,
+  /window\.addEventListener\('hashchange',\s*handleXichengH5RouteHashChange\)/,
+  'AI guide should subscribe to H5 hashchange events for same-page query refresh'
+)
+
+assert.match(
+  onUnloadBlock,
+  /window\.removeEventListener\('hashchange',\s*handleXichengH5RouteHashChange\)/,
+  'AI guide should clean up the H5 hashchange listener on unload'
 )
