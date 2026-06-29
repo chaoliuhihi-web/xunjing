@@ -60,6 +60,7 @@ describe('xicheng Yudao release preflight', () => {
         tasksOutputFile,
         poiTasksOutputFile,
         handoffOutputFile,
+        appReadinessCommand: expect.stringContaining('npm run xunjing:platform:verify'),
         finalEvidencePackageCommand: expect.stringContaining('npm run xunjing:xicheng:release:evidence:package'),
         poiEvidenceBootstrapCommand: expect.stringContaining('npm run xunjing:xicheng:poi:review:pack'),
         poiTaskCount: expect.any(Number),
@@ -76,6 +77,13 @@ describe('xicheng Yudao release preflight', () => {
     expect(report.summary.finalEvidencePackageCommand).toContain('--poi-production-review-apply-evidence qa/xicheng-poi-production-review-apply-evidence.json')
     expect(report.summary.finalEvidencePackageCommand).toContain('--app-readiness-evidence qa/xicheng-app-readiness-evidence.json')
     expect(report.summary.finalEvidencePackageCommand).toContain('--evidence-file qa/xicheng-release-evidence-package.json')
+    expect(report.summary.appReadinessCommand).toContain('--env-file ops/xunjing-platform.env.example')
+    expect(report.summary.appReadinessCommand).toContain('--base-url https://your-production-domain/')
+    expect(report.summary.appReadinessCommand).toContain('--tenant-id 1')
+    expect(report.summary.appReadinessCommand).toContain('--skip-admin-check')
+    expect(report.summary.appReadinessCommand).toContain('--include-xicheng-app-check')
+    expect(report.summary.appReadinessCommand).toContain('--include-xicheng-trigger-check')
+    expect(report.summary.appReadinessCommand).toContain('--evidence-file qa/xicheng-app-readiness-evidence.json')
     expect(report.summary.poiEvidenceBootstrapCommand).toContain('--production-review workbench/xicheng-poi-production-review-summary.csv')
     expect(report.summary.taskCount).toBeGreaterThan(0)
     expect(report.summary.ownerLaneCounts).toMatchObject({
@@ -134,6 +142,11 @@ describe('xicheng Yudao release preflight', () => {
     expect(handoffMarkdown).toContain('## POI Evidence Bootstrap')
     expect(handoffMarkdown).toContain('npm run xunjing:xicheng:poi:review:pack')
     expect(handoffMarkdown).toContain('workbench/xicheng-poi-production-review-summary.csv')
+    expect(handoffMarkdown).toContain('## APP Readiness Evidence')
+    expect(handoffMarkdown).toContain('npm run xunjing:platform:verify')
+    expect(handoffMarkdown).toContain('--include-xicheng-app-check')
+    expect(handoffMarkdown).toContain('--include-xicheng-trigger-check')
+    expect(handoffMarkdown).toContain('--evidence-file qa/xicheng-app-readiness-evidence.json')
     expect(handoffMarkdown).toContain('npm run xunjing:xicheng:release:evidence:package')
     expect(handoffMarkdown).toContain('Do not mark production ready until')
   })
@@ -156,8 +169,12 @@ describe('xicheng Yudao release preflight', () => {
     expect(statusDoc).toContain('--handoff-output')
     expect(deployDoc).toContain('summary.poiEvidenceBootstrapCommand')
     expect(statusDoc).toContain('summary.poiEvidenceBootstrapCommand')
+    expect(deployDoc).toContain('summary.appReadinessCommand')
+    expect(statusDoc).toContain('summary.appReadinessCommand')
     expect(deployDoc).toContain('POI Evidence Bootstrap')
     expect(statusDoc).toContain('POI Evidence Bootstrap')
+    expect(deployDoc).toContain('APP Readiness Evidence')
+    expect(statusDoc).toContain('APP Readiness Evidence')
     expect(deployDoc).toContain('tenant-id: 1')
     expect(statusDoc).toContain('tenant-id: 1')
     expect(deployDoc).toContain('YUDAO_XICHENG_LOCAL_SEED_READY')

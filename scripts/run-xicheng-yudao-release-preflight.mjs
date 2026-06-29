@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { exportXichengYudaoReleaseBlockerTasks } from './export-xicheng-yudao-release-blocker-tasks.mjs'
+import { loadEnvFile } from './verify-xunjing-platform-readiness.mjs'
 
 const artifactType = 'xicheng-yudao-release-preflight'
 const defaultReleaseEvidenceFile = 'qa/xicheng-yudao-release-evidence.json'
@@ -119,6 +120,33 @@ function buildPoiEvidenceBootstrapCommand() {
   ].join(' ')
 }
 
+function buildAppReadinessCommand({
+  envFile,
+  commandEnv,
+  releaseEvidence,
+  appReadinessEvidenceFile
+}) {
+  const summary = releaseEvidence?.summary || {}
+  const baseUrl = String(
+    summary.appApiBaseUrl ||
+    commandEnv.XUNJING_BASE_URL ||
+    commandEnv.XUNJING_APP_API_BASE_URL ||
+    'https://your-production-domain/'
+  ).trim()
+  const tenantId = String(commandEnv.XUNJING_TENANT_ID || '1').trim()
+
+  return [
+    'npm run xunjing:platform:verify --',
+    '--env-file', shellArg(envFile),
+    '--base-url', shellArg(baseUrl),
+    '--tenant-id', shellArg(tenantId),
+    '--skip-admin-check',
+    '--include-xicheng-app-check',
+    '--include-xicheng-trigger-check',
+    '--evidence-file', shellArg(appReadinessEvidenceFile)
+  ].join(' ')
+}
+
 function needsPoiEvidenceBootstrap(releaseEvidence) {
   const checks = Array.isArray(releaseEvidence?.checks) ? releaseEvidence.checks : []
   return checks.some((check) => check?.name === 'xicheng-production-poi-evidence' && check.ok !== true)
@@ -140,6 +168,7 @@ function buildHandoffMarkdown({
   tasksOutputFile,
   poiTasksOutputFile,
   poiEvidenceBootstrapCommand,
+  appReadinessCommand,
   finalEvidencePackageCommand
 }) {
   const summary = releaseEvidence.summary || {}
@@ -188,6 +217,14 @@ function buildHandoffMarkdown({
       '```',
       ''
     ] : []),
+    '',
+    '## APP Readiness Evidence',
+    '',
+    'Run this against the same non-local HTTPS backend recorded in release evidence before building the final evidence package:',
+    '',
+    '```bash',
+    appReadinessCommand,
+    '```',
     '',
     '## Final Evidence Package',
     '',
@@ -282,6 +319,13 @@ export async function runXichengYudaoReleasePreflight({
   const poiEvidenceBootstrapCommand = needsPoiEvidenceBootstrap(releaseEvidence)
     ? buildPoiEvidenceBootstrapCommand()
     : undefined
+  const commandEnv = envFile ? await loadEnvFile(envFile).catch(() => ({})) : {}
+  const appReadinessCommand = buildAppReadinessCommand({
+    envFile,
+    commandEnv,
+    releaseEvidence,
+    appReadinessEvidenceFile
+  })
   await mkdir(path.dirname(resolvedHandoffOutputFile), { recursive: true })
   await writeFile(resolvedHandoffOutputFile, buildHandoffMarkdown({
     stage,
@@ -291,6 +335,7 @@ export async function runXichengYudaoReleasePreflight({
     tasksOutputFile: resolvedTasksOutputFile,
     poiTasksOutputFile: resolvedPoiTasksOutputFile,
     poiEvidenceBootstrapCommand,
+    appReadinessCommand,
     finalEvidencePackageCommand
   }))
   const ok = releaseEvidence.ok === true && taskReport.ok === true
@@ -314,6 +359,7 @@ export async function runXichengYudaoReleasePreflight({
       ownerLaneCounts: taskReport.summary.ownerLaneCounts,
       ownerLaneBreakdown: taskReport.summary.ownerLaneBreakdown,
       poiEvidenceBootstrapCommand,
+      appReadinessCommand,
       finalEvidencePackageCommand
     },
     release: {
