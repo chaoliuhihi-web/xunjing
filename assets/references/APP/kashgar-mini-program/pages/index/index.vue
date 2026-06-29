@@ -410,6 +410,7 @@ import { resolveXunjingMultimodalTrigger, requestCurrentLocationForTrigger } fro
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
+import { createXichengRouteOutputValue } from '@/request/xunjing/routeParams.js'
 import {
 	KASHGAR_ACTIONS,
 	KASHGAR_MAP_SHORTCUTS,
@@ -428,6 +429,7 @@ const QQ_MAP_GEOCODER_PATH = '/ws/geocoder/v1/'
 const HOME_LOCATION_CACHE_KEY = 'homeLocationInfo'
 const HOME_LOCATION_CACHE_TIME = 24 * 60 * 60 * 1000
 const HOME_LOCATION_TIMEOUT_MS = 8000
+const encodeXunjingRouteValue = (value = '') => createXichengRouteOutputValue(value, { platform: process.env.UNI_PLATFORM })
 const HOME_GEOCODER_QUOTA_LIMIT_KEY = 'homeGeocoderQuotaLimitDate'
 const MAP_GUIDE_STORAGE_KEY = 'hasSeenMapGuide'
 const XUNJING_SCAN_CONFIG = {
@@ -565,7 +567,7 @@ export default {
 		},
 		stringifyXunjingQuery(params = {}) {
 			return Object.keys(params).filter(key => params[key] !== undefined && params[key] !== null && String(params[key]) !== '').map(key => {
-				return `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`
+				return `${encodeXunjingRouteValue(key)}=${encodeXunjingRouteValue(params[key])}`
 			}).join('&')
 		},
 		safeDecodeXunjingText(value = '') {
@@ -768,7 +770,7 @@ export default {
 			if (trigger.intent === 'record' || trigger.action === 'start_travel_note') {
 				return `/pages/ai-guide/ai-guide?mode=diary&${query}`
 			}
-			const question = encodeURIComponent(`讲讲${trigger.poiName || '这个地方'}`)
+			const question = encodeXunjingRouteValue(`讲讲${trigger.poiName || '这个地方'}`)
 			return `/pages/ai-guide/ai-guide?question=${question}&${query}`
 		},
 		navigateToXunjingTrigger(trigger = {}) {

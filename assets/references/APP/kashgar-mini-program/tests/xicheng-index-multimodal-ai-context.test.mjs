@@ -5,9 +5,11 @@ import path from 'node:path'
 const root = process.cwd()
 const indexPage = fs.readFileSync(path.join(root, 'pages', 'index', 'index.vue'), 'utf8')
 
+const stringifyBlock = indexPage.match(/stringifyXunjingQuery\(params = \{\}\)[\s\S]*?\n\t\t\},\n\t\tsafeDecodeXunjingText/)?.[0] || ''
 const targetPathBlock = indexPage.match(/normalizeXunjingTriggerTargetPath\(trigger = \{\}\)[\s\S]*?\n\t\t\},\n\t\tnavigateToXunjingTrigger/)?.[0] || ''
 const navigateBlock = indexPage.match(/navigateToXunjingTrigger\(trigger = \{\}\)[\s\S]*?\n\t\t\},\n\t\tasync resolveXunjingMultimodalFromText/)?.[0] || ''
 
+assert.ok(stringifyBlock, 'Index page should expose stringifyXunjingQuery')
 assert.ok(targetPathBlock, 'Index page should expose normalizeXunjingTriggerTargetPath')
 assert.ok(navigateBlock, 'Index page should expose navigateToXunjingTrigger')
 
@@ -29,6 +31,24 @@ assert.match(
   'Index multimodal entry should reuse the shared reviewed source normalizer'
 )
 
+assert.match(
+  indexPage,
+  /import \{ createXichengRouteOutputValue \} from '@\/request\/xunjing\/routeParams\.js'/,
+  'Index multimodal entry should reuse the shared outbound route parameter normalizer'
+)
+
+assert.match(
+  indexPage,
+  /const encodeXunjingRouteValue = \(value = ''\) => createXichengRouteOutputValue\(value, \{ platform: process\.env\.UNI_PLATFORM \}\)/,
+  'Index multimodal entry should create platform-safe route values before navigating to Xiaojing'
+)
+
+assert.match(
+  stringifyBlock,
+  /\$\{encodeXunjingRouteValue\(key\)\}=\$\{encodeXunjingRouteValue\(params\[key\]\)\}/,
+  'Index multimodal query builder should use platform-safe route output values for every query parameter'
+)
+
 for (const required of [
   'regionCode: trigger.regionCode || XICHENG_REGION_CONFIG.regionCode',
   'packageCode: trigger.packageCode || XICHENG_REGION_CONFIG.packageCode',
@@ -45,6 +65,18 @@ assert.match(
   navigateBlock,
   /this\.persistXichengMultimodalRecognition\(trigger\)[\s\S]*const targetUrl = this\.normalizeXunjingTriggerTargetPath\(trigger\)/,
   'Index should persist the full multimodal recognition before building Xiaojing or route target URLs'
+)
+
+assert.match(
+  targetPathBlock,
+  /const question = encodeXunjingRouteValue\(`讲讲\$\{trigger\.poiName \|\| '这个地方'\}`\)/,
+  'Index multimodal Xiaojing question should use the shared H5-safe route output helper'
+)
+
+assert.doesNotMatch(
+  targetPathBlock,
+  /encodeURIComponent\(`讲讲/,
+  'Index multimodal Xiaojing question should not pre-encode Chinese text on H5'
 )
 
 assert.match(

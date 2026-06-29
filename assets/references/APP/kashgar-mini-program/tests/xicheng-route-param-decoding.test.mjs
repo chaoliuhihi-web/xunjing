@@ -12,6 +12,7 @@ assert.ok(
 )
 
 const routeParamsSource = read('request', 'xunjing', 'routeParams.js')
+const indexPage = read('pages', 'index', 'index.vue')
 const home = read('pages', 'xicheng', 'home', 'home.vue')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
 const inspiration = read('pages', 'xicheng', 'inspiration', 'inspiration.vue')
@@ -49,6 +50,7 @@ for (const [label, source] of [
 }
 
 for (const [label, source] of [
+  ['Index multimodal entry', indexPage],
   ['Home', home],
   ['Inspiration', inspiration]
 ]) {
@@ -60,7 +62,7 @@ for (const [label, source] of [
 
   assert.match(
     source,
-    /const encodeRouteValue = \(value = ''\) => createXichengRouteOutputValue\(value, \{ platform: process\.env\.UNI_PLATFORM \}\)/,
+    /const encode(?:Xunjing)?RouteValue = \(value = ''\) => createXichengRouteOutputValue\(value, \{ platform: process\.env\.UNI_PLATFORM \}\)/,
     `${label} should use the shared H5-safe outbound route helper before navigating`
   )
 }
