@@ -470,7 +470,7 @@ function buildReviewPacket({
   const checklistPath = relativePathForCommand(rootDir, reviewChecklistFile)
   const workbookPath = relativePathForCommand(rootDir, reviewWorkbookFile)
   const productionManifestPath = 'workbench/xicheng-production-pois.json'
-  const productionSeedPath = 'workbench/xicheng-poi-production-seed.sql'
+  const productionSeedPath = 'backend/yudao/sql/mysql/xunjing-seed-xicheng-p0-production.sql'
   const sourceReviewPath = 'workbench/xicheng-poi-source-review-summary.csv'
   const productionReviewPath = 'workbench/xicheng-poi-production-review-summary.csv'
   const sourceCoverageEvidencePath = 'qa/xicheng-poi-source-coverage-evidence.json'

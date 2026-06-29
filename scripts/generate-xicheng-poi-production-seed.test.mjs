@@ -205,6 +205,22 @@ describe('xicheng POI production seed generator', () => {
     expect(sql).not.toContain('REVIEW_REQUIRED')
   })
 
+  test('allows reviewed production SQL output under backend yudao mysql directory', async () => {
+    const rootDir = await createTempRoot()
+    const manifestPath = await writeJson(rootDir, 'workbench/xicheng-production-pois.json', productionManifest())
+    const outputPath = path.join(rootDir, 'backend/yudao/sql/mysql/xunjing-seed-xicheng-p0-production.sql')
+
+    const result = runGenerator([
+      '--manifest', manifestPath,
+      '--root', rootDir,
+      '--output', 'backend/yudao/sql/mysql/xunjing-seed-xicheng-p0-production.sql'
+    ])
+
+    expect(result.status).toBe(0)
+    expect(JSON.parse(result.stdout).summary.outputFile).toBe(outputPath)
+    expect(await readFile(outputPath, 'utf8')).toContain('Generated from reviewed Xicheng POI production manifest')
+  })
+
   test('refuses to generate SQL when the manifest gate is not ready', async () => {
     const rootDir = await createTempRoot()
     const manifestPath = await writeJson(rootDir, 'workbench/xicheng-production-pois.json', productionManifest({
