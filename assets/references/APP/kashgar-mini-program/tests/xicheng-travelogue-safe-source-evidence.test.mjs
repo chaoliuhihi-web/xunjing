@@ -14,6 +14,7 @@ for (const required of [
   'hasReviewableWorkMaterialEvidence',
   'getReviewableMaterialSources',
   'getReviewableWorkMaterialSources',
+  'getReviewableRouteCheckinSources',
   'normalizeXichengReviewedSources',
   "['BLOCKED', 'UNAVAILABLE']"
 ]) {
@@ -54,15 +55,21 @@ assert.match(
 )
 
 assert.match(
-  computedBlock,
-  /sourceCount\(\)[\s\S]*this\.materials\.reduce\(\(total, material\) => \{[\s\S]*return total \+ getReviewableMaterialSources\(material\)\.length/,
-  'Travelogue source count should ignore stale sources on BLOCKED or UNAVAILABLE materials'
+  travelogue,
+  /getReviewableRouteCheckinSources\s*=\s*\(checkin = \{\}\) => \{[\s\S]*if \(!hasReviewableRouteCheckinEvidence\(checkin\)\) return \[\][\s\S]*return normalizeXichengReviewedSources\(checkin\.sources\)/,
+  'Reviewable route check-in source helper should count source-backed route passport evidence while rejecting unsafe check-ins'
 )
 
 assert.match(
   computedBlock,
-  /workSourceCount\(\)[\s\S]*this\.materials\.reduce\(\(total, material\) => \{[\s\S]*return total \+ getReviewableWorkMaterialSources\(material\)\.length/,
-  'Travelogue work source count should ignore planning-only imported route sources before publish or review readiness'
+  /sourceCount\(\)[\s\S]*const materialSourceCount = this\.materials\.reduce\(\(total, material\) => \{[\s\S]*return total \+ getReviewableMaterialSources\(material\)\.length[\s\S]*const routeCheckinSourceCount = this\.routeCheckins\.reduce\(\(total, checkin\) => \{[\s\S]*return total \+ getReviewableRouteCheckinSources\(checkin\)\.length[\s\S]*return materialSourceCount \+ routeCheckinSourceCount/,
+  'Travelogue source count should include reviewable route check-in sources while ignoring stale unsafe material or check-in sources'
+)
+
+assert.match(
+  computedBlock,
+  /workSourceCount\(\)[\s\S]*const materialSourceCount = this\.materials\.reduce\(\(total, material\) => \{[\s\S]*return total \+ getReviewableWorkMaterialSources\(material\)\.length[\s\S]*const routeCheckinSourceCount = this\.routeCheckins\.reduce\(\(total, checkin\) => \{[\s\S]*return total \+ getReviewableRouteCheckinSources\(checkin\)\.length[\s\S]*return materialSourceCount \+ routeCheckinSourceCount/,
+  'Travelogue work source count should include source-backed route check-ins while still ignoring planning-only imported route sources before publish or review readiness'
 )
 
 assert.match(

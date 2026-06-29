@@ -137,6 +137,12 @@ assert.match(
 
 assert.match(
   travelogue,
+  /createMemorialPdfSourceCards\(\)[\s\S]*this\.routeCheckins[\s\S]*filter\(checkin => this\.hasReviewableRouteCheckinEvidence\(checkin\)\)[\s\S]*forEach[\s\S]*getReviewableRouteCheckinSources\(checkin\)[\s\S]*poiName:\s*checkin\.poiName \|\| ''[\s\S]*slice\(0, 8\)/,
+  'PDF memorial source cards should also summarize reviewed sources from route passport check-ins'
+)
+
+assert.match(
+  travelogue,
   /artifact\.templateLabel/,
   'Share artifact list should expose the fixed template label for operations review'
 )

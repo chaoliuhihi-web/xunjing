@@ -413,6 +413,11 @@ export function hasReviewableRouteCheckinEvidence(checkin = {}) {
 	return Boolean(checkin.poiCode || checkin.poiName || checkin.routeTitle)
 }
 
+export const getReviewableRouteCheckinSources = (checkin = {}) => {
+	if (!hasReviewableRouteCheckinEvidence(checkin)) return []
+	return normalizeXichengReviewedSources(checkin.sources)
+}
+
 export const hasReviewableStudyTaskEvidence = (evidence = {}) => {
 	if (!evidence || !evidence.completedAt) return false
 	return Boolean(
@@ -643,14 +648,22 @@ export default {
 			return this.materials.length
 		},
 		sourceCount() {
-			return this.materials.reduce((total, material) => {
+			const materialSourceCount = this.materials.reduce((total, material) => {
 				return total + getReviewableMaterialSources(material).length
 			}, 0)
+			const routeCheckinSourceCount = this.routeCheckins.reduce((total, checkin) => {
+				return total + getReviewableRouteCheckinSources(checkin).length
+			}, 0)
+			return materialSourceCount + routeCheckinSourceCount
 		},
 		workSourceCount() {
-			return this.materials.reduce((total, material) => {
+			const materialSourceCount = this.materials.reduce((total, material) => {
 				return total + getReviewableWorkMaterialSources(material).length
 			}, 0)
+			const routeCheckinSourceCount = this.routeCheckins.reduce((total, checkin) => {
+				return total + getReviewableRouteCheckinSources(checkin).length
+			}, 0)
+			return materialSourceCount + routeCheckinSourceCount
 		},
 		completedTaskCount() {
 			return Math.min(this.studyTaskEvidenceCount, this.parentChildTasks.length)
@@ -1893,12 +1906,33 @@ export default {
 						if (seenCards.has(cardKey)) return
 						seenCards.add(cardKey)
 						sourceCards.push({
-							sourceCardId: `source-card-${materialIndex}-${sourceIndex}`,
+							sourceCardId: `source-card-material-${materialIndex}-${sourceIndex}`,
 							title: source.title || source.name,
 							excerpt: source.excerpt || source.summary || source.url,
 							url: source.url || '',
 							poiCode: material.poiCode || '',
 							poiName: material.poiName || ''
+						})
+					})
+				})
+			this.routeCheckins
+				.filter(checkin => this.hasReviewableRouteCheckinEvidence(checkin))
+				.forEach((checkin = {}, checkinIndex) => {
+					const checkinSources = getReviewableRouteCheckinSources(checkin)
+					checkinSources.forEach((source = {}, sourceIndex) => {
+						const title = source.title || source.name || ''
+						const excerpt = source.excerpt || source.summary || source.url || ''
+						if (!title && !excerpt) return
+						const cardKey = `${checkin.poiCode || checkin.poiName || checkinIndex}:${title}:${excerpt}`
+						if (seenCards.has(cardKey)) return
+						seenCards.add(cardKey)
+						sourceCards.push({
+							sourceCardId: `source-card-checkin-${checkinIndex}-${sourceIndex}`,
+							title: source.title || source.name,
+							excerpt: source.excerpt || source.summary || source.url,
+							url: source.url || '',
+							poiCode: checkin.poiCode || '',
+							poiName: checkin.poiName || ''
 						})
 					})
 				})
