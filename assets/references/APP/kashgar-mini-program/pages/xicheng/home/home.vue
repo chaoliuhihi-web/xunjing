@@ -212,6 +212,7 @@ import {
 	resolveXichengPhotoTrigger,
 	resolveXichengTextTrigger
 } from '@/request/xunjing/trigger.js'
+import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 
 const XICHENG_EMPTY_RECOGNITION_POI_NAME = '待确认西城文化点'
@@ -608,22 +609,26 @@ export default {
 			}
 			const existingMaterials = uni.getStorageSync(this.region.materialsStorageKey)
 			const materials = Array.isArray(existingMaterials) ? existingMaterials : []
-			const routeMaterials = stops.map(stop => ({
-				type: 'official-route-poi',
-				regionCode: this.region.regionCode,
-				packageCode: this.region.packageCode,
-				sceneCode: this.region.sceneCode,
-				sourceChannel: this.region.sourceChannel,
-				poiCode: stop.poiCode,
-				poiName: stop.poiName,
-				routeCode: route.routeCode,
-				routeTitle: route.title,
-				sourceLabel: '官方推荐路线',
-				sources: [],
-				reviewStatus: this.region.reviewStatus.pending,
-				publishStatus: 'private',
-				capturedAt: updatedAt
-			}))
+			const routeMaterials = stops.map(stop => {
+				const sources = createXichengOfficialPoiSources(stop)
+				return {
+					type: 'official-route-poi',
+					regionCode: this.region.regionCode,
+					packageCode: this.region.packageCode,
+					sceneCode: this.region.sceneCode,
+					sourceChannel: this.region.sourceChannel,
+					poiCode: stop.poiCode,
+					poiName: stop.poiName,
+					routeCode: route.routeCode,
+					routeTitle: route.title,
+					sourceLabel: '官方推荐路线',
+					sources,
+					sourceCount: sources.length,
+					reviewStatus: this.region.reviewStatus.pending,
+					publishStatus: 'private',
+					capturedAt: updatedAt
+				}
+			})
 			uni.setStorageSync(this.region.inspirationStorageKey, routePayload)
 			uni.setStorageSync(this.region.materialsStorageKey, [
 				...routeMaterials,

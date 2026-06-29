@@ -28,6 +28,7 @@ for (const required of [
 for (const required of [
   'XICHENG_RECOMMENDED_ROUTES',
   'XICHENG_ROUTE_RECOMMENDATION_FILTERS',
+  'createXichengOfficialPoiSources',
   'recommendedRoutes: XICHENG_RECOMMENDED_ROUTES',
   'routeRecommendationFilters: XICHENG_ROUTE_RECOMMENDATION_FILTERS',
   'filteredRecommendedRoutes',
@@ -55,13 +56,19 @@ assert.match(
 
 assert.match(
   home,
-  /const routeMaterials = stops\.map\(stop => \(\{[\s\S]*type:\s*'official-route-poi'[\s\S]*regionCode:\s*this\.region\.regionCode[\s\S]*packageCode:\s*this\.region\.packageCode[\s\S]*sceneCode:\s*this\.region\.sceneCode[\s\S]*sourceChannel:\s*this\.region\.sourceChannel[\s\S]*routeCode:\s*route\.routeCode/,
+  /import \{ createXichengOfficialPoiSources \} from '@\/request\/xunjing\/officialPoi\.js'/,
+  'Home recommended routes should reuse the shared official POI source helper'
+)
+
+assert.match(
+  home,
+  /const routeMaterials = stops\.map\(stop => \{[\s\S]*const sources = createXichengOfficialPoiSources\(stop\)[\s\S]*return \{[\s\S]*type:\s*'official-route-poi'[\s\S]*regionCode:\s*this\.region\.regionCode[\s\S]*packageCode:\s*this\.region\.packageCode[\s\S]*sceneCode:\s*this\.region\.sceneCode[\s\S]*sourceChannel:\s*this\.region\.sourceChannel[\s\S]*routeCode:\s*route\.routeCode/,
   'Home recommended route POI materials should carry scene and source channel for review and city operations reports'
 )
 
 assert.match(
   home,
-  /const routeMaterials = stops\.map\(stop => \(\{[\s\S]*type:\s*'official-route-poi'[\s\S]*reviewStatus:\s*this\.region\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  /const routeMaterials = stops\.map\(stop => \{[\s\S]*type:\s*'official-route-poi'[\s\S]*sources,[\s\S]*sourceCount:\s*sources\.length[\s\S]*reviewStatus:\s*this\.region\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
   'Home recommended route POI materials should be pending review and private before share or review handoff'
 )
 
