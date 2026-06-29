@@ -9,6 +9,7 @@ const home = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'home', 'home.v
 const scanResult = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
 
 const fallbackGate = triggerRequest.match(/export const isXichengDevelopmentFallbackAllowed\s*=\s*\(\)\s*=>\s*\{[\s\S]*?\n\}/)?.[0] || ''
+const fixtureCacheGate = triggerRequest.match(/export const isXichengDevelopmentRecognitionCacheBlocked\s*=\s*\(recognition = \{\}\)\s*=>\s*\{[\s\S]*?\n\}/)?.[0] || ''
 
 assert.ok(
   fallbackGate,
@@ -46,6 +47,12 @@ assert.match(
 )
 
 assert.match(
+  fixtureCacheGate,
+  /recognition\.developmentOnly \|\| recognition\.notForProduction \|\| recognition\.triggerType === 'development-fixture'[\s\S]*!isXichengDevelopmentFallbackAllowed\(\)/,
+  'Xicheng trigger facade should centralize stale development fixture cache blocking for all production-facing pages'
+)
+
+assert.match(
   regionConfig,
   /XICHENG_DEVELOPMENT_TRIGGER_FIXTURE[\s\S]*developmentOnly:\s*true[\s\S]*notForProduction:\s*true/,
   'The fixture should remain clearly labeled as development-only and not-for-production'
@@ -53,14 +60,14 @@ assert.match(
 
 assert.match(
   home,
-  /import \{[\s\S]*isXichengDevelopmentFallbackAllowed[\s\S]*\} from '@\/request\/xunjing\/trigger\.js'/,
-  'Xicheng home should import the shared development fixture gate before restoring cached recognition results'
+  /import \{[\s\S]*isXichengDevelopmentRecognitionCacheBlocked[\s\S]*\} from '@\/request\/xunjing\/trigger\.js'/,
+  'Xicheng home should import the shared development fixture cache gate before restoring cached recognition results'
 )
 
 assert.match(
   home,
-  /isBlockedDevelopmentRecognitionCache\(recognition = \{\}\)[\s\S]*recognition\.developmentOnly \|\| recognition\.notForProduction \|\| recognition\.triggerType === 'development-fixture'[\s\S]*!isXichengDevelopmentFallbackAllowed\(\)/,
-  'Xicheng home should detect stale development-only recognition cache when production does not allow fixtures'
+  /isBlockedDevelopmentRecognitionCache\(recognition = \{\}\)[\s\S]*return isXichengDevelopmentRecognitionCacheBlocked\(recognition\)/,
+  'Xicheng home should delegate stale development-only recognition cache detection to the shared trigger facade'
 )
 
 assert.match(
@@ -77,14 +84,14 @@ assert.match(
 
 assert.match(
   scanResult,
-  /import \{ isXichengDevelopmentFallbackAllowed \} from '@\/request\/xunjing\/trigger\.js'/,
-  'Xicheng recognition result page should reuse the shared production-safe development fixture gate'
+  /import \{ isXichengDevelopmentRecognitionCacheBlocked \} from '@\/request\/xunjing\/trigger\.js'/,
+  'Xicheng recognition result page should import the shared production-safe development fixture cache gate'
 )
 
 assert.match(
   scanResult,
-  /isBlockedDevelopmentRecognitionCache\(recognition = \{\}\)[\s\S]*recognition\.developmentOnly \|\| recognition\.notForProduction \|\| recognition\.triggerType === 'development-fixture'[\s\S]*!isXichengDevelopmentFallbackAllowed\(\)/,
-  'Xicheng recognition result page should detect stale development-only recognition cache in production'
+  /isBlockedDevelopmentRecognitionCache\(recognition = \{\}\)[\s\S]*return isXichengDevelopmentRecognitionCacheBlocked\(recognition\)/,
+  'Xicheng recognition result page should delegate stale development-only recognition cache detection to the shared trigger facade'
 )
 
 assert.match(

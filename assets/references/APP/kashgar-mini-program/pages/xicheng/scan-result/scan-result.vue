@@ -143,7 +143,7 @@ import {
 	getXichengDisplaySourceTitle,
 	normalizeXichengReviewedSources
 } from '@/request/xunjing/sources.js'
-import { isXichengDevelopmentFallbackAllowed } from '@/request/xunjing/trigger.js'
+import { isXichengDevelopmentRecognitionCacheBlocked } from '@/request/xunjing/trigger.js'
 
 const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
 	regionCode: XICHENG_REGION_CONFIG.regionCode,
@@ -488,12 +488,7 @@ export default {
 	},
 	methods: {
 		isBlockedDevelopmentRecognitionCache(recognition = {}) {
-			const developmentRecognition = Boolean(
-				recognition && (
-					recognition.developmentOnly || recognition.notForProduction || recognition.triggerType === 'development-fixture'
-				)
-			)
-			return developmentRecognition && !isXichengDevelopmentFallbackAllowed()
+			return isXichengDevelopmentRecognitionCacheBlocked(recognition)
 		},
 		requireOfficialPoiConfirmation(actionLabel = '继续') {
 			uni.showToast({

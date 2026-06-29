@@ -42,6 +42,15 @@ export const isXichengDevelopmentFallbackAllowed = () => {
 	return explicitFixtureFlag || knownDevelopmentRuntime
 }
 
+export const isXichengDevelopmentRecognitionCacheBlocked = (recognition = {}) => {
+	const developmentRecognition = Boolean(
+		recognition && (
+			recognition.developmentOnly || recognition.notForProduction || recognition.triggerType === 'development-fixture'
+		)
+	)
+	return developmentRecognition && !isXichengDevelopmentFallbackAllowed()
+}
+
 const normalizeSuggestedQuestions = (result = {}) => {
 	const safetyStatus = normalizeXichengSafetyStatus(result.safetyStatus)
 	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
