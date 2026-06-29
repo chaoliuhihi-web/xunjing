@@ -24,6 +24,8 @@ const defaultQdrantEvidenceFile = 'qa/xicheng-qdrant-smoke-evidence.json'
 const defaultEmbeddingEvidenceFile = 'qa/xicheng-embedding-smoke-evidence.json'
 const defaultYudaoServerBuildEvidenceFile = 'qa/xicheng-yudao-server-build-evidence.json'
 const defaultYudaoServerSmokeEvidenceFile = 'qa/xicheng-yudao-server-smoke-evidence.json'
+const defaultRuntimeSeedEvidenceFile = 'qa/xicheng-yudao-runtime-seed-production-evidence.json'
+const defaultProductionSeedApplyEvidenceFile = 'qa/xicheng-yudao-production-seed-apply-evidence.json'
 const defaultStage = 'production'
 const defaultExpectedBranch = 'feature/xicheng-p0'
 const defaultEnvFile = 'ops/xunjing-platform.env.example'
@@ -100,6 +102,8 @@ function buildFinalEvidencePackageCommand({
   releaseEvidenceFile,
   yudaoServerBuildEvidenceFile,
   yudaoServerSmokeEvidenceFile,
+  runtimeSeedEvidenceFile,
+  productionSeedApplyEvidenceFile,
   poiWorkbookEvidenceFile,
   poiManifestEvidenceFile,
   poiSeedEvidenceFile,
@@ -115,6 +119,8 @@ function buildFinalEvidencePackageCommand({
     '--release-evidence', shellArg(releaseEvidenceFile),
     '--yudao-server-build-evidence', shellArg(yudaoServerBuildEvidenceFile),
     '--yudao-server-smoke-evidence', shellArg(yudaoServerSmokeEvidenceFile),
+    '--runtime-seed-evidence', shellArg(runtimeSeedEvidenceFile),
+    '--production-seed-apply-evidence', shellArg(productionSeedApplyEvidenceFile),
     '--poi-workbook-evidence', shellArg(poiWorkbookEvidenceFile),
     '--poi-manifest-evidence', shellArg(poiManifestEvidenceFile),
     '--poi-seed-evidence', shellArg(poiSeedEvidenceFile),
@@ -450,6 +456,10 @@ export async function runXichengYudaoReleasePreflight({
   const yudaoServerSmokeEvidenceFile = readArgValue(args, '--yudao-server-smoke-evidence') ||
     readArgValue(args, '--server-smoke-evidence') ||
     defaultYudaoServerSmokeEvidenceFile
+  const runtimeSeedEvidenceFile = readArgValue(args, '--runtime-seed-evidence') || defaultRuntimeSeedEvidenceFile
+  const productionSeedApplyEvidenceFile = readArgValue(args, '--production-seed-apply-evidence') ||
+    readArgValue(args, '--seed-apply-evidence') ||
+    defaultProductionSeedApplyEvidenceFile
   const releasePackageEvidenceFile = readArgValue(args, '--release-package-evidence') ||
     readArgValue(args, '--package-evidence') ||
     defaultReleasePackageEvidenceFile
@@ -513,6 +523,8 @@ export async function runXichengYudaoReleasePreflight({
     releaseEvidenceFile,
     yudaoServerBuildEvidenceFile,
     yudaoServerSmokeEvidenceFile,
+    runtimeSeedEvidenceFile,
+    productionSeedApplyEvidenceFile,
     poiWorkbookEvidenceFile,
     poiManifestEvidenceFile,
     poiSeedEvidenceFile,
