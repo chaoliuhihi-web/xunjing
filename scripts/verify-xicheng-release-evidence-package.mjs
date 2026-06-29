@@ -543,6 +543,25 @@ function checkReleaseServerBuildSummary(evidence) {
   if (!hasText(summary.yudaoServerBuildMethod)) {
     blockers.push('release evidence yudaoServerBuildMethod is required')
   }
+  if (summary.gitAvailable === true) {
+    if (summary.yudaoServerBuildGitAvailable !== true) {
+      blockers.push('release evidence yudaoServerBuildGitAvailable must be true when release source revision is git-backed')
+    }
+    if (!/^[a-f0-9]{40}$/i.test(String(summary.yudaoServerBuildGitCommit || ''))) {
+      blockers.push('release evidence yudaoServerBuildGitCommit must be a 40-character git commit SHA')
+    } else if (summary.yudaoServerBuildGitCommit !== summary.gitCommit) {
+      blockers.push('release evidence yudaoServerBuildGitCommit must match summary.gitCommit')
+    }
+    if (hasText(summary.yudaoServerBuildGitBranch) && hasText(summary.gitBranch) && summary.yudaoServerBuildGitBranch !== summary.gitBranch) {
+      blockers.push('release evidence yudaoServerBuildGitBranch must match summary.gitBranch')
+    }
+    if (summary.yudaoServerBuildGitDirty !== false) {
+      blockers.push('release evidence yudaoServerBuildGitDirty must be false')
+    }
+    if (Number(summary.yudaoServerBuildGitDirtyFileCount || 0) !== 0) {
+      blockers.push('release evidence yudaoServerBuildGitDirtyFileCount must be 0')
+    }
+  }
   if (!hasText(summary.yudaoServerBuildJarFile)) {
     blockers.push('release evidence yudaoServerBuildJarFile is required')
   } else if (hasText(summary.yudaoServerJarFile) && path.resolve(summary.yudaoServerBuildJarFile) !== path.resolve(summary.yudaoServerJarFile)) {
@@ -633,6 +652,27 @@ async function checkYudaoServerBuildEvidence(ref, releaseRef, rootDir, freshness
   }
   if (!hasText(summary.buildMethod)) {
     blockers.push('Yudao server build evidence buildMethod is required')
+  }
+  if (releaseSummary.gitAvailable === true) {
+    if (summary.gitAvailable !== true) {
+      blockers.push('Yudao server build evidence gitAvailable must be true when release source revision is git-backed')
+    }
+    if (!/^[a-f0-9]{40}$/i.test(String(summary.gitCommit || ''))) {
+      blockers.push('Yudao server build evidence gitCommit must be a 40-character git commit SHA')
+    } else if (summary.gitCommit !== releaseSummary.gitCommit) {
+      blockers.push('Yudao server build evidence gitCommit must match release evidence summary.gitCommit')
+    } else if (hasText(releaseSummary.yudaoServerBuildGitCommit) && summary.gitCommit !== releaseSummary.yudaoServerBuildGitCommit) {
+      blockers.push('Yudao server build evidence gitCommit must match release evidence yudaoServerBuildGitCommit')
+    }
+    if (hasText(summary.gitBranch) && hasText(releaseSummary.gitBranch) && summary.gitBranch !== releaseSummary.gitBranch) {
+      blockers.push('Yudao server build evidence gitBranch must match release evidence summary.gitBranch')
+    }
+    if (summary.gitDirty !== false) {
+      blockers.push('Yudao server build evidence gitDirty must be false')
+    }
+    if (Number(summary.gitDirtyFileCount || 0) !== 0) {
+      blockers.push('Yudao server build evidence gitDirtyFileCount must be 0')
+    }
   }
   if (!evidenceJarFile) {
     blockers.push('Yudao server build evidence jarFile is required')
@@ -2176,6 +2216,11 @@ export async function verifyXichengReleaseEvidencePackage({
       releaseStatus: releaseRef.data?.status,
       yudaoServerBuildStatus: yudaoServerBuildRef.data?.status,
       yudaoServerBuildMethod: summaryOf(yudaoServerBuildRef.data).buildMethod,
+      yudaoServerBuildGitAvailable: summaryOf(yudaoServerBuildRef.data).gitAvailable,
+      yudaoServerBuildGitBranch: summaryOf(yudaoServerBuildRef.data).gitBranch,
+      yudaoServerBuildGitCommit: summaryOf(yudaoServerBuildRef.data).gitCommit,
+      yudaoServerBuildGitDirty: summaryOf(yudaoServerBuildRef.data).gitDirty,
+      yudaoServerBuildGitDirtyFileCount: summaryOf(yudaoServerBuildRef.data).gitDirtyFileCount,
       yudaoServerBuildJarFile: summaryOf(yudaoServerBuildRef.data).jarFile,
       yudaoServerBuildJarSha256: summaryOf(yudaoServerBuildRef.data).jarSha256,
       yudaoServerBuildJarSizeBytes: summaryOf(yudaoServerBuildRef.data).jarSizeBytes,

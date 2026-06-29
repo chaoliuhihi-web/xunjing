@@ -146,6 +146,11 @@ async function writeYudaoServerBuildEvidenceFile(rootDir, serverJar, overrides =
       mavenCommand: 'mvn',
       mavenArgs: ['--batch-mode', '--no-transfer-progress', '-pl', 'yudao-server', '-am', '-DskipTests', 'package'],
       testsIncluded: false,
+      gitAvailable: true,
+      gitBranch: 'feature/xicheng-p0',
+      gitCommit: 'a'.repeat(40),
+      gitDirty: false,
+      gitDirtyFileCount: 0,
       jarFile: serverJar.jarFile,
       jarSizeBytes: serverJar.jarSizeBytes,
       jarSha256: serverJar.jarSha256,
@@ -293,6 +298,11 @@ async function writeReleaseEvidenceFile(rootDir, overrides = {}) {
       yudaoServerJarSizeBytes: serverJar.jarSizeBytes,
       yudaoServerBuildEvidenceFile: path.join(rootDir, 'qa/xicheng-yudao-server-build-evidence.json'),
       yudaoServerBuildMethod: 'mvn',
+      yudaoServerBuildGitAvailable: true,
+      yudaoServerBuildGitBranch: 'feature/xicheng-p0',
+      yudaoServerBuildGitCommit: 'a'.repeat(40),
+      yudaoServerBuildGitDirty: false,
+      yudaoServerBuildGitDirtyFileCount: 0,
       yudaoServerBuildJarFile: serverJar.jarFile,
       yudaoServerBuildJarSha256: serverJar.jarSha256,
       yudaoServerBuildJarSizeBytes: serverJar.jarSizeBytes,
@@ -1571,6 +1581,34 @@ describe('xicheng release evidence package gate', () => {
     expect(report.blockers.join('\n')).toContain('release evidence yudaoServerBuildJarSha256 must match yudaoServerJarSha256')
   })
 
+  test('fails closed when Yudao server build evidence was built from a different git commit', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
+      yudaoServerBuildEvidence: {
+        summary: {
+          gitCommit: '0'.repeat(40)
+        }
+      }
+    })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.blockers.join('\n')).toContain('Yudao server build evidence gitCommit must match release evidence summary.gitCommit')
+  })
+
   test('fails closed when release evidence lacks Yudao server smoke metadata', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeReleaseEvidenceFile(rootDir, {
@@ -2741,6 +2779,7 @@ describe('xicheng release evidence package gate', () => {
     expect(deployDoc).toContain('pendingPoiTasks')
     expect(deployDoc).toContain('release-source-revision')
     expect(deployDoc).toContain('summary.gitCommit')
+    expect(deployDoc).toContain('summary.yudaoServerBuildGitCommit')
     expect(deployDoc).toContain('package-source-revision')
     expect(deployDoc).toContain('summary.packageGitCommit')
     expect(deployDoc).toContain('APP API 域名一致性')

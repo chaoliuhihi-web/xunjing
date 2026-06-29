@@ -1085,6 +1085,7 @@ async function checkYudaoServerBuildEvidence({
   rootDir,
   yudaoServerBuildEvidencePath,
   yudaoServerArtifactSummary,
+  sourceRevisionSummary,
   freshnessOptions
 }) {
   const blockers = []
@@ -1115,6 +1116,25 @@ async function checkYudaoServerBuildEvidence({
     }
     if (!hasValue(summary.buildMethod)) {
       blockers.push('Yudao server build evidence buildMethod is required')
+    }
+    if (sourceRevisionSummary?.gitAvailable === true) {
+      if (summary.gitAvailable !== true) {
+        blockers.push('Yudao server build evidence gitAvailable must be true when release source revision is git-backed')
+      }
+      if (!/^[a-f0-9]{40}$/i.test(String(summary.gitCommit || ''))) {
+        blockers.push('Yudao server build evidence gitCommit must be a 40-character git commit SHA')
+      } else if (summary.gitCommit !== sourceRevisionSummary.gitCommit) {
+        blockers.push('Yudao server build evidence gitCommit must match release gitCommit')
+      }
+      if (hasValue(summary.gitBranch) && hasValue(sourceRevisionSummary.gitBranch) && summary.gitBranch !== sourceRevisionSummary.gitBranch) {
+        blockers.push('Yudao server build evidence gitBranch must match release gitBranch')
+      }
+      if (summary.gitDirty !== false) {
+        blockers.push('Yudao server build evidence gitDirty must be false')
+      }
+      if (Number(summary.gitDirtyFileCount || 0) !== 0) {
+        blockers.push('Yudao server build evidence gitDirtyFileCount must be 0')
+      }
     }
     if (!evidenceJarFile) {
       blockers.push('Yudao server build evidence jarFile is required')
@@ -1151,6 +1171,11 @@ async function checkYudaoServerBuildEvidence({
       yudaoServerBuildEvidenceFile: ref.path,
       yudaoServerBuildCheckedAt: ref.data?.checkedAt,
       yudaoServerBuildMethod: summary.buildMethod,
+      yudaoServerBuildGitAvailable: summary.gitAvailable,
+      yudaoServerBuildGitBranch: summary.gitBranch,
+      yudaoServerBuildGitCommit: summary.gitCommit,
+      yudaoServerBuildGitDirty: summary.gitDirty,
+      yudaoServerBuildGitDirtyFileCount: summary.gitDirtyFileCount,
       yudaoServerBuildJarFile: summary.jarFile,
       yudaoServerBuildJarSizeBytes: summary.jarSizeBytes,
       yudaoServerBuildJarSha256: summary.jarSha256,
@@ -2307,8 +2332,9 @@ export async function verifyXichengYudaoReleaseReadiness({
     yudaoServerJarPath || env.YUDAO_SERVER_JAR
   )
 
+  const sourceRevisionCheck = checkReleaseSourceRevision(rootDir, expectedGitBranch)
   const checks = [
-    checkReleaseSourceRevision(rootDir, expectedGitBranch),
+    sourceRevisionCheck,
     checkRuntimeEnv(env, normalizedStage),
     checkVectorEmbeddingRuntime(env, normalizedStage),
     await checkEmbeddingSmokeEvidence({
@@ -2350,6 +2376,7 @@ export async function verifyXichengYudaoReleaseReadiness({
       rootDir,
       yudaoServerBuildEvidencePath: yudaoServerBuildEvidencePath || env.YUDAO_SERVER_BUILD_EVIDENCE,
       yudaoServerArtifactSummary: yudaoServerArtifactCheck.summary,
+      sourceRevisionSummary: sourceRevisionCheck.summary,
       freshnessOptions
     }),
     await checkYudaoServerSmokeEvidence({

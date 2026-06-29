@@ -246,6 +246,10 @@ async function createProductionReadyFixture() {
   tempDirs.push(rootDir)
   const sqlDir = path.join(rootDir, 'backend/yudao/sql/mysql')
   await mkdir(sqlDir, { recursive: true })
+  await writeFile(path.join(rootDir, '.gitignore'), [
+    'qa/*evidence*.json',
+    'backend/yudao/**/target/'
+  ].join('\n'))
 
   await writeFile(
     path.join(sqlDir, 'ruoyi-vue-pro.sql'),
@@ -1660,6 +1664,51 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(buildCheck?.blockers.join('\n')).toContain('Yudao server build evidence jarSha256 must match the release jar')
   })
 
+  test('fails closed when Yudao server build evidence was built from a different git commit', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const gitCommit = initCleanGitRepo(rootDir)
+    await writeYudaoServerBuildEvidence(rootDir, {
+      summary: {
+        gitAvailable: true,
+        gitBranch: 'feature/xicheng-p0',
+        gitCommit: '0'.repeat(40),
+        gitDirty: false,
+        gitDirtyFileCount: 0
+      }
+    })
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
+    const qdrantEvidencePath = await writeQdrantEvidence(rootDir)
+    const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
+    const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      aiBootstrapEvidencePath,
+      qdrantEvidencePath,
+      visionOcrEvidencePath,
+      objectStorageEvidencePath,
+      runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(gitCommit).toMatch(/^[a-f0-9]{40}$/)
+    expect(result.ok).toBe(false)
+    const buildCheck = result.checks.find((check) => check.name === 'yudao-server-build-evidence')
+    expect(buildCheck?.ok).toBe(false)
+    expect(buildCheck?.blockers.join('\n')).toContain('Yudao server build evidence gitCommit must match release gitCommit')
+  })
+
   test('fails closed when Yudao server smoke evidence is missing', async () => {
     const rootDir = await createProductionReadyFixture()
     await rm(path.join(rootDir, 'qa/xicheng-yudao-server-smoke-evidence.json'), { force: true })
@@ -2457,6 +2506,15 @@ describe('xicheng Yudao release readiness gate', () => {
       runtimeSeedEvidencePath
     })
     const gitCommit = initCleanGitRepo(rootDir)
+    await writeYudaoServerBuildEvidence(rootDir, {
+      summary: {
+        gitAvailable: true,
+        gitBranch: 'feature/xicheng-p0',
+        gitCommit,
+        gitDirty: false,
+        gitDirtyFileCount: 0
+      }
+    })
     const evidenceRelativePath = 'qa/xicheng-yudao-release-evidence.json'
     const evidencePath = path.join(rootDir, evidenceRelativePath)
 
@@ -2538,6 +2596,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(deployDoc).toContain('release evidence summary 会直接提升这些行级 POI 完成数')
     expect(deployDoc).toContain('release-source-revision')
     expect(deployDoc).toContain('summary.gitCommit')
+    expect(deployDoc).toContain('summary.yudaoServerBuildGitCommit')
     expect(deployDoc).toContain('--expected-branch feature/xicheng-p0')
     expect(deployDoc).toContain('summary.expectedGitBranch')
     expect(deployDoc).toContain('runtimeEnvFingerprintMode')
@@ -2548,6 +2607,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(statusDoc).toContain('package summary 里直接展示 workbook 行级完成数')
     expect(statusDoc).toContain('release-source-revision')
     expect(statusDoc).toContain('summary.gitCommit')
+    expect(statusDoc).toContain('summary.yudaoServerBuildGitCommit')
     expect(statusDoc).toContain('--expected-branch feature/xicheng-p0')
     expect(statusDoc).toContain('runtimeEnvFingerprintMode')
     expect(deployDoc).toContain('seed evidence 的 `summary.sqlFile`')

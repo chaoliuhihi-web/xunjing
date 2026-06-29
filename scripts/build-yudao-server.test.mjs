@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { spawnSync } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
@@ -21,6 +22,27 @@ async function createTempRoot() {
   return rootDir
 }
 
+function runGit(rootDir, args) {
+  const result = spawnSync('git', args, {
+    cwd: rootDir,
+    encoding: 'utf8'
+  })
+  if (result.status !== 0) {
+    throw new Error(`git ${args.join(' ')} failed: ${result.stderr || result.stdout}`)
+  }
+  return result.stdout.trim()
+}
+
+function initCleanGitRepo(rootDir) {
+  runGit(rootDir, ['init'])
+  runGit(rootDir, ['checkout', '-b', 'feature/xicheng-p0'])
+  runGit(rootDir, ['config', 'user.name', 'Yudao Build Test'])
+  runGit(rootDir, ['config', 'user.email', 'yudao-build@example.com'])
+  runGit(rootDir, ['add', '.'])
+  runGit(rootDir, ['commit', '-m', 'fixture'])
+  return runGit(rootDir, ['rev-parse', 'HEAD'])
+}
+
 afterEach(async () => {
   while (tempDirs.length > 0) {
     await rm(tempDirs.pop(), { recursive: true, force: true })
@@ -30,6 +52,7 @@ afterEach(async () => {
 describe('Yudao server build wrapper', () => {
   test('builds the Yudao server jar and writes secret-safe evidence', async () => {
     const rootDir = await createTempRoot()
+    const gitCommit = initCleanGitRepo(rootDir)
     const jarFile = path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar')
     const jarContent = 'deployable-yudao-jar'
     const spawnCalls = []
@@ -59,6 +82,11 @@ describe('Yudao server build wrapper', () => {
       summary: {
         buildMethod: 'mvn',
         backendDir: path.join(rootDir, 'backend/yudao'),
+        gitAvailable: true,
+        gitBranch: 'feature/xicheng-p0',
+        gitCommit,
+        gitDirty: false,
+        gitDirtyFileCount: 0,
         jarFile,
         jarSizeBytes: Buffer.byteLength(jarContent),
         jarSha256: sha256(jarContent),
@@ -71,6 +99,7 @@ describe('Yudao server build wrapper', () => {
       'utf8'
     ))
     expect(evidence.summary.jarSha256).toBe(sha256(jarContent))
+    expect(evidence.summary.gitCommit).toBe(gitCommit)
   })
 
   test('falls back to Docker Maven builder when local Maven is unavailable in auto mode', async () => {

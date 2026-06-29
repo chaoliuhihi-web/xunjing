@@ -93,6 +93,32 @@ function commandFailed(result) {
   return result.error?.message || result.stderr || result.stdout || 'Maven build failed'
 }
 
+function gitOutput(rootDir, args, gitCommand = 'git') {
+  const result = spawnSync(gitCommand, ['-C', rootDir, ...args], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe']
+  })
+  return result.status === 0 ? String(result.stdout || '').trim() : undefined
+}
+
+function collectGitSourceRevision(rootDir, gitCommand = 'git') {
+  const gitAvailable = gitOutput(rootDir, ['rev-parse', '--is-inside-work-tree'], gitCommand) === 'true'
+  if (!gitAvailable) {
+    return {
+      gitAvailable: false
+    }
+  }
+  const gitStatusShort = gitOutput(rootDir, ['status', '--short'], gitCommand) || ''
+  const dirtyEntries = gitStatusShort.split(/\r?\n/).filter(Boolean)
+  return {
+    gitAvailable: true,
+    gitBranch: gitOutput(rootDir, ['rev-parse', '--abbrev-ref', 'HEAD'], gitCommand) || 'UNKNOWN',
+    gitCommit: gitOutput(rootDir, ['rev-parse', 'HEAD'], gitCommand) || '',
+    gitDirty: dirtyEntries.length > 0,
+    gitDirtyFileCount: dirtyEntries.length
+  }
+}
+
 async function writeEvidenceFile(rootDir, evidenceFile, report) {
   const resolvedFile = resolveEvidenceFile(rootDir, evidenceFile)
   if (!resolvedFile) {
@@ -121,6 +147,7 @@ export async function buildYudaoServer({
     resolvedRoot,
     jarPath || 'backend/yudao/yudao-server/target/yudao-server.jar'
   )
+  const sourceRevision = collectGitSourceRevision(resolvedRoot)
   const mavenArgs = buildMavenArgs({ includeTests })
   const normalizedBuilder = normalizeBuilder(builder)
   let buildMethod = 'mvn'
@@ -181,6 +208,7 @@ export async function buildYudaoServer({
       dockerImage: buildMethod === 'docker' ? mavenImage : undefined,
       dockerArgs: buildMethod === 'docker' ? dockerRunArgs : undefined,
       testsIncluded: includeTests,
+      ...sourceRevision,
       jarFile,
       jarSizeBytes: jarStats.size,
       jarSha256: await sha256File(jarFile)
