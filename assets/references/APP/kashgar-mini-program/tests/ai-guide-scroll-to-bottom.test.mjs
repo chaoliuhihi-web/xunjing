@@ -48,13 +48,13 @@ assert.doesNotMatch(
 
 assert.match(
   aiGuide,
-  /\.chat-bottom-spacer\s*\{[\s\S]*height:\s*calc\(220rpx \+ env\(safe-area-inset-bottom\)\)/,
+  /\.chat-bottom-spacer\s*\{[\s\S]*height:\s*calc\(300rpx \+ env\(safe-area-inset-bottom\)\)/,
   'AI guide should leave enough scrollable bottom space for the fixed input area'
 )
 
 assert.match(
   aiGuide,
-  /\.content\s*\{[\s\S]*min-height:\s*100vh[\s\S]*padding-bottom:\s*calc\(220rpx \+ env\(safe-area-inset-bottom\)\)/,
+  /\.content\s*\{[\s\S]*min-height:\s*100vh[\s\S]*padding-bottom:\s*calc\(300rpx \+ env\(safe-area-inset-bottom\)\)/,
   'AI guide page content should be naturally scrollable with room for the fixed input area'
 )
 

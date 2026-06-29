@@ -2581,7 +2581,7 @@ loadChatHistory({ preferCache: true })
 
 .content {
 	min-height: 100vh;
-	padding-bottom: calc(220rpx + env(safe-area-inset-bottom));
+	padding-bottom: calc(300rpx + env(safe-area-inset-bottom));
 	box-sizing: border-box;
 	position: relative;
 	z-index: 1;
@@ -2595,7 +2595,7 @@ loadChatHistory({ preferCache: true })
 }
 
 .chat-bottom-spacer {
-	height: calc(220rpx + env(safe-area-inset-bottom));
+	height: calc(300rpx + env(safe-area-inset-bottom));
 }
 
 .message-item {

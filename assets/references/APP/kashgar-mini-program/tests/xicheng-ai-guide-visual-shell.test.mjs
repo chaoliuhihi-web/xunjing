@@ -43,6 +43,12 @@ assert.match(
   'Xicheng AI guide should use the shared landmark photo as a muted background, not as a full-page mockup screenshot'
 )
 
+assert.match(
+  aiGuide,
+  /\.content\s*\{[\s\S]*padding-bottom:\s*calc\(300rpx \+ env\(safe-area-inset-bottom\)\)[\s\S]*\.chat-bottom-spacer\s*\{[\s\S]*height:\s*calc\(300rpx \+ env\(safe-area-inset-bottom\)\)/,
+  'Xicheng AI guide chat list should reserve enough bottom space so the fixed input bar does not cover the latest answer or sources'
+)
+
 assert.doesNotMatch(
   aiGuide,
   /xicheng-multimodal\/design-mockups|03-ask-xiaojing-chat\.png/,
