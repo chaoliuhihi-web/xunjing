@@ -19,6 +19,7 @@
     "xunjing:yudao:release:preflight": "node scripts/run-xicheng-yudao-release-preflight.mjs",
     "xunjing:yudao:release:tasks:export": "node scripts/export-xicheng-yudao-release-blocker-tasks.mjs",
     "xunjing:yudao:runtime-seed:verify": "node scripts/verify-xicheng-yudao-runtime-seed.mjs",
+    "xunjing:yudao:trigger-alias:verify": "node scripts/verify-xicheng-yudao-trigger-alias.mjs",
     "xunjing:yudao:production-seed:apply": "node scripts/apply-xicheng-yudao-production-seed.mjs",
     "xunjing:yudao:server:build": "node scripts/build-yudao-server.mjs",
     "xunjing:vision:smoke": "node scripts/verify-xicheng-vision-ocr-smoke.mjs",
