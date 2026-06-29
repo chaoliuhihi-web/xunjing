@@ -4,23 +4,37 @@ import path from 'node:path'
 
 const root = process.cwd()
 const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
+const editorShare = fs.readFileSync(path.join(root, 'components', 'xicheng', 'travelogue-editor-share.vue'), 'utf8')
+
+for (const required of [
+  'XichengTravelogueEditorShare',
+  '<xicheng-travelogue-editor-share',
+  'editableTravelogueTitle',
+  'editorPhotoCards',
+  'travelogueTagChips',
+  'publishTravelogue'
+]) {
+  assert.ok(travelogue.includes(required), `Xicheng travelogue page should wire editor share shell through ${required}`)
+}
 
 for (const required of [
   'travelogue-editor-share-panel',
   '编辑游记',
-  'editableTravelogueTitle',
-  'editorPhotoCards',
   '今日路线',
   '我的感受',
   '小京补充',
-  'travelogueTagChips',
   '保存草稿',
   '生成分享图',
-  '发布',
-  'publishTravelogue'
+  '发布'
 ]) {
-  assert.ok(travelogue.includes(required), `Xicheng travelogue editor share shell should include ${required}`)
+  assert.ok(editorShare.includes(required), `Xicheng travelogue editor share component should include ${required}`)
 }
+
+assert.match(
+  editorShare,
+  /name:\s*'XichengTravelogueEditorShare'[\s\S]*emits:\s*\['update:title', 'save', 'generate-share', 'publish'\]/,
+  'Travelogue editor share component should expose title update and action events for the parent page'
+)
 
 assert.match(
   travelogue,
@@ -47,7 +61,7 @@ assert.match(
 )
 
 assert.doesNotMatch(
-  travelogue,
+  `${travelogue}\n${editorShare}`,
   /xicheng-multimodal\/design-mockups|11-travelogue-editor-share\.png/,
   'Travelogue editor runtime UI should not reference full-page design mockup screenshots'
 )
