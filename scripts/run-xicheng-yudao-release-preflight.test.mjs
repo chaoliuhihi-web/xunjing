@@ -85,6 +85,8 @@ describe('xicheng Yudao release preflight', () => {
     expect(report.summary.finalEvidencePackageCommand).toContain('--release-evidence qa/xicheng-yudao-release-evidence.json')
     expect(report.summary.finalEvidencePackageCommand).toContain('--yudao-server-build-evidence qa/xicheng-yudao-server-build-evidence.json')
     expect(report.summary.finalEvidencePackageCommand).toContain('--yudao-server-smoke-evidence qa/xicheng-yudao-server-smoke-evidence.json')
+    expect(report.summary.finalEvidencePackageCommand).toContain('--runtime-seed-evidence tmp/xicheng-yudao-runtime-seed-production-evidence.json')
+    expect(report.summary.finalEvidencePackageCommand).toContain('--production-seed-apply-evidence qa/xicheng-yudao-production-seed-apply-evidence.json')
     expect(report.summary.finalEvidencePackageCommand).toContain('--poi-workbook-evidence qa/xicheng-poi-review-workbook-evidence.json')
     expect(report.summary.finalEvidencePackageCommand).toContain('--poi-manifest-evidence qa/xicheng-poi-manifest-evidence.json')
     expect(report.summary.finalEvidencePackageCommand).toContain('--poi-seed-evidence qa/xicheng-poi-production-seed-evidence.json')

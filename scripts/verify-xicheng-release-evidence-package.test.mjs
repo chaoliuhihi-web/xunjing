@@ -192,12 +192,94 @@ async function writeYudaoServerSmokeEvidenceFile(rootDir, overrides = {}) {
   }, overrides))
 }
 
+async function writeRuntimeSeedEvidenceFile(rootDir, overrides = {}) {
+  return writeJson(rootDir, 'qa/xicheng-yudao-runtime-seed-production-evidence.json', mergeEvidence({
+    artifactType: 'xicheng-yudao-runtime-seed',
+    ok: true,
+    status: 'YUDAO_XICHENG_PRODUCTION_SEED_READY',
+    checkedAt: freshCheckedAt(),
+    summary: {
+      readinessMode: 'production',
+      tenantId: '1001',
+      database: 'yudao_xinghe_xunjing_prod',
+      client: 'container',
+      packageCode: 'XICHENG-MAP-001',
+      regionCode: 'beijing-xicheng',
+      packageCount: 1,
+      poiTotal: 80,
+      poiApprovedPublished: 80,
+      poiGeoReviewRequired: 0,
+      poiLicenseReviewRequired: 0,
+      knowledgeDocuments: 84,
+      mapPoints: 80,
+      qrCodes: 1,
+      publicReportLocalCandidate: 1,
+      publicReportProductionReady: 1,
+      localCandidateReady: true,
+      productionReady: true,
+      productionBlockers: [],
+      samplePoiCodes: ['xicheng-baitasi', 'xicheng-gongwangfu'],
+      geoReviewRequiredPoiCodes: [],
+      licenseReviewRequiredPoiCodes: []
+    },
+    checks: [
+      { name: 'resource-package', ok: true },
+      { name: 'poi-count', ok: true },
+      { name: 'poi-approval', ok: true },
+      { name: 'knowledge-documents', ok: true },
+      { name: 'map-points', ok: true },
+      { name: 'qr-code', ok: true },
+      { name: 'local-candidate-report', ok: true },
+      { name: 'secret-redaction', ok: true }
+    ],
+    blockers: []
+  }, overrides))
+}
+
+async function writeProductionSeedApplyEvidenceFile(rootDir, poiSources, overrides = {}) {
+  return writeJson(rootDir, 'qa/xicheng-yudao-production-seed-apply-evidence.json', mergeEvidence({
+    artifactType: 'xicheng-yudao-production-seed-apply',
+    ok: true,
+    status: 'YUDAO_XICHENG_PRODUCTION_SEED_APPLIED',
+    checkedAt: freshCheckedAt(),
+    summary: {
+      seedSqlFile: poiSources.sqlFile,
+      seedSqlSha256: poiSources.sqlSha256,
+      seedEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-production-seed-evidence.json'),
+      runtimeEvidenceFile: path.join(rootDir, 'qa/xicheng-yudao-runtime-seed-production-evidence.json'),
+      applyEvidenceFile: path.join(rootDir, 'qa/xicheng-yudao-production-seed-apply-evidence.json'),
+      mysqlClient: 'container',
+      targetTenantId: '1001',
+      targetDatabase: 'yudao_xinghe_xunjing_prod',
+      packageCode: 'XICHENG-MAP-001',
+      regionCode: 'beijing-xicheng',
+      poiCount: 80,
+      reviewBatchCode: 'xicheng-p0-poi-review-20260627',
+      reviewBatchEvidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260627.zip',
+      runtimeSeedStatus: 'YUDAO_XICHENG_PRODUCTION_SEED_READY',
+      runtimeSeedProductionReady: true,
+      runtimeSeedPoiTotal: 80,
+      runtimeSeedKnowledgeDocuments: 84,
+      runtimeSeedMapPoints: 80
+    },
+    checks: [
+      { name: 'seed-evidence', ok: true },
+      { name: 'mysql-apply', ok: true },
+      { name: 'runtime-seed-production-readiness', ok: true },
+      { name: 'secret-redaction', ok: true }
+    ],
+    blockers: []
+  }, overrides))
+}
+
 async function writeReleaseEvidenceFile(rootDir, overrides = {}) {
   const baseline = await writeYudaoBaselineFile(rootDir)
   const serverJar = await writeYudaoServerJarFile(rootDir)
   await writeYudaoServerBuildEvidenceFile(rootDir, serverJar, overrides.yudaoServerBuildEvidence || {})
   await writeYudaoServerSmokeEvidenceFile(rootDir, overrides.yudaoServerSmokeEvidence || {})
   const poiSources = await writePoiSourceFiles(rootDir)
+  await writeRuntimeSeedEvidenceFile(rootDir, overrides.runtimeSeedEvidence || {})
+  await writeProductionSeedApplyEvidenceFile(rootDir, poiSources, overrides.productionSeedApplyEvidence || {})
   await writeSourceCoverageEvidenceFile(rootDir)
   await writeSourceReviewApplyEvidenceFile(rootDir)
   await writeProductionReviewApplyEvidenceFile(rootDir)
@@ -828,6 +910,8 @@ describe('xicheng release evidence package gate', () => {
     const productionReviewApplyPath = await writeProductionReviewApplyEvidenceFile(rootDir)
     const yudaoServerBuildPath = path.join(rootDir, 'qa/xicheng-yudao-server-build-evidence.json')
     const yudaoServerSmokePath = path.join(rootDir, 'qa/xicheng-yudao-server-smoke-evidence.json')
+    const runtimeSeedPath = path.join(rootDir, 'qa/xicheng-yudao-runtime-seed-production-evidence.json')
+    const productionSeedApplyPath = path.join(rootDir, 'qa/xicheng-yudao-production-seed-apply-evidence.json')
     const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
     const outputPath = path.join(rootDir, 'qa/xicheng-release-evidence-package.json')
 
@@ -836,6 +920,8 @@ describe('xicheng release evidence package gate', () => {
       '--stage', 'production',
       '--release-evidence', releasePath,
       '--yudao-server-smoke-evidence', yudaoServerSmokePath,
+      '--runtime-seed-evidence', runtimeSeedPath,
+      '--production-seed-apply-evidence', productionSeedApplyPath,
       '--poi-manifest-evidence', manifestPath,
       '--poi-workbook-evidence', workbookPath,
       '--poi-seed-evidence', seedPath,
@@ -860,6 +946,10 @@ describe('xicheng release evidence package gate', () => {
       yudaoServerSmokeTenantId: '1001',
       yudaoServerSmokePackageCode: 'XICHENG-MAP-001',
       yudaoServerSmokePublicReportMapPointCount: 80,
+      runtimeSeedStatus: 'YUDAO_XICHENG_PRODUCTION_SEED_READY',
+      runtimeSeedPoiTotal: 80,
+      productionSeedApplyStatus: 'YUDAO_XICHENG_PRODUCTION_SEED_APPLIED',
+      productionSeedApplyRuntimeEvidenceFile: runtimeSeedPath,
       poiWorkbookStatus: 'XICHENG_POI_REVIEW_WORKBOOK_READY',
       poiSourceCoverageStatus: 'SOURCE_COVERAGE_READY',
       poiSourceReviewApplyStatus: 'SOURCE_REVIEW_APPLIED',
@@ -871,6 +961,8 @@ describe('xicheng release evidence package gate', () => {
       releaseEvidenceFile: releasePath,
       yudaoServerBuildEvidenceFile: yudaoServerBuildPath,
       yudaoServerSmokeEvidenceFile: yudaoServerSmokePath,
+      runtimeSeedEvidenceFile: runtimeSeedPath,
+      productionSeedApplyEvidenceFile: productionSeedApplyPath,
       poiManifestEvidenceFile: manifestPath,
       poiWorkbookEvidenceFile: workbookPath,
       poiSeedEvidenceFile: seedPath,
@@ -898,6 +990,8 @@ describe('xicheng release evidence package gate', () => {
     const releaseEvidenceText = await readFile(releasePath, 'utf8')
     const yudaoServerBuildEvidenceText = await readFile(yudaoServerBuildPath, 'utf8')
     const yudaoServerSmokeEvidenceText = await readFile(yudaoServerSmokePath, 'utf8')
+    const runtimeSeedEvidenceText = await readFile(runtimeSeedPath, 'utf8')
+    const productionSeedApplyEvidenceText = await readFile(productionSeedApplyPath, 'utf8')
     const manifestEvidenceText = await readFile(manifestPath, 'utf8')
     const workbookEvidenceText = await readFile(workbookPath, 'utf8')
     const seedEvidenceText = await readFile(seedPath, 'utf8')
@@ -909,6 +1003,8 @@ describe('xicheng release evidence package gate', () => {
       release: sha256(releaseEvidenceText),
       yudaoServerBuild: sha256(yudaoServerBuildEvidenceText),
       yudaoServerSmoke: sha256(yudaoServerSmokeEvidenceText),
+      runtimeSeed: sha256(runtimeSeedEvidenceText),
+      productionSeedApply: sha256(productionSeedApplyEvidenceText),
       poiManifest: sha256(manifestEvidenceText),
       poiWorkbook: sha256(workbookEvidenceText),
       poiSeed: sha256(seedEvidenceText),
@@ -921,6 +1017,8 @@ describe('xicheng release evidence package gate', () => {
       'release-gate-evidence',
       'yudao-server-build-evidence',
       'yudao-server-smoke-evidence',
+      'runtime-seed-evidence',
+      'production-seed-apply-evidence',
       'package-source-revision',
       'poi-manifest-evidence',
       'poi-workbook-evidence',
@@ -1583,6 +1681,57 @@ describe('xicheng release evidence package gate', () => {
     const report = JSON.parse(result.stdout)
     expect(report.status).toBe('NOT_READY')
     expect(report.blockers.join('\n')).toContain('Yudao server smoke evidence baseUrl must match release evidence summary')
+  })
+
+  test('fails closed when runtime seed evidence file is missing from final package inputs', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
+    await rm(path.join(rootDir, 'qa/xicheng-yudao-runtime-seed-production-evidence.json'), { force: true })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.blockers.join('\n')).toContain('runtime seed evidence cannot be read')
+  })
+
+  test('fails closed when production seed apply evidence points at a different runtime seed evidence', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
+      productionSeedApplyEvidence: {
+        summary: {
+          runtimeEvidenceFile: path.join(rootDir, 'qa/other-runtime-seed-evidence.json')
+        }
+      }
+    })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.blockers.join('\n')).toContain('production seed apply evidence runtimeEvidenceFile must match runtime seed evidence')
   })
 
   test('fails closed when APP, manifest and seed evidence do not describe the same Xicheng batch', async () => {
@@ -2560,6 +2709,8 @@ describe('xicheng release evidence package gate', () => {
     )
     expect(deployDoc).toContain('npm run xunjing:xicheng:release:evidence:package')
     expect(deployDoc).toContain('--yudao-server-smoke-evidence qa/xicheng-yudao-server-smoke-evidence.json')
+    expect(deployDoc).toContain('--runtime-seed-evidence qa/xicheng-yudao-runtime-seed-production-evidence.json')
+    expect(deployDoc).toContain('--production-seed-apply-evidence qa/xicheng-yudao-production-seed-apply-evidence.json')
     expect(deployDoc).toContain('XICHENG_RELEASE_EVIDENCE_PACKAGE_READY')
     expect(deployDoc).toContain('xunjing-platform-readiness')
     expect(deployDoc).toContain('summary.tenantId')
@@ -2581,6 +2732,8 @@ describe('xicheng release evidence package gate', () => {
     expect(deployDoc).toContain('evidenceFileSha256')
     expect(deployDoc).toContain('summary.poiWorkbookEvidenceFile')
     expect(deployDoc).toContain('summary.yudaoServerSmokeStatus')
+    expect(deployDoc).toContain('summary.runtimeSeedStatus')
+    expect(deployDoc).toContain('summary.productionSeedApplyStatus')
     expect(deployDoc).toContain('summary.poiSourceCoverageEvidenceFile')
     expect(deployDoc).toContain('workbookReadyPoiCount')
     expect(deployDoc).toContain('workbookPendingPoiCount')
