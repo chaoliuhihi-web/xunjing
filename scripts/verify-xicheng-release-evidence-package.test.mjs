@@ -167,6 +167,10 @@ async function writeReleaseEvidenceFile(rootDir, overrides = {}) {
       productionReviewApplyStatus: 'PRODUCTION_REVIEW_APPLIED',
       productionReviewAppliedPoiCount: 80,
       productionReviewPendingPoiCount: 0,
+      productionReviewTriggerSmokeApplyEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-trigger-smoke-apply-evidence.json'),
+      productionReviewTriggerSmokeApplyStatus: 'TRIGGER_SMOKE_APPLIED',
+      productionReviewTriggerSmokeAppliedPoiCount: 80,
+      productionReviewTriggerSmokePendingPoiCount: 0,
       aiBootstrapEvidenceFile: path.join(rootDir, 'qa/xicheng-yudao-ai-bootstrap-evidence.json'),
       aiBootstrapModel: 'qwen-plus',
       aiBootstrapProviderSmokeHost: 'dashscope.aliyuncs.com',
@@ -309,6 +313,10 @@ async function writeProductionReviewApplyEvidenceFile(rootDir, overrides = {}) {
       sourceReviewPendingSourcePoiCount: 0,
       sourceCoverageStatus: 'SOURCE_COVERAGE_READY',
       sourceCoverageUncoveredPoiCount: 0,
+      triggerSmokeApplyEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-trigger-smoke-apply-evidence.json'),
+      triggerSmokeApplyStatus: 'TRIGGER_SMOKE_APPLIED',
+      triggerSmokeAppliedPoiCount: 80,
+      triggerSmokePendingPoiCount: 0,
       outputFile: sources.workbookFile,
       evidenceFile: path.join(rootDir, 'qa/xicheng-poi-production-review-apply-evidence.json'),
       workbookRows: 80,
@@ -774,6 +782,9 @@ describe('xicheng release evidence package gate', () => {
       sourceReviewPendingSourcePoiCount: 0,
       productionReviewAppliedPoiCount: 80,
       productionReviewPendingPoiCount: 0,
+      productionReviewTriggerSmokeApplyStatus: 'TRIGGER_SMOKE_APPLIED',
+      productionReviewTriggerSmokeAppliedPoiCount: 80,
+      productionReviewTriggerSmokePendingPoiCount: 0,
       pendingPoiCodes: [],
       pendingPoiTasks: [],
       blockerCount: 0
@@ -890,6 +901,47 @@ describe('xicheng release evidence package gate', () => {
     expect(report.checks.map((check) => check.name)).toContain('poi-production-review-apply-evidence')
     expect(report.blockers.join('\n')).toContain('source review apply evidence is required')
     expect(report.blockers.join('\n')).toContain('production review apply evidence is required')
+  })
+
+  test('fails closed when POI production review apply evidence lacks passed trigger smoke apply summary', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const workbookPath = path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json')
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const sourceCoveragePath = await writeSourceCoverageEvidenceFile(rootDir)
+    const sourceReviewApplyPath = await writeSourceReviewApplyEvidenceFile(rootDir)
+    const productionReviewApplyPath = await writeProductionReviewApplyEvidenceFile(rootDir, {
+      summary: {
+        triggerSmokeApplyEvidenceFile: undefined,
+        triggerSmokeApplyStatus: 'TRIGGER_SMOKE_APPLY_REMAINS',
+        triggerSmokeAppliedPoiCount: 79,
+        triggerSmokePendingPoiCount: 1
+      }
+    })
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-workbook-evidence', workbookPath,
+      '--poi-seed-evidence', seedPath,
+      '--poi-source-coverage-evidence', sourceCoveragePath,
+      '--poi-source-review-apply-evidence', sourceReviewApplyPath,
+      '--poi-production-review-apply-evidence', productionReviewApplyPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.checks.map((check) => check.name)).toContain('poi-production-review-apply-evidence')
+    expect(report.blockers.join('\n')).toContain('production review apply evidence triggerSmokeApplyEvidenceFile is required')
+    expect(report.blockers.join('\n')).toContain('production review apply evidence triggerSmokeApplyStatus must be TRIGGER_SMOKE_APPLIED')
+    expect(report.blockers.join('\n')).toContain('production review apply evidence triggerSmokeAppliedPoiCount must be at least 80')
+    expect(report.blockers.join('\n')).toContain('production review apply evidence triggerSmokePendingPoiCount must be 0')
   })
 
   test('fails closed when POI source coverage evidence still has uncovered POIs', async () => {

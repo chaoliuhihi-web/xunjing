@@ -1309,6 +1309,18 @@ async function validateProductionReviewApplyEvidence(ref, {
   if (Number(summary.sourceCoverageUncoveredPoiCount) !== 0) {
     blockers.push('production review apply evidence sourceCoverageUncoveredPoiCount must be 0')
   }
+  if (!hasValue(summary.triggerSmokeApplyEvidenceFile)) {
+    blockers.push('production review apply evidence triggerSmokeApplyEvidenceFile is required')
+  }
+  if (summary.triggerSmokeApplyStatus !== 'TRIGGER_SMOKE_APPLIED') {
+    blockers.push('production review apply evidence triggerSmokeApplyStatus must be TRIGGER_SMOKE_APPLIED')
+  }
+  if (Number(summary.triggerSmokeAppliedPoiCount) < productionPoiTarget) {
+    blockers.push(`production review apply evidence triggerSmokeAppliedPoiCount must be at least ${productionPoiTarget}`)
+  }
+  if (Number(summary.triggerSmokePendingPoiCount) !== 0) {
+    blockers.push('production review apply evidence triggerSmokePendingPoiCount must be 0')
+  }
   if (
     sourceReviewApplyEvidence?.path &&
     normalizeEvidencePath(rootDir, summary.sourceReviewApplyEvidenceFile) !== sourceReviewApplyEvidence.path
@@ -1739,6 +1751,10 @@ async function checkXichengProductionPoiEvidence({
       productionReviewAppliedPoiCount: evidenceSummary(productionReviewApplyEvidence.data).appliedPoiCount,
       productionReviewPendingPoiCount: evidenceSummary(productionReviewApplyEvidence.data).pendingProductionReviewPoiCount,
       productionReviewPendingPoiCodes: evidenceSummary(productionReviewApplyEvidence.data).pendingProductionReviewPoiCodes,
+      productionReviewTriggerSmokeApplyEvidenceFile: evidenceSummary(productionReviewApplyEvidence.data).triggerSmokeApplyEvidenceFile,
+      productionReviewTriggerSmokeApplyStatus: evidenceSummary(productionReviewApplyEvidence.data).triggerSmokeApplyStatus,
+      productionReviewTriggerSmokeAppliedPoiCount: evidenceSummary(productionReviewApplyEvidence.data).triggerSmokeAppliedPoiCount,
+      productionReviewTriggerSmokePendingPoiCount: evidenceSummary(productionReviewApplyEvidence.data).triggerSmokePendingPoiCount,
       seedEvidenceFile: seedEvidence.path,
       poiManifestFile: evidenceSummary(manifestEvidence.data).manifestFile,
       poiManifestSha256: evidenceSummary(manifestEvidence.data).manifestSha256,

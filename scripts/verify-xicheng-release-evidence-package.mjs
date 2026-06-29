@@ -670,6 +670,18 @@ function checkReleaseReviewApplySummary(evidence) {
   if (Number(summary.productionReviewPendingPoiCount) !== 0) {
     blockers.push('release evidence productionReviewPendingPoiCount must be 0')
   }
+  if (!hasText(summary.productionReviewTriggerSmokeApplyEvidenceFile)) {
+    blockers.push('release evidence productionReviewTriggerSmokeApplyEvidenceFile is required')
+  }
+  if (summary.productionReviewTriggerSmokeApplyStatus !== 'TRIGGER_SMOKE_APPLIED') {
+    blockers.push('release evidence productionReviewTriggerSmokeApplyStatus must be TRIGGER_SMOKE_APPLIED')
+  }
+  if (Number(summary.productionReviewTriggerSmokeAppliedPoiCount) < productionPoiTarget) {
+    blockers.push(`release evidence productionReviewTriggerSmokeAppliedPoiCount must be at least ${productionPoiTarget}`)
+  }
+  if (Number(summary.productionReviewTriggerSmokePendingPoiCount) !== 0) {
+    blockers.push('release evidence productionReviewTriggerSmokePendingPoiCount must be 0')
+  }
   return blockers
 }
 
@@ -1124,6 +1136,18 @@ async function checkProductionReviewApplyEvidence(ref, rootDir, freshnessOptions
   if (Number(summary.sourceCoverageUncoveredPoiCount) !== 0) {
     blockers.push('production review apply evidence sourceCoverageUncoveredPoiCount must be 0')
   }
+  if (!hasText(summary.triggerSmokeApplyEvidenceFile)) {
+    blockers.push('production review apply evidence triggerSmokeApplyEvidenceFile is required')
+  }
+  if (summary.triggerSmokeApplyStatus !== 'TRIGGER_SMOKE_APPLIED') {
+    blockers.push('production review apply evidence triggerSmokeApplyStatus must be TRIGGER_SMOKE_APPLIED')
+  }
+  if (Number(summary.triggerSmokeAppliedPoiCount) < productionPoiTarget) {
+    blockers.push(`production review apply evidence triggerSmokeAppliedPoiCount must be at least ${productionPoiTarget}`)
+  }
+  if (Number(summary.triggerSmokePendingPoiCount) !== 0) {
+    blockers.push('production review apply evidence triggerSmokePendingPoiCount must be 0')
+  }
   if (blockersOf(evidence).length > 0) {
     blockers.push(`production review apply evidence contains blockers: ${blockersOf(evidence).join('; ')}`)
   }
@@ -1254,6 +1278,25 @@ function checkEvidenceConsistency({
     releaseProductionReviewApplyEvidenceFile !== path.resolve(productionReviewApplyRef.path)
   ) {
     blockers.push('release and package production review apply evidence file must match')
+  }
+  if (
+    releaseSummary.productionReviewTriggerSmokeApplyEvidenceFile &&
+    productionReviewApplySummary.triggerSmokeApplyEvidenceFile &&
+    normalizeEvidencePath(rootDir, releaseSummary.productionReviewTriggerSmokeApplyEvidenceFile) !==
+      normalizeEvidencePath(rootDir, productionReviewApplySummary.triggerSmokeApplyEvidenceFile)
+  ) {
+    blockers.push('release and package production review trigger smoke apply evidence file must match')
+  }
+  for (const [releaseField, packageField] of [
+    ['productionReviewTriggerSmokeApplyStatus', 'triggerSmokeApplyStatus'],
+    ['productionReviewTriggerSmokeAppliedPoiCount', 'triggerSmokeAppliedPoiCount'],
+    ['productionReviewTriggerSmokePendingPoiCount', 'triggerSmokePendingPoiCount']
+  ]) {
+    const releaseValue = releaseSummary[releaseField]
+    const packageValue = productionReviewApplySummary[packageField]
+    if (String(releaseValue ?? '') !== String(packageValue ?? '')) {
+      blockers.push(`release and package ${releaseField} must match`)
+    }
   }
 
   for (const [releaseField, packageValue] of [
@@ -1558,6 +1601,10 @@ export async function verifyXichengReleaseEvidencePackage({
       sourceReviewPendingSourcePoiCount: summaryOf(sourceReviewApplyRef.data).pendingSourcePoiCount,
       productionReviewAppliedPoiCount: summaryOf(productionReviewApplyRef.data).appliedPoiCount,
       productionReviewPendingPoiCount: summaryOf(productionReviewApplyRef.data).pendingProductionReviewPoiCount,
+      productionReviewTriggerSmokeApplyEvidenceFile: summaryOf(productionReviewApplyRef.data).triggerSmokeApplyEvidenceFile,
+      productionReviewTriggerSmokeApplyStatus: summaryOf(productionReviewApplyRef.data).triggerSmokeApplyStatus,
+      productionReviewTriggerSmokeAppliedPoiCount: summaryOf(productionReviewApplyRef.data).triggerSmokeAppliedPoiCount,
+      productionReviewTriggerSmokePendingPoiCount: summaryOf(productionReviewApplyRef.data).triggerSmokePendingPoiCount,
       pendingPoiCodes: summaryOf(workbookRef.data).pendingPoiCodes,
       pendingPoiTasks: summaryOf(workbookRef.data).pendingPoiTasks,
       ...packageSourceRevisionSummary,

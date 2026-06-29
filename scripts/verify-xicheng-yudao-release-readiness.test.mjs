@@ -231,6 +231,7 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
   const seedEvidencePath = path.join(rootDir, 'qa/xicheng-poi-production-seed-evidence.json')
   const sourceCoverageEvidencePath = path.join(rootDir, 'qa/xicheng-poi-source-coverage-evidence.json')
   const sourceReviewApplyEvidencePath = path.join(rootDir, 'qa/xicheng-poi-source-review-apply-evidence.json')
+  const triggerSmokeApplyEvidencePath = path.join(rootDir, 'qa/xicheng-poi-trigger-smoke-apply-evidence.json')
   const productionReviewApplyEvidencePath = path.join(rootDir, 'qa/xicheng-poi-production-review-apply-evidence.json')
   const manifestSourcePath = path.join(rootDir, 'workbench/xicheng-production-pois.json')
   const sourceAppliedWorkbookPath = path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.source-applied.csv')
@@ -411,6 +412,10 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
       sourceReviewPendingSourcePoiCount: 0,
       sourceCoverageStatus: 'SOURCE_COVERAGE_READY',
       sourceCoverageUncoveredPoiCount: 0,
+      triggerSmokeApplyEvidenceFile: triggerSmokeApplyEvidencePath,
+      triggerSmokeApplyStatus: 'TRIGGER_SMOKE_APPLIED',
+      triggerSmokeAppliedPoiCount: 80,
+      triggerSmokePendingPoiCount: 0,
       outputFile: workbookSourcePath,
       evidenceFile: productionReviewApplyEvidencePath,
       workbookRows: 80,
@@ -436,6 +441,7 @@ async function writeProductionPoiEvidence(rootDir, overrides = {}) {
     seedEvidencePath,
     sourceCoverageEvidencePath,
     sourceReviewApplyEvidencePath,
+    triggerSmokeApplyEvidencePath,
     productionReviewApplyEvidencePath
   }
 }
@@ -670,6 +676,7 @@ describe('xicheng Yudao release readiness gate', () => {
       seedEvidencePath,
       sourceCoverageEvidencePath,
       sourceReviewApplyEvidencePath,
+      triggerSmokeApplyEvidencePath,
       productionReviewApplyEvidencePath
     } = await writeProductionPoiEvidence(rootDir)
     const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
@@ -711,6 +718,10 @@ describe('xicheng Yudao release readiness gate', () => {
       productionReviewApplyStatus: 'PRODUCTION_REVIEW_APPLIED',
       productionReviewAppliedPoiCount: 80,
       productionReviewPendingPoiCount: 0,
+      productionReviewTriggerSmokeApplyEvidenceFile: triggerSmokeApplyEvidencePath,
+      productionReviewTriggerSmokeApplyStatus: 'TRIGGER_SMOKE_APPLIED',
+      productionReviewTriggerSmokeAppliedPoiCount: 80,
+      productionReviewTriggerSmokePendingPoiCount: 0,
       workbookEvidenceFile: workbookEvidencePath,
       sourceWorkbookFile: path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.production-applied.csv'),
       sourceWorkbookSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
@@ -840,6 +851,55 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidenceCheck?.ok).toBe(false)
     expect(evidenceCheck?.blockers.join('\n')).toContain('POI source review apply evidence is required before production release')
     expect(evidenceCheck?.blockers.join('\n')).toContain('POI production review apply evidence is required before production release')
+  })
+
+  test('rejects production review apply evidence without a passed trigger smoke apply summary', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const {
+      manifestEvidencePath,
+      workbookEvidencePath,
+      seedEvidencePath
+    } = await writeProductionPoiEvidence(rootDir, {
+      productionReviewApply: {
+        summary: {
+          triggerSmokeApplyEvidenceFile: undefined,
+          triggerSmokeApplyStatus: 'TRIGGER_SMOKE_APPLY_REMAINS',
+          triggerSmokeAppliedPoiCount: 79,
+          triggerSmokePendingPoiCount: 1
+        }
+      }
+    })
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
+    const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
+    const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      aiBootstrapEvidencePath,
+      visionOcrEvidencePath,
+      objectStorageEvidencePath,
+      runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    expect(evidenceCheck?.ok).toBe(false)
+    expect(evidenceCheck?.blockers.join('\n')).toContain('production review apply evidence triggerSmokeApplyEvidenceFile is required')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('production review apply evidence triggerSmokeApplyStatus must be TRIGGER_SMOKE_APPLIED')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('production review apply evidence triggerSmokeAppliedPoiCount must be at least 80')
+    expect(evidenceCheck?.blockers.join('\n')).toContain('production review apply evidence triggerSmokePendingPoiCount must be 0')
   })
 
   test('surfaces pending POI codes from source and production review apply evidence', async () => {
