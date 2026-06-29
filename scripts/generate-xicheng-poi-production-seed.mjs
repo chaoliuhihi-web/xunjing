@@ -6,6 +6,7 @@ import { verifyXichengPoiProductionManifest } from './verify-xicheng-poi-product
 
 const allowedOutputDirs = new Set(['qa', 'tmp', 'workbench'])
 const allowedEvidenceDirs = new Set(['qa', 'tmp', 'workbench'])
+const backendMysqlOutputPrefix = ['backend', 'yudao', 'sql', 'mysql']
 
 function check(name, ok, detail, blockers = []) {
   return { name, ok, detail, blockers }
@@ -55,13 +56,16 @@ function resolveOutputFile(rootDir, outputFile) {
     : path.resolve(resolvedRoot, outputFile)
   const relativePath = path.relative(resolvedRoot, resolvedFile)
   const [topLevelDir] = relativePath.split(path.sep)
+  const pathParts = relativePath.split(path.sep)
+  const isBackendMysqlOutput = backendMysqlOutputPrefix.every((part, index) => pathParts[index] === part) &&
+    pathParts.length > backendMysqlOutputPrefix.length
   if (
     !relativePath ||
     relativePath.startsWith('..') ||
     path.isAbsolute(relativePath) ||
-    !allowedOutputDirs.has(topLevelDir)
+    (!allowedOutputDirs.has(topLevelDir) && !isBackendMysqlOutput)
   ) {
-    throw new Error('output file must be under qa/, tmp/ or workbench/')
+    throw new Error('output file must be under qa/, tmp/, workbench/ or backend/yudao/sql/mysql/')
   }
   return resolvedFile
 }

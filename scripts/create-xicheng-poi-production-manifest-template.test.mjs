@@ -369,10 +369,10 @@ describe('xicheng POI production manifest template generator', () => {
       'npm run xunjing:xicheng:poi:manifest:gate -- --manifest workbench/xicheng-production-pois.json --evidence-file qa/xicheng-poi-manifest-evidence.json'
     )
     expect(reviewPacket.nextCommands).toContain(
-      'npm run xunjing:xicheng:poi:seed:generate -- --manifest workbench/xicheng-production-pois.json --output workbench/xicheng-poi-production-seed.sql --evidence-file qa/xicheng-poi-production-seed-generation-evidence.json'
+      'npm run xunjing:xicheng:poi:seed:generate -- --manifest workbench/xicheng-production-pois.json --output backend/yudao/sql/mysql/xunjing-seed-xicheng-p0-production.sql --evidence-file qa/xicheng-poi-production-seed-generation-evidence.json'
     )
     expect(reviewPacket.nextCommands).toContain(
-      'npm run xunjing:xicheng:poi:seed:verify -- --sql workbench/xicheng-poi-production-seed.sql --evidence-file qa/xicheng-poi-production-seed-evidence.json'
+      'npm run xunjing:xicheng:poi:seed:verify -- --sql backend/yudao/sql/mysql/xunjing-seed-xicheng-p0-production.sql --evidence-file qa/xicheng-poi-production-seed-evidence.json'
     )
     expect(reviewPacket.blockers).toContain('review workbook still contains TODO or REVIEW_REQUIRED placeholders')
   })
