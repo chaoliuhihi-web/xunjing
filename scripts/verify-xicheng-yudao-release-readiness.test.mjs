@@ -75,6 +75,45 @@ const requiredRuntimeSeedEvidenceChecks = [
   'local-candidate-report',
   'secret-redaction'
 ]
+const requiredProductionEnvTemplateKeys = [
+  'SPRING_PROFILES_ACTIVE',
+  'SPRING_AI_VECTORSTORE_TYPE',
+  'SPRING_AI_MODEL_EMBEDDING',
+  'XUNJING_TENANT_ID',
+  'XUNJING_APP_API_BASE_URL',
+  'MYSQL_HOST',
+  'MYSQL_PORT',
+  'MYSQL_DATABASE',
+  'MYSQL_USERNAME',
+  'MYSQL_PASSWORD',
+  'REDIS_HOST',
+  'REDIS_PORT',
+  'REDIS_DATABASE',
+  'REDIS_PASSWORD',
+  'OSS_ENDPOINT',
+  'OSS_BUCKET',
+  'OSS_PREFIX',
+  'OSS_ACCESS_KEY',
+  'OSS_SECRET_KEY',
+  'QDRANT_URL',
+  'QDRANT_HOST',
+  'QDRANT_GRPC_PORT',
+  'QDRANT_TEXT_COLLECTION',
+  'QDRANT_IMAGE_COLLECTION',
+  'QWEN_API_KEY',
+  'QWEN_BASE_URL',
+  'QWEN_MODEL',
+  'DASHSCOPE_API_KEY',
+  'DASHSCOPE_EMBEDDING_ENABLED',
+  'WX_MP_APP_ID',
+  'WX_MP_SECRET',
+  'WX_MINIAPP_APPID',
+  'WX_MINIAPP_SECRET',
+  'XUNJING_VISION_API_URL',
+  'XUNJING_VISION_API_KEY',
+  'XUNJING_VISION_MODEL',
+  'INTERNAL_AUTH_TOKEN'
+]
 
 function passedChecks(names) {
   return names.map((name) => ({ name, ok: true, detail: `${name} passed`, blockers: [] }))
@@ -116,6 +155,17 @@ function mergeEvidence(base, overrides = {}) {
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex')
+}
+
+function parseEnvTemplate(text) {
+  return Object.fromEntries(text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith('#'))
+    .map((line) => {
+      const index = line.indexOf('=')
+      return index < 0 ? [line, ''] : [line.slice(0, index), line.slice(index + 1)]
+    }))
 }
 
 function productionEnv(overrides = {}) {
@@ -625,6 +675,32 @@ afterEach(async () => {
 })
 
 describe('xicheng Yudao release readiness gate', () => {
+  test('documents a redacted production env template with all release gate keys', async () => {
+    const templatePath = path.resolve('ops/xicheng-production.env.example')
+    const templateText = await readFile(templatePath, 'utf8')
+    const template = parseEnvTemplate(templateText)
+
+    expect(Object.keys(template)).toEqual(expect.arrayContaining(requiredProductionEnvTemplateKeys))
+    for (const key of requiredProductionEnvTemplateKeys) {
+      expect(template[key]).toBeDefined()
+      expect(String(template[key])).not.toBe('')
+    }
+    expect(template.SPRING_PROFILES_ACTIVE).toBe('production')
+    expect(template.SPRING_AI_VECTORSTORE_TYPE).toBe('qdrant')
+    expect(template.DASHSCOPE_EMBEDDING_ENABLED).toBe('true')
+    expect(template.XUNJING_APP_API_BASE_URL).toBe('https://replace-with-production-api.example.com')
+    expect(template.MYSQL_HOST).not.toMatch(/^(127\.0\.0\.1|localhost|0\.0\.0\.0)$/)
+    expect(template.REDIS_HOST).not.toMatch(/^(127\.0\.0\.1|localhost|0\.0\.0\.0)$/)
+    expect(template.QDRANT_HOST).not.toMatch(/^(127\.0\.0\.1|localhost|0\.0\.0\.0)$/)
+    expect(templateText).not.toContain('xunjing_local_password')
+    expect(templateText).not.toContain('xunjing_local_minio_password')
+
+    const deployDoc = await readFile(path.resolve('docs/02_开发规划/星河寻境业务平台部署说明.md'), 'utf8')
+    const statusDoc = await readFile(path.resolve('docs/04_AI交接任务书/西城P0后台上线状态.md'), 'utf8')
+    expect(deployDoc).toContain('ops/xicheng-production.env.example')
+    expect(statusDoc).toContain('ops/xicheng-production.env.example')
+  })
+
   test('keeps the current repo NOT_READY for production until reviewed POI evidence exists', async () => {
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
