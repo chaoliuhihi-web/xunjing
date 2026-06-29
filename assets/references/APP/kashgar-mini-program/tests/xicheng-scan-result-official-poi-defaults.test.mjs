@@ -67,6 +67,18 @@ assert.match(
   'Recognition result first meta tile should render the dynamic confidence or official-matching label'
 )
 
+assert.match(
+  scanResult,
+  /const normalizeRouteOptions\s*=\s*\(options = \{\}\) => \(\{[\s\S]*confidence:\s*decodeRouteValue\(options\.confidence\)[\s\S]*confidencePercent:\s*decodeRouteValue\(options\.confidencePercent\)/,
+  'Recognition result page should keep route confidence parameters when entering from scan/photo/OCR/GPS recognition'
+)
+
+assert.match(
+  scanResult,
+  /confidence:\s*routeOptions\.confidence \|\| \(selectedCached && selectedCached\.confidence\) \|\| ''[\s\S]*confidencePercent:\s*routeOptions\.confidencePercent \|\| \(selectedCached && selectedCached\.confidencePercent\) \|\| ''/,
+  'Recognition result page should preserve route confidence into the normalized result before display and Xiaojing cache handoff'
+)
+
 for (const required of [
   'class="scan-result-topbar"',
   'class="result-hero-layout"',
@@ -89,8 +101,8 @@ assert.match(
 
 assert.match(
   scanResult,
-  /recognitionSignalItems\(\)[\s\S]*const sourceCount = this\.sourceList\.length[\s\S]*const safetyLabel = this\.safetyStatusLabel[\s\S]*this\.result\.sourceLabel/,
-  'Recognition result page should summarize source label, reviewed source count, and safety label as visible detection signals'
+  /recognitionSignalItems\(\)[\s\S]*拍照识别[\s\S]*文字识别[\s\S]*附近触发/,
+  'Recognition result page should show the same photo/text/nearby detection source labels as the Xicheng reference design'
 )
 
 assert.match(

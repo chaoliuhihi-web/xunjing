@@ -301,6 +301,8 @@ const normalizeRouteOptions = (options = {}) => ({
 	poiCode: decodeRouteValue(options.poiCode),
 	poiName: decodeRouteValue(options.poiName),
 	companionName: decodeRouteValue(options.companionName),
+	confidence: decodeRouteValue(options.confidence),
+	confidencePercent: decodeRouteValue(options.confidencePercent),
 	safetyStatus: normalizeXichengSafetyStatus(decodeRouteValue(options.safetyStatus))
 })
 
@@ -456,23 +458,24 @@ export default {
 			return '暂无可继续追问的问题'
 		},
 		recognitionSignalItems() {
-			const sourceCount = this.sourceList.length
-			const safetyLabel = this.safetyStatusLabel
+			const source = String(this.result.source || '').trim()
+			const hasRecognizedText = ['scan', 'ocr', 'text'].includes(source) || Boolean(this.result.sourceLabel)
+			const hasLocationSignal = source === 'gps' || !this.result.requiresUserConfirm || this.sourceList.length > 0
 			return [
 				{
-					key: 'source-label',
-					label: '识别方式',
-					value: this.result.sourceLabel || '识别结果'
+					key: 'photo',
+					label: '拍照识别',
+					value: ['photo', 'scan'].includes(source) ? '已启用' : '可补充'
 				},
 				{
-					key: 'reviewed-source',
-					label: '审核来源',
-					value: sourceCount > 0 ? `${sourceCount} 条可用` : safetyLabel
+					key: 'text',
+					label: '文字识别',
+					value: hasRecognizedText ? '已启用' : '可补充'
 				},
 				{
-					key: 'official-poi',
-					label: '官方匹配',
-					value: this.result.officialPoiMatched ? '已确认 POI' : this.result.requiresUserConfirm ? '待确认' : '待匹配'
+					key: 'nearby',
+					label: '附近触发',
+					value: hasLocationSignal ? '已匹配' : '可补充'
 				}
 			]
 		},
@@ -541,6 +544,8 @@ export default {
 			poiCode: routeOptions.poiCode || (selectedCached && selectedCached.poiCode) || '',
 			poiName: routeOptions.poiName || (selectedCached && selectedCached.poiName) || XICHENG_EMPTY_RECOGNITION_RESULT.poiName,
 			companionName: routeOptions.companionName || (selectedCached && selectedCached.companionName) || XICHENG_REGION_CONFIG.companionName,
+			confidence: routeOptions.confidence || (selectedCached && selectedCached.confidence) || '',
+			confidencePercent: routeOptions.confidencePercent || (selectedCached && selectedCached.confidencePercent) || '',
 			safetyStatus: routeOptions.safetyStatus || (selectedCached && selectedCached.safetyStatus) || ''
 		}))
 		this.result = normalizedResult
