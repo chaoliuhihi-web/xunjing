@@ -30,6 +30,13 @@ function runPreflight(args, options = {}) {
   })
 }
 
+function productionReviewCsv(rows) {
+  return [
+    'poiCode,photoEvidenceStatus,triggerSmokeStatus,fieldEvidenceRefs,fieldVerifiedBy,fieldVerifiedAt,reviewStatus,geoStatus,auditLicenseStatus,status,reviewedBy,reviewedAt,nextAction',
+    ...rows
+  ].join('\n') + '\n'
+}
+
 afterEach(async () => {
   while (tempDirs.length > 0) {
     await rm(tempDirs.pop(), { recursive: true, force: true })
@@ -76,6 +83,8 @@ describe('xicheng Yudao release preflight', () => {
         appReadinessCommand: expect.stringContaining('npm run xunjing:platform:verify'),
         finalEvidencePackageCommand: expect.stringContaining('npm run xunjing:xicheng:release:evidence:package'),
         poiEvidenceBootstrapCommand: expect.stringContaining('npm run xunjing:xicheng:poi:review:pack'),
+        productionReviewTasksCommand: expect.stringContaining('npm run xunjing:xicheng:poi:production-review:tasks:export'),
+        productionReviewTasksStatus: 'MISSING',
         poiTaskCount: expect.any(Number),
         poiSummaryCount: expect.any(Number),
         releaseStatus: 'NOT_READY'
@@ -102,6 +111,9 @@ describe('xicheng Yudao release preflight', () => {
     expect(report.summary.appReadinessCommand).toContain('--include-xicheng-app-check')
     expect(report.summary.appReadinessCommand).toContain('--include-xicheng-trigger-check')
     expect(report.summary.appReadinessCommand).toContain('--evidence-file qa/xicheng-app-readiness-evidence.json')
+    expect(report.summary.productionReviewTasksCommand).toContain('--production-review workbench/xicheng-poi-production-review-summary.csv')
+    expect(report.summary.productionReviewTasksCommand).toContain('--output workbench/xicheng-poi-production-review-tasks.csv')
+    expect(report.summary.productionReviewTasksCommand).toContain('--evidence-file qa/xicheng-poi-production-review-tasks-evidence.json')
     expect(report.appReadiness).toMatchObject({
       ok: false,
       status: 'MISSING',
@@ -183,6 +195,11 @@ describe('xicheng Yudao release preflight', () => {
     expect(handoffMarkdown).toContain('## POI Evidence Bootstrap')
     expect(handoffMarkdown).toContain('npm run xunjing:xicheng:poi:review:pack')
     expect(handoffMarkdown).toContain('workbench/xicheng-poi-production-review-summary.csv')
+    expect(handoffMarkdown).toContain('## Production Review Field Tasks')
+    expect(handoffMarkdown).toContain('Status: `MISSING`')
+    expect(handoffMarkdown).toContain('npm run xunjing:xicheng:poi:production-review:tasks:export')
+    expect(handoffMarkdown).toContain('workbench/xicheng-poi-production-review-tasks.csv')
+    expect(handoffMarkdown).toContain('qa/xicheng-poi-production-review-tasks-evidence.json')
     expect(handoffMarkdown).toContain('## APP Readiness Evidence')
     expect(handoffMarkdown).toContain('Status: `MISSING`')
     expect(handoffMarkdown).toContain('APP readiness evidence is missing')
@@ -249,6 +266,74 @@ describe('xicheng Yudao release preflight', () => {
     )
     expect(handoffMarkdown).not.toContain('## POI Evidence Bootstrap')
     expect(handoffMarkdown).not.toContain('npm run xunjing:xicheng:poi:review:pack')
+  })
+
+  test('exports production review field tasks into the release handoff when the production review summary exists', async () => {
+    const rootDir = await createTempRoot()
+    await mkdir(path.join(rootDir, 'workbench'), { recursive: true })
+    await writeFile(path.join(rootDir, 'workbench/xicheng-poi-production-review-summary.csv'), productionReviewCsv([
+      'xicheng-baitasi,REVIEW_REQUIRED,PASSED,,,,REVIEW_REQUIRED,REVIEW_REQUIRED,REVIEW_REQUIRED,DRAFT,,,Attach field evidence.',
+      'xicheng-ready,APPROVED,PASSED,https://cdn.example.com/xicheng/ready/photo.jpg,field-team,2026-06-29,APPROVED,APPROVED,APPROVED,PUBLISHED,reviewer,2026-06-29,Ready.'
+    ]))
+
+    const result = runPreflight([
+      '--root', rootDir,
+      '--env-file', 'ops/xunjing-platform.env.example',
+      '--release-evidence', 'qa/xicheng-yudao-release-evidence.json',
+      '--tasks-output', 'workbench/xicheng-yudao-release-blocker-tasks.csv',
+      '--poi-tasks-output', 'workbench/xicheng-yudao-release-poi-blocker-tasks.csv',
+      '--poi-summary-output', 'workbench/xicheng-yudao-release-poi-summary.csv',
+      '--handoff-output', 'workbench/xicheng-yudao-release-handoff.md',
+      '--production-review-tasks-output', 'workbench/xicheng-poi-production-review-tasks.csv',
+      '--production-review-tasks-evidence', 'qa/xicheng-poi-production-review-tasks-evidence.json'
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.summary).toMatchObject({
+      productionReviewTasksStatus: 'PRODUCTION_REVIEW_TASKS_REQUIRED',
+      productionReviewTaskCount: 10,
+      productionReviewPendingPoiCount: 1,
+      productionReviewTasksOutputFile: path.join(rootDir, 'workbench/xicheng-poi-production-review-tasks.csv'),
+      productionReviewTasksEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-production-review-tasks-evidence.json')
+    })
+    expect(report.productionReviewTasks).toMatchObject({
+      ok: false,
+      status: 'PRODUCTION_REVIEW_TASKS_REQUIRED',
+      summary: {
+        taskCount: 10,
+        pendingPoiCount: 1
+      }
+    })
+
+    const productionReviewTasksCsv = await readFile(
+      path.join(rootDir, 'workbench/xicheng-poi-production-review-tasks.csv'),
+      'utf8'
+    )
+    expect(productionReviewTasksCsv).toContain('xicheng-baitasi,photoEvidenceStatus,field-review,REVIEW_REQUIRED,APPROVED')
+    expect(productionReviewTasksCsv).toContain('xicheng-baitasi,fieldEvidenceRefs,field-review,EMPTY,non-local https/oss/cos/s3 evidence ref')
+    expect(productionReviewTasksCsv).not.toContain('xicheng-ready,')
+
+    const productionReviewTasksEvidence = JSON.parse(await readFile(
+      path.join(rootDir, 'qa/xicheng-poi-production-review-tasks-evidence.json'),
+      'utf8'
+    ))
+    expect(productionReviewTasksEvidence.summary).toMatchObject({
+      productionReviewRows: 2,
+      readyPoiCount: 1,
+      pendingPoiCount: 1,
+      taskCount: 10
+    })
+
+    const handoffMarkdown = await readFile(
+      path.join(rootDir, 'workbench/xicheng-yudao-release-handoff.md'),
+      'utf8'
+    )
+    expect(handoffMarkdown).toContain('## Production Review Field Tasks')
+    expect(handoffMarkdown).toContain('Status: `PRODUCTION_REVIEW_TASKS_REQUIRED`')
+    expect(handoffMarkdown).toContain('Task count: 10')
+    expect(handoffMarkdown).toContain('Pending POIs: 1')
+    expect(handoffMarkdown).toContain('### field-review')
   })
 
   test('rejects placeholder APP readiness backend domains', async () => {
@@ -351,6 +436,10 @@ describe('xicheng Yudao release preflight', () => {
     expect(statusDoc).toContain('summary.appReadinessCommand')
     expect(deployDoc).toContain('summary.appReadinessStatus')
     expect(statusDoc).toContain('summary.appReadinessStatus')
+    expect(deployDoc).toContain('summary.productionReviewTasksCommand')
+    expect(statusDoc).toContain('summary.productionReviewTasksCommand')
+    expect(deployDoc).toContain('production-review-tasks')
+    expect(statusDoc).toContain('production-review-tasks')
     expect(deployDoc).toContain('app-readiness-evidence')
     expect(statusDoc).toContain('app-readiness-evidence')
     expect(deployDoc).toContain('POI Evidence Bootstrap')

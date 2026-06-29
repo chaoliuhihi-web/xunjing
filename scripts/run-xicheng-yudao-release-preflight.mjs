@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { exportXichengYudaoReleaseBlockerTasks } from './export-xicheng-yudao-release-blocker-tasks.mjs'
+import { exportXichengPoiProductionReviewTasks } from './export-xicheng-poi-production-review-tasks.mjs'
 import { loadEnvFile } from './verify-xunjing-platform-readiness.mjs'
 
 const artifactType = 'xicheng-yudao-release-preflight'
@@ -18,6 +19,9 @@ const defaultPoiSeedEvidenceFile = 'qa/xicheng-poi-production-seed-evidence.json
 const defaultPoiSourceCoverageEvidenceFile = 'qa/xicheng-poi-source-coverage-evidence.json'
 const defaultPoiSourceReviewApplyEvidenceFile = 'qa/xicheng-poi-source-review-apply-evidence.json'
 const defaultPoiProductionReviewApplyEvidenceFile = 'qa/xicheng-poi-production-review-apply-evidence.json'
+const defaultProductionReviewFile = 'workbench/xicheng-poi-production-review-summary.csv'
+const defaultProductionReviewTasksOutputFile = 'workbench/xicheng-poi-production-review-tasks.csv'
+const defaultProductionReviewTasksEvidenceFile = 'qa/xicheng-poi-production-review-tasks-evidence.json'
 const defaultAppReadinessEvidenceFile = 'qa/xicheng-app-readiness-evidence.json'
 const defaultReleasePackageEvidenceFile = 'qa/xicheng-release-evidence-package.json'
 const defaultQdrantEvidenceFile = 'qa/xicheng-qdrant-smoke-evidence.json'
@@ -143,6 +147,19 @@ function buildPoiEvidenceBootstrapCommand() {
   ].join(' ')
 }
 
+function buildProductionReviewTasksCommand({
+  productionReviewFile,
+  productionReviewTasksOutputFile,
+  productionReviewTasksEvidenceFile
+}) {
+  return [
+    'npm run xunjing:xicheng:poi:production-review:tasks:export --',
+    '--production-review', shellArg(productionReviewFile),
+    '--output', shellArg(productionReviewTasksOutputFile),
+    '--evidence-file', shellArg(productionReviewTasksEvidenceFile)
+  ].join(' ')
+}
+
 function buildAppReadinessCommand({
   envFile,
   commandEnv,
@@ -195,6 +212,60 @@ function isPlaceholderUrl(value) {
     'local-or-staging',
     'xunjing_local'
   ].some((token) => normalized.includes(token))
+}
+
+async function summarizeProductionReviewTasks({
+  rootDir,
+  productionReviewFile,
+  productionReviewTasksOutputFile,
+  productionReviewTasksEvidenceFile
+}) {
+  const resolvedProductionReviewFile = resolveRootFile(rootDir, productionReviewFile)
+  const resolvedOutputFile = resolveRootFile(rootDir, productionReviewTasksOutputFile)
+  const resolvedEvidenceFile = resolveRootFile(rootDir, productionReviewTasksEvidenceFile)
+
+  if (!existsSync(resolvedProductionReviewFile)) {
+    return {
+      ok: false,
+      status: 'MISSING',
+      summary: {
+        productionReviewFile: resolvedProductionReviewFile,
+        outputFile: resolvedOutputFile,
+        evidenceFile: resolvedEvidenceFile,
+        taskCount: 0,
+        pendingPoiCount: 0,
+        ownerLaneBreakdown: []
+      },
+      blockers: [
+        'production review summary is missing; run POI review pack before exporting field-level production review tasks'
+      ]
+    }
+  }
+
+  try {
+    return await exportXichengPoiProductionReviewTasks({
+      rootDir,
+      productionReviewFile,
+      outputFile: productionReviewTasksOutputFile,
+      evidenceFile: productionReviewTasksEvidenceFile
+    })
+  } catch (error) {
+    return {
+      ok: false,
+      status: 'ERROR',
+      summary: {
+        productionReviewFile: resolvedProductionReviewFile,
+        outputFile: resolvedOutputFile,
+        evidenceFile: resolvedEvidenceFile,
+        taskCount: 0,
+        pendingPoiCount: 0,
+        ownerLaneBreakdown: []
+      },
+      blockers: [
+        `production review task export failed: ${error.message}`
+      ]
+    }
+  }
 }
 
 async function summarizeAppReadinessEvidence({
@@ -338,6 +409,8 @@ function buildHandoffMarkdown({
   poiTasksOutputFile,
   poiSummaryOutputFile,
   poiEvidenceBootstrapCommand,
+  productionReviewTasks,
+  productionReviewTasksCommand,
   appReadiness,
   appReadinessCommand,
   finalEvidencePackageCommand
@@ -354,6 +427,21 @@ function buildHandoffMarkdown({
       '',
       'Verification commands:',
       formatList(lane.verificationCommands)
+    ].join('\n'))
+    .join('\n\n')
+  const productionReviewSummary = productionReviewTasks.summary || {}
+  const productionReviewLaneSections = (productionReviewSummary.ownerLaneBreakdown || [])
+    .map((lane) => [
+      `### ${lane.ownerLane}`,
+      '',
+      `Task count: ${lane.taskCount}`,
+      `POI count: ${lane.poiCount}`,
+      '',
+      'Fields:',
+      formatList(lane.fields),
+      '',
+      'POI codes:',
+      formatList(lane.poiCodes)
     ].join('\n'))
     .join('\n\n')
 
@@ -389,6 +477,26 @@ function buildHandoffMarkdown({
       '```',
       ''
     ] : []),
+    '',
+    '## Production Review Field Tasks',
+    '',
+    `Status: \`${productionReviewTasks.status}\``,
+    `Production review summary: \`${productionReviewSummary.productionReviewFile || 'unknown'}\``,
+    `Task CSV: \`${productionReviewSummary.outputFile || 'unknown'}\``,
+    `Task evidence: \`${productionReviewSummary.evidenceFile || 'unknown'}\``,
+    `Task count: ${productionReviewSummary.taskCount ?? 0}`,
+    `Pending POIs: ${productionReviewSummary.pendingPoiCount ?? 0}`,
+    '',
+    'Blockers:',
+    formatList(productionReviewTasks.blockers),
+    '',
+    'Run this after source review and trigger smoke have updated `workbench/xicheng-poi-production-review-summary.csv`:',
+    '',
+    '```bash',
+    productionReviewTasksCommand,
+    '```',
+    '',
+    productionReviewLaneSections || 'No field-level production review tasks exported yet.',
     '',
     '## APP Readiness Evidence',
     '',
@@ -447,6 +555,13 @@ export async function runXichengYudaoReleasePreflight({
     defaultPoiSourceReviewApplyEvidenceFile
   const poiProductionReviewApplyEvidenceFile = readArgValue(args, '--poi-production-review-apply-evidence') ||
     defaultPoiProductionReviewApplyEvidenceFile
+  const productionReviewFile = readArgValue(args, '--production-review') ||
+    readArgValue(args, '--production-review-file') ||
+    defaultProductionReviewFile
+  const productionReviewTasksOutputFile = readArgValue(args, '--production-review-tasks-output') ||
+    defaultProductionReviewTasksOutputFile
+  const productionReviewTasksEvidenceFile = readArgValue(args, '--production-review-tasks-evidence') ||
+    defaultProductionReviewTasksEvidenceFile
   const appReadinessEvidenceFile = readArgValue(args, '--app-readiness-evidence') || defaultAppReadinessEvidenceFile
   const qdrantEvidenceFile = readArgValue(args, '--qdrant-evidence') || defaultQdrantEvidenceFile
   const embeddingEvidenceFile = readArgValue(args, '--embedding-evidence') || defaultEmbeddingEvidenceFile
@@ -507,6 +622,17 @@ export async function runXichengYudaoReleasePreflight({
     releaseEvidence,
     appReadinessEvidenceFile
   })
+  const productionReviewTasksCommand = buildProductionReviewTasksCommand({
+    productionReviewFile,
+    productionReviewTasksOutputFile,
+    productionReviewTasksEvidenceFile
+  })
+  const productionReviewTasks = await summarizeProductionReviewTasks({
+    rootDir: resolvedRoot,
+    productionReviewFile,
+    productionReviewTasksOutputFile,
+    productionReviewTasksEvidenceFile
+  })
   const taskReport = await exportXichengYudaoReleaseBlockerTasks({
     rootDir: resolvedRoot,
     releaseEvidenceFile,
@@ -547,6 +673,8 @@ export async function runXichengYudaoReleasePreflight({
     poiTasksOutputFile: resolvedPoiTasksOutputFile,
     poiSummaryOutputFile: resolvedPoiSummaryOutputFile,
     poiEvidenceBootstrapCommand,
+    productionReviewTasks,
+    productionReviewTasksCommand,
     appReadiness,
     appReadinessCommand,
     finalEvidencePackageCommand
@@ -569,6 +697,11 @@ export async function runXichengYudaoReleasePreflight({
       appReadinessEvidenceFile: appReadiness.evidenceFile,
       appReadinessStatus: appReadiness.status,
       appReadinessBlockerCount: appReadiness.blockers.length,
+      productionReviewTasksStatus: productionReviewTasks.status,
+      productionReviewTasksOutputFile: productionReviewTasks.summary?.outputFile,
+      productionReviewTasksEvidenceFile: productionReviewTasks.summary?.evidenceFile,
+      productionReviewTaskCount: productionReviewTasks.summary?.taskCount,
+      productionReviewPendingPoiCount: productionReviewTasks.summary?.pendingPoiCount,
       failedCheckCount: releaseEvidence.summary?.failedChecks,
       blockerCount: releaseEvidence.summary?.blockerCount,
       taskCount: taskReport.summary.taskCount,
@@ -577,6 +710,7 @@ export async function runXichengYudaoReleasePreflight({
       ownerLaneCounts: taskReport.summary.ownerLaneCounts,
       ownerLaneBreakdown: taskReport.summary.ownerLaneBreakdown,
       poiEvidenceBootstrapCommand,
+      productionReviewTasksCommand,
       appReadinessCommand,
       finalEvidencePackageCommand
     },
@@ -589,6 +723,7 @@ export async function runXichengYudaoReleasePreflight({
       status: taskReport.status
     },
     appReadiness,
+    productionReviewTasks,
     blockers: ok ? [] : [
       ...taskReport.blockers,
       ...appReadiness.blockers
