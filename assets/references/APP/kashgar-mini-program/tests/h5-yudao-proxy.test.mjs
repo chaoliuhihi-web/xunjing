@@ -13,6 +13,12 @@ assert.match(
   'H5 dev should use relative /app-api requests so Vite can proxy Yudao APP APIs without browser CORS'
 )
 
+assert.match(
+  scripts['dev:h5'],
+  /VITE_XUNJING_H5_PROXY_TARGET=http:\/\/localhost:48082\s+/,
+  'H5 dev should proxy Xunjing APP APIs to the local Yudao server so P0 recognition uses reviewed backend results instead of development fixtures'
+)
+
 assert.doesNotMatch(
   scripts['build:app'],
   /VITE_XUNJING_YUDAO_APP_BASE_URL=\//,

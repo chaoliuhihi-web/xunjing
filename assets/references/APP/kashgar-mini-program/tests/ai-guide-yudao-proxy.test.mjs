@@ -66,6 +66,18 @@ assert.match(
 
 assert.match(
   aiGuide,
+  /const defaultAiCompanionPlaces\s*=\s*cloneContentList\(KASHGAR_AI_COMPANION_PLACES\)/,
+  'AI guide should define the package hydration fallback places before applyXunjingPackageDetail uses them'
+)
+
+assert.match(
+  aiGuide,
+  /const applyXunjingPackageDetail\s*=\s*\(detail\)[\s\S]*const fallback = defaultAiCompanionPlaces\[index\] \|\| defaultAiCompanionPlaces\[0\]/,
+  'AI guide package hydration should use the defined fallback places for missing media or summaries'
+)
+
+assert.match(
+  aiGuide,
   /const loadXunjingPackageDetail\s*=\s*async\s*\(context = xichengAiContext\.value\)[\s\S]*requestXunjingPackageDetail\(context\)[\s\S]*applyXunjingPackageDetail\(detail\)[\s\S]*catch/,
   'AI guide should load active package detail non-blockingly and keep local content on gateway failures'
 )
