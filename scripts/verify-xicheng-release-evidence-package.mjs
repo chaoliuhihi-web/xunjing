@@ -19,6 +19,7 @@ const requiredReleaseChecks = [
   'real-wechat-app',
   'real-ai-provider',
   'yudao-ai-model-bootstrap',
+  'qdrant-vector-store',
   'vision-ocr-service',
   'object-storage',
   'full-yudao-baseline',
@@ -561,6 +562,28 @@ function checkReleaseProviderSmokeSummary(evidence) {
     }
   }
   checkNonLocalHostSummary(summary, 'aiBootstrapProviderSmokeHost', 'release evidence', blockers)
+
+  for (const field of ['qdrantEvidenceFile', 'qdrantTextCollection', 'qdrantImageCollection']) {
+    if (!hasText(summary[field])) {
+      blockers.push(`release evidence ${field} is required`)
+    }
+  }
+  checkNonLocalHostSummary(summary, 'qdrantProviderSmokeHost', 'release evidence', blockers)
+  if (String(summary.qdrantProviderSmokeEndpointPath || '') !== '/collections') {
+    blockers.push('release evidence qdrantProviderSmokeEndpointPath must be /collections')
+  }
+  if (Number(summary.qdrantTextCollectionHttpStatus || 0) < 200 || Number(summary.qdrantTextCollectionHttpStatus || 0) >= 300) {
+    blockers.push('release evidence qdrantTextCollectionHttpStatus must be 2xx')
+  }
+  if (Number(summary.qdrantImageCollectionHttpStatus || 0) < 200 || Number(summary.qdrantImageCollectionHttpStatus || 0) >= 300) {
+    blockers.push('release evidence qdrantImageCollectionHttpStatus must be 2xx')
+  }
+  if (String(summary.qdrantTextCollectionStatus || '') !== 'green') {
+    blockers.push('release evidence qdrantTextCollectionStatus must be green')
+  }
+  if (String(summary.qdrantImageCollectionStatus || '') !== 'green') {
+    blockers.push('release evidence qdrantImageCollectionStatus must be green')
+  }
 
   for (const field of ['visionOcrEvidenceFile', 'visionOcrModel']) {
     if (!hasText(summary[field])) {

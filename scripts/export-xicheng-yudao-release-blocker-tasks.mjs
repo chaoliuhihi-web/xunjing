@@ -23,6 +23,7 @@ const checkOwnerLane = {
   'real-wechat-app': 'app-ops',
   'real-ai-provider': 'ai-platform',
   'yudao-ai-model-bootstrap': 'ai-platform',
+  'qdrant-vector-store': 'ai-platform',
   'vision-ocr-service': 'vision-ocr',
   'object-storage': 'storage-ops',
   'full-yudao-baseline': 'yudao-deploy',
@@ -38,6 +39,7 @@ const releaseGateEvidenceArgs = [
   '--yudao-baseline-sql /secure/path/ruoyi-vue-pro.sql',
   '--yudao-server-jar /secure/path/yudao-server.jar',
   '--ai-bootstrap-evidence qa/xicheng-yudao-ai-bootstrap-evidence.json',
+  '--qdrant-evidence qa/xicheng-qdrant-smoke-evidence.json',
   '--vision-ocr-evidence qa/xicheng-vision-ocr-smoke-evidence.json',
   '--object-storage-evidence qa/xicheng-object-storage-smoke-evidence.json',
   '--runtime-seed-evidence qa/xicheng-yudao-runtime-seed-production-evidence.json',
@@ -107,6 +109,11 @@ const checkTaskInstructions = {
     taskDetail: 'Run the Yudao AI model bootstrap against production or preprod MySQL and provide its secret-safe evidence file.',
     requiredEvidence: 'Release evidence records aiBootstrapEvidenceFile and aiBootstrapModel from YUDAO_AI_MODEL_BOOTSTRAPPED evidence.',
     verificationCommand: 'npm run xunjing:ai:bootstrap -- --env-file /secure/path/production.env --evidence-file qa/xicheng-yudao-ai-bootstrap-evidence.json'
+  },
+  'qdrant-vector-store': {
+    taskDetail: 'Run the Xicheng Qdrant collection smoke and provide its secret-safe evidence file.',
+    requiredEvidence: 'Release evidence records qdrantEvidenceFile text and image collection metadata from XICHENG_QDRANT_SMOKE_READY evidence.',
+    verificationCommand: 'npm run xunjing:qdrant:smoke -- --env-file /secure/path/production.env --evidence-file qa/xicheng-qdrant-smoke-evidence.json'
   },
   'object-storage': {
     taskDetail: 'Run the Xicheng object storage write/read/delete smoke and provide its secret-safe evidence file.',

@@ -83,6 +83,13 @@ const requiredObjectStorageEvidenceChecks = [
   'secret-redaction'
 ]
 
+const requiredQdrantEvidenceChecks = [
+  'qdrant-request',
+  'qdrant-text-collection',
+  'qdrant-image-collection',
+  'secret-redaction'
+]
+
 const requiredRuntimeSeedEvidenceChecks = [
   'resource-package',
   'poi-count',
@@ -637,6 +644,100 @@ function normalizeBooleanEnv(value) {
     return false
   }
   return undefined
+}
+
+function qdrantExpectedEndpoint(env) {
+  try {
+    const value = String(env.QDRANT_URL || '').trim()
+    return new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`)
+  } catch {
+    return undefined
+  }
+}
+
+async function checkQdrantSmokeEvidence({ rootDir, qdrantEvidencePath, env, freshnessOptions }) {
+  const blockers = []
+  const expectedEndpoint = qdrantExpectedEndpoint(env)
+  const expectedTextCollection = String(env.QDRANT_TEXT_COLLECTION || '').trim()
+  const expectedImageCollection = String(env.QDRANT_IMAGE_COLLECTION || '').trim()
+  const ref = await loadEvidenceInput(rootDir, qdrantEvidencePath)
+
+  if (!ref.path) {
+    blockers.push('Qdrant smoke evidence is required before production release')
+  } else if (ref.error) {
+    blockers.push(`Qdrant smoke evidence cannot be read: ${ref.error}`)
+  } else {
+    const evidence = ref.data || {}
+    const summary = evidenceSummary(evidence)
+    if (evidence.artifactType !== 'xicheng-qdrant-smoke') {
+      blockers.push('Qdrant smoke evidence artifactType must be xicheng-qdrant-smoke')
+    }
+    blockers.push(...checkEvidenceTimestamp(evidence, 'Qdrant smoke', freshnessOptions))
+    if (evidence.ok !== true) {
+      blockers.push('Qdrant smoke evidence ok must be true')
+    }
+    if (evidence.status !== 'XICHENG_QDRANT_SMOKE_READY') {
+      blockers.push('Qdrant smoke evidence status must be XICHENG_QDRANT_SMOKE_READY')
+    }
+    if (hasValue(expectedTextCollection) && String(summary.textCollection || '') !== expectedTextCollection) {
+      blockers.push('Qdrant smoke evidence textCollection must match QDRANT_TEXT_COLLECTION')
+    }
+    if (hasValue(expectedImageCollection) && String(summary.imageCollection || '') !== expectedImageCollection) {
+      blockers.push('Qdrant smoke evidence imageCollection must match QDRANT_IMAGE_COLLECTION')
+    }
+    if (expectedEndpoint && String(summary.providerSmokeHost || '') !== expectedEndpoint.host) {
+      blockers.push('Qdrant smoke evidence providerSmokeHost must match QDRANT_URL host')
+    }
+    if (String(summary.providerSmokeEndpointPath || '') !== '/collections') {
+      blockers.push('Qdrant smoke evidence providerSmokeEndpointPath must be /collections')
+    }
+    if (Number(summary.textCollectionHttpStatus || 0) < 200 || Number(summary.textCollectionHttpStatus || 0) >= 300) {
+      blockers.push('Qdrant smoke evidence textCollectionHttpStatus must be 2xx')
+    }
+    if (Number(summary.imageCollectionHttpStatus || 0) < 200 || Number(summary.imageCollectionHttpStatus || 0) >= 300) {
+      blockers.push('Qdrant smoke evidence imageCollectionHttpStatus must be 2xx')
+    }
+    if (String(summary.textCollectionStatus || '') !== 'green') {
+      blockers.push('Qdrant smoke evidence textCollectionStatus must be green')
+    }
+    if (String(summary.imageCollectionStatus || '') !== 'green') {
+      blockers.push('Qdrant smoke evidence imageCollectionStatus must be green')
+    }
+    blockers.push(...checkEvidenceChecks(evidence, requiredQdrantEvidenceChecks, 'Qdrant smoke'))
+    const leakedKeys = evidenceSecretLeaks(evidence, env)
+    if (leakedKeys.length > 0) {
+      blockers.push(`Qdrant smoke evidence must not contain secret values: ${leakedKeys.join(', ')}`)
+    }
+    if (!hasNoEvidenceBlockers(evidence)) {
+      blockers.push(`Qdrant smoke evidence contains blockers: ${evidence.blockers.join('; ')}`)
+    }
+  }
+
+  return {
+    ...check(
+      'qdrant-vector-store',
+      blockers.length === 0,
+      blockers.length === 0
+        ? `Qdrant vector collection smoke evidence is ready: ${ref.path}`
+        : blockers.join('; '),
+      blockers
+    ),
+    summary: {
+      qdrantEvidenceFile: ref.path,
+      qdrantCheckedAt: ref.data?.checkedAt,
+      qdrantProviderSmokeCheckedAt: evidenceSummary(ref.data).providerSmokeCheckedAt,
+      qdrantProviderSmokeHost: evidenceSummary(ref.data).providerSmokeHost,
+      qdrantProviderSmokeEndpointPath: evidenceSummary(ref.data).providerSmokeEndpointPath,
+      qdrantTextCollection: evidenceSummary(ref.data).textCollection,
+      qdrantImageCollection: evidenceSummary(ref.data).imageCollection,
+      qdrantTextCollectionHttpStatus: evidenceSummary(ref.data).textCollectionHttpStatus,
+      qdrantImageCollectionHttpStatus: evidenceSummary(ref.data).imageCollectionHttpStatus,
+      qdrantTextCollectionStatus: evidenceSummary(ref.data).textCollectionStatus,
+      qdrantImageCollectionStatus: evidenceSummary(ref.data).imageCollectionStatus,
+      qdrantTextCollectionPointsCount: evidenceSummary(ref.data).textCollectionPointsCount,
+      qdrantImageCollectionPointsCount: evidenceSummary(ref.data).imageCollectionPointsCount
+    }
+  }
 }
 
 async function checkObjectStorageEvidence({ rootDir, objectStorageEvidencePath, env, freshnessOptions }) {
@@ -1885,6 +1986,7 @@ export async function verifyXichengYudaoReleaseReadiness({
   yudaoBaselineSqlPath,
   yudaoServerJarPath,
   aiBootstrapEvidencePath,
+  qdrantEvidencePath,
   visionOcrEvidencePath,
   objectStorageEvidencePath,
   runtimeSeedEvidencePath,
@@ -1932,6 +2034,12 @@ export async function verifyXichengYudaoReleaseReadiness({
     await checkYudaoAiBootstrapEvidence({
       rootDir,
       aiBootstrapEvidencePath,
+      env,
+      freshnessOptions
+    }),
+    await checkQdrantSmokeEvidence({
+      rootDir,
+      qdrantEvidencePath,
       env,
       freshnessOptions
     }),
@@ -2009,6 +2117,7 @@ function buildReleaseEvidence(result) {
   const sourceRevisionSummary = result.checks.find((item) => item.name === 'release-source-revision')?.summary || {}
   const appApiDomainSummary = result.checks.find((item) => item.name === 'https-app-api-domain')?.summary || {}
   const aiBootstrapSummary = result.checks.find((item) => item.name === 'yudao-ai-model-bootstrap')?.summary || {}
+  const qdrantSummary = result.checks.find((item) => item.name === 'qdrant-vector-store')?.summary || {}
   const visionOcrSummary = result.checks.find((item) => item.name === 'vision-ocr-service')?.summary || {}
   const objectStorageSummary = result.checks.find((item) => item.name === 'object-storage')?.summary || {}
   const baselineSummary = result.checks.find((item) => item.name === 'full-yudao-baseline')?.summary || {}
@@ -2028,6 +2137,7 @@ function buildReleaseEvidence(result) {
       ...sourceRevisionSummary,
       ...appApiDomainSummary,
       ...aiBootstrapSummary,
+      ...qdrantSummary,
       ...visionOcrSummary,
       ...objectStorageSummary,
       ...baselineSummary,
@@ -2078,6 +2188,8 @@ async function runCli() {
     yudaoServerJarPath: readArgValue(args, '--yudao-server-jar') || env.YUDAO_SERVER_JAR,
     aiBootstrapEvidencePath: readArgValue(args, '--ai-bootstrap-evidence') ||
       env.YUDAO_AI_BOOTSTRAP_EVIDENCE,
+    qdrantEvidencePath: readArgValue(args, '--qdrant-evidence') ||
+      env.XICHENG_QDRANT_EVIDENCE,
     visionOcrEvidencePath: readArgValue(args, '--vision-ocr-evidence') ||
       env.XICHENG_VISION_OCR_EVIDENCE,
     objectStorageEvidencePath: readArgValue(args, '--object-storage-evidence') ||

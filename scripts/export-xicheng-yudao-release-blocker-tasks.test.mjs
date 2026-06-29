@@ -9,6 +9,7 @@ const requiredReleaseGateEvidenceArgs = [
   '--yudao-baseline-sql /secure/path/ruoyi-vue-pro.sql',
   '--yudao-server-jar /secure/path/yudao-server.jar',
   '--ai-bootstrap-evidence qa/xicheng-yudao-ai-bootstrap-evidence.json',
+  '--qdrant-evidence qa/xicheng-qdrant-smoke-evidence.json',
   '--vision-ocr-evidence qa/xicheng-vision-ocr-smoke-evidence.json',
   '--object-storage-evidence qa/xicheng-object-storage-smoke-evidence.json',
   '--runtime-seed-evidence qa/xicheng-yudao-runtime-seed-production-evidence.json',
