@@ -12,10 +12,23 @@
 	padding: 20rpx 28rpx;
 }
 
+.loading-dots {
+	display: flex;
+	align-items: center;
+	height: 36rpx;
+}
+
 .loading-dot {
 	font-size: 48rpx;
 	color: #999999;
 	animation: loading 1.4s infinite;
+}
+
+.loading-status-text {
+	font-size: 22rpx;
+	line-height: 1.35;
+	color: #746F68;
+	white-space: nowrap;
 }
 
 .loading-dot:nth-child(2) {

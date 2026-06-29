@@ -272,9 +272,10 @@
 							</view>
 							<!-- 内容为空时显示加载动画 -->
 							<view v-if="msg.isPending && !msg.content" class="message-content ai-content loading-content">
-								<text class="loading-dot">·</text>
-								<text class="loading-dot">·</text>
-								<text class="loading-dot">·</text>
+								<view class="loading-dots">
+									<text class="loading-dot">·</text><text class="loading-dot">·</text><text class="loading-dot">·</text>
+								</view>
+								<text class="loading-status-text">正在检索已审核来源</text>
 							</view>
 							<!-- 有内容时显示内容 -->
 							<view v-else-if="msg.content" class="message-content ai-content">

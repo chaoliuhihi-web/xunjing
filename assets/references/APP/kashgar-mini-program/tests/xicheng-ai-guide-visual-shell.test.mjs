@@ -4,6 +4,7 @@ import path from 'node:path'
 
 const root = process.cwd()
 const aiGuide = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
+const aiGuideChat = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide-chat.css'), 'utf8')
 
 for (const required of [
   'class="xicheng-chat-hero-card"',
@@ -14,7 +15,9 @@ for (const required of [
   '你想了解西城的哪一面？',
   'xichengHeroQuestions',
   'class="xicheng-chat-prompt-chip"',
-  '@click="handleFollowUpClick(question)"'
+  '@click="handleFollowUpClick(question)"',
+  'class="loading-status-text"',
+  '正在检索已审核来源'
 ]) {
   assert.ok(aiGuide.includes(required), `Xicheng AI guide visual shell should include ${required}`)
 }
@@ -47,6 +50,12 @@ assert.match(
   aiGuide,
   /\.content\s*\{[\s\S]*padding-bottom:\s*calc\(300rpx \+ env\(safe-area-inset-bottom\)\)[\s\S]*\.chat-bottom-spacer\s*\{[\s\S]*height:\s*calc\(300rpx \+ env\(safe-area-inset-bottom\)\)/,
   'Xicheng AI guide chat list should reserve enough bottom space so the fixed input bar does not cover the latest answer or sources'
+)
+
+assert.match(
+  aiGuideChat,
+  /\.loading-content\s*\{[\s\S]*\.loading-status-text\s*\{[\s\S]*font-size:\s*22rpx[\s\S]*color:\s*#746F68/,
+  'Xicheng AI guide pending state should explain that Xiaojing is checking reviewed sources, not show only an ambiguous ellipsis'
 )
 
 assert.doesNotMatch(
