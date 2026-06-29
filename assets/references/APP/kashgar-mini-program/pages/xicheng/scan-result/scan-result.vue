@@ -241,6 +241,7 @@ const applyXichengOfficialPoiDefaults = (result = {}) => {
 		return result
 	}
 	const existingSources = normalizeXichengReviewedSources(result.sources)
+	const sources = existingSources.length > 0 ? existingSources : createXichengOfficialPoiSources(officialPoi)
 	const recommendedRoute = result.routeRecommendation || result.recommendedRoute || findXichengRecommendedRouteForPoi(officialPoi)
 	return {
 		...result,
@@ -250,7 +251,8 @@ const applyXichengOfficialPoiDefaults = (result = {}) => {
 		theme: result.theme || officialPoi.theme,
 		reason: result.reason || officialPoi.summary || '已匹配西城官方 POI，可继续问小京。',
 		requiresUserConfirm: result.requiresUserConfirm === undefined ? false : result.requiresUserConfirm,
-		sources: existingSources.length > 0 ? existingSources : createXichengOfficialPoiSources(officialPoi),
+		sources,
+		safetyStatus: safetyStatus || (sources.length > 0 ? 'PASSED' : ''),
 		routeRecommendation: recommendedRoute,
 		recommendedRoute
 	}

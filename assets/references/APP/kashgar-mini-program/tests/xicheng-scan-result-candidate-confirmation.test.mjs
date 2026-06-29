@@ -64,6 +64,6 @@ assert.match(
 
 assert.match(
   triggerRequest,
-  /const normalizeXichengTriggerCandidate\s*=\s*\(candidate = \{\}\) => \(\{[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(candidate\.safetyStatus\)[\s\S]*sources:\s*normalizeReviewedSources\(candidate\)[\s\S]*suggestedQuestions:\s*normalizeSuggestedQuestions\(candidate\)/,
-  'Trigger candidate normalization should preserve safety status, reviewed sources, and suggested questions for candidate confirmation'
+  /const normalizeXichengTriggerCandidate\s*=\s*\(candidate = \{\}\) => \(\{[\s\S]*safetyStatus:\s*normalizeSourceBackedSafetyStatus\(candidate\.safetyStatus, normalizeReviewedSources\(candidate\)\)[\s\S]*sources:\s*normalizeReviewedSources\(candidate\)[\s\S]*suggestedQuestions:\s*normalizeSuggestedQuestions\(candidate\)/,
+  'Trigger candidate normalization should preserve source-backed safety status, reviewed sources, and suggested questions for candidate confirmation'
 )

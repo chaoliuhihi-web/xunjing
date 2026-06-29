@@ -38,8 +38,8 @@ assert.match(
 
 assert.match(
   scanResult,
-  /applyXichengOfficialPoiDefaults\s*=\s*\(result = \{\}\)[\s\S]*theme:\s*result\.theme \|\| officialPoi\.theme[\s\S]*reason:\s*result\.reason \|\| officialPoi\.summary[\s\S]*sources:\s*existingSources\.length > 0 \? existingSources : createXichengOfficialPoiSources\(officialPoi\)/,
-  'Official POI fallback should enrich a route-only result with summary and theme while preserving backend-reviewed sources first'
+  /applyXichengOfficialPoiDefaults\s*=\s*\(result = \{\}\)[\s\S]*const sources = existingSources\.length > 0 \? existingSources : createXichengOfficialPoiSources\(officialPoi\)[\s\S]*theme:\s*result\.theme \|\| officialPoi\.theme[\s\S]*reason:\s*result\.reason \|\| officialPoi\.summary[\s\S]*sources,[\s\S]*safetyStatus:\s*safetyStatus \|\| \(sources\.length > 0 \? 'PASSED' : ''\)/,
+  'Official POI fallback should enrich a route-only result with summary, reviewed sources, and explicit PASSED safety status'
 )
 
 assert.match(

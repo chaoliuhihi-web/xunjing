@@ -81,6 +81,13 @@ const normalizeRecommendedRoute = (result = {}) => {
 	return result.routeRecommendation || result.recommendedRoute || null
 }
 
+const normalizeSourceBackedSafetyStatus = (safetyStatus = '', sources = []) => {
+	const normalizedSafetyStatus = normalizeXichengSafetyStatus(safetyStatus)
+	return !normalizedSafetyStatus && Array.isArray(sources) && sources.length > 0
+		? 'PASSED'
+		: normalizedSafetyStatus
+}
+
 const clampConfidence = (value) => Math.min(1, Math.max(0, value))
 
 const clampConfidencePercent = (value) => Math.min(100, Math.max(0, value))
@@ -112,7 +119,7 @@ const normalizeXichengTriggerCandidate = (candidate = {}) => ({
 	poiCode: candidate.poiCode || '',
 	poiName: candidate.poiName || '',
 	confidence: normalizeConfidence(candidate),
-	safetyStatus: normalizeXichengSafetyStatus(candidate.safetyStatus),
+	safetyStatus: normalizeSourceBackedSafetyStatus(candidate.safetyStatus, normalizeReviewedSources(candidate)),
 	sources: normalizeReviewedSources(candidate),
 	suggestedQuestions: normalizeSuggestedQuestions(candidate),
 	recommendedQuestions: normalizeSuggestedQuestions(candidate),
@@ -128,6 +135,7 @@ export const normalizeXichengTriggerResult = (result = {}, source = '') => {
 	const confidence = normalizeConfidence(result)
 	const suggestedQuestions = normalizeSuggestedQuestions(result)
 	const sources = normalizeReviewedSources(result)
+	const safetyStatus = normalizeSourceBackedSafetyStatus(result.safetyStatus, sources)
 	return {
 		...result,
 		regionCode: result.regionCode || XICHENG_REGION_CONFIG.regionCode,
@@ -149,7 +157,7 @@ export const normalizeXichengTriggerResult = (result = {}, source = '') => {
 		recommendedRoute: normalizeRecommendedRoute(result),
 		sources,
 		candidates: normalizeXichengTriggerCandidates(result.candidates),
-		safetyStatus: normalizeXichengSafetyStatus(result.safetyStatus)
+		safetyStatus
 	}
 }
 
