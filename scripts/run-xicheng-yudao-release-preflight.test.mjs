@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { mkdtemp, mkdir, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, test } from 'vitest'
@@ -10,6 +10,13 @@ async function createTempRoot() {
   const rootDir = await mkdtemp(path.join(os.tmpdir(), 'xicheng-yudao-release-preflight-'))
   tempDirs.push(rootDir)
   return rootDir
+}
+
+async function writeJson(rootDir, relativePath, value) {
+  const filePath = path.join(rootDir, relativePath)
+  await mkdir(path.dirname(filePath), { recursive: true })
+  await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`)
+  return filePath
 }
 
 function runPreflight(args, options = {}) {
@@ -173,6 +180,63 @@ describe('xicheng Yudao release preflight', () => {
     expect(handoffMarkdown).toContain('--evidence-file qa/xicheng-app-readiness-evidence.json')
     expect(handoffMarkdown).toContain('npm run xunjing:xicheng:release:evidence:package')
     expect(handoffMarkdown).toContain('Do not mark production ready until')
+  })
+
+  test('does not show POI evidence bootstrap when existing evidence already exports POI tasks', async () => {
+    const rootDir = await createTempRoot()
+    const productionReviewEvidenceFile = await writeJson(
+      rootDir,
+      'qa/xicheng-poi-production-review-apply-evidence.json',
+      {
+        artifactType: 'xicheng-poi-production-review-apply',
+        ok: false,
+        status: 'PRODUCTION_REVIEW_DATA_REMAINS',
+        checkedAt: new Date().toISOString(),
+        summary: {
+          appliedPoiCount: 78,
+          pendingProductionReviewPoiCount: 2,
+          pendingProductionReviewPoiCodes: [
+            'xicheng-baitasi',
+            'xicheng-gongwangfu'
+          ],
+          sourceReviewApplyStatus: 'SOURCE_REVIEW_APPLIED',
+          sourceReviewPendingSourcePoiCount: 0,
+          sourceCoverageStatus: 'SOURCE_COVERAGE_READY',
+          sourceCoverageUncoveredPoiCount: 0,
+          triggerSmokeApplyEvidenceFile: 'qa/xicheng-poi-trigger-smoke-apply-evidence.json',
+          triggerSmokeApplyStatus: 'TRIGGER_SMOKE_APPLIED',
+          triggerSmokeAppliedPoiCount: 80,
+          triggerSmokePendingPoiCount: 0,
+          outputFile: 'workbench/xicheng-production-pois.review-workbook.production-applied.csv',
+          outputSha256: '0'.repeat(64)
+        },
+        blockers: [
+          '2 workbook POIs still require production field/content review'
+        ]
+      }
+    )
+
+    const result = runPreflight([
+      '--root', rootDir,
+      '--env-file', 'ops/xunjing-platform.env.example',
+      '--release-evidence', 'qa/xicheng-yudao-release-evidence.json',
+      '--tasks-output', 'workbench/xicheng-yudao-release-blocker-tasks.csv',
+      '--poi-tasks-output', 'workbench/xicheng-yudao-release-poi-blocker-tasks.csv',
+      '--handoff-output', 'workbench/xicheng-yudao-release-handoff.md',
+      '--poi-production-review-apply-evidence', productionReviewEvidenceFile
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.summary.poiTaskCount).toBeGreaterThan(0)
+    expect(report.summary.poiEvidenceBootstrapCommand).toBeUndefined()
+
+    const handoffMarkdown = await readFile(
+      path.join(rootDir, 'workbench/xicheng-yudao-release-handoff.md'),
+      'utf8'
+    )
+    expect(handoffMarkdown).not.toContain('## POI Evidence Bootstrap')
+    expect(handoffMarkdown).not.toContain('npm run xunjing:xicheng:poi:review:pack')
   })
 
   test('exposes the preflight through npm scripts and handoff docs', async () => {

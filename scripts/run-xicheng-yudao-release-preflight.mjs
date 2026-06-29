@@ -273,7 +273,10 @@ function buildAppReadinessTaskRows({
   }))
 }
 
-function needsPoiEvidenceBootstrap(releaseEvidence) {
+function needsPoiEvidenceBootstrap(releaseEvidence, taskReport) {
+  if (Number(taskReport?.summary?.poiTaskCount || 0) > 0) {
+    return false
+  }
   const checks = Array.isArray(releaseEvidence?.checks) ? releaseEvidence.checks : []
   return checks.some((check) => check?.name === 'xicheng-production-poi-evidence' && check.ok !== true)
 }
@@ -465,7 +468,7 @@ export async function runXichengYudaoReleasePreflight({
     appReadinessEvidenceFile,
     releasePackageEvidenceFile
   })
-  const poiEvidenceBootstrapCommand = needsPoiEvidenceBootstrap(releaseEvidence)
+  const poiEvidenceBootstrapCommand = needsPoiEvidenceBootstrap(releaseEvidence, taskReport)
     ? buildPoiEvidenceBootstrapCommand()
     : undefined
   await mkdir(path.dirname(resolvedHandoffOutputFile), { recursive: true })
