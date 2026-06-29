@@ -7,7 +7,7 @@
 			<view class="meta-grid">
 				<view>
 					<text class="meta-value">{{ confidenceDisplay }}</text>
-					<text class="meta-label">置信度</text>
+					<text class="meta-label">{{ confidenceMetaLabel }}</text>
 				</view>
 				<view>
 					<text class="meta-value">{{ result.requiresUserConfirm ? '待确认' : '可直达' }}</text>
@@ -361,8 +361,16 @@ export default {
 			}
 			return Math.round(Number(this.result.confidence || 0) * 100)
 		},
+		hasDisplayableConfidence() {
+			return Number(this.result.confidencePercent || 0) > 0 || Number(this.result.confidence || 0) > 0
+		},
+		confidenceMetaLabel() {
+			if (this.hasDisplayableConfidence) return '置信度'
+			if (this.result.officialPoiMatched) return '官方匹配'
+			return '置信度'
+		},
 		confidenceDisplay() {
-			if (Number(this.result.confidencePercent || 0) > 0) {
+			if (this.hasDisplayableConfidence) {
 				return `${this.confidencePercent}%`
 			}
 			if (this.result.officialPoiMatched) return '官方POI'

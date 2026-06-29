@@ -18,7 +18,8 @@ for (const required of [
   'createXichengOfficialPoiSources',
   'findXichengRecommendedRouteForPoi',
   'officialPoiMatched',
-  'confidenceDisplay'
+  'confidenceDisplay',
+  'confidenceMetaLabel'
 ]) {
   assert.ok(scanResult.includes(required), `Recognition result official POI fallback should include ${required}`)
 }
@@ -55,6 +56,12 @@ assert.match(
 
 assert.match(
   scanResult,
-  /confidenceDisplay\(\)[\s\S]*if \(Number\(this\.result\.confidencePercent \|\| 0\) > 0\)[\s\S]*return `\$\{this\.confidencePercent\}%`[\s\S]*if \(this\.result\.officialPoiMatched\) return '官方POI'/,
-  'Recognition result page should avoid showing 0% for a route-only official POI entry'
+  /confidenceMetaLabel\(\)[\s\S]*if \(this\.hasDisplayableConfidence\) return '置信度'[\s\S]*if \(this\.result\.officialPoiMatched\) return '官方匹配'[\s\S]*confidenceDisplay\(\)[\s\S]*if \(this\.hasDisplayableConfidence\)[\s\S]*return `\$\{this\.confidencePercent\}%`[\s\S]*if \(this\.result\.officialPoiMatched\) return '官方POI'/,
+  'Recognition result page should label route-only official POI fallback as official matching instead of putting 官方POI under a fixed confidence label'
+)
+
+assert.match(
+  scanResult,
+  /<text class="meta-value">\{\{ confidenceDisplay \}\}<\/text>\s*<text class="meta-label">\{\{ confidenceMetaLabel \}\}<\/text>/,
+  'Recognition result first meta tile should render the dynamic confidence or official-matching label'
 )
