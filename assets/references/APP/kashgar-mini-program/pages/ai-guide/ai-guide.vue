@@ -548,6 +548,23 @@ const saveMessagesCache = () => {
 
 const loadMessagesCache = () => normalizeCachedMessages(uni.getStorageSync(getActiveChatCacheKey()) || [])
 
+const hasCompletedInitialQuestionInMessages = (question = '') => {
+	const normalizedQuestion = String(question || '').trim()
+	if (!normalizedQuestion) return false
+	const questionIndex = messages.value.findIndex(item =>
+		item
+		&& item.role === 'user'
+		&& String(item.content || '').trim() === normalizedQuestion
+	)
+	if (questionIndex < 0) return false
+	return messages.value.slice(questionIndex + 1).some(item =>
+		item
+		&& item.role === 'assistant'
+		&& !item.isPending
+		&& String(item.content || '').trim()
+	)
+}
+
 const persistXichengAiGuideMaterial = ({ question = '', result = {}, assistantMessage = null } = {}) => {
 	const context = xichengAiContext.value || {}
 	if (!hasXichengAiContext(context)) return null
@@ -2181,6 +2198,10 @@ const sendInitialQuestion = async (questionText) => {
 	if (!question) return
 	initialQuestionHandled = true
 	await loadChatHistory({ preferCache: true })
+	if (hasCompletedInitialQuestionInMessages(question)) {
+		scheduleHistoryScrollToBottom()
+		return
+	}
 	inputText.value = question
 	await nextTick()
 	sendMessage()
