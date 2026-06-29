@@ -418,6 +418,30 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerPrefersPreciseStreetPoiOverNearbyDistrictAlias() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertShichahaiAndYandaiPoi(packageId);
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setOcrText("烟袋斜街");
+        reqVO.setText("我在烟袋斜街，想听讲解");
+        reqVO.setImageLabels(List.of("hutong", "shop_sign", "historic_street"));
+        reqVO.setLocation(location("39.940700", "116.391550", 20));
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("xicheng-yandai-xiejie", respVO.getPoiCode());
+        assertEquals("烟袋斜街", respVO.getPoiName());
+        assertEquals("start_ai_guide", respVO.getAction());
+        assertTrue(respVO.getConfidence() >= 0.85D);
+        assertFalse(respVO.getRequiresUserConfirm());
+        assertTrue(respVO.getTargetPath().contains("poiCode=xicheng-yandai-xiejie"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerDoesNotUsePoiFromAnotherPackage() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -1017,6 +1041,38 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
                  '{"sourceType":"OFFICIAL_PUBLIC","sourceUrl":"https://www.bjxch.gov.cn/example/gongwangfu","contentDigest":"恭王府是西城王府文化和园林空间的代表性点位。"}',
                  '{"gpsRadiusMeters":280,"ocrKeywords":["恭王府","恭王府博物馆"],"photoLabels":["palace","garden","courtyard","museum"],"minConfidence":0.85}',
                  '{"shortIntro":"西城王府文化和园林空间的代表性点位。","recommendedQuestions":["恭王府适合怎么参观？","王府文化怎么给孩子讲？","附近还能去哪？"]}',
+                 'APPROVED', 'REVIEW_REQUIRED', 'REVIEW_REQUIRED', 'PUBLISHED', ?)
+                """, packageId, TENANT_ID);
+    }
+
+    private void insertShichahaiAndYandaiPoi(Long packageId) {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+        jdbcTemplate.update("""
+                INSERT INTO "xunjing_poi"
+                ("package_id", "poi_code", "region_code", "name", "official_name", "aliases_json",
+                 "category", "poi_level", "address", "latitude", "longitude", "coord_type",
+                 "source_json", "trigger_json", "content_json", "review_status", "geo_status",
+                 "license_status", "status", "tenant_id")
+                VALUES (?, 'xicheng-shichahai', 'beijing-xicheng', '什刹海', '什刹海',
+                 '["什刹海","后海","前海","西海","烟袋斜街"]',
+                 'historic_district', 'P0', '北京市西城区什刹海片区', 39.9403100, 116.3863900, 'GCJ02',
+                 '{"sourceType":"OFFICIAL_PUBLIC","sourceUrl":"https://www.bjxch.gov.cn/example/shichahai","contentDigest":"什刹海是胡同、水系和城市漫步结合的代表片区。"}',
+                 '{"gpsRadiusMeters":650,"ocrKeywords":["什刹海","后海","前海","西海"],"photoLabels":["lake","hutong","waterfront","old_beijing"],"minConfidence":0.85}',
+                 '{"shortIntro":"胡同、水系和市井生活交织的老北京漫游片区。","recommendedQuestions":["什刹海适合怎么逛？","这里有哪些老北京故事？","附近下一站推荐哪里？"]}',
+                 'APPROVED', 'REVIEW_REQUIRED', 'REVIEW_REQUIRED', 'PUBLISHED', ?)
+                """, packageId, TENANT_ID);
+        jdbcTemplate.update("""
+                INSERT INTO "xunjing_poi"
+                ("package_id", "poi_code", "region_code", "name", "official_name", "aliases_json",
+                 "category", "poi_level", "address", "latitude", "longitude", "coord_type",
+                 "source_json", "trigger_json", "content_json", "review_status", "geo_status",
+                 "license_status", "status", "tenant_id")
+                VALUES (?, 'xicheng-yandai-xiejie', 'beijing-xicheng', '烟袋斜街', '烟袋斜街',
+                 '["烟袋斜街","烟袋","什刹海烟袋斜街"]',
+                 'historic_street', 'P0', '北京市西城区烟袋斜街', 39.9407000, 116.3915500, 'GCJ02',
+                 '{"sourceType":"OFFICIAL_PUBLIC","sourceUrl":"https://www.visitbeijing.com.cn/article/47Qs8CSbNMv","contentDigest":"烟袋斜街是什刹海胡同漫游线上的高频街巷点。"}',
+                 '{"gpsRadiusMeters":220,"ocrKeywords":["烟袋斜街","烟袋"],"photoLabels":["hutong","shop_sign","historic_street"],"minConfidence":0.85}',
+                 '{"shortIntro":"什刹海胡同漫游线上的高频街巷点。","recommendedQuestions":["烟袋斜街为什么出名？","这里适合拍什么？","怎么接银锭桥和后海？"]}',
                  'APPROVED', 'REVIEW_REQUIRED', 'REVIEW_REQUIRED', 'PUBLISHED', ?)
                 """, packageId, TENANT_ID);
     }

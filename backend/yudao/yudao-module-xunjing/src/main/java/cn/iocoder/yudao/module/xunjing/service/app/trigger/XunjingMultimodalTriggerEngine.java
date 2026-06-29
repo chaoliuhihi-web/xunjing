@@ -61,13 +61,21 @@ public class XunjingMultimodalTriggerEngine {
                             "https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/",
                             "北海公园是西城核心皇家园林文旅点位。"))),
             new PoiProfile("xicheng-shichahai", "什刹海",
-                    List.of("什刹海", "后海", "前海", "西海", "烟袋斜街"),
+                    List.of("什刹海", "后海", "前海", "西海"),
                     List.of("lake", "hutong", "waterfront", "old_beijing", "shichahai"),
                     39.940310D, 116.386390D, 650D, "胡同、水系和市井生活交织的老北京漫游片区。",
                     List.of("什刹海适合怎么逛？", "这里有哪些老北京故事？", "附近下一站推荐哪里？"),
                     List.of(new SourceProfile("什刹海", "西城区文旅公开资料",
                             "https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/",
                             "什刹海是胡同、水系和城市漫步结合的代表片区。"))),
+            new PoiProfile("xicheng-yandai-xiejie", "烟袋斜街",
+                    List.of("烟袋斜街", "烟袋", "什刹海烟袋斜街"),
+                    List.of("hutong", "shop_sign", "historic_street"),
+                    39.940700D, 116.391550D, 220D, "什刹海胡同漫游线上的高频街巷点。",
+                    List.of("烟袋斜街为什么出名？", "这里适合拍什么？", "怎么接银锭桥和后海？"),
+                    List.of(new SourceProfile("烟袋斜街", "北京旅游网公开资料",
+                            "https://www.visitbeijing.com.cn/article/47Qs8CSbNMv",
+                            "烟袋斜街是什刹海胡同漫游线上的高频街巷点。"))),
             new PoiProfile("xicheng-dashilar", "大栅栏",
                     List.of("大栅栏", "前门大栅栏", "杨梅竹斜街", "北京坊"),
                     List.of("hutong", "shop_sign", "old_beijing", "qianmen", "dashilar"),
@@ -94,7 +102,9 @@ public class XunjingMultimodalTriggerEngine {
         List<MatchScore> matches = poiProfiles.stream()
                 .map(poi -> score(poi, safeReqVO))
                 .filter(match -> match.confidence() > 0D)
-                .sorted(Comparator.comparing(MatchScore::confidence).reversed())
+                .sorted(Comparator.comparing(MatchScore::confidence).reversed()
+                        .thenComparing(MatchScore::distanceMeters, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(match -> match.poi().radiusMeters()))
                 .limit(3)
                 .toList();
 
