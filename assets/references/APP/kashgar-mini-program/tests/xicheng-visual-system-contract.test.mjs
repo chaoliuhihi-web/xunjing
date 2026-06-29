@@ -10,6 +10,7 @@ const themePath = path.join(appRoot, 'styles', 'xicheng-theme.scss')
 const appVue = fs.readFileSync(path.join(appRoot, 'App.vue'), 'utf8')
 const home = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'home', 'home.vue'), 'utf8')
 const scanResult = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
+const travelogue = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
 const aiGuide = fs.readFileSync(path.join(appRoot, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
 
 const mockupDir = path.join(appReferenceRoot, 'xicheng-multimodal', 'design-mockups')
@@ -56,7 +57,8 @@ assert.match(
 
 for (const [fileName, source] of [
   ['home.vue', home],
-  ['scan-result.vue', scanResult]
+  ['scan-result.vue', scanResult],
+  ['travelogue.vue', travelogue]
 ]) {
   for (const className of [
     'xicheng-designed-page',
@@ -65,6 +67,14 @@ for (const [fileName, source] of [
   ]) {
     assert.ok(source.includes(className), `${fileName} should use ${className} from the shared visual theme`)
   }
+}
+
+for (const token of [
+  'xicheng-travelogue-shell',
+  'xicheng-travelogue-hero',
+  'xicheng-travelogue-actions'
+]) {
+  assert.ok(travelogue.includes(token), `travelogue.vue should support Xicheng travelogue visual token ${token}`)
 }
 
 for (const token of [

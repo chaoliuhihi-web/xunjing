@@ -1,27 +1,38 @@
 <template>
-	<view class="xicheng-travelogue">
-		<view class="hero">
-			<text class="eyebrow">{{ region.cityName }} P0</text>
-			<text class="title">西城 Citywalk 记录</text>
-			<text class="subtitle">把识别、路线护照、亲子研学任务和素材时间线整理成可编辑游记草稿。</text>
+	<view class="xicheng-travelogue xicheng-designed-page xicheng-bottom-safe xicheng-travelogue-shell">
+		<view class="hero xicheng-paper-card xicheng-travelogue-hero">
+			<view class="travelogue-hero-main">
+				<view class="travelogue-hero-copy">
+					<text class="eyebrow">{{ region.cityName }} P0</text>
+					<text class="title">西城 Citywalk 记录</text>
+					<text class="subtitle">把识别、路线护照、亲子研学任务和素材时间线整理成可编辑游记草稿。</text>
+				</view>
+				<view class="travelogue-companion">
+					<image class="travelogue-companion-avatar" :src="region.companionAvatar" mode="aspectFit" />
+					<view class="travelogue-companion-bubble xicheng-companion-bubble">
+						<text class="companion-name">{{ region.companionName }}</text>
+						<text class="companion-line">这些片段可以生成你的游记</text>
+					</view>
+				</view>
+			</view>
 		</view>
 
 		<view class="stats-grid">
-			<view class="stat-card">
+			<view class="stat-card xicheng-paper-card">
 				<text class="stat-value">{{ materialCount }}</text>
 				<text class="stat-label">旅行素材盒</text>
 			</view>
-			<view class="stat-card">
+			<view class="stat-card xicheng-paper-card">
 				<text class="stat-value">{{ passportProgress }}%</text>
 				<text class="stat-label">路线护照</text>
 			</view>
-			<view class="stat-card">
+			<view class="stat-card xicheng-paper-card">
 				<text class="stat-value">{{ completedTaskCount }}/{{ parentChildTasks.length }}</text>
 				<text class="stat-label">亲子研学任务</text>
 			</view>
 		</view>
 
-		<view class="section-card">
+		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">记录会话</text>
 				<text class="section-badge">{{ recordingStatusText }}</text>
@@ -46,17 +57,17 @@
 				</view>
 			</view>
 			<view class="recording-actions">
-				<button class="primary-button" :disabled="recordingSession.status === 'recording' || recordingSession.status === 'paused'" @click="startRecordingSession">开始记录</button>
-				<button class="ghost-button" :disabled="recordingSession.status !== 'paused'" @click="resumeRecordingSession">继续</button>
-				<button class="ghost-button" :disabled="recordingSession.status !== 'recording'" @click="captureTrackPoint('manual')">补记位置</button>
-				<button class="ghost-button" :disabled="recordingSession.status !== 'recording'" @click="markStayPoint">标记停留</button>
-				<button class="ghost-button" :disabled="recordingSession.status !== 'recording'" @click="pauseRecordingSession">暂停</button>
-				<button class="ghost-button" :disabled="recordingSession.status === 'idle' || recordingSession.status === 'finished'" @click="finishRecordingSession">结束</button>
+				<button class="primary-button xicheng-primary-action" :disabled="recordingSession.status === 'recording' || recordingSession.status === 'paused'" @click="startRecordingSession">开始记录</button>
+				<button class="ghost-button xicheng-secondary-action" :disabled="recordingSession.status !== 'paused'" @click="resumeRecordingSession">继续</button>
+				<button class="ghost-button xicheng-secondary-action" :disabled="recordingSession.status !== 'recording'" @click="captureTrackPoint('manual')">补记位置</button>
+				<button class="ghost-button xicheng-secondary-action" :disabled="recordingSession.status !== 'recording'" @click="markStayPoint">标记停留</button>
+				<button class="ghost-button xicheng-secondary-action" :disabled="recordingSession.status !== 'recording'" @click="pauseRecordingSession">暂停</button>
+				<button class="ghost-button xicheng-secondary-action" :disabled="recordingSession.status === 'idle' || recordingSession.status === 'finished'" @click="finishRecordingSession">结束</button>
 				<button class="ghost-button danger-button" :disabled="recordingSession.status === 'idle' && routePointCount === 0 && stayPointCount === 0" @click="deleteRecordingSession">删除记录</button>
 			</view>
 		</view>
 
-		<view v-if="importedRoute" class="section-card">
+		<view v-if="importedRoute" class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">灵感导入路线</text>
 				<text class="section-badge">{{ importedRoute.durationText || '待出发' }}</text>
@@ -74,7 +85,7 @@
 			</view>
 		</view>
 
-		<view class="section-card">
+		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">灵感导入记录</text>
 				<text class="section-badge">{{ inspirationImportCount }} 条</text>
@@ -96,7 +107,7 @@
 			<text v-else class="empty-copy">从“一键导入灵感”生成路线后，会沉淀为可审核的导入记录。</text>
 		</view>
 
-		<view v-if="recognizedRoute" class="section-card">
+		<view v-if="recognizedRoute" class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">识别推荐路线</text>
 				<text class="section-badge">{{ recognizedRoute.durationText || recognizedRoute.duration || '已加入素材' }}</text>
@@ -116,7 +127,7 @@
 			</view>
 		</view>
 
-		<view class="section-card">
+		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">路线护照</text>
 				<text class="section-badge">{{ badgeUnlocked ? badgeName : '待达成' }}</text>
@@ -130,10 +141,10 @@
 				<text class="badge-award-title">徽章达成记录</text>
 				<text class="badge-award-copy">{{ activeBadgeAward.badgeName }} · {{ formatArtifactTime(activeBadgeAward.awardedAt) }}</text>
 			</view>
-			<button v-else class="ghost-button badge-claim-button" :disabled="!badgeUnlocked" @click="claimRouteBadge">领取徽章</button>
+			<button v-else class="ghost-button xicheng-secondary-action badge-claim-button" :disabled="!badgeUnlocked" @click="claimRouteBadge">领取徽章</button>
 		</view>
 
-		<view class="section-card">
+		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">路线打卡</text>
 				<text class="section-badge">{{ checkinCount }} 个打卡事件</text>
@@ -154,7 +165,7 @@
 			<text v-else class="empty-copy">从识别结果页点击“开始记录”后，会生成可审核的路线打卡事件。</text>
 		</view>
 
-		<view class="section-card">
+		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">旅行素材盒</text>
 				<text class="section-badge">{{ materials.length > 0 ? '已记录' : '待补充' }}</text>
@@ -184,7 +195,7 @@
 			<text v-else class="empty-copy">从识别结果页点击“开始记录”后，POI、来源和识别置信度会进入这里。</text>
 		</view>
 
-		<view class="section-card">
+		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">现场备注</text>
 				<text class="section-badge">照片 {{ photoMaterialCount }} · 备注 {{ remarkMaterialCount }}</text>
@@ -197,12 +208,12 @@
 				placeholder="记录现场观察、亲子问答或同行感受"
 			/>
 			<view class="evidence-actions">
-				<button class="primary-button" @click="addRemarkMaterial">添加备注</button>
-				<button class="ghost-button" @click="addPhotoMaterial">补充照片</button>
+				<button class="primary-button xicheng-primary-action" @click="addRemarkMaterial">添加备注</button>
+				<button class="ghost-button xicheng-secondary-action" @click="addPhotoMaterial">补充照片</button>
 			</view>
 		</view>
 
-		<view class="section-card">
+		<view class="section-card xicheng-paper-card">
 			<text class="section-title">亲子研学任务</text>
 			<view
 				v-for="(task, index) in parentChildTasks"
@@ -230,7 +241,7 @@
 			</view>
 		</view>
 
-		<view class="section-card">
+		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">游记草稿</text>
 				<text class="section-badge">{{ reviewText }}</text>
@@ -241,31 +252,31 @@
 				maxlength="1600"
 				placeholder="小京会根据素材盒生成可编辑游记草稿"
 			/>
-			<button class="primary-button" @click="saveDraft">保存草稿</button>
+			<button class="primary-button xicheng-primary-action" @click="saveDraft">保存草稿</button>
 		</view>
 
-		<view class="action-grid">
-			<button class="ghost-button" @click="generatePoster">分享海报</button>
-			<button class="ghost-button" @click="exportMemorialPdf">PDF纪念册</button>
-			<button class="ghost-button" @click="submitReview">作品审核</button>
+		<view class="action-grid xicheng-travelogue-actions">
+			<button class="ghost-button xicheng-secondary-action" @click="generatePoster">分享海报</button>
+			<button class="ghost-button xicheng-secondary-action" @click="exportMemorialPdf">PDF纪念册</button>
+			<button class="ghost-button xicheng-secondary-action" @click="submitReview">作品审核</button>
 		</view>
 
-		<view class="section-card">
+		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">隐私与本地数据</text>
 				<text class="section-badge">试运营</text>
 			</view>
 			<text class="section-desc">西城试运营素材、轨迹、反馈、审核包和分享产物先保存在本机，可随时清除。</text>
 			<view class="evidence-actions">
-				<button class="ghost-button" @click="openPrivacyPolicy">隐私政策</button>
-				<button class="ghost-button" @click="openUserProtocol">用户协议</button>
-				<button class="ghost-button" @click="openAiContentNotice">AI 内容说明</button>
-				<button class="ghost-button" @click="openXichengFeedbackEntry">反馈入口</button>
+				<button class="ghost-button xicheng-secondary-action" @click="openPrivacyPolicy">隐私政策</button>
+				<button class="ghost-button xicheng-secondary-action" @click="openUserProtocol">用户协议</button>
+				<button class="ghost-button xicheng-secondary-action" @click="openAiContentNotice">AI 内容说明</button>
+				<button class="ghost-button xicheng-secondary-action" @click="openXichengFeedbackEntry">反馈入口</button>
 				<button class="ghost-button danger-button" @click="clearXichengLocalData">清除西城本地数据</button>
 			</view>
 		</view>
 
-		<view v-if="shareArtifacts.length > 0" class="section-card">
+		<view v-if="shareArtifacts.length > 0" class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">分享产物包</text>
 				<text class="section-badge">{{ shareArtifacts.length }} 个产物</text>
@@ -284,7 +295,7 @@
 			</view>
 		</view>
 
-		<view v-if="reviewSubmission" class="section-card">
+		<view v-if="reviewSubmission" class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">审核提交记录</text>
 				<text class="section-badge">{{ reviewSubmission.reviewStatus }}</text>
@@ -313,7 +324,7 @@
 			</view>
 		</view>
 
-		<view class="section-card">
+		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">城市运营报告</text>
 				<text class="section-badge">本地预览</text>
@@ -2216,20 +2227,79 @@ export default {
 	min-height: 100vh;
 	padding: 36rpx 28rpx 56rpx;
 	box-sizing: border-box;
-	background: #F7F5EE;
-	color: #172B4D;
+	color: #102F29;
+}
+
+.xicheng-travelogue-shell {
+	position: relative;
 }
 
 .hero,
 .section-card,
 .stat-card {
-	border-radius: 8rpx;
-	background: #FFFFFF;
-	box-shadow: 0 12rpx 36rpx rgba(31, 41, 51, 0.08);
+	border: 1rpx solid rgba(255, 255, 255, 0.78);
+	border-radius: 34rpx;
+	background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(250, 246, 237, 0.88));
+	box-shadow: 0 18rpx 46rpx rgba(28, 35, 32, 0.10);
+	overflow: hidden;
 }
 
 .hero {
 	padding: 36rpx 32rpx;
+}
+
+.travelogue-hero-main {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 24rpx;
+}
+
+.travelogue-hero-copy {
+	flex: 1;
+	min-width: 0;
+}
+
+.travelogue-companion {
+	width: 228rpx;
+	flex-shrink: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.travelogue-companion-avatar {
+	width: 208rpx;
+	height: 268rpx;
+	border-radius: 30rpx;
+	background: #E7EFE8;
+}
+
+.travelogue-companion-bubble {
+	width: 100%;
+	margin-top: 14rpx;
+	padding: 14rpx 12rpx;
+	border-radius: 26rpx;
+	box-sizing: border-box;
+}
+
+.companion-name,
+.companion-line {
+	display: block;
+	text-align: center;
+}
+
+.companion-name {
+	font-size: 24rpx;
+	font-weight: 700;
+	color: #173F35;
+}
+
+.companion-line {
+	margin-top: 4rpx;
+	font-size: 22rpx;
+	line-height: 1.4;
+	color: #746F68;
 }
 
 .eyebrow,
@@ -2250,7 +2320,7 @@ export default {
 	margin-top: 12rpx;
 	font-size: 44rpx;
 	font-weight: 700;
-	color: #122033;
+	color: #102F29;
 }
 
 .subtitle {
@@ -2298,19 +2368,29 @@ export default {
 }
 
 .section-title {
-	display: block;
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
 	font-size: 30rpx;
 	font-weight: 700;
-	color: #122033;
+	color: #102F29;
+}
+
+.section-title::before {
+	content: '';
+	width: 8rpx;
+	height: 34rpx;
+	border-radius: 999rpx;
+	background: #B5945E;
 }
 
 .section-badge {
 	flex-shrink: 0;
 	padding: 8rpx 14rpx;
-	border-radius: 8rpx;
-	background: #EEF5F1;
+	border-radius: 999rpx;
+	background: rgba(181, 148, 94, 0.12);
 	font-size: 22rpx;
-	color: #1F6E5A;
+	color: #173F35;
 }
 
 .progress-track {
@@ -2324,7 +2404,7 @@ export default {
 .progress-fill {
 	height: 100%;
 	border-radius: 8rpx;
-	background: #1F6E5A;
+	background: linear-gradient(90deg, #B5945E, #173F35);
 }
 
 .badge-copy {
@@ -2359,8 +2439,9 @@ export default {
 .task-row {
 	margin-top: 18rpx;
 	padding: 20rpx;
-	border-radius: 8rpx;
-	background: #F2F4F7;
+	border: 1rpx solid rgba(181, 148, 94, 0.14);
+	border-radius: 24rpx;
+	background: rgba(255, 252, 246, 0.76);
 }
 
 .material-title {
@@ -2386,8 +2467,8 @@ export default {
 	display: block;
 	margin-top: 12rpx;
 	padding: 18rpx;
-	border-radius: 8rpx;
-	background: #F2F4F7;
+	border-radius: 22rpx;
+	background: rgba(255, 252, 246, 0.82);
 	font-size: 26rpx;
 	color: #344054;
 }
@@ -2424,8 +2505,8 @@ export default {
 	line-height: 56rpx;
 	margin: 0;
 	padding: 0 20rpx;
-	border-radius: 8rpx;
-	background: #E8ECE7;
+	border-radius: 18rpx;
+	background: rgba(238, 232, 220, 0.88);
 	color: #1F6E5A;
 	font-size: 24rpx;
 }
@@ -2444,8 +2525,9 @@ export default {
 	min-height: 160rpx;
 	margin-top: 20rpx;
 	padding: 20rpx;
-	border-radius: 8rpx;
-	background: #F9FAFB;
+	border: 1rpx solid rgba(181, 148, 94, 0.14);
+	border-radius: 24rpx;
+	background: rgba(255, 252, 246, 0.84);
 	box-sizing: border-box;
 	font-size: 26rpx;
 	line-height: 1.6;
@@ -2457,6 +2539,13 @@ export default {
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 16rpx;
 	margin-top: 8rpx;
+}
+
+.recording-actions {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16rpx;
+	margin-top: 22rpx;
 }
 
 .task-row {
@@ -2522,8 +2611,9 @@ export default {
 	min-height: 320rpx;
 	margin-top: 20rpx;
 	padding: 22rpx;
-	border-radius: 8rpx;
-	background: #F9FAFB;
+	border: 1rpx solid rgba(181, 148, 94, 0.14);
+	border-radius: 24rpx;
+	background: rgba(255, 252, 246, 0.84);
 	box-sizing: border-box;
 	font-size: 26rpx;
 	line-height: 1.7;
@@ -2534,7 +2624,7 @@ export default {
 .ghost-button {
 	height: 84rpx;
 	line-height: 84rpx;
-	border-radius: 8rpx;
+	border-radius: 28rpx;
 	font-size: 28rpx;
 }
 
@@ -2551,13 +2641,34 @@ export default {
 	margin-top: 24rpx;
 }
 
+.recording-actions .primary-button,
+.recording-actions .ghost-button,
+.evidence-actions .primary-button,
+.evidence-actions .ghost-button,
+.xicheng-travelogue-actions .ghost-button {
+	margin-top: 0;
+}
+
+.xicheng-travelogue-actions {
+	position: sticky;
+	z-index: 5;
+	bottom: calc(20rpx + env(safe-area-inset-bottom));
+	padding: 14rpx;
+	border: 1rpx solid rgba(255, 255, 255, 0.74);
+	border-radius: 34rpx;
+	background: rgba(255, 253, 248, 0.92);
+	box-shadow: 0 18rpx 46rpx rgba(28, 35, 32, 0.12);
+	backdrop-filter: blur(12rpx);
+}
+
 .ghost-button {
 	background: #E8ECE7;
 	color: #1F6E5A;
 }
 
 .danger-button {
-	background: #FEE4E2;
-	color: #B42318;
+	background: #FEE4E2 !important;
+	color: #B42318 !important;
+	box-shadow: none !important;
 }
 </style>
