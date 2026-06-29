@@ -17,6 +17,61 @@
 			</view>
 		</view>
 
+		<view class="travelogue-generation-hero xicheng-paper-card">
+			<view class="travelogue-generation-head">
+				<image class="travelogue-generation-avatar" :src="region.companionAvatar" mode="aspectFit" />
+				<view class="travelogue-generation-bubble xicheng-companion-bubble">
+					<text class="travelogue-generation-title">生成西城游记</text>
+					<text class="travelogue-generation-copy">我已帮你整理今天的西城片段</text>
+				</view>
+			</view>
+
+			<view class="travelogue-summary-grid">
+				<view
+					v-for="card in summaryCards"
+					:key="card.key"
+					class="travelogue-summary-card"
+				>
+					<text class="summary-label">{{ card.label }}</text>
+					<text class="summary-value">{{ card.value }}</text>
+				</view>
+			</view>
+
+			<view class="travelogue-style-selector">
+				<button
+					v-for="style in travelogueStyleOptions"
+					:key="style.key"
+					:class="['travelogue-style-chip', activeTravelogueStyle === style.key ? 'travelogue-style-chip-active' : '']"
+					@click="activeTravelogueStyle = style.key"
+				>
+					{{ style.title }}
+				</button>
+			</view>
+
+			<view class="travelogue-preview-card">
+				<image class="travelogue-preview-image" :src="traveloguePreviewImage" mode="aspectFill" />
+				<view class="travelogue-preview-copy">
+					<text class="travelogue-preview-title">在白塔下遇见西城</text>
+					<text class="travelogue-preview-body">{{ traveloguePreviewText }}</text>
+					<view class="travelogue-preview-tags">
+						<text
+							v-for="tag in traveloguePreviewTags"
+							:key="tag"
+							class="travelogue-preview-tag"
+						>
+							{{ tag }}
+						</text>
+					</view>
+				</view>
+			</view>
+
+			<view class="travelogue-generation-actions">
+				<button class="ghost-button xicheng-secondary-action" @click="scrollToDraftEditor">继续编辑</button>
+				<button class="primary-button xicheng-primary-action" @click="generateTravelogueDraft">生成游记</button>
+			</view>
+			<text class="travelogue-ai-notice">内容由 AI 辅助生成，请注意核实重要信息</text>
+		</view>
+
 		<view class="stats-grid">
 			<view class="stat-card xicheng-paper-card">
 				<text class="stat-value">{{ materialCount }}</text>
@@ -247,6 +302,7 @@
 				<text class="section-badge">{{ reviewText }}</text>
 			</view>
 			<textarea
+				id="travelogue-draft-editor"
 				class="draft-input"
 				v-model="draft"
 				maxlength="1600"
@@ -638,6 +694,12 @@ export default {
 			reviewSubmission: null,
 			shareArtifacts: [],
 			remarkInput: '',
+			activeTravelogueStyle: 'citywalk',
+			travelogueStyleOptions: [
+				{ key: 'family', title: '亲子研学' },
+				{ key: 'citywalk', title: '城市漫步' },
+				{ key: 'culture', title: '文化札记' }
+			],
 			studyTaskEvidence: [],
 			studyTaskDrafts: [],
 			badgeAwards: [],
@@ -862,6 +924,37 @@ export default {
 		},
 		filteredTrackPointCount() {
 			return Array.isArray(this.recordingSession.filteredTrackPoints) ? this.recordingSession.filteredTrackPoints.length : 0
+		},
+		traveloguePreviewImage() {
+			return this.region.visualAssets && this.region.visualAssets.heroLandmark
+				? this.region.visualAssets.heroLandmark
+				: ''
+		},
+		summaryCards() {
+			const recognizedPoiName = this.materials.find(material => material && material.poiName)
+			const routeTitle = this.recognizedRoute && this.recognizedRoute.title
+				? this.recognizedRoute.title
+				: this.importedRoute && this.importedRoute.title ? this.importedRoute.title : '待选择路线'
+			return [
+				{ key: 'poi', label: '识别地点', value: recognizedPoiName && recognizedPoiName.poiName ? recognizedPoiName.poiName : '待补充' },
+				{ key: 'route', label: '路线', value: routeTitle },
+				{ key: 'photo', label: '照片', value: `${this.photoMaterialCount} 张` },
+				{ key: 'qa', label: '问答', value: `${this.aiGuideMaterialCount} 条` }
+			]
+		},
+		traveloguePreviewText() {
+			const currentDraft = String(this.draft || '').trim()
+			if (currentDraft && !currentDraft.startsWith('请先通过识别')) {
+				return currentDraft.slice(0, 118)
+			}
+			return '清晨的白塔寺，白塔依旧静立，光影落在红墙与青瓦之间。沿着什刹海的水边慢行，把建筑细节、胡同生活和研学发现整理成今天的西城记忆。'
+		},
+		traveloguePreviewTags() {
+			const routeStopTags = this.recognizedRouteStops
+				.map(stop => typeof stop === 'string' ? stop : stop.poiName)
+				.filter(Boolean)
+				.slice(0, 3)
+			return routeStopTags.length > 0 ? routeStopTags : ['白塔寺', '什刹海', '胡同漫步']
 		},
 		qualityReport() {
 			const acceptedTrackPoints = Array.isArray(this.recordingSession.trackPoints) ? this.recordingSession.trackPoints : []
@@ -1172,6 +1265,19 @@ export default {
 				routeCheckins: this.routeCheckins
 			})
 			this.saveDraft({ silent: true })
+		},
+		generateTravelogueDraft() {
+			this.refreshDraftFromEvidence()
+			uni.showToast({
+				title: '游记草稿已生成',
+				icon: 'none'
+			})
+		},
+		scrollToDraftEditor() {
+			uni.pageScrollTo({
+				selector: '#travelogue-draft-editor',
+				duration: 240
+			})
 		},
 		getStudyTaskEvidence(index) {
 			return this.studyTaskEvidence.find(evidence => evidence && evidence.taskId === `study-task-${index + 1}`) || null
@@ -1523,6 +1629,7 @@ export default {
 				materials: this.materials,
 				photoMaterialCount: this.photoMaterialCount,
 				remarkMaterialCount: this.remarkMaterialCount,
+				activeTravelogueStyle: this.activeTravelogueStyle,
 				recognizedRoute: this.recognizedRoute,
 				reviewSubmission: this.reviewSubmission,
 				shareArtifacts: this.shareArtifacts,
@@ -2371,6 +2478,196 @@ export default {
 	color: #746F68;
 }
 
+.travelogue-generation-hero {
+	margin-top: 24rpx;
+	padding: 30rpx;
+}
+
+.travelogue-generation-head {
+	display: flex;
+	align-items: center;
+	gap: 20rpx;
+}
+
+.travelogue-generation-avatar {
+	width: 128rpx;
+	height: 128rpx;
+	flex-shrink: 0;
+	border-radius: 999rpx;
+	background: rgba(255, 252, 246, 0.88);
+	box-shadow: 0 14rpx 32rpx rgba(28, 35, 32, 0.10);
+}
+
+.travelogue-generation-bubble {
+	flex: 1;
+	min-width: 0;
+	padding: 24rpx 28rpx;
+	border-radius: 30rpx;
+	box-sizing: border-box;
+	background: rgba(255, 253, 248, 0.92);
+	border: 1rpx solid rgba(181, 148, 94, 0.18);
+}
+
+.travelogue-generation-title,
+.travelogue-generation-copy {
+	display: block;
+}
+
+.travelogue-generation-title {
+	font-size: 36rpx;
+	line-height: 1.32;
+	font-weight: 800;
+	color: #102F29;
+}
+
+.travelogue-generation-copy {
+	margin-top: 8rpx;
+	font-size: 24rpx;
+	line-height: 1.45;
+	color: #746F68;
+}
+
+.travelogue-summary-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 18rpx;
+	margin-top: 28rpx;
+}
+
+.travelogue-summary-card {
+	min-height: 104rpx;
+	padding: 20rpx 22rpx;
+	border: 1rpx solid rgba(181, 148, 94, 0.14);
+	border-radius: 24rpx;
+	background: rgba(255, 252, 246, 0.78);
+	box-sizing: border-box;
+}
+
+.summary-label,
+.summary-value {
+	display: block;
+}
+
+.summary-label {
+	font-size: 22rpx;
+	line-height: 1.35;
+	color: #8B7A61;
+}
+
+.summary-value {
+	margin-top: 6rpx;
+	font-size: 28rpx;
+	line-height: 1.35;
+	font-weight: 700;
+	color: #173F35;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.travelogue-style-selector {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 16rpx;
+	margin-top: 28rpx;
+}
+
+.travelogue-style-chip {
+	height: 78rpx;
+	line-height: 76rpx;
+	margin: 0;
+	padding: 0 12rpx;
+	border: 1rpx solid rgba(181, 148, 94, 0.18);
+	border-radius: 24rpx;
+	background: rgba(255, 252, 246, 0.80);
+	color: #173F35;
+	font-size: 26rpx;
+	box-shadow: 0 8rpx 20rpx rgba(28, 35, 32, 0.05);
+}
+
+.travelogue-style-chip::after {
+	border: 0;
+}
+
+.travelogue-style-chip-active {
+	background: linear-gradient(180deg, #234D42 0%, #102F29 100%);
+	color: #FFF9EC;
+}
+
+.travelogue-preview-card {
+	display: flex;
+	gap: 22rpx;
+	margin-top: 30rpx;
+	padding: 20rpx;
+	border: 1rpx solid rgba(181, 148, 94, 0.16);
+	border-radius: 28rpx;
+	background: rgba(255, 253, 248, 0.86);
+	box-sizing: border-box;
+}
+
+.travelogue-preview-image {
+	width: 220rpx;
+	height: 260rpx;
+	flex-shrink: 0;
+	border-radius: 24rpx;
+	background: #E8ECE7;
+	object-fit: cover;
+	overflow: hidden;
+}
+
+.travelogue-preview-copy {
+	flex: 1;
+	min-width: 0;
+}
+
+.travelogue-preview-title {
+	display: block;
+	font-size: 34rpx;
+	line-height: 1.35;
+	font-weight: 800;
+	color: #102F29;
+}
+
+.travelogue-preview-body {
+	display: block;
+	margin-top: 14rpx;
+	font-size: 25rpx;
+	line-height: 1.75;
+	color: #344054;
+}
+
+.travelogue-preview-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12rpx;
+	margin-top: 18rpx;
+}
+
+.travelogue-preview-tag {
+	padding: 8rpx 16rpx;
+	border-radius: 999rpx;
+	background: rgba(181, 148, 94, 0.12);
+	font-size: 22rpx;
+	line-height: 1.3;
+	color: #173F35;
+}
+
+.travelogue-generation-actions {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 18rpx;
+	margin-top: 28rpx;
+}
+
+.travelogue-ai-notice {
+	display: block;
+	margin-top: 20rpx;
+	font-size: 22rpx;
+	line-height: 1.45;
+	text-align: center;
+	color: #8B7A61;
+}
+
 .eyebrow,
 .subtitle,
 .section-desc,
@@ -2714,6 +3011,8 @@ export default {
 .recording-actions .ghost-button,
 .evidence-actions .primary-button,
 .evidence-actions .ghost-button,
+.travelogue-generation-actions .primary-button,
+.travelogue-generation-actions .ghost-button,
 .xicheng-travelogue-actions .ghost-button {
 	margin-top: 0;
 }
