@@ -59,6 +59,7 @@ const releaseGateEvidenceArgs = [
 ]
 const releaseGateCommand = `npm run xunjing:yudao:release:gate -- --stage production --expected-branch feature/xicheng-p0 --env-file /secure/path/production.env ${releaseGateEvidenceArgs.join(' ')} --evidence-file qa/xicheng-yudao-release-evidence.json`
 const productionSeedSqlPath = 'backend/yudao/sql/mysql/xunjing-seed-xicheng-p0-production.sql'
+const productionAppliedWorkbookPath = 'workbench/xicheng-production-pois.review-workbook.production-applied.csv'
 const productionSeedApplyCommand = `npm run xunjing:yudao:production-seed:apply -- --env-file /secure/path/production.env --seed-sql ${productionSeedSqlPath} --seed-evidence qa/xicheng-poi-production-seed-evidence.json --runtime-evidence-file qa/xicheng-yudao-runtime-seed-production-evidence.json --apply-evidence-file qa/xicheng-yudao-production-seed-apply-evidence.json --confirm-apply-xicheng-production-seed`
 const sourceReviewApplyCommand = 'npm run xunjing:xicheng:poi:source-review:apply -- --workbook workbench/xicheng-production-pois.review-workbook.csv --source-review workbench/xicheng-poi-source-review-summary.csv --source-coverage-evidence qa/xicheng-poi-source-coverage-evidence.json --output workbench/xicheng-production-pois.review-workbook.source-applied.csv --evidence-file qa/xicheng-poi-source-review-apply-evidence.json'
 const productionReviewApplyCommand = 'npm run xunjing:xicheng:poi:production-review:apply -- --workbook workbench/xicheng-production-pois.review-workbook.source-applied.csv --production-review workbench/xicheng-poi-production-review-summary.csv --source-review-apply-evidence qa/xicheng-poi-source-review-apply-evidence.json --trigger-smoke-apply-evidence qa/xicheng-poi-trigger-smoke-apply-evidence.json --output workbench/xicheng-production-pois.review-workbook.production-applied.csv --evidence-file qa/xicheng-poi-production-review-apply-evidence.json'
@@ -193,7 +194,7 @@ const poiEvidenceTaskInstructions = [
   [/workbook/i, {
     taskDetail: 'Generate reviewed POI workbook evidence from 80 approved Xicheng POIs.',
     requiredEvidence: 'Workbook gate outputs XICHENG_POI_REVIEW_WORKBOOK_READY with pendingPoiTasks empty.',
-    verificationCommand: 'npm run xunjing:xicheng:poi:workbook:gate -- --workbook workbench/xicheng-production-pois.review-workbook.csv --evidence-file qa/xicheng-poi-review-workbook-evidence.json'
+    verificationCommand: `npm run xunjing:xicheng:poi:workbook:gate -- --workbook ${productionAppliedWorkbookPath} --evidence-file qa/xicheng-poi-review-workbook-evidence.json`
   }],
   [/seed/i, {
     taskDetail: 'Generate and verify production POI seed SQL from the approved manifest.',
