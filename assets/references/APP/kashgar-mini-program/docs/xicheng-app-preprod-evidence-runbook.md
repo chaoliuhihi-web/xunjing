@@ -10,6 +10,8 @@
 
 - 分支必须是 `feature/xicheng-p0`，稳定主线 `product/city-companion-main` 不直接开发。
 - `XUNJING_APP_API_BASE_URL` 必须是非本地 HTTPS Yudao APP API 域名。
+- APP 构建必须使用同一个 HTTPS 域名：`VITE_XUNJING_YUDAO_APP_BASE_URL=$XUNJING_APP_API_BASE_URL`。
+- APP 构建必须显式带租户：`VITE_XUNJING_TENANT_ID`。
 - 微信生产配置必须由安全环境注入：`WX_MP_APP_ID`、`WX_MP_SECRET`、`WX_MINIAPP_APPID`、`WX_MINIAPP_SECRET`。
 - Yudao 服务 smoke 必须已经生成 `qa/xicheng-yudao-server-smoke-evidence.json`。
 - 所有 `/app-api/xunjing/**` 请求必须带 `tenant-id`。
@@ -46,8 +48,11 @@ npm run xunjing:yudao:release:gate -- \
 预发证据采集前后都要在 `assets/references/APP/kashgar-mini-program` 运行：
 
 ```bash
-for f in tests/*.test.mjs; do node "$f" || exit 1; done
+VITE_XUNJING_YUDAO_APP_BASE_URL="$XUNJING_APP_API_BASE_URL" \
+VITE_XUNJING_TENANT_ID="1" \
 npm run build
+
+for f in tests/*.test.mjs; do node "$f" || exit 1; done
 ```
 
 并在仓库根目录运行：
