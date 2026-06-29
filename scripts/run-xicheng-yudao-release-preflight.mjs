@@ -322,7 +322,7 @@ async function runCli() {
   })
   console.log(JSON.stringify(report, null, 2))
   if (!report.ok) {
-    process.exit(1)
+    process.exitCode = 1
   }
 }
 
@@ -330,6 +330,6 @@ const executedPath = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1
 if (import.meta.url === executedPath) {
   runCli().catch((error) => {
     console.error(error.message)
-    process.exit(1)
+    process.exitCode = 1
   })
 }
