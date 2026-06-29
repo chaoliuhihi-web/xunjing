@@ -46,6 +46,15 @@ npm run test:run
 
 如果 preflight 仍提示 `APP readiness evidence baseUrl must be a non-local HTTPS URL`，说明需要生产或预发网关，不要伪造 evidence。
 
+## 生产配置硬门槛
+
+上线前必须由生产或预发环境提供真实配置和证据：
+
+- `XUNJING_APP_API_BASE_URL` 必须是非本地 HTTPS 后端域名。
+- 微信配置必须是生产真实值：`WX_MP_APP_ID`、`WX_MP_SECRET`、`WX_MINIAPP_APPID`、`WX_MINIAPP_SECRET`。
+- Yudao 服务 smoke 必须产出 `qa/xicheng-yudao-server-smoke-evidence.json`。
+- 如果这些配置或证据缺失，APP 不得因为本地 fixture、mock 或开发环境通过而判定可上线。
+
 ## 禁止提交
 
 不得提交 `node_modules`、`dist`、`unpackage`、`tmp`、密钥、真实 token 或任何第三方真实凭证。
