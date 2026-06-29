@@ -378,7 +378,7 @@ function checkVectorEmbeddingRuntime(env, stage) {
 
 function checkHttpsAppApiDomain(env) {
   const blockers = []
-  if (!isHttpsUrl(env.XUNJING_APP_API_BASE_URL)) {
+  if (!isHttpsUrl(env.XUNJING_APP_API_BASE_URL) || isPlaceholder(env.XUNJING_APP_API_BASE_URL)) {
     blockers.push('XUNJING_APP_API_BASE_URL must be a real HTTPS backend domain')
   }
   return {

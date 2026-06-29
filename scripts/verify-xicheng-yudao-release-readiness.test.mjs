@@ -701,6 +701,22 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(statusDoc).toContain('ops/xicheng-production.env.example')
   })
 
+  test('rejects the redacted production env template as placeholder runtime config', async () => {
+    const env = await loadEnvFile('ops/xicheng-production.env.example')
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env,
+      rootDir: process.cwd(),
+      stage: 'production'
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    expect(result.checks.find((check) => check.name === 'runtime-env')?.ok).toBe(false)
+    expect(result.checks.find((check) => check.name === 'https-app-api-domain')?.ok).toBe(false)
+    expect(result.blockers.join('\n')).toContain('XUNJING_APP_API_BASE_URL must be a real HTTPS backend domain')
+  })
+
   test('keeps the current repo NOT_READY for production until reviewed POI evidence exists', async () => {
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),
