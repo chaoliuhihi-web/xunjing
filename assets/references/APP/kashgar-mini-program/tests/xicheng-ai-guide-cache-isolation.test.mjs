@@ -31,8 +31,8 @@ assert.ok(conversationKeySource.includes(': CONVERSATION_KEY'), 'active conversa
 
 assert.match(
   normalizeCachedMessagesSource,
-  /const safetyStatus = normalizeXichengSafetyStatus\(item\.safetyStatus\)[\s\S]*const unsafeSafetyStatus = \['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*followUps:\s*unsafeSafetyStatus \? \[\] : Array\.isArray\(item\.followUps\) \? item\.followUps : \[\][\s\S]*sources:\s*unsafeSafetyStatus \? \[\] : normalizeXichengReviewedSources\(item\.sources\)[\s\S]*safetyStatus,/,
-  'AI guide should fail closed when restoring cached BLOCKED or UNAVAILABLE messages by clearing follow-ups and reviewed sources'
+  /const safetyStatus = normalizeXichengSafetyStatus\(item\.safetyStatus\)[\s\S]*const unsafeSafetyStatus = \['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*followUps:\s*unsafeSafetyStatus \? \[\] : normalizeDisplayFollowUps\(item\.followUps\)[\s\S]*sources:\s*unsafeSafetyStatus \? \[\] : normalizeXichengReviewedSources\(item\.sources\)[\s\S]*safetyStatus,/,
+  'AI guide should fail closed when restoring cached BLOCKED or UNAVAILABLE messages while repairing safe cached follow-ups and reviewed sources'
 )
 
 assert.match(

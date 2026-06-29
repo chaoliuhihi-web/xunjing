@@ -252,7 +252,7 @@
 								:key="source.id || source.url || source.title || sourceIndex"
 								class="message-source-item"
 							>
-								<text class="message-source-title">{{ source.title || source.name || '审核来源' }}</text>
+								<text class="message-source-title">{{ getDisplaySourceTitle(source) || '审核来源' }}</text>
 								<text v-if="getDisplaySourceDescription(source)" class="message-source-desc">
 									{{ getDisplaySourceDescription(source) }}
 								</text>
@@ -475,6 +475,22 @@ const createAssistantMessage = () => ({
 	hasSpoken: false
 })
 
+const normalizeDisplayFollowUps = (followUps = []) => {
+	if (!Array.isArray(followUps)) return []
+	return followUps
+		.map(followUp => {
+			const cleanedFollowUp = String(followUp || '')
+				.replace(/\s*POI\s*级已审核来源\s*$/g, '')
+				.replace(/\s*已审核来源\s*$/g, '')
+				.trim()
+			if (!cleanedFollowUp) return ''
+			if (cleanedFollowUp === followUp) return cleanedFollowUp
+			return `继续了解${cleanedFollowUp}`
+		})
+		.filter(Boolean)
+		.slice(0, 3)
+}
+
 const commitAssistantMessage = (message, fields = {}) => {
 	if (!message || !message.id) {
 		return message
@@ -508,7 +524,7 @@ const normalizeCachedMessages = (list) => {
 				role: item.role,
 				content: item.content || '',
 				images: Array.isArray(item.images) ? item.images : [],
-				followUps: unsafeSafetyStatus ? [] : Array.isArray(item.followUps) ? item.followUps : [],
+				followUps: unsafeSafetyStatus ? [] : normalizeDisplayFollowUps(item.followUps),
 				sources: unsafeSafetyStatus ? [] : normalizeXichengReviewedSources(item.sources),
 				safetyStatus,
 				isPending: false,
@@ -1026,10 +1042,24 @@ const createLocalXunjingAiFallback = (question = '', context = xichengAiContext.
 		: createLocalKashgarAiFallback(question)
 }
 
+const getDisplaySourceTitle = (source = {}) => {
+	const rawTitle = String(source.title || source.name || source.sourceTitle || '').trim()
+	return rawTitle
+		.replace(/\s*POI\s*级已审核来源\s*$/g, '')
+		.replace(/\s*已审核来源\s*$/g, '')
+		.trim()
+}
+
+const getDisplaySourceFollowUp = (source = {}) => {
+	const sourceTitle = getDisplaySourceTitle(source)
+	if (!sourceTitle) return ''
+	return `继续了解${sourceTitle}`
+}
+
 const createSourceFollowUps = (sources = []) => sources
-	.filter(source => source && source.title)
+	.map(getDisplaySourceFollowUp)
+	.filter(Boolean)
 	.slice(0, 3)
-	.map(source => source.title)
 
 const createXunjingResultFollowUps = (result = {}) => {
 	const suggestedQuestions = result && Array.isArray(result.suggestedQuestions) ? result.suggestedQuestions : []

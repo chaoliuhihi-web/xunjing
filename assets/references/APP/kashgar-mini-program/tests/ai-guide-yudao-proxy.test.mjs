@@ -197,8 +197,8 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /const createSourceFollowUps\s*=\s*\(sources = \[\]\)[\s\S]*source\.title/,
-  'AI guide should surface Yudao source titles as follow-up chips'
+  /const createSourceFollowUps\s*=\s*\(sources = \[\]\) => sources[\s\S]*\.map\(getDisplaySourceFollowUp\)[\s\S]*\.filter\(Boolean\)[\s\S]*\.slice\(0, 3\)/,
+  'AI guide should surface Yudao sources as display-safe follow-up chips'
 )
 
 assert.match(
