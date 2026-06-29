@@ -23,8 +23,8 @@ assert.match(
 
 assert.match(
   scanResult,
-  /startRecording\(\)[\s\S]*mode=record[\s\S]*autoStart=1[\s\S]*poiCode=\$\{encodeURIComponent\(this\.result\.poiCode \|\| ''\)\}/,
-  'Scan-result start-record action should navigate with autoStart=1 and preserve POI context'
+  /startRecording\(\)[\s\S]*mode=record[\s\S]*autoStart=1[\s\S]*poiCode=\$\{encodeRouteValue\(this\.result\.poiCode \|\| ''\)\}[\s\S]*poiName=\$\{encodeRouteValue\(this\.result\.poiName \|\| ''\)\}/,
+  'Scan-result start-record action should navigate with autoStart=1, preserve POI context, and avoid double encoding'
 )
 
 assert.match(

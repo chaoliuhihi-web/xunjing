@@ -23,9 +23,9 @@ for (const required of [
   'packageCode=${encodeURIComponent(this.result.packageCode || XICHENG_REGION_CONFIG.packageCode)}',
   'sceneCode=${encodeURIComponent(this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode)}',
   'sourceChannel=${encodeURIComponent(this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel)}',
-  "poiCode=${encodeURIComponent(this.result.poiCode || '')}",
-  "poiName=${encodeURIComponent(this.result.poiName || '')}",
-  'companionName=${encodeURIComponent(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}',
+  "poiCode=${encodeRouteValue(this.result.poiCode || '')}",
+  "poiName=${encodeRouteValue(this.result.poiName || '')}",
+  'companionName=${encodeRouteValue(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}',
   "safetyStatus=${encodeURIComponent(this.result.safetyStatus || '')}"
 ]) {
   assert.ok(startRecordingBlock.includes(required), `Recognition start-record route should carry ${required}`)

@@ -44,6 +44,11 @@ const normalizeRouteOptionsBlock = getBlock(
   /const normalizeRouteOptions = \(options = \{\}\) => \(\{[\s\S]*?\n\}\)/,
   'normalizeRouteOptions block'
 )
+const encodeRouteValueBlock = getBlock(
+  scanResult,
+  /const encodeRouteValue = \(value = ''\) => encodeURIComponent\(decodeRouteValue\(value\)\)/,
+  'encodeRouteValue block'
+)
 const normalizeResultBlock = getBlock(
   scanResult,
   /const normalizeResult = \(result = \{\}\) => \(\{[\s\S]*?\n\}\)/,
@@ -140,11 +145,33 @@ for (const required of [
   assert.ok(scanAskXiaojingBlock.includes(required), `Scan result Xiaojing query should carry ${required}`)
 }
 
+assert.ok(
+  encodeRouteValueBlock.includes('decodeRouteValue(value)'),
+  'Scan result route encoder should decode existing route values before encoding outbound query params'
+)
+
+for (const required of [
+  'question=${encodeRouteValue(prompt)}',
+  'poiCode=${encodeRouteValue(this.result.poiCode || \'\')}',
+  'poiName=${encodeRouteValue(this.result.poiName || \'\')}',
+  'companionName=${encodeRouteValue(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}'
+]) {
+  assert.ok(scanAskXiaojingBlock.includes(required), `Scan result Xiaojing query should avoid double encoding ${required}`)
+}
+
 for (const required of [
   'sceneCode: this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode',
   'sourceChannel: this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel'
 ]) {
   assert.ok(startRecordingBlock.includes(required), `Recognition material should persist ${required}`)
+}
+
+for (const required of [
+  'poiCode=${encodeRouteValue(this.result.poiCode || \'\')}',
+  'poiName=${encodeRouteValue(this.result.poiName || \'\')}',
+  'companionName=${encodeRouteValue(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}'
+]) {
+  assert.ok(startRecordingBlock.includes(required), `Start recording route should avoid double encoding ${required}`)
 }
 
 for (const required of [

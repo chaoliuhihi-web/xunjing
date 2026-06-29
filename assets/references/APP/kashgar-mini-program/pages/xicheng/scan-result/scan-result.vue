@@ -230,6 +230,7 @@ const normalizeRecommendedRoute = (result = {}) => {
 }
 
 const decodeRouteValue = decodeXichengRouteValue
+const encodeRouteValue = (value = '') => encodeURIComponent(decodeRouteValue(value))
 
 const normalizePoiCodeKey = (value = '') => String(value || '').trim().toLowerCase()
 const normalizePoiNameKey = (value = '') => String(value || '').trim()
@@ -618,14 +619,14 @@ export default {
 			}
 			const prompt = question || this.suggestedQuestions[0] || `讲讲${this.result.poiName}`
 			const query = [
-				`question=${encodeURIComponent(prompt)}`,
+				`question=${encodeRouteValue(prompt)}`,
 				`regionCode=${encodeURIComponent(this.result.regionCode || XICHENG_REGION_CONFIG.regionCode)}`,
 				`packageCode=${encodeURIComponent(this.result.packageCode || XICHENG_REGION_CONFIG.packageCode)}`,
 				`sceneCode=${encodeURIComponent(this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode)}`,
 				`sourceChannel=${encodeURIComponent(this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel)}`,
-				`poiCode=${encodeURIComponent(this.result.poiCode || '')}`,
-				`poiName=${encodeURIComponent(this.result.poiName || '')}`,
-				`companionName=${encodeURIComponent(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}`,
+				`poiCode=${encodeRouteValue(this.result.poiCode || '')}`,
+				`poiName=${encodeRouteValue(this.result.poiName || '')}`,
+				`companionName=${encodeRouteValue(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}`,
 				`confidence=${encodeURIComponent(String(this.result.confidence || ''))}`,
 				`safetyStatus=${encodeURIComponent(this.result.safetyStatus || '')}`
 			].join('&')
@@ -734,7 +735,7 @@ export default {
 				...materials
 			].slice(0, 50))
 			uni.navigateTo({
-				url: `/pages/xicheng/travelogue/travelogue?mode=record&autoStart=1&regionCode=${encodeURIComponent(this.result.regionCode || XICHENG_REGION_CONFIG.regionCode)}&packageCode=${encodeURIComponent(this.result.packageCode || XICHENG_REGION_CONFIG.packageCode)}&sceneCode=${encodeURIComponent(this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode)}&sourceChannel=${encodeURIComponent(this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel)}&poiCode=${encodeURIComponent(this.result.poiCode || '')}&poiName=${encodeURIComponent(this.result.poiName || '')}&companionName=${encodeURIComponent(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}&safetyStatus=${encodeURIComponent(this.result.safetyStatus || '')}`
+				url: `/pages/xicheng/travelogue/travelogue?mode=record&autoStart=1&regionCode=${encodeURIComponent(this.result.regionCode || XICHENG_REGION_CONFIG.regionCode)}&packageCode=${encodeURIComponent(this.result.packageCode || XICHENG_REGION_CONFIG.packageCode)}&sceneCode=${encodeURIComponent(this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode)}&sourceChannel=${encodeURIComponent(this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel)}&poiCode=${encodeRouteValue(this.result.poiCode || '')}&poiName=${encodeRouteValue(this.result.poiName || '')}&companionName=${encodeRouteValue(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}&safetyStatus=${encodeURIComponent(this.result.safetyStatus || '')}`
 			})
 		},
 		createRouteCheckinEvent(material) {
