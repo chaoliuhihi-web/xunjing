@@ -76,6 +76,7 @@ for (const required of [
   '导入灵感',
   '粘贴攻略文字',
   '上传攻略图片',
+  '图片进入素材盒，地点以文字匹配结果为准',
   'AI提取地点',
   '匹配官方 POI',
   '生成可走路线',
@@ -88,6 +89,12 @@ for (const required of [
 ]) {
   assert.ok(inspiration.includes(required), `Inspiration page should include ${required}`)
 }
+
+assert.doesNotMatch(
+  inspiration,
+  /首版|开发中|待接入/,
+  'Inspiration import page should not expose internal rollout wording in launch-facing copy'
+)
 
 assert.match(
   officialPoiSources,

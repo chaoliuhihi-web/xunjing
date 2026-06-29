@@ -30,7 +30,7 @@
 			/>
 			<view class="upload-row" @click="chooseInspirationImage">
 				<text class="upload-title">上传攻略图片</text>
-				<text class="upload-desc">{{ imagePath ? '已添加图片素材' : '首版只保存图片素材，地点仍以文字确认结果为准' }}</text>
+				<text class="upload-desc">{{ imagePath ? '已添加图片素材' : '图片进入素材盒，地点以文字匹配结果为准' }}</text>
 			</view>
 			<button class="primary-button xicheng-primary-action" @click="runExtraction">AI提取地点</button>
 		</view>
