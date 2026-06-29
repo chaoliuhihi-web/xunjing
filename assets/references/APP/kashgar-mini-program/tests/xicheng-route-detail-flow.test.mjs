@@ -75,7 +75,13 @@ assert.match(
 
 assert.match(
   routeDetail,
-  /askStopGuide\(stop = \{\}\)[\s\S]*question=\$\{encodeURIComponent\(question\)\}[\s\S]*regionCode=\$\{encodeURIComponent\(this\.routeOptions\.regionCode \|\| this\.region\.regionCode\)\}[\s\S]*poiCode=\$\{encodeURIComponent\(stop\.poiCode \|\| ''\)\}[\s\S]*poiName=\$\{encodeURIComponent\(stop\.poiName \|\| ''\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.routeOptions\.companionName \|\| this\.region\.companionName\)\}/,
+  /persistStopGuideContext\(stop = \{\}, question = ''\)[\s\S]*const sources = createXichengOfficialPoiSources\(stop\)[\s\S]*uni\.setStorageSync\(this\.region\.storageKey,\s*\{[\s\S]*regionCode:\s*this\.routeOptions\.regionCode \|\| this\.region\.regionCode[\s\S]*packageCode:\s*this\.routeOptions\.packageCode \|\| this\.region\.packageCode[\s\S]*sceneCode:\s*this\.region\.aiSceneCode \|\| this\.routeOptions\.sceneCode \|\| this\.region\.sceneCode[\s\S]*poiCode:\s*stop\.poiCode[\s\S]*poiName:\s*stop\.poiName[\s\S]*sourceLabel:\s*'官方路线详情'[\s\S]*sources,[\s\S]*sourceCount:\s*sources\.length[\s\S]*suggestedQuestions:\s*question \? \[question\] : \[\][\s\S]*safetyStatus:\s*'PASSED'/,
+  'Route detail stop guide should cache official reviewed source context before opening Xiaojing'
+)
+
+assert.match(
+  routeDetail,
+  /askStopGuide\(stop = \{\}\)[\s\S]*const question = stop\.guidePrompt \|\| `讲讲\$\{stop\.poiName\}`[\s\S]*this\.persistStopGuideContext\(stop, question\)[\s\S]*question=\$\{encodeURIComponent\(question\)\}[\s\S]*regionCode=\$\{encodeURIComponent\(this\.routeOptions\.regionCode \|\| this\.region\.regionCode\)\}[\s\S]*poiCode=\$\{encodeURIComponent\(stop\.poiCode \|\| ''\)\}[\s\S]*poiName=\$\{encodeURIComponent\(stop\.poiName \|\| ''\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.routeOptions\.companionName \|\| this\.region\.companionName\)\}/,
   'Route detail stop guide entry should navigate to Xiaojing with regionCode, poiCode, poiName, and companionName'
 )
 

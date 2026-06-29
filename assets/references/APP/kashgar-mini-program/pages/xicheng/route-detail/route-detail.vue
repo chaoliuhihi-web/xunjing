@@ -196,6 +196,27 @@ export default {
 				url: `/pages/xicheng/travelogue/travelogue?mode=route&regionCode=${encodeURIComponent(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeURIComponent(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeURIComponent(this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.routeOptions.sourceChannel || this.region.sourceChannel)}&routeCode=${encodeURIComponent(this.activeRoute.routeCode || '')}&companionName=${encodeURIComponent(this.routeOptions.companionName || this.region.companionName)}`
 			})
 		},
+		persistStopGuideContext(stop = {}, question = '') {
+			const sources = createXichengOfficialPoiSources(stop)
+			uni.setStorageSync(this.region.storageKey, {
+				regionCode: this.routeOptions.regionCode || this.region.regionCode,
+				packageCode: this.routeOptions.packageCode || this.region.packageCode,
+				sceneCode: this.region.aiSceneCode || this.routeOptions.sceneCode || this.region.sceneCode,
+				sourceChannel: this.routeOptions.sourceChannel || this.region.sourceChannel,
+				poiCode: stop.poiCode,
+				poiName: stop.poiName,
+				confidence: 1,
+				sourceLabel: '官方路线详情',
+				officialPoiMatched: true,
+				routeCode: this.activeRoute.routeCode,
+				routeTitle: this.activeRoute.title,
+				sources,
+				sourceCount: sources.length,
+				suggestedQuestions: question ? [question] : [],
+				safetyStatus: 'PASSED',
+				capturedAt: new Date().toISOString()
+			})
+		},
 		askStopGuide(stop = {}) {
 			if (!stop.poiCode || !stop.poiName) {
 				uni.showToast({
@@ -205,6 +226,7 @@ export default {
 				return
 			}
 			const question = stop.guidePrompt || `讲讲${stop.poiName}`
+			this.persistStopGuideContext(stop, question)
 			uni.navigateTo({
 				url: `/pages/ai-guide/ai-guide?question=${encodeURIComponent(question)}&regionCode=${encodeURIComponent(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeURIComponent(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.aiSceneCode || this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.routeOptions.sourceChannel || this.region.sourceChannel)}&poiCode=${encodeURIComponent(stop.poiCode || '')}&poiName=${encodeURIComponent(stop.poiName || '')}&companionName=${encodeURIComponent(this.routeOptions.companionName || this.region.companionName)}`
 			})
