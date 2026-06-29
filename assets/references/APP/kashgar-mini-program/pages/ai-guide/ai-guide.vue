@@ -1961,12 +1961,12 @@ const buildXunjingTriggerAssistantContent = (trigger) => {
 }
 
 const createXunjingTriggerFollowUps = (trigger) => {
-	if (!trigger || !trigger.poiName) {
-		return ['帮我识别这张照片', '我在西城，附近有什么文化点？', '生成一段照片游记']
-	}
-	const safetyStatus = normalizeXichengSafetyStatus(trigger.safetyStatus)
+	const safetyStatus = normalizeXichengSafetyStatus(trigger && trigger.safetyStatus)
 	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
 		return []
+	}
+	if (!trigger || !trigger.poiName) {
+		return ['帮我识别这张照片', '我在西城，附近有什么文化点？', '生成一段照片游记']
 	}
 	if (Array.isArray(trigger.suggestedQuestions) && trigger.suggestedQuestions.length > 0) {
 		return trigger.suggestedQuestions.slice(0, 3)
@@ -2035,7 +2035,12 @@ const uploadAndSendImage = async (filePath) => {
 			})
 		} catch (error) {
 			console.warn('星河寻境多模态照片识别暂不可用:', error && (error.errMsg || error.message) ? (error.errMsg || error.message) : error)
-			content = '照片已收到，但当前多模态识别接口暂不可用。你可以先描述图片里的地名、门头或文物说明牌，我会继续帮你识别并生成讲解。'
+			activeRecognitionContext = {
+				...activeRecognitionContext,
+				safetyStatus: 'UNAVAILABLE',
+				sources: []
+			}
+			content = XICHENG_UNAVAILABLE_ANSWER
 		}
 		commitAssistantMessage(assistantMessage, {
 			isPending: false,

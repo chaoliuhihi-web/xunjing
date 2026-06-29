@@ -5,6 +5,7 @@ import path from 'node:path'
 const root = process.cwd()
 const aiGuide = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
 const uploadBlock = aiGuide.match(/const uploadAndSendImage\s*=\s*async\s*\(filePath\) => \{[\s\S]*?\n\}/)?.[0] || ''
+const followUpsBlock = aiGuide.match(/const createXunjingTriggerFollowUps\s*=\s*\(trigger\) => \{[\s\S]*?\n\}/)?.[0] || ''
 
 assert.match(
   aiGuide,
@@ -44,6 +45,18 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /const createXunjingTriggerFollowUps\s*=\s*\(trigger\) => \{[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(trigger\.safetyStatus\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*return \[\][\s\S]*Array\.isArray\(trigger\.suggestedQuestions\)/,
+  /const createXunjingTriggerFollowUps\s*=\s*\(trigger\) => \{[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(trigger && trigger\.safetyStatus\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*return \[\][\s\S]*Array\.isArray\(trigger\.suggestedQuestions\)/,
   'AI guide photo recognition should not create local follow-ups for unsafe trigger results and should prefer backend suggestedQuestions'
+)
+
+assert.ok(
+  followUpsBlock.indexOf("['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)") <
+    followUpsBlock.indexOf('!trigger || !trigger.poiName'),
+  'AI guide photo recognition should check unsafe safetyStatus before creating generic no-POI follow-ups'
+)
+
+assert.match(
+  uploadBlock,
+  /catch \(error\) \{[\s\S]*activeRecognitionContext = \{[\s\S]*safetyStatus:\s*'UNAVAILABLE'[\s\S]*sources:\s*\[\][\s\S]*content = XICHENG_UNAVAILABLE_ANSWER/,
+  'AI guide photo recognition failure should fail closed with the reviewed-source unavailable answer, no sources, and UNAVAILABLE safetyStatus'
 )
