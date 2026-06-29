@@ -10,6 +10,8 @@ for (const required of [
   ':src="routeHeroImage"',
   'class="route-map-trail"',
   'route-operation-strip',
+  'class="nav-icon nav-icon-save"',
+  'class="nav-bookmark-icon"',
   '路线护照',
   '亲子研学任务',
   '开始记录',
@@ -55,6 +57,12 @@ assert.match(
   routeDetail,
   /\.stop-thumbnail\s*\{[\s\S]*width:\s*150rpx[\s\S]*height:\s*150rpx[\s\S]*object-fit:\s*cover/,
   'Route stop thumbnail should keep stable mobile dimensions without layout shift'
+)
+
+assert.doesNotMatch(
+  routeDetail,
+  /<button class="nav-icon" @click="startRoutePassport">存<\/button>/,
+  'Route detail passport action should use a familiar bookmark-style icon instead of the ambiguous visible text 存'
 )
 
 assert.doesNotMatch(

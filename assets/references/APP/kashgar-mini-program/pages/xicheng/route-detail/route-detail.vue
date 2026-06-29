@@ -3,7 +3,9 @@
 		<view class="route-nav">
 			<button class="nav-icon" @click="goBack">‹</button>
 			<text class="nav-title">路线详情</text>
-			<button class="nav-icon" @click="startRoutePassport">存</button>
+			<button class="nav-icon nav-icon-save" @click="startRoutePassport">
+				<view class="nav-bookmark-icon"></view>
+			</button>
 		</view>
 
 		<view class="route-hero xicheng-paper-card">
@@ -310,6 +312,33 @@ export default {
 	background: rgba(255, 252, 246, 0.86);
 	color: #173F35;
 	font-size: 34rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+}
+
+.nav-bookmark-icon {
+	width: 26rpx;
+	height: 34rpx;
+	border: 4rpx solid currentColor;
+	border-bottom: 0;
+	border-radius: 8rpx 8rpx 0 0;
+	position: relative;
+	box-sizing: border-box;
+}
+
+.nav-bookmark-icon::after {
+	content: '';
+	position: absolute;
+	left: 3rpx;
+	right: 3rpx;
+	bottom: -10rpx;
+	height: 18rpx;
+	background: rgba(255, 252, 246, 0.86);
+	transform: rotate(45deg);
+	border-right: 4rpx solid currentColor;
+	border-bottom: 4rpx solid currentColor;
 }
 
 .nav-title {
