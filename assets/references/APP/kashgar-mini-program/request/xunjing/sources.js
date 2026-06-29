@@ -38,3 +38,29 @@ export const normalizeXichengReviewedSources = (sources = []) => {
 		.map(normalizeXichengReviewedSource)
 		.filter(Boolean)
 }
+
+export const getXichengDisplaySourceTitle = (source = {}) => {
+	const rawTitle = String(source.title || source.name || source.sourceTitle || '').trim()
+	return rawTitle
+		.replace(/\s*POI\s*级已审核来源\s*$/g, '')
+		.replace(/\s*已审核来源\s*$/g, '')
+		.trim()
+}
+
+export const getXichengDisplaySourceDescription = (source = {}, maxLength = 72) => {
+	const rawDescription = String(source.excerpt || source.summary || source.contentDigest || '').trim()
+	const cleanedDescription = rawDescription
+		.replace(/POI 级已审核来源：[^。]*。/g, '')
+		.replace(/触发关键词、坐标和别名来自[^。]*。/g, '')
+		.replace(/生产发布前仍需完成[^。]*。/g, '')
+		.replace(/\s+/g, ' ')
+		.trim()
+	if (cleanedDescription) {
+		const boundedLength = Number(maxLength) > 0 ? Number(maxLength) : 72
+		return cleanedDescription.length > boundedLength ? `${cleanedDescription.slice(0, boundedLength)}...` : cleanedDescription
+	}
+	if (source.sourceUrl || source.url || source.sourceType || source.type) {
+		return '官方公开来源'
+	}
+	return ''
+}

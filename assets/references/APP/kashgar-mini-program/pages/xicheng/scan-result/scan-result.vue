@@ -138,7 +138,11 @@ import { submitXichengRecognitionFeedbackEvent } from '@/request/xunjing/events.
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
 import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
-import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
+import {
+	getXichengDisplaySourceDescription,
+	getXichengDisplaySourceTitle,
+	normalizeXichengReviewedSources
+} from '@/request/xunjing/sources.js'
 import { isXichengDevelopmentFallbackAllowed } from '@/request/xunjing/trigger.js'
 
 const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
@@ -611,27 +615,10 @@ export default {
 			return candidate.summary || `距离约 ${candidate.distanceMeters} 米`
 		},
 		getDisplaySourceTitle(source = {}) {
-			const rawTitle = String(source.title || source.name || source.sourceTitle || '').trim()
-			return rawTitle
-				.replace(/\s*POI\s*级已审核来源\s*$/g, '')
-				.replace(/\s*已审核来源\s*$/g, '')
-				.trim()
+			return getXichengDisplaySourceTitle(source)
 		},
 		getDisplaySourceDescription(source = {}) {
-			const rawDescription = String(source.excerpt || source.summary || source.contentDigest || '').trim()
-			const cleanedDescription = rawDescription
-				.replace(/POI 级已审核来源：[^。]*。/g, '')
-				.replace(/触发关键词、坐标和别名来自[^。]*。/g, '')
-				.replace(/生产发布前仍需完成[^。]*。/g, '')
-				.replace(/\s+/g, ' ')
-				.trim()
-			if (cleanedDescription) {
-				return cleanedDescription.length > 72 ? `${cleanedDescription.slice(0, 72)}...` : cleanedDescription
-			}
-			if (source.sourceUrl || source.url || source.sourceType || source.type) {
-				return '官方公开来源'
-			}
-			return ''
+			return getXichengDisplaySourceDescription(source)
 		},
 		startRecording() {
 			if (this.pendingCandidateConfirmation) {

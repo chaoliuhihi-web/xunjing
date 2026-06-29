@@ -16,9 +16,12 @@ const triggerRequest = read('request', 'xunjing', 'trigger.js')
 const chatRequest = read('request', 'xunjing', 'chat.js')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
 const aiGuide = read('pages', 'ai-guide', 'ai-guide.vue')
+const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 
 for (const required of [
   'normalizeXichengReviewedSources',
+  'getXichengDisplaySourceTitle',
+  'getXichengDisplaySourceDescription',
   'contentDigest',
   'sourceUrl',
   'excerpt',
@@ -63,9 +66,37 @@ assert.match(
   'AI guide should expose normalized reviewed sources from the active recognition context'
 )
 
+for (const [name, page] of [
+  ['AI guide', aiGuide],
+  ['recognition result', scanResult],
+  ['travelogue', travelogue]
+]) {
+  assert.match(
+    page,
+    /getXichengDisplaySourceTitle[\s\S]*getXichengDisplaySourceDescription/,
+    `${name} should reuse the shared reviewed-source display helpers`
+  )
+}
+
+for (const [name, page] of [
+  ['AI guide', aiGuide],
+  ['recognition result', scanResult],
+  ['travelogue', travelogue]
+]) {
+  assert.doesNotMatch(
+    page,
+    /replace\(\s*\/POI 级已审核来源：\[\^。\]\*。\/g/,
+    `${name} should not duplicate internal reviewed-source cleanup regexes outside the shared source helper`
+  )
+}
+
 const sourceModule = `${sourceHelper.replace(/export const /g, 'const ')}
-export { normalizeXichengReviewedSources }`
-const { normalizeXichengReviewedSources } = await import(`data:text/javascript;base64,${Buffer.from(sourceModule).toString('base64')}`)
+export { normalizeXichengReviewedSources, getXichengDisplaySourceTitle, getXichengDisplaySourceDescription }`
+const {
+  normalizeXichengReviewedSources,
+  getXichengDisplaySourceTitle,
+  getXichengDisplaySourceDescription
+} = await import(`data:text/javascript;base64,${Buffer.from(sourceModule).toString('base64')}`)
 const [normalized] = normalizeXichengReviewedSources([
   {
     id: 7,
@@ -119,4 +150,35 @@ assert.deepEqual(
   ]),
   [],
   'Reviewed source normalization should drop blank/raw-only source records so sourceCount cannot be inflated'
+)
+
+assert.equal(
+  getXichengDisplaySourceTitle({ title: '白塔寺 POI 级已审核来源' }),
+  '白塔寺',
+  'Shared source display helper should strip raw reviewed-source suffixes from source titles'
+)
+
+assert.equal(
+  getXichengDisplaySourceDescription({
+    excerpt: 'POI 级已审核来源：触发关键词、坐标和别名来自内部种子。白塔寺适合观察白塔和寺院格局。生产发布前仍需完成运营复核。'
+  }),
+  '白塔寺适合观察白塔和寺院格局。',
+  'Shared source display helper should strip internal seed and production-review notes from source descriptions'
+)
+
+assert.equal(
+  getXichengDisplaySourceDescription({
+    url: 'https://example.com/source',
+    sourceType: 'official-poi-config'
+  }),
+  '官方公开来源',
+  'Shared source display helper should show neutral copy when only structured source metadata is available'
+)
+
+assert.equal(
+  getXichengDisplaySourceDescription({
+    excerpt: '一二三四五六七八九十'
+  }, 4),
+  '一二三四...',
+  'Shared source display helper should support bounded descriptions for compact cards and PDF templates'
 )

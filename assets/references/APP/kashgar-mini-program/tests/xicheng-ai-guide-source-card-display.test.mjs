@@ -4,8 +4,7 @@ import path from 'node:path'
 
 const root = process.cwd()
 const aiGuide = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
-
-const sourceDisplayHelper = aiGuide.match(/const getDisplaySourceDescription\s*=\s*\(source = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
+const sourceHelper = fs.readFileSync(path.join(root, 'request', 'xunjing', 'sources.js'), 'utf8')
 
 assert.match(
   aiGuide,
@@ -14,32 +13,38 @@ assert.match(
 )
 
 assert.match(
-  sourceDisplayHelper,
+  aiGuide,
+  /getDisplaySourceDescription\s*=\s*getXichengDisplaySourceDescription/,
+  'Xiaojing source cards should delegate source description cleanup to the shared source display helper'
+)
+
+assert.match(
+  sourceHelper,
   /source\.excerpt \|\| source\.summary \|\| source\.contentDigest/,
   'Source display helper should normalize the known backend source excerpt fields'
 )
 
 assert.match(
-  sourceDisplayHelper,
+  sourceHelper,
   /replace\(\s*\/POI 级已审核来源：\[\^。\]\*。\/g/,
   'Source display helper should strip repeated internal POI seed prefixes from user-facing cards'
 )
 
 assert.match(
-  sourceDisplayHelper,
+  sourceHelper,
   /replace\(\s*\/触发关键词、坐标和别名来自\[\^。\]\*。\/g/,
   'Source display helper should strip trigger/coordinate seed provenance from user-facing cards'
 )
 
 assert.match(
-  sourceDisplayHelper,
+  sourceHelper,
   /replace\(\s*\/生产发布前仍需完成\[\^。\]\*。\/g/,
   'Source display helper should strip production-review operation notes from user-facing cards'
 )
 
 assert.match(
-  sourceDisplayHelper,
-  /cleanedDescription\.length > 72[\s\S]*cleanedDescription\.slice\(0, 72\)/,
+  sourceHelper,
+  /maxLength = 72[\s\S]*cleanedDescription\.length > boundedLength[\s\S]*cleanedDescription\.slice\(0, boundedLength\)/,
   'Source display helper should keep source cards compact enough for the mobile chat design'
 )
 

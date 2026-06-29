@@ -363,7 +363,11 @@ import { XICHENG_OFFICIAL_POIS, XICHENG_REGION_CONFIG } from '@/config/regions/x
 import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
 import { requestCurrentLocationForTrigger } from '@/request/xunjing/trigger.js'
 import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
-import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
+import {
+	getXichengDisplaySourceDescription,
+	getXichengDisplaySourceTitle,
+	normalizeXichengReviewedSources
+} from '@/request/xunjing/sources.js'
 
 export const XICHENG_PLANNING_ONLY_MATERIAL_TYPES = Object.freeze([
 	'official-route-poi',
@@ -1900,27 +1904,10 @@ export default {
 			]
 		},
 		getDisplaySourceTitle(source = {}) {
-			const rawTitle = String(source.title || source.name || source.sourceTitle || '').trim()
-			return rawTitle
-				.replace(/\s*POI\s*级已审核来源\s*$/g, '')
-				.replace(/\s*已审核来源\s*$/g, '')
-				.trim()
+			return getXichengDisplaySourceTitle(source)
 		},
 		getDisplaySourceDescription(source = {}) {
-			const rawDescription = String(source.excerpt || source.summary || source.contentDigest || '').trim()
-			const cleanedDescription = rawDescription
-				.replace(/POI 级已审核来源：[^。]*。/g, '')
-				.replace(/触发关键词、坐标和别名来自[^。]*。/g, '')
-				.replace(/生产发布前仍需完成[^。]*。/g, '')
-				.replace(/\s+/g, ' ')
-				.trim()
-			if (cleanedDescription) {
-				return cleanedDescription.length > 96 ? `${cleanedDescription.slice(0, 96)}...` : cleanedDescription
-			}
-			if (source.sourceUrl || source.url || source.sourceType || source.type) {
-				return '官方公开来源'
-			}
-			return ''
+			return getXichengDisplaySourceDescription(source, 96)
 		},
 		createMemorialPdfSourceCards() {
 			const seenCards = new Set()

@@ -318,7 +318,11 @@ import { resolveXichengPhotoTrigger } from '@/request/xunjing/trigger.js'
 import { normalizeXichengAiChatResponse } from '@/request/xunjing/chat.js'
 import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
 import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
-import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
+import {
+	getXichengDisplaySourceDescription,
+	getXichengDisplaySourceTitle,
+	normalizeXichengReviewedSources
+} from '@/request/xunjing/sources.js'
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import {
 	KASHGAR_AI_COMPANION_ACTIONS,
@@ -1042,13 +1046,7 @@ const createLocalXunjingAiFallback = (question = '', context = xichengAiContext.
 		: createLocalKashgarAiFallback(question)
 }
 
-const getDisplaySourceTitle = (source = {}) => {
-	const rawTitle = String(source.title || source.name || source.sourceTitle || '').trim()
-	return rawTitle
-		.replace(/\s*POI\s*级已审核来源\s*$/g, '')
-		.replace(/\s*已审核来源\s*$/g, '')
-		.trim()
-}
+const getDisplaySourceTitle = getXichengDisplaySourceTitle
 
 const getDisplaySourceFollowUp = (source = {}) => {
 	const sourceTitle = getDisplaySourceTitle(source)
@@ -1069,22 +1067,7 @@ const createXunjingResultFollowUps = (result = {}) => {
 	return createSourceFollowUps(result && result.sources ? result.sources : [])
 }
 
-const getDisplaySourceDescription = (source = {}) => {
-	const rawDescription = String(source.excerpt || source.summary || source.contentDigest || '').trim()
-	const cleanedDescription = rawDescription
-		.replace(/POI 级已审核来源：[^。]*。/g, '')
-		.replace(/触发关键词、坐标和别名来自[^。]*。/g, '')
-		.replace(/生产发布前仍需完成[^。]*。/g, '')
-		.replace(/\s+/g, ' ')
-		.trim()
-	if (cleanedDescription) {
-		return cleanedDescription.length > 72 ? `${cleanedDescription.slice(0, 72)}...` : cleanedDescription
-	}
-	if (source.sourceUrl || source.url || source.sourceType || source.type) {
-		return '官方公开来源'
-	}
-	return ''
-}
+const getDisplaySourceDescription = getXichengDisplaySourceDescription
 
 const requestXunjingAiChat = (question) => {
 	let requestTask = null

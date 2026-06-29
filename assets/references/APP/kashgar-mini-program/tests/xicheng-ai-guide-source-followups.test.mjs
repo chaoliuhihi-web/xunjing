@@ -4,27 +4,33 @@ import path from 'node:path'
 
 const root = process.cwd()
 const aiGuide = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
+const sourceHelper = fs.readFileSync(path.join(root, 'request', 'xunjing', 'sources.js'), 'utf8')
 
-const sourceTitleHelper = aiGuide.match(/const getDisplaySourceTitle\s*=\s*\(source = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const sourceFollowUpHelper = aiGuide.match(/const getDisplaySourceFollowUp\s*=\s*\(source = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const normalizeFollowUpsHelper = aiGuide.match(/const normalizeDisplayFollowUps\s*=\s*\(followUps = \[\]\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const cachedMessagesSource = aiGuide.match(/const normalizeCachedMessages\s*=\s*\(list\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const sourceFollowUpsSource = aiGuide.match(/const createSourceFollowUps\s*=\s*\(sources = \[\]\) =>[\s\S]*?\n\nconst createXunjingResultFollowUps/)?.[0] || ''
 
 assert.match(
-  sourceTitleHelper,
+  aiGuide,
+  /getDisplaySourceTitle\s*=\s*getXichengDisplaySourceTitle/,
+  'Xiaojing should delegate source title cleanup to the shared source display helper'
+)
+
+assert.match(
+  sourceHelper,
   /source\.title \|\| source\.name \|\| source\.sourceTitle/,
   'Xiaojing should derive source follow-up copy from normalized source title fields'
 )
 
 assert.match(
-  sourceTitleHelper,
+  sourceHelper,
   /replace\(\s*\/\\s\*POI\\s\*级已审核来源\\s\*\$\/g/,
   'Xiaojing should strip raw POI reviewed-source suffixes before showing source titles'
 )
 
 assert.match(
-  sourceTitleHelper,
+  sourceHelper,
   /replace\(\s*\/\\s\*已审核来源\\s\*\$\/g/,
   'Xiaojing should strip raw reviewed-source suffixes before showing source titles'
 )

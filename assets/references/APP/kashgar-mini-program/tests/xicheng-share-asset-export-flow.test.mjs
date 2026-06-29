@@ -7,6 +7,7 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const sourceHelper = read('request', 'xunjing', 'sources.js')
 
 assert.ok(
   regionConfig.includes("shareAssetStorageKey: 'xicheng:shareAssets'"),
@@ -149,14 +150,20 @@ assert.match(
 
 assert.match(
   travelogue,
-  /getDisplaySourceTitle\(source = \{\}\)[\s\S]*source\.title \|\| source\.name \|\| source\.sourceTitle[\s\S]*replace\(\s*\/\\s\*POI\\s\*级已审核来源\\s\*\$\/g/,
-  'PDF memorial source cards should strip raw reviewed-source suffixes before exporting source titles'
+  /getDisplaySourceTitle\(source = \{\}\)[\s\S]*return getXichengDisplaySourceTitle\(source\)/,
+  'PDF memorial source cards should delegate title cleanup to the shared source display helper'
 )
 
 assert.match(
   travelogue,
-  /getDisplaySourceDescription\(source = \{\}\)[\s\S]*source\.excerpt \|\| source\.summary \|\| source\.contentDigest[\s\S]*replace\(\s*\/POI 级已审核来源：\[\^。\]\*。\/g[\s\S]*replace\(\s*\/生产发布前仍需完成\[\^。\]\*。\/g[\s\S]*cleanedDescription\.length > 96[\s\S]*cleanedDescription\.slice\(0, 96\)/,
-  'PDF memorial source cards should strip internal seed and production-review notes before exporting source summaries'
+  /getDisplaySourceDescription\(source = \{\}\)[\s\S]*return getXichengDisplaySourceDescription\(source, 96\)/,
+  'PDF memorial source cards should request a bounded PDF summary from the shared source display helper'
+)
+
+assert.match(
+  sourceHelper,
+  /source\.excerpt \|\| source\.summary \|\| source\.contentDigest[\s\S]*replace\(\s*\/POI 级已审核来源：\[\^。\]\*。\/g[\s\S]*replace\(\s*\/生产发布前仍需完成\[\^。\]\*。\/g[\s\S]*cleanedDescription\.length > boundedLength[\s\S]*cleanedDescription\.slice\(0, boundedLength\)/,
+  'Shared source display helper should strip internal seed and production-review notes before exporting source summaries'
 )
 
 assert.doesNotMatch(
