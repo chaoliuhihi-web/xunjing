@@ -81,8 +81,8 @@ assert.match(
 
 assert.match(
   routeDetail,
-  /askStopGuide\(stop = \{\}\)[\s\S]*const question = stop\.guidePrompt \|\| `讲讲\$\{stop\.poiName\}`[\s\S]*this\.persistStopGuideContext\(stop, question\)[\s\S]*question=\$\{encodeURIComponent\(question\)\}[\s\S]*regionCode=\$\{encodeURIComponent\(this\.routeOptions\.regionCode \|\| this\.region\.regionCode\)\}[\s\S]*poiCode=\$\{encodeURIComponent\(stop\.poiCode \|\| ''\)\}[\s\S]*poiName=\$\{encodeURIComponent\(stop\.poiName \|\| ''\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.routeOptions\.companionName \|\| this\.region\.companionName\)\}/,
-  'Route detail stop guide entry should navigate to Xiaojing with regionCode, poiCode, poiName, and companionName'
+  /askStopGuide\(stop = \{\}\)[\s\S]*const question = stop\.guidePrompt \|\| `讲讲\$\{stop\.poiName\}`[\s\S]*this\.persistStopGuideContext\(stop, question\)[\s\S]*question=\$\{encodeURIComponent\(question\)\}[\s\S]*regionCode=\$\{encodeURIComponent\(this\.routeOptions\.regionCode \|\| this\.region\.regionCode\)\}[\s\S]*poiCode=\$\{encodeURIComponent\(stop\.poiCode \|\| ''\)\}[\s\S]*poiName=\$\{encodeURIComponent\(stop\.poiName \|\| ''\)\}[\s\S]*safetyStatus=\$\{encodeURIComponent\('PASSED'\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.routeOptions\.companionName \|\| this\.region\.companionName\)\}/,
+  'Route detail stop guide entry should navigate to Xiaojing with regionCode, poiCode, poiName, reviewed safetyStatus, and companionName'
 )
 
 assert.match(

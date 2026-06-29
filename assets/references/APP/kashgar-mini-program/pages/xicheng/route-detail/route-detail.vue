@@ -228,7 +228,7 @@ export default {
 			const question = stop.guidePrompt || `讲讲${stop.poiName}`
 			this.persistStopGuideContext(stop, question)
 			uni.navigateTo({
-				url: `/pages/ai-guide/ai-guide?question=${encodeURIComponent(question)}&regionCode=${encodeURIComponent(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeURIComponent(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.aiSceneCode || this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.routeOptions.sourceChannel || this.region.sourceChannel)}&poiCode=${encodeURIComponent(stop.poiCode || '')}&poiName=${encodeURIComponent(stop.poiName || '')}&companionName=${encodeURIComponent(this.routeOptions.companionName || this.region.companionName)}`
+				url: `/pages/ai-guide/ai-guide?question=${encodeURIComponent(question)}&regionCode=${encodeURIComponent(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeURIComponent(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.aiSceneCode || this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.routeOptions.sourceChannel || this.region.sourceChannel)}&poiCode=${encodeURIComponent(stop.poiCode || '')}&poiName=${encodeURIComponent(stop.poiName || '')}&safetyStatus=${encodeURIComponent('PASSED')}&companionName=${encodeURIComponent(this.routeOptions.companionName || this.region.companionName)}`
 			})
 		}
 	}
