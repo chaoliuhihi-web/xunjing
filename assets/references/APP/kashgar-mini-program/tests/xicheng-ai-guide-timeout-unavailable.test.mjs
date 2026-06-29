@@ -11,10 +11,11 @@ assert.ok(timeoutBlock, 'AI guide should keep an explicit timeout branch for sta
 
 for (const required of [
   'hasXichengAiContext(xichengAiContext.value)',
-  'XICHENG_UNAVAILABLE_ANSWER',
-  "safetyStatus: 'UNAVAILABLE'",
-  'sources: []',
-  'followUps: []',
+  'const timeoutFallback = createLocalXichengAiFallback(question, xichengAiContext.value)',
+  'appendAnswerContent(state, timeoutFallback.answer)',
+  'state.safetyStatus = timeoutFallback.safetyStatus ||',
+  'sources: timeoutFallback.sources || []',
+  'followUps: timeoutFallback.followUps || []',
   'fallback: true',
   'timeout: true',
   'resolve({'
@@ -24,12 +25,12 @@ for (const required of [
 
 assert.match(
   timeoutBlock,
-  /commitAssistantMessage\(assistantMessage,\s*\{[\s\S]*isPending:\s*false[\s\S]*sources:\s*\[\][\s\S]*safetyStatus:\s*'UNAVAILABLE'/,
-  'Xicheng timeout branch should replace the pending assistant message with a safe unavailable response'
+  /commitAssistantMessage\(assistantMessage,\s*\{[\s\S]*isPending:\s*false[\s\S]*sources:\s*timeoutFallback\.sources \|\| \[\][\s\S]*safetyStatus:\s*state\.safetyStatus/,
+  'Xicheng timeout branch should replace the pending assistant message with the guarded Xicheng fallback result'
 )
 
 assert.doesNotMatch(
   timeoutBlock,
-  /createLocalKashgarAiFallback|createLocalXunjingAiFallback|先按西城试运营资料|本地导览资料|历史沿革|建筑细节|推荐：从/,
+  /createLocalKashgarAiFallback|createLocalXunjingAiFallback|先按西城试运营资料|本地导览资料|历史沿革|建筑细节|街区生活|亲子研学观察|推荐：从/,
   'Xicheng timeout branch should not fabricate local guide or route content'
 )

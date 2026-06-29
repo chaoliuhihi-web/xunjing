@@ -1,0 +1,50 @@
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
+
+const root = process.cwd()
+const aiGuide = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
+
+for (const required of [
+  'class="xicheng-chat-hero-card"',
+  'class="xicheng-chat-hero-landmark"',
+  ':src="XICHENG_REGION_CONFIG.visualAssets.heroLandmark"',
+  'class="xicheng-chat-companion-avatar"',
+  ':src="XICHENG_REGION_CONFIG.companionAvatar"',
+  '你想了解西城的哪一面？',
+  'xichengHeroQuestions',
+  'class="xicheng-chat-prompt-chip"',
+  '@click="handleFollowUpClick(question)"'
+]) {
+  assert.ok(aiGuide.includes(required), `Xicheng AI guide visual shell should include ${required}`)
+}
+
+assert.match(
+  aiGuide,
+  /import \{[\s\S]*createXichengPoiSuggestedQuestions[\s\S]*XICHENG_REGION_CONFIG[\s\S]*\} from '@\/config\/regions\/xicheng\.js'/,
+  'Xicheng AI guide should reuse shared region config and suggested question helpers'
+)
+
+assert.match(
+  aiGuide,
+  /const xichengHeroQuestions = computed\(\(\) => \{[\s\S]*createXichengPoiSuggestedQuestions\(context\.poiName[\s\S]*slice\(0,\s*3\)/,
+  'Xicheng AI guide should derive visible quick questions from the active official POI context'
+)
+
+assert.match(
+  aiGuide,
+  /\.xicheng-chat-hero-card\s*\{[\s\S]*min-height:\s*420rpx[\s\S]*border-radius:\s*34rpx/,
+  'Xicheng AI guide hero should have stable mobile dimensions and match the rounded reference surface'
+)
+
+assert.match(
+  aiGuide,
+  /\.xicheng-chat-hero-landmark\s*\{[\s\S]*position:\s*absolute[\s\S]*opacity:\s*0\.26[\s\S]*object-fit:\s*cover/,
+  'Xicheng AI guide should use the shared landmark photo as a muted background, not as a full-page mockup screenshot'
+)
+
+assert.doesNotMatch(
+  aiGuide,
+  /xicheng-multimodal\/design-mockups|03-ask-xiaojing-chat\.png/,
+  'Xicheng AI guide runtime UI should not reference full-page design mockup screenshots'
+)

@@ -203,6 +203,39 @@
 				class="chat-list"
 				:style="{ paddingTop: chatListPaddingTop }"
 			>
+				<view v-if="isXichengChatMode" class="xicheng-chat-hero-card">
+					<image
+						class="xicheng-chat-hero-landmark"
+						:src="XICHENG_REGION_CONFIG.visualAssets.heroLandmark"
+						mode="aspectFill"
+					></image>
+					<view class="xicheng-chat-hero-overlay"></view>
+					<view class="xicheng-chat-hero-head">
+						<text class="xicheng-chat-hero-kicker">{{ xichengAiContext.poiName || XICHENG_REGION_CONFIG.cityName }}</text>
+						<text class="xicheng-chat-hero-title">问问小京</text>
+					</view>
+					<view class="xicheng-chat-companion-row">
+						<image
+							class="xicheng-chat-companion-avatar"
+							:src="XICHENG_REGION_CONFIG.companionAvatar"
+							mode="aspectFit"
+						></image>
+						<view class="xicheng-chat-companion-bubble xicheng-companion-bubble">
+							<text class="xicheng-chat-companion-title">你想了解西城的哪一面？</text>
+							<text class="xicheng-chat-companion-desc">{{ xichengHeroSubtitle }}</text>
+						</view>
+					</view>
+					<view class="xicheng-chat-prompt-row">
+						<button
+							v-for="question in xichengHeroQuestions"
+							:key="question"
+							class="xicheng-chat-prompt-chip"
+							@click="handleFollowUpClick(question)"
+						>
+							{{ question }}
+						</button>
+					</view>
+				</view>
 				<view class="message-item" v-for="(msg, index) in messages" :key="msg.id || index">
 					<!-- 用户消息 -->
 					<view v-if="msg.role === 'user'" class="message-user">
@@ -323,7 +356,10 @@ import {
 	getXichengDisplaySourceTitle,
 	normalizeXichengReviewedSources
 } from '@/request/xunjing/sources.js'
-import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
+import {
+	createXichengPoiSuggestedQuestions,
+	XICHENG_REGION_CONFIG
+} from '@/config/regions/xicheng.js'
 import {
 	KASHGAR_AI_COMPANION_ACTIONS,
 	KASHGAR_AI_COMPANION_PLACES,
@@ -759,8 +795,20 @@ const activeAiAvatar = computed(() => (
 	isXichengChatMode.value ? XICHENG_REGION_CONFIG.companionAvatar : AI_AVATAR
 ))
 
-const getXichengContextSources = () => {
+const xichengHeroSubtitle = computed(() => {
 	const context = xichengAiContext.value || {}
+	const poiName = context.poiName || '西城文化点'
+	return `围绕${poiName}继续追问，答案优先使用已审核来源。`
+})
+
+const xichengHeroQuestions = computed(() => {
+	const context = xichengAiContext.value || {}
+	return createXichengPoiSuggestedQuestions(context.poiName || '')
+		.slice(0, 3)
+})
+
+const getXichengContextSources = (context = xichengAiContext.value) => {
+	context = context || {}
 	const safetyStatus = normalizeXichengSafetyStatus(context.safetyStatus)
 	if (isXichengUnsafeSafetyStatus(safetyStatus)) {
 		return []
@@ -1031,12 +1079,33 @@ const createLocalKashgarAiFallback = (question = '') => {
 }
 
 const createLocalXichengAiFallback = (question = '', context = {}) => {
+	const sources = getXichengContextSources(context)
+	if (sources.length === 0) {
+		return {
+			fallback: true,
+			answer: XICHENG_UNAVAILABLE_ANSWER,
+			sources: [],
+			followUps: [],
+			safetyStatus: 'UNAVAILABLE'
+		}
+	}
+	const sourceNames = sources
+		.map(getXichengDisplaySourceTitle)
+		.filter(Boolean)
+		.slice(0, 2)
+	const sourceSummary = sources
+		.map(getXichengDisplaySourceDescription)
+		.filter(Boolean)
+		.slice(0, 2)
+		.join('；')
+	const sourceLabel = sourceNames.length > 0 ? `「${sourceNames.join('、')}」` : '当前文化点'
+	const fallbackAnswer = `小京暂时没有拿到在线 AI 回答，但已匹配到${sourceLabel}的已审核来源。${sourceSummary ? `可先参考：${sourceSummary}` : '你可以先查看下方来源卡，或稍后继续追问。'}`
 	return {
 		fallback: true,
-		answer: XICHENG_UNAVAILABLE_ANSWER,
-		sources: [],
-		followUps: [],
-		safetyStatus: 'UNAVAILABLE'
+		answer: fallbackAnswer,
+		sources,
+		followUps: createSourceFollowUps(sources),
+		safetyStatus: 'PASSED'
 	}
 }
 
@@ -1821,25 +1890,26 @@ const startXunjingAiRequest = ({ question, assistantMessage }) => {
 				return
 			}
 			if (hasXichengAiContext(xichengAiContext.value)) {
-				appendAnswerContent(state, XICHENG_UNAVAILABLE_ANSWER)
-				state.followUps = []
-				state.sources = []
-				state.safetyStatus = 'UNAVAILABLE'
+				const timeoutFallback = createLocalXichengAiFallback(question, xichengAiContext.value)
+				appendAnswerContent(state, timeoutFallback.answer)
+				state.followUps = timeoutFallback.followUps || []
+				state.sources = timeoutFallback.sources || []
+				state.safetyStatus = timeoutFallback.safetyStatus || 'UNAVAILABLE'
 				state.streamFinished = true
 				flushStreamContent(state)
 				commitAssistantMessage(assistantMessage, {
 					isPending: false,
-					followUps: [],
-					sources: [],
-					safetyStatus: 'UNAVAILABLE'
+					followUps: timeoutFallback.followUps || [],
+					sources: timeoutFallback.sources || [],
+					safetyStatus: state.safetyStatus
 				})
 				saveMessagesCache()
 				clearActiveStreamIfMatch(requestController.id)
 				settleRequest(() => resolve({
 					answer: state.fullContent,
-					followUps: [],
-					sources: [],
-					safetyStatus: 'UNAVAILABLE',
+					followUps: timeoutFallback.followUps || [],
+					sources: timeoutFallback.sources || [],
+					safetyStatus: state.safetyStatus,
 					fallback: true,
 					timeout: true
 				}))
@@ -2518,6 +2588,134 @@ loadChatHistory({ preferCache: true })
 .xicheng-chat-shell .chat-list {
 	padding-left: 30rpx;
 	padding-right: 30rpx;
+}
+
+.xicheng-chat-hero-card {
+	position: relative;
+	min-height: 420rpx;
+	margin-bottom: 30rpx;
+	padding: 34rpx 30rpx 28rpx;
+	overflow: hidden;
+	border-radius: 34rpx;
+	box-sizing: border-box;
+	background:
+		linear-gradient(145deg, rgba(255, 252, 246, 0.96), rgba(244, 236, 222, 0.90));
+	box-shadow: 0 18rpx 46rpx rgba(28, 35, 32, 0.10);
+}
+
+.xicheng-chat-hero-landmark {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	opacity: 0.26;
+	object-fit: cover;
+}
+
+.xicheng-chat-hero-overlay {
+	position: absolute;
+	inset: 0;
+	background:
+		linear-gradient(90deg, rgba(255, 252, 246, 0.96) 0%, rgba(255, 252, 246, 0.76) 52%, rgba(255, 252, 246, 0.30) 100%),
+		linear-gradient(180deg, rgba(255, 252, 246, 0.14), rgba(248, 243, 234, 0.82));
+}
+
+.xicheng-chat-hero-head,
+.xicheng-chat-companion-row,
+.xicheng-chat-prompt-row {
+	position: relative;
+	z-index: 1;
+}
+
+.xicheng-chat-hero-head {
+	display: flex;
+	flex-direction: column;
+	gap: 8rpx;
+}
+
+.xicheng-chat-hero-kicker {
+	font-size: 24rpx;
+	line-height: 1.35;
+	color: #8B7A61;
+}
+
+.xicheng-chat-hero-title {
+	font-size: 48rpx;
+	line-height: 1.18;
+	font-weight: 800;
+	color: #102F29;
+}
+
+.xicheng-chat-companion-row {
+	display: flex;
+	align-items: center;
+	gap: 18rpx;
+	margin-top: 34rpx;
+}
+
+.xicheng-chat-companion-avatar {
+	width: 116rpx;
+	height: 116rpx;
+	flex-shrink: 0;
+	border-radius: 999rpx;
+	background: rgba(255, 252, 246, 0.88);
+	box-shadow: 0 14rpx 32rpx rgba(28, 35, 32, 0.10);
+}
+
+.xicheng-chat-companion-bubble {
+	flex: 1;
+	min-width: 0;
+	padding: 24rpx 26rpx;
+	border-radius: 28rpx;
+	box-sizing: border-box;
+	background: rgba(255, 253, 248, 0.92);
+	border: 1rpx solid rgba(181, 148, 94, 0.18);
+	box-shadow: 0 12rpx 30rpx rgba(28, 35, 32, 0.08);
+}
+
+.xicheng-chat-companion-title,
+.xicheng-chat-companion-desc {
+	display: block;
+}
+
+.xicheng-chat-companion-title {
+	font-size: 28rpx;
+	line-height: 1.45;
+	font-weight: 700;
+	color: #102F29;
+}
+
+.xicheng-chat-companion-desc {
+	margin-top: 8rpx;
+	font-size: 22rpx;
+	line-height: 1.45;
+	color: #746F68;
+}
+
+.xicheng-chat-prompt-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 14rpx;
+	margin-top: 28rpx;
+}
+
+.xicheng-chat-prompt-chip {
+	min-height: 62rpx;
+	max-width: 100%;
+	margin: 0;
+	padding: 0 22rpx;
+	border: 1rpx solid rgba(181, 148, 94, 0.26);
+	border-radius: 999rpx;
+	background: rgba(255, 253, 248, 0.88);
+	color: #173F35;
+	font-size: 24rpx;
+	line-height: 60rpx;
+	text-align: left;
+	box-shadow: 0 8rpx 20rpx rgba(28, 35, 32, 0.06);
+}
+
+.xicheng-chat-prompt-chip::after {
+	border: 0;
 }
 
 .xicheng-chat-shell .message-ai {

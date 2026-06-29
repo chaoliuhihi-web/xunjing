@@ -5,7 +5,7 @@ import path from 'node:path'
 const root = process.cwd()
 const aiGuide = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
 const loadCachedRecognitionBlock = aiGuide.match(/const loadCachedXichengRecognitionContext\s*=\s*\(context = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
-const contextSourcesBlock = aiGuide.match(/const getXichengContextSources\s*=\s*\(\) => \{[\s\S]*?\n\}/)?.[0] || ''
+const contextSourcesBlock = aiGuide.match(/const getXichengContextSources\s*=\s*\(context = xichengAiContext\.value\) => \{[\s\S]*?\n\}/)?.[0] || ''
 
 for (const required of [
   'sourceLabel',
@@ -39,7 +39,7 @@ assert.match(
 
 assert.match(
   contextSourcesBlock,
-  /const safetyStatus = normalizeXichengSafetyStatus\(context\.safetyStatus\)[\s\S]*if \(isXichengUnsafeSafetyStatus\(safetyStatus\)\) \{[\s\S]*return \[\][\s\S]*return normalizeXichengReviewedSources\(context\.sources\)/,
+  /context = context \|\| \{\}[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(context\.safetyStatus\)[\s\S]*if \(isXichengUnsafeSafetyStatus\(safetyStatus\)\) \{[\s\S]*return \[\][\s\S]*return normalizeXichengReviewedSources\(context\.sources\)/,
   'AI guide should expose a normalized safe helper for the active Xicheng reviewed sources'
 )
 

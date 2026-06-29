@@ -21,8 +21,20 @@ assert.match(
 
 assert.match(
   xichengFallback,
-  /answer:\s*XICHENG_UNAVAILABLE_ANSWER[\s\S]*sources:\s*\[\][\s\S]*followUps:\s*\[\][\s\S]*safetyStatus:\s*'UNAVAILABLE'/,
-  'Xicheng AI fallback should return an unavailable state without sources or follow-up prompts'
+  /const sources = getXichengContextSources\(context\)[\s\S]*if \(sources\.length === 0\) \{[\s\S]*answer:\s*XICHENG_UNAVAILABLE_ANSWER[\s\S]*sources:\s*\[\][\s\S]*followUps:\s*\[\][\s\S]*safetyStatus:\s*'UNAVAILABLE'/,
+  'Xicheng AI fallback should still return an unavailable state without sources when no reviewed source is available'
+)
+
+assert.match(
+  xichengFallback,
+  /const fallbackAnswer = `小京暂时没有拿到在线 AI 回答[\s\S]*已审核来源[\s\S]*sourceSummary[\s\S]*return \{[\s\S]*answer:\s*fallbackAnswer[\s\S]*sources[\s\S]*followUps:\s*createSourceFollowUps\(sources\)[\s\S]*safetyStatus:\s*'PASSED'/,
+  'Xicheng AI fallback may only degrade to a source-backed summary when reviewed context sources are already available'
+)
+
+assert.match(
+  aiGuide,
+  /responseTimeoutTimer = setTimeout\(\(\) => \{[\s\S]*if \(hasXichengAiContext\(xichengAiContext\.value\)\) \{[\s\S]*const timeoutFallback = createLocalXichengAiFallback\(question, xichengAiContext\.value\)[\s\S]*appendAnswerContent\(state, timeoutFallback\.answer\)[\s\S]*sources: timeoutFallback\.sources/,
+  'Xicheng AI timeout fallback should reuse the same reviewed-source guard instead of always dropping to empty sources'
 )
 
 assert.doesNotMatch(
