@@ -191,8 +191,12 @@
 			@navHeight="handleNavHeight"
 		/>
 
+		<view v-if="isXichengChatMode" class="xicheng-chat-more-btn" @click="showXichengChatMenu">
+			<text class="xicheng-chat-more-dot">•••</text>
+		</view>
+
 		<!-- 清空历史按钮 -->
-		<view class="clear-history-btn" @click="clearChatHistory">
+		<view v-else class="clear-history-btn" @click="clearChatHistory">
 			<text class="clear-icon">🗑️</text>
 		</view>
 
@@ -2004,6 +2008,25 @@ const clearChatHistory = () => {
 	})
 }
 
+const showXichengChatMenu = () => {
+	uni.showActionSheet({
+		itemList: ['清空对话', '返回西城首页'],
+		success: ({ tapIndex }) => {
+			if (tapIndex === 0) {
+				clearChatHistory()
+				return
+			}
+			if (tapIndex === 1) {
+				clearPendingUiTimers()
+				stopAiSpeech()
+				uni.reLaunch({
+					url: '/pages/xicheng/home/home'
+				})
+			}
+		}
+	})
+}
+
 // 返回上一页
 const goBack = () => {
 	if (showKashgarDiaryGenerator.value) {
@@ -2481,6 +2504,29 @@ loadChatHistory({ preferCache: true })
 
 .clear-icon {
 	font-size: 32rpx;
+}
+
+.xicheng-chat-more-btn {
+	position: fixed;
+	top: calc(24rpx + env(safe-area-inset-top));
+	right: 30rpx;
+	z-index: 10000;
+	width: 72rpx;
+	height: 72rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 1rpx solid rgba(181, 148, 94, 0.22);
+	border-radius: 50%;
+	background: rgba(255, 253, 248, 0.92);
+	box-shadow: 0 12rpx 26rpx rgba(28, 35, 32, 0.10);
+}
+
+.xicheng-chat-more-dot {
+	font-size: 28rpx;
+	line-height: 1;
+	letter-spacing: 0;
+	color: #173F35;
 }
 
 .content {

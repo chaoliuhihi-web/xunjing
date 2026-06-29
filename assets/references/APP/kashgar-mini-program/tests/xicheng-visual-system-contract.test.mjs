@@ -121,10 +121,24 @@ for (const token of [
   'xicheng-chat-shell',
   'xicheng-chat-container',
   'chatNavTitle',
-  'activeAiAvatar'
+  'activeAiAvatar',
+  'xicheng-chat-more-btn',
+  'showXichengChatMenu'
 ]) {
   assert.ok(aiGuide.includes(token), `ai-guide.vue should support Xicheng chat visual token ${token}`)
 }
+
+assert.match(
+  aiGuide,
+  /<view v-if="isXichengChatMode" class="xicheng-chat-more-btn"[\s\S]*showXichengChatMenu[\s\S]*<view v-else class="clear-history-btn"/,
+  'Xicheng Xiaojing chat should replace the always-visible destructive clear button with a design-aligned more menu'
+)
+
+assert.match(
+  aiGuide,
+  /showXichengChatMenu[\s\S]*uni\.showActionSheet[\s\S]*清空对话[\s\S]*返回西城首页/,
+  'Xicheng Xiaojing more menu should keep clear-history behind a secondary action and expose return-home navigation'
+)
 
 for (const required of [
   'Xicheng P0 Visual QA',
