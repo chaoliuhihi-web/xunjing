@@ -10,6 +10,7 @@ const artifactType = 'xicheng-yudao-release-preflight'
 const defaultReleaseEvidenceFile = 'qa/xicheng-yudao-release-evidence.json'
 const defaultTasksOutputFile = 'workbench/xicheng-yudao-release-blocker-tasks.csv'
 const defaultPoiTasksOutputFile = 'workbench/xicheng-yudao-release-poi-blocker-tasks.csv'
+const defaultPoiSummaryOutputFile = 'workbench/xicheng-yudao-release-poi-summary.csv'
 const defaultHandoffOutputFile = 'workbench/xicheng-yudao-release-handoff.md'
 const defaultPoiWorkbookEvidenceFile = 'qa/xicheng-poi-review-workbook-evidence.json'
 const defaultPoiManifestEvidenceFile = 'qa/xicheng-poi-manifest-evidence.json'
@@ -313,6 +314,7 @@ function buildHandoffMarkdown({
   releaseEvidenceFile,
   tasksOutputFile,
   poiTasksOutputFile,
+  poiSummaryOutputFile,
   poiEvidenceBootstrapCommand,
   appReadiness,
   appReadinessCommand,
@@ -349,6 +351,7 @@ function buildHandoffMarkdown({
     `Release evidence: \`${releaseEvidenceFile}\``,
     `Blocker tasks CSV: \`${tasksOutputFile}\``,
     `POI tasks CSV: \`${poiTasksOutputFile}\``,
+    `POI summary CSV: \`${poiSummaryOutputFile}\``,
     '',
     '## Owner Lanes',
     '',
@@ -409,6 +412,8 @@ export async function runXichengYudaoReleasePreflight({
   const poiTasksOutputFile = readArgValue(args, '--poi-tasks-output') ||
     readArgValue(args, '--poi-output') ||
     defaultPoiTasksOutputFile
+  const poiSummaryOutputFile = readArgValue(args, '--poi-summary-output') ||
+    defaultPoiSummaryOutputFile
   const handoffOutputFile = readArgValue(args, '--handoff-output') ||
     defaultHandoffOutputFile
   const poiWorkbookEvidenceFile = readArgValue(args, '--poi-workbook-evidence') || defaultPoiWorkbookEvidenceFile
@@ -427,6 +432,7 @@ export async function runXichengYudaoReleasePreflight({
   const resolvedReleaseEvidenceFile = resolveRootFile(resolvedRoot, releaseEvidenceFile)
   const resolvedTasksOutputFile = resolveRootFile(resolvedRoot, tasksOutputFile)
   const resolvedPoiTasksOutputFile = resolveRootFile(resolvedRoot, poiTasksOutputFile)
+  const resolvedPoiSummaryOutputFile = resolveRootFile(resolvedRoot, poiSummaryOutputFile)
   const resolvedHandoffOutputFile = resolveRootFile(resolvedRoot, handoffOutputFile)
   const scriptDir = path.dirname(fileURLToPath(import.meta.url))
   const releaseGateScript = path.join(scriptDir, 'verify-xicheng-yudao-release-readiness.mjs')
@@ -468,6 +474,7 @@ export async function runXichengYudaoReleasePreflight({
     releaseEvidenceFile,
     outputFile: tasksOutputFile,
     poiOutputFile: poiTasksOutputFile,
+    poiSummaryOutputFile,
     extraTaskRows: buildAppReadinessTaskRows({
       appReadiness,
       appReadinessCommand
@@ -496,6 +503,7 @@ export async function runXichengYudaoReleasePreflight({
     releaseEvidenceFile: resolvedReleaseEvidenceFile,
     tasksOutputFile: resolvedTasksOutputFile,
     poiTasksOutputFile: resolvedPoiTasksOutputFile,
+    poiSummaryOutputFile: resolvedPoiSummaryOutputFile,
     poiEvidenceBootstrapCommand,
     appReadiness,
     appReadinessCommand,
@@ -514,6 +522,7 @@ export async function runXichengYudaoReleasePreflight({
       releaseEvidenceFile: resolvedReleaseEvidenceFile,
       tasksOutputFile: resolvedTasksOutputFile,
       poiTasksOutputFile: resolvedPoiTasksOutputFile,
+      poiSummaryOutputFile: resolvedPoiSummaryOutputFile,
       handoffOutputFile: resolvedHandoffOutputFile,
       appReadinessEvidenceFile: appReadiness.evidenceFile,
       appReadinessStatus: appReadiness.status,
@@ -522,6 +531,7 @@ export async function runXichengYudaoReleasePreflight({
       blockerCount: releaseEvidence.summary?.blockerCount,
       taskCount: taskReport.summary.taskCount,
       poiTaskCount: taskReport.summary.poiTaskCount,
+      poiSummaryCount: taskReport.summary.poiSummaryCount,
       ownerLaneCounts: taskReport.summary.ownerLaneCounts,
       ownerLaneBreakdown: taskReport.summary.ownerLaneBreakdown,
       poiEvidenceBootstrapCommand,

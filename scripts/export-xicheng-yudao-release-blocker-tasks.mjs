@@ -491,17 +491,74 @@ function buildPoiCsv(poiTaskRows) {
   return `${[header.join(','), ...rows].join('\n')}\n`
 }
 
+function buildPoiSummaryRows(poiTaskRows) {
+  const byPoiCode = new Map()
+  poiTaskRows.forEach((row) => {
+    if (!byPoiCode.has(row.poiCode)) {
+      byPoiCode.set(row.poiCode, [])
+    }
+    byPoiCode.get(row.poiCode).push(row)
+  })
+
+  return [...byPoiCode.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([poiCode, rows]) => ({
+      poiCode,
+      ownerLanes: sortedUnique(rows.map((row) => row.ownerLane)),
+      blockerCount: rows.length,
+      checkNames: sortedUnique(rows.map((row) => row.checkName)),
+      blockers: sortedUnique(rows.map((row) => row.blocker)),
+      taskDetails: sortedUnique(rows.map((row) => row.taskDetail)),
+      requiredEvidence: sortedUnique(rows.map((row) => row.requiredEvidence)),
+      verificationCommands: sortedUnique(rows.map((row) => row.verificationCommand)),
+      taskStatus: sortedUnique(rows.map((row) => row.taskStatus)),
+      sourceEvidenceFiles: sortedUnique(rows.map((row) => row.sourceEvidenceFile))
+    }))
+}
+
+function buildPoiSummaryCsv(poiSummaryRows) {
+  const header = [
+    'poiCode',
+    'ownerLanes',
+    'blockerCount',
+    'checkNames',
+    'blockers',
+    'taskDetails',
+    'requiredEvidence',
+    'verificationCommands',
+    'taskStatus',
+    'sourceEvidenceFiles'
+  ]
+  const rows = poiSummaryRows.map((row) => csvRow([
+    row.poiCode,
+    row.ownerLanes.join('|'),
+    row.blockerCount,
+    row.checkNames.join('|'),
+    row.blockers.join('|'),
+    row.taskDetails.join('|'),
+    row.requiredEvidence.join('|'),
+    row.verificationCommands.join('|'),
+    row.taskStatus.join('|'),
+    row.sourceEvidenceFiles.join('|')
+  ]))
+  return `${[header.join(','), ...rows].join('\n')}\n`
+}
+
 export async function exportXichengYudaoReleaseBlockerTasks({
   rootDir = process.cwd(),
   releaseEvidenceFile,
   outputFile = 'workbench/xicheng-yudao-release-blocker-tasks.csv',
   poiOutputFile,
+  poiSummaryOutputFile,
   extraTaskRows = []
 } = {}) {
   const resolvedRoot = path.resolve(rootDir)
   const resolvedEvidenceFile = resolveRootFile(resolvedRoot, releaseEvidenceFile)
   const resolvedOutputFile = resolveRootFile(resolvedRoot, outputFile)
   const resolvedPoiOutputFile = poiOutputFile ? resolveRootFile(resolvedRoot, poiOutputFile) : undefined
+  const resolvedPoiSummaryOutputFile = poiSummaryOutputFile
+    ? resolveRootFile(resolvedRoot, poiSummaryOutputFile)
+    : undefined
   if (!resolvedEvidenceFile) {
     throw new Error('--release-evidence is required')
   }
@@ -519,6 +576,7 @@ export async function exportXichengYudaoReleaseBlockerTasks({
     ...normalizeExtraTaskRows(extraTaskRows, resolvedEvidenceFile)
   ]
   const poiTaskRows = buildPoiTaskRows(taskRows)
+  const poiSummaryRows = buildPoiSummaryRows(poiTaskRows)
   const ownerLaneCounts = summarizeOwnerLanes(taskRows)
   const ownerLaneBreakdown = summarizeOwnerLaneBreakdown(taskRows)
   await mkdir(path.dirname(resolvedOutputFile), { recursive: true })
@@ -526,6 +584,10 @@ export async function exportXichengYudaoReleaseBlockerTasks({
   if (resolvedPoiOutputFile) {
     await mkdir(path.dirname(resolvedPoiOutputFile), { recursive: true })
     await writeFile(resolvedPoiOutputFile, buildPoiCsv(poiTaskRows))
+  }
+  if (resolvedPoiSummaryOutputFile) {
+    await mkdir(path.dirname(resolvedPoiSummaryOutputFile), { recursive: true })
+    await writeFile(resolvedPoiSummaryOutputFile, buildPoiSummaryCsv(poiSummaryRows))
   }
 
   const ok = taskRows.length === 0 && evidence.ok === true
@@ -544,6 +606,8 @@ export async function exportXichengYudaoReleaseBlockerTasks({
       taskCount: taskRows.length,
       poiOutputFile: resolvedPoiOutputFile,
       poiTaskCount: poiTaskRows.length,
+      poiSummaryOutputFile: resolvedPoiSummaryOutputFile,
+      poiSummaryCount: poiSummaryRows.length,
       ownerLaneCounts,
       ownerLaneBreakdown
     },
@@ -560,7 +624,8 @@ async function runCli() {
     rootDir: path.resolve(readArgValue(args, '--root') || process.cwd()),
     releaseEvidenceFile: readArgValue(args, '--release-evidence'),
     outputFile: readArgValue(args, '--output') || 'workbench/xicheng-yudao-release-blocker-tasks.csv',
-    poiOutputFile: readArgValue(args, '--poi-output') || readArgValue(args, '--poi-tasks-output')
+    poiOutputFile: readArgValue(args, '--poi-output') || readArgValue(args, '--poi-tasks-output'),
+    poiSummaryOutputFile: readArgValue(args, '--poi-summary-output')
   })
   console.log(JSON.stringify(report, null, 2))
 }

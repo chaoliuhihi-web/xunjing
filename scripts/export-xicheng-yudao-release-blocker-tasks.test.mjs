@@ -669,6 +669,74 @@ describe('xicheng Yudao release blocker task export', () => {
     expect(poiCsv).toContain(`xicheng-runtime-seed-evidence:2:xicheng-planetarium,xicheng-planetarium,xicheng-runtime-seed-evidence,2,runtime seed evidence poiLicenseReviewRequired must be 0,poi-data,Apply the approved Xicheng production seed to the target Yudao database and provide runtime seed evidence.,Production seed apply outputs YUDAO_XICHENG_PRODUCTION_SEED_APPLIED and writes YUDAO_XICHENG_PRODUCTION_SEED_READY runtime evidence.,${productionSeedApplyCommand},TODO,${releaseEvidencePath}`)
   })
 
+  test('writes one consolidated release summary row per affected POI when requested', async () => {
+    const rootDir = await createTempRoot()
+    const releaseEvidencePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', {
+      artifactType: 'xicheng-yudao-release-readiness',
+      ok: false,
+      status: 'NOT_READY',
+      checkedAt: '2026-06-28T00:00:00.000Z',
+      summary: {
+        stage: 'production',
+        failedChecks: 2,
+        blockerCount: 3,
+        runtimeSeedGeoReviewRequiredPoiCodes: [
+          'xicheng-baitasi',
+          'xicheng-gongwangfu'
+        ],
+        runtimeSeedLicenseReviewRequiredPoiCodes: [
+          'xicheng-gongwangfu',
+          'xicheng-planetarium'
+        ]
+      },
+      checks: [
+        {
+          name: 'xicheng-runtime-seed-evidence',
+          ok: false,
+          blockers: [
+            'runtime seed evidence poiGeoReviewRequired must be 0',
+            'runtime seed evidence poiLicenseReviewRequired must be 0'
+          ]
+        },
+        {
+          name: 'xicheng-source-license',
+          ok: false,
+          blockers: [
+            'Xicheng seed still contains REVIEW_REQUIRED license or geo status'
+          ]
+        }
+      ],
+      blockers: []
+    })
+
+    const result = runTaskExport([
+      '--root', rootDir,
+      '--release-evidence', 'qa/xicheng-yudao-release-evidence.json',
+      '--output', 'workbench/xicheng-yudao-release-blocker-tasks.csv',
+      '--poi-output', 'workbench/xicheng-yudao-release-poi-blocker-tasks.csv',
+      '--poi-summary-output', 'workbench/xicheng-yudao-release-poi-summary.csv'
+    ])
+
+    expect(result.status).toBe(0)
+    const report = JSON.parse(result.stdout)
+    const poiSummaryOutputFile = path.join(rootDir, 'workbench/xicheng-yudao-release-poi-summary.csv')
+    expect(report.summary).toMatchObject({
+      poiSummaryOutputFile,
+      poiSummaryCount: 3
+    })
+
+    const summaryCsv = await readFile(poiSummaryOutputFile, 'utf8')
+    expect(summaryCsv).toContain('poiCode,ownerLanes,blockerCount,checkNames,blockers,taskDetails,requiredEvidence,verificationCommands,taskStatus,sourceEvidenceFiles')
+    expect(summaryCsv).toContain(`xicheng-baitasi,poi-data,2,xicheng-runtime-seed-evidence|xicheng-source-license`)
+    expect(summaryCsv).toContain(`xicheng-gongwangfu,poi-data,3,xicheng-runtime-seed-evidence|xicheng-source-license`)
+    expect(summaryCsv).toContain(`xicheng-planetarium,poi-data,2,xicheng-runtime-seed-evidence|xicheng-source-license`)
+    expect(summaryCsv).toContain('runtime seed evidence poiGeoReviewRequired must be 0')
+    expect(summaryCsv).toContain('runtime seed evidence poiLicenseReviewRequired must be 0')
+    expect(summaryCsv).toContain('Xicheng seed still contains REVIEW_REQUIRED license or geo status')
+    expect(summaryCsv).toContain(productionSeedApplyCommand)
+    expect(summaryCsv).toContain(releaseEvidencePath)
+  })
+
   test('exposes the release task export through npm scripts and handoff docs', async () => {
     const packageJson = JSON.parse(await readFile(path.resolve('package.json'), 'utf8'))
     const deployDoc = await readFile(path.resolve('docs/02_开发规划/星河寻境业务平台部署说明.md'), 'utf8')
@@ -683,5 +751,7 @@ describe('xicheng Yudao release blocker task export', () => {
     expect(statusDoc).toContain('summary.ownerLaneBreakdown')
     expect(deployDoc).toContain('xicheng-yudao-release-poi-blocker-tasks.csv')
     expect(statusDoc).toContain('xicheng-yudao-release-poi-blocker-tasks.csv')
+    expect(deployDoc).toContain('xicheng-yudao-release-poi-summary.csv')
+    expect(statusDoc).toContain('xicheng-yudao-release-poi-summary.csv')
   })
 })

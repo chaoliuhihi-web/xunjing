@@ -48,7 +48,8 @@ describe('xicheng Yudao release preflight', () => {
       '--runtime-seed-evidence', 'tmp/xicheng-yudao-runtime-seed-production-evidence.json',
       '--release-evidence', 'qa/xicheng-yudao-release-evidence.json',
       '--tasks-output', 'workbench/xicheng-yudao-release-blocker-tasks.csv',
-      '--poi-tasks-output', 'workbench/xicheng-yudao-release-poi-blocker-tasks.csv'
+      '--poi-tasks-output', 'workbench/xicheng-yudao-release-poi-blocker-tasks.csv',
+      '--poi-summary-output', 'workbench/xicheng-yudao-release-poi-summary.csv'
     ])
 
     expect(result.status).toBe(1)
@@ -56,6 +57,7 @@ describe('xicheng Yudao release preflight', () => {
     const releaseEvidenceFile = path.join(rootDir, 'qa/xicheng-yudao-release-evidence.json')
     const tasksOutputFile = path.join(rootDir, 'workbench/xicheng-yudao-release-blocker-tasks.csv')
     const poiTasksOutputFile = path.join(rootDir, 'workbench/xicheng-yudao-release-poi-blocker-tasks.csv')
+    const poiSummaryOutputFile = path.join(rootDir, 'workbench/xicheng-yudao-release-poi-summary.csv')
     const handoffOutputFile = path.join(rootDir, 'workbench/xicheng-yudao-release-handoff.md')
 
     expect(report).toMatchObject({
@@ -66,6 +68,7 @@ describe('xicheng Yudao release preflight', () => {
         releaseEvidenceFile,
         tasksOutputFile,
         poiTasksOutputFile,
+        poiSummaryOutputFile,
         handoffOutputFile,
         appReadinessEvidenceFile: path.join(rootDir, 'qa/xicheng-app-readiness-evidence.json'),
         appReadinessStatus: 'MISSING',
@@ -74,6 +77,7 @@ describe('xicheng Yudao release preflight', () => {
         finalEvidencePackageCommand: expect.stringContaining('npm run xunjing:xicheng:release:evidence:package'),
         poiEvidenceBootstrapCommand: expect.stringContaining('npm run xunjing:xicheng:poi:review:pack'),
         poiTaskCount: expect.any(Number),
+        poiSummaryCount: expect.any(Number),
         releaseStatus: 'NOT_READY'
       }
     })
@@ -158,6 +162,8 @@ describe('xicheng Yudao release preflight', () => {
     expect(tasksCsv).toContain('npm run xunjing:platform:verify --')
     const poiTasksCsv = await readFile(poiTasksOutputFile, 'utf8')
     expect(poiTasksCsv).toContain('poiTaskKey,poiCode,checkName,blockerIndex,blocker,ownerLane,taskDetail,requiredEvidence,verificationCommand,taskStatus,sourceEvidenceFile')
+    const poiSummaryCsv = await readFile(poiSummaryOutputFile, 'utf8')
+    expect(poiSummaryCsv).toContain('poiCode,ownerLanes,blockerCount,checkNames,blockers,taskDetails,requiredEvidence,verificationCommands,taskStatus,sourceEvidenceFiles')
 
     const handoffMarkdown = await readFile(handoffOutputFile, 'utf8')
     expect(handoffMarkdown).toContain('# Xicheng Yudao Release Handoff')
@@ -165,6 +171,7 @@ describe('xicheng Yudao release preflight', () => {
     expect(handoffMarkdown).toContain(`Release evidence: \`${releaseEvidenceFile}\``)
     expect(handoffMarkdown).toContain(`Blocker tasks CSV: \`${tasksOutputFile}\``)
     expect(handoffMarkdown).toContain(`POI tasks CSV: \`${poiTasksOutputFile}\``)
+    expect(handoffMarkdown).toContain(`POI summary CSV: \`${poiSummaryOutputFile}\``)
     expect(handoffMarkdown).toContain('## Owner Lanes')
     expect(handoffMarkdown).toContain('### platform-ops')
     expect(handoffMarkdown).toContain('### poi-data')
