@@ -842,6 +842,67 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidenceCheck?.blockers.join('\n')).toContain('POI production review apply evidence is required before production release')
   })
 
+  test('surfaces pending POI codes from source and production review apply evidence', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const {
+      manifestEvidencePath,
+      workbookEvidencePath,
+      seedEvidencePath
+    } = await writeProductionPoiEvidence(rootDir, {
+      sourceReviewApply: {
+        ok: false,
+        status: 'SOURCE_REVIEW_DATA_REMAINS',
+        summary: {
+          appliedPoiCount: 78,
+          pendingSourcePoiCount: 2,
+          pendingSourcePoiCodes: ['xicheng-baitasi', 'xicheng-gongwangfu']
+        },
+        blockers: ['2 workbook POIs still require source license review']
+      },
+      productionReviewApply: {
+        ok: false,
+        status: 'PRODUCTION_REVIEW_DATA_REMAINS',
+        summary: {
+          appliedPoiCount: 79,
+          pendingProductionReviewPoiCount: 1,
+          pendingProductionReviewPoiCodes: ['xicheng-planetarium']
+        },
+        blockers: ['1 workbook POI still requires production review']
+      }
+    })
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
+    const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
+    const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      aiBootstrapEvidencePath,
+      visionOcrEvidencePath,
+      objectStorageEvidencePath,
+      runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    const evidenceCheck = result.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(result.status).toBe('NOT_READY')
+    expect(evidenceCheck?.summary).toMatchObject({
+      sourceReviewPendingSourcePoiCount: 2,
+      sourceReviewPendingSourcePoiCodes: ['xicheng-baitasi', 'xicheng-gongwangfu'],
+      productionReviewPendingPoiCount: 1,
+      productionReviewPendingPoiCodes: ['xicheng-planetarium']
+    })
+  })
+
   test('fails closed when POI source coverage evidence still has uncovered POIs', async () => {
     const rootDir = await createProductionReadyFixture()
     const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir, {

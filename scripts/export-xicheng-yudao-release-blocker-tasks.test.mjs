@@ -458,6 +458,68 @@ describe('xicheng Yudao release blocker task export', () => {
     expect(csv).toContain(`,3,xicheng-baitasi|xicheng-gongwangfu|xicheng-planetarium`)
   })
 
+  test('adds affected POI codes to source and production review apply blocker rows', async () => {
+    const rootDir = await createTempRoot()
+    const releaseEvidencePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', {
+      artifactType: 'xicheng-yudao-release-readiness',
+      ok: false,
+      status: 'NOT_READY',
+      checkedAt: '2026-06-28T00:00:00.000Z',
+      summary: {
+        stage: 'production',
+        failedChecks: 1,
+        blockerCount: 2,
+        sourceReviewPendingSourcePoiCodes: [
+          'xicheng-baitasi',
+          'xicheng-gongwangfu'
+        ],
+        productionReviewPendingPoiCodes: [
+          'xicheng-planetarium'
+        ]
+      },
+      checks: [
+        {
+          name: 'xicheng-production-poi-evidence',
+          ok: false,
+          blockers: [
+            'source review apply evidence pendingSourcePoiCount must be 0',
+            'production review apply evidence pendingProductionReviewPoiCount must be 0'
+          ]
+        }
+      ],
+      blockers: []
+    })
+
+    const result = runTaskExport([
+      '--root', rootDir,
+      '--release-evidence', 'qa/xicheng-yudao-release-evidence.json',
+      '--output', 'workbench/xicheng-yudao-release-blocker-tasks.csv',
+      '--poi-output', 'workbench/xicheng-yudao-release-poi-blocker-tasks.csv'
+    ])
+
+    expect(result.status).toBe(0)
+    const report = JSON.parse(result.stdout)
+    expect(report.summary.poiTaskCount).toBe(3)
+    expect(report.tasks).toEqual([
+      expect.objectContaining({
+        checkName: 'xicheng-production-poi-evidence',
+        blocker: 'source review apply evidence pendingSourcePoiCount must be 0',
+        affectedPoiCount: 2,
+        affectedPoiCodes: ['xicheng-baitasi', 'xicheng-gongwangfu']
+      }),
+      expect.objectContaining({
+        checkName: 'xicheng-production-poi-evidence',
+        blocker: 'production review apply evidence pendingProductionReviewPoiCount must be 0',
+        affectedPoiCount: 1,
+        affectedPoiCodes: ['xicheng-planetarium']
+      })
+    ])
+
+    const poiCsv = await readFile(path.join(rootDir, 'workbench/xicheng-yudao-release-poi-blocker-tasks.csv'), 'utf8')
+    expect(poiCsv).toContain(`xicheng-production-poi-evidence:1:xicheng-baitasi,xicheng-baitasi,xicheng-production-poi-evidence,1,source review apply evidence pendingSourcePoiCount must be 0,poi-data,Apply approved source review groups back into the 80-row Xicheng POI workbook.,Source review apply outputs SOURCE_REVIEW_APPLIED with pendingSourcePoiCount=0.,npm run xunjing:xicheng:poi:source-review:apply -- --workbook workbench/xicheng-production-pois.review-workbook.csv --source-review workbench/xicheng-poi-source-review-summary.csv --source-coverage-evidence qa/xicheng-poi-source-coverage-evidence.json --output workbench/xicheng-production-pois.review-workbook.source-applied.csv --evidence-file qa/xicheng-poi-source-review-apply-evidence.json,TODO,${releaseEvidencePath}`)
+    expect(poiCsv).toContain(`xicheng-production-poi-evidence:2:xicheng-planetarium,xicheng-planetarium,xicheng-production-poi-evidence,2,production review apply evidence pendingProductionReviewPoiCount must be 0,poi-data,Apply approved field evidence geo review trigger smoke and content review back into the Xicheng POI workbook.,Production review apply outputs PRODUCTION_REVIEW_APPLIED with pendingProductionReviewPoiCount=0.,npm run xunjing:xicheng:poi:production-review:apply -- --workbook workbench/xicheng-production-pois.review-workbook.source-applied.csv --production-review workbench/xicheng-poi-production-review-summary.csv --source-review-apply-evidence qa/xicheng-poi-source-review-apply-evidence.json --output workbench/xicheng-production-pois.review-workbook.production-applied.csv --evidence-file qa/xicheng-poi-production-review-apply-evidence.json,TODO,${releaseEvidencePath}`)
+  })
+
   test('adds affected POI codes to production POI data blocker rows', async () => {
     const rootDir = await createTempRoot()
     const releaseEvidencePath = await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', {

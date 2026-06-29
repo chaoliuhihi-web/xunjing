@@ -307,9 +307,13 @@ function runtimeSeedPendingPoiCodes(evidence) {
   const summary = evidence.summary || {}
   const geoCodes = codeList(summary.runtimeSeedGeoReviewRequiredPoiCodes)
   const licenseCodes = codeList(summary.runtimeSeedLicenseReviewRequiredPoiCodes)
+  const sourceReviewCodes = codeList(summary.sourceReviewPendingSourcePoiCodes)
+  const productionReviewCodes = codeList(summary.productionReviewPendingPoiCodes)
   return {
     geoCodes,
     licenseCodes,
+    sourceReviewCodes,
+    productionReviewCodes,
     allCodes: sortedUnique([...geoCodes, ...licenseCodes])
   }
 }
@@ -323,11 +327,25 @@ function affectedPoiCodesFor(evidence, checkName, blocker) {
   ].includes(checkName)) {
     return []
   }
-  const { geoCodes, licenseCodes, allCodes } = runtimeSeedPendingPoiCodes(evidence)
+  const { geoCodes, licenseCodes, sourceReviewCodes, productionReviewCodes, allCodes } = runtimeSeedPendingPoiCodes(evidence)
   const blockerText = String(blocker || '').toLowerCase()
   const mentionsGeo = /geo|coordinate/.test(blockerText)
   const mentionsLicense = /license/.test(blockerText)
+  const mentionsPoiReviewApply = checkName === 'xicheng-production-poi-evidence'
+  const mentionsSourceReviewApply = mentionsPoiReviewApply &&
+    /pendingsourcepoicount/.test(blockerText)
+  const mentionsProductionReviewApply = mentionsPoiReviewApply &&
+    /production review apply|pendingproductionreviewpoicount/.test(blockerText)
 
+  if (mentionsSourceReviewApply && mentionsProductionReviewApply) {
+    return sortedUnique([...sourceReviewCodes, ...productionReviewCodes])
+  }
+  if (mentionsSourceReviewApply) {
+    return sourceReviewCodes
+  }
+  if (mentionsProductionReviewApply) {
+    return productionReviewCodes
+  }
   if (mentionsGeo && mentionsLicense) {
     return allCodes
   }
