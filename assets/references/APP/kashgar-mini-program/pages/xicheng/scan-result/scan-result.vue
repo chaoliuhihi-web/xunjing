@@ -6,7 +6,7 @@
 			<text class="reason">{{ result.reason || '小京已结合扫码、拍照、OCR和定位信号完成识别。' }}</text>
 			<view class="meta-grid">
 				<view>
-					<text class="meta-value">{{ confidencePercent }}%</text>
+					<text class="meta-value">{{ confidenceDisplay }}</text>
 					<text class="meta-label">置信度</text>
 				</view>
 				<view>
@@ -129,6 +129,8 @@
 <script>
 import {
 	XICHENG_REGION_CONFIG,
+	XICHENG_OFFICIAL_POIS,
+	XICHENG_RECOMMENDED_ROUTES,
 	XICHENG_SUGGESTED_QUESTIONS
 } from '@/config/regions/xicheng.js'
 import { submitXichengRecognitionFeedbackEvent } from '@/request/xunjing/events.js'
@@ -189,6 +191,80 @@ const normalizeRecommendedRoute = (result = {}) => {
 }
 
 const decodeRouteValue = decodeXichengRouteValue
+
+const normalizePoiCodeKey = (value = '') => String(value || '').trim().toLowerCase()
+const normalizePoiNameKey = (value = '') => String(value || '').trim()
+
+const findXichengOfficialPoiForResult = (result = {}) => {
+	const poiCodeKey = normalizePoiCodeKey(result.poiCode)
+	if (poiCodeKey) {
+		const officialPoiByCode = XICHENG_OFFICIAL_POIS.find(poi => normalizePoiCodeKey(poi.poiCode) === poiCodeKey)
+		if (officialPoiByCode) {
+			return officialPoiByCode
+		}
+	}
+	const poiNameKey = normalizePoiNameKey(result.poiName)
+	if (!poiNameKey) {
+		return null
+	}
+	return XICHENG_OFFICIAL_POIS.find(poi => {
+		const aliases = Array.isArray(poi.aliases) ? poi.aliases : []
+		return poi.poiName === poiNameKey || aliases.includes(poiNameKey)
+	}) || null
+}
+
+const createXichengOfficialPoiSources = (officialPoi = {}) => normalizeXichengReviewedSources([
+	{
+		id: `official-poi-${officialPoi.poiCode || officialPoi.poiName || 'xicheng'}`,
+		sourceId: `official-poi-${officialPoi.poiCode || officialPoi.poiName || 'xicheng'}`,
+		title: `西城官方 POI：${officialPoi.poiName || '文化点'}`,
+		name: `西城官方 POI：${officialPoi.poiName || '文化点'}`,
+		excerpt: officialPoi.summary || officialPoi.theme || '西城官方 POI 配置资料。',
+		summary: officialPoi.summary || '',
+		sourceType: 'official-poi-config',
+		type: 'official-poi-config',
+		reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.approved,
+		poiCode: officialPoi.poiCode || '',
+		poiName: officialPoi.poiName || ''
+	}
+])
+
+const findXichengRecommendedRouteForPoi = (officialPoi = {}) => {
+	const officialPoiCodeKey = normalizePoiCodeKey(officialPoi.poiCode)
+	const officialPoiNameKey = normalizePoiNameKey(officialPoi.poiName)
+	return XICHENG_RECOMMENDED_ROUTES.find(route => {
+		const stops = Array.isArray(route.stops) ? route.stops : []
+		return stops.some(stop => {
+			return normalizePoiCodeKey(stop.poiCode) === officialPoiCodeKey
+				|| normalizePoiNameKey(stop.poiName) === officialPoiNameKey
+		})
+	}) || null
+}
+
+const applyXichengOfficialPoiDefaults = (result = {}) => {
+	const safetyStatus = normalizeXichengSafetyStatus(result.safetyStatus)
+	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+		return result
+	}
+	const officialPoi = findXichengOfficialPoiForResult(result)
+	if (!officialPoi) {
+		return result
+	}
+	const existingSources = normalizeXichengReviewedSources(result.sources)
+	const recommendedRoute = result.routeRecommendation || result.recommendedRoute || findXichengRecommendedRouteForPoi(officialPoi)
+	return {
+		...result,
+		officialPoiMatched: true,
+		poiCode: result.poiCode || officialPoi.poiCode,
+		poiName: result.poiName || officialPoi.poiName,
+		theme: result.theme || officialPoi.theme,
+		reason: result.reason || officialPoi.summary || '已匹配西城官方 POI，可继续问小京。',
+		requiresUserConfirm: result.requiresUserConfirm === undefined ? false : result.requiresUserConfirm,
+		sources: existingSources.length > 0 ? existingSources : createXichengOfficialPoiSources(officialPoi),
+		routeRecommendation: recommendedRoute,
+		recommendedRoute
+	}
+}
 
 const normalizeRouteOptions = (options = {}) => ({
 	source: decodeRouteValue(options.source),
@@ -279,7 +355,8 @@ const normalizeResult = (result = {}) => ({
 	recommendedRoute: normalizeRecommendedRoute(result),
 	safetyStatus: normalizeXichengSafetyStatus(result.safetyStatus),
 	sources: normalizeReviewedSources(result),
-	candidates: normalizeRecognitionCandidates(result.candidates)
+	candidates: normalizeRecognitionCandidates(result.candidates),
+	officialPoiMatched: Boolean(result.officialPoiMatched)
 })
 
 export default {
@@ -297,6 +374,13 @@ export default {
 				return Math.round(explicitPercent)
 			}
 			return Math.round(Number(this.result.confidence || 0) * 100)
+		},
+		confidenceDisplay() {
+			if (Number(this.result.confidencePercent || 0) > 0) {
+				return `${this.confidencePercent}%`
+			}
+			if (this.result.officialPoiMatched) return '官方POI'
+			return '0%'
 		},
 		suggestedQuestions() {
 			return this.result.suggestedQuestions || XICHENG_SUGGESTED_QUESTIONS
@@ -383,7 +467,7 @@ export default {
 		const selectedCached = cachedBlockedByProductionFixture
 			? null
 			: selectCachedRecognitionForRoute(cached, options)
-		this.result = normalizeResult({
+		const normalizedResult = normalizeResult(applyXichengOfficialPoiDefaults({
 			...(selectedCached || {}),
 			source: routeOptions.source || (selectedCached && selectedCached.source) || '',
 			regionCode: routeOptions.regionCode || (selectedCached && selectedCached.regionCode) || XICHENG_REGION_CONFIG.regionCode,
@@ -394,7 +478,11 @@ export default {
 			poiName: routeOptions.poiName || (selectedCached && selectedCached.poiName) || XICHENG_EMPTY_RECOGNITION_RESULT.poiName,
 			companionName: routeOptions.companionName || (selectedCached && selectedCached.companionName) || XICHENG_REGION_CONFIG.companionName,
 			safetyStatus: routeOptions.safetyStatus || (selectedCached && selectedCached.safetyStatus) || ''
-		})
+		}))
+		this.result = normalizedResult
+		if (this.result.officialPoiMatched && this.result.poiCode && this.result.poiName) {
+			uni.setStorageSync(XICHENG_REGION_CONFIG.storageKey, this.result)
+		}
 		this.loadRecognitionFeedback()
 	},
 	methods: {
