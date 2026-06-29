@@ -51,7 +51,7 @@
 			<view class="travelogue-preview-card">
 				<image class="travelogue-preview-image" :src="traveloguePreviewImage" mode="aspectFill" />
 				<view class="travelogue-preview-copy">
-					<text class="travelogue-preview-title">在白塔下遇见西城</text>
+					<text class="travelogue-preview-title">{{ traveloguePreviewTitle }}</text>
 					<text class="travelogue-preview-body">{{ traveloguePreviewText }}</text>
 					<view class="travelogue-preview-tags">
 						<text
@@ -446,6 +446,9 @@ export const XICHENG_PLANNING_ONLY_MATERIAL_TYPES = Object.freeze([
 	'inspiration-poi',
 	'inspiration-image'
 ])
+const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TITLE = '等待你的西城素材'
+const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TEXT = '请先通过识别、开始记录、补充照片或现场备注积累真实素材，再预览西城游记。小京会基于已审核来源、现场照片、路线轨迹和用户备注整理内容。'
+const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TAGS = Object.freeze(['待补充素材', '来源审核后生成'])
 
 export const isUnsafeSourceBlockedMaterial = (material = {}) => {
 	const safetyStatus = normalizeXichengSafetyStatus(material.safetyStatus)
@@ -986,6 +989,9 @@ export default {
 				? this.region.visualAssets.heroLandmark
 				: ''
 		},
+		hasTraveloguePreviewEvidence() {
+			return hasXichengTravelogueDraftEvidence({ materials: this.materials, routeRecommendation: this.recognizedRoute || this.importedRoute, recordingSession: this.recordingSession, studyTaskEvidence: this.studyTaskEvidence, routeCheckins: this.routeCheckins })
+		},
 		summaryCards() {
 			const recognizedPoiName = this.materials.find(material => material && material.poiName)
 			const routeTitle = this.recognizedRoute && this.recognizedRoute.title
@@ -998,18 +1004,37 @@ export default {
 				{ key: 'qa', label: '问答', value: `${this.aiGuideMaterialCount} 条` }
 			]
 		},
+		traveloguePreviewTitle() {
+			if (!this.hasTraveloguePreviewEvidence) return XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TITLE
+			const reviewedPoi = this.materials.find(material => material && hasReviewableMaterialEvidence(material) && material.poiName)
+			if (reviewedPoi && reviewedPoi.poiName) return `在${reviewedPoi.poiName}遇见西城`
+			const routeTitle = this.recognizedRoute && this.recognizedRoute.title ? String(this.recognizedRoute.title).trim() : ''
+			return routeTitle || this.editableTravelogueTitle
+		},
 		traveloguePreviewText() {
+			if (!this.hasTraveloguePreviewEvidence) return XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TEXT
 			const currentDraft = String(this.draft || '').trim()
-			if (currentDraft && !currentDraft.startsWith('请先通过识别')) {
-				return currentDraft.slice(0, 118)
-			}
-			return '清晨的白塔寺，白塔依旧静立，光影落在红墙与青瓦之间。沿着什刹海的水边慢行，把建筑细节、胡同生活和研学发现整理成今天的西城记忆。'
+			if (currentDraft && !currentDraft.startsWith('请先通过识别')) return currentDraft.slice(0, 118)
+			const style = this.travelogueStyleOptions.find(option => option.key === this.activeTravelogueStyle)
+			const styleTitle = style && style.title ? style.title : '城市漫步'
+			const stopNames = this.recognizedRouteStops.map(stop => typeof stop === 'string' ? stop : stop.poiName).filter(Boolean).slice(0, 4)
+			const reviewedPoiNames = Array.from(new Set(
+				this.materials
+					.filter(material => hasReviewableMaterialEvidence(material))
+					.map(material => material && material.poiName ? material.poiName : '')
+					.filter(Boolean)
+			)).slice(0, 4)
+			const previewNames = stopNames.length > 0 ? stopNames : reviewedPoiNames
+			const trackSummary = this.routePointCount > 0 || this.stayPointCount > 0
+				? `已记录 ${this.routePointCount} 个轨迹点、${this.stayPointCount} 个停留点，`
+				: ''
+			return previewNames.length > 0
+				? `${trackSummary}已收集 ${previewNames.join('、')} 等真实地点素材，可按「${styleTitle}」整理成可编辑游记草稿。`
+				: `${trackSummary}已收集照片、问答、研学任务或现场备注，可按「${styleTitle}」生成西城游记草稿。`
 		},
 		traveloguePreviewTags() {
-			const routeStopTags = this.recognizedRouteStops
-				.map(stop => typeof stop === 'string' ? stop : stop.poiName)
-				.filter(Boolean)
-				.slice(0, 3)
+			if (!this.hasTraveloguePreviewEvidence) return [...XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TAGS]
+			const routeStopTags = this.recognizedRouteStops.map(stop => typeof stop === 'string' ? stop : stop.poiName).filter(Boolean).slice(0, 3)
 			return routeStopTags.length > 0 ? routeStopTags : ['白塔寺', '什刹海', '胡同漫步']
 		},
 		editorPhotoCards() {
