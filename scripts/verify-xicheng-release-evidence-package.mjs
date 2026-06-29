@@ -33,6 +33,11 @@ const requiredReleaseChecks = [
   'xicheng-source-license'
 ]
 
+const requiredYudaoServerBuildEvidenceChecks = [
+  'maven-package',
+  'yudao-server-jar'
+]
+
 const requiredAppReadinessChecks = [
   'live-xicheng-scan-resolve',
   'live-xicheng-error-feedback',
@@ -523,6 +528,79 @@ function checkReleaseServerBuildSummary(evidence) {
     blockers.push('release evidence yudaoServerBuildJarSizeBytes must match yudaoServerJarSizeBytes')
   }
   return blockers
+}
+
+async function checkYudaoServerBuildEvidence(ref, releaseRef, rootDir, freshnessOptions) {
+  const blockers = []
+  const releaseSummary = summaryOf(releaseRef.data)
+  if (ref.error) {
+    blockers.push(ref.error)
+    return check('yudao-server-build-evidence', blockers)
+  }
+
+  const evidence = ref.data || {}
+  const summary = summaryOf(evidence)
+  const evidenceJarFile = normalizeEvidencePath(rootDir, summary.jarFile)
+  const releaseBuildEvidenceFile = normalizeEvidencePath(rootDir, releaseSummary.yudaoServerBuildEvidenceFile)
+  const releaseServerJarFile = normalizeEvidencePath(rootDir, releaseSummary.yudaoServerJarFile)
+  const releaseBuildJarFile = normalizeEvidencePath(rootDir, releaseSummary.yudaoServerBuildJarFile)
+  const expectedSha256 = releaseSummary.yudaoServerJarSha256
+  const expectedSize = Number(releaseSummary.yudaoServerJarSizeBytes)
+
+  if (releaseBuildEvidenceFile && ref.path !== releaseBuildEvidenceFile) {
+    blockers.push('Yudao server build evidence file must match release evidence summary')
+  }
+  if (evidence.artifactType !== 'xicheng-yudao-server-build') {
+    blockers.push('Yudao server build evidence artifactType must be xicheng-yudao-server-build')
+  }
+  blockers.push(...checkEvidenceTimestamp(evidence, 'Yudao server build', freshnessOptions))
+  if (evidence.ok !== true) {
+    blockers.push('Yudao server build evidence ok must be true')
+  }
+  if (evidence.status !== 'YUDAO_SERVER_JAR_BUILT') {
+    blockers.push('Yudao server build evidence status must be YUDAO_SERVER_JAR_BUILT')
+  }
+  if (!hasText(summary.buildMethod)) {
+    blockers.push('Yudao server build evidence buildMethod is required')
+  }
+  if (!evidenceJarFile) {
+    blockers.push('Yudao server build evidence jarFile is required')
+  } else {
+    if (releaseServerJarFile && evidenceJarFile !== releaseServerJarFile) {
+      blockers.push('Yudao server build evidence jarFile must match release jar')
+    }
+    if (releaseBuildJarFile && evidenceJarFile !== releaseBuildJarFile) {
+      blockers.push('Yudao server build evidence jarFile must match release build summary jar')
+    }
+  }
+  if (!/^[a-f0-9]{64}$/i.test(String(summary.jarSha256 || ''))) {
+    blockers.push('Yudao server build evidence jarSha256 must be a sha256 hex digest')
+  } else if (summary.jarSha256 !== expectedSha256 || summary.jarSha256 !== releaseSummary.yudaoServerBuildJarSha256) {
+    blockers.push('Yudao server build evidence jarSha256 must match release jar')
+  }
+  if (!Number.isFinite(Number(summary.jarSizeBytes)) || Number(summary.jarSizeBytes) <= 0) {
+    blockers.push('Yudao server build evidence jarSizeBytes must be positive')
+  } else if (Number(summary.jarSizeBytes) !== expectedSize || Number(summary.jarSizeBytes) !== Number(releaseSummary.yudaoServerBuildJarSizeBytes)) {
+    blockers.push('Yudao server build evidence jarSizeBytes must match release jar')
+  }
+  if (evidenceJarFile && /^[a-f0-9]{64}$/i.test(String(summary.jarSha256 || '')) && Number(summary.jarSizeBytes) > 0) {
+    try {
+      const jarBytes = await readFile(evidenceJarFile)
+      if (sha256(jarBytes) !== summary.jarSha256) {
+        blockers.push('Yudao server build evidence jarSha256 must match jarFile content')
+      }
+      if (jarBytes.length !== Number(summary.jarSizeBytes)) {
+        blockers.push('Yudao server build evidence jarSizeBytes must match jarFile size')
+      }
+    } catch (error) {
+      blockers.push(`Yudao server build evidence jarFile cannot be read: ${error.message}`)
+    }
+  }
+  blockers.push(...checkEvidenceChecks(evidence, requiredYudaoServerBuildEvidenceChecks, 'Yudao server build'))
+  if (blockersOf(evidence).length > 0) {
+    blockers.push(`Yudao server build evidence contains blockers: ${blockersOf(evidence).join('; ')}`)
+  }
+  return check('yudao-server-build-evidence', blockers)
 }
 
 function checkReleaseSourceRevisionSummary(evidence) {
@@ -1588,6 +1666,7 @@ export async function verifyXichengReleaseEvidencePackage({
   rootDir = process.cwd(),
   stage = 'production',
   releaseEvidencePath,
+  yudaoServerBuildEvidencePath,
   poiManifestEvidencePath,
   poiWorkbookEvidencePath,
   poiSeedEvidencePath,
@@ -1602,8 +1681,11 @@ export async function verifyXichengReleaseEvidencePackage({
   if (!['production', 'staging'].includes(normalizedStage)) {
     throw new Error('stage must be production or staging')
   }
+  const releaseRef = await loadJsonFile(rootDir, releaseEvidencePath, 'release')
+  const resolvedYudaoServerBuildEvidencePath = yudaoServerBuildEvidencePath ||
+    summaryOf(releaseRef.data).yudaoServerBuildEvidenceFile
   const evidenceRefs = await Promise.all([
-    loadJsonFile(rootDir, releaseEvidencePath, 'release'),
+    loadJsonFile(rootDir, resolvedYudaoServerBuildEvidencePath, 'Yudao server build'),
     loadJsonFile(rootDir, poiManifestEvidencePath, 'manifest'),
     loadJsonFile(rootDir, poiWorkbookEvidencePath, 'workbook'),
     loadJsonFile(rootDir, poiSeedEvidencePath, 'seed'),
@@ -1613,7 +1695,7 @@ export async function verifyXichengReleaseEvidencePackage({
     loadJsonFile(rootDir, appReadinessEvidencePath, 'app readiness')
   ])
   const [
-    releaseRef,
+    yudaoServerBuildRef,
     manifestRef,
     workbookRef,
     seedRef,
@@ -1628,6 +1710,7 @@ export async function verifyXichengReleaseEvidencePackage({
   }
   const checks = [
     await checkReleaseEvidence(releaseRef, normalizedStage, freshnessOptions),
+    await checkYudaoServerBuildEvidence(yudaoServerBuildRef, releaseRef, rootDir, freshnessOptions),
     checkPackageSourceRevision(rootDir, releaseRef),
     await checkManifestEvidence(manifestRef, rootDir, freshnessOptions),
     await checkWorkbookEvidence(workbookRef, rootDir, freshnessOptions),
@@ -1647,7 +1730,7 @@ export async function verifyXichengReleaseEvidencePackage({
       productionReviewApplyRef,
       appRef
     }),
-    checkSecretSafety(evidenceRefs)
+    checkSecretSafety([releaseRef, ...evidenceRefs])
   ]
   const blockers = checks.flatMap((item) => item.blockers)
   const ok = checks.every((item) => item.ok)
@@ -1661,6 +1744,11 @@ export async function verifyXichengReleaseEvidencePackage({
     summary: {
       stage: normalizedStage,
       releaseStatus: releaseRef.data?.status,
+      yudaoServerBuildStatus: yudaoServerBuildRef.data?.status,
+      yudaoServerBuildMethod: summaryOf(yudaoServerBuildRef.data).buildMethod,
+      yudaoServerBuildJarFile: summaryOf(yudaoServerBuildRef.data).jarFile,
+      yudaoServerBuildJarSha256: summaryOf(yudaoServerBuildRef.data).jarSha256,
+      yudaoServerBuildJarSizeBytes: summaryOf(yudaoServerBuildRef.data).jarSizeBytes,
       poiManifestStatus: manifestRef.data?.status,
       poiWorkbookStatus: workbookRef.data?.status,
       poiSeedStatus: seedRef.data?.status,
@@ -1672,6 +1760,7 @@ export async function verifyXichengReleaseEvidencePackage({
       xichengPackageCode: summaryOf(manifestRef.data).packageCode,
       reviewBatchCode: summaryOf(manifestRef.data).reviewBatchCode,
       releaseEvidenceFile: releaseRef.path,
+      yudaoServerBuildEvidenceFile: yudaoServerBuildRef.path,
       poiManifestEvidenceFile: manifestRef.path,
       poiWorkbookEvidenceFile: workbookRef.path,
       poiSeedEvidenceFile: seedRef.path,
@@ -1705,6 +1794,7 @@ export async function verifyXichengReleaseEvidencePackage({
     },
     evidenceFiles: {
       release: releaseRef.path,
+      yudaoServerBuild: yudaoServerBuildRef.path,
       poiManifest: manifestRef.path,
       poiWorkbook: workbookRef.path,
       poiSeed: seedRef.path,
@@ -1715,6 +1805,7 @@ export async function verifyXichengReleaseEvidencePackage({
     },
     evidenceFileSha256: {
       release: releaseRef.sha256,
+      yudaoServerBuild: yudaoServerBuildRef.sha256,
       poiManifest: manifestRef.sha256,
       poiWorkbook: workbookRef.sha256,
       poiSeed: seedRef.sha256,
@@ -1765,6 +1856,9 @@ async function runCli() {
     rootDir,
     stage: readArgValue(args, '--stage') || process.env.XUNJING_RELEASE_STAGE || 'production',
     releaseEvidencePath: readArgValue(args, '--release-evidence') || process.env.XICHENG_RELEASE_EVIDENCE,
+    yudaoServerBuildEvidencePath: readArgValue(args, '--yudao-server-build-evidence') ||
+      readArgValue(args, '--server-build-evidence') ||
+      process.env.YUDAO_SERVER_BUILD_EVIDENCE,
     poiManifestEvidencePath: readArgValue(args, '--poi-manifest-evidence') ||
       process.env.XICHENG_POI_MANIFEST_EVIDENCE,
     poiWorkbookEvidencePath: readArgValue(args, '--poi-workbook-evidence') ||

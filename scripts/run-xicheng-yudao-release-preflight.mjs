@@ -95,6 +95,7 @@ function shellArg(value) {
 function buildFinalEvidencePackageCommand({
   stage,
   releaseEvidenceFile,
+  yudaoServerBuildEvidenceFile,
   poiWorkbookEvidenceFile,
   poiManifestEvidenceFile,
   poiSeedEvidenceFile,
@@ -108,6 +109,7 @@ function buildFinalEvidencePackageCommand({
     'npm run xunjing:xicheng:release:evidence:package --',
     '--stage', shellArg(stage),
     '--release-evidence', shellArg(releaseEvidenceFile),
+    '--yudao-server-build-evidence', shellArg(yudaoServerBuildEvidenceFile),
     '--poi-workbook-evidence', shellArg(poiWorkbookEvidenceFile),
     '--poi-manifest-evidence', shellArg(poiManifestEvidenceFile),
     '--poi-seed-evidence', shellArg(poiSeedEvidenceFile),
@@ -500,6 +502,7 @@ export async function runXichengYudaoReleasePreflight({
   const finalEvidencePackageCommand = buildFinalEvidencePackageCommand({
     stage,
     releaseEvidenceFile,
+    yudaoServerBuildEvidenceFile,
     poiWorkbookEvidenceFile,
     poiManifestEvidenceFile,
     poiSeedEvidenceFile,
