@@ -108,5 +108,14 @@ function copyMiniProgramStaticAssets() {
 }
 
 export default defineConfig({
-  plugins: [uni(), copyMiniProgramStaticAssets()]
+  plugins: [uni(), copyMiniProgramStaticAssets()],
+  server: {
+    proxy: {
+      '/app-api/xunjing': {
+        target: process.env.VITE_XUNJING_H5_PROXY_TARGET || 'https://kashi.weiapp.net',
+        changeOrigin: true,
+        secure: true
+      }
+    }
+  }
 })
