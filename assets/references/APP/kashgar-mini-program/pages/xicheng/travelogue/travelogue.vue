@@ -311,6 +311,66 @@
 			<button class="primary-button xicheng-primary-action" @click="saveDraft">保存草稿</button>
 		</view>
 
+		<view class="travelogue-editor-share-panel xicheng-paper-card">
+			<view class="section-head">
+				<text class="section-title">编辑游记</text>
+				<text class="section-badge">发布前预览</text>
+			</view>
+			<input
+				v-model="editableTravelogueTitle"
+				class="editor-title-input"
+				maxlength="32"
+				placeholder="给今天的西城游记起个标题"
+			/>
+			<view class="editor-photo-strip">
+				<view
+					v-for="photo in editorPhotoCards"
+					:key="photo.key"
+					class="editor-photo-item"
+				>
+					<image class="editor-photo-image" :src="photo.image" mode="aspectFill" />
+					<text class="editor-photo-label">{{ photo.label }}</text>
+				</view>
+			</view>
+			<view class="editor-block">
+				<text class="editor-block-title">今日路线</text>
+				<view
+					v-for="item in editorRouteItems"
+					:key="`${item.time}-${item.title}`"
+					class="editor-route-row"
+				>
+					<text class="editor-route-time">{{ item.time }}</text>
+					<text class="editor-route-dot"></text>
+					<text class="editor-route-title">{{ item.title }}</text>
+				</view>
+			</view>
+			<view class="editor-block">
+				<text class="editor-block-title">我的感受</text>
+				<text class="editor-block-copy">{{ editorFeelingText }}</text>
+			</view>
+			<view class="editor-xiaojing-block">
+				<image class="editor-xiaojing-avatar" :src="region.companionAvatar" mode="aspectFit" />
+				<view class="editor-xiaojing-copy">
+					<text class="editor-block-title">小京补充</text>
+					<text class="editor-block-copy">{{ editorXiaojingSupplement }}</text>
+				</view>
+			</view>
+			<view class="editor-tag-row">
+				<text
+					v-for="tag in travelogueTagChips"
+					:key="tag"
+					class="editor-tag-chip"
+				>
+					{{ tag }}
+				</text>
+			</view>
+			<view class="editor-share-actions">
+				<button class="ghost-button xicheng-secondary-action" @click="saveDraft">保存草稿</button>
+				<button class="ghost-button xicheng-secondary-action" @click="generatePoster">生成分享图</button>
+				<button class="primary-button xicheng-primary-action" @click="publishTravelogue">发布</button>
+			</view>
+		</view>
+
 		<view class="action-grid xicheng-travelogue-actions">
 			<button class="ghost-button xicheng-secondary-action" @click="generatePoster">分享海报</button>
 			<button class="ghost-button xicheng-secondary-action" @click="exportMemorialPdf">PDF纪念册</button>
@@ -694,6 +754,8 @@ export default {
 			reviewSubmission: null,
 			shareArtifacts: [],
 			remarkInput: '',
+			editableTravelogueTitle: '在白塔下遇见西城',
+			travelogueTagChips: ['白塔寺', '什刹海', '胡同漫步'],
 			activeTravelogueStyle: 'citywalk',
 			travelogueStyleOptions: [
 				{ key: 'family', title: '亲子研学' },
@@ -956,6 +1018,32 @@ export default {
 				.slice(0, 3)
 			return routeStopTags.length > 0 ? routeStopTags : ['白塔寺', '什刹海', '胡同漫步']
 		},
+		editorPhotoCards() {
+			return this.traveloguePreviewTags.slice(0, 3).map((tag, index) => ({
+				key: `editor-photo-${index}-${tag}`,
+				label: tag,
+				image: this.traveloguePreviewImage
+			}))
+		},
+		editorRouteItems() {
+			const stops = this.recognizedRouteStops.length > 0
+				? this.recognizedRouteStops
+				: this.traveloguePreviewTags
+			const routeTimes = ['09:00', '10:00', '11:30']
+			return stops.slice(0, 3).map((stop, index) => ({
+				time: routeTimes[index] || `${String(9 + index).padStart(2, '0')}:00`,
+				title: typeof stop === 'string' ? stop : stop.poiName
+			})).filter(item => item.title)
+		},
+		editorFeelingText() {
+			return this.traveloguePreviewText
+		},
+		editorXiaojingSupplement() {
+			if (this.workSourceCount > 0) {
+				return `小京已整理 ${this.workSourceCount} 条已审核来源，可继续补充历史背景和路线讲解。`
+			}
+			return '小京会基于已审核来源补充讲解；暂无已审核来源时，不会编造地点故事。'
+		},
 		qualityReport() {
 			const acceptedTrackPoints = Array.isArray(this.recordingSession.trackPoints) ? this.recordingSession.trackPoints : []
 			const filteredTrackPoints = Array.isArray(this.recordingSession.filteredTrackPoints) ? this.recordingSession.filteredTrackPoints : []
@@ -1082,6 +1170,9 @@ export default {
 			this.reviewText = cachedDraft && cachedDraft.reviewText ? cachedDraft.reviewText : this.reviewText
 			this.posterStatus = cachedDraft && cachedDraft.posterStatus ? cachedDraft.posterStatus : this.posterStatus
 			this.pdfStatus = cachedDraft && cachedDraft.pdfStatus ? cachedDraft.pdfStatus : this.pdfStatus
+			this.editableTravelogueTitle = cachedDraft && cachedDraft.editableTravelogueTitle
+				? cachedDraft.editableTravelogueTitle
+				: this.editableTravelogueTitle
 			this.saveDraft({ silent: true })
 			if (this.shouldAutoStartRecording(options)) {
 				await this.startRecordingSession()
@@ -1278,6 +1369,9 @@ export default {
 				selector: '#travelogue-draft-editor',
 				duration: 240
 			})
+		},
+		publishTravelogue() {
+			this.submitReview()
 		},
 		getStudyTaskEvidence(index) {
 			return this.studyTaskEvidence.find(evidence => evidence && evidence.taskId === `study-task-${index + 1}`) || null
@@ -1630,6 +1724,7 @@ export default {
 				photoMaterialCount: this.photoMaterialCount,
 				remarkMaterialCount: this.remarkMaterialCount,
 				activeTravelogueStyle: this.activeTravelogueStyle,
+				editableTravelogueTitle: this.editableTravelogueTitle,
 				recognizedRoute: this.recognizedRoute,
 				reviewSubmission: this.reviewSubmission,
 				shareArtifacts: this.shareArtifacts,
@@ -2986,6 +3081,164 @@ export default {
 	color: #1F2933;
 }
 
+.travelogue-editor-share-panel {
+	margin-top: 24rpx;
+	padding: 30rpx;
+}
+
+.editor-title-input {
+	width: 100%;
+	height: 92rpx;
+	margin-top: 18rpx;
+	padding: 0 24rpx;
+	border: 1rpx solid rgba(181, 148, 94, 0.16);
+	border-radius: 24rpx;
+	background: rgba(255, 252, 246, 0.84);
+	box-sizing: border-box;
+	font-size: 34rpx;
+	font-weight: 800;
+	color: #102F29;
+}
+
+.editor-photo-strip {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 16rpx;
+	margin-top: 24rpx;
+}
+
+.editor-photo-item {
+	position: relative;
+	min-height: 150rpx;
+	border-radius: 24rpx;
+	overflow: hidden;
+	background: #E8ECE7;
+}
+
+.editor-photo-image {
+	width: 100%;
+	height: 150rpx;
+	object-fit: cover;
+}
+
+.editor-photo-label {
+	position: absolute;
+	left: 12rpx;
+	right: 12rpx;
+	bottom: 12rpx;
+	padding: 6rpx 10rpx;
+	border-radius: 999rpx;
+	background: rgba(16, 47, 41, 0.78);
+	color: #FFF9EC;
+	font-size: 22rpx;
+	line-height: 1.3;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.editor-block,
+.editor-xiaojing-block {
+	margin-top: 24rpx;
+	padding-top: 22rpx;
+	border-top: 1rpx solid rgba(181, 148, 94, 0.14);
+}
+
+.editor-block-title,
+.editor-block-copy,
+.editor-route-time,
+.editor-route-title {
+	display: block;
+}
+
+.editor-block-title {
+	font-size: 30rpx;
+	line-height: 1.4;
+	font-weight: 800;
+	color: #102F29;
+}
+
+.editor-block-copy {
+	margin-top: 12rpx;
+	font-size: 25rpx;
+	line-height: 1.75;
+	color: #344054;
+}
+
+.editor-route-row {
+	display: grid;
+	grid-template-columns: 96rpx 26rpx 1fr;
+	align-items: center;
+	gap: 14rpx;
+	margin-top: 14rpx;
+}
+
+.editor-route-time {
+	font-size: 24rpx;
+	color: #746F68;
+}
+
+.editor-route-dot {
+	width: 16rpx;
+	height: 16rpx;
+	border: 3rpx solid #B5945E;
+	border-radius: 999rpx;
+	box-sizing: border-box;
+}
+
+.editor-route-title {
+	font-size: 26rpx;
+	line-height: 1.45;
+	color: #173F35;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.editor-xiaojing-block {
+	display: grid;
+	grid-template-columns: 112rpx 1fr;
+	gap: 18rpx;
+	align-items: start;
+}
+
+.editor-xiaojing-avatar {
+	width: 112rpx;
+	height: 132rpx;
+}
+
+.editor-xiaojing-copy {
+	min-width: 0;
+}
+
+.editor-tag-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12rpx;
+	margin-top: 22rpx;
+}
+
+.editor-tag-chip {
+	padding: 10rpx 18rpx;
+	border-radius: 999rpx;
+	background: rgba(181, 148, 94, 0.12);
+	font-size: 24rpx;
+	line-height: 1.35;
+	color: #173F35;
+}
+
+.editor-share-actions {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 14rpx;
+	margin-top: 24rpx;
+}
+
+.editor-share-actions .primary-button,
+.editor-share-actions .ghost-button {
+	width: 100%;
+}
+
 .primary-button,
 .ghost-button {
 	height: 84rpx;
@@ -3013,6 +3266,8 @@ export default {
 .evidence-actions .ghost-button,
 .travelogue-generation-actions .primary-button,
 .travelogue-generation-actions .ghost-button,
+.editor-share-actions .primary-button,
+.editor-share-actions .ghost-button,
 .xicheng-travelogue-actions .ghost-button {
 	margin-top: 0;
 }
