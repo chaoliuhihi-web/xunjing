@@ -127,54 +127,58 @@
 					{{ filter.title }}
 				</text>
 			</view>
-			<view
-				v-for="route in filteredRecommendedRoutes.slice(0, 3)"
-				:key="route.routeCode"
-				class="recommended-route-card xicheng-paper-card"
-				@click="openRecommendedRouteDetail(route)"
-			>
-				<image
-					v-if="getRouteThumbnail(route)"
-					class="route-thumbnail"
-					:src="getRouteThumbnail(route)"
-					mode="aspectFill"
-				/>
-				<view class="route-card-header">
-					<view>
-						<text class="route-title">{{ route.title }}</text>
-						<text class="route-desc">{{ route.summary }}</text>
+			<scroll-view scroll-x class="route-card-scroll" enable-flex>
+				<view class="route-card-strip">
+					<view
+						v-for="route in filteredRecommendedRoutes.slice(0, 3)"
+						:key="route.routeCode"
+						class="recommended-route-card xicheng-paper-card"
+						@click="openRecommendedRouteDetail(route)"
+					>
+						<image
+							v-if="getRouteThumbnail(route)"
+							class="route-thumbnail"
+							:src="getRouteThumbnail(route)"
+							mode="aspectFill"
+						/>
+						<view class="route-card-header">
+							<view>
+								<text class="route-title">{{ route.title }}</text>
+								<text class="route-desc">{{ route.summary }}</text>
+							</view>
+							<text class="route-theme">{{ route.theme }}</text>
+						</view>
+						<view class="route-meta">
+							<text>{{ route.durationText }}</text>
+							<text>{{ route.distanceText || '步行路线' }}</text>
+							<text>路线护照 {{ route.passportTaskCount }} 点</text>
+							<text>研学任务 {{ route.studyTaskCount }} 个</text>
+						</view>
+						<view v-if="route.keywords && route.keywords.length > 0" class="route-keywords">
+							<text
+								v-for="keyword in route.keywords"
+								:key="`${route.routeCode}-${keyword}`"
+								class="route-keyword"
+							>
+								{{ keyword }}
+							</text>
+						</view>
+						<view class="route-stops">
+							<text
+								v-for="(stop, index) in route.stops"
+								:key="`${route.routeCode}-${stop.poiCode}`"
+								class="route-stop"
+							>
+								{{ index + 1 }}. {{ stop.poiName }}
+							</text>
+						</view>
+						<view class="route-card-action">
+							<button class="mini-button xicheng-primary-action" @click.stop="openRecommendedRouteDetail(route)">查看路线</button>
+							<button class="mini-button xicheng-secondary-action" @click.stop="openRecommendedRoute(route)">加入路线护照</button>
+						</view>
 					</view>
-					<text class="route-theme">{{ route.theme }}</text>
 				</view>
-				<view class="route-meta">
-					<text>{{ route.durationText }}</text>
-					<text>{{ route.distanceText || '步行路线' }}</text>
-					<text>路线护照 {{ route.passportTaskCount }} 点</text>
-					<text>研学任务 {{ route.studyTaskCount }} 个</text>
-				</view>
-				<view v-if="route.keywords && route.keywords.length > 0" class="route-keywords">
-					<text
-						v-for="keyword in route.keywords"
-						:key="`${route.routeCode}-${keyword}`"
-						class="route-keyword"
-					>
-						{{ keyword }}
-					</text>
-				</view>
-				<view class="route-stops">
-					<text
-						v-for="(stop, index) in route.stops"
-						:key="`${route.routeCode}-${stop.poiCode}`"
-						class="route-stop"
-					>
-						{{ index + 1 }}. {{ stop.poiName }}
-					</text>
-				</view>
-				<view class="route-card-action">
-					<button class="mini-button xicheng-primary-action" @click.stop="openRecommendedRouteDetail(route)">查看路线</button>
-					<button class="mini-button xicheng-secondary-action" @click.stop="openRecommendedRoute(route)">加入路线护照</button>
-				</view>
-			</view>
+			</scroll-view>
 		</view>
 
 		<view class="journey-panel xicheng-paper-card">
@@ -782,47 +786,49 @@ export default {
 
 .hero {
 	position: relative;
-	padding: 36rpx 32rpx;
-	border-radius: 34rpx;
+	padding: 44rpx 34rpx 34rpx;
+	border-radius: 42rpx;
 	background:
 		linear-gradient(145deg, rgba(255, 253, 247, 0.96), rgba(239, 230, 216, 0.82));
 	box-shadow: 0 20rpx 52rpx rgba(28, 35, 32, 0.12);
 }
 
 .xicheng-immersive-hero {
-	min-height: 500rpx;
+	min-height: 680rpx;
 	overflow: hidden;
 	background:
-		radial-gradient(circle at 78% 18%, rgba(181, 148, 94, 0.22), transparent 32%),
-		radial-gradient(circle at 74% 84%, rgba(23, 63, 53, 0.16), transparent 36%),
-		linear-gradient(145deg, rgba(255, 253, 247, 0.98), rgba(239, 230, 216, 0.76));
+		linear-gradient(180deg, rgba(255, 253, 247, 0.42), rgba(255, 250, 241, 0.94) 68%, rgba(255, 250, 241, 0.98)),
+		radial-gradient(circle at 78% 18%, rgba(181, 148, 94, 0.24), transparent 34%),
+		linear-gradient(145deg, rgba(255, 253, 247, 0.98), rgba(239, 230, 216, 0.78));
 }
 
 .hero-landmark-image {
 	position: absolute;
-	right: -12rpx;
+	left: 0;
+	right: 0;
 	top: 0;
-	width: 332rpx;
-	height: 500rpx;
+	width: 100%;
+	height: 100%;
 	object-fit: cover;
-	opacity: 0.34;
-	filter: saturate(0.9);
+	opacity: 0.38;
+	filter: saturate(0.92) contrast(1.02);
 	pointer-events: none;
 }
 
 .hero-atmosphere {
 	position: absolute;
-	right: -80rpx;
-	bottom: -64rpx;
-	width: 390rpx;
-	height: 390rpx;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	height: 58%;
 	border-radius: 999rpx;
 	background:
-		radial-gradient(circle, rgba(23, 63, 53, 0.16), rgba(23, 63, 53, 0) 68%);
+		linear-gradient(180deg, rgba(255, 250, 241, 0), rgba(255, 250, 241, 0.92));
 }
 
 .hero-main {
-	position: relative;
+	position: static;
 	z-index: 1;
 	display: flex;
 	align-items: flex-start;
@@ -831,35 +837,58 @@ export default {
 }
 
 .hero-copy {
+	position: relative;
+	z-index: 3;
 	flex: 1;
-	max-width: 408rpx;
+	max-width: 366rpx;
 	min-width: 0;
+	padding-top: 18rpx;
 }
 
 .companion-visual {
-	width: 276rpx;
+	position: absolute;
+	right: 18rpx;
+	bottom: 24rpx;
+	z-index: 2;
+	width: 340rpx;
 	flex-shrink: 0;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	margin-top: -8rpx;
+	margin-top: 0;
 }
 
 .xiaojing-avatar {
-	width: 260rpx;
-	height: 334rpx;
-	border-radius: 34rpx;
+	width: 340rpx;
+	height: 436rpx;
+	border-radius: 38rpx;
 	background: #E7EFE8;
-	box-shadow: 0 18rpx 42rpx rgba(16, 47, 41, 0.15);
+	box-shadow: 0 24rpx 54rpx rgba(16, 47, 41, 0.16);
 }
 
 .companion-bubble {
-	width: 100%;
-	margin-top: 14rpx;
-	padding: 14rpx 12rpx;
-	border-radius: 26rpx;
+	position: absolute;
+	left: -154rpx;
+	bottom: 72rpx;
+	width: 262rpx;
+	margin-top: 0;
+	padding: 22rpx 18rpx;
+	border-radius: 34rpx;
 	background: rgba(255, 253, 248, 0.92);
+	box-shadow: 0 14rpx 32rpx rgba(16, 47, 41, 0.12);
 	box-sizing: border-box;
+}
+
+.companion-bubble::after {
+	content: '';
+	position: absolute;
+	right: -18rpx;
+	top: 42rpx;
+	width: 34rpx;
+	height: 34rpx;
+	background: rgba(255, 253, 248, 0.92);
+	border-radius: 0 12rpx 0 0;
+	transform: rotate(45deg);
 }
 
 .companion-name,
@@ -869,14 +898,14 @@ export default {
 }
 
 .companion-name {
-	font-size: 24rpx;
+	font-size: 30rpx;
 	font-weight: 700;
 	color: #173F35;
 }
 
 .companion-line {
-	margin-top: 4rpx;
-	font-size: 22rpx;
+	margin-top: 8rpx;
+	font-size: 26rpx;
 	line-height: 1.4;
 	color: #746F68;
 }
@@ -894,20 +923,21 @@ export default {
 
 .title {
 	display: block;
-	margin-top: 12rpx;
-	font-size: 48rpx;
+	margin-top: 18rpx;
+	font-size: 60rpx;
 	font-weight: 700;
+	line-height: 1.12;
 	color: #102F29;
 }
 
 .subtitle {
-	margin-top: 16rpx;
+	margin-top: 22rpx;
 }
 
 .hero-actions {
 	display: flex;
 	gap: 12rpx;
-	margin-top: 28rpx;
+	margin-top: 34rpx;
 }
 
 .hero-actions .primary-button,
@@ -1209,25 +1239,48 @@ export default {
 	box-shadow: 0 12rpx 24rpx rgba(16, 47, 41, 0.18);
 }
 
+.route-card-scroll {
+	margin: 22rpx -26rpx 0;
+	padding: 0 26rpx 8rpx;
+	overflow: hidden;
+	white-space: nowrap;
+	box-sizing: border-box;
+}
+
+.route-card-scroll::-webkit-scrollbar {
+	display: none;
+}
+
+.route-card-strip {
+	display: flex;
+	align-items: stretch;
+	gap: 20rpx;
+}
+
 .recommended-route-card {
-	margin-top: 22rpx;
-	padding: 24rpx;
+	flex: 0 0 336rpx;
+	width: 336rpx;
+	display: flex;
+	flex-direction: column;
+	margin-top: 0;
+	padding: 20rpx;
 	border: 1rpx solid rgba(181, 148, 94, 0.18);
 	border-radius: 28rpx;
 	background: rgba(255, 252, 246, 0.70);
 	box-sizing: border-box;
+	white-space: normal;
 }
 
 .route-card-header {
-	align-items: flex-start;
+	display: block;
 }
 
 .route-thumbnail {
 	display: block;
 	width: 100%;
 	aspect-ratio: 1.25;
-	height: 210rpx;
-	margin-bottom: 20rpx;
+	height: 178rpx;
+	margin-bottom: 18rpx;
 	border-radius: 24rpx;
 	background: rgba(181, 148, 94, 0.14);
 	object-fit: cover;
@@ -1236,7 +1289,7 @@ export default {
 
 .route-title {
 	display: block;
-	font-size: 30rpx;
+	font-size: 28rpx;
 	font-weight: 700;
 	line-height: 1.35;
 	color: #102F29;
@@ -1245,13 +1298,20 @@ export default {
 .route-desc {
 	display: block;
 	margin-top: 8rpx;
-	font-size: 24rpx;
-	line-height: 1.55;
+	font-size: 22rpx;
+	line-height: 1.5;
 	color: #746F68;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	line-clamp: 3;
+	-webkit-box-orient: vertical;
 }
 
 .route-theme {
-	flex-shrink: 0;
+	display: inline-flex;
+	margin-top: 12rpx;
 	padding: 8rpx 12rpx;
 	border-radius: 999rpx;
 	background: rgba(181, 148, 94, 0.16);
@@ -1262,14 +1322,15 @@ export default {
 .route-meta {
 	justify-content: flex-start;
 	flex-wrap: wrap;
-	margin-top: 18rpx;
+	margin-top: 16rpx;
+	gap: 10rpx;
 }
 
 .route-meta text {
-	padding: 8rpx 12rpx;
+	padding: 7rpx 10rpx;
 	border-radius: 999rpx;
 	background: rgba(255, 255, 255, 0.62);
-	font-size: 22rpx;
+	font-size: 20rpx;
 	color: #746F68;
 }
 
@@ -1281,10 +1342,10 @@ export default {
 }
 
 .route-keyword {
-	padding: 6rpx 12rpx;
+	padding: 6rpx 10rpx;
 	border-radius: 999rpx;
 	background: rgba(181, 148, 94, 0.12);
-	font-size: 22rpx;
+	font-size: 20rpx;
 	color: #8A6B3D;
 }
 
@@ -1296,17 +1357,23 @@ export default {
 }
 
 .route-stop {
-	padding: 8rpx 12rpx;
+	padding: 8rpx 10rpx;
 	border-radius: 999rpx;
 	background: rgba(23, 63, 53, 0.08);
-	font-size: 22rpx;
+	font-size: 20rpx;
 	color: #173F35;
 }
 
 .route-card-action {
 	gap: 16rpx;
-	justify-content: flex-end;
+	justify-content: flex-start;
 	margin-top: 20rpx;
+}
+
+.recommended-route-card .route-card-action {
+	margin-top: auto;
+	padding-top: 20rpx;
+	gap: 10rpx;
 }
 
 .mini-button {
@@ -1317,6 +1384,16 @@ export default {
 	background: #FFF9EC;
 	font-size: 24rpx;
 	color: #173F35;
+}
+
+.recommended-route-card .mini-button {
+	flex: 1;
+	min-width: 0;
+	height: 58rpx;
+	line-height: 58rpx;
+	padding: 0 10rpx;
+	font-size: 21rpx;
+	white-space: nowrap;
 }
 
 .journey-panel {

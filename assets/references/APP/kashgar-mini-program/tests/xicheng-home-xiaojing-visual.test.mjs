@@ -65,6 +65,8 @@ for (const required of [
   'mode="aspectFit"',
   'class="route-thumbnail"',
   ':src="getRouteThumbnail(route)"',
+  'class="route-card-scroll"',
+  'class="route-card-strip"',
   'quick-card-featured quick-card-scan',
   'quick-card-featured quick-card-ask',
   '小京',
@@ -87,8 +89,8 @@ assert.match(
 
 assert.match(
   styleBlock,
-  /\.xicheng-immersive-hero\s*\{[\s\S]*min-height:\s*500rpx[\s\S]*overflow:\s*hidden/,
-  'Xicheng home hero should use a compact immersive first-screen hero treatment aligned with the visual reference'
+  /\.xicheng-immersive-hero\s*\{[\s\S]*min-height:\s*680rpx[\s\S]*overflow:\s*hidden/,
+  'Xicheng home hero should use an immersive first-screen hero treatment aligned with the visual reference'
 )
 
 assert.match(
@@ -99,13 +101,13 @@ assert.match(
 
 assert.match(
   styleBlock,
-  /\.hero-landmark-image\s*\{[\s\S]*position:\s*absolute[\s\S]*object-fit:\s*cover/,
-  'Xicheng home hero should blend a scenic landmark image behind Xiaojing instead of relying only on flat gradients'
+  /\.hero-landmark-image\s*\{[\s\S]*position:\s*absolute[\s\S]*left:\s*0[\s\S]*width:\s*100%[\s\S]*height:\s*100%[\s\S]*object-fit:\s*cover/,
+  'Xicheng home hero should blend a full scenic landmark image behind Xiaojing instead of relying only on flat gradients'
 )
 
 assert.match(
   styleBlock,
-  /\.xiaojing-avatar\s*\{[\s\S]*width:\s*260rpx[\s\S]*height:\s*334rpx/,
+  /\.xiaojing-avatar\s*\{[\s\S]*width:\s*340rpx[\s\S]*height:\s*436rpx/,
   'Xicheng home Xiaojing visual should be large enough to anchor the first viewport instead of reading as a small avatar'
 )
 
@@ -131,6 +133,12 @@ assert.match(
   styleBlock,
   /\.route-thumbnail\s*\{[\s\S]*width:\s*100%[\s\S]*aspect-ratio:\s*1\.25/,
   'Xicheng home route cards should include stable scenic thumbnails like the route recommendation mockup'
+)
+
+assert.match(
+  styleBlock,
+  /\.route-card-scroll\s*\{[\s\S]*overflow:\s*hidden[\s\S]*\.route-card-strip\s*\{[\s\S]*display:\s*flex[\s\S]*gap:\s*20rpx[\s\S]*\.recommended-route-card\s*\{[\s\S]*flex:\s*0 0 336rpx[\s\S]*width:\s*336rpx/,
+  'Xicheng home route recommendations should be a horizontal card preview like the visual reference instead of a long vertical feed'
 )
 
 assert.doesNotMatch(
