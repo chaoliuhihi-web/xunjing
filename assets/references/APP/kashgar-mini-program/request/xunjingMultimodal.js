@@ -31,7 +31,10 @@ export const getXunjingUserTraceId = () => {
 
 export const getYudaoCommonResultPayload = (res) => {
 	if (res && res.data && res.data.code !== undefined && Number(res.data.code) !== 0) {
-		throw new Error(res.data.msg || res.data.message || `星河寻境接口异常:${res.data.code}`)
+		const error = new Error(res.data.msg || res.data.message || `星河寻境接口异常:${res.data.code}`)
+		error.yudaoCommonResultCode = Number(res.data.code)
+		error.yudaoCommonResultMessage = res.data.msg || res.data.message || ''
+		throw error
 	}
 	const body = res && res.data ? res.data : {}
 	return body && body.data && typeof body.data === 'object' ? body.data : body
@@ -216,7 +219,9 @@ export const resolveXunjingMultimodalTrigger = ({
 			},
 			success: (res) => {
 				if (res && res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
-					reject(new Error(`星河寻境多模态触发接口异常:${res.statusCode}`))
+					const error = new Error(`星河寻境多模态触发接口异常:${res.statusCode}`)
+					error.yudaoHttpStatusCode = Number(res.statusCode)
+					reject(error)
 					return
 				}
 				try {

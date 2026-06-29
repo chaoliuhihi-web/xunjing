@@ -107,6 +107,15 @@ assert.throws(
   () => getYudaoCommonResultPayload({ data: { code: 500, msg: 'bad request' } }),
   /bad request/
 )
+assert.throws(
+  () => getYudaoCommonResultPayload({ data: { code: 401, msg: '账号未登录' } }),
+  (error) => {
+    assert.equal(error.yudaoCommonResultCode, 401)
+    assert.equal(error.yudaoCommonResultMessage, '账号未登录')
+    return true
+  },
+  'Yudao CommonResult business errors should keep their code so development fixture fallback cannot mask auth or backend guard failures'
+)
 
 assert.deepEqual(
   normalizeLocationForTrigger({
@@ -216,7 +225,11 @@ installUniMock({
 })
 await assert.rejects(
   () => resolveXunjingMultimodalTrigger({ text: '白塔寺' }),
-  /多模态触发接口异常:502/
+  (error) => {
+    assert.match(error.message, /多模态触发接口异常:502/)
+    assert.equal(error.yudaoHttpStatusCode, 502)
+    return true
+  }
 )
 
 installUniMock({

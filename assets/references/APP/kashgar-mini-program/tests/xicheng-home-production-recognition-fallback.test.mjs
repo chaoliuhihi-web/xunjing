@@ -75,6 +75,36 @@ assert.match(
 )
 
 assert.match(
+  home,
+  /handleRecognitionServiceFailure\(source = 'scan', error = null\)[\s\S]*const message = source === 'gps'[\s\S]*定位识别服务暂不可用[\s\S]*source === 'photo'[\s\S]*拍照识别服务暂不可用[\s\S]*source === 'ocr'[\s\S]*OCR识别服务暂不可用[\s\S]*西城识别服务暂不可用[\s\S]*this\.lastError = message[\s\S]*uni\.showToast/,
+  'Recognition backend failures such as Yudao CommonResult 401 should show source-specific service-unavailable copy instead of raw backend auth errors'
+)
+
+assert.match(
+  home,
+  /resolveTextAndOpenResult\(text = '', source = 'ocr'\)[\s\S]*catch \(error\) \{[\s\S]*this\.handleRecognitionServiceFailure\(source, error\)/,
+  'Text and scan recognition should fail closed through the shared service-unavailable handler'
+)
+
+assert.match(
+  home,
+  /startOcrRecognition\(\)[\s\S]*catch \(error\) \{[\s\S]*this\.handleRecognitionServiceFailure\('ocr', error\)/,
+  'OCR recognition should fail closed through the shared service-unavailable handler'
+)
+
+assert.match(
+  home,
+  /startGpsRecognition\(\)[\s\S]*catch \(error\) \{[\s\S]*this\.handleRecognitionServiceFailure\('gps', error\)/,
+  'GPS recognition should fail closed through the shared service-unavailable handler'
+)
+
+assert.match(
+  home,
+  /startPhotoRecognition\(\)[\s\S]*catch \(error\) \{[\s\S]*this\.handleRecognitionServiceFailure\('photo', error\)/,
+  'Photo recognition should fail closed through the shared service-unavailable handler'
+)
+
+assert.match(
   triggerRequest,
   /export const resolveXichengOcrImageTrigger\s*=\s*async[\s\S]*requestXichengTriggerResolve\(\{[\s\S]*ocrText[\s\S]*photoMeta:\s*buildPhotoMetaForTrigger\(\{ filePath, location, imageInfo, imageBase64 \}\)[\s\S]*normalizeXichengTriggerResult\(result,\s*'ocr'\)/,
   'Trigger facade should expose an OCR image flow that keeps OCR labeled as OCR while using the shared multimodal backend contract'

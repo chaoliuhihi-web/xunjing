@@ -61,7 +61,35 @@ const XICHENG_DEVELOPMENT_TRIGGER_FIXTURE = Object.freeze({
   )
 
 const triggerModule = await import(`data:text/javascript;base64,${Buffer.from(triggerSource).toString('base64')}`)
-const { normalizeXichengTriggerResult } = triggerModule
+const { normalizeXichengTriggerResult, shouldUseXichengDevelopmentFallback } = triggerModule
+
+assert.equal(
+  typeof shouldUseXichengDevelopmentFallback,
+  'function',
+  'Xicheng trigger facade should expose a fallback classifier for development fixtures'
+)
+
+const yudaoAuthError = new Error('账号未登录')
+yudaoAuthError.yudaoCommonResultCode = 401
+assert.equal(
+  shouldUseXichengDevelopmentFallback(yudaoAuthError),
+  false,
+  'Development fixture fallback should not mask Yudao CommonResult auth or business guard failures'
+)
+
+const yudaoHttpError = new Error('西城触发识别接口异常:404')
+yudaoHttpError.yudaoHttpStatusCode = 404
+assert.equal(
+  shouldUseXichengDevelopmentFallback(yudaoHttpError),
+  false,
+  'Development fixture fallback should not mask routed APP API HTTP status failures'
+)
+
+assert.equal(
+  shouldUseXichengDevelopmentFallback(new Error('request:fail timeout')),
+  true,
+  'Development fixture fallback may still support local field demos when the request never reaches Yudao'
+)
 
 const percentOnlyResult = normalizeXichengTriggerResult({
   poiCode: 'xicheng-baitasi',

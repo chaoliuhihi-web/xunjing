@@ -344,7 +344,7 @@ export default {
 				})
 				this.openScanResult(trigger, source)
 			} catch (error) {
-				this.lastError = error && (error.errMsg || error.message) ? (error.errMsg || error.message) : '识别失败'
+				this.handleRecognitionServiceFailure(source, error)
 			} finally {
 				this.recognizing = false
 			}
@@ -391,7 +391,7 @@ export default {
 						})
 						this.openScanResult(trigger, 'ocr')
 					} catch (error) {
-						this.lastError = error && (error.errMsg || error.message) ? (error.errMsg || error.message) : 'OCR识别失败'
+						this.handleRecognitionServiceFailure('ocr', error)
 					} finally {
 						this.recognizing = false
 					}
@@ -420,7 +420,7 @@ export default {
 				})
 				this.openScanResult(trigger, 'gps')
 			} catch (error) {
-				this.lastError = error && (error.errMsg || error.message) ? (error.errMsg || error.message) : '定位识别失败'
+				this.handleRecognitionServiceFailure('gps', error)
 			} finally {
 				this.recognizing = false
 			}
@@ -469,7 +469,7 @@ export default {
 						const trigger = await resolveXichengPhotoTrigger({ filePath })
 						this.openScanResult(trigger, 'photo')
 					} catch (error) {
-						this.lastError = error && (error.errMsg || error.message) ? (error.errMsg || error.message) : '照片识别失败'
+						this.handleRecognitionServiceFailure('photo', error)
 					} finally {
 						this.recognizing = false
 					}
@@ -487,6 +487,20 @@ export default {
 					: source === 'ocr'
 						? '未获得可识别图片，请补充图片或粘贴展牌文字'
 						: '扫码未完成，请改用文本识别输入展牌或地点线索'
+			this.lastError = message
+			uni.showToast({
+				icon: 'none',
+				title: message
+			})
+		},
+		handleRecognitionServiceFailure(source = 'scan', error = null) {
+			const message = source === 'gps'
+				? '定位识别服务暂不可用，请稍后重试'
+				: source === 'photo'
+					? '拍照识别服务暂不可用，请改用文本识别或稍后重试'
+					: source === 'ocr'
+						? 'OCR识别服务暂不可用，请粘贴展牌文字或稍后重试'
+						: '西城识别服务暂不可用，请改用文本输入或稍后重试'
 			this.lastError = message
 			uni.showToast({
 				icon: 'none',

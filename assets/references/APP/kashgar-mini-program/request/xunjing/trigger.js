@@ -51,6 +51,14 @@ export const isXichengDevelopmentRecognitionCacheBlocked = (recognition = {}) =>
 	return developmentRecognition && !isXichengDevelopmentFallbackAllowed()
 }
 
+export const shouldUseXichengDevelopmentFallback = (error = null) => {
+	if (!error) return true
+	if (error.yudaoCommonResultCode !== undefined || error.yudaoHttpStatusCode !== undefined) {
+		return false
+	}
+	return true
+}
+
 const normalizeSuggestedQuestions = (result = {}) => {
 	const safetyStatus = normalizeXichengSafetyStatus(result.safetyStatus)
 	if (isXichengUnsafeSafetyStatus(safetyStatus)) {
@@ -206,7 +214,9 @@ export const requestXichengTriggerResolve = ({
 			},
 			success: (res) => {
 				if (res && res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
-					reject(new Error(`西城触发识别接口异常:${res.statusCode}`))
+					const error = new Error(`西城触发识别接口异常:${res.statusCode}`)
+					error.yudaoHttpStatusCode = Number(res.statusCode)
+					reject(error)
 					return
 				}
 				try {
@@ -238,7 +248,7 @@ export const resolveXichengTextTrigger = async ({
 		})
 		return normalizeXichengTriggerResult(result, source)
 	} catch (error) {
-		if (!allowDevelopmentFallback) {
+		if (!allowDevelopmentFallback || !shouldUseXichengDevelopmentFallback(error)) {
 			throw error
 		}
 		return createXichengDevelopmentTriggerFallback({
@@ -275,7 +285,7 @@ export const resolveXichengPhotoTrigger = async ({
 		})
 		return normalizeXichengTriggerResult(result, 'photo')
 	} catch (error) {
-		if (!allowDevelopmentFallback) {
+		if (!allowDevelopmentFallback || !shouldUseXichengDevelopmentFallback(error)) {
 			throw error
 		}
 		return createXichengDevelopmentTriggerFallback({
@@ -312,7 +322,7 @@ export const resolveXichengOcrImageTrigger = async ({
 		})
 		return normalizeXichengTriggerResult(result, 'ocr')
 	} catch (error) {
-		if (!allowDevelopmentFallback) {
+		if (!allowDevelopmentFallback || !shouldUseXichengDevelopmentFallback(error)) {
 			throw error
 		}
 		return createXichengDevelopmentTriggerFallback({
