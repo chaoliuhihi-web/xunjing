@@ -88,7 +88,7 @@
 			<text>生成游记草稿</text>
 		</view>
 
-		<view class="route-recommendation-section xicheng-paper-card">
+		<view id="xicheng-route-section" class="route-recommendation-section xicheng-paper-card">
 			<view class="section-head xicheng-section-label">
 				<view>
 					<text class="section-kicker">官方路线</text>
@@ -178,6 +178,19 @@
 		</view>
 
 		<view v-if="lastError" class="error-line">{{ lastError }}</view>
+
+		<view class="xicheng-home-bottom-nav">
+			<view
+				v-for="item in xichengHomeNavItems"
+				:key="item.key"
+				class="xicheng-home-bottom-nav-item"
+				:class="{ 'xicheng-home-bottom-nav-item-active': item.key === 'explore' }"
+				@click="handleXichengHomeNav(item.key)"
+			>
+				<view class="xicheng-home-bottom-nav-icon" :class="`xicheng-home-bottom-nav-icon-${item.key}`"></view>
+				<text class="xicheng-home-bottom-nav-text">{{ item.title }}</text>
+			</view>
+		</view>
 	</view>
 </template>
 
@@ -208,6 +221,12 @@ export default {
 			routePassport: XICHENG_REGION_CONFIG.routePassport,
 			parentChildTasks: XICHENG_REGION_CONFIG.parentChildTasks,
 			sharePoster: XICHENG_REGION_CONFIG.sharePoster,
+			xichengHomeNavItems: [
+				{ key: 'explore', title: '探索' },
+				{ key: 'routes', title: '地图' },
+				{ key: 'travelogue', title: '收藏' },
+				{ key: 'mine', title: '我的' }
+			],
 			currentLocation: null,
 			textRecognitionInput: '',
 			recognizing: false,
@@ -517,6 +536,33 @@ export default {
 				url: `/pages/ai-guide/ai-guide?regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.aiSceneCode || this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.region.sourceChannel)}&companionName=${encodeURIComponent(this.region.companionName)}`
 			})
 		},
+		handleXichengHomeNav(key = 'explore') {
+			switch (key) {
+				case 'explore':
+					uni.pageScrollTo({
+						scrollTop: 0,
+						duration: 220
+					})
+					break
+				case 'routes':
+					uni.pageScrollTo({
+						selector: '#xicheng-route-section',
+						duration: 220
+					})
+					break
+				case 'travelogue':
+					this.openXichengTravelogue('draft')
+					break
+				case 'mine':
+					this.openXichengTravelogue('record')
+					break
+				default:
+					uni.pageScrollTo({
+						scrollTop: 0,
+						duration: 220
+					})
+			}
+		},
 		openRecommendedRouteDetail(route = {}) {
 			uni.navigateTo({
 				url: `/pages/xicheng/route-detail/route-detail?routeCode=${encodeURIComponent(route.routeCode || '')}&regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.region.sourceChannel)}&companionName=${encodeURIComponent(this.region.companionName)}`
@@ -582,7 +628,7 @@ export default {
 <style scoped>
 .xicheng-home {
 	min-height: 100vh;
-	padding: 40rpx 28rpx 56rpx;
+	padding: 40rpx 28rpx 190rpx;
 	box-sizing: border-box;
 	color: #102F29;
 }
@@ -1066,5 +1112,124 @@ export default {
 .error-line {
 	margin-top: 24rpx;
 	color: #B42318;
+}
+
+.xicheng-home-bottom-nav {
+	position: fixed;
+	left: 24rpx;
+	right: 24rpx;
+	bottom: calc(18rpx + env(safe-area-inset-bottom));
+	z-index: 50;
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	min-height: 112rpx;
+	padding: 14rpx 10rpx;
+	border: 1rpx solid rgba(181, 148, 94, 0.22);
+	border-radius: 34rpx;
+	background: rgba(255, 253, 248, 0.94);
+	box-shadow: 0 -14rpx 40rpx rgba(16, 47, 41, 0.12);
+	backdrop-filter: blur(18rpx);
+	box-sizing: border-box;
+}
+
+.xicheng-home-bottom-nav-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 8rpx;
+	min-width: 0;
+	color: #746F68;
+}
+
+.xicheng-home-bottom-nav-item-active {
+	color: #173F35;
+}
+
+.xicheng-home-bottom-nav-icon {
+	position: relative;
+	width: 40rpx;
+	height: 40rpx;
+	box-sizing: border-box;
+}
+
+.xicheng-home-bottom-nav-icon-explore {
+	border-bottom: 14rpx solid #173F35;
+	border-left: 18rpx solid transparent;
+	border-right: 18rpx solid transparent;
+}
+
+.xicheng-home-bottom-nav-icon-explore::after {
+	content: '';
+	position: absolute;
+	left: -8rpx;
+	top: 14rpx;
+	width: 16rpx;
+	height: 16rpx;
+	background: #173F35;
+}
+
+.xicheng-home-bottom-nav-icon-routes {
+	border: 4rpx solid currentColor;
+	border-radius: 10rpx;
+}
+
+.xicheng-home-bottom-nav-icon-routes::before,
+.xicheng-home-bottom-nav-icon-routes::after {
+	content: '';
+	position: absolute;
+	top: 8rpx;
+	width: 8rpx;
+	height: 8rpx;
+	border-radius: 999rpx;
+	background: currentColor;
+}
+
+.xicheng-home-bottom-nav-icon-routes::before {
+	left: 7rpx;
+}
+
+.xicheng-home-bottom-nav-icon-routes::after {
+	right: 7rpx;
+}
+
+.xicheng-home-bottom-nav-icon-travelogue {
+	border: 4rpx solid currentColor;
+	border-radius: 999rpx;
+}
+
+.xicheng-home-bottom-nav-icon-travelogue::before {
+	content: '';
+	position: absolute;
+	left: 10rpx;
+	top: 10rpx;
+	width: 12rpx;
+	height: 12rpx;
+	border-radius: 999rpx;
+	background: currentColor;
+}
+
+.xicheng-home-bottom-nav-icon-mine {
+	border: 4rpx solid currentColor;
+	border-radius: 999rpx 999rpx 46rpx 46rpx;
+}
+
+.xicheng-home-bottom-nav-icon-mine::before {
+	content: '';
+	position: absolute;
+	left: 10rpx;
+	top: -16rpx;
+	width: 14rpx;
+	height: 14rpx;
+	border: 4rpx solid currentColor;
+	border-radius: 999rpx;
+	background: rgba(255, 253, 248, 0.94);
+}
+
+.xicheng-home-bottom-nav-text {
+	font-size: 22rpx;
+	line-height: 1.2;
+	font-weight: 700;
+	white-space: nowrap;
 }
 </style>
