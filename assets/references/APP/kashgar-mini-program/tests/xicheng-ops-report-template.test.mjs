@@ -54,7 +54,7 @@ assert.match(
 
 assert.match(
   travelogue,
-  /createOptimizationSuggestions\(\)[\s\S]*this\.misTriggerCount > 0[\s\S]*this\.sourceCount === 0[\s\S]*this\.passportProgress < 100/,
+  /createOptimizationSuggestions\(\)[\s\S]*this\.misTriggerCount > 0[\s\S]*this\.workSourceCount === 0[\s\S]*this\.passportProgress < 100/,
   'Optimization suggestions should react to mis-trigger, source coverage, and route completion gaps'
 )
 

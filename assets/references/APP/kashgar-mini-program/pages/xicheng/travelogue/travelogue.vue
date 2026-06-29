@@ -335,7 +335,7 @@
 					<text class="report-label">识别量</text>
 				</view>
 				<view>
-					<text class="report-value">{{ opsReport.sourceCount }}</text>
+					<text class="report-value">{{ opsReport.workSourceCount }}</text>
 					<text class="report-label">审核来源</text>
 				</view>
 				<view>
@@ -350,7 +350,7 @@
 			<text class="section-desc">候选确认：{{ opsReport.candidateConfirmationCount }} 条 · {{ opsReport.candidateConfirmedPoiLabel }}</text>
 			<text class="section-desc">小京讲解：{{ opsReport.aiGuideMaterialCount }} 条</text>
 			<text class="section-desc">安全拦截：{{ opsReport.safetyBlockedCount }} · 服务不可用：{{ opsReport.safetyUnavailableCount }}</text>
-			<text class="section-desc">来源审核：{{ opsReport.sourceReadinessStatus }} · 待复核：{{ opsReport.reviewBlockerCount }}</text>
+			<text class="section-desc">来源审核：{{ opsReport.sourceReadinessStatus }} · 待复核：{{ opsReport.reviewBlockerCount }} · 总来源：{{ opsReport.sourceCount }}</text>
 			<text class="section-desc">轨迹质量：{{ opsReport.qualityReport.usableRate }}% 可用 · 异常点：{{ opsReport.filteredTrackPointCount }}</text>
 			<text class="section-desc">优化建议：{{ opsReport.optimizationSuggestionText }}</text>
 			<text class="section-desc">试运营日报覆盖识别、路线、分享、审核来源和安全状态，可直接用于现场复盘。</text>
@@ -399,6 +399,11 @@ export const hasReviewableWorkMaterialEvidence = (material = {}) => {
 
 export const getReviewableMaterialSources = (material = {}) => {
 	if (!hasReviewableMaterialEvidence(material)) return []
+	return normalizeXichengReviewedSources(material.sources)
+}
+
+export const getReviewableWorkMaterialSources = (material = {}) => {
+	if (!hasReviewableWorkMaterialEvidence(material)) return []
 	return normalizeXichengReviewedSources(material.sources)
 }
 
@@ -642,6 +647,11 @@ export default {
 				return total + getReviewableMaterialSources(material).length
 			}, 0)
 		},
+		workSourceCount() {
+			return this.materials.reduce((total, material) => {
+				return total + getReviewableWorkMaterialSources(material).length
+			}, 0)
+		},
 		completedTaskCount() {
 			return Math.min(this.studyTaskEvidenceCount, this.parentChildTasks.length)
 		},
@@ -756,7 +766,7 @@ export default {
 		},
 		reviewReadinessSummary() {
 			const reviewBlockers = []
-			if (this.sourceCount === 0) {
+			if (this.workSourceCount === 0) {
 				reviewBlockers.push('missing-reviewed-sources')
 			}
 			if (this.safetyBlockedCount > 0) {
@@ -767,7 +777,8 @@ export default {
 			}
 			return {
 				sourceReadinessStatus: reviewBlockers.length === 0 ? 'SOURCE_READY' : 'SOURCE_REVIEW_REQUIRED',
-				reviewedSourceCount: this.sourceCount,
+				reviewedSourceCount: this.workSourceCount,
+				totalSourceCount: this.sourceCount,
 				safetyBlockedCount: this.safetyBlockedCount,
 				safetyUnavailableCount: this.safetyUnavailableCount,
 				reviewBlockers
@@ -789,6 +800,7 @@ export default {
 				routeCompletionRate: this.passportProgress,
 				hotPois: this.createHotPoiRanking(),
 				sourceCount: this.sourceCount,
+				workSourceCount: this.workSourceCount,
 				workCount: this.draft ? 1 : 0,
 				inspirationImportCount: this.inspirationImportCount,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
@@ -804,6 +816,7 @@ export default {
 				safetyUnavailableCount: this.safetyUnavailableCount,
 				reviewReadinessSummary: this.reviewReadinessSummary,
 				sourceReadinessStatus: this.reviewReadinessSummary.sourceReadinessStatus,
+				workSourceCount: this.workSourceCount,
 				reviewedSourceCount: this.reviewReadinessSummary.reviewedSourceCount,
 				reviewBlockers: this.reviewReadinessSummary.reviewBlockers,
 				reviewBlockerCount: this.reviewReadinessSummary.reviewBlockers.length,
@@ -1514,6 +1527,7 @@ export default {
 				safetyUnavailableCount: this.safetyUnavailableCount,
 				reviewReadinessSummary: this.reviewReadinessSummary,
 				sourceReadinessStatus: this.reviewReadinessSummary.sourceReadinessStatus,
+				workSourceCount: this.workSourceCount,
 				reviewedSourceCount: this.reviewReadinessSummary.reviewedSourceCount,
 				reviewBlockers: this.reviewReadinessSummary.reviewBlockers,
 				reviewBlockerCount: this.reviewReadinessSummary.reviewBlockers.length,
@@ -1632,6 +1646,7 @@ export default {
 				safetyUnavailableCount: this.safetyUnavailableCount,
 				reviewReadinessSummary: this.reviewReadinessSummary,
 				sourceReadinessStatus: this.reviewReadinessSummary.sourceReadinessStatus,
+				workSourceCount: this.workSourceCount,
 				reviewedSourceCount: this.reviewReadinessSummary.reviewedSourceCount,
 				reviewBlockers: this.reviewReadinessSummary.reviewBlockers,
 				reviewBlockerCount: this.reviewReadinessSummary.reviewBlockers.length,
@@ -1640,6 +1655,7 @@ export default {
 				submittedAt,
 				materialCount: this.materialCount,
 				sourceCount: this.sourceCount,
+				workSourceCount: this.workSourceCount,
 				workCount: this.draft ? 1 : 0,
 				posterStatus: this.posterStatus,
 				pdfStatus: this.pdfStatus,
@@ -1834,6 +1850,7 @@ export default {
 				safetyUnavailableCount: this.safetyUnavailableCount,
 				reviewReadinessSummary: this.reviewReadinessSummary,
 				sourceReadinessStatus: this.reviewReadinessSummary.sourceReadinessStatus,
+				workSourceCount: this.workSourceCount,
 				reviewedSourceCount: this.reviewReadinessSummary.reviewedSourceCount,
 				reviewBlockers: this.reviewReadinessSummary.reviewBlockers,
 				reviewBlockerCount: this.reviewReadinessSummary.reviewBlockers.length,
@@ -1955,7 +1972,7 @@ export default {
 			if (this.misTriggerCount > 0) {
 				suggestions.push('复核低置信识别素材，补充别名和触发关键词')
 			}
-			if (this.sourceCount === 0) {
+			if (this.workSourceCount === 0) {
 				suggestions.push('补充已审核讲解来源，提升小京回答可信度')
 			}
 			if (this.passportProgress < 100) {

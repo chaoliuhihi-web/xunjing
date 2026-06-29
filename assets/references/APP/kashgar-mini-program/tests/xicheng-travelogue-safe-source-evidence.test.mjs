@@ -11,7 +11,9 @@ const computedBlock = travelogue.match(/computed:\s*\{[\s\S]*?\n\t\},\n\tonLoad/
 for (const required of [
   'isUnsafeSourceBlockedMaterial',
   'hasReviewableMaterialEvidence',
+  'hasReviewableWorkMaterialEvidence',
   'getReviewableMaterialSources',
+  'getReviewableWorkMaterialSources',
   'normalizeXichengReviewedSources',
   "['BLOCKED', 'UNAVAILABLE']"
 ]) {
@@ -46,9 +48,21 @@ assert.match(
 )
 
 assert.match(
+  travelogue,
+  /getReviewableWorkMaterialSources\s*=\s*\(material = \{\}\) => \{[\s\S]*if \(!hasReviewableWorkMaterialEvidence\(material\)\) return \[\][\s\S]*return normalizeXichengReviewedSources\(material\.sources\)/,
+  'Reviewable work source helper should exclude planning-only route imports before review readiness counts official sources'
+)
+
+assert.match(
   computedBlock,
   /sourceCount\(\)[\s\S]*this\.materials\.reduce\(\(total, material\) => \{[\s\S]*return total \+ getReviewableMaterialSources\(material\)\.length/,
   'Travelogue source count should ignore stale sources on BLOCKED or UNAVAILABLE materials'
+)
+
+assert.match(
+  computedBlock,
+  /workSourceCount\(\)[\s\S]*this\.materials\.reduce\(\(total, material\) => \{[\s\S]*return total \+ getReviewableWorkMaterialSources\(material\)\.length/,
+  'Travelogue work source count should ignore planning-only imported route sources before publish or review readiness'
 )
 
 assert.match(

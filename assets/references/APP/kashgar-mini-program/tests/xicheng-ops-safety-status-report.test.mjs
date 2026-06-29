@@ -21,6 +21,7 @@ for (const required of [
   'safetyStatusSummary()',
   'safetyBlockedCount()',
   'safetyUnavailableCount()',
+  'workSourceCount()',
   'reviewReadinessSummary()'
 ]) {
   assert.ok(computedBlock.includes(required), `Travelogue computed report should include ${required}`)
@@ -44,6 +45,7 @@ for (const required of [
   'safetyUnavailableCount: this.safetyUnavailableCount',
   'reviewReadinessSummary: this.reviewReadinessSummary',
   'sourceReadinessStatus: this.reviewReadinessSummary.sourceReadinessStatus',
+  'workSourceCount: this.workSourceCount',
   'reviewBlockers: this.reviewReadinessSummary.reviewBlockers'
 ]) {
   assert.ok(opsReportBlock.includes(required), `Ops report should include ${required}`)
@@ -53,8 +55,8 @@ for (const required of [
 
 assert.match(
   computedBlock,
-  /reviewReadinessSummary\(\)[\s\S]*missing-reviewed-sources[\s\S]*blocked-ai-answer[\s\S]*ai-source-service-unavailable[\s\S]*sourceReadinessStatus:\s*reviewBlockers\.length === 0 \? 'SOURCE_READY' : 'SOURCE_REVIEW_REQUIRED'[\s\S]*reviewedSourceCount:\s*this\.sourceCount[\s\S]*reviewBlockers/,
-  'Review readiness should expose source readiness status and explicit blockers for operations triage'
+  /reviewReadinessSummary\(\)[\s\S]*if \(this\.workSourceCount === 0\)[\s\S]*missing-reviewed-sources[\s\S]*blocked-ai-answer[\s\S]*ai-source-service-unavailable[\s\S]*sourceReadinessStatus:\s*reviewBlockers\.length === 0 \? 'SOURCE_READY' : 'SOURCE_REVIEW_REQUIRED'[\s\S]*reviewedSourceCount:\s*this\.workSourceCount[\s\S]*totalSourceCount:\s*this\.sourceCount[\s\S]*reviewBlockers/,
+  'Review readiness should count only work-reviewable sources while preserving total source count for operations triage'
 )
 
 assert.match(
