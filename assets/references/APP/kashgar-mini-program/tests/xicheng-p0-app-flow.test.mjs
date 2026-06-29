@@ -88,7 +88,7 @@ for (const required of [
 
 for (const required of [
   '小京',
-  'AI旅伴',
+  'AI 旅伴',
   '扫一扫',
   '拍照识别',
   'OCR识别',

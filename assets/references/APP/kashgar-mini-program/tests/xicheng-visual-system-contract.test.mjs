@@ -85,6 +85,13 @@ for (const token of [
   assert.ok(inspiration.includes(token), `inspiration.vue should support Xicheng inspiration visual token ${token}`)
 }
 
+for (const required of [
+  '西城 AI 旅伴',
+  '拍照识别 · 文字识别 · 附近触发'
+]) {
+  assert.ok(home.includes(required), `home.vue should keep the Xicheng reference first-screen copy ${required}`)
+}
+
 for (const token of [
   'xicheng-travelogue-shell',
   'xicheng-travelogue-hero',

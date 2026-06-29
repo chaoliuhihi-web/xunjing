@@ -20,7 +20,7 @@
 			<view class="hero-main">
 				<view class="hero-copy">
 					<text class="eyebrow">{{ region.cityName }}</text>
-					<text class="title">西城 AI旅伴</text>
+					<text class="title">西城 AI 旅伴</text>
 					<text class="subtitle">星河寻境 · 知识随行</text>
 					<view class="hero-actions">
 						<button class="primary-button xicheng-primary-action" :disabled="recognizing" @click="startScanRecognition">扫一扫</button>
@@ -40,7 +40,7 @@
 		<view class="quick-grid">
 			<view class="quick-card xicheng-paper-card quick-card-featured quick-card-scan" @click="startScanRecognition">
 				<text class="quick-title">扫一扫</text>
-				<text class="quick-desc">识别二维码、展牌和门票</text>
+				<text class="quick-desc">拍照识别 · 文字识别 · 附近触发</text>
 			</view>
 			<view class="quick-card xicheng-paper-card quick-card-featured quick-card-ask" @click="askXiaojing">
 				<text class="quick-title">问问小京</text>
