@@ -53,6 +53,11 @@
 			</view>
 		</view>
 
+		<view class="bottom-actions">
+			<button class="primary-button xicheng-primary-action" :disabled="recognitionActionBlocked" @click="askXiaojing()">小京讲解</button>
+			<button class="ghost-button xicheng-secondary-action" :disabled="recognitionActionBlocked" @click="startRecording">开始记录</button>
+		</view>
+
 		<view v-if="candidateList.length > 0" class="candidate-card xicheng-paper-card">
 			<view class="section-head xicheng-section-label">
 				<text class="section-title">可能匹配地点</text>
@@ -150,11 +155,6 @@
 			<view v-if="recognitionFeedback" class="feedback-actions">
 				<button class="ghost-button danger-button xicheng-secondary-action" @click="withdrawRecognitionFeedback">撤回反馈</button>
 			</view>
-		</view>
-
-		<view class="bottom-actions">
-			<button class="primary-button xicheng-primary-action" :disabled="recognitionActionBlocked" @click="askXiaojing()">小京讲解</button>
-			<button class="ghost-button xicheng-secondary-action" :disabled="recognitionActionBlocked" @click="startRecording">开始记录</button>
 		</view>
 	</view>
 </template>
