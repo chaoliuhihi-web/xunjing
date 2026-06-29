@@ -429,10 +429,11 @@
 </template>
 
 <script>
-import { XICHENG_OFFICIAL_POIS, XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
+import { XICHENG_OFFICIAL_POIS, XICHENG_RECOMMENDED_ROUTES, XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
 import { requestCurrentLocationForTrigger } from '@/request/xunjing/trigger.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
+import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import XichengTravelogueEditorShare from '@/components/xicheng/travelogue-editor-share.vue'
 import {
 	getXichengDisplaySourceDescription,
@@ -651,6 +652,41 @@ const calculateTrackPointDistanceMeters = (left = {}, right = {}) => {
 }
 
 const decodeJourneyRouteValue = decodeXichengRouteValue
+
+const resolveRouteByCode = (routeCode = '') => {
+	return XICHENG_RECOMMENDED_ROUTES.find(route => route.routeCode === routeCode) || null
+}
+
+const createOfficialRouteMaterials = ({
+	route = null,
+	regionCode = XICHENG_REGION_CONFIG.regionCode,
+	packageCode = XICHENG_REGION_CONFIG.packageCode,
+	sceneCode = XICHENG_REGION_CONFIG.sceneCode,
+	sourceChannel = XICHENG_REGION_CONFIG.sourceChannel,
+	capturedAt = new Date().toISOString()
+} = {}) => {
+	if (!route || !Array.isArray(route.stops)) return []
+	return route.stops.map(stop => {
+		const sources = createXichengOfficialPoiSources(stop)
+		return {
+			type: 'official-route-poi',
+			regionCode,
+			packageCode,
+			sceneCode,
+			sourceChannel,
+			poiCode: stop.poiCode,
+			poiName: stop.poiName,
+			routeCode: route.routeCode,
+			routeTitle: route.title,
+			sourceLabel: '官方路线详情',
+			sources,
+			sourceCount: sources.length,
+			reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
+			publishStatus: 'private',
+			capturedAt
+		}
+	})
+}
 
 const normalizePhotoCoordinate = (value) => {
 	const numericValue = Number(value)
@@ -1094,6 +1130,32 @@ export default {
 			const routeSourceChannel = decodeJourneyRouteValue(options.sourceChannel) || XICHENG_REGION_CONFIG.sourceChannel
 			const routeSafetyStatus = normalizeXichengSafetyStatus(decodeJourneyRouteValue(options.safetyStatus))
 			const unsafeRouteSafetyStatus = isXichengUnsafeSafetyStatus(routeSafetyStatus)
+			const routeCode = decodeJourneyRouteValue(options.routeCode)
+			const routeFromCode = !unsafeRouteSafetyStatus ? resolveRouteByCode(routeCode) : null
+			if (routeFromCode && !this.importedRoute) {
+				this.importedRoute = {
+					...routeFromCode,
+					regionCode: routeRegionCode,
+					packageCode: routePackageCode,
+					sceneCode: routeSceneCode,
+					sourceChannel: routeSourceChannel,
+					routeSource: 'travelogue-route-param',
+					sourceLabel: '官方路线详情',
+					updatedAt: new Date().toISOString()
+				}
+				uni.setStorageSync(XICHENG_REGION_CONFIG.inspirationStorageKey, this.importedRoute)
+			}
+			if (routeFromCode && !materials.some(material => material && material.routeCode === routeFromCode.routeCode && material.type === 'official-route-poi')) {
+				const routeMaterials = createOfficialRouteMaterials({
+					route: routeFromCode,
+					regionCode: routeRegionCode,
+					packageCode: routePackageCode,
+					sceneCode: routeSceneCode,
+					sourceChannel: routeSourceChannel
+				})
+				materials.unshift(...routeMaterials)
+				uni.setStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey, materials)
+			}
 			const routePoiName = decodeJourneyRouteValue(options.poiName)
 			if (routePoiName && !unsafeRouteSafetyStatus && !materials.some(material => material && material.poiName === routePoiName)) {
 				materials.unshift({

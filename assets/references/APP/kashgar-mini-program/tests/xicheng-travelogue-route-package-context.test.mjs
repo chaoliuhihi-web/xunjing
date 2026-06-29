@@ -17,6 +17,15 @@ assert.ok(loadJourneyBlock, 'Travelogue should expose loadJourney')
 assert.ok(shouldAutoStartBlock, 'Travelogue should expose shouldAutoStartRecording')
 
 for (const required of [
+  'XICHENG_RECOMMENDED_ROUTES',
+  "import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'",
+  'resolveRouteByCode',
+  'createOfficialRouteMaterials'
+]) {
+  assert.ok(travelogue.includes(required), `Travelogue route-code handoff should expose ${required}`)
+}
+
+for (const required of [
   'mode=record',
   'autoStart=1',
   'regionCode=${encodeURIComponent(this.result.regionCode || XICHENG_REGION_CONFIG.regionCode)}',
@@ -51,6 +60,18 @@ assert.match(
   loadJourneyBlock,
   /if \(routePoiName && !unsafeRouteSafetyStatus && !materials\.some\(material => material && material\.poiName === routePoiName\)\) \{/,
   'Travelogue should not create route-only manual-entry materials from BLOCKED or UNAVAILABLE recognition route params'
+)
+
+assert.match(
+  loadJourneyBlock,
+  /const routeCode = decodeJourneyRouteValue\(options\.routeCode\)[\s\S]*const routeFromCode = !unsafeRouteSafetyStatus \? resolveRouteByCode\(routeCode\) : null[\s\S]*if \(routeFromCode && !this\.importedRoute\) \{[\s\S]*this\.importedRoute = \{[\s\S]*\.\.\.routeFromCode[\s\S]*regionCode: routeRegionCode[\s\S]*packageCode: routePackageCode[\s\S]*sourceChannel: routeSourceChannel[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.inspirationStorageKey, this\.importedRoute\)/,
+  'Travelogue route mode should hydrate the official route with attribution context when users open the route draft directly'
+)
+
+assert.match(
+  loadJourneyBlock,
+  /if \(routeFromCode && !materials\.some\(material => material && material\.routeCode === routeFromCode\.routeCode && material\.type === 'official-route-poi'\)\) \{[\s\S]*const routeMaterials = createOfficialRouteMaterials\(\{[\s\S]*route: routeFromCode[\s\S]*regionCode: routeRegionCode[\s\S]*packageCode: routePackageCode[\s\S]*sceneCode: routeSceneCode[\s\S]*sourceChannel: routeSourceChannel[\s\S]*\}\)[\s\S]*materials\.unshift\(\.\.\.routeMaterials\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.materialsStorageKey, materials\)/,
+  'Travelogue route mode should create source-backed official-route-poi materials for share poster and review readiness'
 )
 
 assert.match(
