@@ -102,10 +102,14 @@
 		</view>
 
 		<view class="flow-strip">
-			<text>小京讲解</text>
-			<text>推荐路线</text>
-			<text>开始记录</text>
-			<text>生成游记草稿</text>
+			<button
+				v-for="item in xichengP0FlowActions"
+				:key="item.key"
+				class="flow-step"
+				@click="handleXichengP0FlowAction(item.key)"
+			>
+				{{ item.title }}
+			</button>
 		</view>
 
 		<view id="xicheng-route-section" class="route-recommendation-section xicheng-paper-card">
@@ -257,6 +261,12 @@ export default {
 				{ key: 'routes', title: '地图' },
 				{ key: 'travelogue', title: '收藏' },
 				{ key: 'mine', title: '我的' }
+			],
+			xichengP0FlowActions: [
+				{ key: 'guide', title: '小京讲解' },
+				{ key: 'routes', title: '推荐路线' },
+				{ key: 'record', title: '开始记录' },
+				{ key: 'draft', title: '生成游记草稿' }
 			],
 			currentLocation: null,
 			textRecognitionInput: '',
@@ -598,6 +608,27 @@ export default {
 			uni.navigateTo({
 				url: `/pages/ai-guide/ai-guide?regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.aiSceneCode || this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.region.sourceChannel)}&companionName=${encodeURIComponent(this.region.companionName)}`
 			})
+		},
+		handleXichengP0FlowAction(key = 'guide') {
+			switch (key) {
+				case 'guide':
+					this.askXiaojing()
+					break
+				case 'routes':
+					uni.pageScrollTo({
+						selector: '#xicheng-route-section',
+						duration: 220
+					})
+					break
+				case 'record':
+					this.openXichengTravelogue('record')
+					break
+				case 'draft':
+					this.openXichengTravelogue('draft')
+					break
+				default:
+					this.askXiaojing()
+			}
 		},
 		handleXichengHomeNav(key = 'explore') {
 			switch (key) {
@@ -1148,7 +1179,7 @@ export default {
 	margin-top: 22rpx;
 }
 
-.flow-strip text {
+.flow-step {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -1157,9 +1188,14 @@ export default {
 	border-radius: 999rpx;
 	background: rgba(181, 148, 94, 0.15);
 	font-size: 22rpx;
+	line-height: 1.25;
 	text-align: center;
 	color: #173F35;
 	box-sizing: border-box;
+}
+
+.flow-step::after {
+	border: 0;
 }
 
 .route-recommendation-section {
