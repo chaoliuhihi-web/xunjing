@@ -375,7 +375,7 @@ const STREAM_RENDER_INTERVAL = 40
 const STREAM_TYPEWRITER_CHARS_PER_TICK = 2
 const SCROLL_UPDATE_INTERVAL = 80
 const HISTORY_SCROLL_DELAY = 300
-const AI_RESPONSE_TIMEOUT_MS = 60000
+const AI_RESPONSE_TIMEOUT_MS = 15000
 const AI_SPEECH_RENDER_DELAY_MS = 50
 const STREAM_SPEECH_MIN_LENGTH = 12
 const STREAM_SPEECH_FIRST_CHUNK_LENGTH = 36
@@ -1057,6 +1057,7 @@ const requestXunjingAiChat = (question) => {
 		requestTask = uni.request({
 			url: buildYudaoAppApiUrl(aiConfig.apiPath),
 			method: 'POST',
+			timeout: AI_RESPONSE_TIMEOUT_MS,
 			header: {
 				'Content-Type': 'application/json',
 				'tenant-id': aiConfig.tenantId
@@ -1772,11 +1773,36 @@ const startXunjingAiRequest = ({ question, assistantMessage }) => {
 			if (requestSettled || requestController.interrupted) {
 				return
 			}
-			commitAssistantMessage(assistantMessage, { isPending: false })
-			cancelStreamContentRender(state)
-			saveMessagesCache()
-			clearActiveStreamIfMatch(requestController.id)
-			settleRequest(() => reject(new Error('AI响应超时')))
+			if (hasXichengAiContext(xichengAiContext.value)) {
+				appendAnswerContent(state, XICHENG_UNAVAILABLE_ANSWER)
+				state.followUps = []
+				state.sources = []
+				state.safetyStatus = 'UNAVAILABLE'
+				state.streamFinished = true
+				flushStreamContent(state)
+				commitAssistantMessage(assistantMessage, {
+					isPending: false,
+					followUps: [],
+					sources: [],
+					safetyStatus: 'UNAVAILABLE'
+				})
+				saveMessagesCache()
+				clearActiveStreamIfMatch(requestController.id)
+				settleRequest(() => resolve({
+					answer: state.fullContent,
+					followUps: [],
+					sources: [],
+					safetyStatus: 'UNAVAILABLE',
+					fallback: true,
+					timeout: true
+				}))
+			} else {
+				commitAssistantMessage(assistantMessage, { isPending: false })
+				cancelStreamContentRender(state)
+				saveMessagesCache()
+				clearActiveStreamIfMatch(requestController.id)
+				settleRequest(() => reject(new Error('AI响应超时')))
+			}
 			if (requestTask && typeof requestTask.abort === 'function') {
 				try {
 					requestTask.abort()

@@ -9,8 +9,8 @@ const renderStreamContentSource = aiGuide.match(/const renderStreamContent = \(s
 
 assert.match(
   aiGuide,
-  /const AI_RESPONSE_TIMEOUT_MS\s*=\s*60000/,
-  'AI guide should define a response timeout so the loading bubble cannot hang forever'
+  /const AI_RESPONSE_TIMEOUT_MS\s*=\s*15000/,
+  'AI guide should define a short response timeout so the Xicheng loading bubble cannot hang through an on-site demo'
 )
 
 assert.match(
@@ -41,6 +41,12 @@ assert.match(
   aiGuide,
   /responseTimeoutTimer\s*=\s*setTimeout\([\s\S]*requestTask\.abort\(\)[\s\S]*AI_RESPONSE_TIMEOUT_MS/,
   'AI guide should abort a stuck AI request after the timeout'
+)
+
+assert.match(
+  aiGuide,
+  /uni\.request\(\{[\s\S]*timeout:\s*AI_RESPONSE_TIMEOUT_MS/,
+  'AI guide should pass the same response timeout to uni.request instead of relying only on a UI timer'
 )
 
 assert.match(
