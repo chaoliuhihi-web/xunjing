@@ -1899,6 +1899,29 @@ export default {
 				}
 			]
 		},
+		getDisplaySourceTitle(source = {}) {
+			const rawTitle = String(source.title || source.name || source.sourceTitle || '').trim()
+			return rawTitle
+				.replace(/\s*POI\s*级已审核来源\s*$/g, '')
+				.replace(/\s*已审核来源\s*$/g, '')
+				.trim()
+		},
+		getDisplaySourceDescription(source = {}) {
+			const rawDescription = String(source.excerpt || source.summary || source.contentDigest || '').trim()
+			const cleanedDescription = rawDescription
+				.replace(/POI 级已审核来源：[^。]*。/g, '')
+				.replace(/触发关键词、坐标和别名来自[^。]*。/g, '')
+				.replace(/生产发布前仍需完成[^。]*。/g, '')
+				.replace(/\s+/g, ' ')
+				.trim()
+			if (cleanedDescription) {
+				return cleanedDescription.length > 96 ? `${cleanedDescription.slice(0, 96)}...` : cleanedDescription
+			}
+			if (source.sourceUrl || source.url || source.sourceType || source.type) {
+				return '官方公开来源'
+			}
+			return ''
+		},
 		createMemorialPdfSourceCards() {
 			const seenCards = new Set()
 			const sourceCards = []
@@ -1907,17 +1930,17 @@ export default {
 				.forEach((material = {}, materialIndex) => {
 					const materialSources = getReviewableMaterialSources(material)
 					materialSources.forEach((source = {}, sourceIndex) => {
-						const title = source.title || source.name || ''
-						const excerpt = source.excerpt || source.summary || source.url || ''
+						const title = this.getDisplaySourceTitle(source)
+						const excerpt = this.getDisplaySourceDescription(source)
 						if (!title && !excerpt) return
 						const cardKey = `${material.poiCode || material.poiName || materialIndex}:${title}:${excerpt}`
 						if (seenCards.has(cardKey)) return
 						seenCards.add(cardKey)
 						sourceCards.push({
 							sourceCardId: `source-card-material-${materialIndex}-${sourceIndex}`,
-							title: source.title || source.name,
-							excerpt: source.excerpt || source.summary || source.url,
-							url: source.url || '',
+							title: title || '审核来源',
+							excerpt,
+							url: source.sourceUrl || source.url || '',
 							poiCode: material.poiCode || '',
 							poiName: material.poiName || ''
 						})
@@ -1928,17 +1951,17 @@ export default {
 				.forEach((checkin = {}, checkinIndex) => {
 					const checkinSources = getReviewableRouteCheckinSources(checkin)
 					checkinSources.forEach((source = {}, sourceIndex) => {
-						const title = source.title || source.name || ''
-						const excerpt = source.excerpt || source.summary || source.url || ''
+						const title = this.getDisplaySourceTitle(source)
+						const excerpt = this.getDisplaySourceDescription(source)
 						if (!title && !excerpt) return
 						const cardKey = `${checkin.poiCode || checkin.poiName || checkinIndex}:${title}:${excerpt}`
 						if (seenCards.has(cardKey)) return
 						seenCards.add(cardKey)
 						sourceCards.push({
 							sourceCardId: `source-card-checkin-${checkinIndex}-${sourceIndex}`,
-							title: source.title || source.name,
-							excerpt: source.excerpt || source.summary || source.url,
-							url: source.url || '',
+							title: title || '审核来源',
+							excerpt,
+							url: source.sourceUrl || source.url || '',
 							poiCode: checkin.poiCode || '',
 							poiName: checkin.poiName || ''
 						})

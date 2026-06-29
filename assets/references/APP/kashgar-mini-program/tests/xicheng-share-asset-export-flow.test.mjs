@@ -131,8 +131,8 @@ assert.match(
 
 assert.match(
   travelogue,
-  /createMemorialPdfSourceCards\(\)[\s\S]*this\.materials[\s\S]*filter\(material => hasReviewableMaterialEvidence\(material\)\)[\s\S]*forEach[\s\S]*getReviewableMaterialSources\(material\)[\s\S]*title:\s*source\.title \|\| source\.name[\s\S]*excerpt:\s*source\.excerpt \|\| source\.summary \|\| source\.url[\s\S]*poiName:\s*material\.poiName \|\| ''[\s\S]*slice\(0, 8\)/,
-  'PDF memorial source cards should summarize reviewed sources from reviewable materials with POI attribution and a bounded card count'
+  /createMemorialPdfSourceCards\(\)[\s\S]*this\.materials[\s\S]*filter\(material => hasReviewableMaterialEvidence\(material\)\)[\s\S]*forEach[\s\S]*getReviewableMaterialSources\(material\)[\s\S]*this\.getDisplaySourceTitle\(source\)[\s\S]*this\.getDisplaySourceDescription\(source\)[\s\S]*poiName:\s*material\.poiName \|\| ''[\s\S]*slice\(0, 8\)/,
+  'PDF memorial source cards should summarize display-safe reviewed sources from reviewable materials with POI attribution and a bounded card count'
 )
 
 assert.match(
@@ -145,6 +145,24 @@ assert.match(
   travelogue,
   /artifact\.templateLabel/,
   'Share artifact list should expose the fixed template label for operations review'
+)
+
+assert.match(
+  travelogue,
+  /getDisplaySourceTitle\(source = \{\}\)[\s\S]*source\.title \|\| source\.name \|\| source\.sourceTitle[\s\S]*replace\(\s*\/\\s\*POI\\s\*级已审核来源\\s\*\$\/g/,
+  'PDF memorial source cards should strip raw reviewed-source suffixes before exporting source titles'
+)
+
+assert.match(
+  travelogue,
+  /getDisplaySourceDescription\(source = \{\}\)[\s\S]*source\.excerpt \|\| source\.summary \|\| source\.contentDigest[\s\S]*replace\(\s*\/POI 级已审核来源：\[\^。\]\*。\/g[\s\S]*replace\(\s*\/生产发布前仍需完成\[\^。\]\*。\/g[\s\S]*cleanedDescription\.length > 96[\s\S]*cleanedDescription\.slice\(0, 96\)/,
+  'PDF memorial source cards should strip internal seed and production-review notes before exporting source summaries'
+)
+
+assert.doesNotMatch(
+  travelogue,
+  /sourceCards\.push\(\{[\s\S]*excerpt:\s*source\.excerpt \|\| source\.summary \|\| source\.url/,
+  'PDF memorial source cards should not export raw source excerpt, summary, or URL fields directly'
 )
 
 assert.doesNotMatch(
