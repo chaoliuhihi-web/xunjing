@@ -9,6 +9,7 @@
 - Visual alignment: the first viewport uses the shared 西城 warm paper surface, ink green hierarchy, gold section accents, rounded paper cards, Xiaojing avatar, compact action chips, and bottom-safe spacing defined in `styles/xicheng-theme.scss`.
 - Operations-readiness coverage: local journey materials, route passport progress, parent-child study task evidence, share assets, review package, sanitized public preview, local data clear, track quality, safety status counts, and city operations report are present in the travelogue surface.
 - Remaining release gate: production launch still requires non-local HTTPS APP readiness evidence and production Yudao/AI/Qdrant/OCR/OSS/POI evidence; the current visual QA only proves APP front-end flow and source-context behavior.
+- Preprod evidence handoff: follow `docs/xicheng-app-preprod-evidence-runbook.md` to build with `VITE_XUNJING_YUDAO_APP_BASE_URL="$XUNJING_APP_API_BASE_URL"` and `VITE_XUNJING_TENANT_ID`, then capture `qa/xicheng-app-readiness-evidence.json` against a non-local HTTPS Yudao gateway before release.
 
 **Source Visual Truth**
 - Launch source: `/Users/bruce/Developer/work/AI文旅/01_星河寻境/assets/references/APP/参考图/ChatGPT Image 2026年6月21日 00_46_15 (1).png`

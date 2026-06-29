@@ -123,6 +123,9 @@ for (const required of [
   'home -> scan-result -> xiaojing -> route-detail -> travelogue',
   'official POI source context remains visible in Xiaojing',
   'current-head-ai-guide-from-official-poi-smoke.png',
+  'xicheng-app-preprod-evidence-runbook.md',
+  'qa/xicheng-app-readiness-evidence.json',
+  'VITE_XUNJING_YUDAO_APP_BASE_URL',
   'final result: passed'
 ]) {
   assert.ok(qaReport.includes(required), `Xicheng design QA report should include ${required}`)
