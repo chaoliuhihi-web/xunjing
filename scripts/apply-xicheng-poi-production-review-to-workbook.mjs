@@ -6,6 +6,9 @@ import { pathToFileURL } from 'node:url'
 const artifactType = 'xicheng-poi-production-review-apply'
 const readyStatus = 'PRODUCTION_REVIEW_APPLIED'
 const notReadyStatus = 'PRODUCTION_REVIEW_DATA_REMAINS'
+const sourceReviewApplyArtifactType = 'xicheng-poi-source-review-apply'
+const sourceReviewApplyReadyStatus = 'SOURCE_REVIEW_APPLIED'
+const sourceCoverageReadyStatus = 'SOURCE_COVERAGE_READY'
 const allowedOutputDirs = new Set(['qa', 'tmp', 'workbench'])
 
 const productionReviewFields = [
@@ -240,6 +243,43 @@ function productionReviewReady(row) {
     hasText(row.reviewedAt)
 }
 
+function validateSourceReviewApplyEvidence(evidence, {
+  workbookFile,
+  workbookRows,
+  workbookSha256
+}) {
+  const blockers = []
+  const summary = evidence?.summary || {}
+  if (evidence?.artifactType !== sourceReviewApplyArtifactType) {
+    blockers.push(`source review apply evidence artifactType must be ${sourceReviewApplyArtifactType}`)
+  }
+  if (evidence?.ok !== true) {
+    blockers.push('source review apply evidence ok must be true')
+  }
+  if (evidence?.status !== sourceReviewApplyReadyStatus) {
+    blockers.push(`source review apply evidence status must be ${sourceReviewApplyReadyStatus}`)
+  }
+  if (path.resolve(summary.outputFile || '') !== path.resolve(workbookFile)) {
+    blockers.push('source review apply evidence outputFile must reference the same workbook CSV')
+  }
+  if (summary.outputSha256 !== workbookSha256) {
+    blockers.push('source review apply evidence outputSha256 must match workbook CSV')
+  }
+  if (Number(summary.pendingSourcePoiCount) !== 0) {
+    blockers.push('source review apply evidence must have pendingSourcePoiCount=0')
+  }
+  if (Number(summary.appliedPoiCount) < workbookRows.length) {
+    blockers.push(`source review apply evidence appliedPoiCount must be at least ${workbookRows.length}`)
+  }
+  if (summary.sourceCoverageStatus !== sourceCoverageReadyStatus) {
+    blockers.push(`source review apply evidence sourceCoverageStatus must be ${sourceCoverageReadyStatus}`)
+  }
+  if (Number(summary.sourceCoverageUncoveredPoiCount) !== 0) {
+    blockers.push('source review apply evidence sourceCoverageUncoveredPoiCount must be 0')
+  }
+  return blockers
+}
+
 function validateApprovedReviewRows(reviewRows, workbookPoiCodes) {
   const blockers = []
   const seenPoiCodes = new Set()
@@ -305,6 +345,8 @@ function applyReviewRowsToWorkbookRows(workbookRows, reviewRows) {
 function buildReport({
   workbookFile,
   productionReviewFile,
+  sourceReviewApplyEvidenceFile,
+  sourceReviewApplyEvidence,
   outputFile,
   evidenceFile,
   workbookRows,
@@ -332,6 +374,12 @@ function buildReport({
     summary: {
       workbookFile,
       productionReviewFile,
+      sourceReviewApplyEvidenceFile,
+      sourceReviewApplyStatus: sourceReviewApplyEvidence.status,
+      sourceReviewAppliedPoiCount: sourceReviewApplyEvidence.summary?.appliedPoiCount,
+      sourceReviewPendingSourcePoiCount: sourceReviewApplyEvidence.summary?.pendingSourcePoiCount,
+      sourceCoverageStatus: sourceReviewApplyEvidence.summary?.sourceCoverageStatus,
+      sourceCoverageUncoveredPoiCount: sourceReviewApplyEvidence.summary?.sourceCoverageUncoveredPoiCount,
       outputFile,
       evidenceFile,
       workbookRows: workbookRows.length,
@@ -352,22 +400,37 @@ export async function applyXichengPoiProductionReviewToWorkbook({
   rootDir = process.cwd(),
   workbookFile,
   productionReviewFile,
+  sourceReviewApplyEvidenceFile,
   outputFile,
   evidenceFile
 } = {}) {
   const resolvedRootDir = path.resolve(rootDir)
   const resolvedWorkbookFile = resolveInputFile(resolvedRootDir, workbookFile, '--workbook')
   const resolvedProductionReviewFile = resolveInputFile(resolvedRootDir, productionReviewFile, '--production-review')
+  const resolvedSourceReviewApplyEvidenceFile = resolveInputFile(
+    resolvedRootDir,
+    sourceReviewApplyEvidenceFile,
+    '--source-review-apply-evidence'
+  )
   const resolvedOutputFile = resolveSafeOutputFile(resolvedRootDir, outputFile, '--output')
   const resolvedEvidenceFile = resolveSafeOutputFile(resolvedRootDir, evidenceFile, '--evidence-file')
-  const [workbookText, productionReviewText] = await Promise.all([
+  const [workbookText, productionReviewText, sourceReviewApplyEvidenceText] = await Promise.all([
     readFile(resolvedWorkbookFile, 'utf8'),
-    readFile(resolvedProductionReviewFile, 'utf8')
+    readFile(resolvedProductionReviewFile, 'utf8'),
+    readFile(resolvedSourceReviewApplyEvidenceFile, 'utf8')
   ])
   const workbook = parseRows(workbookText, requiredWorkbookFields, 'workbook CSV')
   const productionReview = parseRows(productionReviewText, requiredProductionReviewFields, 'production review CSV')
+  const sourceReviewApplyEvidence = JSON.parse(sourceReviewApplyEvidenceText)
   const workbookPoiCodes = new Set(workbook.rows.map((row) => row.poiCode))
-  const validationBlockers = validateApprovedReviewRows(productionReview.rows, workbookPoiCodes)
+  const validationBlockers = [
+    ...validateSourceReviewApplyEvidence(sourceReviewApplyEvidence, {
+      workbookFile: resolvedWorkbookFile,
+      workbookRows: workbook.rows,
+      workbookSha256: sha256(workbookText)
+    }),
+    ...validateApprovedReviewRows(productionReview.rows, workbookPoiCodes)
+  ]
   if (validationBlockers.length > 0) {
     throw new Error(validationBlockers.join('; '))
   }
@@ -377,6 +440,8 @@ export async function applyXichengPoiProductionReviewToWorkbook({
   const report = buildReport({
     workbookFile: resolvedWorkbookFile,
     productionReviewFile: resolvedProductionReviewFile,
+    sourceReviewApplyEvidenceFile: resolvedSourceReviewApplyEvidenceFile,
+    sourceReviewApplyEvidence,
     outputFile: resolvedOutputFile,
     evidenceFile: resolvedEvidenceFile,
     workbookRows: workbook.rows,
@@ -399,6 +464,7 @@ async function runCli() {
     rootDir: path.resolve(readArgValue(args, '--root') || process.cwd()),
     workbookFile: readArgValue(args, '--workbook'),
     productionReviewFile: readArgValue(args, '--production-review'),
+    sourceReviewApplyEvidenceFile: readArgValue(args, '--source-review-apply-evidence'),
     outputFile: readArgValue(args, '--output'),
     evidenceFile: readArgValue(args, '--evidence-file')
   })

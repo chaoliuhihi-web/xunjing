@@ -471,6 +471,13 @@ function buildReviewPacket({
   const workbookPath = relativePathForCommand(rootDir, reviewWorkbookFile)
   const productionManifestPath = 'workbench/xicheng-production-pois.json'
   const productionSeedPath = 'workbench/xicheng-poi-production-seed.sql'
+  const sourceReviewPath = 'workbench/xicheng-poi-source-review-summary.csv'
+  const productionReviewPath = 'workbench/xicheng-poi-production-review-summary.csv'
+  const sourceCoverageEvidencePath = 'qa/xicheng-poi-source-coverage-evidence.json'
+  const sourceReviewApplyEvidencePath = 'qa/xicheng-poi-source-review-apply-evidence.json'
+  const productionReviewApplyEvidencePath = 'qa/xicheng-poi-production-review-apply-evidence.json'
+  const sourceAppliedWorkbookPath = 'workbench/xicheng-production-pois.review-workbook.source-applied.csv'
+  const productionAppliedWorkbookPath = 'workbench/xicheng-production-pois.review-workbook.production-applied.csv'
 
   return {
     artifactType: reviewPacketArtifactType,
@@ -493,6 +500,9 @@ function buildReviewPacket({
     },
     requiredEvidenceFiles: {
       workbookEvidenceFile: 'qa/xicheng-poi-review-workbook-evidence.json',
+      sourceCoverageEvidenceFile: sourceCoverageEvidencePath,
+      sourceReviewApplyEvidenceFile: sourceReviewApplyEvidencePath,
+      productionReviewApplyEvidenceFile: productionReviewApplyEvidencePath,
       manifestEvidenceFile: 'qa/xicheng-poi-manifest-evidence.json',
       seedGenerationEvidenceFile: 'qa/xicheng-poi-production-seed-generation-evidence.json',
       seedEvidenceFile: 'qa/xicheng-poi-production-seed-evidence.json'
@@ -500,7 +510,10 @@ function buildReviewPacket({
     nextCommands: [
       `npm run xunjing:xicheng:poi:workbook:gate -- --workbook ${workbookPath || 'workbench/xicheng-production-pois.review-workbook.csv'} --evidence-file qa/xicheng-poi-review-workbook-evidence.json`,
       'npm run xunjing:xicheng:poi:tasks:export -- --workbook-evidence qa/xicheng-poi-review-workbook-evidence.json --output workbench/xicheng-poi-review-tasks.csv',
-      `npm run xunjing:xicheng:poi:manifest:from-workbook -- --workbook ${workbookPath || 'workbench/xicheng-production-pois.review-workbook.csv'} --output ${productionManifestPath} --production-ready --batch-code xicheng-p0-poi-review-YYYYMMDD --data-owner xicheng-cultural-tourism-review-team --source-compiled-by xicheng-source-compiler --source-compiled-at YYYY-MM-DD --reviewed-by xicheng-production-reviewer --reviewed-at YYYY-MM-DD --evidence-package-ref oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-YYYYMMDD.zip`,
+      `npm run xunjing:xicheng:poi:source-coverage:audit -- --source-review ${sourceReviewPath} --evidence-file ${sourceCoverageEvidencePath}`,
+      `npm run xunjing:xicheng:poi:source-review:apply -- --workbook ${workbookPath || 'workbench/xicheng-production-pois.review-workbook.csv'} --source-review ${sourceReviewPath} --source-coverage-evidence ${sourceCoverageEvidencePath} --output ${sourceAppliedWorkbookPath} --evidence-file ${sourceReviewApplyEvidencePath}`,
+      `npm run xunjing:xicheng:poi:production-review:apply -- --workbook ${sourceAppliedWorkbookPath} --production-review ${productionReviewPath} --source-review-apply-evidence ${sourceReviewApplyEvidencePath} --output ${productionAppliedWorkbookPath} --evidence-file ${productionReviewApplyEvidencePath}`,
+      `npm run xunjing:xicheng:poi:manifest:from-workbook -- --workbook ${productionAppliedWorkbookPath} --output ${productionManifestPath} --production-ready --batch-code xicheng-p0-poi-review-YYYYMMDD --data-owner xicheng-cultural-tourism-review-team --source-compiled-by xicheng-source-compiler --source-compiled-at YYYY-MM-DD --reviewed-by xicheng-production-reviewer --reviewed-at YYYY-MM-DD --evidence-package-ref oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-YYYYMMDD.zip`,
       `npm run xunjing:xicheng:poi:manifest:gate -- --manifest ${productionManifestPath} --evidence-file qa/xicheng-poi-manifest-evidence.json`,
       `npm run xunjing:xicheng:poi:seed:generate -- --manifest ${productionManifestPath} --output ${productionSeedPath} --evidence-file qa/xicheng-poi-production-seed-generation-evidence.json`,
       `npm run xunjing:xicheng:poi:seed:verify -- --sql ${productionSeedPath} --evidence-file qa/xicheng-poi-production-seed-evidence.json`

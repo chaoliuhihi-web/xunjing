@@ -339,6 +339,9 @@ describe('xicheng POI production manifest template generator', () => {
       },
       requiredEvidenceFiles: {
         workbookEvidenceFile: 'qa/xicheng-poi-review-workbook-evidence.json',
+        sourceCoverageEvidenceFile: 'qa/xicheng-poi-source-coverage-evidence.json',
+        sourceReviewApplyEvidenceFile: 'qa/xicheng-poi-source-review-apply-evidence.json',
+        productionReviewApplyEvidenceFile: 'qa/xicheng-poi-production-review-apply-evidence.json',
         manifestEvidenceFile: 'qa/xicheng-poi-manifest-evidence.json',
         seedEvidenceFile: 'qa/xicheng-poi-production-seed-evidence.json'
       }
@@ -350,7 +353,16 @@ describe('xicheng POI production manifest template generator', () => {
       'npm run xunjing:xicheng:poi:tasks:export -- --workbook-evidence qa/xicheng-poi-review-workbook-evidence.json --output workbench/xicheng-poi-review-tasks.csv'
     )
     expect(reviewPacket.nextCommands).toContain(
-      'npm run xunjing:xicheng:poi:manifest:from-workbook -- --workbook workbench/xicheng-production-pois.review-workbook.csv --output workbench/xicheng-production-pois.json --production-ready --batch-code xicheng-p0-poi-review-YYYYMMDD --data-owner xicheng-cultural-tourism-review-team --source-compiled-by xicheng-source-compiler --source-compiled-at YYYY-MM-DD --reviewed-by xicheng-production-reviewer --reviewed-at YYYY-MM-DD --evidence-package-ref oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-YYYYMMDD.zip'
+      'npm run xunjing:xicheng:poi:source-coverage:audit -- --source-review workbench/xicheng-poi-source-review-summary.csv --evidence-file qa/xicheng-poi-source-coverage-evidence.json'
+    )
+    expect(reviewPacket.nextCommands).toContain(
+      'npm run xunjing:xicheng:poi:source-review:apply -- --workbook workbench/xicheng-production-pois.review-workbook.csv --source-review workbench/xicheng-poi-source-review-summary.csv --source-coverage-evidence qa/xicheng-poi-source-coverage-evidence.json --output workbench/xicheng-production-pois.review-workbook.source-applied.csv --evidence-file qa/xicheng-poi-source-review-apply-evidence.json'
+    )
+    expect(reviewPacket.nextCommands).toContain(
+      'npm run xunjing:xicheng:poi:production-review:apply -- --workbook workbench/xicheng-production-pois.review-workbook.source-applied.csv --production-review workbench/xicheng-poi-production-review-summary.csv --source-review-apply-evidence qa/xicheng-poi-source-review-apply-evidence.json --output workbench/xicheng-production-pois.review-workbook.production-applied.csv --evidence-file qa/xicheng-poi-production-review-apply-evidence.json'
+    )
+    expect(reviewPacket.nextCommands).toContain(
+      'npm run xunjing:xicheng:poi:manifest:from-workbook -- --workbook workbench/xicheng-production-pois.review-workbook.production-applied.csv --output workbench/xicheng-production-pois.json --production-ready --batch-code xicheng-p0-poi-review-YYYYMMDD --data-owner xicheng-cultural-tourism-review-team --source-compiled-by xicheng-source-compiler --source-compiled-at YYYY-MM-DD --reviewed-by xicheng-production-reviewer --reviewed-at YYYY-MM-DD --evidence-package-ref oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-YYYYMMDD.zip'
     )
     expect(reviewPacket.nextCommands).toContain(
       'npm run xunjing:xicheng:poi:manifest:gate -- --manifest workbench/xicheng-production-pois.json --evidence-file qa/xicheng-poi-manifest-evidence.json'

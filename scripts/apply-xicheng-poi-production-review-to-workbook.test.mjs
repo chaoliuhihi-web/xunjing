@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -112,6 +113,51 @@ function productionReviewCsv({ evidenceRef = 'oss://xunjing-review/xicheng/xiche
   ].join('\n') + '\n'
 }
 
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex')
+}
+
+async function writeSourceReviewApplyEvidence(rootDir, {
+  status = 'SOURCE_REVIEW_APPLIED',
+  ok = true,
+  pendingSourcePoiCount = 0,
+  sourceCoverageStatus = 'SOURCE_COVERAGE_READY',
+  sourceCoverageUncoveredPoiCount = 0
+} = {}) {
+  const workbookFile = path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv')
+  const evidenceFile = path.join(rootDir, 'qa/xicheng-poi-source-review-apply-evidence.json')
+  const workbookText = await readFile(workbookFile, 'utf8')
+  await writeFile(evidenceFile, `${JSON.stringify({
+    artifactType: 'xicheng-poi-source-review-apply',
+    ok,
+    status,
+    checkedAt: '2026-06-28T00:00:00.000Z',
+    summary: {
+      workbookFile,
+      sourceReviewFile: path.join(rootDir, 'workbench/xicheng-poi-source-review-summary.csv'),
+      sourceCoverageEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-source-coverage-evidence.json'),
+      sourceCoverageStatus,
+      sourceCoverageCoveredPoiCount: 80,
+      sourceCoverageUncoveredPoiCount,
+      outputFile: workbookFile,
+      evidenceFile,
+      workbookRows: 80,
+      sourceReviewRows: 25,
+      approvedSourceGroupCount: 25,
+      appliedPoiCount: 80 - pendingSourcePoiCount,
+      pendingSourcePoiCount,
+      pendingSourcePoiCodes: [],
+      outputSha256: sha256(workbookText)
+    },
+    blockers: pendingSourcePoiCount > 0 ? ['source review remains'] : []
+  }, null, 2)}\n`)
+  return 'qa/xicheng-poi-source-review-apply-evidence.json'
+}
+
+function sourceReviewApplyEvidenceArgs() {
+  return ['--source-review-apply-evidence', 'qa/xicheng-poi-source-review-apply-evidence.json']
+}
+
 afterEach(async () => {
   while (tempDirs.length > 0) {
     await rm(tempDirs.pop(), { recursive: true, force: true })
@@ -119,12 +165,41 @@ afterEach(async () => {
 })
 
 describe('xicheng POI production review workbook apply', () => {
-  test('applies approved field geo and content review rows without marking remaining POIs ready', async () => {
+  test('requires source review apply evidence before applying production review rows', async () => {
     const rootDir = await createTempRoot()
     expect(runReviewPack(rootDir).status).toBe(0)
     await writeFile(path.join(rootDir, 'workbench/xicheng-poi-production-review-summary.csv'), productionReviewCsv())
 
     const result = runProductionReviewApply(rootDir)
+
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('--source-review-apply-evidence is required')
+  })
+
+  test('rejects source review apply evidence that is not ready', async () => {
+    const rootDir = await createTempRoot()
+    expect(runReviewPack(rootDir).status).toBe(0)
+    await writeFile(path.join(rootDir, 'workbench/xicheng-poi-production-review-summary.csv'), productionReviewCsv())
+    await writeSourceReviewApplyEvidence(rootDir, {
+      ok: false,
+      status: 'SOURCE_REVIEW_DATA_REMAINS',
+      pendingSourcePoiCount: 79
+    })
+
+    const result = runProductionReviewApply(rootDir, sourceReviewApplyEvidenceArgs())
+
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('source review apply evidence status must be SOURCE_REVIEW_APPLIED')
+    expect(result.stderr).toContain('source review apply evidence must have pendingSourcePoiCount=0')
+  })
+
+  test('applies approved field geo and content review rows without marking remaining POIs ready', async () => {
+    const rootDir = await createTempRoot()
+    expect(runReviewPack(rootDir).status).toBe(0)
+    await writeFile(path.join(rootDir, 'workbench/xicheng-poi-production-review-summary.csv'), productionReviewCsv())
+    await writeSourceReviewApplyEvidence(rootDir)
+
+    const result = runProductionReviewApply(rootDir, sourceReviewApplyEvidenceArgs())
 
     expect(result.status).toBe(0)
     const report = JSON.parse(result.stdout)
@@ -137,6 +212,12 @@ describe('xicheng POI production review workbook apply', () => {
       summary: {
         workbookFile: path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv'),
         productionReviewFile: path.join(rootDir, 'workbench/xicheng-poi-production-review-summary.csv'),
+        sourceReviewApplyEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-source-review-apply-evidence.json'),
+        sourceReviewApplyStatus: 'SOURCE_REVIEW_APPLIED',
+        sourceReviewAppliedPoiCount: 80,
+        sourceReviewPendingSourcePoiCount: 0,
+        sourceCoverageStatus: 'SOURCE_COVERAGE_READY',
+        sourceCoverageUncoveredPoiCount: 0,
         outputFile,
         evidenceFile,
         workbookRows: 80,
@@ -193,8 +274,9 @@ describe('xicheng POI production review workbook apply', () => {
     await writeFile(path.join(rootDir, 'workbench/xicheng-poi-production-review-summary.csv'), productionReviewCsv({
       evidenceRef: 'file:///Users/reviewer/Desktop/baitasi.jpg'
     }))
+    await writeSourceReviewApplyEvidence(rootDir)
 
-    const result = runProductionReviewApply(rootDir)
+    const result = runProductionReviewApply(rootDir, sourceReviewApplyEvidenceArgs())
 
     expect(result.status).toBe(1)
     expect(result.stderr).toContain('fieldEvidenceRefs must include non-local HTTPS/object-storage references')
@@ -209,9 +291,11 @@ describe('xicheng POI production review workbook apply', () => {
       'node scripts/apply-xicheng-poi-production-review-to-workbook.mjs'
     )
     expect(deployDoc).toContain('npm run xunjing:xicheng:poi:production-review:apply')
+    expect(deployDoc).toContain('--source-review-apply-evidence qa/xicheng-poi-source-review-apply-evidence.json')
     expect(deployDoc).toContain('workbench/xicheng-production-pois.review-workbook.production-applied.csv')
     expect(deployDoc).toContain('qa/xicheng-poi-production-review-apply-evidence.json')
     expect(statusDoc).toContain('xicheng:poi:production-review:apply')
+    expect(statusDoc).toContain('--source-review-apply-evidence qa/xicheng-poi-source-review-apply-evidence.json')
     expect(statusDoc).toContain('PRODUCTION_REVIEW_DATA_REMAINS')
   })
 })
