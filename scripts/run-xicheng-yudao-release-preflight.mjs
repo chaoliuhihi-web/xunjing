@@ -152,7 +152,7 @@ function isNonLocalHttpsUrl(value) {
     const url = new URL(String(value || ''))
     const hostname = url.hostname.toLowerCase()
     return url.protocol === 'https:' &&
-      !['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(hostname) &&
+      !['localhost', '127.0.0.1', '0.0.0.0', '::1', 'host.docker.internal'].includes(hostname) &&
       !hostname.endsWith('.local')
   } catch {
     return false

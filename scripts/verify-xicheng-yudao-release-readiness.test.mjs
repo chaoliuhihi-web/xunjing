@@ -717,6 +717,20 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(result.blockers.join('\n')).toContain('XUNJING_APP_API_BASE_URL must be a real HTTPS backend domain')
   })
 
+  test('rejects local-only APP API hostnames for production release evidence', async () => {
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv({
+        XUNJING_APP_API_BASE_URL: 'https://xunjing.local'
+      }),
+      rootDir: process.cwd(),
+      stage: 'production'
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.checks.find((check) => check.name === 'https-app-api-domain')?.ok).toBe(false)
+    expect(result.blockers.join('\n')).toContain('XUNJING_APP_API_BASE_URL must be a real HTTPS backend domain')
+  })
+
   test('keeps the current repo NOT_READY for production until reviewed POI evidence exists', async () => {
     const result = await verifyXichengYudaoReleaseReadiness({
       env: productionEnv(),

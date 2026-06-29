@@ -280,6 +280,7 @@ function isLoopback(value) {
   return normalized.includes('127.0.0.1') ||
     normalized.includes('localhost') ||
     normalized.includes('host.docker.internal') ||
+    normalized.endsWith('.local') ||
     normalized === '::1' ||
     normalized === '0.0.0.0'
 }

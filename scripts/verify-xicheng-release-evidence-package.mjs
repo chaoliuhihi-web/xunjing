@@ -195,7 +195,8 @@ function isLoopbackHostname(hostname) {
     normalized === '127.0.0.1' ||
     normalized === '::1' ||
     normalized === '0.0.0.0' ||
-    normalized === 'host.docker.internal'
+    normalized === 'host.docker.internal' ||
+    normalized.endsWith('.local')
 }
 
 function isNonLocalHttpsUrl(value) {
