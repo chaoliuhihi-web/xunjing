@@ -63,6 +63,12 @@ assert.match(
 
 assert.match(
   travelogue,
+  /submitReviewPackage\(\)[\s\S]*reviewEvidencePolicy:\s*\{[\s\S]*rawEvidenceUse:\s*'local-ops-review-only'[\s\S]*publicPreviewUse:\s*'share-review-preview-only'[\s\S]*exactLocationPolicy:\s*'raw-review-only'[\s\S]*photoPathPolicy:\s*'raw-review-only'[\s\S]*publishStatus:\s*'private'[\s\S]*auditRequired:\s*true[\s\S]*\}[\s\S]*publicPreview:\s*this\.createReviewPublicPreview\(\)/,
+  'review payload should label raw evidence as local operations review data and keep public preview as the only share-safe surface'
+)
+
+assert.match(
+  travelogue,
   /createReviewPublicPreview\(\)[\s\S]*const publicRouteCheckins = this\.routeCheckins[\s\S]*filter\(checkin => this\.hasReviewableRouteCheckinEvidence\(checkin\)\)[\s\S]*map\(checkin => this\.sanitizeRouteCheckinForPublicShare\(checkin\)\)[\s\S]*const publicMaterials = this\.materials[\s\S]*filter\(material => hasReviewableMaterialEvidence\(material\)\)[\s\S]*map\(material => this\.sanitizeMaterialForPublicShare\(material\)\)[\s\S]*publicStudyTaskEvidence:\s*this\.completedStudyTaskEvidence\.map\(evidence => this\.sanitizeStudyTaskEvidenceForPublicShare\(evidence\)\)[\s\S]*publicRecordingSummary:\s*this\.createPublicRecordingSummary\(\)[\s\S]*privacy:\s*\{[\s\S]*shareLocationPrecision:\s*'poi_area'[\s\S]*exactCoordinatesHidden:\s*true/,
   'review public preview should reuse the public-share sanitizers for materials, route check-ins, study evidence, and recording summary'
 )

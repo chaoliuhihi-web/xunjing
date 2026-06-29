@@ -1663,6 +1663,14 @@ export default {
 				reviewedSourceCount: this.reviewReadinessSummary.reviewedSourceCount,
 				reviewBlockers: this.reviewReadinessSummary.reviewBlockers,
 				reviewBlockerCount: this.reviewReadinessSummary.reviewBlockers.length,
+				reviewEvidencePolicy: {
+					rawEvidenceUse: 'local-ops-review-only',
+					publicPreviewUse: 'share-review-preview-only',
+					exactLocationPolicy: 'raw-review-only',
+					photoPathPolicy: 'raw-review-only',
+					publishStatus: 'private',
+					auditRequired: true
+				},
 				publicPreview: this.createReviewPublicPreview(),
 				reviewStatus: this.reviewText,
 				submittedAt,
