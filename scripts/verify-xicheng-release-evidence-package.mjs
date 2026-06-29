@@ -207,6 +207,21 @@ function isNonLocalHttpsUrl(value) {
   }
 }
 
+function isPlaceholderUrl(value) {
+  const normalized = String(value || '').trim().toLowerCase()
+  if (!normalized) {
+    return true
+  }
+  return [
+    'replace-with',
+    'placeholder',
+    'your-',
+    'example.com',
+    'local-or-staging',
+    'xunjing_local'
+  ].some((token) => normalized.includes(token))
+}
+
 function normalizedBaseUrl(value) {
   try {
     const url = new URL(value)
@@ -1178,6 +1193,8 @@ function checkAppReadinessEvidence(ref, stage, freshnessOptions) {
   }
   if (!isNonLocalHttpsUrl(baseUrl)) {
     blockers.push(`app readiness evidence baseUrl must be a non-local HTTPS URL for ${stage}`)
+  } else if (isPlaceholderUrl(baseUrl)) {
+    blockers.push(`app readiness evidence baseUrl must be a real non-placeholder HTTPS URL for ${stage}`)
   }
   if (summary.staticOnly !== false) {
     blockers.push('app readiness evidence staticOnly must be false')

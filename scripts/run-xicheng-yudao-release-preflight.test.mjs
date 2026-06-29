@@ -239,6 +239,48 @@ describe('xicheng Yudao release preflight', () => {
     expect(handoffMarkdown).not.toContain('npm run xunjing:xicheng:poi:review:pack')
   })
 
+  test('rejects placeholder APP readiness backend domains', async () => {
+    const rootDir = await createTempRoot()
+    await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', {
+      artifactType: 'xunjing-platform-readiness',
+      ok: true,
+      checkedAt: new Date().toISOString(),
+      summary: {
+        baseUrl: 'https://your-production-domain/',
+        tenantId: '1',
+        staticOnly: false,
+        includeXichengAppCheck: true,
+        includeXichengTriggerCheck: true,
+        xichengRegionCode: 'beijing-xicheng',
+        xichengPackageCode: 'XICHENG-MAP-001'
+      },
+      checks: [],
+      blockers: []
+    })
+
+    const result = runPreflight([
+      '--root', rootDir,
+      '--env-file', 'ops/xunjing-platform.env.example',
+      '--release-evidence', 'qa/xicheng-yudao-release-evidence.json',
+      '--tasks-output', 'workbench/xicheng-yudao-release-blocker-tasks.csv',
+      '--poi-tasks-output', 'workbench/xicheng-yudao-release-poi-blocker-tasks.csv',
+      '--handoff-output', 'workbench/xicheng-yudao-release-handoff.md'
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.appReadiness.status).toBe('REVIEW_REQUIRED')
+    expect(report.appReadiness.blockers).toContain(
+      'APP readiness evidence baseUrl must be a real non-placeholder HTTPS URL'
+    )
+
+    const tasksCsv = await readFile(
+      path.join(rootDir, 'workbench/xicheng-yudao-release-blocker-tasks.csv'),
+      'utf8'
+    )
+    expect(tasksCsv).toContain('app-readiness-evidence,1,APP readiness evidence baseUrl must be a real non-placeholder HTTPS URL,app-ops')
+  })
+
   test('exposes the preflight through npm scripts and handoff docs', async () => {
     const packageJson = JSON.parse(await readFile(path.resolve('package.json'), 'utf8'))
     const deployDoc = await readFile(path.resolve('docs/02_开发规划/星河寻境业务平台部署说明.md'), 'utf8')

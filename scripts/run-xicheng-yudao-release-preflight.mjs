@@ -159,6 +159,21 @@ function isNonLocalHttpsUrl(value) {
   }
 }
 
+function isPlaceholderUrl(value) {
+  const normalized = String(value || '').trim().toLowerCase()
+  if (!normalized) {
+    return true
+  }
+  return [
+    'replace-with',
+    'placeholder',
+    'your-',
+    'example.com',
+    'local-or-staging',
+    'xunjing_local'
+  ].some((token) => normalized.includes(token))
+}
+
 async function summarizeAppReadinessEvidence({
   rootDir,
   releaseEvidence,
@@ -205,6 +220,8 @@ async function summarizeAppReadinessEvidence({
   }
   if (!isNonLocalHttpsUrl(baseUrl)) {
     blockers.push('APP readiness evidence baseUrl must be a non-local HTTPS URL')
+  } else if (isPlaceholderUrl(baseUrl)) {
+    blockers.push('APP readiness evidence baseUrl must be a real non-placeholder HTTPS URL')
   }
   if (releaseBaseUrl && baseUrl && releaseBaseUrl !== baseUrl) {
     blockers.push('APP readiness evidence baseUrl must match release evidence appApiBaseUrl')
