@@ -113,6 +113,7 @@ describe('xicheng Yudao release preflight', () => {
     expect(report.summary.appReadinessCommand).toContain('--evidence-file qa/xicheng-app-readiness-evidence.json')
     expect(report.summary.productionReviewTasksCommand).toContain('--production-review workbench/xicheng-poi-production-review-summary.csv')
     expect(report.summary.productionReviewTasksCommand).toContain('--output workbench/xicheng-poi-production-review-tasks.csv')
+    expect(report.summary.productionReviewTasksCommand).toContain('--owner-lane-output workbench/xicheng-poi-production-review-owner-lanes.csv')
     expect(report.summary.productionReviewTasksCommand).toContain('--evidence-file qa/xicheng-poi-production-review-tasks-evidence.json')
     expect(report.appReadiness).toMatchObject({
       ok: false,
@@ -199,6 +200,7 @@ describe('xicheng Yudao release preflight', () => {
     expect(handoffMarkdown).toContain('Status: `MISSING`')
     expect(handoffMarkdown).toContain('npm run xunjing:xicheng:poi:production-review:tasks:export')
     expect(handoffMarkdown).toContain('workbench/xicheng-poi-production-review-tasks.csv')
+    expect(handoffMarkdown).toContain('workbench/xicheng-poi-production-review-owner-lanes.csv')
     expect(handoffMarkdown).toContain('qa/xicheng-poi-production-review-tasks-evidence.json')
     expect(handoffMarkdown).toContain('## APP Readiness Evidence')
     expect(handoffMarkdown).toContain('Status: `MISSING`')
@@ -285,6 +287,7 @@ describe('xicheng Yudao release preflight', () => {
       '--poi-summary-output', 'workbench/xicheng-yudao-release-poi-summary.csv',
       '--handoff-output', 'workbench/xicheng-yudao-release-handoff.md',
       '--production-review-tasks-output', 'workbench/xicheng-poi-production-review-tasks.csv',
+      '--production-review-owner-lanes-output', 'workbench/xicheng-poi-production-review-owner-lanes.csv',
       '--production-review-tasks-evidence', 'qa/xicheng-poi-production-review-tasks-evidence.json'
     ])
 
@@ -295,6 +298,7 @@ describe('xicheng Yudao release preflight', () => {
       productionReviewTaskCount: 10,
       productionReviewPendingPoiCount: 1,
       productionReviewTasksOutputFile: path.join(rootDir, 'workbench/xicheng-poi-production-review-tasks.csv'),
+      productionReviewOwnerLanesOutputFile: path.join(rootDir, 'workbench/xicheng-poi-production-review-owner-lanes.csv'),
       productionReviewTasksEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-production-review-tasks-evidence.json')
     })
     expect(report.productionReviewTasks).toMatchObject({
@@ -313,6 +317,14 @@ describe('xicheng Yudao release preflight', () => {
     expect(productionReviewTasksCsv).toContain('xicheng-baitasi,photoEvidenceStatus,field-review,REVIEW_REQUIRED,APPROVED')
     expect(productionReviewTasksCsv).toContain('xicheng-baitasi,fieldEvidenceRefs,field-review,EMPTY,non-local https/oss/cos/s3 evidence ref')
     expect(productionReviewTasksCsv).not.toContain('xicheng-ready,')
+
+    const productionReviewOwnerLanesCsv = await readFile(
+      path.join(rootDir, 'workbench/xicheng-poi-production-review-owner-lanes.csv'),
+      'utf8'
+    )
+    expect(productionReviewOwnerLanesCsv).toContain('ownerLane,taskCount,poiCount,fields,poiCodes,taskCsvFile,productionReviewFile,nextAction')
+    expect(productionReviewOwnerLanesCsv).toContain('field-review,4,1,fieldEvidenceRefs|fieldVerifiedAt|fieldVerifiedBy|photoEvidenceStatus,xicheng-baitasi')
+    expect(productionReviewOwnerLanesCsv).toContain('geo-audit,1,1,geoStatus,xicheng-baitasi')
 
     const productionReviewTasksEvidence = JSON.parse(await readFile(
       path.join(rootDir, 'qa/xicheng-poi-production-review-tasks-evidence.json'),
@@ -333,6 +345,8 @@ describe('xicheng Yudao release preflight', () => {
     expect(handoffMarkdown).toContain('Status: `PRODUCTION_REVIEW_TASKS_REQUIRED`')
     expect(handoffMarkdown).toContain('Task count: 10')
     expect(handoffMarkdown).toContain('Pending POIs: 1')
+    expect(handoffMarkdown).toContain('Owner lane CSV:')
+    expect(handoffMarkdown).toContain('workbench/xicheng-poi-production-review-owner-lanes.csv')
     expect(handoffMarkdown).toContain('### field-review')
   })
 
@@ -438,6 +452,8 @@ describe('xicheng Yudao release preflight', () => {
     expect(statusDoc).toContain('summary.appReadinessStatus')
     expect(deployDoc).toContain('summary.productionReviewTasksCommand')
     expect(statusDoc).toContain('summary.productionReviewTasksCommand')
+    expect(deployDoc).toContain('summary.productionReviewOwnerLanesOutputFile')
+    expect(statusDoc).toContain('summary.productionReviewOwnerLanesOutputFile')
     expect(deployDoc).toContain('production-review-tasks')
     expect(statusDoc).toContain('production-review-tasks')
     expect(deployDoc).toContain('app-readiness-evidence')

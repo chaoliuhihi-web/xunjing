@@ -372,15 +372,43 @@ function buildCsv(taskRows) {
   ].join('\n')}\n`
 }
 
+function buildOwnerLaneCsv(ownerLaneBreakdown, taskCsvFile, productionReviewFile) {
+  const header = [
+    'ownerLane',
+    'taskCount',
+    'poiCount',
+    'fields',
+    'poiCodes',
+    'taskCsvFile',
+    'productionReviewFile',
+    'nextAction'
+  ]
+  return `${[
+    header.join(','),
+    ...ownerLaneBreakdown.map((lane) => csvRow([
+      lane.ownerLane,
+      lane.taskCount,
+      lane.poiCount,
+      (lane.fields || []).join('|'),
+      (lane.poiCodes || []).join('|'),
+      taskCsvFile,
+      productionReviewFile,
+      `Filter the task CSV by ownerLane=${lane.ownerLane}, update the production review summary fields, then rerun production-review:tasks:export and production-review:apply.`
+    ]))
+  ].join('\n')}\n`
+}
+
 export async function exportXichengPoiProductionReviewTasks({
   rootDir = process.cwd(),
   productionReviewFile,
   outputFile = 'workbench/xicheng-poi-production-review-tasks.csv',
+  ownerLaneOutputFile = 'workbench/xicheng-poi-production-review-owner-lanes.csv',
   evidenceFile = 'qa/xicheng-poi-production-review-tasks-evidence.json'
 } = {}) {
   const resolvedRootDir = path.resolve(rootDir)
   const resolvedProductionReviewFile = resolveInputFile(resolvedRootDir, productionReviewFile, '--production-review')
   const resolvedOutputFile = resolveSafeOutputFile(resolvedRootDir, outputFile, '--output')
+  const resolvedOwnerLaneOutputFile = resolveSafeOutputFile(resolvedRootDir, ownerLaneOutputFile, '--owner-lane-output')
   const resolvedEvidenceFile = resolveSafeOutputFile(resolvedRootDir, evidenceFile, '--evidence-file')
   const rows = parseRows(await readFile(resolvedProductionReviewFile, 'utf8'), 'production review CSV')
   const taskRows = buildTaskRows(rows, resolvedProductionReviewFile)
@@ -399,6 +427,7 @@ export async function exportXichengPoiProductionReviewTasks({
     summary: {
       productionReviewFile: resolvedProductionReviewFile,
       outputFile: resolvedOutputFile,
+      ownerLaneOutputFile: resolvedOwnerLaneOutputFile,
       evidenceFile: resolvedEvidenceFile,
       productionReviewRows: rows.length,
       readyPoiCount,
@@ -417,6 +446,12 @@ export async function exportXichengPoiProductionReviewTasks({
 
   await mkdir(path.dirname(resolvedOutputFile), { recursive: true })
   await writeFile(resolvedOutputFile, buildCsv(taskRows))
+  await mkdir(path.dirname(resolvedOwnerLaneOutputFile), { recursive: true })
+  await writeFile(resolvedOwnerLaneOutputFile, buildOwnerLaneCsv(
+    ownerLaneBreakdown,
+    resolvedOutputFile,
+    resolvedProductionReviewFile
+  ))
   await mkdir(path.dirname(resolvedEvidenceFile), { recursive: true })
   await writeFile(resolvedEvidenceFile, `${JSON.stringify(report, null, 2)}\n`)
 
@@ -429,6 +464,8 @@ async function runCli() {
     rootDir: path.resolve(readArgValue(args, '--root') || process.cwd()),
     productionReviewFile: readArgValue(args, '--production-review'),
     outputFile: readArgValue(args, '--output') || 'workbench/xicheng-poi-production-review-tasks.csv',
+    ownerLaneOutputFile: readArgValue(args, '--owner-lane-output') ||
+      'workbench/xicheng-poi-production-review-owner-lanes.csv',
     evidenceFile: readArgValue(args, '--evidence-file') || 'qa/xicheng-poi-production-review-tasks-evidence.json'
   })
   console.log(JSON.stringify(report, null, 2))

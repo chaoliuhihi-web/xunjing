@@ -51,6 +51,7 @@ describe('xicheng POI production review task export', () => {
       '--root', rootDir,
       '--production-review', 'workbench/xicheng-poi-production-review-summary.csv',
       '--output', 'workbench/xicheng-poi-production-review-tasks.csv',
+      '--owner-lane-output', 'workbench/xicheng-poi-production-review-owner-lanes.csv',
       '--evidence-file', 'qa/xicheng-poi-production-review-tasks-evidence.json'
     ])
 
@@ -63,6 +64,7 @@ describe('xicheng POI production review task export', () => {
       summary: {
         productionReviewFile,
         outputFile: path.join(rootDir, 'workbench/xicheng-poi-production-review-tasks.csv'),
+        ownerLaneOutputFile: path.join(rootDir, 'workbench/xicheng-poi-production-review-owner-lanes.csv'),
         evidenceFile: path.join(rootDir, 'qa/xicheng-poi-production-review-tasks-evidence.json'),
         productionReviewRows: 3,
         readyPoiCount: 1,
@@ -104,11 +106,18 @@ describe('xicheng POI production review task export', () => {
     expect(taskCsv).toContain('xicheng-baitasi,fieldEvidenceRefs,field-review,EMPTY,non-local https/oss/cos/s3 evidence ref')
     expect(taskCsv).toContain('xicheng-trigger,triggerSmokeStatus,trigger-smoke,NOT_RUN,PASSED')
 
+    const ownerLaneCsv = await readFile(path.join(rootDir, 'workbench/xicheng-poi-production-review-owner-lanes.csv'), 'utf8')
+    expect(ownerLaneCsv).toContain('ownerLane,taskCount,poiCount,fields,poiCodes,taskCsvFile,productionReviewFile,nextAction')
+    expect(ownerLaneCsv).toContain('field-review,4,1,fieldEvidenceRefs|fieldVerifiedAt|fieldVerifiedBy|photoEvidenceStatus,xicheng-baitasi')
+    expect(ownerLaneCsv).toContain('trigger-smoke,1,1,triggerSmokeStatus,xicheng-trigger')
+    expect(ownerLaneCsv).toContain('Filter the task CSV by ownerLane=field-review')
+
     const evidence = JSON.parse(await readFile(path.join(rootDir, 'qa/xicheng-poi-production-review-tasks-evidence.json'), 'utf8'))
     expect(evidence.summary).toMatchObject({
       pendingPoiCount: 2,
       readyPoiCount: 1,
-      taskCount: 11
+      taskCount: 11,
+      ownerLaneOutputFile: path.join(rootDir, 'workbench/xicheng-poi-production-review-owner-lanes.csv')
     })
   })
 
@@ -154,8 +163,10 @@ describe('xicheng POI production review task export', () => {
     )
     expect(deployDoc).toContain('npm run xunjing:xicheng:poi:production-review:tasks:export')
     expect(deployDoc).toContain('workbench/xicheng-poi-production-review-tasks.csv')
+    expect(deployDoc).toContain('workbench/xicheng-poi-production-review-owner-lanes.csv')
     expect(deployDoc).toContain('qa/xicheng-poi-production-review-tasks-evidence.json')
     expect(statusDoc).toContain('PRODUCTION_REVIEW_TASKS_REQUIRED')
     expect(statusDoc).toContain('workbench/xicheng-poi-production-review-tasks.csv')
+    expect(statusDoc).toContain('workbench/xicheng-poi-production-review-owner-lanes.csv')
   })
 })
