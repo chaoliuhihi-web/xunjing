@@ -1,6 +1,7 @@
 <template>
 	<view class="xicheng-home xicheng-designed-page xicheng-bottom-safe">
-		<view class="hero xicheng-paper-card">
+		<view class="hero xicheng-paper-card xicheng-immersive-hero">
+			<view class="hero-atmosphere"></view>
 			<view class="hero-main">
 				<view class="hero-copy">
 					<text class="eyebrow">{{ region.cityName }}</text>
@@ -45,11 +46,15 @@
 		</view>
 
 		<view class="quick-grid">
-			<view class="quick-card xicheng-paper-card" @click="startScanRecognition">
+			<view class="quick-card xicheng-paper-card quick-card-featured quick-card-scan" @click="startScanRecognition">
 				<text class="quick-title">扫一扫</text>
 				<text class="quick-desc">识别二维码、展牌和门票</text>
 			</view>
-			<view class="quick-card xicheng-paper-card" @click="startPhotoRecognition">
+			<view class="quick-card xicheng-paper-card quick-card-featured quick-card-ask" @click="askXiaojing">
+				<text class="quick-title">问问小京</text>
+				<text class="quick-desc">继续咨询路线和讲解</text>
+			</view>
+			<view class="quick-card xicheng-paper-card quick-card-photo" @click="startPhotoRecognition">
 				<text class="quick-title">拍照识别</text>
 				<text class="quick-desc">识别门头、文物和说明牌</text>
 			</view>
@@ -64,10 +69,6 @@
 			<view class="quick-card xicheng-paper-card" @click="startTextRecognition">
 				<text class="quick-title">文本识别</text>
 				<text class="quick-desc">粘贴地点、展牌或攻略文字</text>
-			</view>
-			<view class="quick-card xicheng-paper-card" @click="askXiaojing">
-				<text class="quick-title">问问小京</text>
-				<text class="quick-desc">继续咨询路线和讲解</text>
 			</view>
 		</view>
 
@@ -655,6 +656,7 @@ export default {
 }
 
 .hero {
+	position: relative;
 	padding: 44rpx 34rpx;
 	border-radius: 34rpx;
 	background:
@@ -662,31 +664,55 @@ export default {
 	box-shadow: 0 20rpx 52rpx rgba(28, 35, 32, 0.12);
 }
 
+.xicheng-immersive-hero {
+	min-height: 560rpx;
+	overflow: hidden;
+	background:
+		radial-gradient(circle at 84% 12%, rgba(181, 148, 94, 0.18), transparent 34%),
+		linear-gradient(145deg, rgba(255, 253, 247, 0.98), rgba(239, 230, 216, 0.78));
+}
+
+.hero-atmosphere {
+	position: absolute;
+	right: -90rpx;
+	bottom: -70rpx;
+	width: 430rpx;
+	height: 430rpx;
+	border-radius: 999rpx;
+	background:
+		radial-gradient(circle, rgba(23, 63, 53, 0.16), rgba(23, 63, 53, 0) 68%);
+}
+
 .hero-main {
+	position: relative;
+	z-index: 1;
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	justify-content: space-between;
 	gap: 24rpx;
 }
 
 .hero-copy {
 	flex: 1;
+	max-width: 408rpx;
 	min-width: 0;
 }
 
 .companion-visual {
-	width: 220rpx;
+	width: 276rpx;
 	flex-shrink: 0;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
+	margin-top: -8rpx;
 }
 
 .xiaojing-avatar {
-	width: 208rpx;
-	height: 268rpx;
-	border-radius: 30rpx;
+	width: 260rpx;
+	height: 334rpx;
+	border-radius: 34rpx;
 	background: #E7EFE8;
+	box-shadow: 0 18rpx 42rpx rgba(16, 47, 41, 0.15);
 }
 
 .companion-bubble {
@@ -742,8 +768,16 @@ export default {
 
 .hero-actions {
 	display: flex;
-	gap: 20rpx;
+	gap: 12rpx;
 	margin-top: 28rpx;
+}
+
+.hero-actions .primary-button,
+.hero-actions .ghost-button {
+	min-width: 0;
+	padding: 0 4rpx;
+	font-size: 26rpx;
+	white-space: nowrap;
 }
 
 .primary-button,
@@ -888,6 +922,27 @@ export default {
 	padding: 24rpx;
 	border-radius: 30rpx;
 	box-sizing: border-box;
+}
+
+.quick-card-featured {
+	min-height: 174rpx;
+	border: 1rpx solid rgba(255, 255, 255, 0.48);
+	box-shadow: 0 18rpx 38rpx rgba(16, 47, 41, 0.12);
+}
+
+.quick-card-scan {
+	background:
+		linear-gradient(135deg, rgba(23, 63, 53, 0.96), rgba(16, 47, 41, 0.92));
+}
+
+.quick-card-scan .quick-title,
+.quick-card-scan .quick-desc {
+	color: #FFF9EC;
+}
+
+.quick-card-ask {
+	background:
+		linear-gradient(145deg, rgba(255, 253, 248, 0.96), rgba(244, 236, 224, 0.86));
 }
 
 .quick-title,
