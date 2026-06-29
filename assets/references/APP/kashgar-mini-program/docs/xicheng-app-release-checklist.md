@@ -46,6 +46,8 @@ npm run test:run
 
 如果 preflight 仍提示 `APP readiness evidence baseUrl must be a non-local HTTPS URL`，说明需要生产或预发网关，不要伪造 evidence。
 
+预发证据采集步骤见 `xicheng-app-preprod-evidence-runbook.md`。
+
 ## 生产配置硬门槛
 
 上线前必须由生产或预发环境提供真实配置和证据：
