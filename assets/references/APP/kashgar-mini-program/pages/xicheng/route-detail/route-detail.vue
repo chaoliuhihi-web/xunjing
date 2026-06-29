@@ -21,7 +21,14 @@
 					</text>
 				</view>
 			</view>
+			<image
+				v-if="routeHeroImage"
+				class="route-hero-image"
+				:src="routeHeroImage"
+				mode="aspectFill"
+			/>
 			<view class="route-map">
+				<view class="route-map-trail"></view>
 				<view
 					v-for="(stop, index) in routeStopCards"
 					:key="`${stop.poiCode}-${index}`"
@@ -40,6 +47,17 @@
 			</view>
 		</view>
 
+		<view class="route-operation-strip xicheng-paper-card">
+			<view
+				v-for="card in routeOperationCards"
+				:key="card.key"
+				class="route-operation-card"
+			>
+				<text class="operation-label">{{ card.label }}</text>
+				<text class="operation-value">{{ card.value }}</text>
+			</view>
+		</view>
+
 		<view class="route-timeline">
 			<view
 				v-for="(stop, index) in routeStopCards"
@@ -47,6 +65,12 @@
 				class="route-stop-card xicheng-paper-card"
 			>
 				<view class="stop-index">{{ index + 1 }}</view>
+				<image
+					v-if="getStopThumbnail(stop, index)"
+					class="stop-thumbnail"
+					:src="getStopThumbnail(stop, index)"
+					mode="aspectFill"
+				/>
 				<view class="stop-copy">
 					<text class="stop-title">{{ stop.poiName }}</text>
 					<text class="stop-desc">{{ stop.summary || stop.theme }}</text>
@@ -77,7 +101,10 @@
 				<text class="action-title">生成这条路线的游记</text>
 				<text class="action-desc">路线、景点和待审核素材会先进入本地游记草稿。</text>
 			</view>
-			<button class="action-button xicheng-primary-action" @click="generateRouteTravelogue">生成游记</button>
+			<view class="action-button-group">
+				<button class="action-button xicheng-secondary-action" @click="startRouteRecording">开始记录</button>
+				<button class="action-button xicheng-primary-action" @click="generateRouteTravelogue">生成游记</button>
+			</view>
 		</view>
 	</view>
 </template>
@@ -128,6 +155,19 @@ export default {
 		},
 		nearbyHighlights() {
 			return Array.isArray(this.activeRoute.nearbyHighlights) ? this.activeRoute.nearbyHighlights : []
+		},
+		routeHeroImage() {
+			const thumbnails = this.region.visualAssets && this.region.visualAssets.routeThumbnails
+				? this.region.visualAssets.routeThumbnails
+				: {}
+			return thumbnails[this.activeRoute.routeCode] || this.region.visualAssets.heroLandmark || ''
+		},
+		routeOperationCards() {
+			return [
+				{ key: 'passport', label: '路线护照', value: `${this.activeRoute.passportTaskCount || this.routeStopCards.length} 点` },
+				{ key: 'study', label: '亲子研学任务', value: `${this.activeRoute.studyTaskCount || 0} 个` },
+				{ key: 'distance', label: '步行距离', value: this.activeRoute.distanceText || '可步行' }
+			]
 		}
 	},
 	onLoad(options = {}) {
@@ -195,6 +235,15 @@ export default {
 			uni.navigateTo({
 				url: `/pages/xicheng/travelogue/travelogue?mode=route&regionCode=${encodeURIComponent(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeURIComponent(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeURIComponent(this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.routeOptions.sourceChannel || this.region.sourceChannel)}&routeCode=${encodeURIComponent(this.activeRoute.routeCode || '')}&companionName=${encodeURIComponent(this.routeOptions.companionName || this.region.companionName)}`
 			})
+		},
+		startRouteRecording() {
+			this.persistRoutePassport()
+			uni.navigateTo({
+				url: `/pages/xicheng/travelogue/travelogue?mode=record&regionCode=${encodeURIComponent(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeURIComponent(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeURIComponent(this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.routeOptions.sourceChannel || this.region.sourceChannel)}&routeCode=${encodeURIComponent(this.activeRoute.routeCode || '')}&companionName=${encodeURIComponent(this.routeOptions.companionName || this.region.companionName)}`
+			})
+		},
+		getStopThumbnail(stop = {}, index = 0) {
+			return this.routeHeroImage
 		},
 		persistStopGuideContext(stop = {}, question = '') {
 			const sources = createXichengOfficialPoiSources(stop)
@@ -269,17 +318,20 @@ export default {
 }
 
 .route-hero {
-	min-height: 330rpx;
+	position: relative;
+	min-height: 520rpx;
 	padding: 34rpx;
 	border-radius: 34rpx;
 	box-sizing: border-box;
+	overflow: hidden;
 	background:
 		linear-gradient(112deg, rgba(255, 253, 248, 0.96) 0%, rgba(255, 253, 248, 0.82) 58%, rgba(181, 148, 94, 0.16) 100%);
 }
 
 .route-hero-copy {
 	position: relative;
-	z-index: 1;
+	z-index: 2;
+	max-width: 66%;
 }
 
 .route-kicker {
@@ -320,9 +372,20 @@ export default {
 	color: #8A6B3D;
 }
 
+.route-hero-image {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	width: 240rpx;
+	height: 250rpx;
+	border-radius: 30rpx 0 34rpx 0;
+	object-fit: cover;
+	opacity: 0.94;
+}
+
 .route-map {
 	position: absolute;
-	right: 28rpx;
+	left: 34rpx;
 	bottom: 34rpx;
 	display: flex;
 	align-items: flex-end;
@@ -330,9 +393,23 @@ export default {
 	padding: 28rpx;
 	border-radius: 30rpx;
 	background: rgba(23, 63, 53, 0.08);
+	z-index: 2;
+	overflow: hidden;
+}
+
+.route-map-trail {
+	position: absolute;
+	left: 44rpx;
+	right: 44rpx;
+	top: 50%;
+	height: 2rpx;
+	border-top: 2rpx dashed rgba(181, 148, 94, 0.58);
+	transform: translateY(-50%);
 }
 
 .route-map-pin {
+	position: relative;
+	z-index: 1;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -391,6 +468,46 @@ export default {
 	color: #746F68;
 }
 
+.route-operation-strip {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 16rpx;
+	margin-top: 24rpx;
+	padding: 22rpx;
+	border-radius: 30rpx;
+}
+
+.route-operation-card {
+	min-height: 94rpx;
+	padding: 16rpx;
+	border-radius: 22rpx;
+	background: rgba(255, 252, 246, 0.78);
+	box-sizing: border-box;
+}
+
+.operation-label,
+.operation-value {
+	display: block;
+	text-align: center;
+}
+
+.operation-label {
+	font-size: 22rpx;
+	line-height: 1.35;
+	color: #8B7A61;
+}
+
+.operation-value {
+	margin-top: 8rpx;
+	font-size: 27rpx;
+	line-height: 1.35;
+	font-weight: 700;
+	color: #173F35;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 .route-timeline {
 	display: grid;
 	gap: 22rpx;
@@ -399,7 +516,7 @@ export default {
 
 .route-stop-card {
 	display: grid;
-	grid-template-columns: 64rpx 1fr 132rpx;
+	grid-template-columns: 56rpx 150rpx 1fr;
 	align-items: center;
 	gap: 18rpx;
 	padding: 24rpx;
@@ -417,6 +534,14 @@ export default {
 	color: #FFF9EC;
 	font-size: 26rpx;
 	font-weight: 700;
+}
+
+.stop-thumbnail {
+	width: 150rpx;
+	height: 150rpx;
+	border-radius: 24rpx;
+	background: #E8ECE7;
+	object-fit: cover;
 }
 
 .stop-copy {
@@ -444,6 +569,8 @@ export default {
 }
 
 .listen-button {
+	grid-column: 3 / 4;
+	justify-self: start;
 	width: 132rpx;
 	height: 66rpx;
 	line-height: 66rpx;
@@ -502,9 +629,15 @@ export default {
 
 .route-actions {
 	display: grid;
-	grid-template-columns: 1fr 190rpx;
+	grid-template-columns: 1fr;
 	align-items: center;
 	gap: 20rpx;
+}
+
+.action-button-group {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 18rpx;
 }
 
 .action-button {
