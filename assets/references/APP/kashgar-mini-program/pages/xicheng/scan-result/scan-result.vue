@@ -23,7 +23,7 @@
 		<view v-if="candidateList.length > 0" class="candidate-card xicheng-paper-card">
 			<view class="section-head xicheng-section-label">
 				<text class="section-title">可能匹配地点</text>
-				<text class="section-badge">请选择官方 POI</text>
+				<text class="section-badge">{{ candidateSectionBadge }}</text>
 			</view>
 			<view
 				v-for="candidate in candidateList"
@@ -330,6 +330,10 @@ export default {
 				return '小京暂时无法获取已审核来源，不能问小京'
 			}
 			return '暂无可继续追问的问题'
+		},
+		candidateSectionBadge() {
+			if (this.pendingCandidateConfirmation) return '请选择官方 POI'
+			return '已确认官方 POI'
 		},
 		questionSectionTitle() {
 			if (this.pendingCandidateConfirmation) return '确认官方 POI 后可问小京'

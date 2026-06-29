@@ -8,11 +8,13 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
 
 for (const required of [
+  'candidateSectionBadge',
   'pendingCandidateConfirmation',
   'questionSectionTitle',
   'recognitionActionBlocked',
   'requireOfficialPoiConfirmation',
   '请先选择官方 POI 再',
+  '已确认官方 POI',
   '确认官方 POI 后可问小京'
 ]) {
   assert.ok(
@@ -25,6 +27,12 @@ assert.match(
   scanResult,
   /pendingCandidateConfirmation\(\)[\s\S]*return Boolean\(this\.result\.requiresUserConfirm && this\.candidateList\.length > 0\)/,
   'Recognition result should treat unresolved backend candidates as requiring official POI confirmation'
+)
+
+assert.match(
+  scanResult,
+  /candidateSectionBadge\(\)[\s\S]*if \(this\.pendingCandidateConfirmation\) return '请选择官方 POI'[\s\S]*return '已确认官方 POI'/,
+  'Candidate section should show confirmed state after the user selects an official POI'
 )
 
 assert.match(
