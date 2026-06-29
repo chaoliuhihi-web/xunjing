@@ -60,6 +60,9 @@ describe('xicheng Yudao release preflight', () => {
         tasksOutputFile,
         poiTasksOutputFile,
         handoffOutputFile,
+        appReadinessEvidenceFile: path.join(rootDir, 'qa/xicheng-app-readiness-evidence.json'),
+        appReadinessStatus: 'MISSING',
+        appReadinessBlockerCount: 1,
         appReadinessCommand: expect.stringContaining('npm run xunjing:platform:verify'),
         finalEvidencePackageCommand: expect.stringContaining('npm run xunjing:xicheng:release:evidence:package'),
         poiEvidenceBootstrapCommand: expect.stringContaining('npm run xunjing:xicheng:poi:review:pack'),
@@ -84,6 +87,13 @@ describe('xicheng Yudao release preflight', () => {
     expect(report.summary.appReadinessCommand).toContain('--include-xicheng-app-check')
     expect(report.summary.appReadinessCommand).toContain('--include-xicheng-trigger-check')
     expect(report.summary.appReadinessCommand).toContain('--evidence-file qa/xicheng-app-readiness-evidence.json')
+    expect(report.appReadiness).toMatchObject({
+      ok: false,
+      status: 'MISSING',
+      blockers: [
+        'APP readiness evidence is missing; run summary.appReadinessCommand before final evidence package'
+      ]
+    })
     expect(report.summary.poiEvidenceBootstrapCommand).toContain('--production-review workbench/xicheng-poi-production-review-summary.csv')
     expect(report.summary.taskCount).toBeGreaterThan(0)
     expect(report.summary.ownerLaneCounts).toMatchObject({
@@ -143,6 +153,8 @@ describe('xicheng Yudao release preflight', () => {
     expect(handoffMarkdown).toContain('npm run xunjing:xicheng:poi:review:pack')
     expect(handoffMarkdown).toContain('workbench/xicheng-poi-production-review-summary.csv')
     expect(handoffMarkdown).toContain('## APP Readiness Evidence')
+    expect(handoffMarkdown).toContain('Status: `MISSING`')
+    expect(handoffMarkdown).toContain('APP readiness evidence is missing')
     expect(handoffMarkdown).toContain('npm run xunjing:platform:verify')
     expect(handoffMarkdown).toContain('--include-xicheng-app-check')
     expect(handoffMarkdown).toContain('--include-xicheng-trigger-check')
@@ -171,6 +183,8 @@ describe('xicheng Yudao release preflight', () => {
     expect(statusDoc).toContain('summary.poiEvidenceBootstrapCommand')
     expect(deployDoc).toContain('summary.appReadinessCommand')
     expect(statusDoc).toContain('summary.appReadinessCommand')
+    expect(deployDoc).toContain('summary.appReadinessStatus')
+    expect(statusDoc).toContain('summary.appReadinessStatus')
     expect(deployDoc).toContain('POI Evidence Bootstrap')
     expect(statusDoc).toContain('POI Evidence Bootstrap')
     expect(deployDoc).toContain('APP Readiness Evidence')

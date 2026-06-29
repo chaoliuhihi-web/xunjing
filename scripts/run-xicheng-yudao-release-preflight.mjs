@@ -147,6 +147,110 @@ function buildAppReadinessCommand({
   ].join(' ')
 }
 
+function isNonLocalHttpsUrl(value) {
+  try {
+    const url = new URL(String(value || ''))
+    const hostname = url.hostname.toLowerCase()
+    return url.protocol === 'https:' &&
+      !['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(hostname) &&
+      !hostname.endsWith('.local')
+  } catch {
+    return false
+  }
+}
+
+async function summarizeAppReadinessEvidence({
+  rootDir,
+  releaseEvidence,
+  appReadinessEvidenceFile
+}) {
+  const resolvedFile = resolveRootFile(rootDir, appReadinessEvidenceFile)
+  if (!existsSync(resolvedFile)) {
+    return {
+      ok: false,
+      status: 'MISSING',
+      evidenceFile: resolvedFile,
+      blockers: [
+        'APP readiness evidence is missing; run summary.appReadinessCommand before final evidence package'
+      ]
+    }
+  }
+
+  let evidence
+  try {
+    evidence = JSON.parse(await readFile(resolvedFile, 'utf8'))
+  } catch (error) {
+    return {
+      ok: false,
+      status: 'INVALID_JSON',
+      evidenceFile: resolvedFile,
+      blockers: [`APP readiness evidence is not valid JSON: ${error.message}`]
+    }
+  }
+
+  const blockers = []
+  const summary = evidence.summary || {}
+  const baseUrl = String(summary.baseUrl || evidence.baseUrl || '').trim()
+  const tenantId = String(summary.tenantId || evidence.tenantId || '').trim()
+  const releaseBaseUrl = String(releaseEvidence?.summary?.appApiBaseUrl || '').trim()
+
+  if (evidence.artifactType !== 'xunjing-platform-readiness') {
+    blockers.push('APP readiness evidence artifactType must be xunjing-platform-readiness')
+  }
+  if (evidence.ok !== true) {
+    blockers.push('APP readiness evidence ok must be true')
+  }
+  if (!tenantId) {
+    blockers.push('APP readiness evidence tenantId is required')
+  }
+  if (!isNonLocalHttpsUrl(baseUrl)) {
+    blockers.push('APP readiness evidence baseUrl must be a non-local HTTPS URL')
+  }
+  if (releaseBaseUrl && baseUrl && releaseBaseUrl !== baseUrl) {
+    blockers.push('APP readiness evidence baseUrl must match release evidence appApiBaseUrl')
+  }
+  if (summary.staticOnly !== false) {
+    blockers.push('APP readiness evidence staticOnly must be false')
+  }
+  if (summary.includeXichengAppCheck !== true) {
+    blockers.push('APP readiness evidence includeXichengAppCheck must be true')
+  }
+  if (summary.includeXichengTriggerCheck !== true) {
+    blockers.push('APP readiness evidence includeXichengTriggerCheck must be true')
+  }
+  if (summary.xichengRegionCode !== 'beijing-xicheng') {
+    blockers.push('APP readiness evidence xichengRegionCode must be beijing-xicheng')
+  }
+  if (summary.xichengPackageCode !== 'XICHENG-MAP-001') {
+    blockers.push('APP readiness evidence xichengPackageCode must be XICHENG-MAP-001')
+  }
+
+  const failedChecks = Array.isArray(evidence.checks)
+    ? evidence.checks.filter((item) => item?.ok !== true)
+    : []
+  if (failedChecks.length > 0) {
+    blockers.push(`APP readiness evidence has failed checks: ${failedChecks.map((item) => item.name).join(', ')}`)
+  }
+
+  return {
+    ok: blockers.length === 0,
+    status: blockers.length === 0 ? 'READY' : 'REVIEW_REQUIRED',
+    evidenceFile: resolvedFile,
+    checkedAt: evidence.checkedAt,
+    summary: {
+      baseUrl,
+      tenantId,
+      staticOnly: summary.staticOnly,
+      includeXichengAppCheck: summary.includeXichengAppCheck,
+      includeXichengTriggerCheck: summary.includeXichengTriggerCheck,
+      xichengRegionCode: summary.xichengRegionCode,
+      xichengPackageCode: summary.xichengPackageCode,
+      failedCheckCount: failedChecks.length
+    },
+    blockers
+  }
+}
+
 function needsPoiEvidenceBootstrap(releaseEvidence) {
   const checks = Array.isArray(releaseEvidence?.checks) ? releaseEvidence.checks : []
   return checks.some((check) => check?.name === 'xicheng-production-poi-evidence' && check.ok !== true)
@@ -168,6 +272,7 @@ function buildHandoffMarkdown({
   tasksOutputFile,
   poiTasksOutputFile,
   poiEvidenceBootstrapCommand,
+  appReadiness,
   appReadinessCommand,
   finalEvidencePackageCommand
 }) {
@@ -219,6 +324,12 @@ function buildHandoffMarkdown({
     ] : []),
     '',
     '## APP Readiness Evidence',
+    '',
+    `Status: \`${appReadiness.status}\``,
+    `Evidence: \`${appReadiness.evidenceFile}\``,
+    '',
+    'Blockers:',
+    formatList(appReadiness.blockers),
     '',
     'Run this against the same non-local HTTPS backend recorded in release evidence before building the final evidence package:',
     '',
@@ -326,6 +437,11 @@ export async function runXichengYudaoReleasePreflight({
     releaseEvidence,
     appReadinessEvidenceFile
   })
+  const appReadiness = await summarizeAppReadinessEvidence({
+    rootDir: resolvedRoot,
+    releaseEvidence,
+    appReadinessEvidenceFile
+  })
   await mkdir(path.dirname(resolvedHandoffOutputFile), { recursive: true })
   await writeFile(resolvedHandoffOutputFile, buildHandoffMarkdown({
     stage,
@@ -335,10 +451,11 @@ export async function runXichengYudaoReleasePreflight({
     tasksOutputFile: resolvedTasksOutputFile,
     poiTasksOutputFile: resolvedPoiTasksOutputFile,
     poiEvidenceBootstrapCommand,
+    appReadiness,
     appReadinessCommand,
     finalEvidencePackageCommand
   }))
-  const ok = releaseEvidence.ok === true && taskReport.ok === true
+  const ok = releaseEvidence.ok === true && taskReport.ok === true && appReadiness.ok === true
 
   return {
     artifactType,
@@ -352,6 +469,9 @@ export async function runXichengYudaoReleasePreflight({
       tasksOutputFile: resolvedTasksOutputFile,
       poiTasksOutputFile: resolvedPoiTasksOutputFile,
       handoffOutputFile: resolvedHandoffOutputFile,
+      appReadinessEvidenceFile: appReadiness.evidenceFile,
+      appReadinessStatus: appReadiness.status,
+      appReadinessBlockerCount: appReadiness.blockers.length,
       failedCheckCount: releaseEvidence.summary?.failedChecks,
       blockerCount: releaseEvidence.summary?.blockerCount,
       taskCount: taskReport.summary.taskCount,
@@ -370,7 +490,11 @@ export async function runXichengYudaoReleasePreflight({
       ok: taskReport.ok === true,
       status: taskReport.status
     },
-    blockers: ok ? [] : taskReport.blockers
+    appReadiness,
+    blockers: ok ? [] : [
+      ...taskReport.blockers,
+      ...appReadiness.blockers
+    ]
   }
 }
 
