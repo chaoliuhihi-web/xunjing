@@ -22,8 +22,14 @@ for (const required of [
 
 assert.match(
   scanResult,
-  /missingOfficialPoiContext\(\)[\s\S]*return !this\.result\.poiCode \|\| !this\.result\.poiName \|\| this\.result\.poiName === XICHENG_EMPTY_RECOGNITION_RESULT\.poiName/,
+  /missingOfficialPoiContext\(\)[\s\S]*const hasMissingPoi = !this\.result\.poiCode \|\| !this\.result\.poiName \|\| this\.result\.poiName === XICHENG_EMPTY_RECOGNITION_RESULT\.poiName[\s\S]*return hasMissingPoi/,
   'Recognition result should treat missing poiCode or default placeholder poiName as missing official POI context'
+)
+
+assert.match(
+  scanResult,
+  /missingOfficialPoiContext\(\)[\s\S]*const hasOfficialPoiMatch = Boolean\(this\.result\.officialPoiMatched\)[\s\S]*const hasReviewedSources = this\.sourceList\.length > 0[\s\S]*!hasOfficialPoiMatch && !hasReviewedSources/,
+  'Recognition result should block route-only unknown POIs unless they are matched to official POI config or carry reviewed backend sources'
 )
 
 assert.match(
@@ -70,8 +76,14 @@ assert.match(
 
 assert.match(
   home,
-  /recentRecognitionMissingOfficialPoi\(\)[\s\S]*return !recognition\.poiCode \|\| !recognition\.poiName \|\| recognition\.poiName === XICHENG_EMPTY_RECOGNITION_POI_NAME/,
+  /recentRecognitionMissingOfficialPoi\(\)[\s\S]*const hasMissingPoi = !recognition\.poiCode \|\| !recognition\.poiName \|\| recognition\.poiName === XICHENG_EMPTY_RECOGNITION_POI_NAME[\s\S]*return hasMissingPoi/,
   'Recent recognition Xiaojing entry should treat the empty placeholder name as missing official POI context'
+)
+
+assert.match(
+  home,
+  /recentRecognitionMissingOfficialPoi\(\)[\s\S]*const hasOfficialPoiMatch = Boolean\(recognition\.officialPoiMatched\)[\s\S]*const hasReviewedSources = Array\.isArray\(recognition\.sources\) && recognition\.sources\.length > 0[\s\S]*!hasOfficialPoiMatch && !hasReviewedSources/,
+  'Recent recognition Xiaojing entry should block route-only unknown POIs but allow production backend POIs with reviewed sources'
 )
 
 assert.doesNotMatch(

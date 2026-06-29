@@ -503,7 +503,10 @@ export default {
 		},
 		recentRecognitionMissingOfficialPoi() {
 			const recognition = this.recentRecognition || {}
-			return !recognition.poiCode || !recognition.poiName || recognition.poiName === XICHENG_EMPTY_RECOGNITION_POI_NAME
+			const hasMissingPoi = !recognition.poiCode || !recognition.poiName || recognition.poiName === XICHENG_EMPTY_RECOGNITION_POI_NAME
+			const hasOfficialPoiMatch = Boolean(recognition.officialPoiMatched)
+			const hasReviewedSources = Array.isArray(recognition.sources) && recognition.sources.length > 0
+			return hasMissingPoi || (!hasOfficialPoiMatch && !hasReviewedSources)
 		},
 		recentRecognitionUnsafeSafetyStatus() {
 			const status = normalizeXichengSafetyStatus(this.recentRecognition && this.recentRecognition.safetyStatus)

@@ -452,7 +452,10 @@ export default {
 			return Boolean(this.result.requiresUserConfirm && this.candidateList.length > 0)
 		},
 		missingOfficialPoiContext() {
-			return !this.result.poiCode || !this.result.poiName || this.result.poiName === XICHENG_EMPTY_RECOGNITION_RESULT.poiName
+			const hasMissingPoi = !this.result.poiCode || !this.result.poiName || this.result.poiName === XICHENG_EMPTY_RECOGNITION_RESULT.poiName
+			const hasOfficialPoiMatch = Boolean(this.result.officialPoiMatched)
+			const hasReviewedSources = this.sourceList.length > 0
+			return hasMissingPoi || (!hasOfficialPoiMatch && !hasReviewedSources)
 		},
 		recognitionActionBlocked() {
 			return this.pendingCandidateConfirmation || this.missingOfficialPoiContext || this.unsafeRecognitionSafetyStatus
