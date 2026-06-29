@@ -8,6 +8,7 @@ const readyStatus = 'TRIGGER_SMOKE_APPLIED'
 const remainsStatus = 'TRIGGER_SMOKE_APPLY_REMAINS'
 const triggerSmokeArtifactType = 'xicheng-poi-trigger-smoke'
 const allowedOutputDirs = new Set(['qa', 'tmp', 'workbench'])
+const afterTriggerSmokeNextAction = 'Attach field evidence, approve geo/content/license audit, and keep evidence refs non-local.'
 
 const requiredProductionReviewFields = [
   'poiCode',
@@ -193,7 +194,8 @@ async function main() {
     appliedPoiCodes.push(row.poiCode)
     return {
       ...row,
-      triggerSmokeStatus: 'PASSED'
+      triggerSmokeStatus: 'PASSED',
+      nextAction: afterTriggerSmokeNextAction
     }
   })
   const pendingTriggerSmokePoiCodes = outputRows

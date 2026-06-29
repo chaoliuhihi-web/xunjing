@@ -87,10 +87,11 @@ function csvRows(text) {
 
 async function writeProductionReview(rootDir) {
   const header = 'poiCode,photoEvidenceStatus,triggerSmokeStatus,fieldEvidenceRefs,fieldVerifiedBy,fieldVerifiedAt,reviewStatus,geoStatus,auditLicenseStatus,status,reviewedBy,reviewedAt,nextAction'
+  const nextAction = '"Attach field evidence, pass trigger smoke, approve geo/content/license audit, and keep evidence refs non-local."'
   await writeFile(path.join(rootDir, 'workbench/xicheng-poi-production-review-summary.csv'), [
     header,
-    'xicheng-baitasi,REVIEW_REQUIRED,NOT_RUN,,,,REVIEW_REQUIRED,REVIEW_REQUIRED,REVIEW_REQUIRED,DRAFT,,,pending',
-    'xicheng-emperors-temple,REVIEW_REQUIRED,NOT_RUN,,,,REVIEW_REQUIRED,REVIEW_REQUIRED,REVIEW_REQUIRED,DRAFT,,,pending'
+    `xicheng-baitasi,REVIEW_REQUIRED,NOT_RUN,,,,REVIEW_REQUIRED,REVIEW_REQUIRED,REVIEW_REQUIRED,DRAFT,,,${nextAction}`,
+    `xicheng-emperors-temple,REVIEW_REQUIRED,NOT_RUN,,,,REVIEW_REQUIRED,REVIEW_REQUIRED,REVIEW_REQUIRED,DRAFT,,,${nextAction}`
   ].join('\n') + '\n')
 }
 
@@ -158,10 +159,12 @@ describe('apply Xicheng trigger smoke to production review summary', () => {
       reviewStatus: 'REVIEW_REQUIRED',
       geoStatus: 'REVIEW_REQUIRED',
       auditLicenseStatus: 'REVIEW_REQUIRED',
-      status: 'DRAFT'
+      status: 'DRAFT',
+      nextAction: 'Attach field evidence, approve geo/content/license audit, and keep evidence refs non-local.'
     })
     expect(rows.find((row) => row.poiCode === 'xicheng-emperors-temple')).toMatchObject({
-      triggerSmokeStatus: 'NOT_RUN'
+      triggerSmokeStatus: 'NOT_RUN',
+      nextAction: 'Attach field evidence, pass trigger smoke, approve geo/content/license audit, and keep evidence refs non-local.'
     })
   })
 
