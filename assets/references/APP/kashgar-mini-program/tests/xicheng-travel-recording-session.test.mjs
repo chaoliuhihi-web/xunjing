@@ -51,6 +51,12 @@ assert.match(
 
 assert.match(
   travelogue,
+  /startRecordingSession\(\)[\s\S]*const activeRoute = this\.recognizedRoute \|\| \{\}[\s\S]*routeCode:\s*activeRoute\.routeCode \|\| ''[\s\S]*routeTitle:\s*activeRoute\.title \|\| ''[\s\S]*status:\s*'recording'/,
+  'Starting a recording session from a route should preserve routeCode and routeTitle for route passport and operations attribution'
+)
+
+assert.match(
+  travelogue,
   /pauseRecordingSession\(\)[\s\S]*status:\s*'paused'[\s\S]*pausedAt/,
   'Pausing a recording session should preserve the session and mark pausedAt'
 )

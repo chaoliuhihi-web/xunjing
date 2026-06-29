@@ -2284,11 +2284,14 @@ export default {
 		},
 		async startRecordingSession() {
 			const startedAt = new Date().toISOString()
+			const activeRoute = this.recognizedRoute || {}
 			this.recordingSession = {
 				...createEmptyRecordingSession(),
 				sessionId: `recording-${Date.now()}`,
 				status: 'recording',
 				startedAt,
+				routeCode: activeRoute.routeCode || '',
+				routeTitle: activeRoute.title || '',
 				trackPoints: [],
 				stayPoints: []
 			}
