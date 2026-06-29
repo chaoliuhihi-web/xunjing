@@ -39,6 +39,14 @@ const requiredYudaoServerBuildEvidenceChecks = [
   'yudao-server-jar'
 ]
 
+const requiredYudaoServerSmokeEvidenceChecks = [
+  'https-backend-domain',
+  'tenant-header',
+  'resource-package-endpoint',
+  'public-report-endpoint',
+  'secret-redaction'
+]
+
 const requiredAppReadinessChecks = [
   'live-xicheng-scan-resolve',
   'live-xicheng-error-feedback',
@@ -646,6 +654,126 @@ async function checkYudaoServerBuildEvidence(ref, releaseRef, rootDir, freshness
     blockers.push(`Yudao server build evidence contains blockers: ${blockersOf(evidence).join('; ')}`)
   }
   return check('yudao-server-build-evidence', blockers)
+}
+
+function isHttp2xx(value) {
+  const status = Number(value)
+  return Number.isFinite(status) && status >= 200 && status < 300
+}
+
+function checkYudaoServerSmokeEvidence(ref, releaseRef, rootDir, freshnessOptions) {
+  const blockers = []
+  const releaseSummary = summaryOf(releaseRef.data)
+  if (ref.error) {
+    blockers.push(ref.error)
+    return check('yudao-server-smoke-evidence', blockers)
+  }
+
+  const evidence = ref.data || {}
+  const summary = summaryOf(evidence)
+  const releaseSmokeEvidenceFile = normalizeEvidencePath(rootDir, releaseSummary.yudaoServerSmokeEvidenceFile)
+  const smokeBaseUrl = normalizedBaseUrl(summary.baseUrl)
+  const releaseSmokeBaseUrl = normalizedBaseUrl(releaseSummary.yudaoServerSmokeBaseUrl)
+  const releaseAppBaseUrl = normalizedBaseUrl(releaseSummary.appApiBaseUrl)
+
+  if (releaseSmokeEvidenceFile && ref.path !== releaseSmokeEvidenceFile) {
+    blockers.push('Yudao server smoke evidence file must match release evidence summary')
+  }
+  if (evidence.artifactType !== 'xicheng-yudao-server-smoke') {
+    blockers.push('Yudao server smoke evidence artifactType must be xicheng-yudao-server-smoke')
+  }
+  blockers.push(...checkEvidenceTimestamp(evidence, 'Yudao server smoke', freshnessOptions))
+  if (evidence.ok !== true) {
+    blockers.push('Yudao server smoke evidence ok must be true')
+  }
+  if (evidence.status !== 'XICHENG_YUDAO_SERVER_SMOKE_READY') {
+    blockers.push('Yudao server smoke evidence status must be XICHENG_YUDAO_SERVER_SMOKE_READY')
+  }
+  if (!isNonLocalHttpsUrl(summary.baseUrl)) {
+    blockers.push('Yudao server smoke evidence baseUrl must be a non-local HTTPS URL')
+  } else {
+    if (releaseSmokeBaseUrl && smokeBaseUrl !== releaseSmokeBaseUrl) {
+      blockers.push('Yudao server smoke evidence baseUrl must match release evidence summary')
+    }
+    if (releaseAppBaseUrl && smokeBaseUrl !== releaseAppBaseUrl) {
+      blockers.push('Yudao server smoke evidence baseUrl must match release appApiBaseUrl')
+    }
+  }
+  if (!hasText(summary.providerSmokeHost) || isLoopbackHostname(summary.providerSmokeHost)) {
+    blockers.push('Yudao server smoke evidence providerSmokeHost must be non-local')
+  }
+  if (!hasText(summary.tenantId)) {
+    blockers.push('Yudao server smoke evidence tenantId is required')
+  } else if (
+    hasText(releaseSummary.yudaoServerSmokeTenantId) &&
+    String(summary.tenantId) !== String(releaseSummary.yudaoServerSmokeTenantId)
+  ) {
+    blockers.push('Yudao server smoke evidence tenantId must match release evidence summary')
+  }
+  if (summary.packageCode !== expectedXichengPackageCode) {
+    blockers.push('Yudao server smoke evidence packageCode must be XICHENG-MAP-001')
+  } else if (
+    hasText(releaseSummary.yudaoServerSmokePackageCode) &&
+    summary.packageCode !== releaseSummary.yudaoServerSmokePackageCode
+  ) {
+    blockers.push('Yudao server smoke evidence packageCode must match release evidence summary')
+  }
+  if (summary.packageRegionCode !== expectedXichengRegionCode) {
+    blockers.push('Yudao server smoke evidence packageRegionCode must be beijing-xicheng')
+  }
+  if (summary.packageStatus !== 'PUBLISHED') {
+    blockers.push('Yudao server smoke evidence packageStatus must be PUBLISHED')
+  }
+  if (!isHttp2xx(summary.packageHttpStatus)) {
+    blockers.push('Yudao server smoke evidence packageHttpStatus must be 2xx')
+  } else if (
+    Number.isFinite(Number(releaseSummary.yudaoServerSmokePackageHttpStatus)) &&
+    Number(summary.packageHttpStatus) !== Number(releaseSummary.yudaoServerSmokePackageHttpStatus)
+  ) {
+    blockers.push('Yudao server smoke evidence packageHttpStatus must match release evidence summary')
+  }
+  if (!isHttp2xx(summary.publicReportHttpStatus)) {
+    blockers.push('Yudao server smoke evidence publicReportHttpStatus must be 2xx')
+  } else if (
+    Number.isFinite(Number(releaseSummary.yudaoServerSmokePublicReportHttpStatus)) &&
+    Number(summary.publicReportHttpStatus) !== Number(releaseSummary.yudaoServerSmokePublicReportHttpStatus)
+  ) {
+    blockers.push('Yudao server smoke evidence publicReportHttpStatus must match release evidence summary')
+  }
+
+  const publicReportPackageCount = Number(summary.publicReportPackageCount)
+  const publicReportReviewedKnowledgeCount = Number(summary.publicReportReviewedKnowledgeCount)
+  const publicReportMapPointCount = Number(summary.publicReportMapPointCount)
+  if (!Number.isFinite(publicReportPackageCount) || publicReportPackageCount < 1) {
+    blockers.push('Yudao server smoke evidence publicReportPackageCount must be at least 1')
+  } else if (
+    Number.isFinite(Number(releaseSummary.yudaoServerSmokePublicReportPackageCount)) &&
+    publicReportPackageCount !== Number(releaseSummary.yudaoServerSmokePublicReportPackageCount)
+  ) {
+    blockers.push('Yudao server smoke evidence publicReportPackageCount must match release evidence summary')
+  }
+  if (!Number.isFinite(publicReportReviewedKnowledgeCount) || publicReportReviewedKnowledgeCount < productionPoiTarget) {
+    blockers.push(`Yudao server smoke evidence publicReportReviewedKnowledgeCount must be at least ${productionPoiTarget}`)
+  } else if (
+    Number.isFinite(Number(releaseSummary.yudaoServerSmokePublicReportReviewedKnowledgeCount)) &&
+    publicReportReviewedKnowledgeCount !== Number(releaseSummary.yudaoServerSmokePublicReportReviewedKnowledgeCount)
+  ) {
+    blockers.push('Yudao server smoke evidence publicReportReviewedKnowledgeCount must match release evidence summary')
+  }
+  if (!Number.isFinite(publicReportMapPointCount) || publicReportMapPointCount < productionPoiTarget) {
+    blockers.push(`Yudao server smoke evidence publicReportMapPointCount must be at least ${productionPoiTarget}`)
+  } else if (
+    Number.isFinite(Number(releaseSummary.yudaoServerSmokePublicReportMapPointCount)) &&
+    publicReportMapPointCount !== Number(releaseSummary.yudaoServerSmokePublicReportMapPointCount)
+  ) {
+    blockers.push('Yudao server smoke evidence publicReportMapPointCount must match release evidence summary')
+  }
+
+  blockers.push(...checkEvidenceChecks(evidence, requiredYudaoServerSmokeEvidenceChecks, 'Yudao server smoke'))
+  if (blockersOf(evidence).length > 0) {
+    blockers.push(`Yudao server smoke evidence contains blockers: ${blockersOf(evidence).join('; ')}`)
+  }
+  return check('yudao-server-smoke-evidence', blockers)
 }
 
 function checkReleaseSourceRevisionSummary(evidence) {
@@ -1713,6 +1841,7 @@ export async function verifyXichengReleaseEvidencePackage({
   stage = 'production',
   releaseEvidencePath,
   yudaoServerBuildEvidencePath,
+  yudaoServerSmokeEvidencePath,
   poiManifestEvidencePath,
   poiWorkbookEvidencePath,
   poiSeedEvidencePath,
@@ -1730,8 +1859,11 @@ export async function verifyXichengReleaseEvidencePackage({
   const releaseRef = await loadJsonFile(rootDir, releaseEvidencePath, 'release')
   const resolvedYudaoServerBuildEvidencePath = yudaoServerBuildEvidencePath ||
     summaryOf(releaseRef.data).yudaoServerBuildEvidenceFile
+  const resolvedYudaoServerSmokeEvidencePath = yudaoServerSmokeEvidencePath ||
+    summaryOf(releaseRef.data).yudaoServerSmokeEvidenceFile
   const evidenceRefs = await Promise.all([
     loadJsonFile(rootDir, resolvedYudaoServerBuildEvidencePath, 'Yudao server build'),
+    loadJsonFile(rootDir, resolvedYudaoServerSmokeEvidencePath, 'Yudao server smoke'),
     loadJsonFile(rootDir, poiManifestEvidencePath, 'manifest'),
     loadJsonFile(rootDir, poiWorkbookEvidencePath, 'workbook'),
     loadJsonFile(rootDir, poiSeedEvidencePath, 'seed'),
@@ -1742,6 +1874,7 @@ export async function verifyXichengReleaseEvidencePackage({
   ])
   const [
     yudaoServerBuildRef,
+    yudaoServerSmokeRef,
     manifestRef,
     workbookRef,
     seedRef,
@@ -1757,6 +1890,7 @@ export async function verifyXichengReleaseEvidencePackage({
   const checks = [
     await checkReleaseEvidence(releaseRef, normalizedStage, freshnessOptions),
     await checkYudaoServerBuildEvidence(yudaoServerBuildRef, releaseRef, rootDir, freshnessOptions),
+    checkYudaoServerSmokeEvidence(yudaoServerSmokeRef, releaseRef, rootDir, freshnessOptions),
     checkPackageSourceRevision(rootDir, releaseRef),
     await checkManifestEvidence(manifestRef, rootDir, freshnessOptions),
     await checkWorkbookEvidence(workbookRef, rootDir, freshnessOptions),
@@ -1781,6 +1915,7 @@ export async function verifyXichengReleaseEvidencePackage({
   const blockers = checks.flatMap((item) => item.blockers)
   const ok = checks.every((item) => item.ok)
   const packageSourceRevisionSummary = checks.find((item) => item.name === 'package-source-revision')?.summary || {}
+  const yudaoServerSmokeSummary = summaryOf(yudaoServerSmokeRef.data)
 
   return {
     artifactType,
@@ -1795,15 +1930,15 @@ export async function verifyXichengReleaseEvidencePackage({
       yudaoServerBuildJarFile: summaryOf(yudaoServerBuildRef.data).jarFile,
       yudaoServerBuildJarSha256: summaryOf(yudaoServerBuildRef.data).jarSha256,
       yudaoServerBuildJarSizeBytes: summaryOf(yudaoServerBuildRef.data).jarSizeBytes,
-      yudaoServerSmokeEvidenceFile: summaryOf(releaseRef.data).yudaoServerSmokeEvidenceFile,
-      yudaoServerSmokeBaseUrl: summaryOf(releaseRef.data).yudaoServerSmokeBaseUrl,
-      yudaoServerSmokeTenantId: summaryOf(releaseRef.data).yudaoServerSmokeTenantId,
-      yudaoServerSmokePackageCode: summaryOf(releaseRef.data).yudaoServerSmokePackageCode,
-      yudaoServerSmokePackageHttpStatus: summaryOf(releaseRef.data).yudaoServerSmokePackageHttpStatus,
-      yudaoServerSmokePublicReportHttpStatus: summaryOf(releaseRef.data).yudaoServerSmokePublicReportHttpStatus,
-      yudaoServerSmokePublicReportPackageCount: summaryOf(releaseRef.data).yudaoServerSmokePublicReportPackageCount,
-      yudaoServerSmokePublicReportReviewedKnowledgeCount: summaryOf(releaseRef.data).yudaoServerSmokePublicReportReviewedKnowledgeCount,
-      yudaoServerSmokePublicReportMapPointCount: summaryOf(releaseRef.data).yudaoServerSmokePublicReportMapPointCount,
+      yudaoServerSmokeStatus: yudaoServerSmokeRef.data?.status,
+      yudaoServerSmokeBaseUrl: yudaoServerSmokeSummary.baseUrl,
+      yudaoServerSmokeTenantId: yudaoServerSmokeSummary.tenantId,
+      yudaoServerSmokePackageCode: yudaoServerSmokeSummary.packageCode,
+      yudaoServerSmokePackageHttpStatus: yudaoServerSmokeSummary.packageHttpStatus,
+      yudaoServerSmokePublicReportHttpStatus: yudaoServerSmokeSummary.publicReportHttpStatus,
+      yudaoServerSmokePublicReportPackageCount: yudaoServerSmokeSummary.publicReportPackageCount,
+      yudaoServerSmokePublicReportReviewedKnowledgeCount: yudaoServerSmokeSummary.publicReportReviewedKnowledgeCount,
+      yudaoServerSmokePublicReportMapPointCount: yudaoServerSmokeSummary.publicReportMapPointCount,
       poiManifestStatus: manifestRef.data?.status,
       poiWorkbookStatus: workbookRef.data?.status,
       poiSeedStatus: seedRef.data?.status,
@@ -1816,6 +1951,7 @@ export async function verifyXichengReleaseEvidencePackage({
       reviewBatchCode: summaryOf(manifestRef.data).reviewBatchCode,
       releaseEvidenceFile: releaseRef.path,
       yudaoServerBuildEvidenceFile: yudaoServerBuildRef.path,
+      yudaoServerSmokeEvidenceFile: yudaoServerSmokeRef.path,
       poiManifestEvidenceFile: manifestRef.path,
       poiWorkbookEvidenceFile: workbookRef.path,
       poiSeedEvidenceFile: seedRef.path,
@@ -1850,6 +1986,7 @@ export async function verifyXichengReleaseEvidencePackage({
     evidenceFiles: {
       release: releaseRef.path,
       yudaoServerBuild: yudaoServerBuildRef.path,
+      yudaoServerSmoke: yudaoServerSmokeRef.path,
       poiManifest: manifestRef.path,
       poiWorkbook: workbookRef.path,
       poiSeed: seedRef.path,
@@ -1861,6 +1998,7 @@ export async function verifyXichengReleaseEvidencePackage({
     evidenceFileSha256: {
       release: releaseRef.sha256,
       yudaoServerBuild: yudaoServerBuildRef.sha256,
+      yudaoServerSmoke: yudaoServerSmokeRef.sha256,
       poiManifest: manifestRef.sha256,
       poiWorkbook: workbookRef.sha256,
       poiSeed: seedRef.sha256,
@@ -1914,6 +2052,9 @@ async function runCli() {
     yudaoServerBuildEvidencePath: readArgValue(args, '--yudao-server-build-evidence') ||
       readArgValue(args, '--server-build-evidence') ||
       process.env.YUDAO_SERVER_BUILD_EVIDENCE,
+    yudaoServerSmokeEvidencePath: readArgValue(args, '--yudao-server-smoke-evidence') ||
+      readArgValue(args, '--server-smoke-evidence') ||
+      process.env.YUDAO_SERVER_SMOKE_EVIDENCE,
     poiManifestEvidencePath: readArgValue(args, '--poi-manifest-evidence') ||
       process.env.XICHENG_POI_MANIFEST_EVIDENCE,
     poiWorkbookEvidencePath: readArgValue(args, '--poi-workbook-evidence') ||

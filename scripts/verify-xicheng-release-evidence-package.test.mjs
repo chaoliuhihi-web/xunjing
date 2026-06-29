@@ -160,10 +160,43 @@ async function writeYudaoServerBuildEvidenceFile(rootDir, serverJar, overrides =
   })
 }
 
+async function writeYudaoServerSmokeEvidenceFile(rootDir, overrides = {}) {
+  return writeJson(rootDir, 'qa/xicheng-yudao-server-smoke-evidence.json', mergeEvidence({
+    artifactType: 'xicheng-yudao-server-smoke',
+    ok: true,
+    status: 'XICHENG_YUDAO_SERVER_SMOKE_READY',
+    checkedAt: freshCheckedAt(),
+    summary: {
+      providerSmokeCheckedAt: freshCheckedAt(),
+      baseUrl: 'https://xunjing-api.xingheai.net',
+      providerSmokeHost: 'xunjing-api.xingheai.net',
+      tenantId: '1001',
+      packageCode: 'XICHENG-MAP-001',
+      packageStatus: 'PUBLISHED',
+      packageRegionCode: 'beijing-xicheng',
+      packageHttpStatus: 200,
+      publicReportHttpStatus: 200,
+      publicReportPackageCount: 1,
+      publicReportReviewedKnowledgeCount: 84,
+      publicReportMapPointCount: 80,
+      latencyMs: 50
+    },
+    checks: [
+      { name: 'https-backend-domain', ok: true, blockers: [] },
+      { name: 'tenant-header', ok: true, blockers: [] },
+      { name: 'resource-package-endpoint', ok: true, blockers: [] },
+      { name: 'public-report-endpoint', ok: true, blockers: [] },
+      { name: 'secret-redaction', ok: true, blockers: [] }
+    ],
+    blockers: []
+  }, overrides))
+}
+
 async function writeReleaseEvidenceFile(rootDir, overrides = {}) {
   const baseline = await writeYudaoBaselineFile(rootDir)
   const serverJar = await writeYudaoServerJarFile(rootDir)
   await writeYudaoServerBuildEvidenceFile(rootDir, serverJar, overrides.yudaoServerBuildEvidence || {})
+  await writeYudaoServerSmokeEvidenceFile(rootDir, overrides.yudaoServerSmokeEvidence || {})
   const poiSources = await writePoiSourceFiles(rootDir)
   await writeSourceCoverageEvidenceFile(rootDir)
   await writeSourceReviewApplyEvidenceFile(rootDir)
@@ -794,6 +827,7 @@ describe('xicheng release evidence package gate', () => {
     const sourceReviewApplyPath = await writeSourceReviewApplyEvidenceFile(rootDir)
     const productionReviewApplyPath = await writeProductionReviewApplyEvidenceFile(rootDir)
     const yudaoServerBuildPath = path.join(rootDir, 'qa/xicheng-yudao-server-build-evidence.json')
+    const yudaoServerSmokePath = path.join(rootDir, 'qa/xicheng-yudao-server-smoke-evidence.json')
     const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
     const outputPath = path.join(rootDir, 'qa/xicheng-release-evidence-package.json')
 
@@ -801,6 +835,7 @@ describe('xicheng release evidence package gate', () => {
       '--root', rootDir,
       '--stage', 'production',
       '--release-evidence', releasePath,
+      '--yudao-server-smoke-evidence', yudaoServerSmokePath,
       '--poi-manifest-evidence', manifestPath,
       '--poi-workbook-evidence', workbookPath,
       '--poi-seed-evidence', seedPath,
@@ -820,6 +855,7 @@ describe('xicheng release evidence package gate', () => {
       releaseStatus: 'PRODUCTION_READY_CANDIDATE',
       yudaoServerBuildStatus: 'YUDAO_SERVER_JAR_BUILT',
       yudaoServerBuildMethod: 'mvn',
+      yudaoServerSmokeStatus: 'XICHENG_YUDAO_SERVER_SMOKE_READY',
       yudaoServerSmokeBaseUrl: 'https://xunjing-api.xingheai.net',
       yudaoServerSmokeTenantId: '1001',
       yudaoServerSmokePackageCode: 'XICHENG-MAP-001',
@@ -834,6 +870,7 @@ describe('xicheng release evidence package gate', () => {
       reviewBatchCode: 'xicheng-p0-poi-review-20260627',
       releaseEvidenceFile: releasePath,
       yudaoServerBuildEvidenceFile: yudaoServerBuildPath,
+      yudaoServerSmokeEvidenceFile: yudaoServerSmokePath,
       poiManifestEvidenceFile: manifestPath,
       poiWorkbookEvidenceFile: workbookPath,
       poiSeedEvidenceFile: seedPath,
@@ -860,6 +897,7 @@ describe('xicheng release evidence package gate', () => {
     })
     const releaseEvidenceText = await readFile(releasePath, 'utf8')
     const yudaoServerBuildEvidenceText = await readFile(yudaoServerBuildPath, 'utf8')
+    const yudaoServerSmokeEvidenceText = await readFile(yudaoServerSmokePath, 'utf8')
     const manifestEvidenceText = await readFile(manifestPath, 'utf8')
     const workbookEvidenceText = await readFile(workbookPath, 'utf8')
     const seedEvidenceText = await readFile(seedPath, 'utf8')
@@ -870,6 +908,7 @@ describe('xicheng release evidence package gate', () => {
     expect(report.evidenceFileSha256).toMatchObject({
       release: sha256(releaseEvidenceText),
       yudaoServerBuild: sha256(yudaoServerBuildEvidenceText),
+      yudaoServerSmoke: sha256(yudaoServerSmokeEvidenceText),
       poiManifest: sha256(manifestEvidenceText),
       poiWorkbook: sha256(workbookEvidenceText),
       poiSeed: sha256(seedEvidenceText),
@@ -881,6 +920,7 @@ describe('xicheng release evidence package gate', () => {
     expect(report.checks.map((check) => check.name)).toEqual([
       'release-gate-evidence',
       'yudao-server-build-evidence',
+      'yudao-server-smoke-evidence',
       'package-source-revision',
       'poi-manifest-evidence',
       'poi-workbook-evidence',
@@ -1492,6 +1532,57 @@ describe('xicheng release evidence package gate', () => {
     const report = JSON.parse(result.stdout)
     expect(report.status).toBe('NOT_READY')
     expect(report.blockers.join('\n')).toContain('Yudao server build evidence cannot be read')
+  })
+
+  test('fails closed when Yudao server smoke evidence file is missing from final package inputs', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir)
+    await rm(path.join(rootDir, 'qa/xicheng-yudao-server-smoke-evidence.json'), { force: true })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.blockers.join('\n')).toContain('Yudao server smoke evidence cannot be read')
+  })
+
+  test('fails closed when Yudao server smoke evidence does not match release backend domain', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
+      yudaoServerSmokeEvidence: {
+        summary: {
+          baseUrl: 'https://other-api.xingheai.net'
+        }
+      }
+    })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.blockers.join('\n')).toContain('Yudao server smoke evidence baseUrl must match release evidence summary')
   })
 
   test('fails closed when APP, manifest and seed evidence do not describe the same Xicheng batch', async () => {
@@ -2468,6 +2559,7 @@ describe('xicheng release evidence package gate', () => {
       'node scripts/verify-xicheng-release-evidence-package.mjs'
     )
     expect(deployDoc).toContain('npm run xunjing:xicheng:release:evidence:package')
+    expect(deployDoc).toContain('--yudao-server-smoke-evidence qa/xicheng-yudao-server-smoke-evidence.json')
     expect(deployDoc).toContain('XICHENG_RELEASE_EVIDENCE_PACKAGE_READY')
     expect(deployDoc).toContain('xunjing-platform-readiness')
     expect(deployDoc).toContain('summary.tenantId')
@@ -2488,6 +2580,7 @@ describe('xicheng release evidence package gate', () => {
     expect(deployDoc).toContain('packageCode=XICHENG-MAP-001')
     expect(deployDoc).toContain('evidenceFileSha256')
     expect(deployDoc).toContain('summary.poiWorkbookEvidenceFile')
+    expect(deployDoc).toContain('summary.yudaoServerSmokeStatus')
     expect(deployDoc).toContain('summary.poiSourceCoverageEvidenceFile')
     expect(deployDoc).toContain('workbookReadyPoiCount')
     expect(deployDoc).toContain('workbookPendingPoiCount')
