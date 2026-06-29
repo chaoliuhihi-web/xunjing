@@ -49,7 +49,7 @@ for (const required of [
 
 assert.match(
   persistBlock,
-  /const materialSafetyStatus = normalizeXichengSafetyStatus\(result\.safetyStatus\)[\s\S]*const unsafeMaterialSafetyStatus = \['BLOCKED', 'UNAVAILABLE'\]\.includes\(materialSafetyStatus\)[\s\S]*const sources = unsafeMaterialSafetyStatus \? \[\] : normalizeXichengReviewedSources\(result\.sources\)[\s\S]*const suggestedQuestions = unsafeMaterialSafetyStatus \? \[\]/,
+  /const materialSafetyStatus = normalizeXichengSafetyStatus\(result\.safetyStatus\)[\s\S]*const unsafeMaterialSafetyStatus = isXichengUnsafeSafetyStatus\(materialSafetyStatus\)[\s\S]*const sources = unsafeMaterialSafetyStatus \? \[\] : normalizeXichengReviewedSources\(result\.sources\)[\s\S]*const suggestedQuestions = unsafeMaterialSafetyStatus \? \[\]/,
   'Xiaojing answer material persistence should fail closed by clearing reviewed sources and follow-ups for BLOCKED or UNAVAILABLE results'
 )
 

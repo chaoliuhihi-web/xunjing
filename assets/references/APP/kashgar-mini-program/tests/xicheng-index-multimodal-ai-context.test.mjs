@@ -19,7 +19,7 @@ assert.match(
 
 assert.match(
   indexPage,
-  /import \{ normalizeXichengSafetyStatus \} from '@\/request\/xunjing\/safety\.js'/,
+  /import \{[^}]*isXichengUnsafeSafetyStatus[^}]*normalizeXichengSafetyStatus[^}]*\} from '@\/request\/xunjing\/safety\.js'/,
   'Index multimodal entry should reuse the shared Xicheng safety status normalizer'
 )
 
@@ -59,19 +59,19 @@ const persistedRouteBlock = indexPage.match(/normalizeXichengMultimodalRoute\(tr
 
 assert.match(
   persistedSourcesBlock,
-  /const safetyStatus = normalizeXichengSafetyStatus\(trigger\.safetyStatus\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*return \[\][\s\S]*return normalizeXichengReviewedSources\(trigger\.sources\)/,
+  /const safetyStatus = normalizeXichengSafetyStatus\(trigger\.safetyStatus\)[\s\S]*isXichengUnsafeSafetyStatus\(safetyStatus\)[\s\S]*return \[\][\s\S]*return normalizeXichengReviewedSources\(trigger\.sources\)/,
   'Index should clear cached reviewed sources when multimodal recognition is BLOCKED or UNAVAILABLE'
 )
 
 assert.match(
   persistedQuestionsBlock,
-  /const safetyStatus = normalizeXichengSafetyStatus\(trigger\.safetyStatus\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*return \[\][\s\S]*Array\.isArray\(trigger\.suggestedQuestions\) \? trigger\.suggestedQuestions : \[\]/,
+  /const safetyStatus = normalizeXichengSafetyStatus\(trigger\.safetyStatus\)[\s\S]*isXichengUnsafeSafetyStatus\(safetyStatus\)[\s\S]*return \[\][\s\S]*Array\.isArray\(trigger\.suggestedQuestions\) \? trigger\.suggestedQuestions : \[\]/,
   'Index should clear cached suggested questions when multimodal recognition is BLOCKED or UNAVAILABLE'
 )
 
 assert.match(
   persistedRouteBlock,
-  /const safetyStatus = normalizeXichengSafetyStatus\(trigger\.safetyStatus\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*return null[\s\S]*return trigger\.routeRecommendation \|\| trigger\.recommendedRoute \|\| null/,
+  /const safetyStatus = normalizeXichengSafetyStatus\(trigger\.safetyStatus\)[\s\S]*isXichengUnsafeSafetyStatus\(safetyStatus\)[\s\S]*return null[\s\S]*return trigger\.routeRecommendation \|\| trigger\.recommendedRoute \|\| null/,
   'Index should clear cached route recommendations when multimodal recognition is BLOCKED or UNAVAILABLE'
 )
 

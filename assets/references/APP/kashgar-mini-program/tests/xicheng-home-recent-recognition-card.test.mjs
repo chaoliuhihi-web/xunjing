@@ -70,13 +70,13 @@ assert.match(
 
 assert.match(
   home,
-  /import \{ normalizeXichengSafetyStatus \} from '@\/request\/xunjing\/safety\.js'/,
+  /import \{[^}]*isXichengUnsafeSafetyStatus[^}]*normalizeXichengSafetyStatus[^}]*\} from '@\/request\/xunjing\/safety\.js'/,
   'Xicheng home should reuse the shared safetyStatus normalizer for recent recognition gates'
 )
 
 assert.match(
   unsafeRecentStatusSource,
-  /const status = normalizeXichengSafetyStatus\(this\.recentRecognition && this\.recentRecognition\.safetyStatus\)[\s\S]*return \['BLOCKED', 'UNAVAILABLE'\]\.includes\(status\)/,
+  /const status = normalizeXichengSafetyStatus\(this\.recentRecognition && this\.recentRecognition\.safetyStatus\)[\s\S]*return isXichengUnsafeSafetyStatus\(status\)/,
   'Recent recognition safety gate should normalize legacy cached safetyStatus values before deciding whether Xiaojing can answer'
 )
 

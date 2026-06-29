@@ -6,7 +6,7 @@ const root = process.cwd()
 const aiGuide = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
 
 const requestChatBlock = aiGuide.match(/const requestXunjingAiChat\s*=\s*\(question\) => \{[\s\S]*?\n\}\n\nconst escapeHtml/)?.[0] || ''
-const unsafeContextBlock = requestChatBlock.match(/const contextSafetyStatus = normalizeXichengSafetyStatus\(context\.safetyStatus\)[\s\S]*?if\s*\(hasXichengAiContext\(context\) && \['BLOCKED', 'UNAVAILABLE'\]\.includes\(contextSafetyStatus\)\)\s*\{[\s\S]*?\n\t\}/)?.[0] || ''
+const unsafeContextBlock = requestChatBlock.match(/const contextSafetyStatus = normalizeXichengSafetyStatus\(context\.safetyStatus\)[\s\S]*?if\s*\(hasXichengAiContext\(context\) && isXichengUnsafeSafetyStatus\(contextSafetyStatus\)\)\s*\{[\s\S]*?\n\t\}/)?.[0] || ''
 
 assert.ok(requestChatBlock, 'AI guide should expose requestXunjingAiChat')
 

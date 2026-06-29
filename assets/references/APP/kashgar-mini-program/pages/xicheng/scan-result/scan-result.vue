@@ -137,7 +137,7 @@ import {
 import { submitXichengRecognitionFeedbackEvent } from '@/request/xunjing/events.js'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
-import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
+import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import {
 	getXichengDisplaySourceDescription,
 	getXichengDisplaySourceTitle,
@@ -168,7 +168,7 @@ const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
 
 const normalizeSuggestedQuestions = (result = {}) => {
 	const safetyStatus = normalizeXichengSafetyStatus(result.safetyStatus)
-	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+	if (isXichengUnsafeSafetyStatus(safetyStatus)) {
 		return []
 	}
 	if (Array.isArray(result.suggestedQuestions) && result.suggestedQuestions.length > 0) {
@@ -182,7 +182,7 @@ const normalizeSuggestedQuestions = (result = {}) => {
 
 const normalizeReviewedSources = (result = {}) => {
 	const safetyStatus = normalizeXichengSafetyStatus(result.safetyStatus)
-	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+	if (isXichengUnsafeSafetyStatus(safetyStatus)) {
 		return []
 	}
 	return normalizeXichengReviewedSources(result.sources)
@@ -190,7 +190,7 @@ const normalizeReviewedSources = (result = {}) => {
 
 const normalizeRecommendedRoute = (result = {}) => {
 	const safetyStatus = normalizeXichengSafetyStatus(result.safetyStatus)
-	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+	if (isXichengUnsafeSafetyStatus(safetyStatus)) {
 		return null
 	}
 	return result.routeRecommendation || result.recommendedRoute || null
@@ -233,7 +233,7 @@ const findXichengRecommendedRouteForPoi = (officialPoi = {}) => {
 
 const applyXichengOfficialPoiDefaults = (result = {}) => {
 	const safetyStatus = normalizeXichengSafetyStatus(result.safetyStatus)
-	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+	if (isXichengUnsafeSafetyStatus(safetyStatus)) {
 		return result
 	}
 	const officialPoi = findXichengOfficialPoiForResult(result)
@@ -425,7 +425,7 @@ export default {
 		},
 		unsafeRecognitionSafetyStatus() {
 			const safetyStatus = normalizeXichengSafetyStatus(this.result.safetyStatus)
-			return ['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)
+			return isXichengUnsafeSafetyStatus(safetyStatus)
 		},
 		candidateList() {
 			return normalizeRecognitionCandidates(this.result.candidates)
@@ -510,7 +510,7 @@ export default {
 		},
 		isUnsafeCandidate(candidate = {}) {
 			const safetyStatus = normalizeXichengSafetyStatus(candidate.safetyStatus)
-			return ['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)
+			return isXichengUnsafeSafetyStatus(safetyStatus)
 		},
 		candidateSafetyLabel(candidate = {}) {
 			const safetyStatus = normalizeXichengSafetyStatus(candidate.safetyStatus)

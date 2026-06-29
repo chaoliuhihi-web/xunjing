@@ -317,7 +317,7 @@ import config from '@/request/config.js'
 import { resolveXichengPhotoTrigger } from '@/request/xunjing/trigger.js'
 import { normalizeXichengAiChatResponse } from '@/request/xunjing/chat.js'
 import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
-import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
+import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import {
 	getXichengDisplaySourceDescription,
 	getXichengDisplaySourceTitle,
@@ -522,7 +522,7 @@ const normalizeCachedMessages = (list) => {
 		.filter(item => !(item.role === 'assistant' && item.isPending && !item.content))
 		.map(item => {
 			const safetyStatus = normalizeXichengSafetyStatus(item.safetyStatus)
-			const unsafeSafetyStatus = ['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)
+			const unsafeSafetyStatus = isXichengUnsafeSafetyStatus(safetyStatus)
 			return {
 				id: item.id || createMessageId(),
 				role: item.role,
@@ -590,7 +590,7 @@ const persistXichengAiGuideMaterial = ({ question = '', result = {}, assistantMe
 	if (!hasXichengAiContext(context)) return null
 	const assistantMessageContent = assistantMessage && assistantMessage.content ? assistantMessage.content : ''
 	const materialSafetyStatus = normalizeXichengSafetyStatus(result.safetyStatus)
-	const unsafeMaterialSafetyStatus = ['BLOCKED', 'UNAVAILABLE'].includes(materialSafetyStatus)
+	const unsafeMaterialSafetyStatus = isXichengUnsafeSafetyStatus(materialSafetyStatus)
 	const sources = unsafeMaterialSafetyStatus ? [] : normalizeXichengReviewedSources(result.sources)
 	const suggestedQuestions = unsafeMaterialSafetyStatus ? []
 		: Array.isArray(result.followUps)
@@ -689,7 +689,7 @@ const loadCachedXichengRecognitionContext = (context = {}) => {
 		return createEmptyXichengRecognitionContext()
 	}
 	const safetyStatus = normalizeXichengSafetyStatus(cached.safetyStatus)
-	const unsafeSafetyStatus = ['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)
+	const unsafeSafetyStatus = isXichengUnsafeSafetyStatus(safetyStatus)
 	return {
 		sceneCode: cached.sceneCode || '',
 		sourceChannel: cached.sourceChannel || '',
@@ -762,7 +762,7 @@ const activeAiAvatar = computed(() => (
 const getXichengContextSources = () => {
 	const context = xichengAiContext.value || {}
 	const safetyStatus = normalizeXichengSafetyStatus(context.safetyStatus)
-	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+	if (isXichengUnsafeSafetyStatus(safetyStatus)) {
 		return []
 	}
 	return normalizeXichengReviewedSources(context.sources)
@@ -770,7 +770,7 @@ const getXichengContextSources = () => {
 
 const applyXichengPhotoTriggerContext = (trigger = {}) => {
 	const safetyStatus = normalizeXichengSafetyStatus(trigger.safetyStatus)
-	const unsafeSafetyStatus = ['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)
+	const unsafeSafetyStatus = isXichengUnsafeSafetyStatus(safetyStatus)
 	const recognitionContext = {
 		...trigger,
 		regionCode: trigger.regionCode || XICHENG_REGION_CONFIG.regionCode,
@@ -1073,7 +1073,7 @@ const requestXunjingAiChat = (question) => {
 	let requestTask = null
 	const context = xichengAiContext.value || {}
 	const contextSafetyStatus = normalizeXichengSafetyStatus(context.safetyStatus)
-	if (hasXichengAiContext(context) && ['BLOCKED', 'UNAVAILABLE'].includes(contextSafetyStatus)) {
+	if (hasXichengAiContext(context) && isXichengUnsafeSafetyStatus(contextSafetyStatus)) {
 		const unsafeRequest = Promise.resolve({
 			answer: contextSafetyStatus === 'BLOCKED' ? XICHENG_BLOCKED_ANSWER : XICHENG_UNAVAILABLE_ANSWER,
 			sources: [],
@@ -2009,7 +2009,7 @@ const buildXunjingTriggerAssistantContent = (trigger) => {
 
 const createXunjingTriggerFollowUps = (trigger) => {
 	const safetyStatus = normalizeXichengSafetyStatus(trigger && trigger.safetyStatus)
-	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+	if (isXichengUnsafeSafetyStatus(safetyStatus)) {
 		return []
 	}
 	if (!trigger || !trigger.poiName) {

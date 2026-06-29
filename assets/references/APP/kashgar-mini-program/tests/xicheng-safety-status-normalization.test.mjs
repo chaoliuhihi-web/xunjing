@@ -16,8 +16,12 @@ const safetyHelper = exists('request', 'xunjing', 'safety.js')
   : ''
 const chatRequest = read('request', 'xunjing', 'chat.js')
 const eventRequest = read('request', 'xunjing', 'events.js')
+const triggerRequest = read('request', 'xunjing', 'trigger.js')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
 const aiGuide = read('pages', 'ai-guide', 'ai-guide.vue')
+const indexPage = read('pages', 'index', 'index.vue')
+const xichengHome = read('pages', 'xicheng', 'home', 'home.vue')
+const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 
 assert.match(
   safetyHelper,
@@ -25,14 +29,40 @@ assert.match(
   'Shared safety helper should normalize empty, lowercase, and mixed-case safetyStatus values to uppercase strings'
 )
 
+assert.match(
+  safetyHelper,
+  /export const isXichengUnsafeSafetyStatus\s*=\s*\(safetyStatus = ''\) => \['BLOCKED', 'UNAVAILABLE'\]\.includes\(normalizeXichengSafetyStatus\(safetyStatus\)\)/,
+  'Shared safety helper should centralize BLOCKED and UNAVAILABLE unsafe status checks'
+)
+
 for (const [label, source] of [
   ['chat facade', chatRequest],
+  ['trigger facade', triggerRequest],
   ['recognition result page', scanResult],
   ['AI guide page', aiGuide],
+  ['index multimodal cache', indexPage],
+  ['Xicheng home page', xichengHome],
+  ['travelogue page', travelogue],
 ]) {
   assert.ok(
     source.includes("normalizeXichengSafetyStatus"),
     `${label} should reuse normalizeXichengSafetyStatus instead of comparing raw safetyStatus values`
+  )
+}
+
+for (const [label, source] of [
+  ['chat facade', chatRequest],
+  ['trigger facade', triggerRequest],
+  ['recognition result page', scanResult],
+  ['AI guide page', aiGuide],
+  ['index multimodal cache', indexPage],
+  ['Xicheng home page', xichengHome],
+  ['travelogue page', travelogue],
+  ['recognition feedback event', eventRequest],
+]) {
+  assert.ok(
+    source.includes("isXichengUnsafeSafetyStatus"),
+    `${label} should reuse isXichengUnsafeSafetyStatus instead of duplicating BLOCKED/UNAVAILABLE checks`
   )
 }
 
@@ -56,7 +86,7 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /const contextSafetyStatus = normalizeXichengSafetyStatus\(context\.safetyStatus\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(contextSafetyStatus\)/,
+  /const contextSafetyStatus = normalizeXichengSafetyStatus\(context\.safetyStatus\)[\s\S]*isXichengUnsafeSafetyStatus\(contextSafetyStatus\)/,
   'AI guide should short-circuit BLOCKED and UNAVAILABLE contexts after normalizing safetyStatus'
 )
 
@@ -101,3 +131,12 @@ assert.match(
   /normalizeXichengSafetyStatus\(decodeRouteValue\(options\.safetyStatus\)\)/,
   'Recognition result should normalize route safetyStatus before carrying it into Xiaojing'
 )
+
+const safetyModule = `${safetyHelper.replace(/export const /g, 'const ')}
+export { normalizeXichengSafetyStatus, isXichengUnsafeSafetyStatus }`
+const { normalizeXichengSafetyStatus, isXichengUnsafeSafetyStatus } = await import(`data:text/javascript;base64,${Buffer.from(safetyModule).toString('base64')}`)
+
+assert.equal(normalizeXichengSafetyStatus(' blocked '), 'BLOCKED')
+assert.equal(isXichengUnsafeSafetyStatus(' blocked '), true)
+assert.equal(isXichengUnsafeSafetyStatus('unavailable'), true)
+assert.equal(isXichengUnsafeSafetyStatus('approved'), false)

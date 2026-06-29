@@ -3,7 +3,7 @@ import {
 	getXunjingUserTraceId,
 	getYudaoCommonResultPayload
 } from '@/request/xunjingMultimodal.js'
-import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
+import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 
@@ -32,7 +32,7 @@ export const normalizeXichengAiChatResponse = (payload = {}) => {
 			? payload.recommendedQuestions
 			: []
 	const safetyStatus = normalizeXichengSafetyStatus(payload.safetyStatus)
-	const sourceBackedAnswerUnavailable = ['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)
+	const sourceBackedAnswerUnavailable = isXichengUnsafeSafetyStatus(safetyStatus)
 	const safeSuggestedQuestions = sourceBackedAnswerUnavailable ? [] : suggestedQuestions
 	const safeSources = sourceBackedAnswerUnavailable ? [] : normalizeXichengReviewedSources(payload.sources)
 	const answer = safetyStatus === 'BLOCKED'

@@ -21,7 +21,7 @@ assert.doesNotMatch(
 
 assert.match(
   aiGuide,
-  /const applyXichengPhotoTriggerContext\s*=\s*\(trigger = \{\}\) => \{[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(trigger\.safetyStatus\)[\s\S]*const unsafeSafetyStatus = \['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*sources:\s*unsafeSafetyStatus \? \[\] : normalizeXichengReviewedSources\(trigger\.sources\)[\s\S]*suggestedQuestions:\s*unsafeSafetyStatus \? \[\] : Array\.isArray\(trigger\.suggestedQuestions\) \? trigger\.suggestedQuestions : \[\][\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.storageKey, recognitionContext\)[\s\S]*xichengAiContext\.value = \{[\s\S]*\.\.\.recognitionContext/,
+  /const applyXichengPhotoTriggerContext\s*=\s*\(trigger = \{\}\) => \{[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(trigger\.safetyStatus\)[\s\S]*const unsafeSafetyStatus = isXichengUnsafeSafetyStatus\(safetyStatus\)[\s\S]*sources:\s*unsafeSafetyStatus \? \[\] : normalizeXichengReviewedSources\(trigger\.sources\)[\s\S]*suggestedQuestions:\s*unsafeSafetyStatus \? \[\] : Array\.isArray\(trigger\.suggestedQuestions\) \? trigger\.suggestedQuestions : \[\][\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.storageKey, recognitionContext\)[\s\S]*xichengAiContext\.value = \{[\s\S]*\.\.\.recognitionContext/,
   'AI guide should apply a successful photo trigger to the active Xicheng context and recognition cache'
 )
 
@@ -45,12 +45,12 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /const createXunjingTriggerFollowUps\s*=\s*\(trigger\) => \{[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(trigger && trigger\.safetyStatus\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*return \[\][\s\S]*Array\.isArray\(trigger\.suggestedQuestions\)/,
+  /const createXunjingTriggerFollowUps\s*=\s*\(trigger\) => \{[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(trigger && trigger\.safetyStatus\)[\s\S]*isXichengUnsafeSafetyStatus\(safetyStatus\)[\s\S]*return \[\][\s\S]*Array\.isArray\(trigger\.suggestedQuestions\)/,
   'AI guide photo recognition should not create local follow-ups for unsafe trigger results and should prefer backend suggestedQuestions'
 )
 
 assert.ok(
-  followUpsBlock.indexOf("['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)") <
+  followUpsBlock.indexOf('isXichengUnsafeSafetyStatus(safetyStatus)') <
     followUpsBlock.indexOf('!trigger || !trigger.poiName'),
   'AI guide photo recognition should check unsafe safetyStatus before creating generic no-POI follow-ups'
 )

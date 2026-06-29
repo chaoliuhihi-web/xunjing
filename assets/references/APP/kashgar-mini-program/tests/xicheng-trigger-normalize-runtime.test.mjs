@@ -28,8 +28,9 @@ const requestImageInfoForTrigger = async () => null`
   : []`
   )
   .replace(
-    /import \{ normalizeXichengSafetyStatus \} from '@\/request\/xunjing\/safety\.js'/,
-    `const normalizeXichengSafetyStatus = (safetyStatus = '') => String(safetyStatus || '').trim().toUpperCase()`
+    /import \{[^}]*normalizeXichengSafetyStatus[^}]*\} from '@\/request\/xunjing\/safety\.js'/,
+    `const normalizeXichengSafetyStatus = (safetyStatus = '') => String(safetyStatus || '').trim().toUpperCase()
+const isXichengUnsafeSafetyStatus = (safetyStatus = '') => ['BLOCKED', 'UNAVAILABLE'].includes(normalizeXichengSafetyStatus(safetyStatus))`
   )
   .replace(
     /import \{[\s\S]*?\} from '@\/config\/regions\/xicheng\.js'/,

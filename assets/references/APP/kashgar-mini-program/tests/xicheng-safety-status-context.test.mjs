@@ -84,19 +84,19 @@ assert.match(
 
 assert.match(
   normalizeSuggestedQuestionsBlock,
-  /const safetyStatus = normalizeXichengSafetyStatus\(result\.safetyStatus\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*return \[\]/,
+  /const safetyStatus = normalizeXichengSafetyStatus\(result\.safetyStatus\)[\s\S]*isXichengUnsafeSafetyStatus\(safetyStatus\)[\s\S]*return \[\]/,
   'Recognition result should hide suggested questions when safetyStatus is BLOCKED or UNAVAILABLE'
 )
 
 assert.match(
   normalizeReviewedSourcesBlock,
-  /const safetyStatus = normalizeXichengSafetyStatus\(result\.safetyStatus\)[\s\S]*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*return \[\][\s\S]*return normalizeXichengReviewedSources\(result\.sources\)/,
+  /const safetyStatus = normalizeXichengSafetyStatus\(result\.safetyStatus\)[\s\S]*isXichengUnsafeSafetyStatus\(safetyStatus\)[\s\S]*return \[\][\s\S]*return normalizeXichengReviewedSources\(result\.sources\)/,
   'Recognition result should hide reviewed sources when safetyStatus is BLOCKED or UNAVAILABLE'
 )
 
 assert.match(
   normalizeRecommendedRouteBlock,
-  /const safetyStatus = normalizeXichengSafetyStatus\(result\.safetyStatus\)[\s\S]*if \(\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)\) \{[\s\S]*return null[\s\S]*return result\.routeRecommendation \|\| result\.recommendedRoute \|\| null/,
+  /const safetyStatus = normalizeXichengSafetyStatus\(result\.safetyStatus\)[\s\S]*if \(isXichengUnsafeSafetyStatus\(safetyStatus\)\) \{[\s\S]*return null[\s\S]*return result\.routeRecommendation \|\| result\.recommendedRoute \|\| null/,
   'Recognition result should hide recommended routes when safetyStatus is BLOCKED or UNAVAILABLE'
 )
 
@@ -126,7 +126,7 @@ assert.match(
 
 assert.match(
   unsafeRecognitionSafetyStatusBlock,
-  /const safetyStatus = normalizeXichengSafetyStatus\(this\.result\.safetyStatus\)[\s\S]*return \['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)/,
+  /const safetyStatus = normalizeXichengSafetyStatus\(this\.result\.safetyStatus\)[\s\S]*return isXichengUnsafeSafetyStatus\(safetyStatus\)/,
   'Recognition result should treat BLOCKED and UNAVAILABLE safety states as unsafe for local actions'
 )
 

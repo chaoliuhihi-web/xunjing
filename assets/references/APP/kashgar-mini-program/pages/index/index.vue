@@ -408,7 +408,7 @@ import request from '@/request/request.js'
 import { buildTencentMapSignedUrl } from '@/request/qqMapSign.js'
 import { resolveXunjingMultimodalTrigger, requestCurrentLocationForTrigger } from '@/request/xunjingMultimodal.js'
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
-import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
+import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 import {
 	KASHGAR_ACTIONS,
@@ -708,21 +708,21 @@ export default {
 		},
 		normalizeXichengMultimodalSources(trigger = {}) {
 			const safetyStatus = normalizeXichengSafetyStatus(trigger.safetyStatus)
-			if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+			if (isXichengUnsafeSafetyStatus(safetyStatus)) {
 				return []
 			}
 			return normalizeXichengReviewedSources(trigger.sources)
 		},
 		normalizeXichengMultimodalSuggestedQuestions(trigger = {}) {
 			const safetyStatus = normalizeXichengSafetyStatus(trigger.safetyStatus)
-			if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+			if (isXichengUnsafeSafetyStatus(safetyStatus)) {
 				return []
 			}
 			return Array.isArray(trigger.suggestedQuestions) ? trigger.suggestedQuestions : []
 		},
 		normalizeXichengMultimodalRoute(trigger = {}) {
 			const safetyStatus = normalizeXichengSafetyStatus(trigger.safetyStatus)
-			if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+			if (isXichengUnsafeSafetyStatus(safetyStatus)) {
 				return null
 			}
 			return trigger.routeRecommendation || trigger.recommendedRoute || null

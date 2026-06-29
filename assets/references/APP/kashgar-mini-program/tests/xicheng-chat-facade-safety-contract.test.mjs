@@ -44,7 +44,7 @@ assert.match(
 
 assert.match(
   normalizeResponseBlock,
-  /const sourceBackedAnswerUnavailable = \['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*const safeSuggestedQuestions = sourceBackedAnswerUnavailable \? \[\] : suggestedQuestions[\s\S]*followUps:\s*safeSuggestedQuestions/,
+  /const sourceBackedAnswerUnavailable = isXichengUnsafeSafetyStatus\(safetyStatus\)[\s\S]*const safeSuggestedQuestions = sourceBackedAnswerUnavailable \? \[\] : suggestedQuestions[\s\S]*followUps:\s*safeSuggestedQuestions/,
   'Xicheng chat response normalization should expose safe followUps while clearing prompts for BLOCKED or UNAVAILABLE responses'
 )
 
@@ -80,8 +80,9 @@ const getXunjingUserTraceId = () => 'guest'
 const getYudaoCommonResultPayload = (res) => res && res.data && res.data.data ? res.data.data : {}`
   )
   .replace(
-    /import \{ normalizeXichengSafetyStatus \} from '@\/request\/xunjing\/safety\.js'/,
-    `const normalizeXichengSafetyStatus = (safetyStatus = '') => String(safetyStatus || '').trim().toUpperCase()`
+    /import \{[^}]*normalizeXichengSafetyStatus[^}]*\} from '@\/request\/xunjing\/safety\.js'/,
+    `const normalizeXichengSafetyStatus = (safetyStatus = '') => String(safetyStatus || '').trim().toUpperCase()
+const isXichengUnsafeSafetyStatus = (safetyStatus = '') => ['BLOCKED', 'UNAVAILABLE'].includes(normalizeXichengSafetyStatus(safetyStatus))`
   )
   .replace(
     /import \{ normalizeXichengReviewedSources \} from '@\/request\/xunjing\/sources\.js'/,

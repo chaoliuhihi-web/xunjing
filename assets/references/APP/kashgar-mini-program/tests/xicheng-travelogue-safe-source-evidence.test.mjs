@@ -16,7 +16,7 @@ for (const required of [
   'getReviewableWorkMaterialSources',
   'getReviewableRouteCheckinSources',
   'normalizeXichengReviewedSources',
-  "['BLOCKED', 'UNAVAILABLE']"
+  'isXichengUnsafeSafetyStatus'
 ]) {
   assert.ok(
     travelogue.includes(required),
@@ -26,7 +26,7 @@ for (const required of [
 
 assert.match(
   travelogue,
-  /isUnsafeSourceBlockedMaterial\s*=\s*\(material = \{\}\) => \{[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(material\.safetyStatus\)[\s\S]*return \['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)/,
+  /isUnsafeSourceBlockedMaterial\s*=\s*\(material = \{\}\) => \{[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(material\.safetyStatus\)[\s\S]*return isXichengUnsafeSafetyStatus\(safetyStatus\)/,
   'Unsafe material helper should normalize legacy cached safetyStatus values before rejecting BLOCKED or UNAVAILABLE materials'
 )
 

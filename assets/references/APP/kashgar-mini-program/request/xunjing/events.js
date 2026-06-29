@@ -3,7 +3,7 @@ import {
 	getXunjingUserTraceId,
 	getYudaoCommonResultPayload
 } from '@/request/xunjingMultimodal.js'
-import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
+import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 
@@ -11,7 +11,7 @@ export const XICHENG_RESOURCE_EVENT_API_PATH = 'app-api/xunjing/resource/events'
 
 const getRecognitionFeedbackSourceCount = (feedback = {}) => {
 	const safetyStatus = normalizeXichengSafetyStatus(feedback.safetyStatus)
-	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+	if (isXichengUnsafeSafetyStatus(safetyStatus)) {
 		return 0
 	}
 	return normalizeXichengReviewedSources(feedback.sources).length

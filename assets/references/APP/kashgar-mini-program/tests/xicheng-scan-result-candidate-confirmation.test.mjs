@@ -52,7 +52,7 @@ assert.match(
 
 assert.match(
   scanResult,
-  /isUnsafeCandidate\(candidate = \{\}\)[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(candidate\.safetyStatus\)[\s\S]*return \['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)/,
+  /isUnsafeCandidate\(candidate = \{\}\)[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(candidate\.safetyStatus\)[\s\S]*return isXichengUnsafeSafetyStatus\(safetyStatus\)/,
   'Candidate confirmation should detect BLOCKED or UNAVAILABLE candidate safety status before selection'
 )
 

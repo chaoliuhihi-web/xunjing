@@ -9,7 +9,7 @@ import {
 	requestCurrentLocationForTrigger,
 	requestImageInfoForTrigger
 } from '@/request/xunjingMultimodal.js'
-import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
+import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 import {
 	XICHENG_REGION_CONFIG,
@@ -53,7 +53,7 @@ export const isXichengDevelopmentRecognitionCacheBlocked = (recognition = {}) =>
 
 const normalizeSuggestedQuestions = (result = {}) => {
 	const safetyStatus = normalizeXichengSafetyStatus(result.safetyStatus)
-	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+	if (isXichengUnsafeSafetyStatus(safetyStatus)) {
 		return []
 	}
 	if (Array.isArray(result.suggestedQuestions) && result.suggestedQuestions.length > 0) {
@@ -67,7 +67,7 @@ const normalizeSuggestedQuestions = (result = {}) => {
 
 const normalizeReviewedSources = (result = {}) => {
 	const safetyStatus = normalizeXichengSafetyStatus(result.safetyStatus)
-	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+	if (isXichengUnsafeSafetyStatus(safetyStatus)) {
 		return []
 	}
 	return normalizeXichengReviewedSources(result.sources)
@@ -75,7 +75,7 @@ const normalizeReviewedSources = (result = {}) => {
 
 const normalizeRecommendedRoute = (result = {}) => {
 	const safetyStatus = normalizeXichengSafetyStatus(result.safetyStatus)
-	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) {
+	if (isXichengUnsafeSafetyStatus(safetyStatus)) {
 		return null
 	}
 	return result.routeRecommendation || result.recommendedRoute || null

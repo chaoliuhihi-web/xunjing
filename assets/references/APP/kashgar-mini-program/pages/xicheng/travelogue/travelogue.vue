@@ -362,7 +362,7 @@
 import { XICHENG_OFFICIAL_POIS, XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
 import { requestCurrentLocationForTrigger } from '@/request/xunjing/trigger.js'
-import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
+import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import {
 	getXichengDisplaySourceDescription,
 	getXichengDisplaySourceTitle,
@@ -377,7 +377,7 @@ export const XICHENG_PLANNING_ONLY_MATERIAL_TYPES = Object.freeze([
 
 export const isUnsafeSourceBlockedMaterial = (material = {}) => {
 	const safetyStatus = normalizeXichengSafetyStatus(material.safetyStatus)
-	return ['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)
+	return isXichengUnsafeSafetyStatus(safetyStatus)
 }
 
 export const hasReviewableMaterialEvidence = (material = {}) => {
@@ -413,7 +413,7 @@ export const getReviewableWorkMaterialSources = (material = {}) => {
 
 export function hasReviewableRouteCheckinEvidence(checkin = {}) {
 	const safetyStatus = normalizeXichengSafetyStatus(checkin.safetyStatus)
-	if (['BLOCKED', 'UNAVAILABLE'].includes(safetyStatus)) return false
+	if (isXichengUnsafeSafetyStatus(safetyStatus)) return false
 	return Boolean(checkin.poiCode || checkin.poiName || checkin.routeTitle)
 }
 
@@ -954,7 +954,7 @@ export default {
 			const routeSceneCode = decodeJourneyRouteValue(options.sceneCode) || XICHENG_REGION_CONFIG.sceneCode
 			const routeSourceChannel = decodeJourneyRouteValue(options.sourceChannel) || XICHENG_REGION_CONFIG.sourceChannel
 			const routeSafetyStatus = normalizeXichengSafetyStatus(decodeJourneyRouteValue(options.safetyStatus))
-			const unsafeRouteSafetyStatus = ['BLOCKED', 'UNAVAILABLE'].includes(routeSafetyStatus)
+			const unsafeRouteSafetyStatus = isXichengUnsafeSafetyStatus(routeSafetyStatus)
 			const routePoiName = decodeJourneyRouteValue(options.poiName)
 			if (routePoiName && !unsafeRouteSafetyStatus && !materials.some(material => material && material.poiName === routePoiName)) {
 				materials.unshift({
@@ -999,7 +999,7 @@ export default {
 			return options.mode === 'record'
 				&& options.autoStart === '1'
 				&& this.recordingSession.status !== 'recording'
-				&& !['BLOCKED', 'UNAVAILABLE'].includes(routeSafetyStatus)
+				&& !isXichengUnsafeSafetyStatus(routeSafetyStatus)
 		},
 		openPrivacyPolicy() {
 			uni.navigateTo({

@@ -27,7 +27,7 @@ assert.match(
 
 assert.match(
   loadCachedRecognitionBlock,
-  /const safetyStatus = normalizeXichengSafetyStatus\(cached\.safetyStatus\)[\s\S]*const unsafeSafetyStatus = \['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)[\s\S]*safetyStatus,[\s\S]*sources:\s*unsafeSafetyStatus \? \[\] : normalizeXichengReviewedSources\(cached\.sources\)/,
+  /const safetyStatus = normalizeXichengSafetyStatus\(cached\.safetyStatus\)[\s\S]*const unsafeSafetyStatus = isXichengUnsafeSafetyStatus\(safetyStatus\)[\s\S]*safetyStatus,[\s\S]*sources:\s*unsafeSafetyStatus \? \[\] : normalizeXichengReviewedSources\(cached\.sources\)/,
   'AI guide should fail closed when restoring cached BLOCKED or UNAVAILABLE recognition sources'
 )
 
@@ -39,7 +39,7 @@ assert.match(
 
 assert.match(
   contextSourcesBlock,
-  /const safetyStatus = normalizeXichengSafetyStatus\(context\.safetyStatus\)[\s\S]*if \(\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)\) \{[\s\S]*return \[\][\s\S]*return normalizeXichengReviewedSources\(context\.sources\)/,
+  /const safetyStatus = normalizeXichengSafetyStatus\(context\.safetyStatus\)[\s\S]*if \(isXichengUnsafeSafetyStatus\(safetyStatus\)\) \{[\s\S]*return \[\][\s\S]*return normalizeXichengReviewedSources\(context\.sources\)/,
   'AI guide should expose a normalized safe helper for the active Xicheng reviewed sources'
 )
 

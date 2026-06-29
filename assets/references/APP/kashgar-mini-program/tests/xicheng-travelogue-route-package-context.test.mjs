@@ -37,7 +37,7 @@ for (const required of [
   'const routeSceneCode = decodeJourneyRouteValue(options.sceneCode) || XICHENG_REGION_CONFIG.sceneCode',
   'const routeSourceChannel = decodeJourneyRouteValue(options.sourceChannel) || XICHENG_REGION_CONFIG.sourceChannel',
   'const routeSafetyStatus = normalizeXichengSafetyStatus(decodeJourneyRouteValue(options.safetyStatus))',
-  'const unsafeRouteSafetyStatus = [\'BLOCKED\', \'UNAVAILABLE\'].includes(routeSafetyStatus)',
+  'const unsafeRouteSafetyStatus = isXichengUnsafeSafetyStatus(routeSafetyStatus)',
   'regionCode: routeRegionCode',
   'packageCode: routePackageCode',
   'sceneCode: routeSceneCode',
@@ -55,7 +55,7 @@ assert.match(
 
 assert.match(
   shouldAutoStartBlock,
-  /const routeSafetyStatus = normalizeXichengSafetyStatus\(decodeJourneyRouteValue\(options\.safetyStatus\)\)[\s\S]*!\s*\['BLOCKED', 'UNAVAILABLE'\]\.includes\(routeSafetyStatus\)/,
+  /const routeSafetyStatus = normalizeXichengSafetyStatus\(decodeJourneyRouteValue\(options\.safetyStatus\)\)[\s\S]*!\s*isXichengUnsafeSafetyStatus\(routeSafetyStatus\)/,
   'Travelogue should not auto-start recording when route params carry BLOCKED or UNAVAILABLE safety status'
 )
 

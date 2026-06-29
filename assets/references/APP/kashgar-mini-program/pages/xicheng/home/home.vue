@@ -213,7 +213,7 @@ import {
 	resolveXichengTextTrigger
 } from '@/request/xunjing/trigger.js'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
-import { normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
+import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 
 const XICHENG_EMPTY_RECOGNITION_POI_NAME = '待确认西城文化点'
 
@@ -507,7 +507,7 @@ export default {
 		},
 		recentRecognitionUnsafeSafetyStatus() {
 			const status = normalizeXichengSafetyStatus(this.recentRecognition && this.recentRecognition.safetyStatus)
-			return ['BLOCKED', 'UNAVAILABLE'].includes(status)
+			return isXichengUnsafeSafetyStatus(status)
 		},
 		continueRecentRecognitionWithXiaojing() {
 			if (!this.recentRecognition) return

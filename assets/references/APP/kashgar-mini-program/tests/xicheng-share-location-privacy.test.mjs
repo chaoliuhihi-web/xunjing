@@ -7,7 +7,7 @@ const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelog
 
 assert.match(
   travelogue,
-  /import \{ normalizeXichengSafetyStatus \} from '@\/request\/xunjing\/safety\.js'/,
+  /import \{[^}]*isXichengUnsafeSafetyStatus[^}]*normalizeXichengSafetyStatus[^}]*\} from '@\/request\/xunjing\/safety\.js'/,
   'Travelogue public share exports should reuse the shared Xicheng safety status normalizer'
 )
 
@@ -100,7 +100,7 @@ assert.ok(routeCheckinSanitizeBlock, 'Travelogue should expose a bounded public 
 
 assert.match(
   travelogue,
-  /hasReviewableRouteCheckinEvidence\(checkin = \{\}\)[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(checkin\.safetyStatus\)[\s\S]*if \(\['BLOCKED', 'UNAVAILABLE'\]\.includes\(safetyStatus\)\) return false[\s\S]*return Boolean\([\s\S]*checkin\.poiCode[\s\S]*checkin\.poiName[\s\S]*checkin\.routeTitle/,
+  /hasReviewableRouteCheckinEvidence\(checkin = \{\}\)[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(checkin\.safetyStatus\)[\s\S]*if \(isXichengUnsafeSafetyStatus\(safetyStatus\)\) return false[\s\S]*return Boolean\([\s\S]*checkin\.poiCode[\s\S]*checkin\.poiName[\s\S]*checkin\.routeTitle/,
   'Public route check-in exports should reject stale BLOCKED or UNAVAILABLE check-ins before sanitizing'
 )
 
