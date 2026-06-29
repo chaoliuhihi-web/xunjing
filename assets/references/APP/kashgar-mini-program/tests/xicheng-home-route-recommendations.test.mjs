@@ -27,14 +27,21 @@ for (const required of [
 
 for (const required of [
   'XICHENG_RECOMMENDED_ROUTES',
+  'XICHENG_ROUTE_RECOMMENDATION_FILTERS',
   'recommendedRoutes: XICHENG_RECOMMENDED_ROUTES',
+  'routeRecommendationFilters: XICHENG_ROUTE_RECOMMENDATION_FILTERS',
+  'filteredRecommendedRoutes',
   'route-recommendation-section',
+  'route-filter-bar',
+  'route-filter-chip',
   '路线推荐',
-  'v-for="route in recommendedRoutes.slice(0, 3)"',
+  'v-for="route in filteredRecommendedRoutes.slice(0, 3)"',
   'recommended-route-card',
   'route-meta',
   'route-stops',
+  '查看路线',
   '加入路线护照',
+  'openRecommendedRouteDetail(route)',
   'openRecommendedRoute(route)'
 ]) {
   assert.ok(home.includes(required), `Xicheng home should expose route recommendation UI ${required}`)

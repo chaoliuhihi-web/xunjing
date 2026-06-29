@@ -11,6 +11,7 @@ const appVue = fs.readFileSync(path.join(appRoot, 'App.vue'), 'utf8')
 const home = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'home', 'home.vue'), 'utf8')
 const inspiration = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'inspiration', 'inspiration.vue'), 'utf8')
 const scanResult = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
+const routeDetail = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'route-detail', 'route-detail.vue'), 'utf8')
 const travelogue = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
 const aiGuide = fs.readFileSync(path.join(appRoot, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
 
@@ -19,8 +20,11 @@ const requiredMockups = [
   '01-home-xiaojing-xicheng.png',
   '02-recognition-result-baitasi.png',
   '03-ask-xiaojing-chat.png',
+  '04-route-detail-baitasi-culture.png',
   '05-travelogue-generation.png',
   '06-scan-entry.png',
+  '07-route-list.png',
+  '08-poi-guide-baitasi.png',
   '10-xicheng-footprint.png',
   '11-travelogue-editor-share.png'
 ]
@@ -60,6 +64,7 @@ for (const [fileName, source] of [
   ['home.vue', home],
   ['inspiration.vue', inspiration],
   ['scan-result.vue', scanResult],
+  ['route-detail.vue', routeDetail],
   ['travelogue.vue', travelogue]
 ]) {
   for (const className of [
@@ -85,6 +90,15 @@ for (const token of [
   'xicheng-travelogue-actions'
 ]) {
   assert.ok(travelogue.includes(token), `travelogue.vue should support Xicheng travelogue visual token ${token}`)
+}
+
+for (const token of [
+  'xicheng-route-detail',
+  'route-hero',
+  'route-stop-card',
+  'xiaojing-card'
+]) {
+  assert.ok(routeDetail.includes(token), `route-detail.vue should support Xicheng route detail visual token ${token}`)
 }
 
 for (const token of [

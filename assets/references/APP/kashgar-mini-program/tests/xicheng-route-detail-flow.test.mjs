@@ -1,0 +1,86 @@
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
+
+const root = process.cwd()
+const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
+const readOptional = (...segments) => {
+  const filePath = path.join(root, ...segments)
+  return fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : ''
+}
+
+const pagesJson = read('pages.json')
+const regionConfig = read('config', 'regions', 'xicheng.js')
+const home = read('pages', 'xicheng', 'home', 'home.vue')
+const routeDetail = readOptional('pages', 'xicheng', 'route-detail', 'route-detail.vue')
+
+assert.ok(
+  pagesJson.includes('"path": "pages/xicheng/route-detail/route-detail"'),
+  'Xicheng APP should register a route detail page for route recommendation operations'
+)
+
+for (const required of [
+  'XICHENG_ROUTE_RECOMMENDATION_FILTERS',
+  'distanceText',
+  'routeTips',
+  'nearbyHighlights',
+  'guidePrompt',
+  'walkText',
+  'recommendedFilterKeys'
+]) {
+  assert.ok(regionConfig.includes(required), `Xicheng route data should include route detail field ${required}`)
+}
+
+for (const required of [
+  'route-filter-bar',
+  'route-filter-chip',
+  'filteredRecommendedRoutes',
+  'openRecommendedRouteDetail(route)',
+  '查看路线',
+  '加入路线护照'
+]) {
+  assert.ok(home.includes(required), `Xicheng home route list should expose ${required}`)
+}
+
+assert.match(
+  home,
+  /openRecommendedRouteDetail\(route = \{\}\)[\s\S]*\/pages\/xicheng\/route-detail\/route-detail\?routeCode=\$\{encodeURIComponent\(route\.routeCode \|\| ''\)\}[\s\S]*regionCode=\$\{encodeURIComponent\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeURIComponent\(this\.region\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeURIComponent\(this\.region\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeURIComponent\(this\.region\.sourceChannel\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.region\.companionName\)\}/,
+  'Home route detail entry should preserve routeCode and Xicheng attribution context'
+)
+
+for (const required of [
+  'xicheng-route-detail',
+  'routeHero',
+  'routeStopCards',
+  '沿途看点',
+  '听讲解',
+  'startRoutePassport',
+  'generateRouteTravelogue',
+  'askStopGuide(stop)'
+]) {
+  assert.ok(routeDetail.includes(required), `Route detail page should expose ${required}`)
+}
+
+assert.match(
+  routeDetail,
+  /askStopGuide\(stop = \{\}\)[\s\S]*question=\$\{encodeURIComponent\(question\)\}[\s\S]*regionCode=\$\{encodeURIComponent\(this\.routeOptions\.regionCode \|\| this\.region\.regionCode\)\}[\s\S]*poiCode=\$\{encodeURIComponent\(stop\.poiCode \|\| ''\)\}[\s\S]*poiName=\$\{encodeURIComponent\(stop\.poiName \|\| ''\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.routeOptions\.companionName \|\| this\.region\.companionName\)\}/,
+  'Route detail stop guide entry should navigate to Xiaojing with regionCode, poiCode, poiName, and companionName'
+)
+
+assert.match(
+  routeDetail,
+  /persistRoutePassport\(\)[\s\S]*uni\.setStorageSync\(this\.region\.inspirationStorageKey,\s*routePayload\)[\s\S]*uni\.setStorageSync\(this\.region\.materialsStorageKey/,
+  'Route detail should persist official route payload and POI materials before travelogue handoff'
+)
+
+assert.match(
+  routeDetail,
+  /generateRouteTravelogue\(\)[\s\S]*persistRoutePassport\(\)[\s\S]*\/pages\/xicheng\/travelogue\/travelogue\?mode=route[\s\S]*routeCode=\$\{encodeURIComponent\(this\.activeRoute\.routeCode \|\| ''\)\}/,
+  'Route detail should generate a route travelogue draft with routeCode preserved'
+)
+
+assert.doesNotMatch(
+  routeDetail,
+  /\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
+  'Route detail MVP should not add backend calls or client-side secrets'
+)

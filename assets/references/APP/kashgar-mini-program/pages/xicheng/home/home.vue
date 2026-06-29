@@ -96,11 +96,22 @@
 				</view>
 				<text class="section-link" @click="openXichengInspiration">导入灵感</text>
 			</view>
+			<view class="route-filter-bar">
+				<text
+					v-for="filter in routeRecommendationFilters"
+					:key="filter.key"
+					class="route-filter-chip"
+					:class="{ 'route-filter-chip-active': activeRouteFilter === filter.key }"
+					@click="activeRouteFilter = filter.key"
+				>
+					{{ filter.title }}
+				</text>
+			</view>
 			<view
-				v-for="route in recommendedRoutes.slice(0, 3)"
+				v-for="route in filteredRecommendedRoutes.slice(0, 3)"
 				:key="route.routeCode"
 				class="recommended-route-card xicheng-paper-card"
-				@click="openRecommendedRoute(route)"
+				@click="openRecommendedRouteDetail(route)"
 			>
 				<view class="route-card-header">
 					<view>
@@ -111,8 +122,18 @@
 				</view>
 				<view class="route-meta">
 					<text>{{ route.durationText }}</text>
+					<text>{{ route.distanceText || '步行路线' }}</text>
 					<text>路线护照 {{ route.passportTaskCount }} 点</text>
 					<text>研学任务 {{ route.studyTaskCount }} 个</text>
+				</view>
+				<view v-if="route.keywords && route.keywords.length > 0" class="route-keywords">
+					<text
+						v-for="keyword in route.keywords"
+						:key="`${route.routeCode}-${keyword}`"
+						class="route-keyword"
+					>
+						{{ keyword }}
+					</text>
 				</view>
 				<view class="route-stops">
 					<text
@@ -124,6 +145,7 @@
 					</text>
 				</view>
 				<view class="route-card-action">
+					<button class="mini-button xicheng-primary-action" @click.stop="openRecommendedRouteDetail(route)">查看路线</button>
 					<button class="mini-button xicheng-secondary-action" @click.stop="openRecommendedRoute(route)">加入路线护照</button>
 				</view>
 			</view>
@@ -161,6 +183,7 @@
 
 <script>
 import {
+	XICHENG_ROUTE_RECOMMENDATION_FILTERS,
 	XICHENG_RECOMMENDED_ROUTES,
 	XICHENG_REGION_CONFIG
 } from '@/config/regions/xicheng.js'
@@ -180,6 +203,8 @@ export default {
 		return {
 			region: XICHENG_REGION_CONFIG,
 			recommendedRoutes: XICHENG_RECOMMENDED_ROUTES,
+			routeRecommendationFilters: XICHENG_ROUTE_RECOMMENDATION_FILTERS,
+			activeRouteFilter: XICHENG_ROUTE_RECOMMENDATION_FILTERS[0] ? XICHENG_ROUTE_RECOMMENDATION_FILTERS[0].key : '',
 			routePassport: XICHENG_REGION_CONFIG.routePassport,
 			parentChildTasks: XICHENG_REGION_CONFIG.parentChildTasks,
 			sharePoster: XICHENG_REGION_CONFIG.sharePoster,
@@ -205,6 +230,14 @@ export default {
 			return this.recentRecognitionNeedsCandidateConfirmation()
 				|| this.recentRecognitionMissingOfficialPoi()
 				|| this.recentRecognitionUnsafeSafetyStatus()
+		},
+		filteredRecommendedRoutes() {
+			if (!this.activeRouteFilter) return this.recommendedRoutes
+			const filteredRoutes = this.recommendedRoutes.filter(route => {
+				const filterKeys = Array.isArray(route.recommendedFilterKeys) ? route.recommendedFilterKeys : []
+				return filterKeys.includes(this.activeRouteFilter)
+			})
+			return filteredRoutes.length > 0 ? filteredRoutes : this.recommendedRoutes
 		}
 	},
 	onLoad() {
@@ -482,6 +515,11 @@ export default {
 		askXiaojing() {
 			uni.navigateTo({
 				url: `/pages/ai-guide/ai-guide?regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.aiSceneCode || this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.region.sourceChannel)}&companionName=${encodeURIComponent(this.region.companionName)}`
+			})
+		},
+		openRecommendedRouteDetail(route = {}) {
+			uni.navigateTo({
+				url: `/pages/xicheng/route-detail/route-detail?routeCode=${encodeURIComponent(route.routeCode || '')}&regionCode=${encodeURIComponent(this.region.regionCode)}&packageCode=${encodeURIComponent(this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.region.sourceChannel)}&companionName=${encodeURIComponent(this.region.companionName)}`
 			})
 		},
 		openRecommendedRoute(route = {}) {
@@ -865,6 +903,37 @@ export default {
 	color: #173F35;
 }
 
+.route-filter-bar {
+	display: flex;
+	gap: 14rpx;
+	margin-top: 24rpx;
+	padding: 10rpx;
+	border-radius: 999rpx;
+	background: rgba(255, 252, 246, 0.72);
+	overflow-x: auto;
+	white-space: nowrap;
+}
+
+.route-filter-chip {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 118rpx;
+	height: 62rpx;
+	padding: 0 22rpx;
+	border-radius: 999rpx;
+	background: rgba(181, 148, 94, 0.10);
+	box-sizing: border-box;
+	font-size: 24rpx;
+	color: #173F35;
+}
+
+.route-filter-chip-active {
+	background: #173F35;
+	color: #FFF9EC;
+	box-shadow: 0 12rpx 24rpx rgba(16, 47, 41, 0.18);
+}
+
 .recommended-route-card {
 	margin-top: 22rpx;
 	padding: 24rpx;
@@ -917,6 +986,21 @@ export default {
 	color: #746F68;
 }
 
+.route-keywords {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12rpx;
+	margin-top: 16rpx;
+}
+
+.route-keyword {
+	padding: 6rpx 12rpx;
+	border-radius: 999rpx;
+	background: rgba(181, 148, 94, 0.12);
+	font-size: 22rpx;
+	color: #8A6B3D;
+}
+
 .route-stops {
 	display: flex;
 	flex-wrap: wrap;
@@ -933,6 +1017,7 @@ export default {
 }
 
 .route-card-action {
+	gap: 16rpx;
 	justify-content: flex-end;
 	margin-top: 20rpx;
 }
