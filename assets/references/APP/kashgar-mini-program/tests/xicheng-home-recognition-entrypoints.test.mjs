@@ -27,11 +27,25 @@ for (const required of [
   '文本识别',
   '粘贴地点、展牌或攻略文字',
   'textRecognitionInput',
+  'textRecognitionPanelExpanded',
+  'openTextRecognitionPanel',
   'startGpsRecognition',
   'startTextRecognition'
 ]) {
   assert.ok(home.includes(required), `Xicheng home should expose recognition entry ${required}`)
 }
+
+assert.match(
+  home,
+  /v-if="textRecognitionPanelExpanded"[\s\S]*id="xicheng-text-recognition-panel"/,
+  'Text recognition input panel should stay collapsed by default so the fixed bottom nav does not cover an editable field'
+)
+
+assert.match(
+  home,
+  /openTextRecognitionPanel\(\)[\s\S]*textRecognitionPanelExpanded\s*=\s*true[\s\S]*selector:\s*'#xicheng-text-recognition-panel'/,
+  'Text recognition entry should expand the input panel and scroll it above the bottom navigation'
+)
 
 assert.match(
   home,
@@ -41,7 +55,7 @@ assert.match(
 
 assert.match(
   home,
-  /startTextRecognition\(\)[\s\S]*this\.textRecognitionInput\.trim\(\)[\s\S]*resolveTextAndOpenResult\(text,\s*'text'\)/,
+  /startTextRecognition\(\)[\s\S]*this\.textRecognitionInput\.trim\(\)[\s\S]*openTextRecognitionPanel\(\)[\s\S]*resolveTextAndOpenResult\(text,\s*'text'\)/,
   'Text recognition should resolve the user-entered text through the shared Xicheng trigger flow'
 )
 

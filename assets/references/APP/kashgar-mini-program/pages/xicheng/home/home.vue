@@ -71,7 +71,11 @@
 			</view>
 		</view>
 
-		<view class="text-recognition-panel xicheng-paper-card">
+		<view
+			v-if="textRecognitionPanelExpanded"
+			id="xicheng-text-recognition-panel"
+			class="text-recognition-panel xicheng-paper-card"
+		>
 			<textarea
 				v-model="textRecognitionInput"
 				class="text-recognition-input"
@@ -229,6 +233,7 @@ export default {
 			],
 			currentLocation: null,
 			textRecognitionInput: '',
+			textRecognitionPanelExpanded: false,
 			recognizing: false,
 			lastError: '',
 			recentRecognition: null
@@ -396,9 +401,22 @@ export default {
 				this.recognizing = false
 			}
 		},
+		openTextRecognitionPanel() {
+			this.textRecognitionPanelExpanded = true
+			this.$nextTick(() => {
+				uni.pageScrollTo({
+					selector: '#xicheng-text-recognition-panel',
+					duration: 220
+				})
+			})
+		},
 		startTextRecognition() {
 			const text = this.textRecognitionInput.trim()
 			if (!text) {
+				if (!this.textRecognitionPanelExpanded) {
+					this.openTextRecognitionPanel()
+					return
+				}
 				uni.showToast({
 					icon: 'none',
 					title: '请输入地点线索'
