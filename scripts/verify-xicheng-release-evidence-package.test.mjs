@@ -183,6 +183,13 @@ async function writeReleaseEvidenceFile(rootDir, overrides = {}) {
       qdrantImageCollectionHttpStatus: 200,
       qdrantTextCollectionStatus: 'green',
       qdrantImageCollectionStatus: 'green',
+      embeddingEvidenceFile: path.join(rootDir, 'qa/xicheng-embedding-smoke-evidence.json'),
+      embeddingProviderSmokeHost: 'dashscope.aliyuncs.com',
+      embeddingProviderSmokeEndpointPath: '/compatible-mode/v1/embeddings',
+      embeddingProviderSmokeModel: 'text-embedding-v3',
+      embeddingProviderSmokeHttpStatus: 200,
+      embeddingVectorDimensions: 1536,
+      embeddingFiniteValueCount: 1536,
       visionOcrEvidenceFile: path.join(rootDir, 'qa/xicheng-vision-ocr-smoke-evidence.json'),
       visionOcrModel: 'qwen-vl-plus',
       visionOcrProviderSmokeHost: 'dashscope.aliyuncs.com',
@@ -350,8 +357,8 @@ function releaseEvidence(overrides = {}) {
     summary: {
       stage: 'production',
       status: 'PRODUCTION_READY_CANDIDATE',
-      totalChecks: 17,
-      passedChecks: 17,
+      totalChecks: 18,
+      passedChecks: 18,
       failedChecks: 0,
       blockerCount: 0,
       gitAvailable: true,
@@ -370,6 +377,7 @@ function releaseEvidence(overrides = {}) {
       { name: 'release-source-revision', ok: true },
       { name: 'runtime-env', ok: true },
       { name: 'vector-embedding-runtime', ok: true },
+      { name: 'embedding-provider-smoke', ok: true },
       { name: 'https-app-api-domain', ok: true },
       { name: 'real-wechat-app', ok: true },
       { name: 'real-ai-provider', ok: true },
@@ -1400,13 +1408,20 @@ describe('xicheng release evidence package gate', () => {
     expect(report.blockers.join('\n')).toContain('release evidence seedEvidenceFile is required')
   })
 
-  test('fails closed when release evidence omits AI OCR and object storage smoke summaries', async () => {
+  test('fails closed when release evidence omits AI embedding OCR and object storage smoke summaries', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeReleaseEvidenceFile(rootDir, {
       summary: {
         aiBootstrapEvidenceFile: undefined,
         aiBootstrapModel: undefined,
         aiBootstrapProviderSmokeHost: undefined,
+        embeddingEvidenceFile: undefined,
+        embeddingProviderSmokeHost: undefined,
+        embeddingProviderSmokeEndpointPath: undefined,
+        embeddingProviderSmokeModel: undefined,
+        embeddingProviderSmokeHttpStatus: undefined,
+        embeddingVectorDimensions: undefined,
+        embeddingFiniteValueCount: undefined,
         visionOcrEvidenceFile: undefined,
         visionOcrModel: undefined,
         visionOcrProviderSmokeHost: undefined,
@@ -1437,6 +1452,9 @@ describe('xicheng release evidence package gate', () => {
     const report = JSON.parse(result.stdout)
     expect(report.status).toBe('NOT_READY')
     expect(report.blockers.join('\n')).toContain('release evidence aiBootstrapEvidenceFile is required')
+    expect(report.blockers.join('\n')).toContain('release evidence embeddingEvidenceFile is required')
+    expect(report.blockers.join('\n')).toContain('release evidence embeddingProviderSmokeHttpStatus must be 200')
+    expect(report.blockers.join('\n')).toContain('release evidence embeddingVectorDimensions must be greater than 0')
     expect(report.blockers.join('\n')).toContain('release evidence visionOcrEvidenceFile is required')
     expect(report.blockers.join('\n')).toContain('release evidence objectStorageEvidenceFile is required')
     expect(report.blockers.join('\n')).toContain('release evidence objectStoragePutHttpStatus must be 2xx')

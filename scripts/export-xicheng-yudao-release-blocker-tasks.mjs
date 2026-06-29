@@ -23,6 +23,7 @@ const checkOwnerLane = {
   'real-wechat-app': 'app-ops',
   'real-ai-provider': 'ai-platform',
   'yudao-ai-model-bootstrap': 'ai-platform',
+  'embedding-provider-smoke': 'ai-platform',
   'qdrant-vector-store': 'ai-platform',
   'vision-ocr-service': 'vision-ocr',
   'object-storage': 'storage-ops',
@@ -40,6 +41,7 @@ const releaseGateEvidenceArgs = [
   '--yudao-server-jar /secure/path/yudao-server.jar',
   '--ai-bootstrap-evidence qa/xicheng-yudao-ai-bootstrap-evidence.json',
   '--qdrant-evidence qa/xicheng-qdrant-smoke-evidence.json',
+  '--embedding-evidence qa/xicheng-embedding-smoke-evidence.json',
   '--vision-ocr-evidence qa/xicheng-vision-ocr-smoke-evidence.json',
   '--object-storage-evidence qa/xicheng-object-storage-smoke-evidence.json',
   '--runtime-seed-evidence qa/xicheng-yudao-runtime-seed-production-evidence.json',
@@ -114,6 +116,11 @@ const checkTaskInstructions = {
     taskDetail: 'Run the Xicheng Qdrant collection smoke and provide its secret-safe evidence file.',
     requiredEvidence: 'Release evidence records qdrantEvidenceFile text and image collection metadata from XICHENG_QDRANT_SMOKE_READY evidence.',
     verificationCommand: 'npm run xunjing:qdrant:smoke -- --env-file /secure/path/production.env --evidence-file qa/xicheng-qdrant-smoke-evidence.json'
+  },
+  'embedding-provider-smoke': {
+    taskDetail: 'Run the Xicheng embedding provider smoke and provide its secret-safe evidence file.',
+    requiredEvidence: 'Release evidence records embeddingEvidenceFile model endpoint and vector dimensions from XICHENG_EMBEDDING_SMOKE_READY evidence.',
+    verificationCommand: 'npm run xunjing:embedding:smoke -- --env-file /secure/path/production.env --evidence-file qa/xicheng-embedding-smoke-evidence.json'
   },
   'object-storage': {
     taskDetail: 'Run the Xicheng object storage write/read/delete smoke and provide its secret-safe evidence file.',

@@ -83,6 +83,12 @@ const requiredObjectStorageEvidenceChecks = [
   'secret-redaction'
 ]
 
+const requiredEmbeddingEvidenceChecks = [
+  'embedding-provider-request',
+  'embedding-provider-smoke',
+  'secret-redaction'
+]
+
 const requiredQdrantEvidenceChecks = [
   'qdrant-request',
   'qdrant-text-collection',
@@ -152,6 +158,7 @@ const requiredProductionEnvKeys = [
   'QWEN_API_KEY',
   'QWEN_BASE_URL',
   'QWEN_MODEL',
+  'QWEN_EMBEDDING_MODEL',
   'DASHSCOPE_API_KEY',
   'DASHSCOPE_EMBEDDING_ENABLED',
   'WX_MP_APP_ID',
@@ -644,6 +651,90 @@ function normalizeBooleanEnv(value) {
     return false
   }
   return undefined
+}
+
+function embeddingExpectedEndpoint(env) {
+  try {
+    const value = String(env.QWEN_BASE_URL || '').trim().replace(/\/+$/, '')
+    const url = new URL(value.endsWith('/embeddings') ? value : `${value}/embeddings`)
+    return url
+  } catch {
+    return undefined
+  }
+}
+
+async function checkEmbeddingSmokeEvidence({ rootDir, embeddingEvidencePath, env, freshnessOptions }) {
+  const blockers = []
+  const expectedEndpoint = embeddingExpectedEndpoint(env)
+  const expectedModel = String(env.QWEN_EMBEDDING_MODEL || '').trim()
+  const ref = await loadEvidenceInput(rootDir, embeddingEvidencePath)
+
+  if (!ref.path) {
+    blockers.push('Embedding smoke evidence is required before production release')
+  } else if (ref.error) {
+    blockers.push(`Embedding smoke evidence cannot be read: ${ref.error}`)
+  } else {
+    const evidence = ref.data || {}
+    const summary = evidenceSummary(evidence)
+    if (evidence.artifactType !== 'xicheng-embedding-smoke') {
+      blockers.push('Embedding smoke evidence artifactType must be xicheng-embedding-smoke')
+    }
+    blockers.push(...checkEvidenceTimestamp(evidence, 'Embedding smoke', freshnessOptions))
+    if (evidence.ok !== true) {
+      blockers.push('Embedding smoke evidence ok must be true')
+    }
+    if (evidence.status !== 'XICHENG_EMBEDDING_SMOKE_READY') {
+      blockers.push('Embedding smoke evidence status must be XICHENG_EMBEDDING_SMOKE_READY')
+    }
+    if (hasValue(expectedModel) && String(summary.model || '') !== expectedModel) {
+      blockers.push('Embedding smoke evidence model must match QWEN_EMBEDDING_MODEL')
+    }
+    if (expectedEndpoint && String(summary.providerSmokeHost || '') !== expectedEndpoint.host) {
+      blockers.push('Embedding smoke evidence providerSmokeHost must match QWEN_BASE_URL host')
+    }
+    if (expectedEndpoint && String(summary.providerSmokeEndpointPath || '') !== expectedEndpoint.pathname) {
+      blockers.push('Embedding smoke evidence providerSmokeEndpointPath must match QWEN_BASE_URL embeddings endpoint')
+    }
+    if (Number(summary.providerSmokeHttpStatus || 0) !== 200) {
+      blockers.push('Embedding smoke evidence providerSmokeHttpStatus must be 200')
+    }
+    if (Number(summary.vectorDimensions || 0) <= 0) {
+      blockers.push('Embedding smoke evidence vectorDimensions must be positive')
+    }
+    if (Number(summary.finiteValueCount || 0) !== Number(summary.vectorDimensions || 0)) {
+      blockers.push('Embedding smoke evidence finiteValueCount must match vectorDimensions')
+    }
+    blockers.push(...checkEvidenceChecks(evidence, requiredEmbeddingEvidenceChecks, 'Embedding smoke'))
+    const leakedKeys = evidenceSecretLeaks(evidence, env)
+    if (leakedKeys.length > 0) {
+      blockers.push(`Embedding smoke evidence must not contain secret values: ${leakedKeys.join(', ')}`)
+    }
+    if (!hasNoEvidenceBlockers(evidence)) {
+      blockers.push(`Embedding smoke evidence contains blockers: ${evidence.blockers.join('; ')}`)
+    }
+  }
+
+  return {
+    ...check(
+      'embedding-provider-smoke',
+      blockers.length === 0,
+      blockers.length === 0
+        ? `Embedding provider smoke evidence is ready: ${ref.path}`
+        : blockers.join('; '),
+      blockers
+    ),
+    summary: {
+      embeddingEvidenceFile: ref.path,
+      embeddingCheckedAt: ref.data?.checkedAt,
+      embeddingProviderSmokeCheckedAt: evidenceSummary(ref.data).providerSmokeCheckedAt,
+      embeddingProviderSmokeHost: evidenceSummary(ref.data).providerSmokeHost,
+      embeddingProviderSmokeEndpointPath: evidenceSummary(ref.data).providerSmokeEndpointPath,
+      embeddingProviderSmokeModel: evidenceSummary(ref.data).model,
+      embeddingProviderSmokeHttpStatus: evidenceSummary(ref.data).providerSmokeHttpStatus,
+      embeddingVectorDimensions: evidenceSummary(ref.data).vectorDimensions,
+      embeddingFiniteValueCount: evidenceSummary(ref.data).finiteValueCount
+    }
+  }
 }
 
 function qdrantExpectedEndpoint(env) {
@@ -1986,6 +2077,7 @@ export async function verifyXichengYudaoReleaseReadiness({
   yudaoBaselineSqlPath,
   yudaoServerJarPath,
   aiBootstrapEvidencePath,
+  embeddingEvidencePath,
   qdrantEvidencePath,
   visionOcrEvidencePath,
   objectStorageEvidencePath,
@@ -2028,6 +2120,12 @@ export async function verifyXichengYudaoReleaseReadiness({
     checkReleaseSourceRevision(rootDir, expectedGitBranch),
     checkRuntimeEnv(env, normalizedStage),
     checkVectorEmbeddingRuntime(env, normalizedStage),
+    await checkEmbeddingSmokeEvidence({
+      rootDir,
+      embeddingEvidencePath: embeddingEvidencePath || env.XICHENG_EMBEDDING_EVIDENCE,
+      env,
+      freshnessOptions
+    }),
     checkHttpsAppApiDomain(env),
     checkRealWechatApp(env),
     checkRealAiProvider(env),
@@ -2116,6 +2214,7 @@ function resolveEvidenceFile(rootDir, evidenceFile) {
 function buildReleaseEvidence(result) {
   const sourceRevisionSummary = result.checks.find((item) => item.name === 'release-source-revision')?.summary || {}
   const appApiDomainSummary = result.checks.find((item) => item.name === 'https-app-api-domain')?.summary || {}
+  const embeddingSummary = result.checks.find((item) => item.name === 'embedding-provider-smoke')?.summary || {}
   const aiBootstrapSummary = result.checks.find((item) => item.name === 'yudao-ai-model-bootstrap')?.summary || {}
   const qdrantSummary = result.checks.find((item) => item.name === 'qdrant-vector-store')?.summary || {}
   const visionOcrSummary = result.checks.find((item) => item.name === 'vision-ocr-service')?.summary || {}
@@ -2136,6 +2235,7 @@ function buildReleaseEvidence(result) {
       blockerCount: result.blockers.length,
       ...sourceRevisionSummary,
       ...appApiDomainSummary,
+      ...embeddingSummary,
       ...aiBootstrapSummary,
       ...qdrantSummary,
       ...visionOcrSummary,
@@ -2188,6 +2288,8 @@ async function runCli() {
     yudaoServerJarPath: readArgValue(args, '--yudao-server-jar') || env.YUDAO_SERVER_JAR,
     aiBootstrapEvidencePath: readArgValue(args, '--ai-bootstrap-evidence') ||
       env.YUDAO_AI_BOOTSTRAP_EVIDENCE,
+    embeddingEvidencePath: readArgValue(args, '--embedding-evidence') ||
+      env.XICHENG_EMBEDDING_EVIDENCE,
     qdrantEvidencePath: readArgValue(args, '--qdrant-evidence') ||
       env.XICHENG_QDRANT_EVIDENCE,
     visionOcrEvidencePath: readArgValue(args, '--vision-ocr-evidence') ||

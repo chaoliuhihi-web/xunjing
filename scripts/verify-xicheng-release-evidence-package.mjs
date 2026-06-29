@@ -15,6 +15,7 @@ const requiredReleaseChecks = [
   'release-source-revision',
   'runtime-env',
   'vector-embedding-runtime',
+  'embedding-provider-smoke',
   'https-app-api-domain',
   'real-wechat-app',
   'real-ai-provider',
@@ -583,6 +584,27 @@ function checkReleaseProviderSmokeSummary(evidence) {
   }
   if (String(summary.qdrantImageCollectionStatus || '') !== 'green') {
     blockers.push('release evidence qdrantImageCollectionStatus must be green')
+  }
+
+  for (const field of ['embeddingEvidenceFile', 'embeddingProviderSmokeModel']) {
+    if (!hasText(summary[field])) {
+      blockers.push(`release evidence ${field} is required`)
+    }
+  }
+  checkNonLocalHostSummary(summary, 'embeddingProviderSmokeHost', 'release evidence', blockers)
+  if (!String(summary.embeddingProviderSmokeEndpointPath || '').endsWith('/embeddings')) {
+    blockers.push('release evidence embeddingProviderSmokeEndpointPath must end with /embeddings')
+  }
+  if (Number(summary.embeddingProviderSmokeHttpStatus || 0) !== 200) {
+    blockers.push('release evidence embeddingProviderSmokeHttpStatus must be 200')
+  }
+  const embeddingVectorDimensions = Number(summary.embeddingVectorDimensions || 0)
+  const embeddingFiniteValueCount = Number(summary.embeddingFiniteValueCount || 0)
+  if (!Number.isFinite(embeddingVectorDimensions) || embeddingVectorDimensions <= 0) {
+    blockers.push('release evidence embeddingVectorDimensions must be greater than 0')
+  }
+  if (embeddingFiniteValueCount !== embeddingVectorDimensions) {
+    blockers.push('release evidence embeddingFiniteValueCount must equal embeddingVectorDimensions')
   }
 
   for (const field of ['visionOcrEvidenceFile', 'visionOcrModel']) {

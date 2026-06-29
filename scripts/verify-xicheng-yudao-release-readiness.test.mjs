@@ -65,6 +65,11 @@ const requiredObjectStorageEvidenceChecks = [
   'object-storage-delete',
   'secret-redaction'
 ]
+const requiredEmbeddingEvidenceChecks = [
+  'embedding-provider-request',
+  'embedding-provider-smoke',
+  'secret-redaction'
+]
 const requiredQdrantEvidenceChecks = [
   'qdrant-request',
   'qdrant-text-collection',
@@ -209,8 +214,10 @@ function productionEnv(overrides = {}) {
     QWEN_API_KEY: 'prod-qwen-api-key',
     QWEN_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     QWEN_MODEL: 'qwen-plus',
+    QWEN_EMBEDDING_MODEL: 'text-embedding-v3',
     DASHSCOPE_API_KEY: 'prod-dashscope-api-key',
     DASHSCOPE_EMBEDDING_ENABLED: 'true',
+    XICHENG_EMBEDDING_EVIDENCE: 'qa/xicheng-embedding-smoke-evidence.json',
     WX_MP_APP_ID: 'wx-prod-mp-appid',
     WX_MP_SECRET: 'wx-prod-mp-secret',
     WX_MINIAPP_APPID: 'wx-prod-miniapp-appid',
@@ -242,6 +249,7 @@ async function createProductionReadyFixture() {
 
   await writeFile(path.join(sqlDir, 'xunjing-seed-xicheng-p0.sql'), productionSeedSql())
   await writeYudaoServerJar(rootDir)
+  await writeEmbeddingEvidence(rootDir)
 
   return rootDir
 }
@@ -616,6 +624,31 @@ async function writeQdrantEvidence(rootDir, overrides = {}) {
       providerSmokeLatencyMs: 55
     },
     checks: passedChecks(requiredQdrantEvidenceChecks),
+    blockers: []
+  }, overrides)
+  await writeFile(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`)
+  return evidencePath
+}
+
+async function writeEmbeddingEvidence(rootDir, overrides = {}) {
+  const evidencePath = path.join(rootDir, 'qa/xicheng-embedding-smoke-evidence.json')
+  await mkdir(path.dirname(evidencePath), { recursive: true })
+  const evidence = mergeEvidence({
+    artifactType: 'xicheng-embedding-smoke',
+    ok: true,
+    status: 'XICHENG_EMBEDDING_SMOKE_READY',
+    checkedAt: freshCheckedAt(),
+    summary: {
+      providerSmokeCheckedAt: freshCheckedAt(),
+      providerSmokeHost: 'dashscope.aliyuncs.com',
+      providerSmokeEndpointPath: '/compatible-mode/v1/embeddings',
+      model: 'text-embedding-v3',
+      providerSmokeHttpStatus: 200,
+      vectorDimensions: 1536,
+      finiteValueCount: 1536,
+      providerSmokeLatencyMs: 64
+    },
+    checks: passedChecks(requiredEmbeddingEvidenceChecks),
     blockers: []
   }, overrides)
   await writeFile(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`)
@@ -1005,6 +1038,7 @@ describe('xicheng Yudao release readiness gate', () => {
       'release-source-revision',
       'runtime-env',
       'vector-embedding-runtime',
+      'embedding-provider-smoke',
       'https-app-api-domain',
       'real-wechat-app',
       'real-ai-provider',
@@ -1053,6 +1087,41 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(result.status).toBe('NOT_READY')
     expect(qdrantCheck?.ok).toBe(false)
     expect(qdrantCheck?.blockers.join('\n')).toContain('Qdrant smoke evidence is required before production release')
+  })
+
+  test('fails closed when embedding provider smoke evidence is missing', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
+    const qdrantEvidencePath = await writeQdrantEvidence(rootDir)
+    const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
+    const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv({ XICHENG_EMBEDDING_EVIDENCE: '' }),
+      rootDir,
+      stage: 'production',
+      aiBootstrapEvidencePath,
+      qdrantEvidencePath,
+      visionOcrEvidencePath,
+      objectStorageEvidencePath,
+      runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    const embeddingCheck = result.checks.find((check) => check.name === 'embedding-provider-smoke')
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    expect(embeddingCheck?.ok).toBe(false)
+    expect(embeddingCheck?.blockers.join('\n')).toContain('Embedding smoke evidence is required before production release')
   })
 
   test('fails closed when POI source coverage evidence is missing', async () => {
@@ -2057,7 +2126,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidence.summary).toMatchObject({
       stage: 'production',
       status: 'NOT_READY',
-      totalChecks: 17,
+      totalChecks: 18,
       appApiBaseUrl: 'http://127.0.0.1:48080',
       runtimeEnvFingerprintMode: 'redacted-runtime-env-v1',
       runtimeEnvRequiredKeyCount: expect.any(Number),
@@ -2090,6 +2159,7 @@ describe('xicheng Yudao release readiness gate', () => {
     const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
     const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
     const qdrantEvidencePath = await writeQdrantEvidence(rootDir)
+    const embeddingEvidencePath = await writeEmbeddingEvidence(rootDir)
     const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
     const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
     const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
@@ -2109,6 +2179,7 @@ describe('xicheng Yudao release readiness gate', () => {
       '--yudao-server-jar', path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar'),
       '--ai-bootstrap-evidence', aiBootstrapEvidencePath,
       '--qdrant-evidence', qdrantEvidencePath,
+      '--embedding-evidence', embeddingEvidencePath,
       '--vision-ocr-evidence', visionOcrEvidencePath,
       '--object-storage-evidence', objectStorageEvidencePath,
       '--runtime-seed-evidence', runtimeSeedEvidencePath,
@@ -2135,6 +2206,13 @@ describe('xicheng Yudao release readiness gate', () => {
       qdrantTextCollection: 'xinghe_xunjing_text_production',
       qdrantImageCollection: 'xinghe_xunjing_image_production',
       qdrantProviderSmokeHost: 'xunjing-prod-qdrant.internal:6333',
+      embeddingEvidenceFile: embeddingEvidencePath,
+      embeddingProviderSmokeModel: 'text-embedding-v3',
+      embeddingProviderSmokeHost: 'dashscope.aliyuncs.com',
+      embeddingProviderSmokeEndpointPath: '/compatible-mode/v1/embeddings',
+      embeddingProviderSmokeHttpStatus: 200,
+      embeddingVectorDimensions: 1536,
+      embeddingFiniteValueCount: 1536,
       visionOcrEvidenceFile: visionOcrEvidencePath,
       visionOcrModel: 'xunjing-ocr-vision-prod',
       visionOcrProviderSmokeHost: 'vision.xingheai.net',
@@ -2175,6 +2253,7 @@ describe('xicheng Yudao release readiness gate', () => {
     const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
     const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
     const qdrantEvidencePath = await writeQdrantEvidence(rootDir)
+    const embeddingEvidencePath = await writeEmbeddingEvidence(rootDir)
     const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
     const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
     const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
@@ -2193,6 +2272,7 @@ describe('xicheng Yudao release readiness gate', () => {
       '--env-file', envPath,
       '--ai-bootstrap-evidence', aiBootstrapEvidencePath,
       '--qdrant-evidence', qdrantEvidencePath,
+      '--embedding-evidence', embeddingEvidencePath,
       '--vision-ocr-evidence', visionOcrEvidencePath,
       '--object-storage-evidence', objectStorageEvidencePath,
       '--runtime-seed-evidence', runtimeSeedEvidencePath,

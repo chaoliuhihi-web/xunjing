@@ -23,6 +23,7 @@
     "xunjing:yudao:production-seed:apply": "node scripts/apply-xicheng-yudao-production-seed.mjs",
     "xunjing:yudao:server:build": "node scripts/build-yudao-server.mjs",
     "xunjing:vision:smoke": "node scripts/verify-xicheng-vision-ocr-smoke.mjs",
+    "xunjing:embedding:smoke": "node scripts/verify-xicheng-embedding-smoke.mjs",
     "xunjing:qdrant:smoke": "node scripts/verify-xicheng-qdrant-smoke.mjs",
     "xunjing:storage:smoke": "node scripts/verify-xicheng-object-storage-smoke.mjs",
     "xunjing:xicheng:poi:review:pack": "node scripts/create-xicheng-poi-production-review-pack.mjs",

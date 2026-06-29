@@ -21,6 +21,7 @@ const defaultPoiProductionReviewApplyEvidenceFile = 'qa/xicheng-poi-production-r
 const defaultAppReadinessEvidenceFile = 'qa/xicheng-app-readiness-evidence.json'
 const defaultReleasePackageEvidenceFile = 'qa/xicheng-release-evidence-package.json'
 const defaultQdrantEvidenceFile = 'qa/xicheng-qdrant-smoke-evidence.json'
+const defaultEmbeddingEvidenceFile = 'qa/xicheng-embedding-smoke-evidence.json'
 const defaultStage = 'production'
 const defaultExpectedBranch = 'feature/xicheng-p0'
 const defaultEnvFile = 'ops/xunjing-platform.env.example'
@@ -54,7 +55,8 @@ function buildReleaseGateArgs({
   envFile,
   expectedBranch,
   releaseEvidenceFile,
-  qdrantEvidenceFile
+  qdrantEvidenceFile,
+  embeddingEvidenceFile
 }) {
   return [
     '--root', rootDir,
@@ -66,6 +68,7 @@ function buildReleaseGateArgs({
     ...optionalArg(args, '--yudao-server-jar'),
     ...optionalArg(args, '--ai-bootstrap-evidence'),
     '--qdrant-evidence', qdrantEvidenceFile,
+    '--embedding-evidence', embeddingEvidenceFile,
     ...optionalArg(args, '--vision-ocr-evidence'),
     ...optionalArg(args, '--object-storage-evidence'),
     ...optionalArg(args, '--runtime-seed-evidence'),
@@ -430,6 +433,7 @@ export async function runXichengYudaoReleasePreflight({
     defaultPoiProductionReviewApplyEvidenceFile
   const appReadinessEvidenceFile = readArgValue(args, '--app-readiness-evidence') || defaultAppReadinessEvidenceFile
   const qdrantEvidenceFile = readArgValue(args, '--qdrant-evidence') || defaultQdrantEvidenceFile
+  const embeddingEvidenceFile = readArgValue(args, '--embedding-evidence') || defaultEmbeddingEvidenceFile
   const releasePackageEvidenceFile = readArgValue(args, '--release-package-evidence') ||
     readArgValue(args, '--package-evidence') ||
     defaultReleasePackageEvidenceFile
@@ -450,7 +454,8 @@ export async function runXichengYudaoReleasePreflight({
       envFile,
       expectedBranch,
       releaseEvidenceFile,
-      qdrantEvidenceFile
+      qdrantEvidenceFile,
+      embeddingEvidenceFile
     })
   ], {
     cwd: process.cwd(),
