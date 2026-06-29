@@ -13,6 +13,7 @@ const safetyStatusLabelBlock = scanResult.match(/safetyStatusLabel\(\) \{[\s\S]*
 const sourceEmptyCopyBlock = scanResult.match(/sourceEmptyCopy\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
 const questionEmptyCopyBlock = scanResult.match(/questionEmptyCopy\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
 const suggestedQuestionsBlock = scanResult.match(/suggestedQuestions\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
+const sourceListBlock = scanResult.match(/sourceList\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
 const unsafeRecognitionSafetyStatusBlock = scanResult.match(/unsafeRecognitionSafetyStatus\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
 const askXiaojingBlock = scanResult.match(/askXiaojing\(question = ''\)[\s\S]*?\n\t\t\},\n\t\tselectCandidate/)?.[0] || ''
 const startRecordingBlock = scanResult.match(/startRecording\(\)[\s\S]*?\n\t\t\},\n\t\tcreateRouteCheckinEvent/)?.[0] || ''
@@ -28,6 +29,7 @@ assert.ok(safetyStatusLabelBlock, 'Recognition result should expose a safety sta
 assert.ok(sourceEmptyCopyBlock, 'Recognition result should expose unsafe-source empty copy')
 assert.ok(questionEmptyCopyBlock, 'Recognition result should expose a safe empty question copy')
 assert.ok(suggestedQuestionsBlock, 'Recognition result should expose safety-aware Xiaojing question suggestions')
+assert.ok(sourceListBlock, 'Recognition result should expose safety-aware reviewed sources')
 assert.ok(unsafeRecognitionSafetyStatusBlock, 'Recognition result should expose an unsafe safety-status computed value')
 assert.ok(askXiaojingBlock, 'Recognition result should expose askXiaojing')
 assert.ok(startRecordingBlock, 'Recognition result should expose startRecording')
@@ -94,6 +96,12 @@ assert.match(
   suggestedQuestionsBlock,
   /return normalizeSuggestedQuestions\(this\.result\)/,
   'Recognition result computed Xiaojing questions should reuse safety-aware normalization instead of generating defaults for BLOCKED or UNAVAILABLE results'
+)
+
+assert.match(
+  sourceListBlock,
+  /return normalizeReviewedSources\(this\.result\)/,
+  'Recognition result computed source list should reuse safety-aware normalization so stale BLOCKED or UNAVAILABLE results cannot expose reviewed sources'
 )
 
 assert.match(

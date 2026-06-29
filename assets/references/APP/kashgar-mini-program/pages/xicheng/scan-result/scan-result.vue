@@ -423,7 +423,7 @@ export default {
 			return normalizeSuggestedQuestions(this.result)
 		},
 		sourceList() {
-			return Array.isArray(this.result.sources) ? this.result.sources : []
+			return normalizeReviewedSources(this.result)
 		},
 		resultVisualImage() {
 			return this.region && this.region.visualAssets
