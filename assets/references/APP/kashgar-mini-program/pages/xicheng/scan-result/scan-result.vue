@@ -153,7 +153,7 @@
 		</view>
 
 		<view class="bottom-actions">
-			<button class="primary-button xicheng-primary-action" :disabled="recognitionActionBlocked" @click="askXiaojing()">问问小京</button>
+			<button class="primary-button xicheng-primary-action" :disabled="recognitionActionBlocked" @click="askXiaojing()">小京讲解</button>
 			<button class="ghost-button xicheng-secondary-action" :disabled="recognitionActionBlocked" @click="startRecording">开始记录</button>
 		</view>
 	</view>

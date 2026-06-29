@@ -121,6 +121,12 @@ for (const required of [
   assert.ok(scanResult.includes(required), `Recognition result page should include ${required}`)
 }
 
+assert.match(
+  scanResult,
+  /<button class="[^"]*\bprimary-button\b[^"]*" :disabled="recognitionActionBlocked" @click="askXiaojing\(\)">小京讲解<\/button>/,
+  'Recognition result primary CTA should use the P0 Xiaojing explanation label while preserving the Xiaojing route context'
+)
+
 assert.doesNotMatch(
   scanResult,
   /result:\s*normalizeResult\(\)[\s\S]*XICHENG_DEVELOPMENT_TRIGGER_FIXTURE/,

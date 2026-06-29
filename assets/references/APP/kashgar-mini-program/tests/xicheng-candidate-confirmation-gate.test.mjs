@@ -43,7 +43,7 @@ assert.match(
 
 assert.match(
   scanResult,
-  /<button class="[^"]*\bprimary-button\b[^"]*" :disabled="recognitionActionBlocked" @click="askXiaojing\(\)">问问小京<\/button>/,
+  /<button class="[^"]*\bprimary-button\b[^"]*" :disabled="recognitionActionBlocked" @click="askXiaojing\(\)">小京讲解<\/button>/,
   'Primary Xiaojing action should be disabled while candidate confirmation is pending'
 )
 
