@@ -8,6 +8,12 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const home = read('pages', 'xicheng', 'home', 'home.vue')
 const companionAsset = path.join(root, 'static', 'xicheng', 'xiaojing-companion.png')
+const heroLandmarkAsset = path.join(root, 'static', 'xicheng', 'scene-baitasi-waterfront.jpg')
+const routeAssets = [
+  'route-baitasi-culture.jpg',
+  'route-shichahai-waterfront.jpg',
+  'route-hutong-life.jpg'
+].map(fileName => path.join(root, 'static', 'xicheng', fileName))
 const styleBlock = home.match(/<style scoped>[\s\S]*<\/style>/)?.[0] || ''
 
 assert.ok(
@@ -21,11 +27,35 @@ assert.ok(
 )
 
 assert.ok(
+  fs.existsSync(heroLandmarkAsset),
+  'Xicheng APP should ship a compact scenic landmark image for the home hero'
+)
+
+assert.ok(
+  fs.statSync(heroLandmarkAsset).size < 300 * 1024,
+  'Xicheng scenic landmark image should stay compact instead of shipping a full-page mockup'
+)
+
+for (const asset of routeAssets) {
+  assert.ok(fs.existsSync(asset), `Xicheng APP should ship compact route thumbnail ${path.basename(asset)}`)
+  assert.ok(fs.statSync(asset).size < 300 * 1024, `Xicheng route thumbnail ${path.basename(asset)} should stay compact`)
+}
+
+assert.ok(
   regionConfig.includes("companionAvatar: '/static/xicheng/xiaojing-companion.png'"),
   'Xicheng region config should expose the dedicated Xiaojing companion avatar'
 )
 
+assert.match(
+  regionConfig,
+  /visualAssets:\s*\{[\s\S]*heroLandmark:\s*'\/static\/xicheng\/scene-baitasi-waterfront\.jpg'[\s\S]*routeThumbnails:\s*\{[\s\S]*['"]baitasi-imperial-shichahai['"]:\s*'\/static\/xicheng\/route-baitasi-culture\.jpg'[\s\S]*['"]beihai-shichahai-waterfront['"]:\s*'\/static\/xicheng\/route-shichahai-waterfront\.jpg'[\s\S]*['"]dashilar-old-brand-walk['"]:\s*'\/static\/xicheng\/route-hutong-life\.jpg'/,
+  'Xicheng region config should expose compact reusable visual assets instead of page-local image paths'
+)
+
 for (const required of [
+  'class="home-location-row"',
+  'class="hero-landmark-image"',
+  ':src="region.visualAssets.heroLandmark"',
   'class="hero xicheng-paper-card xicheng-immersive-hero"',
   'class="hero-atmosphere"',
   'class="hero-main"',
@@ -33,6 +63,8 @@ for (const required of [
   'class="xiaojing-avatar"',
   ':src="region.companionAvatar"',
   'mode="aspectFit"',
+  'class="route-thumbnail"',
+  ':src="getRouteThumbnail(route)"',
   'quick-card-featured quick-card-scan',
   'quick-card-featured quick-card-ask',
   '小京',
@@ -61,6 +93,18 @@ assert.match(
 
 assert.match(
   styleBlock,
+  /\.home-location-row\s*\{[\s\S]*display:\s*flex[\s\S]*justify-content:\s*space-between/,
+  'Xicheng home should start with a location/account row like the visual reference'
+)
+
+assert.match(
+  styleBlock,
+  /\.hero-landmark-image\s*\{[\s\S]*position:\s*absolute[\s\S]*object-fit:\s*cover/,
+  'Xicheng home hero should blend a scenic landmark image behind Xiaojing instead of relying only on flat gradients'
+)
+
+assert.match(
+  styleBlock,
   /\.xiaojing-avatar\s*\{[\s\S]*width:\s*260rpx[\s\S]*height:\s*334rpx/,
   'Xicheng home Xiaojing visual should be large enough to anchor the first viewport instead of reading as a small avatar'
 )
@@ -83,8 +127,14 @@ assert.match(
   'Xicheng home hero action buttons should keep four-character labels visible in the narrow first-screen column'
 )
 
+assert.match(
+  styleBlock,
+  /\.route-thumbnail\s*\{[\s\S]*width:\s*100%[\s\S]*aspect-ratio:\s*1\.25/,
+  'Xicheng home route cards should include stable scenic thumbnails like the route recommendation mockup'
+)
+
 assert.doesNotMatch(
-  home,
+  `${home}\n${regionConfig}`,
   /xicheng-multimodal\/design-mockups|01-home-xiaojing-xicheng|\/static\/tabbar\/ai_companion_avatar\.png/,
   'Xicheng home should not ship a full-page mockup or reuse the Kashgar tab avatar as the Xiaojing hero'
 )

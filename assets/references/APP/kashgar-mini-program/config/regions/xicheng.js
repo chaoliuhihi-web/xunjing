@@ -11,6 +11,14 @@ const XICHENG_REGION_BASE_CONFIG = {
 	tenantId: requestConfig.XunjingTenantId || '1',
 	companionName: '小京',
 	companionAvatar: '/static/xicheng/xiaojing-companion.png',
+	visualAssets: {
+		heroLandmark: '/static/xicheng/scene-baitasi-waterfront.jpg',
+		routeThumbnails: {
+			'baitasi-imperial-shichahai': '/static/xicheng/route-baitasi-culture.jpg',
+			'beihai-shichahai-waterfront': '/static/xicheng/route-shichahai-waterfront.jpg',
+			'dashilar-old-brand-walk': '/static/xicheng/route-hutong-life.jpg'
+		}
+	},
 	storageKey: 'xicheng:lastRecognitionResult',
 	materialsStorageKey: 'xicheng:journeyMaterials',
 	journeyStorageKey: 'xicheng:journeyDraft',

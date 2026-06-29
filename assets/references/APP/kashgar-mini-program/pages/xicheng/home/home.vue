@@ -1,14 +1,29 @@
 <template>
 	<view class="xicheng-home xicheng-designed-page xicheng-bottom-safe">
+		<view class="home-location-row">
+			<view class="home-location-main">
+				<view class="home-location-pin"></view>
+				<text>{{ region.cityName }}</text>
+				<view class="home-location-caret"></view>
+			</view>
+			<view class="home-profile-button"></view>
+		</view>
+
 		<view class="hero xicheng-paper-card xicheng-immersive-hero">
+			<image
+				v-if="region.visualAssets && region.visualAssets.heroLandmark"
+				class="hero-landmark-image"
+				:src="region.visualAssets.heroLandmark"
+				mode="aspectFill"
+			/>
 			<view class="hero-atmosphere"></view>
 			<view class="hero-main">
 				<view class="hero-copy">
 					<text class="eyebrow">{{ region.cityName }}</text>
-					<text class="title">小京 AI旅伴</text>
-					<text class="subtitle">拍照、OCR、定位识别后，直接进入讲解、路线和游记草稿。</text>
+					<text class="title">西城 AI旅伴</text>
+					<text class="subtitle">星河寻境 · 知识随行</text>
 					<view class="hero-actions">
-						<button class="primary-button xicheng-primary-action" :disabled="recognizing" @click="startPhotoRecognition">拍照识别</button>
+						<button class="primary-button xicheng-primary-action" :disabled="recognizing" @click="startScanRecognition">扫一扫</button>
 						<button class="ghost-button xicheng-secondary-action" :disabled="recognizing" @click="askXiaojing">问问小京</button>
 					</view>
 				</view>
@@ -19,29 +34,6 @@
 						<text class="companion-line">我陪你看懂西城</text>
 					</view>
 				</view>
-			</view>
-		</view>
-
-		<view class="inspiration-panel xicheng-paper-card" @click="openXichengInspiration">
-			<view>
-				<text class="inspiration-title">一键导入灵感</text>
-				<text class="inspiration-desc">粘贴攻略文字或地点清单，AI 提取地点并匹配官方 POI。</text>
-			</view>
-			<text class="inspiration-action">生成路线</text>
-		</view>
-
-		<view v-if="recentRecognition" class="recent-panel xicheng-paper-card">
-			<view class="recent-copy">
-				<text class="recent-kicker">最近识别</text>
-				<text class="recent-title">{{ recentRecognition.poiName || '西城文化点' }}</text>
-				<text class="recent-desc">
-					{{ recentRecognition.sourceLabel || '识别结果' }} · 置信度 {{ recentRecognitionConfidence }}%
-				</text>
-				<text class="recent-status">{{ recentRecognitionStatusCopy }}</text>
-			</view>
-			<view class="recent-actions">
-				<button class="primary-button xicheng-primary-action" :disabled="recentRecognitionActionBlocked" @click="continueRecentRecognitionWithXiaojing">继续问小京</button>
-				<button class="ghost-button xicheng-secondary-action" @click="openRecentRecognition">查看识别结果</button>
 			</view>
 		</view>
 
@@ -86,6 +78,29 @@
 			<button class="primary-button xicheng-primary-action" :disabled="recognizing" @click="startTextRecognition">文本识别</button>
 		</view>
 
+		<view class="inspiration-panel xicheng-paper-card" @click="openXichengInspiration">
+			<view>
+				<text class="inspiration-title">一键导入灵感</text>
+				<text class="inspiration-desc">粘贴攻略文字或地点清单，AI 提取地点并匹配官方 POI。</text>
+			</view>
+			<text class="inspiration-action">生成路线</text>
+		</view>
+
+		<view v-if="recentRecognition" class="recent-panel xicheng-paper-card">
+			<view class="recent-copy">
+				<text class="recent-kicker">最近识别</text>
+				<text class="recent-title">{{ recentRecognition.poiName || '西城文化点' }}</text>
+				<text class="recent-desc">
+					{{ recentRecognition.sourceLabel || '识别结果' }} · 置信度 {{ recentRecognitionConfidence }}%
+				</text>
+				<text class="recent-status">{{ recentRecognitionStatusCopy }}</text>
+			</view>
+			<view class="recent-actions">
+				<button class="primary-button xicheng-primary-action" :disabled="recentRecognitionActionBlocked" @click="continueRecentRecognitionWithXiaojing">继续问小京</button>
+				<button class="ghost-button xicheng-secondary-action" @click="openRecentRecognition">查看识别结果</button>
+			</view>
+		</view>
+
 		<view class="flow-strip">
 			<text>小京讲解</text>
 			<text>推荐路线</text>
@@ -118,6 +133,12 @@
 				class="recommended-route-card xicheng-paper-card"
 				@click="openRecommendedRouteDetail(route)"
 			>
+				<image
+					v-if="getRouteThumbnail(route)"
+					class="route-thumbnail"
+					:src="getRouteThumbnail(route)"
+					mode="aspectFill"
+				/>
 				<view class="route-card-header">
 					<view>
 						<text class="route-title">{{ route.title }}</text>
@@ -273,6 +294,12 @@ export default {
 		this.loadRecentRecognition()
 	},
 	methods: {
+		getRouteThumbnail(route = {}) {
+			const thumbnails = this.region && this.region.visualAssets && this.region.visualAssets.routeThumbnails
+				? this.region.visualAssets.routeThumbnails
+				: {}
+			return thumbnails[route.routeCode] || ''
+		},
 		isBlockedDevelopmentRecognitionCache(recognition = {}) {
 			return isXichengDevelopmentRecognitionCacheBlocked(recognition)
 		},
@@ -655,6 +682,90 @@ export default {
 	color: #102F29;
 }
 
+.home-location-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 20rpx;
+	margin-bottom: 22rpx;
+	color: #102F29;
+}
+
+.home-location-main {
+	display: flex;
+	align-items: center;
+	gap: 14rpx;
+	min-width: 0;
+	font-size: 32rpx;
+	font-weight: 700;
+	line-height: 1.25;
+}
+
+.home-location-pin {
+	position: relative;
+	width: 26rpx;
+	height: 32rpx;
+	border: 4rpx solid currentColor;
+	border-radius: 999rpx 999rpx 999rpx 0;
+	transform: rotate(-45deg);
+	box-sizing: border-box;
+}
+
+.home-location-pin::after {
+	content: '';
+	position: absolute;
+	left: 6rpx;
+	top: 6rpx;
+	width: 6rpx;
+	height: 6rpx;
+	border-radius: 999rpx;
+	background: currentColor;
+}
+
+.home-location-caret {
+	width: 0;
+	height: 0;
+	border-left: 8rpx solid transparent;
+	border-right: 8rpx solid transparent;
+	border-top: 10rpx solid currentColor;
+}
+
+.home-profile-button {
+	position: relative;
+	width: 64rpx;
+	height: 64rpx;
+	border: 2rpx solid rgba(23, 63, 53, 0.16);
+	border-radius: 999rpx;
+	background: rgba(255, 253, 248, 0.88);
+	box-shadow: 0 10rpx 24rpx rgba(16, 47, 41, 0.08);
+	box-sizing: border-box;
+}
+
+.home-profile-button::before,
+.home-profile-button::after {
+	content: '';
+	position: absolute;
+	left: 50%;
+	transform: translateX(-50%);
+	border: 4rpx solid #173F35;
+	box-sizing: border-box;
+}
+
+.home-profile-button::before {
+	top: 14rpx;
+	width: 18rpx;
+	height: 18rpx;
+	border-radius: 999rpx;
+}
+
+.home-profile-button::after {
+	bottom: 12rpx;
+	width: 34rpx;
+	height: 20rpx;
+	border-radius: 999rpx 999rpx 0 0;
+	border-bottom: 0;
+}
+
 .hero {
 	position: relative;
 	padding: 36rpx 32rpx;
@@ -671,6 +782,18 @@ export default {
 		radial-gradient(circle at 78% 18%, rgba(181, 148, 94, 0.22), transparent 32%),
 		radial-gradient(circle at 74% 84%, rgba(23, 63, 53, 0.16), transparent 36%),
 		linear-gradient(145deg, rgba(255, 253, 247, 0.98), rgba(239, 230, 216, 0.76));
+}
+
+.hero-landmark-image {
+	position: absolute;
+	right: -12rpx;
+	top: 0;
+	width: 332rpx;
+	height: 500rpx;
+	object-fit: cover;
+	opacity: 0.34;
+	filter: saturate(0.9);
+	pointer-events: none;
 }
 
 .hero-atmosphere {
@@ -1083,6 +1206,18 @@ export default {
 
 .route-card-header {
 	align-items: flex-start;
+}
+
+.route-thumbnail {
+	display: block;
+	width: 100%;
+	aspect-ratio: 1.25;
+	height: 210rpx;
+	margin-bottom: 20rpx;
+	border-radius: 24rpx;
+	background: rgba(181, 148, 94, 0.14);
+	object-fit: cover;
+	overflow: hidden;
 }
 
 .route-title {
