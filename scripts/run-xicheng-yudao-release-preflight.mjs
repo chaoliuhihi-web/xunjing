@@ -251,6 +251,28 @@ async function summarizeAppReadinessEvidence({
   }
 }
 
+function buildAppReadinessTaskRows({
+  appReadiness,
+  appReadinessCommand
+}) {
+  if (appReadiness.ok === true) {
+    return []
+  }
+  return appReadiness.blockers.map((blocker, index) => ({
+    checkName: 'app-readiness-evidence',
+    blockerIndex: index + 1,
+    blocker,
+    ownerLane: 'app-ops',
+    taskDetail: 'Generate Xicheng APP live readiness evidence against the release backend.',
+    requiredEvidence: 'APP readiness evidence outputs xunjing-platform-readiness with live Xicheng APP and trigger checks.',
+    verificationCommand: appReadinessCommand,
+    taskStatus: 'TODO',
+    sourceEvidenceFile: appReadiness.evidenceFile,
+    affectedPoiCount: 0,
+    affectedPoiCodes: []
+  }))
+}
+
 function needsPoiEvidenceBootstrap(releaseEvidence) {
   const checks = Array.isArray(releaseEvidence?.checks) ? releaseEvidence.checks : []
   return checks.some((check) => check?.name === 'xicheng-production-poi-evidence' && check.ok !== true)
@@ -409,11 +431,27 @@ export async function runXichengYudaoReleasePreflight({
   }
 
   const releaseEvidence = JSON.parse(await readFile(resolvedReleaseEvidenceFile, 'utf8'))
+  const commandEnv = envFile ? await loadEnvFile(envFile).catch(() => ({})) : {}
+  const appReadinessCommand = buildAppReadinessCommand({
+    envFile,
+    commandEnv,
+    releaseEvidence,
+    appReadinessEvidenceFile
+  })
+  const appReadiness = await summarizeAppReadinessEvidence({
+    rootDir: resolvedRoot,
+    releaseEvidence,
+    appReadinessEvidenceFile
+  })
   const taskReport = await exportXichengYudaoReleaseBlockerTasks({
     rootDir: resolvedRoot,
     releaseEvidenceFile,
     outputFile: tasksOutputFile,
-    poiOutputFile: poiTasksOutputFile
+    poiOutputFile: poiTasksOutputFile,
+    extraTaskRows: buildAppReadinessTaskRows({
+      appReadiness,
+      appReadinessCommand
+    })
   })
   const finalEvidencePackageCommand = buildFinalEvidencePackageCommand({
     stage,
@@ -430,18 +468,6 @@ export async function runXichengYudaoReleasePreflight({
   const poiEvidenceBootstrapCommand = needsPoiEvidenceBootstrap(releaseEvidence)
     ? buildPoiEvidenceBootstrapCommand()
     : undefined
-  const commandEnv = envFile ? await loadEnvFile(envFile).catch(() => ({})) : {}
-  const appReadinessCommand = buildAppReadinessCommand({
-    envFile,
-    commandEnv,
-    releaseEvidence,
-    appReadinessEvidenceFile
-  })
-  const appReadiness = await summarizeAppReadinessEvidence({
-    rootDir: resolvedRoot,
-    releaseEvidence,
-    appReadinessEvidenceFile
-  })
   await mkdir(path.dirname(resolvedHandoffOutputFile), { recursive: true })
   await writeFile(resolvedHandoffOutputFile, buildHandoffMarkdown({
     stage,

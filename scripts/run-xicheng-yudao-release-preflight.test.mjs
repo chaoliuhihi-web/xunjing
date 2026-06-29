@@ -104,6 +104,14 @@ describe('xicheng Yudao release preflight', () => {
     expect(report.summary.ownerLaneBreakdown).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
+          ownerLane: 'app-ops',
+          taskCount: expect.any(Number),
+          checkNames: expect.arrayContaining(['app-readiness-evidence']),
+          verificationCommands: expect.arrayContaining([
+            expect.stringContaining('npm run xunjing:platform:verify')
+          ])
+        }),
+        expect.objectContaining({
           ownerLane: 'platform-ops',
           taskCount: expect.any(Number),
           checkNames: expect.arrayContaining(['runtime-env']),
@@ -137,6 +145,10 @@ describe('xicheng Yudao release preflight', () => {
     const tasksCsv = await readFile(tasksOutputFile, 'utf8')
     expect(tasksCsv).toContain('checkName,blockerIndex,blocker,ownerLane,taskDetail,requiredEvidence,verificationCommand,taskStatus,sourceEvidenceFile')
     expect(tasksCsv).toContain(releaseEvidenceFile)
+    expect(tasksCsv).toContain('app-readiness-evidence,1,APP readiness evidence is missing; run summary.appReadinessCommand before final evidence package,app-ops')
+    expect(tasksCsv).toContain('Generate Xicheng APP live readiness evidence against the release backend.')
+    expect(tasksCsv).toContain('APP readiness evidence outputs xunjing-platform-readiness with live Xicheng APP and trigger checks.')
+    expect(tasksCsv).toContain('npm run xunjing:platform:verify --')
     const poiTasksCsv = await readFile(poiTasksOutputFile, 'utf8')
     expect(poiTasksCsv).toContain('poiTaskKey,poiCode,checkName,blockerIndex,blocker,ownerLane,taskDetail,requiredEvidence,verificationCommand,taskStatus,sourceEvidenceFile')
 
@@ -185,6 +197,8 @@ describe('xicheng Yudao release preflight', () => {
     expect(statusDoc).toContain('summary.appReadinessCommand')
     expect(deployDoc).toContain('summary.appReadinessStatus')
     expect(statusDoc).toContain('summary.appReadinessStatus')
+    expect(deployDoc).toContain('app-readiness-evidence')
+    expect(statusDoc).toContain('app-readiness-evidence')
     expect(deployDoc).toContain('POI Evidence Bootstrap')
     expect(statusDoc).toContain('POI Evidence Bootstrap')
     expect(deployDoc).toContain('APP Readiness Evidence')

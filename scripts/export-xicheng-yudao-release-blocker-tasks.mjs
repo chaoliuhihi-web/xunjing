@@ -285,6 +285,27 @@ function buildTaskRows(evidence, sourceEvidenceFile) {
     })
 }
 
+function normalizeExtraTaskRows(extraTaskRows, sourceEvidenceFile) {
+  return (Array.isArray(extraTaskRows) ? extraTaskRows : [])
+    .filter(Boolean)
+    .map((row, index) => {
+      const affectedPoiCodes = Array.isArray(row.affectedPoiCodes) ? row.affectedPoiCodes : []
+      return {
+        checkName: row.checkName || 'external-release-task',
+        blockerIndex: row.blockerIndex || index + 1,
+        blocker: row.blocker || '',
+        ownerLane: row.ownerLane || 'release-manager',
+        taskDetail: row.taskDetail || 'Resolve external release blocker.',
+        requiredEvidence: row.requiredEvidence || 'External release evidence is ready.',
+        verificationCommand: row.verificationCommand || releaseGateCommand,
+        taskStatus: row.taskStatus || 'TODO',
+        sourceEvidenceFile: row.sourceEvidenceFile || sourceEvidenceFile,
+        affectedPoiCount: row.affectedPoiCount ?? affectedPoiCodes.length,
+        affectedPoiCodes
+      }
+    })
+}
+
 function summarizeOwnerLanes(taskRows) {
   return taskRows.reduce((counts, row) => {
     counts[row.ownerLane] = (counts[row.ownerLane] || 0) + 1
@@ -474,7 +495,8 @@ export async function exportXichengYudaoReleaseBlockerTasks({
   rootDir = process.cwd(),
   releaseEvidenceFile,
   outputFile = 'workbench/xicheng-yudao-release-blocker-tasks.csv',
-  poiOutputFile
+  poiOutputFile,
+  extraTaskRows = []
 } = {}) {
   const resolvedRoot = path.resolve(rootDir)
   const resolvedEvidenceFile = resolveRootFile(resolvedRoot, releaseEvidenceFile)
@@ -492,7 +514,10 @@ export async function exportXichengYudaoReleaseBlockerTasks({
     throw new Error('release evidence artifactType must be xicheng-yudao-release-readiness')
   }
 
-  const taskRows = buildTaskRows(evidence, resolvedEvidenceFile)
+  const taskRows = [
+    ...buildTaskRows(evidence, resolvedEvidenceFile),
+    ...normalizeExtraTaskRows(extraTaskRows, resolvedEvidenceFile)
+  ]
   const poiTaskRows = buildPoiTaskRows(taskRows)
   const ownerLaneCounts = summarizeOwnerLanes(taskRows)
   const ownerLaneBreakdown = summarizeOwnerLaneBreakdown(taskRows)
