@@ -85,6 +85,7 @@ import {
 	XICHENG_OFFICIAL_POIS,
 	XICHENG_REGION_CONFIG
 } from '@/config/regions/xicheng.js'
+import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 
 export const extractXichengPoiMatches = (text = '') => {
 	const normalized = String(text || '').toLowerCase()
@@ -223,20 +224,24 @@ export default {
 			const materials = Array.isArray(existingMaterials) ? existingMaterials : []
 			const routeMaterials = includeImageOnly
 				? []
-				: route.stops.map(stop => ({
-					type: 'inspiration-poi',
-					regionCode: XICHENG_REGION_CONFIG.regionCode,
-					packageCode: XICHENG_REGION_CONFIG.packageCode,
-					sceneCode: XICHENG_REGION_CONFIG.sceneCode,
-					sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
-					poiCode: stop.poiCode,
-					poiName: stop.poiName,
-					sourceLabel: '灵感导入路线',
-					sources: [],
-					reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
-					publishStatus: 'private',
-					capturedAt: route.updatedAt
-				}))
+				: route.stops.map(stop => {
+					const sources = createXichengOfficialPoiSources(stop)
+					return {
+						type: 'inspiration-poi',
+						regionCode: XICHENG_REGION_CONFIG.regionCode,
+						packageCode: XICHENG_REGION_CONFIG.packageCode,
+						sceneCode: XICHENG_REGION_CONFIG.sceneCode,
+						sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
+						poiCode: stop.poiCode,
+						poiName: stop.poiName,
+						sourceLabel: '灵感导入路线',
+						sources,
+						sourceCount: sources.length,
+						reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
+						publishStatus: 'private',
+						capturedAt: route.updatedAt
+					}
+				})
 			const imageMaterial = this.imagePath
 				? [{
 					type: 'inspiration-image',

@@ -4,6 +4,7 @@ import path from 'node:path'
 
 const root = process.cwd()
 const scanResult = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
+const officialPoiSources = fs.readFileSync(path.join(root, 'request', 'xunjing', 'officialPoi.js'), 'utf8')
 
 assert.match(
   scanResult,
@@ -15,14 +16,18 @@ for (const required of [
   'findXichengOfficialPoiForResult',
   'applyXichengOfficialPoiDefaults',
   'createXichengOfficialPoiSources',
-  "sourceType: 'official-poi-config'",
-  "reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.approved",
   'findXichengRecommendedRouteForPoi',
   'officialPoiMatched',
   'confidenceDisplay'
 ]) {
   assert.ok(scanResult.includes(required), `Recognition result official POI fallback should include ${required}`)
 }
+
+assert.match(
+  officialPoiSources,
+  /export const createXichengOfficialPoiSources\s*=\s*\(officialPoi = \{\}\)[\s\S]*sourceType:\s*'official-poi-config'[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.approved/,
+  'Shared official POI fallback helper should create approved official-poi-config sources'
+)
 
 assert.match(
   scanResult,

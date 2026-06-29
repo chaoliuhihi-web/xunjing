@@ -15,6 +15,7 @@ const pagesJson = read('pages.json')
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const home = read('pages', 'xicheng', 'home', 'home.vue')
 const inspiration = read('pages', 'xicheng', 'inspiration', 'inspiration.vue')
+const officialPoiSources = read('request', 'xunjing', 'officialPoi.js')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 const sliceBetween = (content, start, end) => {
   const startIndex = content.indexOf(start)
@@ -89,6 +90,18 @@ for (const required of [
 }
 
 assert.match(
+  officialPoiSources,
+  /export const createXichengOfficialPoiSources\s*=\s*\(officialPoi = \{\}\)[\s\S]*normalizeXichengReviewedSources\(\[[\s\S]*sourceType:\s*'official-poi-config'[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.approved/,
+  'Shared official POI source helper should create normalized approved official-poi-config source cards'
+)
+
+assert.match(
+  inspiration,
+  /import \{ createXichengOfficialPoiSources \} from '@\/request\/xunjing\/officialPoi\.js'/,
+  'Inspiration route import should reuse the shared official POI source helper instead of saving source-less POI materials'
+)
+
+assert.match(
   inspiration,
   /confirmInspirationImagePurpose\(actionLabel = '上传攻略图片'\)[\s\S]*uni\.showModal\(\{[\s\S]*title:\s*`\$\{actionLabel\}用途说明`[\s\S]*仅用于本次西城灵感路线素材[\s\S]*不默认公开[\s\S]*不保存第三方平台原文[\s\S]*不会用于模型评估或运营纠错，除非你另行授权/,
   'Inspiration image import should explain purpose, private default, third-party-text policy, and no model-evaluation or ops-correction reuse'
@@ -144,14 +157,20 @@ assert.match(
 
 assert.match(
   saveRouteBlock,
-  /route\.stops\.map\(stop => \(\{[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel/,
+  /route\.stops\.map\(stop => \{[\s\S]*return \{[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel/,
   'Inspiration route POI materials should carry package, scene, and source channel for review and operations attribution'
 )
 
 assert.match(
   saveRouteBlock,
-  /route\.stops\.map\(stop => \(\{[\s\S]*type:\s*'inspiration-poi'[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  /route\.stops\.map\(stop => \{[\s\S]*return \{[\s\S]*type:\s*'inspiration-poi'[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
   'Inspiration route POI materials should be pending review and private before share or review handoff'
+)
+
+assert.match(
+  saveRouteBlock,
+  /route\.stops\.map\(stop => \{[\s\S]*const sources = createXichengOfficialPoiSources\(stop\)[\s\S]*type:\s*'inspiration-poi'[\s\S]*sources,[\s\S]*sourceCount:\s*sources\.length/,
+  'Inspiration route POI materials should carry approved official POI source cards so travelogue/PDF/review evidence is traceable'
 )
 
 assert.match(
