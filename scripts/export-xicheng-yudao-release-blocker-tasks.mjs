@@ -51,6 +51,8 @@ const releaseGateEvidenceArgs = [
 ]
 const releaseGateCommand = `npm run xunjing:yudao:release:gate -- --stage production --expected-branch feature/xicheng-p0 --env-file /secure/path/production.env ${releaseGateEvidenceArgs.join(' ')} --evidence-file qa/xicheng-yudao-release-evidence.json`
 const productionSeedApplyCommand = 'npm run xunjing:yudao:production-seed:apply -- --env-file /secure/path/production.env --seed-sql workbench/xicheng-poi-production-seed.sql --seed-evidence qa/xicheng-poi-production-seed-evidence.json --runtime-evidence-file qa/xicheng-yudao-runtime-seed-production-evidence.json --apply-evidence-file qa/xicheng-yudao-production-seed-apply-evidence.json --confirm-apply-xicheng-production-seed'
+const sourceReviewApplyCommand = 'npm run xunjing:xicheng:poi:source-review:apply -- --workbook workbench/xicheng-production-pois.review-workbook.csv --source-review workbench/xicheng-poi-source-review-summary.csv --source-coverage-evidence qa/xicheng-poi-source-coverage-evidence.json --output workbench/xicheng-production-pois.review-workbook.source-applied.csv --evidence-file qa/xicheng-poi-source-review-apply-evidence.json'
+const productionReviewApplyCommand = 'npm run xunjing:xicheng:poi:production-review:apply -- --workbook workbench/xicheng-production-pois.review-workbook.source-applied.csv --production-review workbench/xicheng-poi-production-review-summary.csv --source-review-apply-evidence qa/xicheng-poi-source-review-apply-evidence.json --output workbench/xicheng-production-pois.review-workbook.production-applied.csv --evidence-file qa/xicheng-poi-production-review-apply-evidence.json'
 
 const envTaskInstructions = [
   [/^XUNJING_APP_API_BASE_URL$/, {
@@ -144,6 +146,16 @@ const checkTaskInstructions = {
 }
 
 const poiEvidenceTaskInstructions = [
+  [/(source review apply|pendingSourcePoiCount|source license review)/i, {
+    taskDetail: 'Apply approved source review groups back into the 80-row Xicheng POI workbook.',
+    requiredEvidence: 'Source review apply outputs SOURCE_REVIEW_APPLIED with pendingSourcePoiCount=0.',
+    verificationCommand: sourceReviewApplyCommand
+  }],
+  [/(production review apply|pendingProductionReviewPoiCount)/i, {
+    taskDetail: 'Apply approved field evidence geo review trigger smoke and content review back into the Xicheng POI workbook.',
+    requiredEvidence: 'Production review apply outputs PRODUCTION_REVIEW_APPLIED with pendingProductionReviewPoiCount=0.',
+    verificationCommand: productionReviewApplyCommand
+  }],
   [/manifest/i, {
     taskDetail: 'Generate production POI manifest evidence from the reviewed 80-row workbook.',
     requiredEvidence: 'Manifest gate outputs PRODUCTION_POI_MANIFEST_READY with review batch and source workbook hashes.',

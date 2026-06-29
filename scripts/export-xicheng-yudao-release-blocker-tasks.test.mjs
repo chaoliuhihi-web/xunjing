@@ -242,6 +242,54 @@ describe('xicheng Yudao release blocker task export', () => {
     expect(csv).toContain(`xicheng-production-seed-apply,1,Yudao production seed apply evidence is required before production release,poi-data,Run the controlled production seed apply command and provide apply evidence tied to the runtime seed evidence.,Release evidence records productionSeedApplyEvidenceFile with YUDAO_XICHENG_PRODUCTION_SEED_APPLIED and matching runtimeEvidenceFile.,${productionSeedApplyCommand},TODO,${releaseEvidencePath}`)
   })
 
+  test('exports POI review apply blockers with apply verification commands', async () => {
+    const rootDir = await createTempRoot()
+    await writeJson(rootDir, 'tmp/xicheng-yudao-release-evidence.json', {
+      artifactType: 'xicheng-yudao-release-readiness',
+      ok: false,
+      status: 'NOT_READY',
+      checkedAt: '2026-06-28T00:00:00.000Z',
+      summary: {
+        stage: 'production',
+        failedChecks: 1,
+        blockerCount: 2
+      },
+      checks: [
+        {
+          name: 'xicheng-production-poi-evidence',
+          ok: false,
+          blockers: [
+            'source review apply evidence status must be SOURCE_REVIEW_APPLIED',
+            'POI production review apply evidence is required before production release'
+          ]
+        }
+      ],
+      blockers: [
+        'source review apply evidence status must be SOURCE_REVIEW_APPLIED',
+        'POI production review apply evidence is required before production release'
+      ]
+    })
+
+    const result = runTaskExport([
+      '--root', rootDir,
+      '--release-evidence', 'tmp/xicheng-yudao-release-evidence.json',
+      '--output', 'workbench/xicheng-yudao-release-blocker-tasks.csv'
+    ])
+
+    expect(result.status).toBe(0)
+    const report = JSON.parse(result.stdout)
+    expect(report.summary.ownerLaneBreakdown).toEqual([
+      expect.objectContaining({
+        ownerLane: 'poi-data',
+        taskCount: 2,
+        verificationCommands: [
+          'npm run xunjing:xicheng:poi:production-review:apply -- --workbook workbench/xicheng-production-pois.review-workbook.source-applied.csv --production-review workbench/xicheng-poi-production-review-summary.csv --source-review-apply-evidence qa/xicheng-poi-source-review-apply-evidence.json --output workbench/xicheng-production-pois.review-workbook.production-applied.csv --evidence-file qa/xicheng-poi-production-review-apply-evidence.json',
+          'npm run xunjing:xicheng:poi:source-review:apply -- --workbook workbench/xicheng-production-pois.review-workbook.csv --source-review workbench/xicheng-poi-source-review-summary.csv --source-coverage-evidence qa/xicheng-poi-source-coverage-evidence.json --output workbench/xicheng-production-pois.review-workbook.source-applied.csv --evidence-file qa/xicheng-poi-source-review-apply-evidence.json'
+        ]
+      })
+    ])
+  })
+
   test('exports an empty task CSV when release evidence is ready', async () => {
     const rootDir = await createTempRoot()
     await writeJson(rootDir, 'qa/xicheng-yudao-release-evidence.json', {
