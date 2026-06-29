@@ -1654,7 +1654,7 @@ async function runCli() {
   })
   console.log(JSON.stringify(report, null, 2))
   if (!report.ok) {
-    process.exit(1)
+    process.exitCode = 1
   }
 }
 

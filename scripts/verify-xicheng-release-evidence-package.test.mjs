@@ -703,7 +703,8 @@ function runPackageGate(args, options = {}) {
     ...resolvedArgs
   ], {
     cwd: process.cwd(),
-    encoding: 'utf8'
+    encoding: 'utf8',
+    maxBuffer: 1024 * 1024 * 8
   })
 }
 
