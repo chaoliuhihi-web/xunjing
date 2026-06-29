@@ -41,6 +41,14 @@ const requestImageInfoForTrigger = async () => null`
   tenantId: '1'
 })
 const XICHENG_SUGGESTED_QUESTIONS = Object.freeze(['讲讲这个文化点'])
+const createXichengPoiSuggestedQuestions = (poiName = '') => {
+  const subject = String(poiName || '').trim() || '这个点'
+  return [
+    '讲讲' + subject + '的历史故事',
+    subject === '这个点' ? '从这里出发推荐一条亲子研学路线' : '从' + subject + '出发推荐一条亲子研学路线',
+    subject === '这个点' ? '把这个点写进我的游记草稿' : '把' + subject + '写进我的游记草稿'
+  ]
+}
 const XICHENG_DEVELOPMENT_TRIGGER_FIXTURE = Object.freeze({
   triggerType: 'development-fixture',
   sourceLabel: '开发兜底样例',
@@ -219,4 +227,20 @@ assert.equal(
   negativePercentResult.confidencePercent,
   0,
   'Trigger normalization should clamp negative confidencePercent before result-page display'
+)
+
+const poiFallbackQuestionResult = normalizeXichengTriggerResult({
+  poiCode: 'xicheng-yandai-xiejie',
+  poiName: '烟袋斜街',
+  confidencePercent: 88
+}, 'text')
+
+assert.deepEqual(
+  poiFallbackQuestionResult.suggestedQuestions,
+  [
+    '讲讲烟袋斜街的历史故事',
+    '从烟袋斜街出发推荐一条亲子研学路线',
+    '把烟袋斜街写进我的游记草稿'
+  ],
+  'Trigger normalization should create POI-specific fallback questions when backend suggestions are missing'
 )

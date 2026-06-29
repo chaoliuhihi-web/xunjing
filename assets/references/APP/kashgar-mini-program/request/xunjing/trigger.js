@@ -14,7 +14,7 @@ import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 import {
 	XICHENG_REGION_CONFIG,
 	XICHENG_DEVELOPMENT_TRIGGER_FIXTURE,
-	XICHENG_SUGGESTED_QUESTIONS
+	createXichengPoiSuggestedQuestions
 } from '@/config/regions/xicheng.js'
 
 export const XICHENG_TRIGGER_API_PATH = 'app-api/xunjing/triggers/resolve'
@@ -53,7 +53,7 @@ const normalizeSuggestedQuestions = (result = {}) => {
 	if (Array.isArray(result.recommendedQuestions) && result.recommendedQuestions.length > 0) {
 		return result.recommendedQuestions
 	}
-	return XICHENG_SUGGESTED_QUESTIONS
+	return createXichengPoiSuggestedQuestions(result.poiName)
 }
 
 const normalizeReviewedSources = (result = {}) => {

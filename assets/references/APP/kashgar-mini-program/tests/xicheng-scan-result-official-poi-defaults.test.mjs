@@ -38,6 +38,12 @@ assert.match(
 
 assert.match(
   scanResult,
+  /const normalizeSuggestedQuestions\s*=\s*\(result = \{\}\) => \{[\s\S]*return createXichengPoiSuggestedQuestions\(result\.poiName\)/,
+  'Recognition result fallback questions should be generated from the current POI name instead of leaking another POI prompt'
+)
+
+assert.match(
+  scanResult,
   /onLoad\(options = \{\}\)[\s\S]*const normalizedResult = normalizeResult\([\s\S]*applyXichengOfficialPoiDefaults\([\s\S]*this\.result = normalizedResult[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.storageKey, this\.result\)/,
   'Recognition result page should persist official POI defaults so Xiaojing can restore sources when opened next'
 )

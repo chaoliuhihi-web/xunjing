@@ -222,11 +222,23 @@ export const XICHENG_HOME_ACTIONS = Object.freeze([
 	{ key: 'ask', title: '问问小京', subtitle: '带着当前位置继续问', source: 'chat' }
 ])
 
-export const XICHENG_SUGGESTED_QUESTIONS = Object.freeze([
-	'讲讲白塔寺的历史故事',
-	'从这里出发推荐一条亲子研学路线',
-	'把这个点写进我的游记草稿'
-])
+const normalizeXichengQuestionSubject = (poiName = '') => {
+	const subject = String(poiName || '').trim()
+	return subject && !['待确认西城文化点', '西城文化点', '这个点'].includes(subject)
+		? subject
+		: '这个点'
+}
+
+export const createXichengPoiSuggestedQuestions = (poiName = '') => {
+	const subject = normalizeXichengQuestionSubject(poiName)
+	return [
+		`讲讲${subject}的历史故事`,
+		subject === '这个点' ? '从这里出发推荐一条亲子研学路线' : `从${subject}出发推荐一条亲子研学路线`,
+		subject === '这个点' ? '把这个点写进我的游记草稿' : `把${subject}写进我的游记草稿`
+	]
+}
+
+export const XICHENG_SUGGESTED_QUESTIONS = Object.freeze(createXichengPoiSuggestedQuestions())
 
 export const XICHENG_RECOMMENDED_QUESTIONS = XICHENG_SUGGESTED_QUESTIONS
 
@@ -252,8 +264,8 @@ export const XICHENG_DEVELOPMENT_TRIGGER_FIXTURE = Object.freeze({
 	requiresUserConfirm: true,
 	sourceLabel: '开发兜底样例',
 	reason: '用于无后台或弱网环境下演示西城识别结果页，不可作为生产识别结果',
-	suggestedQuestions: XICHENG_SUGGESTED_QUESTIONS,
-	recommendedQuestions: XICHENG_SUGGESTED_QUESTIONS,
+	suggestedQuestions: Object.freeze(createXichengPoiSuggestedQuestions('白塔寺')),
+	recommendedQuestions: Object.freeze(createXichengPoiSuggestedQuestions('白塔寺')),
 	sources: [
 		{
 			title: '西城试运营开发样例',

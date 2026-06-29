@@ -131,7 +131,8 @@ import {
 	XICHENG_REGION_CONFIG,
 	XICHENG_OFFICIAL_POIS,
 	XICHENG_RECOMMENDED_ROUTES,
-	XICHENG_SUGGESTED_QUESTIONS
+	XICHENG_SUGGESTED_QUESTIONS,
+	createXichengPoiSuggestedQuestions
 } from '@/config/regions/xicheng.js'
 import { submitXichengRecognitionFeedbackEvent } from '@/request/xunjing/events.js'
 import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
@@ -171,7 +172,7 @@ const normalizeSuggestedQuestions = (result = {}) => {
 	if (Array.isArray(result.recommendedQuestions) && result.recommendedQuestions.length > 0) {
 		return result.recommendedQuestions
 	}
-	return XICHENG_SUGGESTED_QUESTIONS
+	return createXichengPoiSuggestedQuestions(result.poiName)
 }
 
 const normalizeReviewedSources = (result = {}) => {
@@ -383,7 +384,7 @@ export default {
 			return '0%'
 		},
 		suggestedQuestions() {
-			return this.result.suggestedQuestions || XICHENG_SUGGESTED_QUESTIONS
+			return this.result.suggestedQuestions || createXichengPoiSuggestedQuestions(this.result.poiName)
 		},
 		sourceList() {
 			return Array.isArray(this.result.sources) ? this.result.sources : []
