@@ -1106,7 +1106,9 @@ const loadXunjingPackageDetail = async (context = xichengAiContext.value) => {
 
 const normalizeXunjingAiResponse = (res) => {
 	if (res && res.data && res.data.code !== undefined && Number(res.data.code) !== 0) {
-		throw new Error(res.data.msg || res.data.message || `星河寻境AI接口异常:${res.data.code}`)
+		const error = new Error(res.data.msg || res.data.message || `星河寻境AI接口异常:${res.data.code}`)
+		error.yudaoCommonResultCode = Number(res.data.code)
+		throw error
 	}
 	const body = res && res.data ? res.data : {}
 	const payload = body && body.data && typeof body.data === 'object' ? body.data : body
@@ -1193,10 +1195,20 @@ const createLocalXichengAiFallback = (question = '', context = {}) => {
 	}
 }
 
+const createXichengAiGuardFailureFallback = ({ error = null, statusCode = null } = {}) => {
+	const yudaoCommonResultCode = error && error.yudaoCommonResultCode !== undefined ? error.yudaoCommonResultCode : undefined
+	return { answer: XICHENG_UNAVAILABLE_ANSWER, sources: [], followUps: [], safetyStatus: 'UNAVAILABLE', fallback: true, statusCode, errorMessage: error && error.message ? error.message : '', yudaoCommonResultCode }
+}
+
 const createLocalXunjingAiFallback = (question = '', context = xichengAiContext.value) => {
-	return hasXichengAiContext(context)
-		? createLocalXichengAiFallback(question, context)
-		: createLocalKashgarAiFallback(question)
+	return hasXichengAiContext(context) ? createLocalXichengAiFallback(question, context) : createLocalKashgarAiFallback(question)
+}
+
+const createGuardedXunjingAiFallback = ({ question = '', context = {}, error = null, statusCode = null } = {}) => {
+	if (hasXichengAiContext(context) && (error && (error.yudaoCommonResultCode !== undefined || error.yudaoHttpStatusCode !== undefined))) {
+		return createXichengAiGuardFailureFallback({ error, statusCode })
+	}
+	return { ...createLocalXunjingAiFallback(question, context), statusCode, errorMessage: error && (error.errMsg || error.message) ? (error.errMsg || error.message) : '', fallback: true }
 }
 
 const getDisplaySourceTitle = getXichengDisplaySourceTitle
@@ -1265,21 +1277,15 @@ const requestXunjingAiChat = (question) => {
 			data: requestPayload,
 			success: (res) => {
 				if (res && res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
-					resolve({
-						...createLocalXunjingAiFallback(question, context),
-						statusCode: res && res.statusCode,
-						fallback: true
-					})
+					const error = new Error(`西城小京接口异常:${res.statusCode}`)
+					error.yudaoHttpStatusCode = Number(res.statusCode)
+					resolve(createGuardedXunjingAiFallback({ question, context, error, statusCode: res && res.statusCode }))
 					return
 				}
 				try {
 					resolve(normalizeXunjingAiResponse(res))
 				} catch (error) {
-					resolve({
-						...createLocalXunjingAiFallback(question, context),
-						errorMessage: error && error.message ? error.message : '',
-						fallback: true
-					})
+					resolve(createGuardedXunjingAiFallback({ question, context, error }))
 				}
 			},
 			fail: (error) => {
@@ -1287,11 +1293,7 @@ const requestXunjingAiChat = (question) => {
 					reject(error)
 					return
 				}
-				resolve({
-					...createLocalXunjingAiFallback(question, context),
-					errorMessage: error && (error.errMsg || error.message) ? (error.errMsg || error.message) : '',
-					fallback: true
-				})
+				resolve(createGuardedXunjingAiFallback({ question, context, error }))
 			}
 		})
 	})
