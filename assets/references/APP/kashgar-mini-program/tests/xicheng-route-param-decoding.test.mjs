@@ -15,6 +15,7 @@ const routeParamsSource = read('request', 'xunjing', 'routeParams.js')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
 const aiGuide = read('pages', 'ai-guide', 'ai-guide.vue')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const routeDetail = read('pages', 'xicheng', 'route-detail', 'route-detail.vue')
 
 assert.match(
   routeParamsSource,
@@ -24,12 +25,17 @@ assert.match(
 
 assert.match(
   routeParamsSource,
+  /export const createXichengRouteOutputValue\s*=\s*\(value = '', \{[\s\S]*platform = ''[\s\S]*\} = \{\}\)/,
+  'Shared route parameter helper should export createXichengRouteOutputValue for platform-safe outbound route params'
+)
+
+assert.match(
+  routeParamsSource,
   /for \(let decodeIndex = 0; decodeIndex < 3; decodeIndex \+= 1\)[\s\S]*decodeURIComponent\(decodedValue\)[\s\S]*return decodedValue/,
   'Shared route parameter helper should safely decode nested H5 route values without infinite loops'
 )
 
 for (const [label, source] of [
-  ['scan result', scanResult],
   ['AI guide', aiGuide],
   ['travelogue', travelogue]
 ]) {
@@ -40,10 +46,27 @@ for (const [label, source] of [
   )
 }
 
+for (const [label, source] of [
+  ['Scan result', scanResult],
+  ['Route detail', routeDetail]
+]) {
+  assert.match(
+    source,
+    /import \{ decodeXichengRouteValue, createXichengRouteOutputValue \} from '@\/request\/xunjing\/routeParams\.js'/,
+    `${label} should import shared inbound and outbound route helpers`
+  )
+
+  assert.match(
+    source,
+    /const encodeRouteValue = \(value = ''\) => createXichengRouteOutputValue\(value, \{ platform: process\.env\.UNI_PLATFORM \}\)/,
+    `${label} should use the shared H5-safe outbound route helper before navigating`
+  )
+}
+
 assert.match(
   scanResult,
   /const decodeRouteValue = decodeXichengRouteValue/,
-  'Scan result should reuse the shared route decoder for source, POI, and safetyStatus params'
+  'Scan result should keep the shared decoder for inbound route params'
 )
 
 assert.match(
@@ -59,7 +82,7 @@ assert.match(
 )
 
 const runtimeSource = routeParamsSource
-const { decodeXichengRouteValue } = await import(
+const { decodeXichengRouteValue, createXichengRouteOutputValue } = await import(
   `data:text/javascript;base64,${Buffer.from(runtimeSource).toString('base64')}`
 )
 
@@ -74,4 +97,14 @@ assert.equal(
   decodeXichengRouteValue('%E7%ZZ'),
   '%E7%ZZ',
   'Malformed route parameters should remain readable instead of throwing during page load'
+)
+assert.equal(
+  createXichengRouteOutputValue('%E5%A6%99%E5%BA%94%E5%AF%BA%E7%99%BD%E5%A1%94', { platform: 'h5' }),
+  '妙应寺白塔',
+  'H5 route output should pass raw decoded Chinese text so uni.navigateTo encodes it once'
+)
+assert.equal(
+  createXichengRouteOutputValue('妙应寺白塔', { platform: 'app' }),
+  '%E5%A6%99%E5%BA%94%E5%AF%BA%E7%99%BD%E5%A1%94',
+  'Non-H5 route output should stay URL-encoded for app and mini-program runtimes'
 )

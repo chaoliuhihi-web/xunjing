@@ -13,3 +13,11 @@ export const decodeXichengRouteValue = (value = '') => {
 	}
 	return decodedValue
 }
+
+export const createXichengRouteOutputValue = (value = '', { platform = '' } = {}) => {
+	const decodedValue = decodeXichengRouteValue(value)
+	if (String(platform || '').toLowerCase() === 'h5') {
+		return decodedValue
+	}
+	return encodeURIComponent(decodedValue)
+}

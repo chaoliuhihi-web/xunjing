@@ -169,7 +169,7 @@ import {
 } from '@/config/regions/xicheng.js'
 import { submitXichengRecognitionFeedbackEvent } from '@/request/xunjing/events.js'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
-import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
+import { decodeXichengRouteValue, createXichengRouteOutputValue } from '@/request/xunjing/routeParams.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import {
 	getXichengDisplaySourceDescription,
@@ -230,7 +230,7 @@ const normalizeRecommendedRoute = (result = {}) => {
 }
 
 const decodeRouteValue = decodeXichengRouteValue
-const encodeRouteValue = (value = '') => encodeURIComponent(decodeRouteValue(value))
+const encodeRouteValue = (value = '') => createXichengRouteOutputValue(value, { platform: process.env.UNI_PLATFORM })
 
 const normalizePoiCodeKey = (value = '') => String(value || '').trim().toLowerCase()
 const normalizePoiNameKey = (value = '') => String(value || '').trim()

@@ -69,8 +69,8 @@ assert.match(
 
 assert.match(
   routeDetail,
-  /import \{ decodeXichengRouteValue \} from '@\/request\/xunjing\/routeParams\.js'[\s\S]*const encodeRouteValue = \(value = ''\) => encodeURIComponent\(decodeXichengRouteValue\(value\)\)/,
-  'Route detail should encode outbound route values through the shared decoder to prevent double-encoded attribution params'
+  /import \{ decodeXichengRouteValue, createXichengRouteOutputValue \} from '@\/request\/xunjing\/routeParams\.js'[\s\S]*const encodeRouteValue = \(value = ''\) => createXichengRouteOutputValue\(value, \{ platform: process\.env\.UNI_PLATFORM \}\)/,
+  'Route detail should encode outbound route values through the shared platform-safe helper to prevent double-encoded attribution params'
 )
 
 assert.match(

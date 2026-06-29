@@ -117,9 +117,9 @@ import {
 	XICHENG_REGION_CONFIG
 } from '@/config/regions/xicheng.js'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
-import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
+import { decodeXichengRouteValue, createXichengRouteOutputValue } from '@/request/xunjing/routeParams.js'
 
-const encodeRouteValue = (value = '') => encodeURIComponent(decodeXichengRouteValue(value))
+const encodeRouteValue = (value = '') => createXichengRouteOutputValue(value, { platform: process.env.UNI_PLATFORM })
 
 const normalizeRouteOptions = (options = {}) => ({
 	routeCode: decodeXichengRouteValue(options.routeCode),

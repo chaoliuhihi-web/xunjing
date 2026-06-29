@@ -46,7 +46,7 @@ const normalizeRouteOptionsBlock = getBlock(
 )
 const encodeRouteValueBlock = getBlock(
   scanResult,
-  /const encodeRouteValue = \(value = ''\) => encodeURIComponent\(decodeRouteValue\(value\)\)/,
+  /const encodeRouteValue = \(value = ''\) => createXichengRouteOutputValue\(value, \{ platform: process\.env\.UNI_PLATFORM \}\)/,
   'encodeRouteValue block'
 )
 const normalizeResultBlock = getBlock(
@@ -146,8 +146,8 @@ for (const required of [
 }
 
 assert.ok(
-  encodeRouteValueBlock.includes('decodeRouteValue(value)'),
-  'Scan result route encoder should decode existing route values before encoding outbound query params'
+  encodeRouteValueBlock.includes('createXichengRouteOutputValue(value'),
+  'Scan result route encoder should delegate platform-safe outbound query params to the shared route helper'
 )
 
 for (const required of [
