@@ -55,8 +55,8 @@ assert.match(
 
 assert.match(
   styleBlock,
-  /\.xicheng-immersive-hero\s*\{[\s\S]*min-height:\s*560rpx[\s\S]*overflow:\s*hidden/,
-  'Xicheng home hero should use an immersive first-screen hero treatment aligned with the visual reference'
+  /\.xicheng-immersive-hero\s*\{[\s\S]*min-height:\s*500rpx[\s\S]*overflow:\s*hidden/,
+  'Xicheng home hero should use a compact immersive first-screen hero treatment aligned with the visual reference'
 )
 
 assert.match(
@@ -67,8 +67,14 @@ assert.match(
 
 assert.match(
   styleBlock,
-  /\.quick-card-featured\s*\{[\s\S]*min-height:\s*174rpx/,
-  'Xicheng home primary action cards should be larger than secondary recognition entry cards'
+  /\.quick-card-featured\s*\{[\s\S]*min-height:\s*150rpx/,
+  'Xicheng home primary action cards should be larger than secondary recognition entry cards without pushing routes below the first viewport'
+)
+
+assert.match(
+  styleBlock,
+  /\.quick-grid\s*\{[\s\S]*display:\s*flex[\s\S]*overflow-x:\s*auto[\s\S]*scroll-snap-type:\s*x proximity[\s\S]*\.quick-card,\s*\.ops-card\s*\{[\s\S]*flex:\s*0 0 calc\(\(100% - 18rpx\) \/ 2\)/,
+  'Xicheng home recognition entrypoints should show two complete cards and remain horizontally accessible so official routes surface earlier like the design reference'
 )
 
 assert.match(

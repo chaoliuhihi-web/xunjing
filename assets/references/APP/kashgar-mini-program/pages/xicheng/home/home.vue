@@ -655,14 +655,14 @@ export default {
 <style scoped>
 .xicheng-home {
 	min-height: 100vh;
-	padding: 40rpx 28rpx 190rpx;
+	padding: 28rpx 28rpx 190rpx;
 	box-sizing: border-box;
 	color: #102F29;
 }
 
 .hero {
 	position: relative;
-	padding: 44rpx 34rpx;
+	padding: 36rpx 32rpx;
 	border-radius: 34rpx;
 	background:
 		linear-gradient(145deg, rgba(255, 253, 247, 0.96), rgba(239, 230, 216, 0.82));
@@ -670,19 +670,20 @@ export default {
 }
 
 .xicheng-immersive-hero {
-	min-height: 560rpx;
+	min-height: 500rpx;
 	overflow: hidden;
 	background:
-		radial-gradient(circle at 84% 12%, rgba(181, 148, 94, 0.18), transparent 34%),
-		linear-gradient(145deg, rgba(255, 253, 247, 0.98), rgba(239, 230, 216, 0.78));
+		radial-gradient(circle at 78% 18%, rgba(181, 148, 94, 0.22), transparent 32%),
+		radial-gradient(circle at 74% 84%, rgba(23, 63, 53, 0.16), transparent 36%),
+		linear-gradient(145deg, rgba(255, 253, 247, 0.98), rgba(239, 230, 216, 0.76));
 }
 
 .hero-atmosphere {
 	position: absolute;
-	right: -90rpx;
-	bottom: -70rpx;
-	width: 430rpx;
-	height: 430rpx;
+	right: -80rpx;
+	bottom: -64rpx;
+	width: 390rpx;
+	height: 390rpx;
 	border-radius: 999rpx;
 	background:
 		radial-gradient(circle, rgba(23, 63, 53, 0.16), rgba(23, 63, 53, 0) 68%);
@@ -809,8 +810,8 @@ export default {
 	align-items: center;
 	justify-content: space-between;
 	gap: 20rpx;
-	margin-top: 28rpx;
-	padding: 28rpx;
+	margin-top: 24rpx;
+	padding: 24rpx;
 	border-radius: 32rpx;
 	background:
 		linear-gradient(135deg, #173F35 0%, #102F29 100%);
@@ -913,7 +914,20 @@ export default {
 	margin-top: 24rpx;
 }
 
-.quick-grid,
+.quick-grid {
+	display: flex;
+	gap: 18rpx;
+	margin-top: 24rpx;
+	padding-bottom: 8rpx;
+	overflow-x: auto;
+	scroll-snap-type: x proximity;
+	-webkit-overflow-scrolling: touch;
+}
+
+.quick-grid::-webkit-scrollbar {
+	display: none;
+}
+
 .ops-section {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -923,14 +937,16 @@ export default {
 
 .quick-card,
 .ops-card {
-	min-height: 150rpx;
-	padding: 24rpx;
+	flex: 0 0 calc((100% - 18rpx) / 2);
+	min-height: 136rpx;
+	padding: 22rpx;
 	border-radius: 30rpx;
 	box-sizing: border-box;
+	scroll-snap-align: start;
 }
 
 .quick-card-featured {
-	min-height: 174rpx;
+	min-height: 150rpx;
 	border: 1rpx solid rgba(255, 255, 255, 0.48);
 	box-shadow: 0 18rpx 38rpx rgba(16, 47, 41, 0.12);
 }
@@ -967,14 +983,14 @@ export default {
 	display: grid;
 	grid-template-columns: repeat(4, minmax(0, 1fr));
 	gap: 12rpx;
-	margin-top: 28rpx;
+	margin-top: 22rpx;
 }
 
 .flow-strip text {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	min-height: 76rpx;
+	min-height: 64rpx;
 	padding: 8rpx;
 	border-radius: 999rpx;
 	background: rgba(181, 148, 94, 0.15);
@@ -985,8 +1001,8 @@ export default {
 }
 
 .route-recommendation-section {
-	margin-top: 28rpx;
-	padding: 30rpx;
+	margin-top: 24rpx;
+	padding: 26rpx;
 	border-radius: 34rpx;
 }
 
