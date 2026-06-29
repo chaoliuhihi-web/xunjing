@@ -30,6 +30,9 @@ const numericMetricKeys = new Set([
   'knowledgeDocuments',
   'mapPoints',
   'qrCodes',
+  'shichahaiHasYandaiAlias',
+  'yandaiHasAlias',
+  'yandaiHasTriggerKeyword',
   'publicReportLocalCandidate',
   'publicReportProductionReady'
 ])
@@ -190,6 +193,30 @@ WHERE rp.package_code = '${expectedPackageCode}'
   AND rp.tenant_id = @tenant_id
   AND rp.deleted = b'0'
 UNION ALL
+SELECT 'shichahaiHasYandaiAlias', COUNT(*)
+FROM xunjing_poi
+WHERE poi_code = 'xicheng-shichahai'
+  AND region_code = '${expectedRegionCode}'
+  AND tenant_id = @tenant_id
+  AND deleted = b'0'
+  AND JSON_CONTAINS(aliases_json, JSON_QUOTE('烟袋斜街'))
+UNION ALL
+SELECT 'yandaiHasAlias', COUNT(*)
+FROM xunjing_poi
+WHERE poi_code = 'xicheng-yandai-xiejie'
+  AND region_code = '${expectedRegionCode}'
+  AND tenant_id = @tenant_id
+  AND deleted = b'0'
+  AND JSON_CONTAINS(aliases_json, JSON_QUOTE('烟袋斜街'))
+UNION ALL
+SELECT 'yandaiHasTriggerKeyword', COUNT(*)
+FROM xunjing_poi
+WHERE poi_code = 'xicheng-yandai-xiejie'
+  AND region_code = '${expectedRegionCode}'
+  AND tenant_id = @tenant_id
+  AND deleted = b'0'
+  AND JSON_CONTAINS(JSON_EXTRACT(trigger_json, '$.ocrKeywords'), JSON_QUOTE('烟袋斜街'))
+UNION ALL
 SELECT 'publicReportLocalCandidate', COUNT(*)
 FROM xunjing_public_report
 WHERE metrics_json LIKE '%"packageCode":"${expectedPackageCode}"%'
@@ -269,6 +296,9 @@ function buildRuntimeChecks(metrics) {
   const knowledgeDocuments = countMetric(metrics, 'knowledgeDocuments')
   const mapPoints = countMetric(metrics, 'mapPoints')
   const qrCodes = countMetric(metrics, 'qrCodes')
+  const shichahaiHasYandaiAlias = countMetric(metrics, 'shichahaiHasYandaiAlias')
+  const yandaiHasAlias = countMetric(metrics, 'yandaiHasAlias')
+  const yandaiHasTriggerKeyword = countMetric(metrics, 'yandaiHasTriggerKeyword')
   const publicReportLocalCandidate = countMetric(metrics, 'publicReportLocalCandidate')
 
   checks.push(check(
@@ -334,6 +364,24 @@ function buildRuntimeChecks(metrics) {
       ? 'runtime public report records p0LocalCandidate=true'
       : 'runtime public report does not record p0LocalCandidate=true',
     publicReportLocalCandidate >= 1 ? [] : ['runtime public report must record p0LocalCandidate=true']
+  ))
+  const triggerAliasBlockers = []
+  if (shichahaiHasYandaiAlias !== 0) {
+    triggerAliasBlockers.push('xicheng-shichahai aliases_json must not contain 烟袋斜街')
+  }
+  if (yandaiHasAlias !== 1) {
+    triggerAliasBlockers.push('xicheng-yandai-xiejie aliases_json must contain 烟袋斜街')
+  }
+  if (yandaiHasTriggerKeyword !== 1) {
+    triggerAliasBlockers.push('xicheng-yandai-xiejie trigger_json.ocrKeywords must contain 烟袋斜街')
+  }
+  checks.push(check(
+    'trigger-alias-ownership',
+    triggerAliasBlockers.length === 0,
+    triggerAliasBlockers.length === 0
+      ? 'runtime database keeps Yandai Xiejie trigger alias out of Shichahai'
+      : 'runtime database still has a Shichahai/Yandai Xiejie trigger alias conflict',
+    triggerAliasBlockers
   ))
   checks.push(check(
     'secret-redaction',
@@ -413,6 +461,9 @@ export function buildRuntimeSeedEvidence({
       knowledgeDocuments: countMetric(metrics, 'knowledgeDocuments'),
       mapPoints: countMetric(metrics, 'mapPoints'),
       qrCodes: countMetric(metrics, 'qrCodes'),
+      shichahaiHasYandaiAlias: countMetric(metrics, 'shichahaiHasYandaiAlias'),
+      yandaiHasAlias: countMetric(metrics, 'yandaiHasAlias'),
+      yandaiHasTriggerKeyword: countMetric(metrics, 'yandaiHasTriggerKeyword'),
       publicReportLocalCandidate: countMetric(metrics, 'publicReportLocalCandidate'),
       publicReportProductionReady: countMetric(metrics, 'publicReportProductionReady'),
       samplePoiCodes: splitCodeList(metrics.samplePoiCodes),
@@ -603,6 +654,9 @@ async function runCli() {
     poiTotal: evidence.summary.poiTotal,
     knowledgeDocuments: evidence.summary.knowledgeDocuments,
     mapPoints: evidence.summary.mapPoints,
+    shichahaiHasYandaiAlias: evidence.summary.shichahaiHasYandaiAlias,
+    yandaiHasAlias: evidence.summary.yandaiHasAlias,
+    yandaiHasTriggerKeyword: evidence.summary.yandaiHasTriggerKeyword,
     localCandidateReady: evidence.summary.localCandidateReady,
     productionReady: evidence.summary.productionReady,
     productionBlockers: evidence.summary.productionBlockers,

@@ -40,6 +40,9 @@ describe('Xicheng Yudao runtime seed verifier', () => {
     expect(sql).toContain('xunjing_qrcode')
     expect(sql).toContain('geoReviewRequiredPoiCodes')
     expect(sql).toContain('licenseReviewRequiredPoiCodes')
+    expect(sql).toContain('shichahaiHasYandaiAlias')
+    expect(sql).toContain('yandaiHasAlias')
+    expect(sql).toContain('yandaiHasTriggerKeyword')
   })
 
   test('parses MySQL metric output and marks runtime seed ready without hiding production review blockers', () => {
@@ -52,6 +55,9 @@ describe('Xicheng Yudao runtime seed verifier', () => {
       'knowledgeDocuments\t84',
       'mapPoints\t80',
       'qrCodes\t1',
+      'shichahaiHasYandaiAlias\t0',
+      'yandaiHasAlias\t1',
+      'yandaiHasTriggerKeyword\t1',
       'publicReportLocalCandidate\t1',
       'publicReportProductionReady\t0',
       'geoReviewRequiredPoiCodes\txicheng-baitasi,xicheng-emperors-temple',
@@ -74,6 +80,9 @@ describe('Xicheng Yudao runtime seed verifier', () => {
     expect(evidence.summary.poiTotal).toBe(80)
     expect(evidence.summary.knowledgeDocuments).toBe(84)
     expect(evidence.summary.mapPoints).toBe(80)
+    expect(evidence.summary.shichahaiHasYandaiAlias).toBe(0)
+    expect(evidence.summary.yandaiHasAlias).toBe(1)
+    expect(evidence.summary.yandaiHasTriggerKeyword).toBe(1)
     expect(evidence.summary.localCandidateReady).toBe(true)
     expect(evidence.summary.productionReady).toBe(false)
     expect(evidence.summary.productionBlockers).toContain('80 Xicheng POIs still require coordinate review')
@@ -94,6 +103,9 @@ describe('Xicheng Yudao runtime seed verifier', () => {
       'knowledgeDocuments\t84',
       'mapPoints\t80',
       'qrCodes\t1',
+      'shichahaiHasYandaiAlias\t0',
+      'yandaiHasAlias\t1',
+      'yandaiHasTriggerKeyword\t1',
       'publicReportLocalCandidate\t1',
       'publicReportProductionReady\t0',
       'geoReviewRequiredPoiCodes\txicheng-baitasi,xicheng-emperors-temple',
@@ -131,6 +143,9 @@ describe('Xicheng Yudao runtime seed verifier', () => {
       'knowledgeDocuments\t84',
       'mapPoints\t80',
       'qrCodes\t1',
+      'shichahaiHasYandaiAlias\t0',
+      'yandaiHasAlias\t1',
+      'yandaiHasTriggerKeyword\t1',
       'publicReportLocalCandidate\t1',
       'publicReportProductionReady\t1',
       'samplePoiCodes\txicheng-baitasi,xicheng-emperors-temple,xicheng-beihai-park'
@@ -152,6 +167,37 @@ describe('Xicheng Yudao runtime seed verifier', () => {
     expect(evidence.summary.productionBlockers).toEqual([])
   })
 
+  test('fails runtime readiness when Shichahai still owns the Yandai Xiejie trigger alias', () => {
+    const rows = [
+      'packageCount\t1',
+      'poiTotal\t80',
+      'poiApprovedPublished\t80',
+      'poiGeoReviewRequired\t0',
+      'poiLicenseReviewRequired\t0',
+      'knowledgeDocuments\t84',
+      'mapPoints\t80',
+      'qrCodes\t1',
+      'shichahaiHasYandaiAlias\t1',
+      'yandaiHasAlias\t1',
+      'yandaiHasTriggerKeyword\t1',
+      'publicReportLocalCandidate\t1',
+      'publicReportProductionReady\t1',
+      'samplePoiCodes\txicheng-baitasi,xicheng-yandai-xiejie,xicheng-shichahai'
+    ].join('\n')
+
+    const evidence = buildRuntimeSeedEvidence({
+      env,
+      metrics: parseMetricRows(rows),
+      client: 'container',
+      checkedAt: '2026-06-29T04:30:00.000Z'
+    })
+
+    expect(evidence.ok).toBe(false)
+    expect(evidence.status).toBe('YUDAO_XICHENG_LOCAL_SEED_NOT_READY')
+    expect(evidence.summary.localCandidateReady).toBe(false)
+    expect(evidence.blockers).toContain('xicheng-shichahai aliases_json must not contain 烟袋斜街')
+  })
+
   test('fails local candidate readiness when the runtime database is missing Xicheng POIs', () => {
     const evidence = buildRuntimeSeedEvidence({
       env,
@@ -166,6 +212,9 @@ describe('Xicheng Yudao runtime seed verifier', () => {
         knowledgeDocuments: 4,
         mapPoints: 5,
         qrCodes: 1,
+        shichahaiHasYandaiAlias: 0,
+        yandaiHasAlias: 1,
+        yandaiHasTriggerKeyword: 1,
         publicReportLocalCandidate: 1,
         publicReportProductionReady: 0,
         samplePoiCodes: 'xicheng-baitasi'

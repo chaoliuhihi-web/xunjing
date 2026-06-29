@@ -86,6 +86,9 @@ function readyRuntimeRows() {
     'knowledgeDocuments\t84',
     'mapPoints\t80',
     'qrCodes\t1',
+    'shichahaiHasYandaiAlias\t0',
+    'yandaiHasAlias\t1',
+    'yandaiHasTriggerKeyword\t1',
     'publicReportLocalCandidate\t1',
     'publicReportProductionReady\t1',
     'samplePoiCodes\txicheng-baitasi,xicheng-gongwangfu'
