@@ -66,11 +66,12 @@
 		</view>
 
 		<view class="question-card xicheng-paper-card">
-			<text class="section-title">可以继续问小京</text>
+			<text class="section-title">{{ questionSectionTitle }}</text>
 			<view
 				v-for="question in suggestedQuestions"
 				:key="question"
 				class="question-row"
+				:class="{ 'question-row-disabled': recognitionActionBlocked }"
 				@click="askXiaojing(question)"
 			>
 				<text>{{ question }}</text>
@@ -329,6 +330,12 @@ export default {
 				return '小京暂时无法获取已审核来源，不能问小京'
 			}
 			return '暂无可继续追问的问题'
+		},
+		questionSectionTitle() {
+			if (this.pendingCandidateConfirmation) return '确认官方 POI 后可问小京'
+			if (this.missingOfficialPoiContext) return '匹配官方 POI 后可问小京'
+			if (this.unsafeRecognitionSafetyStatus) return this.sourceEmptyCopy
+			return '可以继续问小京'
 		},
 		unsafeRecognitionSafetyStatus() {
 			const safetyStatus = normalizeXichengSafetyStatus(this.result.safetyStatus)
@@ -830,6 +837,10 @@ export default {
 	background: rgba(255, 252, 246, 0.72);
 	font-size: 26rpx;
 	color: #173F35;
+}
+
+.question-row-disabled {
+	opacity: 0.58;
 }
 
 .question-empty {

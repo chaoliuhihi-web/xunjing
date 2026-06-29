@@ -9,9 +9,11 @@ const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
 
 for (const required of [
   'pendingCandidateConfirmation',
+  'questionSectionTitle',
   'recognitionActionBlocked',
   'requireOfficialPoiConfirmation',
-  '请先选择官方 POI 再'
+  '请先选择官方 POI 再',
+  '确认官方 POI 后可问小京'
 ]) {
   assert.ok(
     scanResult.includes(required),
@@ -23,6 +25,12 @@ assert.match(
   scanResult,
   /pendingCandidateConfirmation\(\)[\s\S]*return Boolean\(this\.result\.requiresUserConfirm && this\.candidateList\.length > 0\)/,
   'Recognition result should treat unresolved backend candidates as requiring official POI confirmation'
+)
+
+assert.match(
+  scanResult,
+  /questionSectionTitle\(\)[\s\S]*if \(this\.pendingCandidateConfirmation\) return '确认官方 POI 后可问小京'[\s\S]*return '可以继续问小京'/,
+  'Question section should not imply Xiaojing is immediately available before candidate confirmation'
 )
 
 assert.match(
