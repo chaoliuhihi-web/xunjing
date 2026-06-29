@@ -158,6 +158,41 @@ function sourceReviewApplyEvidenceArgs() {
   return ['--source-review-apply-evidence', 'qa/xicheng-poi-source-review-apply-evidence.json']
 }
 
+async function writeTriggerSmokeApplyEvidence(rootDir, {
+  status = 'TRIGGER_SMOKE_APPLIED',
+  ok = true,
+  pendingTriggerSmokePoiCount = 0,
+  outputSha256
+} = {}) {
+  const productionReviewFile = path.join(rootDir, 'workbench/xicheng-poi-production-review-summary.csv')
+  const evidenceFile = path.join(rootDir, 'qa/xicheng-poi-trigger-smoke-apply-evidence.json')
+  const productionReviewText = await readFile(productionReviewFile, 'utf8')
+  await writeFile(evidenceFile, `${JSON.stringify({
+    artifactType: 'xicheng-poi-trigger-smoke-apply',
+    ok,
+    status,
+    checkedAt: '2026-06-29T03:30:00.000Z',
+    summary: {
+      productionReviewFile,
+      triggerSmokeEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-trigger-smoke-evidence.json'),
+      outputFile: productionReviewFile,
+      evidenceFile,
+      productionReviewRows: 1,
+      appliedPoiCount: 1,
+      appliedPoiCodes: ['xicheng-baitasi'],
+      pendingTriggerSmokePoiCount,
+      pendingTriggerSmokePoiCodes: [],
+      outputSha256: outputSha256 || sha256(productionReviewText)
+    },
+    blockers: pendingTriggerSmokePoiCount > 0 ? ['trigger smoke remains'] : []
+  }, null, 2)}\n`)
+  return 'qa/xicheng-poi-trigger-smoke-apply-evidence.json'
+}
+
+function triggerSmokeApplyEvidenceArgs() {
+  return ['--trigger-smoke-apply-evidence', 'qa/xicheng-poi-trigger-smoke-apply-evidence.json']
+}
+
 afterEach(async () => {
   while (tempDirs.length > 0) {
     await rm(tempDirs.pop(), { recursive: true, force: true })
@@ -185,12 +220,51 @@ describe('xicheng POI production review workbook apply', () => {
       status: 'SOURCE_REVIEW_DATA_REMAINS',
       pendingSourcePoiCount: 79
     })
+    await writeTriggerSmokeApplyEvidence(rootDir)
 
-    const result = runProductionReviewApply(rootDir, sourceReviewApplyEvidenceArgs())
+    const result = runProductionReviewApply(rootDir, [
+      ...sourceReviewApplyEvidenceArgs(),
+      ...triggerSmokeApplyEvidenceArgs()
+    ])
 
     expect(result.status).toBe(1)
     expect(result.stderr).toContain('source review apply evidence status must be SOURCE_REVIEW_APPLIED')
     expect(result.stderr).toContain('source review apply evidence must have pendingSourcePoiCount=0')
+  })
+
+  test('requires trigger smoke apply evidence before accepting PASSED trigger smoke rows', async () => {
+    const rootDir = await createTempRoot()
+    expect(runReviewPack(rootDir).status).toBe(0)
+    await writeFile(path.join(rootDir, 'workbench/xicheng-poi-production-review-summary.csv'), productionReviewCsv())
+    await writeSourceReviewApplyEvidence(rootDir)
+
+    const result = runProductionReviewApply(rootDir, sourceReviewApplyEvidenceArgs())
+
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('--trigger-smoke-apply-evidence is required')
+  })
+
+  test('rejects trigger smoke apply evidence that is not ready or does not match the production review CSV', async () => {
+    const rootDir = await createTempRoot()
+    expect(runReviewPack(rootDir).status).toBe(0)
+    await writeFile(path.join(rootDir, 'workbench/xicheng-poi-production-review-summary.csv'), productionReviewCsv())
+    await writeSourceReviewApplyEvidence(rootDir)
+    await writeTriggerSmokeApplyEvidence(rootDir, {
+      ok: false,
+      status: 'TRIGGER_SMOKE_APPLY_REMAINS',
+      pendingTriggerSmokePoiCount: 1,
+      outputSha256: '0'.repeat(64)
+    })
+
+    const result = runProductionReviewApply(rootDir, [
+      ...sourceReviewApplyEvidenceArgs(),
+      ...triggerSmokeApplyEvidenceArgs()
+    ])
+
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('trigger smoke apply evidence status must be TRIGGER_SMOKE_APPLIED')
+    expect(result.stderr).toContain('trigger smoke apply evidence pendingTriggerSmokePoiCount must be 0')
+    expect(result.stderr).toContain('trigger smoke apply evidence outputSha256 must match production review CSV')
   })
 
   test('applies approved field geo and content review rows without marking remaining POIs ready', async () => {
@@ -198,8 +272,12 @@ describe('xicheng POI production review workbook apply', () => {
     expect(runReviewPack(rootDir).status).toBe(0)
     await writeFile(path.join(rootDir, 'workbench/xicheng-poi-production-review-summary.csv'), productionReviewCsv())
     await writeSourceReviewApplyEvidence(rootDir)
+    await writeTriggerSmokeApplyEvidence(rootDir)
 
-    const result = runProductionReviewApply(rootDir, sourceReviewApplyEvidenceArgs())
+    const result = runProductionReviewApply(rootDir, [
+      ...sourceReviewApplyEvidenceArgs(),
+      ...triggerSmokeApplyEvidenceArgs()
+    ])
 
     expect(result.status).toBe(0)
     const report = JSON.parse(result.stdout)
@@ -218,6 +296,10 @@ describe('xicheng POI production review workbook apply', () => {
         sourceReviewPendingSourcePoiCount: 0,
         sourceCoverageStatus: 'SOURCE_COVERAGE_READY',
         sourceCoverageUncoveredPoiCount: 0,
+        triggerSmokeApplyEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-trigger-smoke-apply-evidence.json'),
+        triggerSmokeApplyStatus: 'TRIGGER_SMOKE_APPLIED',
+        triggerSmokeAppliedPoiCount: 1,
+        triggerSmokePendingPoiCount: 0,
         outputFile,
         evidenceFile,
         workbookRows: 80,
@@ -275,8 +357,12 @@ describe('xicheng POI production review workbook apply', () => {
       evidenceRef: 'file:///Users/reviewer/Desktop/baitasi.jpg'
     }))
     await writeSourceReviewApplyEvidence(rootDir)
+    await writeTriggerSmokeApplyEvidence(rootDir)
 
-    const result = runProductionReviewApply(rootDir, sourceReviewApplyEvidenceArgs())
+    const result = runProductionReviewApply(rootDir, [
+      ...sourceReviewApplyEvidenceArgs(),
+      ...triggerSmokeApplyEvidenceArgs()
+    ])
 
     expect(result.status).toBe(1)
     expect(result.stderr).toContain('fieldEvidenceRefs must include non-local HTTPS/object-storage references')
@@ -292,10 +378,12 @@ describe('xicheng POI production review workbook apply', () => {
     )
     expect(deployDoc).toContain('npm run xunjing:xicheng:poi:production-review:apply')
     expect(deployDoc).toContain('--source-review-apply-evidence qa/xicheng-poi-source-review-apply-evidence.json')
+    expect(deployDoc).toContain('--trigger-smoke-apply-evidence qa/xicheng-poi-trigger-smoke-apply-evidence.json')
     expect(deployDoc).toContain('workbench/xicheng-production-pois.review-workbook.production-applied.csv')
     expect(deployDoc).toContain('qa/xicheng-poi-production-review-apply-evidence.json')
     expect(statusDoc).toContain('xicheng:poi:production-review:apply')
     expect(statusDoc).toContain('--source-review-apply-evidence qa/xicheng-poi-source-review-apply-evidence.json')
+    expect(statusDoc).toContain('--trigger-smoke-apply-evidence qa/xicheng-poi-trigger-smoke-apply-evidence.json')
     expect(statusDoc).toContain('PRODUCTION_REVIEW_DATA_REMAINS')
   })
 })

@@ -475,6 +475,7 @@ function buildReviewPacket({
   const productionReviewPath = 'workbench/xicheng-poi-production-review-summary.csv'
   const sourceCoverageEvidencePath = 'qa/xicheng-poi-source-coverage-evidence.json'
   const sourceReviewApplyEvidencePath = 'qa/xicheng-poi-source-review-apply-evidence.json'
+  const triggerSmokeApplyEvidencePath = 'qa/xicheng-poi-trigger-smoke-apply-evidence.json'
   const productionReviewApplyEvidencePath = 'qa/xicheng-poi-production-review-apply-evidence.json'
   const sourceAppliedWorkbookPath = 'workbench/xicheng-production-pois.review-workbook.source-applied.csv'
   const productionAppliedWorkbookPath = 'workbench/xicheng-production-pois.review-workbook.production-applied.csv'
@@ -502,6 +503,7 @@ function buildReviewPacket({
       workbookEvidenceFile: 'qa/xicheng-poi-review-workbook-evidence.json',
       sourceCoverageEvidenceFile: sourceCoverageEvidencePath,
       sourceReviewApplyEvidenceFile: sourceReviewApplyEvidencePath,
+      triggerSmokeApplyEvidenceFile: triggerSmokeApplyEvidencePath,
       productionReviewApplyEvidenceFile: productionReviewApplyEvidencePath,
       manifestEvidenceFile: 'qa/xicheng-poi-manifest-evidence.json',
       seedGenerationEvidenceFile: 'qa/xicheng-poi-production-seed-generation-evidence.json',
@@ -512,7 +514,7 @@ function buildReviewPacket({
       'npm run xunjing:xicheng:poi:tasks:export -- --workbook-evidence qa/xicheng-poi-review-workbook-evidence.json --output workbench/xicheng-poi-review-tasks.csv',
       `npm run xunjing:xicheng:poi:source-coverage:audit -- --source-review ${sourceReviewPath} --evidence-file ${sourceCoverageEvidencePath}`,
       `npm run xunjing:xicheng:poi:source-review:apply -- --workbook ${workbookPath || 'workbench/xicheng-production-pois.review-workbook.csv'} --source-review ${sourceReviewPath} --source-coverage-evidence ${sourceCoverageEvidencePath} --output ${sourceAppliedWorkbookPath} --evidence-file ${sourceReviewApplyEvidencePath}`,
-      `npm run xunjing:xicheng:poi:production-review:apply -- --workbook ${sourceAppliedWorkbookPath} --production-review ${productionReviewPath} --source-review-apply-evidence ${sourceReviewApplyEvidencePath} --output ${productionAppliedWorkbookPath} --evidence-file ${productionReviewApplyEvidencePath}`,
+      `npm run xunjing:xicheng:poi:production-review:apply -- --workbook ${sourceAppliedWorkbookPath} --production-review ${productionReviewPath} --source-review-apply-evidence ${sourceReviewApplyEvidencePath} --trigger-smoke-apply-evidence ${triggerSmokeApplyEvidencePath} --output ${productionAppliedWorkbookPath} --evidence-file ${productionReviewApplyEvidencePath}`,
       `npm run xunjing:xicheng:poi:manifest:from-workbook -- --workbook ${productionAppliedWorkbookPath} --output ${productionManifestPath} --production-ready --batch-code xicheng-p0-poi-review-YYYYMMDD --data-owner xicheng-cultural-tourism-review-team --source-compiled-by xicheng-source-compiler --source-compiled-at YYYY-MM-DD --reviewed-by xicheng-production-reviewer --reviewed-at YYYY-MM-DD --evidence-package-ref oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-YYYYMMDD.zip`,
       `npm run xunjing:xicheng:poi:manifest:gate -- --manifest ${productionManifestPath} --evidence-file qa/xicheng-poi-manifest-evidence.json`,
       `npm run xunjing:xicheng:poi:seed:generate -- --manifest ${productionManifestPath} --output ${productionSeedPath} --evidence-file qa/xicheng-poi-production-seed-generation-evidence.json`,

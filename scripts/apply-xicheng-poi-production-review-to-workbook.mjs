@@ -9,6 +9,8 @@ const notReadyStatus = 'PRODUCTION_REVIEW_DATA_REMAINS'
 const sourceReviewApplyArtifactType = 'xicheng-poi-source-review-apply'
 const sourceReviewApplyReadyStatus = 'SOURCE_REVIEW_APPLIED'
 const sourceCoverageReadyStatus = 'SOURCE_COVERAGE_READY'
+const triggerSmokeApplyArtifactType = 'xicheng-poi-trigger-smoke-apply'
+const triggerSmokeApplyReadyStatus = 'TRIGGER_SMOKE_APPLIED'
 const allowedOutputDirs = new Set(['qa', 'tmp', 'workbench'])
 
 const productionReviewFields = [
@@ -280,6 +282,33 @@ function validateSourceReviewApplyEvidence(evidence, {
   return blockers
 }
 
+function validateTriggerSmokeApplyEvidence(evidence, {
+  productionReviewFile,
+  productionReviewSha256
+}) {
+  const blockers = []
+  const summary = evidence?.summary || {}
+  if (evidence?.artifactType !== triggerSmokeApplyArtifactType) {
+    blockers.push(`trigger smoke apply evidence artifactType must be ${triggerSmokeApplyArtifactType}`)
+  }
+  if (evidence?.ok !== true) {
+    blockers.push('trigger smoke apply evidence ok must be true')
+  }
+  if (evidence?.status !== triggerSmokeApplyReadyStatus) {
+    blockers.push(`trigger smoke apply evidence status must be ${triggerSmokeApplyReadyStatus}`)
+  }
+  if (path.resolve(summary.outputFile || '') !== path.resolve(productionReviewFile)) {
+    blockers.push('trigger smoke apply evidence outputFile must reference the same production review CSV')
+  }
+  if (summary.outputSha256 !== productionReviewSha256) {
+    blockers.push('trigger smoke apply evidence outputSha256 must match production review CSV')
+  }
+  if (Number(summary.pendingTriggerSmokePoiCount) !== 0) {
+    blockers.push('trigger smoke apply evidence pendingTriggerSmokePoiCount must be 0')
+  }
+  return blockers
+}
+
 function validateApprovedReviewRows(reviewRows, workbookPoiCodes) {
   const blockers = []
   const seenPoiCodes = new Set()
@@ -347,6 +376,8 @@ function buildReport({
   productionReviewFile,
   sourceReviewApplyEvidenceFile,
   sourceReviewApplyEvidence,
+  triggerSmokeApplyEvidenceFile,
+  triggerSmokeApplyEvidence,
   outputFile,
   evidenceFile,
   workbookRows,
@@ -380,6 +411,10 @@ function buildReport({
       sourceReviewPendingSourcePoiCount: sourceReviewApplyEvidence.summary?.pendingSourcePoiCount,
       sourceCoverageStatus: sourceReviewApplyEvidence.summary?.sourceCoverageStatus,
       sourceCoverageUncoveredPoiCount: sourceReviewApplyEvidence.summary?.sourceCoverageUncoveredPoiCount,
+      triggerSmokeApplyEvidenceFile,
+      triggerSmokeApplyStatus: triggerSmokeApplyEvidence.status,
+      triggerSmokeAppliedPoiCount: triggerSmokeApplyEvidence.summary?.appliedPoiCount,
+      triggerSmokePendingPoiCount: triggerSmokeApplyEvidence.summary?.pendingTriggerSmokePoiCount,
       outputFile,
       evidenceFile,
       workbookRows: workbookRows.length,
@@ -401,6 +436,7 @@ export async function applyXichengPoiProductionReviewToWorkbook({
   workbookFile,
   productionReviewFile,
   sourceReviewApplyEvidenceFile,
+  triggerSmokeApplyEvidenceFile,
   outputFile,
   evidenceFile
 } = {}) {
@@ -412,22 +448,38 @@ export async function applyXichengPoiProductionReviewToWorkbook({
     sourceReviewApplyEvidenceFile,
     '--source-review-apply-evidence'
   )
+  const resolvedTriggerSmokeApplyEvidenceFile = resolveInputFile(
+    resolvedRootDir,
+    triggerSmokeApplyEvidenceFile,
+    '--trigger-smoke-apply-evidence'
+  )
   const resolvedOutputFile = resolveSafeOutputFile(resolvedRootDir, outputFile, '--output')
   const resolvedEvidenceFile = resolveSafeOutputFile(resolvedRootDir, evidenceFile, '--evidence-file')
-  const [workbookText, productionReviewText, sourceReviewApplyEvidenceText] = await Promise.all([
+  const [
+    workbookText,
+    productionReviewText,
+    sourceReviewApplyEvidenceText,
+    triggerSmokeApplyEvidenceText
+  ] = await Promise.all([
     readFile(resolvedWorkbookFile, 'utf8'),
     readFile(resolvedProductionReviewFile, 'utf8'),
-    readFile(resolvedSourceReviewApplyEvidenceFile, 'utf8')
+    readFile(resolvedSourceReviewApplyEvidenceFile, 'utf8'),
+    readFile(resolvedTriggerSmokeApplyEvidenceFile, 'utf8')
   ])
   const workbook = parseRows(workbookText, requiredWorkbookFields, 'workbook CSV')
   const productionReview = parseRows(productionReviewText, requiredProductionReviewFields, 'production review CSV')
   const sourceReviewApplyEvidence = JSON.parse(sourceReviewApplyEvidenceText)
+  const triggerSmokeApplyEvidence = JSON.parse(triggerSmokeApplyEvidenceText)
   const workbookPoiCodes = new Set(workbook.rows.map((row) => row.poiCode))
   const validationBlockers = [
     ...validateSourceReviewApplyEvidence(sourceReviewApplyEvidence, {
       workbookFile: resolvedWorkbookFile,
       workbookRows: workbook.rows,
       workbookSha256: sha256(workbookText)
+    }),
+    ...validateTriggerSmokeApplyEvidence(triggerSmokeApplyEvidence, {
+      productionReviewFile: resolvedProductionReviewFile,
+      productionReviewSha256: sha256(productionReviewText)
     }),
     ...validateApprovedReviewRows(productionReview.rows, workbookPoiCodes)
   ]
@@ -442,6 +494,8 @@ export async function applyXichengPoiProductionReviewToWorkbook({
     productionReviewFile: resolvedProductionReviewFile,
     sourceReviewApplyEvidenceFile: resolvedSourceReviewApplyEvidenceFile,
     sourceReviewApplyEvidence,
+    triggerSmokeApplyEvidenceFile: resolvedTriggerSmokeApplyEvidenceFile,
+    triggerSmokeApplyEvidence,
     outputFile: resolvedOutputFile,
     evidenceFile: resolvedEvidenceFile,
     workbookRows: workbook.rows,
@@ -465,6 +519,7 @@ async function runCli() {
     workbookFile: readArgValue(args, '--workbook'),
     productionReviewFile: readArgValue(args, '--production-review'),
     sourceReviewApplyEvidenceFile: readArgValue(args, '--source-review-apply-evidence'),
+    triggerSmokeApplyEvidenceFile: readArgValue(args, '--trigger-smoke-apply-evidence'),
     outputFile: readArgValue(args, '--output'),
     evidenceFile: readArgValue(args, '--evidence-file')
   })
