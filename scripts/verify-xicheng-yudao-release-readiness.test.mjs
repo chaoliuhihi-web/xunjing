@@ -114,6 +114,7 @@ const requiredProductionEnvTemplateKeys = [
   'QDRANT_API_KEY',
   'QDRANT_TEXT_COLLECTION',
   'QDRANT_IMAGE_COLLECTION',
+  'YUDAO_SERVER_BUILD_EVIDENCE',
   'QWEN_API_KEY',
   'QWEN_BASE_URL',
   'QWEN_MODEL',
@@ -211,6 +212,7 @@ function productionEnv(overrides = {}) {
     QDRANT_API_KEY: 'prod-qdrant-api-key',
     QDRANT_TEXT_COLLECTION: 'xinghe_xunjing_text_production',
     QDRANT_IMAGE_COLLECTION: 'xinghe_xunjing_image_production',
+    YUDAO_SERVER_BUILD_EVIDENCE: 'qa/xicheng-yudao-server-build-evidence.json',
     QWEN_API_KEY: 'prod-qwen-api-key',
     QWEN_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     QWEN_MODEL: 'qwen-plus',
@@ -248,7 +250,8 @@ async function createProductionReadyFixture() {
   )
 
   await writeFile(path.join(sqlDir, 'xunjing-seed-xicheng-p0.sql'), productionSeedSql())
-  await writeYudaoServerJar(rootDir)
+  const yudaoServerJarPath = await writeYudaoServerJar(rootDir)
+  await writeYudaoServerBuildEvidence(rootDir, { jarPath: yudaoServerJarPath })
   await writeEmbeddingEvidence(rootDir)
 
   return rootDir
@@ -259,6 +262,34 @@ async function writeYudaoServerJar(rootDir, relativePath = 'backend/yudao/yudao-
   await mkdir(path.dirname(jarPath), { recursive: true })
   await writeFile(jarPath, 'PK\u0003\u0004xicheng-yudao-server-build-artifact\n')
   return jarPath
+}
+
+async function writeYudaoServerBuildEvidence(rootDir, overrides = {}) {
+  const jarPath = overrides.jarPath || path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar')
+  const jarSource = await readFile(jarPath)
+  const evidencePath = path.join(rootDir, 'qa/xicheng-yudao-server-build-evidence.json')
+  await mkdir(path.dirname(evidencePath), { recursive: true })
+  await writeFile(evidencePath, `${JSON.stringify({
+    artifactType: 'xicheng-yudao-server-build',
+    ok: true,
+    status: 'YUDAO_SERVER_JAR_BUILT',
+    checkedAt: freshCheckedAt(),
+    summary: {
+      buildMethod: 'mvn',
+      backendDir: path.join(rootDir, 'backend/yudao'),
+      mavenCommand: 'mvn',
+      mavenArgs: ['--batch-mode', '--no-transfer-progress', '-pl', 'yudao-server', '-am', '-DskipTests', 'package'],
+      testsIncluded: false,
+      jarFile: jarPath,
+      jarSizeBytes: jarSource.length,
+      jarSha256: sha256(jarSource),
+      ...(overrides.summary || {})
+    },
+    checks: passedChecks(['maven-package', 'yudao-server-jar']),
+    blockers: [],
+    ...(overrides.evidence || {})
+  }, null, 2)}\n`)
+  return evidencePath
 }
 
 function productionSeedSql() {
@@ -1048,6 +1079,7 @@ describe('xicheng Yudao release readiness gate', () => {
       'object-storage',
       'full-yudao-baseline',
       'yudao-server-artifact',
+      'yudao-server-build-evidence',
       'xicheng-production-poi-evidence',
       'xicheng-runtime-seed-evidence',
       'xicheng-production-seed-apply',
@@ -1502,10 +1534,88 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(artifactCheck?.blockers.join('\n')).toContain('Yudao server jar is missing or empty')
   })
 
+  test('fails closed when Yudao server build evidence is missing', async () => {
+    const rootDir = await createProductionReadyFixture()
+    await rm(path.join(rootDir, 'qa/xicheng-yudao-server-build-evidence.json'), { force: true })
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
+    const qdrantEvidencePath = await writeQdrantEvidence(rootDir)
+    const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
+    const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv({ YUDAO_SERVER_BUILD_EVIDENCE: '' }),
+      rootDir,
+      stage: 'production',
+      aiBootstrapEvidencePath,
+      qdrantEvidencePath,
+      visionOcrEvidencePath,
+      objectStorageEvidencePath,
+      runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const buildCheck = result.checks.find((check) => check.name === 'yudao-server-build-evidence')
+    expect(buildCheck?.ok).toBe(false)
+    expect(buildCheck?.blockers.join('\n')).toContain('Yudao server build evidence is required before production release')
+  })
+
+  test('fails closed when Yudao server build evidence does not match the release jar', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const jarPath = path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar')
+    await writeYudaoServerBuildEvidence(rootDir, {
+      jarPath,
+      summary: {
+        jarSha256: '0'.repeat(64)
+      }
+    })
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
+    const qdrantEvidencePath = await writeQdrantEvidence(rootDir)
+    const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
+    const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      aiBootstrapEvidencePath,
+      qdrantEvidencePath,
+      visionOcrEvidencePath,
+      objectStorageEvidencePath,
+      runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    const buildCheck = result.checks.find((check) => check.name === 'yudao-server-build-evidence')
+    expect(buildCheck?.ok).toBe(false)
+    expect(buildCheck?.blockers.join('\n')).toContain('Yudao server build evidence jarSha256 must match the release jar')
+  })
+
   test('accepts an external Yudao server jar artifact path for release evidence', async () => {
     const rootDir = await createProductionReadyFixture()
     const defaultJarPath = path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar')
     const externalJarPath = await writeYudaoServerJar(rootDir, 'tmp/artifacts/yudao-server.jar')
+    await writeYudaoServerBuildEvidence(rootDir, { jarPath: externalJarPath })
     await rm(defaultJarPath, { force: true })
     const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
     const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
@@ -2126,7 +2236,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidence.summary).toMatchObject({
       stage: 'production',
       status: 'NOT_READY',
-      totalChecks: 18,
+      totalChecks: 19,
       appApiBaseUrl: 'http://127.0.0.1:48080',
       runtimeEnvFingerprintMode: 'redacted-runtime-env-v1',
       runtimeEnvRequiredKeyCount: expect.any(Number),

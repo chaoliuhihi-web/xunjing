@@ -149,6 +149,11 @@ async function writeReleaseEvidenceFile(rootDir, overrides = {}) {
       yudaoServerJarFile: serverJar.jarFile,
       yudaoServerJarSha256: serverJar.jarSha256,
       yudaoServerJarSizeBytes: serverJar.jarSizeBytes,
+      yudaoServerBuildEvidenceFile: path.join(rootDir, 'qa/xicheng-yudao-server-build-evidence.json'),
+      yudaoServerBuildMethod: 'mvn',
+      yudaoServerBuildJarFile: serverJar.jarFile,
+      yudaoServerBuildJarSha256: serverJar.jarSha256,
+      yudaoServerBuildJarSizeBytes: serverJar.jarSizeBytes,
       manifestEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-manifest-evidence.json'),
       workbookEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json'),
       seedEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-production-seed-evidence.json'),
@@ -357,8 +362,8 @@ function releaseEvidence(overrides = {}) {
     summary: {
       stage: 'production',
       status: 'PRODUCTION_READY_CANDIDATE',
-      totalChecks: 18,
-      passedChecks: 18,
+      totalChecks: 19,
+      passedChecks: 19,
       failedChecks: 0,
       blockerCount: 0,
       gitAvailable: true,
@@ -387,6 +392,7 @@ function releaseEvidence(overrides = {}) {
       { name: 'object-storage', ok: true },
       { name: 'full-yudao-baseline', ok: true },
       { name: 'yudao-server-artifact', ok: true },
+      { name: 'yudao-server-build-evidence', ok: true },
       { name: 'xicheng-production-poi-evidence', ok: true },
       { name: 'xicheng-runtime-seed-evidence', ok: true },
       { name: 'xicheng-production-seed-apply', ok: true },
@@ -1344,6 +1350,39 @@ describe('xicheng release evidence package gate', () => {
     expect(report.blockers.join('\n')).toContain('release evidence must include yudao-server-artifact')
     expect(report.blockers.join('\n')).toContain('release evidence yudaoServerJarSha256 must be a sha256 hex digest')
     expect(report.blockers.join('\n')).toContain('release evidence yudaoServerJarFile is required')
+  })
+
+  test('fails closed when release evidence lacks Yudao server build evidence metadata', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
+      summary: {
+        yudaoServerBuildEvidenceFile: undefined,
+        yudaoServerBuildMethod: undefined,
+        yudaoServerBuildJarFile: undefined,
+        yudaoServerBuildJarSha256: undefined,
+        yudaoServerBuildJarSizeBytes: undefined
+      },
+      checks: releaseEvidence().checks.filter((check) => check.name !== 'yudao-server-build-evidence')
+    })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.blockers.join('\n')).toContain('release evidence must include yudao-server-build-evidence')
+    expect(report.blockers.join('\n')).toContain('release evidence yudaoServerBuildEvidenceFile is required')
+    expect(report.blockers.join('\n')).toContain('release evidence yudaoServerBuildJarSha256 must match yudaoServerJarSha256')
   })
 
   test('fails closed when APP, manifest and seed evidence do not describe the same Xicheng batch', async () => {

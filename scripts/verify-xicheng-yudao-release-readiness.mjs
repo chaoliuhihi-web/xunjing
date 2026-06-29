@@ -96,6 +96,11 @@ const requiredQdrantEvidenceChecks = [
   'secret-redaction'
 ]
 
+const requiredYudaoServerBuildEvidenceChecks = [
+  'maven-package',
+  'yudao-server-jar'
+]
+
 const requiredRuntimeSeedEvidenceChecks = [
   'resource-package',
   'poi-count',
@@ -1065,6 +1070,84 @@ async function checkYudaoServerArtifact(rootDir, yudaoServerJarPath) {
       blockers
     ),
     summary
+  }
+}
+
+async function checkYudaoServerBuildEvidence({
+  rootDir,
+  yudaoServerBuildEvidencePath,
+  yudaoServerArtifactSummary,
+  freshnessOptions
+}) {
+  const blockers = []
+  const ref = await loadEvidenceInput(rootDir, yudaoServerBuildEvidencePath)
+  const artifactJarFile = yudaoServerArtifactSummary?.yudaoServerJarFile
+  const artifactJarSha256 = yudaoServerArtifactSummary?.yudaoServerJarSha256
+  const artifactJarSizeBytes = Number(yudaoServerArtifactSummary?.yudaoServerJarSizeBytes || 0)
+
+  if (!ref.path) {
+    blockers.push('Yudao server build evidence is required before production release')
+  } else if (ref.error) {
+    blockers.push(`Yudao server build evidence cannot be read: ${ref.error}`)
+  } else {
+    const evidence = ref.data || {}
+    const summary = evidenceSummary(evidence)
+    const evidenceJarFile = hasValue(summary.jarFile)
+      ? (path.isAbsolute(summary.jarFile) ? path.resolve(summary.jarFile) : path.resolve(rootDir, summary.jarFile))
+      : undefined
+    if (evidence.artifactType !== 'xicheng-yudao-server-build') {
+      blockers.push('Yudao server build evidence artifactType must be xicheng-yudao-server-build')
+    }
+    blockers.push(...checkEvidenceTimestamp(evidence, 'Yudao server build', freshnessOptions))
+    if (evidence.ok !== true) {
+      blockers.push('Yudao server build evidence ok must be true')
+    }
+    if (evidence.status !== 'YUDAO_SERVER_JAR_BUILT') {
+      blockers.push('Yudao server build evidence status must be YUDAO_SERVER_JAR_BUILT')
+    }
+    if (!hasValue(summary.buildMethod)) {
+      blockers.push('Yudao server build evidence buildMethod is required')
+    }
+    if (!evidenceJarFile) {
+      blockers.push('Yudao server build evidence jarFile is required')
+    } else if (artifactJarFile && evidenceJarFile !== path.resolve(artifactJarFile)) {
+      blockers.push('Yudao server build evidence jarFile must match the release jar')
+    }
+    if (!hasValue(summary.jarSha256)) {
+      blockers.push('Yudao server build evidence jarSha256 is required')
+    } else if (artifactJarSha256 && summary.jarSha256 !== artifactJarSha256) {
+      blockers.push('Yudao server build evidence jarSha256 must match the release jar')
+    }
+    if (Number(summary.jarSizeBytes || 0) <= 0) {
+      blockers.push('Yudao server build evidence jarSizeBytes must be positive')
+    } else if (artifactJarSizeBytes > 0 && Number(summary.jarSizeBytes) !== artifactJarSizeBytes) {
+      blockers.push('Yudao server build evidence jarSizeBytes must match the release jar')
+    }
+    blockers.push(...checkEvidenceChecks(evidence, requiredYudaoServerBuildEvidenceChecks, 'Yudao server build'))
+    if (!hasNoEvidenceBlockers(evidence)) {
+      blockers.push(`Yudao server build evidence contains blockers: ${evidence.blockers.join('; ')}`)
+    }
+  }
+
+  const summary = evidenceSummary(ref.data)
+  return {
+    ...check(
+      'yudao-server-build-evidence',
+      blockers.length === 0,
+      blockers.length === 0
+        ? `Yudao server build evidence is ready: ${ref.path}`
+        : blockers.join('; '),
+      blockers
+    ),
+    summary: {
+      yudaoServerBuildEvidenceFile: ref.path,
+      yudaoServerBuildCheckedAt: ref.data?.checkedAt,
+      yudaoServerBuildMethod: summary.buildMethod,
+      yudaoServerBuildJarFile: summary.jarFile,
+      yudaoServerBuildJarSizeBytes: summary.jarSizeBytes,
+      yudaoServerBuildJarSha256: summary.jarSha256,
+      yudaoServerBuildTestsIncluded: summary.testsIncluded
+    }
   }
 }
 
@@ -2076,6 +2159,7 @@ export async function verifyXichengYudaoReleaseReadiness({
   stage = 'production',
   yudaoBaselineSqlPath,
   yudaoServerJarPath,
+  yudaoServerBuildEvidencePath,
   aiBootstrapEvidencePath,
   embeddingEvidencePath,
   qdrantEvidencePath,
@@ -2115,6 +2199,10 @@ export async function verifyXichengYudaoReleaseReadiness({
   const productionPoiSeedSqlPath = productionPoiEvidenceCheck.ok
     ? productionPoiEvidenceCheck.summary?.productionPoiSeedSqlFile
     : undefined
+  const yudaoServerArtifactCheck = await checkYudaoServerArtifact(
+    rootDir,
+    yudaoServerJarPath || env.YUDAO_SERVER_JAR
+  )
 
   const checks = [
     checkReleaseSourceRevision(rootDir, expectedGitBranch),
@@ -2154,7 +2242,13 @@ export async function verifyXichengYudaoReleaseReadiness({
       freshnessOptions
     }),
     await checkFullYudaoBaseline(rootDir, yudaoBaselineSqlPath || env.YUDAO_BASELINE_SQL),
-    await checkYudaoServerArtifact(rootDir, yudaoServerJarPath || env.YUDAO_SERVER_JAR),
+    yudaoServerArtifactCheck,
+    await checkYudaoServerBuildEvidence({
+      rootDir,
+      yudaoServerBuildEvidencePath: yudaoServerBuildEvidencePath || env.YUDAO_SERVER_BUILD_EVIDENCE,
+      yudaoServerArtifactSummary: yudaoServerArtifactCheck.summary,
+      freshnessOptions
+    }),
     productionPoiEvidenceCheck,
     await checkXichengRuntimeSeedEvidence({
       rootDir,
@@ -2221,6 +2315,7 @@ function buildReleaseEvidence(result) {
   const objectStorageSummary = result.checks.find((item) => item.name === 'object-storage')?.summary || {}
   const baselineSummary = result.checks.find((item) => item.name === 'full-yudao-baseline')?.summary || {}
   const serverArtifactSummary = result.checks.find((item) => item.name === 'yudao-server-artifact')?.summary || {}
+  const serverBuildSummary = result.checks.find((item) => item.name === 'yudao-server-build-evidence')?.summary || {}
   const productionPoiEvidenceSummary = result.checks.find((item) => item.name === 'xicheng-production-poi-evidence')?.summary || {}
   const runtimeSeedSummary = result.checks.find((item) => item.name === 'xicheng-runtime-seed-evidence')?.summary || {}
   const productionSeedApplySummary = result.checks.find((item) => item.name === 'xicheng-production-seed-apply')?.summary || {}
@@ -2242,6 +2337,7 @@ function buildReleaseEvidence(result) {
       ...objectStorageSummary,
       ...baselineSummary,
       ...serverArtifactSummary,
+      ...serverBuildSummary,
       ...productionPoiEvidenceSummary,
       ...runtimeSeedSummary,
       ...productionSeedApplySummary,
@@ -2286,6 +2382,9 @@ async function runCli() {
     stage: readArgValue(args, '--stage') || process.env.XUNJING_RELEASE_STAGE || 'production',
     yudaoBaselineSqlPath: readArgValue(args, '--yudao-baseline-sql') || env.YUDAO_BASELINE_SQL,
     yudaoServerJarPath: readArgValue(args, '--yudao-server-jar') || env.YUDAO_SERVER_JAR,
+    yudaoServerBuildEvidencePath: readArgValue(args, '--yudao-server-build-evidence') ||
+      readArgValue(args, '--server-build-evidence') ||
+      env.YUDAO_SERVER_BUILD_EVIDENCE,
     aiBootstrapEvidencePath: readArgValue(args, '--ai-bootstrap-evidence') ||
       env.YUDAO_AI_BOOTSTRAP_EVIDENCE,
     embeddingEvidencePath: readArgValue(args, '--embedding-evidence') ||

@@ -8,6 +8,7 @@ const tempDirs = []
 const requiredReleaseGateEvidenceArgs = [
   '--yudao-baseline-sql /secure/path/ruoyi-vue-pro.sql',
   '--yudao-server-jar /secure/path/yudao-server.jar',
+  '--yudao-server-build-evidence qa/xicheng-yudao-server-build-evidence.json',
   '--ai-bootstrap-evidence qa/xicheng-yudao-ai-bootstrap-evidence.json',
   '--qdrant-evidence qa/xicheng-qdrant-smoke-evidence.json',
   '--embedding-evidence qa/xicheng-embedding-smoke-evidence.json',

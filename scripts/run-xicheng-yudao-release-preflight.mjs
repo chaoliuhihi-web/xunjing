@@ -22,6 +22,7 @@ const defaultAppReadinessEvidenceFile = 'qa/xicheng-app-readiness-evidence.json'
 const defaultReleasePackageEvidenceFile = 'qa/xicheng-release-evidence-package.json'
 const defaultQdrantEvidenceFile = 'qa/xicheng-qdrant-smoke-evidence.json'
 const defaultEmbeddingEvidenceFile = 'qa/xicheng-embedding-smoke-evidence.json'
+const defaultYudaoServerBuildEvidenceFile = 'qa/xicheng-yudao-server-build-evidence.json'
 const defaultStage = 'production'
 const defaultExpectedBranch = 'feature/xicheng-p0'
 const defaultEnvFile = 'ops/xunjing-platform.env.example'
@@ -56,7 +57,8 @@ function buildReleaseGateArgs({
   expectedBranch,
   releaseEvidenceFile,
   qdrantEvidenceFile,
-  embeddingEvidenceFile
+  embeddingEvidenceFile,
+  yudaoServerBuildEvidenceFile
 }) {
   return [
     '--root', rootDir,
@@ -66,6 +68,7 @@ function buildReleaseGateArgs({
     '--evidence-file', releaseEvidenceFile,
     ...optionalArg(args, '--yudao-baseline-sql'),
     ...optionalArg(args, '--yudao-server-jar'),
+    '--yudao-server-build-evidence', yudaoServerBuildEvidenceFile,
     ...optionalArg(args, '--ai-bootstrap-evidence'),
     '--qdrant-evidence', qdrantEvidenceFile,
     '--embedding-evidence', embeddingEvidenceFile,
@@ -434,6 +437,9 @@ export async function runXichengYudaoReleasePreflight({
   const appReadinessEvidenceFile = readArgValue(args, '--app-readiness-evidence') || defaultAppReadinessEvidenceFile
   const qdrantEvidenceFile = readArgValue(args, '--qdrant-evidence') || defaultQdrantEvidenceFile
   const embeddingEvidenceFile = readArgValue(args, '--embedding-evidence') || defaultEmbeddingEvidenceFile
+  const yudaoServerBuildEvidenceFile = readArgValue(args, '--yudao-server-build-evidence') ||
+    readArgValue(args, '--server-build-evidence') ||
+    defaultYudaoServerBuildEvidenceFile
   const releasePackageEvidenceFile = readArgValue(args, '--release-package-evidence') ||
     readArgValue(args, '--package-evidence') ||
     defaultReleasePackageEvidenceFile
@@ -455,7 +461,8 @@ export async function runXichengYudaoReleasePreflight({
       expectedBranch,
       releaseEvidenceFile,
       qdrantEvidenceFile,
-      embeddingEvidenceFile
+      embeddingEvidenceFile,
+      yudaoServerBuildEvidenceFile
     })
   ], {
     cwd: process.cwd(),
