@@ -45,6 +45,35 @@ function runSourceReviewApply(rootDir, extraArgs = []) {
   ])
 }
 
+async function writeReadySourceCoverageEvidence(rootDir) {
+  const sourceReviewFile = path.join(rootDir, 'workbench/xicheng-poi-source-review-summary.csv')
+  const evidenceFile = path.join(rootDir, 'qa/xicheng-poi-source-coverage-evidence.json')
+  await writeFile(evidenceFile, `${JSON.stringify({
+    artifactType: 'xicheng-poi-source-coverage',
+    ok: true,
+    status: 'SOURCE_COVERAGE_READY',
+    checkedAt: '2026-06-28T10:00:00.000Z',
+    summary: {
+      sourceReviewFile,
+      evidenceFile,
+      sourceReviewRows: 2,
+      sourceGroupCount: 2,
+      poiCount: 80,
+      coveredPoiCount: 80,
+      uncoveredPoiCount: 0,
+      uncoveredPoiCodes: []
+    },
+    checks: [
+      { name: 'source-review-file', ok: true },
+      { name: 'source-pages', ok: true },
+      { name: 'poi-source-coverage', ok: true },
+      { name: 'secret-redaction', ok: true }
+    ],
+    blockers: []
+  }, null, 2)}\n`)
+  return evidenceFile
+}
+
 function parseCsv(text) {
   const rows = []
   let row = []
@@ -133,12 +162,26 @@ afterEach(async () => {
 })
 
 describe('xicheng POI source review workbook apply', () => {
-  test('applies approved source groups to matching workbook rows without marking remaining rows ready', async () => {
+  test('requires ready source coverage evidence before applying approved source groups', async () => {
     const rootDir = await createTempRoot()
     expect(runReviewPack(rootDir).status).toBe(0)
     await writeFile(path.join(rootDir, 'workbench/xicheng-poi-source-review-summary.csv'), approvedSourceReviewCsv())
 
     const result = runSourceReviewApply(rootDir)
+
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('--source-coverage-evidence is required')
+  })
+
+  test('applies approved source groups to matching workbook rows without marking remaining rows ready', async () => {
+    const rootDir = await createTempRoot()
+    expect(runReviewPack(rootDir).status).toBe(0)
+    await writeFile(path.join(rootDir, 'workbench/xicheng-poi-source-review-summary.csv'), approvedSourceReviewCsv())
+    const sourceCoverageEvidenceFile = await writeReadySourceCoverageEvidence(rootDir)
+
+    const result = runSourceReviewApply(rootDir, [
+      '--source-coverage-evidence', 'qa/xicheng-poi-source-coverage-evidence.json'
+    ])
 
     expect(result.status).toBe(0)
     const report = JSON.parse(result.stdout)
@@ -151,6 +194,10 @@ describe('xicheng POI source review workbook apply', () => {
       summary: {
         workbookFile: path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.csv'),
         sourceReviewFile: path.join(rootDir, 'workbench/xicheng-poi-source-review-summary.csv'),
+        sourceCoverageEvidenceFile,
+        sourceCoverageStatus: 'SOURCE_COVERAGE_READY',
+        sourceCoverageCoveredPoiCount: 80,
+        sourceCoverageUncoveredPoiCount: 0,
         outputFile,
         evidenceFile,
         workbookRows: 80,
@@ -204,9 +251,11 @@ describe('xicheng POI source review workbook apply', () => {
       'node scripts/apply-xicheng-poi-source-review-to-workbook.mjs'
     )
     expect(deployDoc).toContain('npm run xunjing:xicheng:poi:source-review:apply')
+    expect(deployDoc).toContain('--source-coverage-evidence qa/xicheng-poi-source-coverage-evidence.json')
     expect(deployDoc).toContain('workbench/xicheng-production-pois.review-workbook.source-applied.csv')
     expect(deployDoc).toContain('qa/xicheng-poi-source-review-apply-evidence.json')
     expect(statusDoc).toContain('xicheng:poi:source-review:apply')
+    expect(statusDoc).toContain('--source-coverage-evidence qa/xicheng-poi-source-coverage-evidence.json')
     expect(statusDoc).toContain('SOURCE_REVIEW_DATA_REMAINS')
   })
 })

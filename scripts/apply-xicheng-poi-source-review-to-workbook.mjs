@@ -6,6 +6,8 @@ import { pathToFileURL } from 'node:url'
 const artifactType = 'xicheng-poi-source-review-apply'
 const readyStatus = 'SOURCE_REVIEW_APPLIED'
 const notReadyStatus = 'SOURCE_REVIEW_DATA_REMAINS'
+const sourceCoverageArtifactType = 'xicheng-poi-source-coverage'
+const sourceCoverageReadyStatus = 'SOURCE_COVERAGE_READY'
 const allowedOutputDirs = new Set(['qa', 'tmp', 'workbench'])
 
 const requiredWorkbookFields = [
@@ -218,6 +220,35 @@ function approvedSourceGroups(sourceRows) {
   return sourceRows.filter((row) => isApproved(row.licenseStatus))
 }
 
+function validateSourceCoverageEvidence(evidence, {
+  sourceReviewFile,
+  workbookRows
+}) {
+  const blockers = []
+  const summary = evidence?.summary || {}
+  if (evidence?.artifactType !== sourceCoverageArtifactType) {
+    blockers.push(`source coverage evidence artifactType must be ${sourceCoverageArtifactType}`)
+  }
+  if (evidence?.status !== sourceCoverageReadyStatus) {
+    blockers.push(`source coverage evidence status must be ${sourceCoverageReadyStatus}`)
+  }
+  if (path.resolve(summary.sourceReviewFile || '') !== path.resolve(sourceReviewFile)) {
+    blockers.push('source coverage evidence must reference the same source review CSV')
+  }
+  if (Number(summary.uncoveredPoiCount) !== 0) {
+    blockers.push('source coverage evidence must have uncoveredPoiCount=0')
+  }
+  if (Number(summary.coveredPoiCount) < workbookRows.length) {
+    blockers.push(`source coverage evidence coveredPoiCount must be at least ${workbookRows.length}`)
+  }
+  const checks = Array.isArray(evidence?.checks) ? evidence.checks : []
+  const coverageCheck = checks.find((check) => check?.name === 'poi-source-coverage')
+  if (!coverageCheck || coverageCheck.ok !== true) {
+    blockers.push('source coverage evidence check poi-source-coverage must be ok')
+  }
+  return blockers
+}
+
 function validateApprovedSourceGroups(groups) {
   const blockers = []
   groups.forEach((group) => {
@@ -279,6 +310,8 @@ function sourceLicenseReady(row) {
 function buildReport({
   workbookFile,
   sourceReviewFile,
+  sourceCoverageEvidenceFile,
+  sourceCoverageEvidence,
   outputFile,
   evidenceFile,
   workbookRows,
@@ -306,6 +339,10 @@ function buildReport({
     summary: {
       workbookFile,
       sourceReviewFile,
+      sourceCoverageEvidenceFile,
+      sourceCoverageStatus: sourceCoverageEvidence.status,
+      sourceCoverageCoveredPoiCount: sourceCoverageEvidence.summary?.coveredPoiCount,
+      sourceCoverageUncoveredPoiCount: sourceCoverageEvidence.summary?.uncoveredPoiCount,
       outputFile,
       evidenceFile,
       workbookRows: workbookRows.length,
@@ -326,22 +363,36 @@ export async function applyXichengPoiSourceReviewToWorkbook({
   rootDir = process.cwd(),
   workbookFile,
   sourceReviewFile,
+  sourceCoverageEvidenceFile,
   outputFile,
   evidenceFile
 } = {}) {
   const resolvedRootDir = path.resolve(rootDir)
   const resolvedWorkbookFile = resolveInputFile(resolvedRootDir, workbookFile, '--workbook')
   const resolvedSourceReviewFile = resolveInputFile(resolvedRootDir, sourceReviewFile, '--source-review')
+  const resolvedSourceCoverageEvidenceFile = resolveInputFile(
+    resolvedRootDir,
+    sourceCoverageEvidenceFile,
+    '--source-coverage-evidence'
+  )
   const resolvedOutputFile = resolveSafeOutputFile(resolvedRootDir, outputFile, '--output')
   const resolvedEvidenceFile = resolveSafeOutputFile(resolvedRootDir, evidenceFile, '--evidence-file')
-  const [workbookText, sourceReviewText] = await Promise.all([
+  const [workbookText, sourceReviewText, sourceCoverageEvidenceText] = await Promise.all([
     readFile(resolvedWorkbookFile, 'utf8'),
-    readFile(resolvedSourceReviewFile, 'utf8')
+    readFile(resolvedSourceReviewFile, 'utf8'),
+    readFile(resolvedSourceCoverageEvidenceFile, 'utf8')
   ])
   const workbook = parseRows(workbookText, requiredWorkbookFields, 'workbook CSV')
   const sourceReview = parseRows(sourceReviewText, requiredSourceReviewFields, 'source review CSV')
+  const sourceCoverageEvidence = JSON.parse(sourceCoverageEvidenceText)
   const approvedGroups = approvedSourceGroups(sourceReview.rows)
-  const validationBlockers = validateApprovedSourceGroups(approvedGroups)
+  const validationBlockers = [
+    ...validateSourceCoverageEvidence(sourceCoverageEvidence, {
+      sourceReviewFile: resolvedSourceReviewFile,
+      workbookRows: workbook.rows
+    }),
+    ...validateApprovedSourceGroups(approvedGroups)
+  ]
   if (validationBlockers.length > 0) {
     throw new Error(validationBlockers.join('; '))
   }
@@ -350,6 +401,8 @@ export async function applyXichengPoiSourceReviewToWorkbook({
   const report = buildReport({
     workbookFile: resolvedWorkbookFile,
     sourceReviewFile: resolvedSourceReviewFile,
+    sourceCoverageEvidenceFile: resolvedSourceCoverageEvidenceFile,
+    sourceCoverageEvidence,
     outputFile: resolvedOutputFile,
     evidenceFile: resolvedEvidenceFile,
     workbookRows: workbook.rows,
@@ -372,6 +425,7 @@ async function runCli() {
     rootDir: path.resolve(readArgValue(args, '--root') || process.cwd()),
     workbookFile: readArgValue(args, '--workbook'),
     sourceReviewFile: readArgValue(args, '--source-review'),
+    sourceCoverageEvidenceFile: readArgValue(args, '--source-coverage-evidence'),
     outputFile: readArgValue(args, '--output'),
     evidenceFile: readArgValue(args, '--evidence-file')
   })
