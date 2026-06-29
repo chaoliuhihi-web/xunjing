@@ -105,6 +105,7 @@ const secretEvidenceKeys = [
   'MYSQL_PASSWORD',
   'REDIS_PASSWORD',
   'OSS_SECRET_KEY',
+  'QDRANT_API_KEY',
   'QWEN_API_KEY',
   'DASHSCOPE_API_KEY',
   'WX_MP_SECRET',
@@ -133,9 +134,12 @@ const requiredProductionEnvKeys = [
   'OSS_PREFIX',
   'OSS_ACCESS_KEY',
   'OSS_SECRET_KEY',
+  'OSS_REGION',
+  'OSS_PATH_STYLE',
   'QDRANT_URL',
   'QDRANT_HOST',
   'QDRANT_GRPC_PORT',
+  'QDRANT_API_KEY',
   'QDRANT_TEXT_COLLECTION',
   'QDRANT_IMAGE_COLLECTION',
   'QWEN_API_KEY',
@@ -597,7 +601,7 @@ async function checkVisionOcrServiceEvidence({ rootDir, visionOcrEvidencePath, e
 }
 
 function checkObjectStorage(env) {
-  const keys = ['OSS_ENDPOINT', 'OSS_BUCKET', 'OSS_PREFIX', 'OSS_ACCESS_KEY', 'OSS_SECRET_KEY']
+  const keys = ['OSS_ENDPOINT', 'OSS_BUCKET', 'OSS_PREFIX', 'OSS_ACCESS_KEY', 'OSS_SECRET_KEY', 'OSS_REGION', 'OSS_PATH_STYLE']
   const blockers = requireRealEnv(env, keys)
   if (hasValue(env.OSS_ENDPOINT) && !isHttpsUrl(env.OSS_ENDPOINT)) {
     blockers.push('OSS_ENDPOINT')
@@ -624,12 +628,25 @@ function objectStorageExpectedEndpoint(env) {
   }
 }
 
+function normalizeBooleanEnv(value) {
+  const normalized = String(value || '').trim().toLowerCase()
+  if (['true', '1', 'yes', 'y'].includes(normalized)) {
+    return true
+  }
+  if (['false', '0', 'no', 'n'].includes(normalized)) {
+    return false
+  }
+  return undefined
+}
+
 async function checkObjectStorageEvidence({ rootDir, objectStorageEvidencePath, env, freshnessOptions }) {
   const envCheck = checkObjectStorage(env)
   const blockers = [...(envCheck.blockers || [])]
   const expectedEndpoint = objectStorageExpectedEndpoint(env)
   const expectedPrefix = String(env.OSS_PREFIX || '').trim()
   const expectedBucket = String(env.OSS_BUCKET || '').trim()
+  const expectedRegion = String(env.OSS_REGION || '').trim()
+  const expectedPathStyle = normalizeBooleanEnv(env.OSS_PATH_STYLE)
   const ref = await loadEvidenceInput(rootDir, objectStorageEvidencePath)
 
   if (!ref.path) {
@@ -657,6 +674,12 @@ async function checkObjectStorageEvidence({ rootDir, objectStorageEvidencePath, 
     }
     if (hasValue(expectedPrefix) && String(summary.prefix || '') !== expectedPrefix) {
       blockers.push('Object storage smoke evidence prefix must match OSS_PREFIX')
+    }
+    if (hasValue(expectedRegion) && String(summary.region || '') !== expectedRegion) {
+      blockers.push('Object storage smoke evidence region must match OSS_REGION')
+    }
+    if (expectedPathStyle !== undefined && summary.pathStyle !== expectedPathStyle) {
+      blockers.push('Object storage smoke evidence pathStyle must match OSS_PATH_STYLE')
     }
     if (!/^[a-f0-9]{64}$/.test(String(summary.objectKeySha256 || ''))) {
       blockers.push('Object storage smoke evidence objectKeySha256 must be a sha256 hex digest')

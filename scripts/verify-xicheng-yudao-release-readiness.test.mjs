@@ -192,9 +192,12 @@ function productionEnv(overrides = {}) {
     OSS_PREFIX: 'xinghe-xunjing/production/',
     OSS_ACCESS_KEY: 'prod-oss-access-key',
     OSS_SECRET_KEY: 'prod-oss-secret-key',
+    OSS_REGION: 'cn-beijing',
+    OSS_PATH_STYLE: 'true',
     QDRANT_URL: 'http://xunjing-prod-qdrant.internal:6333',
     QDRANT_HOST: 'xunjing-prod-qdrant.internal',
     QDRANT_GRPC_PORT: '6334',
+    QDRANT_API_KEY: 'prod-qdrant-api-key',
     QDRANT_TEXT_COLLECTION: 'xinghe_xunjing_text_production',
     QDRANT_IMAGE_COLLECTION: 'xinghe_xunjing_image_production',
     QWEN_API_KEY: 'prod-qwen-api-key',
@@ -775,6 +778,99 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(result.checks.find((check) => check.name === 'real-ai-provider')?.ok).toBe(false)
     expect(result.blockers.join('\n')).toContain('SPRING_PROFILES_ACTIVE must be production')
     expect(result.blockers.join('\n')).toContain('WX_MINIAPP_APPID')
+  })
+
+  test('requires production object storage region path style and Qdrant API key', async () => {
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv({
+        OSS_REGION: '',
+        OSS_PATH_STYLE: '',
+        QDRANT_API_KEY: ''
+      }),
+      rootDir: process.cwd(),
+      stage: 'production'
+    })
+
+    const runtimeEnvCheck = result.checks.find((check) => check.name === 'runtime-env')
+    expect(runtimeEnvCheck?.ok).toBe(false)
+    expect(runtimeEnvCheck?.blockers.join('\n')).toContain('Missing or placeholder production env')
+    expect(runtimeEnvCheck?.blockers.join('\n')).toContain('OSS_REGION')
+    expect(runtimeEnvCheck?.blockers.join('\n')).toContain('OSS_PATH_STYLE')
+    expect(runtimeEnvCheck?.blockers.join('\n')).toContain('QDRANT_API_KEY')
+  })
+
+  test('rejects object storage smoke evidence with mismatched region or path style', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
+    const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir, {
+      summary: {
+        region: 'cn-shanghai',
+        pathStyle: false
+      }
+    })
+    const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      aiBootstrapEvidencePath,
+      visionOcrEvidencePath,
+      objectStorageEvidencePath,
+      runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    const objectStorageCheck = result.checks.find((check) => check.name === 'object-storage')
+    expect(result.status).toBe('NOT_READY')
+    expect(objectStorageCheck?.ok).toBe(false)
+    expect(objectStorageCheck?.blockers.join('\n')).toContain('Object storage smoke evidence region must match OSS_REGION')
+    expect(objectStorageCheck?.blockers.join('\n')).toContain('Object storage smoke evidence pathStyle must match OSS_PATH_STYLE')
+  })
+
+  test('rejects evidence files that leak the Qdrant API key', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
+    const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir, {
+      summary: {
+        diagnosticText: 'prod-qdrant-api-key'
+      }
+    })
+    const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      aiBootstrapEvidencePath,
+      visionOcrEvidencePath,
+      objectStorageEvidencePath,
+      runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    const objectStorageCheck = result.checks.find((check) => check.name === 'object-storage')
+    expect(result.status).toBe('NOT_READY')
+    expect(objectStorageCheck?.ok).toBe(false)
+    expect(objectStorageCheck?.blockers.join('\n')).toContain('Object storage smoke evidence must not contain secret values: QDRANT_API_KEY')
   })
 
   test('returns production candidate only when env, full baseline and 80 approved POIs are present', async () => {
