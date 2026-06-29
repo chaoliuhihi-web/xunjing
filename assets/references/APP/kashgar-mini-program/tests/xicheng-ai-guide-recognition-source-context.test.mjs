@@ -5,18 +5,22 @@ import path from 'node:path'
 const root = process.cwd()
 const aiGuide = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
 const loadCachedRecognitionBlock = aiGuide.match(/const loadCachedXichengRecognitionContext\s*=\s*\(context = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
+const routeOnlyRecognitionBlock = aiGuide.match(/const createRouteOnlyXichengRecognitionContext\s*=\s*\(context = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const contextSourcesBlock = aiGuide.match(/const getXichengContextSources\s*=\s*\(context = xichengAiContext\.value\) => \{[\s\S]*?\n\}/)?.[0] || ''
 
 for (const required of [
   'sourceLabel',
   'sources: []',
   'loadCachedXichengRecognitionContext',
+  'createRouteOnlyXichengRecognitionContext',
+  'createXichengOfficialPoiSources',
   'getXichengContextSources'
 ]) {
   assert.ok(aiGuide.includes(required), `AI guide should keep recognition source context token ${required}`)
 }
 
 assert.ok(loadCachedRecognitionBlock, 'AI guide should expose cached Xicheng recognition context hydration')
+assert.ok(routeOnlyRecognitionBlock, 'AI guide should expose route-only official POI source hydration')
 assert.ok(contextSourcesBlock, 'AI guide should expose active Xicheng context source hydration')
 
 assert.match(
@@ -33,8 +37,26 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /xichengAiContext\.value = \{[\s\S]*poiCode:\s*context\.poiCode \|\| cachedRecognition\.poiCode[\s\S]*poiName:\s*context\.poiName \|\| cachedRecognition\.poiName[\s\S]*confidence:\s*context\.confidence \|\| cachedRecognition\.confidence[\s\S]*sourceLabel:\s*cachedRecognition\.sourceLabel[\s\S]*sources:\s*cachedRecognition\.sources/,
-  'AI guide should merge cached recognition POI name, confidence, source label, and sources into Xiaojing context'
+  /const routeOnlyRecognition = cachedRecognition\.sources\.length > 0[\s\S]*createEmptyXichengRecognitionContext\(\)[\s\S]*createRouteOnlyXichengRecognitionContext\(context\)/,
+  'AI guide should only use route-only official POI sources when no cached reviewed sources are available'
+)
+
+assert.match(
+  aiGuide,
+  /xichengAiContext\.value = \{[\s\S]*poiCode:\s*context\.poiCode \|\| cachedRecognition\.poiCode \|\| routeOnlyRecognition\.poiCode[\s\S]*poiName:\s*context\.poiName \|\| cachedRecognition\.poiName \|\| routeOnlyRecognition\.poiName[\s\S]*confidence:\s*context\.confidence \|\| cachedRecognition\.confidence \|\| routeOnlyRecognition\.confidence[\s\S]*sourceLabel:\s*cachedRecognition\.sourceLabel \|\| routeOnlyRecognition\.sourceLabel[\s\S]*sources:\s*cachedRecognition\.sources\.length > 0 \? cachedRecognition\.sources : routeOnlyRecognition\.sources/,
+  'AI guide should merge cached or route-only official POI name, confidence, source label, and sources into Xiaojing context'
+)
+
+assert.match(
+  routeOnlyRecognitionBlock,
+  /findXichengOfficialPoiForAiContext\(context\)[\s\S]*createXichengOfficialPoiSources\(officialPoi\)[\s\S]*sourceLabel:\s*'西城官方 POI'[\s\S]*safetyStatus:\s*safetyStatus \|\| \(sources\.length > 0 \? 'PASSED' : ''\)/,
+  'Route-only Xiaojing entry should hydrate reviewed official POI sources without requiring a recognition cache'
+)
+
+assert.match(
+  routeOnlyRecognitionBlock,
+  /if \(isXichengUnsafeSafetyStatus\(safetyStatus\)\) \{[\s\S]*return createEmptyXichengRecognitionContext\(\)/,
+  'Route-only Xiaojing source fallback should remain fail-closed for BLOCKED or UNAVAILABLE context'
 )
 
 assert.match(

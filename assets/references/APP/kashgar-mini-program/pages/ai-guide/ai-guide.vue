@@ -360,8 +360,10 @@ import {
 	getXichengDisplaySourceTitle,
 	normalizeXichengReviewedSources
 } from '@/request/xunjing/sources.js'
+import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import {
 	createXichengPoiSuggestedQuestions,
+	XICHENG_OFFICIAL_POIS,
 	XICHENG_REGION_CONFIG
 } from '@/config/regions/xicheng.js'
 import {
@@ -750,6 +752,27 @@ const createEmptyXichengRecognitionContext = () => ({
 	sources: []
 })
 
+const normalizeXichengPoiCodeKey = (value = '') => String(value || '').trim().toLowerCase()
+const normalizeXichengPoiNameKey = (value = '') => String(value || '').trim()
+
+const findXichengOfficialPoiForAiContext = (context = {}) => {
+	const poiCodeKey = normalizeXichengPoiCodeKey(context.poiCode)
+	if (poiCodeKey) {
+		const officialPoiByCode = XICHENG_OFFICIAL_POIS.find(poi => normalizeXichengPoiCodeKey(poi.poiCode) === poiCodeKey)
+		if (officialPoiByCode) {
+			return officialPoiByCode
+		}
+	}
+	const poiNameKey = normalizeXichengPoiNameKey(context.poiName)
+	if (!poiNameKey) {
+		return null
+	}
+	return XICHENG_OFFICIAL_POIS.find(poi => {
+		const aliases = Array.isArray(poi.aliases) ? poi.aliases : []
+		return poi.poiName === poiNameKey || aliases.includes(poiNameKey)
+	}) || null
+}
+
 const loadCachedXichengRecognitionContext = (context = {}) => {
 	const cached = uni.getStorageSync(XICHENG_REGION_CONFIG.storageKey)
 	if (!cached || typeof cached !== 'object') {
@@ -774,6 +797,28 @@ const loadCachedXichengRecognitionContext = (context = {}) => {
 	}
 }
 
+const createRouteOnlyXichengRecognitionContext = (context = {}) => {
+	const safetyStatus = normalizeXichengSafetyStatus(context.safetyStatus)
+	if (isXichengUnsafeSafetyStatus(safetyStatus)) {
+		return createEmptyXichengRecognitionContext()
+	}
+	const officialPoi = findXichengOfficialPoiForAiContext(context)
+	if (!officialPoi) {
+		return createEmptyXichengRecognitionContext()
+	}
+	const sources = createXichengOfficialPoiSources(officialPoi)
+	return {
+		sceneCode: context.sceneCode || XICHENG_REGION_CONFIG.aiSceneCode,
+		sourceChannel: context.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
+		poiCode: context.poiCode || officialPoi.poiCode,
+		poiName: context.poiName || officialPoi.poiName,
+		confidence: context.confidence || '',
+		sourceLabel: '西城官方 POI',
+		safetyStatus: safetyStatus || (sources.length > 0 ? 'PASSED' : ''),
+		sources
+	}
+}
+
 const applyXichengAiContext = (options = {}) => {
 	const context = normalizeXichengAiContext(options)
 	if (context.regionCode !== XICHENG_REGION_CONFIG.regionCode && !context.poiCode && !context.poiName) {
@@ -793,18 +838,21 @@ const applyXichengAiContext = (options = {}) => {
 		return xichengAiContext.value
 	}
 	const cachedRecognition = loadCachedXichengRecognitionContext(context)
+	const routeOnlyRecognition = cachedRecognition.sources.length > 0
+		? createEmptyXichengRecognitionContext()
+		: createRouteOnlyXichengRecognitionContext(context)
 	xichengAiContext.value = {
 		regionCode: context.regionCode || XICHENG_REGION_CONFIG.regionCode,
 		packageCode: context.packageCode || XICHENG_REGION_CONFIG.packageCode,
-		sceneCode: context.sceneCode || cachedRecognition.sceneCode || XICHENG_REGION_CONFIG.aiSceneCode,
-		sourceChannel: context.sourceChannel || cachedRecognition.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
-		poiCode: context.poiCode || cachedRecognition.poiCode,
-		poiName: context.poiName || cachedRecognition.poiName,
+		sceneCode: context.sceneCode || cachedRecognition.sceneCode || routeOnlyRecognition.sceneCode || XICHENG_REGION_CONFIG.aiSceneCode,
+		sourceChannel: context.sourceChannel || cachedRecognition.sourceChannel || routeOnlyRecognition.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
+		poiCode: context.poiCode || cachedRecognition.poiCode || routeOnlyRecognition.poiCode,
+		poiName: context.poiName || cachedRecognition.poiName || routeOnlyRecognition.poiName,
 		companionName: context.companionName || XICHENG_REGION_CONFIG.companionName,
-		confidence: context.confidence || cachedRecognition.confidence,
-		sourceLabel: cachedRecognition.sourceLabel,
-		safetyStatus: normalizeXichengSafetyStatus(context.safetyStatus || cachedRecognition.safetyStatus),
-		sources: cachedRecognition.sources
+		confidence: context.confidence || cachedRecognition.confidence || routeOnlyRecognition.confidence,
+		sourceLabel: cachedRecognition.sourceLabel || routeOnlyRecognition.sourceLabel,
+		safetyStatus: normalizeXichengSafetyStatus(context.safetyStatus || cachedRecognition.safetyStatus || routeOnlyRecognition.safetyStatus),
+		sources: cachedRecognition.sources.length > 0 ? cachedRecognition.sources : routeOnlyRecognition.sources
 	}
 	return xichengAiContext.value
 }

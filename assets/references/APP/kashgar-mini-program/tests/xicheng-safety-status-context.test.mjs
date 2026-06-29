@@ -192,8 +192,8 @@ assert.match(
 
 assert.match(
   applyContextBlock,
-  /safetyStatus:\s*normalizeXichengSafetyStatus\(context\.safetyStatus \|\| cachedRecognition\.safetyStatus\)/,
-  'AI guide should merge route and cached safetyStatus into Xiaojing context'
+  /safetyStatus:\s*normalizeXichengSafetyStatus\(context\.safetyStatus \|\| cachedRecognition\.safetyStatus \|\| routeOnlyRecognition\.safetyStatus\)/,
+  'AI guide should merge route, cached, and route-only official POI safetyStatus into Xiaojing context'
 )
 
 assert.match(

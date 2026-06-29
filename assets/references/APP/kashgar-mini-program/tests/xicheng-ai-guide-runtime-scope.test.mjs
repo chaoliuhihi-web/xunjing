@@ -14,7 +14,7 @@ const normalizeContextBlock = aiGuide.match(/const normalizeXichengAiContext\s*=
 const emptyCachedRecognitionBlock = aiGuide.match(/const createEmptyXichengRecognitionContext\s*=\s*\(\) => \(\{[\s\S]*?\n\}\)/)?.[0] || ''
 const cachedRecognitionBlock = aiGuide.match(/const loadCachedXichengRecognitionContext\s*=\s*\(context = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const contextResetBlock = aiGuide.match(/xichengAiContext\.value = \{[\s\S]*?sources:\s*\[\][\s\S]*?\n\t\t\}/)?.[0] || ''
-const contextApplyBlock = aiGuide.match(/xichengAiContext\.value = \{[\s\S]*?sources:\s*cachedRecognition\.sources[\s\S]*?\n\t\}/)?.[0] || ''
+const contextApplyBlock = aiGuide.match(/xichengAiContext\.value = \{[\s\S]*?sources:\s*cachedRecognition\.sources\.length > 0 \? cachedRecognition\.sources : routeOnlyRecognition\.sources[\s\S]*?\n\t\}/)?.[0] || ''
 
 for (const [label, block] of [
   ['initial Xicheng AI context', initialXichengContext],
@@ -51,11 +51,17 @@ for (const required of [
 }
 
 for (const required of [
-  'sceneCode: context.sceneCode || cachedRecognition.sceneCode || XICHENG_REGION_CONFIG.aiSceneCode',
-  'sourceChannel: context.sourceChannel || cachedRecognition.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel'
+  'sceneCode: context.sceneCode || cachedRecognition.sceneCode || routeOnlyRecognition.sceneCode || XICHENG_REGION_CONFIG.aiSceneCode',
+  'sourceChannel: context.sourceChannel || cachedRecognition.sourceChannel || routeOnlyRecognition.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel'
 ]) {
   assert.ok(contextApplyBlock.includes(required), `Applied Xicheng context should preserve ${required}`)
 }
+
+assert.match(
+  contextApplyBlock,
+  /const routeOnlyRecognition = cachedRecognition\.sources\.length > 0[\s\S]*createRouteOnlyXichengRecognitionContext\(context\)[\s\S]*sources:\s*cachedRecognition\.sources\.length > 0 \? cachedRecognition\.sources : routeOnlyRecognition\.sources/,
+  'Applied Xicheng context should only use route-only official POI sources after cached recognition sources are unavailable'
+)
 
 assert.match(
   aiGuide,
