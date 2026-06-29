@@ -181,6 +181,15 @@ async function writeReleaseEvidenceFile(rootDir, overrides = {}) {
       yudaoServerBuildJarFile: serverJar.jarFile,
       yudaoServerBuildJarSha256: serverJar.jarSha256,
       yudaoServerBuildJarSizeBytes: serverJar.jarSizeBytes,
+      yudaoServerSmokeEvidenceFile: path.join(rootDir, 'qa/xicheng-yudao-server-smoke-evidence.json'),
+      yudaoServerSmokeBaseUrl: 'https://xunjing-api.xingheai.net',
+      yudaoServerSmokeTenantId: '1001',
+      yudaoServerSmokePackageCode: 'XICHENG-MAP-001',
+      yudaoServerSmokePackageHttpStatus: 200,
+      yudaoServerSmokePublicReportHttpStatus: 200,
+      yudaoServerSmokePublicReportPackageCount: 1,
+      yudaoServerSmokePublicReportReviewedKnowledgeCount: 84,
+      yudaoServerSmokePublicReportMapPointCount: 80,
       manifestEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-manifest-evidence.json'),
       workbookEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json'),
       seedEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-production-seed-evidence.json'),
@@ -389,8 +398,8 @@ function releaseEvidence(overrides = {}) {
     summary: {
       stage: 'production',
       status: 'PRODUCTION_READY_CANDIDATE',
-      totalChecks: 19,
-      passedChecks: 19,
+      totalChecks: 20,
+      passedChecks: 20,
       failedChecks: 0,
       blockerCount: 0,
       gitAvailable: true,
@@ -420,6 +429,7 @@ function releaseEvidence(overrides = {}) {
       { name: 'full-yudao-baseline', ok: true },
       { name: 'yudao-server-artifact', ok: true },
       { name: 'yudao-server-build-evidence', ok: true },
+      { name: 'yudao-server-smoke', ok: true },
       { name: 'xicheng-production-poi-evidence', ok: true },
       { name: 'xicheng-runtime-seed-evidence', ok: true },
       { name: 'xicheng-production-seed-apply', ok: true },
@@ -810,6 +820,10 @@ describe('xicheng release evidence package gate', () => {
       releaseStatus: 'PRODUCTION_READY_CANDIDATE',
       yudaoServerBuildStatus: 'YUDAO_SERVER_JAR_BUILT',
       yudaoServerBuildMethod: 'mvn',
+      yudaoServerSmokeBaseUrl: 'https://xunjing-api.xingheai.net',
+      yudaoServerSmokeTenantId: '1001',
+      yudaoServerSmokePackageCode: 'XICHENG-MAP-001',
+      yudaoServerSmokePublicReportMapPointCount: 80,
       poiWorkbookStatus: 'XICHENG_POI_REVIEW_WORKBOOK_READY',
       poiSourceCoverageStatus: 'SOURCE_COVERAGE_READY',
       poiSourceReviewApplyStatus: 'SOURCE_REVIEW_APPLIED',
@@ -1417,6 +1431,44 @@ describe('xicheng release evidence package gate', () => {
     expect(report.blockers.join('\n')).toContain('release evidence must include yudao-server-build-evidence')
     expect(report.blockers.join('\n')).toContain('release evidence yudaoServerBuildEvidenceFile is required')
     expect(report.blockers.join('\n')).toContain('release evidence yudaoServerBuildJarSha256 must match yudaoServerJarSha256')
+  })
+
+  test('fails closed when release evidence lacks Yudao server smoke metadata', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
+      summary: {
+        yudaoServerSmokeEvidenceFile: undefined,
+        yudaoServerSmokeBaseUrl: undefined,
+        yudaoServerSmokeTenantId: undefined,
+        yudaoServerSmokePackageCode: undefined,
+        yudaoServerSmokePackageHttpStatus: undefined,
+        yudaoServerSmokePublicReportHttpStatus: undefined,
+        yudaoServerSmokePublicReportPackageCount: undefined,
+        yudaoServerSmokePublicReportReviewedKnowledgeCount: undefined,
+        yudaoServerSmokePublicReportMapPointCount: undefined
+      },
+      checks: releaseEvidence().checks.filter((check) => check.name !== 'yudao-server-smoke')
+    })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.blockers.join('\n')).toContain('release evidence must include yudao-server-smoke')
+    expect(report.blockers.join('\n')).toContain('release evidence yudaoServerSmokeEvidenceFile is required')
+    expect(report.blockers.join('\n')).toContain('release evidence yudaoServerSmokeBaseUrl must match appApiBaseUrl')
+    expect(report.blockers.join('\n')).toContain('release evidence yudaoServerSmokePublicReportMapPointCount must be at least 80')
   })
 
   test('fails closed when Yudao server build evidence file is missing from final package inputs', async () => {

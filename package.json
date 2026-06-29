@@ -22,6 +22,7 @@
     "xunjing:yudao:trigger-alias:verify": "node scripts/verify-xicheng-yudao-trigger-alias.mjs",
     "xunjing:yudao:production-seed:apply": "node scripts/apply-xicheng-yudao-production-seed.mjs",
     "xunjing:yudao:server:build": "node scripts/build-yudao-server.mjs",
+    "xunjing:yudao:server:smoke": "node scripts/verify-xicheng-yudao-server-smoke.mjs",
     "xunjing:vision:smoke": "node scripts/verify-xicheng-vision-ocr-smoke.mjs",
     "xunjing:embedding:smoke": "node scripts/verify-xicheng-embedding-smoke.mjs",
     "xunjing:qdrant:smoke": "node scripts/verify-xicheng-qdrant-smoke.mjs",

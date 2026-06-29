@@ -76,6 +76,13 @@ const requiredQdrantEvidenceChecks = [
   'qdrant-image-collection',
   'secret-redaction'
 ]
+const requiredYudaoServerSmokeEvidenceChecks = [
+  'https-backend-domain',
+  'tenant-header',
+  'resource-package-endpoint',
+  'public-report-endpoint',
+  'secret-redaction'
+]
 const requiredRuntimeSeedEvidenceChecks = [
   'resource-package',
   'poi-count',
@@ -115,6 +122,7 @@ const requiredProductionEnvTemplateKeys = [
   'QDRANT_TEXT_COLLECTION',
   'QDRANT_IMAGE_COLLECTION',
   'YUDAO_SERVER_BUILD_EVIDENCE',
+  'YUDAO_SERVER_SMOKE_EVIDENCE',
   'QWEN_API_KEY',
   'QWEN_BASE_URL',
   'QWEN_MODEL',
@@ -213,6 +221,7 @@ function productionEnv(overrides = {}) {
     QDRANT_TEXT_COLLECTION: 'xinghe_xunjing_text_production',
     QDRANT_IMAGE_COLLECTION: 'xinghe_xunjing_image_production',
     YUDAO_SERVER_BUILD_EVIDENCE: 'qa/xicheng-yudao-server-build-evidence.json',
+    YUDAO_SERVER_SMOKE_EVIDENCE: 'qa/xicheng-yudao-server-smoke-evidence.json',
     QWEN_API_KEY: 'prod-qwen-api-key',
     QWEN_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     QWEN_MODEL: 'qwen-plus',
@@ -252,6 +261,7 @@ async function createProductionReadyFixture() {
   await writeFile(path.join(sqlDir, 'xunjing-seed-xicheng-p0.sql'), productionSeedSql())
   const yudaoServerJarPath = await writeYudaoServerJar(rootDir)
   await writeYudaoServerBuildEvidence(rootDir, { jarPath: yudaoServerJarPath })
+  await writeYudaoServerSmokeEvidence(rootDir)
   await writeEmbeddingEvidence(rootDir)
 
   return rootDir
@@ -286,6 +296,37 @@ async function writeYudaoServerBuildEvidence(rootDir, overrides = {}) {
       ...(overrides.summary || {})
     },
     checks: passedChecks(['maven-package', 'yudao-server-jar']),
+    blockers: [],
+    ...(overrides.evidence || {})
+  }, null, 2)}\n`)
+  return evidencePath
+}
+
+async function writeYudaoServerSmokeEvidence(rootDir, overrides = {}) {
+  const evidencePath = path.join(rootDir, 'qa/xicheng-yudao-server-smoke-evidence.json')
+  await mkdir(path.dirname(evidencePath), { recursive: true })
+  await writeFile(evidencePath, `${JSON.stringify({
+    artifactType: 'xicheng-yudao-server-smoke',
+    ok: true,
+    status: 'XICHENG_YUDAO_SERVER_SMOKE_READY',
+    checkedAt: freshCheckedAt(),
+    summary: {
+      providerSmokeCheckedAt: freshCheckedAt(),
+      baseUrl: 'https://xunjing-api.xingheai.net',
+      providerSmokeHost: 'xunjing-api.xingheai.net',
+      tenantId: '1001',
+      packageCode: 'XICHENG-MAP-001',
+      packageHttpStatus: 200,
+      packageStatus: 'PUBLISHED',
+      packageRegionCode: 'beijing-xicheng',
+      publicReportHttpStatus: 200,
+      publicReportPackageCount: 1,
+      publicReportReviewedKnowledgeCount: 84,
+      publicReportMapPointCount: 80,
+      latencyMs: 50,
+      ...(overrides.summary || {})
+    },
+    checks: passedChecks(requiredYudaoServerSmokeEvidenceChecks),
     blockers: [],
     ...(overrides.evidence || {})
   }, null, 2)}\n`)
@@ -1048,6 +1089,13 @@ describe('xicheng Yudao release readiness gate', () => {
       objectStorageBucket: 'xinghe-xunjing-prod',
       objectStorageProviderSmokeHost: 'oss-cn-beijing.aliyuncs.com'
     })
+    expect(result.checks.find((check) => check.name === 'yudao-server-smoke')?.summary).toMatchObject({
+      yudaoServerSmokeEvidenceFile: path.join(rootDir, 'qa/xicheng-yudao-server-smoke-evidence.json'),
+      yudaoServerSmokeBaseUrl: 'https://xunjing-api.xingheai.net',
+      yudaoServerSmokeTenantId: '1001',
+      yudaoServerSmokePackageCode: 'XICHENG-MAP-001',
+      yudaoServerSmokePublicReportMapPointCount: 80
+    })
     expect(result.checks.find((check) => check.name === 'xicheng-runtime-seed-evidence')?.summary).toMatchObject({
       runtimeSeedEvidenceFile: runtimeSeedEvidencePath,
       runtimeSeedReadinessMode: 'production',
@@ -1080,6 +1128,7 @@ describe('xicheng Yudao release readiness gate', () => {
       'full-yudao-baseline',
       'yudao-server-artifact',
       'yudao-server-build-evidence',
+      'yudao-server-smoke',
       'xicheng-production-poi-evidence',
       'xicheng-runtime-seed-evidence',
       'xicheng-production-seed-apply',
@@ -1609,6 +1658,42 @@ describe('xicheng Yudao release readiness gate', () => {
     const buildCheck = result.checks.find((check) => check.name === 'yudao-server-build-evidence')
     expect(buildCheck?.ok).toBe(false)
     expect(buildCheck?.blockers.join('\n')).toContain('Yudao server build evidence jarSha256 must match the release jar')
+  })
+
+  test('fails closed when Yudao server smoke evidence is missing', async () => {
+    const rootDir = await createProductionReadyFixture()
+    await rm(path.join(rootDir, 'qa/xicheng-yudao-server-smoke-evidence.json'), { force: true })
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
+    const qdrantEvidencePath = await writeQdrantEvidence(rootDir)
+    const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
+    const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv({ YUDAO_SERVER_SMOKE_EVIDENCE: '' }),
+      rootDir,
+      stage: 'production',
+      aiBootstrapEvidencePath,
+      qdrantEvidencePath,
+      visionOcrEvidencePath,
+      objectStorageEvidencePath,
+      runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    const smokeCheck = result.checks.find((check) => check.name === 'yudao-server-smoke')
+    expect(smokeCheck?.ok).toBe(false)
+    expect(smokeCheck?.blockers.join('\n')).toContain('Yudao server smoke evidence is required before production release')
   })
 
   test('accepts an external Yudao server jar artifact path for release evidence', async () => {
@@ -2236,7 +2321,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidence.summary).toMatchObject({
       stage: 'production',
       status: 'NOT_READY',
-      totalChecks: 19,
+      totalChecks: 20,
       appApiBaseUrl: 'http://127.0.0.1:48080',
       runtimeEnvFingerprintMode: 'redacted-runtime-env-v1',
       runtimeEnvRequiredKeyCount: expect.any(Number),

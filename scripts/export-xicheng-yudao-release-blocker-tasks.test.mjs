@@ -9,6 +9,7 @@ const requiredReleaseGateEvidenceArgs = [
   '--yudao-baseline-sql /secure/path/ruoyi-vue-pro.sql',
   '--yudao-server-jar /secure/path/yudao-server.jar',
   '--yudao-server-build-evidence qa/xicheng-yudao-server-build-evidence.json',
+  '--yudao-server-smoke-evidence qa/xicheng-yudao-server-smoke-evidence.json',
   '--ai-bootstrap-evidence qa/xicheng-yudao-ai-bootstrap-evidence.json',
   '--qdrant-evidence qa/xicheng-qdrant-smoke-evidence.json',
   '--embedding-evidence qa/xicheng-embedding-smoke-evidence.json',
@@ -92,6 +93,13 @@ describe('xicheng Yudao release blocker task export', () => {
           ]
         },
         {
+          name: 'yudao-server-smoke',
+          ok: false,
+          blockers: [
+            'Yudao server smoke evidence is required before production release'
+          ]
+        },
+        {
           name: 'vision-ocr-service',
           ok: false,
           blockers: [
@@ -165,12 +173,13 @@ describe('xicheng Yudao release blocker task export', () => {
       summary: {
         sourceEvidenceFile: releaseEvidencePath,
         outputFile,
-        failedCheckCount: 8,
-        taskCount: 13,
+        failedCheckCount: 9,
+        taskCount: 14,
         ownerLaneCounts: {
           'platform-ops': 3,
           'app-ops': 1,
           'ai-platform': 1,
+          'yudao-deploy': 1,
           'vision-ocr': 1,
           'storage-ops': 1,
           'poi-data': 6
@@ -223,6 +232,14 @@ describe('xicheng Yudao release blocker task export', () => {
             verificationCommands: [
               'npm run xunjing:vision:smoke -- --env-file /secure/path/production.env --image-url https://your-cdn.example.com/xicheng/smoke/baitasi-test-card.jpg --evidence-file qa/xicheng-vision-ocr-smoke-evidence.json'
             ]
+          },
+          {
+            ownerLane: 'yudao-deploy',
+            taskCount: 1,
+            checkNames: ['yudao-server-smoke'],
+            verificationCommands: [
+              'npm run xunjing:yudao:server:smoke -- --env-file /secure/path/production.env --evidence-file qa/xicheng-yudao-server-smoke-evidence.json'
+            ]
           }
         ]
       }
@@ -235,6 +252,7 @@ describe('xicheng Yudao release blocker task export', () => {
     expect(csv).toContain(`runtime-env,3,MYSQL_HOST must not point to a local host for production,platform-ops,Configure production MySQL host credentials and profile settings.,Release gate runtime-env check passes without local host or placeholder database values.,${releaseGateCommand},TODO,${releaseEvidencePath}`)
     expect(csv).toContain(`real-wechat-app,1,WX_MINIAPP_APPID must be configured with a real value,app-ops,Configure real WeChat MP and Mini Program credentials outside Git.,Release gate real-wechat-app check passes using production secret store values.,${releaseGateCommand},TODO,${releaseEvidencePath}`)
     expect(csv).toContain(`yudao-ai-model-bootstrap,1,Yudao AI bootstrap evidence is required before production release,ai-platform,Run the Yudao AI model bootstrap against production or preprod MySQL and provide its secret-safe evidence file.,Release evidence records aiBootstrapEvidenceFile and aiBootstrapModel from YUDAO_AI_MODEL_BOOTSTRAPPED evidence.,npm run xunjing:ai:bootstrap -- --env-file /secure/path/production.env --evidence-file qa/xicheng-yudao-ai-bootstrap-evidence.json,TODO,${releaseEvidencePath}`)
+    expect(csv).toContain(`yudao-server-smoke,1,Yudao server smoke evidence is required before production release,yudao-deploy,Run the deployed Yudao server HTTP smoke against the production APP API domain.,Release evidence records yudaoServerSmokeEvidenceFile and XICHENG_YUDAO_SERVER_SMOKE_READY public endpoint results.,npm run xunjing:yudao:server:smoke -- --env-file /secure/path/production.env --evidence-file qa/xicheng-yudao-server-smoke-evidence.json,TODO,${releaseEvidencePath}`)
     expect(csv).toContain(`vision-ocr-service,1,Vision OCR smoke evidence is required before production release,vision-ocr,Run the Xicheng OCR/vision provider smoke and provide its secret-safe evidence file.,Release evidence records visionOcrEvidenceFile and provider smoke metadata from XICHENG_VISION_OCR_SMOKE_READY evidence.,npm run xunjing:vision:smoke -- --env-file /secure/path/production.env --image-url https://your-cdn.example.com/xicheng/smoke/baitasi-test-card.jpg --evidence-file qa/xicheng-vision-ocr-smoke-evidence.json,TODO,${releaseEvidencePath}`)
     expect(csv).toContain(`object-storage,1,Object storage smoke evidence is required before production release,storage-ops,Run the Xicheng object storage write/read/delete smoke and provide its secret-safe evidence file.,Release evidence records objectStorageEvidenceFile and write/read/delete metadata from XICHENG_OBJECT_STORAGE_SMOKE_READY evidence.,npm run xunjing:storage:smoke -- --env-file /secure/path/production.env --evidence-file qa/xicheng-object-storage-smoke-evidence.json,TODO,${releaseEvidencePath}`)
     expect(csv).toContain(`xicheng-production-poi-evidence,1,POI manifest evidence is required before production release,poi-data,Generate production POI manifest evidence from the reviewed 80-row workbook.,Manifest gate outputs PRODUCTION_POI_MANIFEST_READY with review batch and source workbook hashes.,npm run xunjing:xicheng:poi:manifest:gate -- --manifest workbench/xicheng-production-pois.json --evidence-file qa/xicheng-poi-manifest-evidence.json,TODO,${releaseEvidencePath}`)

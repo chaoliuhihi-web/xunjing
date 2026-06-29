@@ -150,6 +150,7 @@ describe('xicheng Yudao release preflight', () => {
       artifactType: 'xicheng-yudao-release-readiness',
       status: 'NOT_READY',
       summary: {
+        yudaoServerSmokeEvidenceFile: path.join(rootDir, 'qa/xicheng-yudao-server-smoke-evidence.json'),
         runtimeSeedEvidenceFile: path.join(rootDir, 'tmp/xicheng-yudao-runtime-seed-production-evidence.json')
       }
     })

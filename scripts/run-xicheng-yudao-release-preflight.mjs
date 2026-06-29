@@ -23,6 +23,7 @@ const defaultReleasePackageEvidenceFile = 'qa/xicheng-release-evidence-package.j
 const defaultQdrantEvidenceFile = 'qa/xicheng-qdrant-smoke-evidence.json'
 const defaultEmbeddingEvidenceFile = 'qa/xicheng-embedding-smoke-evidence.json'
 const defaultYudaoServerBuildEvidenceFile = 'qa/xicheng-yudao-server-build-evidence.json'
+const defaultYudaoServerSmokeEvidenceFile = 'qa/xicheng-yudao-server-smoke-evidence.json'
 const defaultStage = 'production'
 const defaultExpectedBranch = 'feature/xicheng-p0'
 const defaultEnvFile = 'ops/xunjing-platform.env.example'
@@ -58,7 +59,8 @@ function buildReleaseGateArgs({
   releaseEvidenceFile,
   qdrantEvidenceFile,
   embeddingEvidenceFile,
-  yudaoServerBuildEvidenceFile
+  yudaoServerBuildEvidenceFile,
+  yudaoServerSmokeEvidenceFile
 }) {
   return [
     '--root', rootDir,
@@ -69,6 +71,7 @@ function buildReleaseGateArgs({
     ...optionalArg(args, '--yudao-baseline-sql'),
     ...optionalArg(args, '--yudao-server-jar'),
     '--yudao-server-build-evidence', yudaoServerBuildEvidenceFile,
+    '--yudao-server-smoke-evidence', yudaoServerSmokeEvidenceFile,
     ...optionalArg(args, '--ai-bootstrap-evidence'),
     '--qdrant-evidence', qdrantEvidenceFile,
     '--embedding-evidence', embeddingEvidenceFile,
@@ -442,6 +445,9 @@ export async function runXichengYudaoReleasePreflight({
   const yudaoServerBuildEvidenceFile = readArgValue(args, '--yudao-server-build-evidence') ||
     readArgValue(args, '--server-build-evidence') ||
     defaultYudaoServerBuildEvidenceFile
+  const yudaoServerSmokeEvidenceFile = readArgValue(args, '--yudao-server-smoke-evidence') ||
+    readArgValue(args, '--server-smoke-evidence') ||
+    defaultYudaoServerSmokeEvidenceFile
   const releasePackageEvidenceFile = readArgValue(args, '--release-package-evidence') ||
     readArgValue(args, '--package-evidence') ||
     defaultReleasePackageEvidenceFile
@@ -464,7 +470,8 @@ export async function runXichengYudaoReleasePreflight({
       releaseEvidenceFile,
       qdrantEvidenceFile,
       embeddingEvidenceFile,
-      yudaoServerBuildEvidenceFile
+      yudaoServerBuildEvidenceFile,
+      yudaoServerSmokeEvidenceFile
     })
   ], {
     cwd: process.cwd(),

@@ -101,6 +101,14 @@ const requiredYudaoServerBuildEvidenceChecks = [
   'yudao-server-jar'
 ]
 
+const requiredYudaoServerSmokeEvidenceChecks = [
+  'https-backend-domain',
+  'tenant-header',
+  'resource-package-endpoint',
+  'public-report-endpoint',
+  'secret-redaction'
+]
+
 const requiredRuntimeSeedEvidenceChecks = [
   'resource-package',
   'poi-count',
@@ -1151,6 +1159,100 @@ async function checkYudaoServerBuildEvidence({
   }
 }
 
+async function checkYudaoServerSmokeEvidence({
+  rootDir,
+  env,
+  yudaoServerSmokeEvidencePath,
+  freshnessOptions
+}) {
+  const blockers = []
+  const ref = await loadEvidenceInput(rootDir, yudaoServerSmokeEvidencePath)
+  const expectedBaseUrl = String(env.XUNJING_APP_API_BASE_URL || '').trim().replace(/\/+$/, '')
+  const expectedTenantId = String(env.XUNJING_TENANT_ID || '').trim()
+
+  if (!ref.path) {
+    blockers.push('Yudao server smoke evidence is required before production release')
+  } else if (ref.error) {
+    blockers.push(`Yudao server smoke evidence cannot be read: ${ref.error}`)
+  } else {
+    const evidence = ref.data || {}
+    const summary = evidenceSummary(evidence)
+    const evidenceBaseUrl = String(summary.baseUrl || '').trim().replace(/\/+$/, '')
+    if (evidence.artifactType !== 'xicheng-yudao-server-smoke') {
+      blockers.push('Yudao server smoke evidence artifactType must be xicheng-yudao-server-smoke')
+    }
+    blockers.push(...checkEvidenceTimestamp(evidence, 'Yudao server smoke', freshnessOptions))
+    if (evidence.ok !== true) {
+      blockers.push('Yudao server smoke evidence ok must be true')
+    }
+    if (evidence.status !== 'XICHENG_YUDAO_SERVER_SMOKE_READY') {
+      blockers.push('Yudao server smoke evidence status must be XICHENG_YUDAO_SERVER_SMOKE_READY')
+    }
+    if (!hasValue(summary.baseUrl)) {
+      blockers.push('Yudao server smoke evidence baseUrl is required')
+    } else if (expectedBaseUrl && evidenceBaseUrl !== expectedBaseUrl) {
+      blockers.push('Yudao server smoke evidence baseUrl must match XUNJING_APP_API_BASE_URL')
+    }
+    if (!hasValue(summary.tenantId)) {
+      blockers.push('Yudao server smoke evidence tenantId is required')
+    } else if (expectedTenantId && String(summary.tenantId) !== expectedTenantId) {
+      blockers.push('Yudao server smoke evidence tenantId must match XUNJING_TENANT_ID')
+    }
+    if (summary.packageCode !== 'XICHENG-MAP-001') {
+      blockers.push('Yudao server smoke evidence packageCode must be XICHENG-MAP-001')
+    }
+    if (summary.packageRegionCode !== 'beijing-xicheng') {
+      blockers.push('Yudao server smoke evidence packageRegionCode must be beijing-xicheng')
+    }
+    if (Number(summary.packageHttpStatus || 0) < 200 || Number(summary.packageHttpStatus || 0) >= 300) {
+      blockers.push('Yudao server smoke evidence packageHttpStatus must be 2xx')
+    }
+    if (Number(summary.publicReportHttpStatus || 0) < 200 || Number(summary.publicReportHttpStatus || 0) >= 300) {
+      blockers.push('Yudao server smoke evidence publicReportHttpStatus must be 2xx')
+    }
+    if (Number(summary.publicReportPackageCount || 0) < 1) {
+      blockers.push('Yudao server smoke evidence publicReportPackageCount must be at least 1')
+    }
+    if (Number(summary.publicReportReviewedKnowledgeCount || 0) < productionPoiTarget) {
+      blockers.push(`Yudao server smoke evidence publicReportReviewedKnowledgeCount must be at least ${productionPoiTarget}`)
+    }
+    if (Number(summary.publicReportMapPointCount || 0) < productionPoiTarget) {
+      blockers.push(`Yudao server smoke evidence publicReportMapPointCount must be at least ${productionPoiTarget}`)
+    }
+    blockers.push(...checkEvidenceChecks(evidence, requiredYudaoServerSmokeEvidenceChecks, 'Yudao server smoke'))
+    if (!hasNoEvidenceBlockers(evidence)) {
+      blockers.push(`Yudao server smoke evidence contains blockers: ${evidence.blockers.join('; ')}`)
+    }
+  }
+
+  const summary = evidenceSummary(ref.data)
+  return {
+    ...check(
+      'yudao-server-smoke',
+      blockers.length === 0,
+      blockers.length === 0
+        ? `Yudao server smoke evidence is ready: ${ref.path}`
+        : blockers.join('; '),
+      blockers
+    ),
+    summary: {
+      yudaoServerSmokeEvidenceFile: ref.path,
+      yudaoServerSmokeCheckedAt: ref.data?.checkedAt,
+      yudaoServerSmokeBaseUrl: summary.baseUrl,
+      yudaoServerSmokeHost: summary.providerSmokeHost,
+      yudaoServerSmokeTenantId: summary.tenantId,
+      yudaoServerSmokePackageCode: summary.packageCode,
+      yudaoServerSmokePackageHttpStatus: summary.packageHttpStatus,
+      yudaoServerSmokePackageStatus: summary.packageStatus,
+      yudaoServerSmokePackageRegionCode: summary.packageRegionCode,
+      yudaoServerSmokePublicReportHttpStatus: summary.publicReportHttpStatus,
+      yudaoServerSmokePublicReportPackageCount: summary.publicReportPackageCount,
+      yudaoServerSmokePublicReportReviewedKnowledgeCount: summary.publicReportReviewedKnowledgeCount,
+      yudaoServerSmokePublicReportMapPointCount: summary.publicReportMapPointCount
+    }
+  }
+}
+
 async function loadEvidenceInput(rootDir, evidencePath) {
   if (!evidencePath) {
     return { path: undefined, data: undefined, error: undefined }
@@ -2160,6 +2262,7 @@ export async function verifyXichengYudaoReleaseReadiness({
   yudaoBaselineSqlPath,
   yudaoServerJarPath,
   yudaoServerBuildEvidencePath,
+  yudaoServerSmokeEvidencePath,
   aiBootstrapEvidencePath,
   embeddingEvidencePath,
   qdrantEvidencePath,
@@ -2249,6 +2352,12 @@ export async function verifyXichengYudaoReleaseReadiness({
       yudaoServerArtifactSummary: yudaoServerArtifactCheck.summary,
       freshnessOptions
     }),
+    await checkYudaoServerSmokeEvidence({
+      rootDir,
+      env,
+      yudaoServerSmokeEvidencePath: yudaoServerSmokeEvidencePath || env.YUDAO_SERVER_SMOKE_EVIDENCE,
+      freshnessOptions
+    }),
     productionPoiEvidenceCheck,
     await checkXichengRuntimeSeedEvidence({
       rootDir,
@@ -2316,6 +2425,7 @@ function buildReleaseEvidence(result) {
   const baselineSummary = result.checks.find((item) => item.name === 'full-yudao-baseline')?.summary || {}
   const serverArtifactSummary = result.checks.find((item) => item.name === 'yudao-server-artifact')?.summary || {}
   const serverBuildSummary = result.checks.find((item) => item.name === 'yudao-server-build-evidence')?.summary || {}
+  const serverSmokeSummary = result.checks.find((item) => item.name === 'yudao-server-smoke')?.summary || {}
   const productionPoiEvidenceSummary = result.checks.find((item) => item.name === 'xicheng-production-poi-evidence')?.summary || {}
   const runtimeSeedSummary = result.checks.find((item) => item.name === 'xicheng-runtime-seed-evidence')?.summary || {}
   const productionSeedApplySummary = result.checks.find((item) => item.name === 'xicheng-production-seed-apply')?.summary || {}
@@ -2338,6 +2448,7 @@ function buildReleaseEvidence(result) {
       ...baselineSummary,
       ...serverArtifactSummary,
       ...serverBuildSummary,
+      ...serverSmokeSummary,
       ...productionPoiEvidenceSummary,
       ...runtimeSeedSummary,
       ...productionSeedApplySummary,
@@ -2385,6 +2496,9 @@ async function runCli() {
     yudaoServerBuildEvidencePath: readArgValue(args, '--yudao-server-build-evidence') ||
       readArgValue(args, '--server-build-evidence') ||
       env.YUDAO_SERVER_BUILD_EVIDENCE,
+    yudaoServerSmokeEvidencePath: readArgValue(args, '--yudao-server-smoke-evidence') ||
+      readArgValue(args, '--server-smoke-evidence') ||
+      env.YUDAO_SERVER_SMOKE_EVIDENCE,
     aiBootstrapEvidencePath: readArgValue(args, '--ai-bootstrap-evidence') ||
       env.YUDAO_AI_BOOTSTRAP_EVIDENCE,
     embeddingEvidencePath: readArgValue(args, '--embedding-evidence') ||

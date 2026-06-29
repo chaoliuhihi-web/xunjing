@@ -26,6 +26,7 @@ const requiredReleaseChecks = [
   'full-yudao-baseline',
   'yudao-server-artifact',
   'yudao-server-build-evidence',
+  'yudao-server-smoke',
   'xicheng-production-poi-evidence',
   'xicheng-runtime-seed-evidence',
   'xicheng-production-seed-apply',
@@ -530,6 +531,50 @@ function checkReleaseServerBuildSummary(evidence) {
   return blockers
 }
 
+function normalizeUrlForCompare(value) {
+  return String(value || '').trim().replace(/\/+$/, '')
+}
+
+function checkReleaseYudaoServerSmokeSummary(evidence) {
+  const blockers = []
+  const summary = summaryOf(evidence)
+
+  if (!hasText(summary.yudaoServerSmokeEvidenceFile)) {
+    blockers.push('release evidence yudaoServerSmokeEvidenceFile is required')
+  }
+  if (!isNonLocalHttpsUrl(summary.yudaoServerSmokeBaseUrl)) {
+    blockers.push('release evidence yudaoServerSmokeBaseUrl must be a non-local HTTPS URL')
+  }
+  if (normalizeUrlForCompare(summary.yudaoServerSmokeBaseUrl) !== normalizeUrlForCompare(summary.appApiBaseUrl)) {
+    blockers.push('release evidence yudaoServerSmokeBaseUrl must match appApiBaseUrl')
+  }
+  if (!hasText(summary.yudaoServerSmokeTenantId)) {
+    blockers.push('release evidence yudaoServerSmokeTenantId is required')
+  }
+  if (summary.yudaoServerSmokePackageCode !== 'XICHENG-MAP-001') {
+    blockers.push('release evidence yudaoServerSmokePackageCode must be XICHENG-MAP-001')
+  }
+  if (Number(summary.yudaoServerSmokePackageHttpStatus || 0) < 200 || Number(summary.yudaoServerSmokePackageHttpStatus || 0) >= 300) {
+    blockers.push('release evidence yudaoServerSmokePackageHttpStatus must be 2xx')
+  }
+  if (Number(summary.yudaoServerSmokePublicReportHttpStatus || 0) < 200 || Number(summary.yudaoServerSmokePublicReportHttpStatus || 0) >= 300) {
+    blockers.push('release evidence yudaoServerSmokePublicReportHttpStatus must be 2xx')
+  }
+  const publicReportPackageCount = Number(summary.yudaoServerSmokePublicReportPackageCount)
+  const publicReportReviewedKnowledgeCount = Number(summary.yudaoServerSmokePublicReportReviewedKnowledgeCount)
+  const publicReportMapPointCount = Number(summary.yudaoServerSmokePublicReportMapPointCount)
+  if (!Number.isFinite(publicReportPackageCount) || publicReportPackageCount < 1) {
+    blockers.push('release evidence yudaoServerSmokePublicReportPackageCount must be at least 1')
+  }
+  if (!Number.isFinite(publicReportReviewedKnowledgeCount) || publicReportReviewedKnowledgeCount < productionPoiTarget) {
+    blockers.push(`release evidence yudaoServerSmokePublicReportReviewedKnowledgeCount must be at least ${productionPoiTarget}`)
+  }
+  if (!Number.isFinite(publicReportMapPointCount) || publicReportMapPointCount < productionPoiTarget) {
+    blockers.push(`release evidence yudaoServerSmokePublicReportMapPointCount must be at least ${productionPoiTarget}`)
+  }
+  return blockers
+}
+
 async function checkYudaoServerBuildEvidence(ref, releaseRef, rootDir, freshnessOptions) {
   const blockers = []
   const releaseSummary = summaryOf(releaseRef.data)
@@ -939,6 +984,7 @@ async function checkReleaseEvidence(ref, stage, freshnessOptions) {
   blockers.push(...await checkReleaseBaselineHash(evidence))
   blockers.push(...await checkReleaseServerArtifactHash(evidence))
   blockers.push(...checkReleaseServerBuildSummary(evidence))
+  blockers.push(...checkReleaseYudaoServerSmokeSummary(evidence))
   blockers.push(...checkEvidenceChecks(evidence, requiredReleaseChecks, 'release'))
   if (blockersOf(evidence).length > 0) {
     blockers.push(`release evidence contains blockers: ${blockersOf(evidence).join('; ')}`)
@@ -1749,6 +1795,15 @@ export async function verifyXichengReleaseEvidencePackage({
       yudaoServerBuildJarFile: summaryOf(yudaoServerBuildRef.data).jarFile,
       yudaoServerBuildJarSha256: summaryOf(yudaoServerBuildRef.data).jarSha256,
       yudaoServerBuildJarSizeBytes: summaryOf(yudaoServerBuildRef.data).jarSizeBytes,
+      yudaoServerSmokeEvidenceFile: summaryOf(releaseRef.data).yudaoServerSmokeEvidenceFile,
+      yudaoServerSmokeBaseUrl: summaryOf(releaseRef.data).yudaoServerSmokeBaseUrl,
+      yudaoServerSmokeTenantId: summaryOf(releaseRef.data).yudaoServerSmokeTenantId,
+      yudaoServerSmokePackageCode: summaryOf(releaseRef.data).yudaoServerSmokePackageCode,
+      yudaoServerSmokePackageHttpStatus: summaryOf(releaseRef.data).yudaoServerSmokePackageHttpStatus,
+      yudaoServerSmokePublicReportHttpStatus: summaryOf(releaseRef.data).yudaoServerSmokePublicReportHttpStatus,
+      yudaoServerSmokePublicReportPackageCount: summaryOf(releaseRef.data).yudaoServerSmokePublicReportPackageCount,
+      yudaoServerSmokePublicReportReviewedKnowledgeCount: summaryOf(releaseRef.data).yudaoServerSmokePublicReportReviewedKnowledgeCount,
+      yudaoServerSmokePublicReportMapPointCount: summaryOf(releaseRef.data).yudaoServerSmokePublicReportMapPointCount,
       poiManifestStatus: manifestRef.data?.status,
       poiWorkbookStatus: workbookRef.data?.status,
       poiSeedStatus: seedRef.data?.status,
