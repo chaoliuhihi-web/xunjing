@@ -253,8 +253,8 @@
 								class="message-source-item"
 							>
 								<text class="message-source-title">{{ source.title || source.name || '审核来源' }}</text>
-								<text v-if="source.excerpt || source.summary || source.url" class="message-source-desc">
-									{{ source.excerpt || source.summary || source.url }}
+								<text v-if="getDisplaySourceDescription(source)" class="message-source-desc">
+									{{ getDisplaySourceDescription(source) }}
 								</text>
 							</view>
 						</view>
@@ -1037,6 +1037,23 @@ const createXunjingResultFollowUps = (result = {}) => {
 		return suggestedQuestions.slice(0, 3)
 	}
 	return createSourceFollowUps(result && result.sources ? result.sources : [])
+}
+
+const getDisplaySourceDescription = (source = {}) => {
+	const rawDescription = String(source.excerpt || source.summary || source.contentDigest || '').trim()
+	const cleanedDescription = rawDescription
+		.replace(/POI 级已审核来源：[^。]*。/g, '')
+		.replace(/触发关键词、坐标和别名来自[^。]*。/g, '')
+		.replace(/生产发布前仍需完成[^。]*。/g, '')
+		.replace(/\s+/g, ' ')
+		.trim()
+	if (cleanedDescription) {
+		return cleanedDescription.length > 72 ? `${cleanedDescription.slice(0, 72)}...` : cleanedDescription
+	}
+	if (source.sourceUrl || source.url || source.sourceType || source.type) {
+		return '官方公开来源'
+	}
+	return ''
 }
 
 const requestXunjingAiChat = (question) => {
