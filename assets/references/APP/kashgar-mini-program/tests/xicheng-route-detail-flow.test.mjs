@@ -69,6 +69,12 @@ assert.match(
 
 assert.match(
   routeDetail,
+  /import \{ decodeXichengRouteValue \} from '@\/request\/xunjing\/routeParams\.js'[\s\S]*const encodeRouteValue = \(value = ''\) => encodeURIComponent\(decodeXichengRouteValue\(value\)\)/,
+  'Route detail should encode outbound route values through the shared decoder to prevent double-encoded attribution params'
+)
+
+assert.match(
+  routeDetail,
   /createRouteMaterials\(capturedAt\)[\s\S]*this\.routeStopCards\.map\(stop => \{[\s\S]*const sources = createXichengOfficialPoiSources\(stop\)[\s\S]*return \{[\s\S]*type:\s*'official-route-poi'[\s\S]*sourceLabel:\s*'官方路线详情'[\s\S]*sources,[\s\S]*sourceCount:\s*sources\.length[\s\S]*reviewStatus:\s*this\.region\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
   'Route detail POI materials should carry approved official POI source cards so travelogue, PDF, and review evidence stay traceable'
 )
@@ -81,8 +87,8 @@ assert.match(
 
 assert.match(
   routeDetail,
-  /askStopGuide\(stop = \{\}\)[\s\S]*const question = stop\.guidePrompt \|\| `讲讲\$\{stop\.poiName\}`[\s\S]*this\.persistStopGuideContext\(stop, question\)[\s\S]*question=\$\{encodeURIComponent\(question\)\}[\s\S]*regionCode=\$\{encodeURIComponent\(this\.routeOptions\.regionCode \|\| this\.region\.regionCode\)\}[\s\S]*poiCode=\$\{encodeURIComponent\(stop\.poiCode \|\| ''\)\}[\s\S]*poiName=\$\{encodeURIComponent\(stop\.poiName \|\| ''\)\}[\s\S]*safetyStatus=\$\{encodeURIComponent\('PASSED'\)\}[\s\S]*companionName=\$\{encodeURIComponent\(this\.routeOptions\.companionName \|\| this\.region\.companionName\)\}/,
-  'Route detail stop guide entry should navigate to Xiaojing with regionCode, poiCode, poiName, reviewed safetyStatus, and companionName'
+  /askStopGuide\(stop = \{\}\)[\s\S]*const question = stop\.guidePrompt \|\| `讲讲\$\{stop\.poiName\}`[\s\S]*this\.persistStopGuideContext\(stop, question\)[\s\S]*question=\$\{encodeRouteValue\(question\)\}[\s\S]*regionCode=\$\{encodeRouteValue\(this\.routeOptions\.regionCode \|\| this\.region\.regionCode\)\}[\s\S]*poiCode=\$\{encodeRouteValue\(stop\.poiCode \|\| ''\)\}[\s\S]*poiName=\$\{encodeRouteValue\(stop\.poiName \|\| ''\)\}[\s\S]*safetyStatus=\$\{encodeRouteValue\('PASSED'\)\}[\s\S]*companionName=\$\{encodeRouteValue\(this\.routeOptions\.companionName \|\| this\.region\.companionName\)\}/,
+  'Route detail stop guide entry should navigate to Xiaojing with regionCode, poiCode, poiName, reviewed safetyStatus, and decoded companionName'
 )
 
 assert.match(
@@ -93,8 +99,8 @@ assert.match(
 
 assert.match(
   routeDetail,
-  /generateRouteTravelogue\(\)[\s\S]*persistRoutePassport\(\)[\s\S]*\/pages\/xicheng\/travelogue\/travelogue\?mode=route[\s\S]*routeCode=\$\{encodeURIComponent\(this\.activeRoute\.routeCode \|\| ''\)\}/,
-  'Route detail should generate a route travelogue draft with routeCode preserved'
+  /generateRouteTravelogue\(\)[\s\S]*persistRoutePassport\(\)[\s\S]*\/pages\/xicheng\/travelogue\/travelogue\?mode=route[\s\S]*routeCode=\$\{encodeRouteValue\(this\.activeRoute\.routeCode \|\| ''\)\}[\s\S]*companionName=\$\{encodeRouteValue\(this\.routeOptions\.companionName \|\| this\.region\.companionName\)\}/,
+  'Route detail should generate a route travelogue draft with routeCode and decoded companionName preserved'
 )
 
 assert.doesNotMatch(

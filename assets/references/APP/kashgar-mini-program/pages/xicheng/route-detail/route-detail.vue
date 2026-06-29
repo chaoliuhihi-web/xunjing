@@ -117,6 +117,8 @@ import {
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
 
+const encodeRouteValue = (value = '') => encodeURIComponent(decodeXichengRouteValue(value))
+
 const normalizeRouteOptions = (options = {}) => ({
 	routeCode: decodeXichengRouteValue(options.routeCode),
 	regionCode: decodeXichengRouteValue(options.regionCode),
@@ -233,13 +235,13 @@ export default {
 		generateRouteTravelogue() {
 			this.persistRoutePassport()
 			uni.navigateTo({
-				url: `/pages/xicheng/travelogue/travelogue?mode=route&regionCode=${encodeURIComponent(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeURIComponent(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeURIComponent(this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.routeOptions.sourceChannel || this.region.sourceChannel)}&routeCode=${encodeURIComponent(this.activeRoute.routeCode || '')}&companionName=${encodeURIComponent(this.routeOptions.companionName || this.region.companionName)}`
+				url: `/pages/xicheng/travelogue/travelogue?mode=route&regionCode=${encodeRouteValue(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeOptions.sourceChannel || this.region.sourceChannel)}&routeCode=${encodeRouteValue(this.activeRoute.routeCode || '')}&companionName=${encodeRouteValue(this.routeOptions.companionName || this.region.companionName)}`
 			})
 		},
 		startRouteRecording() {
 			this.persistRoutePassport()
 			uni.navigateTo({
-				url: `/pages/xicheng/travelogue/travelogue?mode=record&regionCode=${encodeURIComponent(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeURIComponent(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeURIComponent(this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.routeOptions.sourceChannel || this.region.sourceChannel)}&routeCode=${encodeURIComponent(this.activeRoute.routeCode || '')}&companionName=${encodeURIComponent(this.routeOptions.companionName || this.region.companionName)}`
+				url: `/pages/xicheng/travelogue/travelogue?mode=record&regionCode=${encodeRouteValue(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeOptions.sourceChannel || this.region.sourceChannel)}&routeCode=${encodeRouteValue(this.activeRoute.routeCode || '')}&companionName=${encodeRouteValue(this.routeOptions.companionName || this.region.companionName)}`
 			})
 		},
 		getStopThumbnail(stop = {}, index = 0) {
@@ -277,7 +279,7 @@ export default {
 			const question = stop.guidePrompt || `讲讲${stop.poiName}`
 			this.persistStopGuideContext(stop, question)
 			uni.navigateTo({
-				url: `/pages/ai-guide/ai-guide?question=${encodeURIComponent(question)}&regionCode=${encodeURIComponent(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeURIComponent(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeURIComponent(this.region.aiSceneCode || this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeURIComponent(this.routeOptions.sourceChannel || this.region.sourceChannel)}&poiCode=${encodeURIComponent(stop.poiCode || '')}&poiName=${encodeURIComponent(stop.poiName || '')}&safetyStatus=${encodeURIComponent('PASSED')}&companionName=${encodeURIComponent(this.routeOptions.companionName || this.region.companionName)}`
+				url: `/pages/ai-guide/ai-guide?question=${encodeRouteValue(question)}&regionCode=${encodeRouteValue(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.aiSceneCode || this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeOptions.sourceChannel || this.region.sourceChannel)}&poiCode=${encodeRouteValue(stop.poiCode || '')}&poiName=${encodeRouteValue(stop.poiName || '')}&safetyStatus=${encodeRouteValue('PASSED')}&companionName=${encodeRouteValue(this.routeOptions.companionName || this.region.companionName)}`
 			})
 		}
 	}
