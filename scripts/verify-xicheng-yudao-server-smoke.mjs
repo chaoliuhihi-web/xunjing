@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { loadEnvFile } from './verify-xunjing-platform-readiness.mjs'
@@ -89,6 +89,66 @@ function redact(text, env) {
     }
   }
   return output
+}
+
+async function loadEvidenceFile(rootDir, evidenceFile, label) {
+  if (!evidenceFile) {
+    return undefined
+  }
+  const resolvedFile = resolveEvidenceFile(rootDir, evidenceFile)
+  try {
+    return {
+      path: resolvedFile,
+      data: JSON.parse(await readFile(resolvedFile, 'utf8'))
+    }
+  } catch (error) {
+    throw new Error(`${label} evidence cannot be read: ${error.message}`)
+  }
+}
+
+function summarizeBuildEvidence(buildEvidenceRef) {
+  if (!buildEvidenceRef) {
+    return {}
+  }
+  const evidence = buildEvidenceRef.data || {}
+  const summary = evidence.summary || {}
+  const blockers = []
+  if (evidence.artifactType !== 'xicheng-yudao-server-build') {
+    blockers.push('Yudao server build evidence artifactType must be xicheng-yudao-server-build')
+  }
+  if (evidence.ok !== true) {
+    blockers.push('Yudao server build evidence ok must be true')
+  }
+  if (evidence.status !== 'YUDAO_SERVER_JAR_BUILT') {
+    blockers.push('Yudao server build evidence status must be YUDAO_SERVER_JAR_BUILT')
+  }
+  if (!/^[a-f0-9]{40}$/i.test(String(summary.gitCommit || ''))) {
+    blockers.push('Yudao server build evidence gitCommit must be a 40-character git commit SHA')
+  }
+  if (summary.gitDirty !== false) {
+    blockers.push('Yudao server build evidence gitDirty must be false')
+  }
+  if (!/^[a-f0-9]{64}$/i.test(String(summary.jarSha256 || ''))) {
+    blockers.push('Yudao server build evidence jarSha256 must be a sha256 hex digest')
+  }
+  if (!Number.isFinite(Number(summary.jarSizeBytes)) || Number(summary.jarSizeBytes) <= 0) {
+    blockers.push('Yudao server build evidence jarSizeBytes must be positive')
+  }
+  if (blockers.length > 0) {
+    throw new Error(blockers.join('; '))
+  }
+  return {
+    buildEvidenceFile: buildEvidenceRef.path,
+    buildStatus: evidence.status,
+    buildGitAvailable: summary.gitAvailable,
+    buildGitBranch: summary.gitBranch,
+    buildGitCommit: summary.gitCommit,
+    buildGitDirty: summary.gitDirty,
+    buildGitDirtyFileCount: summary.gitDirtyFileCount,
+    buildJarFile: summary.jarFile,
+    buildJarSha256: summary.jarSha256,
+    buildJarSizeBytes: summary.jarSizeBytes
+  }
 }
 
 export async function loadYudaoServerSmokeEnv({
@@ -199,6 +259,7 @@ export async function checkYudaoServerHttpSmoke({
 export function buildYudaoServerSmokeEvidence({
   env,
   providerSmoke,
+  buildEvidenceRef,
   checkedAt = new Date().toISOString()
 }) {
   validateYudaoServerSmokeEnv(env)
@@ -216,6 +277,7 @@ export function buildYudaoServerSmokeEvidence({
   ) {
     throw new Error('Yudao server smoke must prove the Xicheng package and public report endpoints are ready')
   }
+  const buildSummary = summarizeBuildEvidence(buildEvidenceRef)
   return {
     artifactType: 'xicheng-yudao-server-smoke',
     ok: true,
@@ -234,13 +296,15 @@ export function buildYudaoServerSmokeEvidence({
       publicReportPackageCount: providerSmoke.publicReportPackageCount,
       publicReportReviewedKnowledgeCount: providerSmoke.publicReportReviewedKnowledgeCount,
       publicReportMapPointCount: providerSmoke.publicReportMapPointCount,
-      latencyMs: providerSmoke.latencyMs
+      latencyMs: providerSmoke.latencyMs,
+      ...buildSummary
     },
     checks: [
       { name: 'https-backend-domain', ok: true, blockers: [] },
       { name: 'tenant-header', ok: true, blockers: [] },
       { name: 'resource-package-endpoint', ok: true, blockers: [] },
       { name: 'public-report-endpoint', ok: true, blockers: [] },
+      ...(buildEvidenceRef ? [{ name: 'yudao-server-build-evidence', ok: true, blockers: [] }] : []),
       { name: 'secret-redaction', ok: true, blockers: [] }
     ],
     blockers: []
@@ -282,12 +346,17 @@ async function runCli() {
   const rootDir = path.resolve(readArgValue(args, '--root') || process.cwd())
   const env = await loadYudaoServerSmokeEnv({ args })
   const checkedAt = new Date().toISOString()
+  const buildEvidenceRef = await loadEvidenceFile(
+    rootDir,
+    readArgValue(args, '--yudao-server-build-evidence') || readArgValue(args, '--build-evidence'),
+    'Yudao server build'
+  )
   const providerSmoke = await checkYudaoServerHttpSmoke({
     env,
     packageCode: readArgValue(args, '--package-code') || defaultPackageCode,
     checkedAt
   })
-  const evidence = buildYudaoServerSmokeEvidence({ env, providerSmoke, checkedAt })
+  const evidence = buildYudaoServerSmokeEvidence({ env, providerSmoke, buildEvidenceRef, checkedAt })
   await writeEvidence({
     rootDir,
     evidenceFile: readArgValue(args, '--evidence-file') || readArgValue(args, '--output'),

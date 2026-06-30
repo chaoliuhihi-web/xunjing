@@ -580,7 +580,7 @@ function normalizeUrlForCompare(value) {
   return String(value || '').trim().replace(/\/+$/, '')
 }
 
-function checkReleaseYudaoServerSmokeSummary(evidence) {
+function checkReleaseYudaoServerSmokeSummary(evidence, rootDir) {
   const blockers = []
   const summary = summaryOf(evidence)
 
@@ -616,6 +616,31 @@ function checkReleaseYudaoServerSmokeSummary(evidence) {
   }
   if (!Number.isFinite(publicReportMapPointCount) || publicReportMapPointCount < productionPoiTarget) {
     blockers.push(`release evidence yudaoServerSmokePublicReportMapPointCount must be at least ${productionPoiTarget}`)
+  }
+  if (hasText(summary.yudaoServerBuildEvidenceFile)) {
+    if (!hasText(summary.yudaoServerSmokeBuildEvidenceFile)) {
+      blockers.push('release evidence yudaoServerSmokeBuildEvidenceFile is required')
+    } else if (
+      normalizeEvidencePath(rootDir, summary.yudaoServerSmokeBuildEvidenceFile) !==
+        normalizeEvidencePath(rootDir, summary.yudaoServerBuildEvidenceFile)
+    ) {
+      blockers.push('release evidence yudaoServerSmokeBuildEvidenceFile must match yudaoServerBuildEvidenceFile')
+    }
+  }
+  if (hasText(summary.yudaoServerBuildGitCommit)) {
+    if (!/^[a-f0-9]{40}$/i.test(String(summary.yudaoServerSmokeBuildGitCommit || ''))) {
+      blockers.push('release evidence yudaoServerSmokeBuildGitCommit must be a 40-character git commit SHA')
+    } else if (summary.yudaoServerSmokeBuildGitCommit !== summary.yudaoServerBuildGitCommit) {
+      blockers.push('release evidence yudaoServerSmokeBuildGitCommit must match yudaoServerBuildGitCommit')
+    }
+    if (summary.yudaoServerSmokeBuildGitDirty !== false) {
+      blockers.push('release evidence yudaoServerSmokeBuildGitDirty must be false')
+    }
+  }
+  if (hasText(summary.yudaoServerBuildJarSha256)) {
+    if (summary.yudaoServerSmokeBuildJarSha256 !== summary.yudaoServerBuildJarSha256) {
+      blockers.push('release evidence yudaoServerSmokeBuildJarSha256 must match yudaoServerBuildJarSha256')
+    }
   }
   return blockers
 }
@@ -730,6 +755,8 @@ function checkYudaoServerSmokeEvidence(ref, releaseRef, rootDir, freshnessOption
   const evidence = ref.data || {}
   const summary = summaryOf(evidence)
   const releaseSmokeEvidenceFile = normalizeEvidencePath(rootDir, releaseSummary.yudaoServerSmokeEvidenceFile)
+  const releaseBuildEvidenceFile = normalizeEvidencePath(rootDir, releaseSummary.yudaoServerBuildEvidenceFile)
+  const smokeBuildEvidenceFile = normalizeEvidencePath(rootDir, summary.buildEvidenceFile)
   const smokeBaseUrl = normalizedBaseUrl(summary.baseUrl)
   const releaseSmokeBaseUrl = normalizedBaseUrl(releaseSummary.yudaoServerSmokeBaseUrl)
   const releaseAppBaseUrl = normalizedBaseUrl(releaseSummary.appApiBaseUrl)
@@ -759,6 +786,26 @@ function checkYudaoServerSmokeEvidence(ref, releaseRef, rootDir, freshnessOption
   }
   if (!hasText(summary.providerSmokeHost) || isLoopbackHostname(summary.providerSmokeHost)) {
     blockers.push('Yudao server smoke evidence providerSmokeHost must be non-local')
+  }
+  if (releaseBuildEvidenceFile) {
+    if (!smokeBuildEvidenceFile) {
+      blockers.push('Yudao server smoke evidence buildEvidenceFile is required')
+    } else if (smokeBuildEvidenceFile !== releaseBuildEvidenceFile) {
+      blockers.push('Yudao server smoke evidence buildEvidenceFile must match release evidence yudaoServerBuildEvidenceFile')
+    }
+  }
+  if (hasText(releaseSummary.yudaoServerBuildGitCommit)) {
+    if (!/^[a-f0-9]{40}$/i.test(String(summary.buildGitCommit || ''))) {
+      blockers.push('Yudao server smoke evidence buildGitCommit must be a 40-character git commit SHA')
+    } else if (summary.buildGitCommit !== releaseSummary.yudaoServerBuildGitCommit) {
+      blockers.push('Yudao server smoke evidence buildGitCommit must match release evidence yudaoServerBuildGitCommit')
+    }
+    if (summary.buildGitDirty !== false) {
+      blockers.push('Yudao server smoke evidence buildGitDirty must be false')
+    }
+  }
+  if (hasText(releaseSummary.yudaoServerBuildJarSha256) && summary.buildJarSha256 !== releaseSummary.yudaoServerBuildJarSha256) {
+    blockers.push('Yudao server smoke evidence buildJarSha256 must match release evidence yudaoServerBuildJarSha256')
   }
   if (!hasText(summary.tenantId)) {
     blockers.push('Yudao server smoke evidence tenantId is required')
@@ -1346,7 +1393,7 @@ function checkReleaseProductionSeedApplySummary(evidence) {
   return blockers
 }
 
-async function checkReleaseEvidence(ref, stage, freshnessOptions) {
+async function checkReleaseEvidence(ref, stage, freshnessOptions, rootDir) {
   const blockers = []
   if (ref.error) {
     blockers.push(ref.error)
@@ -1387,7 +1434,7 @@ async function checkReleaseEvidence(ref, stage, freshnessOptions) {
   blockers.push(...await checkReleaseBaselineHash(evidence))
   blockers.push(...await checkReleaseServerArtifactHash(evidence))
   blockers.push(...checkReleaseServerBuildSummary(evidence))
-  blockers.push(...checkReleaseYudaoServerSmokeSummary(evidence))
+  blockers.push(...checkReleaseYudaoServerSmokeSummary(evidence, rootDir))
   blockers.push(...checkEvidenceChecks(evidence, requiredReleaseChecks, 'release'))
   if (blockersOf(evidence).length > 0) {
     blockers.push(`release evidence contains blockers: ${blockersOf(evidence).join('; ')}`)
@@ -2173,7 +2220,7 @@ export async function verifyXichengReleaseEvidencePackage({
     maxEvidenceAgeMs: maxEvidenceAgeHours * 60 * 60 * 1000
   }
   const checks = [
-    await checkReleaseEvidence(releaseRef, normalizedStage, freshnessOptions),
+    await checkReleaseEvidence(releaseRef, normalizedStage, freshnessOptions, rootDir),
     await checkYudaoServerBuildEvidence(yudaoServerBuildRef, releaseRef, rootDir, freshnessOptions),
     checkYudaoServerSmokeEvidence(yudaoServerSmokeRef, releaseRef, rootDir, freshnessOptions),
     checkRuntimeSeedEvidence(runtimeSeedRef, releaseRef, rootDir, freshnessOptions),
@@ -2233,6 +2280,10 @@ export async function verifyXichengReleaseEvidencePackage({
       yudaoServerSmokePublicReportPackageCount: yudaoServerSmokeSummary.publicReportPackageCount,
       yudaoServerSmokePublicReportReviewedKnowledgeCount: yudaoServerSmokeSummary.publicReportReviewedKnowledgeCount,
       yudaoServerSmokePublicReportMapPointCount: yudaoServerSmokeSummary.publicReportMapPointCount,
+      yudaoServerSmokeBuildEvidenceFile: yudaoServerSmokeSummary.buildEvidenceFile,
+      yudaoServerSmokeBuildGitCommit: yudaoServerSmokeSummary.buildGitCommit,
+      yudaoServerSmokeBuildGitDirty: yudaoServerSmokeSummary.buildGitDirty,
+      yudaoServerSmokeBuildJarSha256: yudaoServerSmokeSummary.buildJarSha256,
       runtimeSeedStatus: runtimeSeedRef.data?.status,
       runtimeSeedReadinessMode: runtimeSeedSummary.readinessMode,
       runtimeSeedProductionReady: runtimeSeedSummary.productionReady,

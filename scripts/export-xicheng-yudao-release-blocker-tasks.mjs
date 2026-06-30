@@ -120,8 +120,8 @@ const checkTaskInstructions = {
   },
   'yudao-server-smoke': {
     taskDetail: 'Run the deployed Yudao server HTTP smoke against the production APP API domain.',
-    requiredEvidence: 'Release evidence records yudaoServerSmokeEvidenceFile and XICHENG_YUDAO_SERVER_SMOKE_READY public endpoint results.',
-    verificationCommand: 'npm run xunjing:yudao:server:smoke -- --env-file /secure/path/production.env --evidence-file qa/xicheng-yudao-server-smoke-evidence.json'
+    requiredEvidence: 'Release evidence records yudaoServerSmokeEvidenceFile plus XICHENG_YUDAO_SERVER_SMOKE_READY public endpoint results and build-bound smoke metadata.',
+    verificationCommand: 'npm run xunjing:yudao:server:smoke -- --env-file /secure/path/production.env --yudao-server-build-evidence qa/xicheng-yudao-server-build-evidence.json --evidence-file qa/xicheng-yudao-server-smoke-evidence.json'
   },
   'yudao-ai-model-bootstrap': {
     taskDetail: 'Run the Yudao AI model bootstrap against production or preprod MySQL and provide its secret-safe evidence file.',

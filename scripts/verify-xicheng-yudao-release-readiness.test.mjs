@@ -308,6 +308,23 @@ async function writeYudaoServerBuildEvidence(rootDir, overrides = {}) {
 
 async function writeYudaoServerSmokeEvidence(rootDir, overrides = {}) {
   const evidencePath = path.join(rootDir, 'qa/xicheng-yudao-server-smoke-evidence.json')
+  const buildEvidencePath = path.join(rootDir, 'qa/xicheng-yudao-server-build-evidence.json')
+  let buildSummary = {}
+  try {
+    const buildEvidence = JSON.parse(await readFile(buildEvidencePath, 'utf8'))
+    buildSummary = {
+      buildEvidenceFile: buildEvidencePath,
+      buildStatus: buildEvidence.status,
+      buildGitAvailable: buildEvidence.summary?.gitAvailable,
+      buildGitBranch: buildEvidence.summary?.gitBranch,
+      buildGitCommit: buildEvidence.summary?.gitCommit,
+      buildGitDirty: buildEvidence.summary?.gitDirty,
+      buildGitDirtyFileCount: buildEvidence.summary?.gitDirtyFileCount,
+      buildJarFile: buildEvidence.summary?.jarFile,
+      buildJarSha256: buildEvidence.summary?.jarSha256,
+      buildJarSizeBytes: buildEvidence.summary?.jarSizeBytes
+    }
+  } catch {}
   await mkdir(path.dirname(evidencePath), { recursive: true })
   await writeFile(evidencePath, `${JSON.stringify({
     artifactType: 'xicheng-yudao-server-smoke',
@@ -328,6 +345,7 @@ async function writeYudaoServerSmokeEvidence(rootDir, overrides = {}) {
       publicReportReviewedKnowledgeCount: 84,
       publicReportMapPointCount: 80,
       latencyMs: 50,
+      ...buildSummary,
       ...(overrides.summary || {})
     },
     checks: passedChecks(requiredYudaoServerSmokeEvidenceChecks),
@@ -1745,6 +1763,93 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(smokeCheck?.blockers.join('\n')).toContain('Yudao server smoke evidence is required before production release')
   })
 
+  test('fails closed when Yudao server smoke evidence is from a different build commit', async () => {
+    const rootDir = await createProductionReadyFixture()
+    await writeYudaoServerBuildEvidence(rootDir, {
+      summary: {
+        gitAvailable: true,
+        gitBranch: 'feature/xicheng-p0',
+        gitCommit: 'a'.repeat(40),
+        gitDirty: false,
+        gitDirtyFileCount: 0
+      }
+    })
+    await writeYudaoServerSmokeEvidence(rootDir, {
+      summary: {
+        buildGitCommit: '0'.repeat(40),
+        buildJarSha256: 'b'.repeat(64)
+      }
+    })
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
+    const qdrantEvidencePath = await writeQdrantEvidence(rootDir)
+    const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
+    const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      aiBootstrapEvidencePath,
+      qdrantEvidencePath,
+      visionOcrEvidencePath,
+      objectStorageEvidencePath,
+      runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    const smokeCheck = result.checks.find((check) => check.name === 'yudao-server-smoke')
+    expect(result.ok).toBe(false)
+    expect(smokeCheck?.ok).toBe(false)
+    expect(smokeCheck?.blockers.join('\n')).toContain('Yudao server smoke evidence buildGitCommit must match Yudao server build evidence gitCommit')
+  })
+
+  test('accepts relative Yudao server smoke build evidence paths against the release root', async () => {
+    const rootDir = await createProductionReadyFixture()
+    await writeYudaoServerSmokeEvidence(rootDir, {
+      summary: {
+        buildEvidenceFile: 'qa/xicheng-yudao-server-build-evidence.json'
+      }
+    })
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
+    const qdrantEvidencePath = await writeQdrantEvidence(rootDir)
+    const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
+    const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      aiBootstrapEvidencePath,
+      qdrantEvidencePath,
+      visionOcrEvidencePath,
+      objectStorageEvidencePath,
+      runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    const smokeCheck = result.checks.find((check) => check.name === 'yudao-server-smoke')
+    expect(result.ok).toBe(true)
+    expect(smokeCheck?.ok).toBe(true)
+  })
+
   test('accepts an external Yudao server jar artifact path for release evidence', async () => {
     const rootDir = await createProductionReadyFixture()
     const defaultJarPath = path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar')
@@ -2515,6 +2620,7 @@ describe('xicheng Yudao release readiness gate', () => {
         gitDirtyFileCount: 0
       }
     })
+    await writeYudaoServerSmokeEvidence(rootDir)
     const evidenceRelativePath = 'qa/xicheng-yudao-release-evidence.json'
     const evidencePath = path.join(rootDir, evidenceRelativePath)
 
@@ -2597,6 +2703,8 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(deployDoc).toContain('release-source-revision')
     expect(deployDoc).toContain('summary.gitCommit')
     expect(deployDoc).toContain('summary.yudaoServerBuildGitCommit')
+    expect(deployDoc).toContain('summary.yudaoServerSmokeBuildGitCommit')
+    expect(deployDoc).toContain('summary.yudaoServerSmokeBuildJarSha256')
     expect(deployDoc).toContain('--expected-branch feature/xicheng-p0')
     expect(deployDoc).toContain('summary.expectedGitBranch')
     expect(deployDoc).toContain('runtimeEnvFingerprintMode')
@@ -2608,6 +2716,8 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(statusDoc).toContain('release-source-revision')
     expect(statusDoc).toContain('summary.gitCommit')
     expect(statusDoc).toContain('summary.yudaoServerBuildGitCommit')
+    expect(statusDoc).toContain('summary.yudaoServerSmokeBuildGitCommit')
+    expect(statusDoc).toContain('summary.yudaoServerSmokeBuildJarSha256')
     expect(statusDoc).toContain('--expected-branch feature/xicheng-p0')
     expect(statusDoc).toContain('runtimeEnvFingerprintMode')
     expect(deployDoc).toContain('seed evidence 的 `summary.sqlFile`')
