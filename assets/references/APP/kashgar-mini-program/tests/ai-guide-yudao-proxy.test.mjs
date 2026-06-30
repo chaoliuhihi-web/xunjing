@@ -5,6 +5,7 @@ import path from 'node:path'
 const root = process.cwd()
 const aiGuidePath = path.join(root, 'pages', 'ai-guide', 'ai-guide.vue')
 const aiGuide = fs.readFileSync(aiGuidePath, 'utf8')
+const recordEventSource = aiGuide.match(/const recordXunjingResourceEvent\s*=\s*\(options\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const askEventSource = aiGuide.match(/recordXunjingResourceEvent\(\{\s*eventType:\s*'ASK'[\s\S]*?\n\s*\}\)/)?.[0] || ''
 const viewEventSource = aiGuide.match(/recordXunjingResourceEvent\(\{\s*eventType:\s*'VIEW'[\s\S]*?\n\s*\}\)/)?.[0] || ''
 const sendMessageSource = aiGuide.match(/const sendMessage = async \(\) => \{[\s\S]*?\n\}\n\nconst sendInitialQuestion/)?.[0] || ''
@@ -56,6 +57,12 @@ assert.match(
   aiGuide,
   /const recordXunjingResourceEvent\s*=\s*\(options\)[\s\S]*requestXunjingResourceEvent\(options\)[\s\S]*catch/,
   'AI guide should make resource event reporting non-blocking and tolerate gateway failures'
+)
+
+assert.doesNotMatch(
+  recordEventSource,
+  /console\.(warn|error)/,
+  'AI guide should not pollute release QA console health when optional resource event reporting fails'
 )
 
 assert.match(

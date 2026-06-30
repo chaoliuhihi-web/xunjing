@@ -1065,9 +1065,7 @@ const requestXunjingResourceEvent = ({ eventType = 'VIEW', payload = {}, context
 }
 
 const recordXunjingResourceEvent = (options) => {
-	requestXunjingResourceEvent(options).catch((error) => {
-		console.warn('星河寻境事件回传暂不可用:', error && (error.errMsg || error.message) ? (error.errMsg || error.message) : error)
-	})
+	requestXunjingResourceEvent(options).catch(() => {})
 }
 
 const resolvePackageMediaCover = (mediaAssets, index) => {
