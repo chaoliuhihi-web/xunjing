@@ -120,6 +120,7 @@ import {
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { decodeXichengRouteValue, createXichengRouteOutputValue } from '@/request/xunjing/routeParams.js'
 
+const XICHENG_HOME_ROUTE = '/pages/xicheng/home/home'
 const encodeRouteValue = (value = '') => createXichengRouteOutputValue(value, { platform: process.env.UNI_PLATFORM })
 
 const normalizeRouteOptions = (options = {}) => ({
@@ -182,7 +183,19 @@ export default {
 	},
 	methods: {
 		goBack() {
-			uni.navigateBack({ delta: 1 })
+			const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : []
+			if (!Array.isArray(pages) || pages.length <= 1) {
+				uni.reLaunch({
+					url: XICHENG_HOME_ROUTE
+				})
+				return
+			}
+			uni.navigateBack({
+				delta: 1,
+				fail: () => uni.reLaunch({
+					url: XICHENG_HOME_ROUTE
+				})
+			})
 		},
 		createRoutePayload() {
 			return {

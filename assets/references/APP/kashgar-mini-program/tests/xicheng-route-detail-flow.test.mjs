@@ -83,6 +83,12 @@ assert.match(
 
 assert.match(
   routeDetail,
+  /const XICHENG_HOME_ROUTE\s*=\s*'\/pages\/xicheng\/home\/home'[\s\S]*goBack\(\)[\s\S]*getCurrentPages[\s\S]*pages\.length <= 1[\s\S]*uni\.reLaunch\(\{[\s\S]*url:\s*XICHENG_HOME_ROUTE[\s\S]*uni\.navigateBack\(\{[\s\S]*delta:\s*1[\s\S]*fail:\s*\(\) => uni\.reLaunch\(\{[\s\S]*url:\s*XICHENG_HOME_ROUTE/,
+  'Route detail back should preserve normal stack navigation while falling back to the Xicheng home for cold-start or shared deep links'
+)
+
+assert.match(
+  routeDetail,
   /createRouteMaterials\(capturedAt\)[\s\S]*this\.routeStopCards\.map\(stop => \{[\s\S]*const sources = createXichengOfficialPoiSources\(stop\)[\s\S]*return \{[\s\S]*type:\s*'official-route-poi'[\s\S]*sourceLabel:\s*'官方路线详情'[\s\S]*sources,[\s\S]*sourceCount:\s*sources\.length[\s\S]*reviewStatus:\s*this\.region\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
   'Route detail POI materials should carry approved official POI source cards so travelogue, PDF, and review evidence stay traceable'
 )
