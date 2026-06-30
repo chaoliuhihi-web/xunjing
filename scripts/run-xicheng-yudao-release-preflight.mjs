@@ -22,6 +22,7 @@ const defaultPoiProductionReviewApplyEvidenceFile = 'qa/xicheng-poi-production-r
 const defaultProductionReviewFile = 'workbench/xicheng-poi-production-review-summary.csv'
 const defaultProductionReviewTasksOutputFile = 'workbench/xicheng-poi-production-review-tasks.csv'
 const defaultProductionReviewOwnerLanesOutputFile = 'workbench/xicheng-poi-production-review-owner-lanes.csv'
+const defaultProductionReviewOwnerLaneTaskDir = 'workbench/xicheng-poi-production-review-owner-lanes'
 const defaultProductionReviewTasksEvidenceFile = 'qa/xicheng-poi-production-review-tasks-evidence.json'
 const defaultAppReadinessEvidenceFile = 'qa/xicheng-app-readiness-evidence.json'
 const defaultReleasePackageEvidenceFile = 'qa/xicheng-release-evidence-package.json'
@@ -152,6 +153,7 @@ function buildProductionReviewTasksCommand({
   productionReviewFile,
   productionReviewTasksOutputFile,
   productionReviewOwnerLanesOutputFile,
+  productionReviewOwnerLaneTaskDir,
   productionReviewTasksEvidenceFile
 }) {
   return [
@@ -159,6 +161,7 @@ function buildProductionReviewTasksCommand({
     '--production-review', shellArg(productionReviewFile),
     '--output', shellArg(productionReviewTasksOutputFile),
     '--owner-lane-output', shellArg(productionReviewOwnerLanesOutputFile),
+    '--owner-lane-dir', shellArg(productionReviewOwnerLaneTaskDir),
     '--evidence-file', shellArg(productionReviewTasksEvidenceFile)
   ].join(' ')
 }
@@ -222,11 +225,13 @@ async function summarizeProductionReviewTasks({
   productionReviewFile,
   productionReviewTasksOutputFile,
   productionReviewOwnerLanesOutputFile,
+  productionReviewOwnerLaneTaskDir,
   productionReviewTasksEvidenceFile
 }) {
   const resolvedProductionReviewFile = resolveRootFile(rootDir, productionReviewFile)
   const resolvedOutputFile = resolveRootFile(rootDir, productionReviewTasksOutputFile)
   const resolvedOwnerLaneOutputFile = resolveRootFile(rootDir, productionReviewOwnerLanesOutputFile)
+  const resolvedOwnerLaneTaskDir = resolveRootFile(rootDir, productionReviewOwnerLaneTaskDir)
   const resolvedEvidenceFile = resolveRootFile(rootDir, productionReviewTasksEvidenceFile)
 
   if (!existsSync(resolvedProductionReviewFile)) {
@@ -237,6 +242,8 @@ async function summarizeProductionReviewTasks({
         productionReviewFile: resolvedProductionReviewFile,
         outputFile: resolvedOutputFile,
         ownerLaneOutputFile: resolvedOwnerLaneOutputFile,
+        ownerLaneTaskDir: resolvedOwnerLaneTaskDir,
+        ownerLaneTaskFiles: [],
         evidenceFile: resolvedEvidenceFile,
         taskCount: 0,
         pendingPoiCount: 0,
@@ -254,6 +261,7 @@ async function summarizeProductionReviewTasks({
       productionReviewFile,
       outputFile: productionReviewTasksOutputFile,
       ownerLaneOutputFile: productionReviewOwnerLanesOutputFile,
+      ownerLaneDir: productionReviewOwnerLaneTaskDir,
       evidenceFile: productionReviewTasksEvidenceFile
     })
   } catch (error) {
@@ -264,6 +272,8 @@ async function summarizeProductionReviewTasks({
         productionReviewFile: resolvedProductionReviewFile,
         outputFile: resolvedOutputFile,
         ownerLaneOutputFile: resolvedOwnerLaneOutputFile,
+        ownerLaneTaskDir: resolvedOwnerLaneTaskDir,
+        ownerLaneTaskFiles: [],
         evidenceFile: resolvedEvidenceFile,
         taskCount: 0,
         pendingPoiCount: 0,
@@ -452,6 +462,9 @@ function buildHandoffMarkdown({
       formatList(lane.poiCodes)
     ].join('\n'))
     .join('\n\n')
+  const productionReviewLaneTaskFiles = (productionReviewSummary.ownerLaneTaskFiles || [])
+    .map((item) => `- \`${item.ownerLane}\`: \`${item.taskFile}\``)
+    .join('\n')
 
   return [
     '# Xicheng Yudao Release Handoff',
@@ -492,12 +505,16 @@ function buildHandoffMarkdown({
     `Production review summary: \`${productionReviewSummary.productionReviewFile || 'unknown'}\``,
     `Task CSV: \`${productionReviewSummary.outputFile || 'unknown'}\``,
     `Owner lane CSV: \`${productionReviewSummary.ownerLaneOutputFile || 'unknown'}\``,
+    `Owner lane task dir: \`${productionReviewSummary.ownerLaneTaskDir || 'unknown'}\``,
     `Task evidence: \`${productionReviewSummary.evidenceFile || 'unknown'}\``,
     `Task count: ${productionReviewSummary.taskCount ?? 0}`,
     `Pending POIs: ${productionReviewSummary.pendingPoiCount ?? 0}`,
     '',
     'Blockers:',
     formatList(productionReviewTasks.blockers),
+    '',
+    'Owner lane task files:',
+    productionReviewLaneTaskFiles || '- None',
     '',
     'Run this after source review and trigger smoke have updated `workbench/xicheng-poi-production-review-summary.csv`:',
     '',
@@ -571,6 +588,9 @@ export async function runXichengYudaoReleasePreflight({
     defaultProductionReviewTasksOutputFile
   const productionReviewOwnerLanesOutputFile = readArgValue(args, '--production-review-owner-lanes-output') ||
     defaultProductionReviewOwnerLanesOutputFile
+  const productionReviewOwnerLaneTaskDir = readArgValue(args, '--production-review-owner-lane-dir') ||
+    readArgValue(args, '--production-review-owner-lanes-dir') ||
+    defaultProductionReviewOwnerLaneTaskDir
   const productionReviewTasksEvidenceFile = readArgValue(args, '--production-review-tasks-evidence') ||
     defaultProductionReviewTasksEvidenceFile
   const appReadinessEvidenceFile = readArgValue(args, '--app-readiness-evidence') || defaultAppReadinessEvidenceFile
@@ -637,6 +657,7 @@ export async function runXichengYudaoReleasePreflight({
     productionReviewFile,
     productionReviewTasksOutputFile,
     productionReviewOwnerLanesOutputFile,
+    productionReviewOwnerLaneTaskDir,
     productionReviewTasksEvidenceFile
   })
   const productionReviewTasks = await summarizeProductionReviewTasks({
@@ -644,6 +665,7 @@ export async function runXichengYudaoReleasePreflight({
     productionReviewFile,
     productionReviewTasksOutputFile,
     productionReviewOwnerLanesOutputFile,
+    productionReviewOwnerLaneTaskDir,
     productionReviewTasksEvidenceFile
   })
   const taskReport = await exportXichengYudaoReleaseBlockerTasks({
@@ -713,6 +735,8 @@ export async function runXichengYudaoReleasePreflight({
       productionReviewTasksStatus: productionReviewTasks.status,
       productionReviewTasksOutputFile: productionReviewTasks.summary?.outputFile,
       productionReviewOwnerLanesOutputFile: productionReviewTasks.summary?.ownerLaneOutputFile,
+      productionReviewOwnerLaneTaskDir: productionReviewTasks.summary?.ownerLaneTaskDir,
+      productionReviewOwnerLaneTaskFiles: productionReviewTasks.summary?.ownerLaneTaskFiles,
       productionReviewTasksEvidenceFile: productionReviewTasks.summary?.evidenceFile,
       productionReviewTaskCount: productionReviewTasks.summary?.taskCount,
       productionReviewPendingPoiCount: productionReviewTasks.summary?.pendingPoiCount,
