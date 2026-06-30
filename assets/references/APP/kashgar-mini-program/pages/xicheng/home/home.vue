@@ -346,6 +346,10 @@ export default {
 				})
 			})
 		},
+		isXichengImageSelectionCancel(err = {}) {
+			const message = String((err && (err.errMsg || err.message || err)) || '').toLowerCase()
+			return message.includes('cancel') || message.includes('取消')
+		},
 		async resolveTextAndOpenResult(text = '', source = 'ocr') {
 			if (this.recognizing) return
 			this.recognizing = true
@@ -412,7 +416,10 @@ export default {
 						this.recognizing = false
 					}
 				},
-				fail: () => {
+				fail: (err) => {
+					if (this.isXichengImageSelectionCancel(err)) {
+						return
+					}
 					this.handleRecognitionUnavailable('ocr')
 				}
 			})
@@ -490,7 +497,10 @@ export default {
 						this.recognizing = false
 					}
 				},
-				fail: () => {
+				fail: (err) => {
+					if (this.isXichengImageSelectionCancel(err)) {
+						return
+					}
 					this.handleRecognitionUnavailable('photo')
 				}
 			})

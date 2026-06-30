@@ -52,14 +52,26 @@ assert.match(
 
 assert.match(
   home,
+  /isXichengImageSelectionCancel\(err = \{\}\)[\s\S]*message\.includes\('cancel'\)[\s\S]*message\.includes\('取消'\)/,
+  'Xicheng home image recognition should detect normal camera or album cancellation separately from real failures'
+)
+
+assert.match(
+  home,
   /startPhotoRecognition\(\)[\s\S]*const confirmed = await this\.confirmImageRecognitionPurpose\('拍照识别'\)[\s\S]*if \(!confirmed\) return[\s\S]*uni\.chooseImage\(\{[\s\S]*const filePath = res\.tempFilePaths[\s\S]*if\s*\(!filePath\)\s*\{[\s\S]*this\.handleRecognitionUnavailable\('photo'\)[\s\S]*return[\s\S]*resolveXichengPhotoTrigger\(\{ filePath \}\)/,
   'Photo recognition should surface an unavailable state when camera or album returns no image file'
 )
 
 assert.match(
   home,
-  /startPhotoRecognition\(\)[\s\S]*fail:\s*\(\)\s*=>\s*\{[\s\S]*this\.handleRecognitionUnavailable\('photo'\)/,
-  'Photo recognition should surface an unavailable state when the user cancels or camera permission fails'
+  /startOcrRecognition\(\)[\s\S]*fail:\s*\(err\)\s*=>\s*\{[\s\S]*if\s*\(this\.isXichengImageSelectionCancel\(err\)\)\s*\{[\s\S]*return[\s\S]*this\.handleRecognitionUnavailable\('ocr'\)/,
+  'OCR recognition should ignore normal image picker cancellation and only surface unavailable state for non-cancel failures'
+)
+
+assert.match(
+  home,
+  /startPhotoRecognition\(\)[\s\S]*fail:\s*\(err\)\s*=>\s*\{[\s\S]*if\s*\(this\.isXichengImageSelectionCancel\(err\)\)\s*\{[\s\S]*return[\s\S]*this\.handleRecognitionUnavailable\('photo'\)/,
+  'Photo recognition should ignore normal image picker cancellation and only surface unavailable state for non-cancel failures'
 )
 
 assert.match(
