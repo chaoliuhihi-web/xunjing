@@ -102,6 +102,7 @@
 
 <script>
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
+import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 
 const safeArray = value => Array.isArray(value) ? value : []
 const safeObject = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {}
@@ -188,6 +189,8 @@ export default {
 			}
 		},
 		sanitizePublicMaterialPreview(item = {}) {
+			const safetyStatus = normalizeXichengSafetyStatus(item.safetyStatus)
+			if (isXichengUnsafeSafetyStatus(safetyStatus)) return null
 			return {
 				type: item.type || '',
 				regionCode: item.regionCode || XICHENG_REGION_CONFIG.regionCode,
@@ -198,7 +201,7 @@ export default {
 				remarkExcerpt: String(item.remarkExcerpt || '').slice(0, 80),
 				hasPhoto: Boolean(item.hasPhoto),
 				sourceCount: toSafeCount(item.sourceCount),
-				safetyStatus: item.safetyStatus || '',
+				safetyStatus,
 				publicLocationLabel: item.publicLocationLabel || '',
 				locationHidden: true,
 				capturedAt: item.capturedAt || ''
@@ -215,6 +218,8 @@ export default {
 			}
 		},
 		sanitizePublicRouteCheckinPreview(item = {}) {
+			const safetyStatus = normalizeXichengSafetyStatus(item.safetyStatus)
+			if (isXichengUnsafeSafetyStatus(safetyStatus)) return null
 			return {
 				checkinId: item.checkinId || '',
 				checkinType: item.checkinType || '',
@@ -223,21 +228,24 @@ export default {
 				poiCode: item.poiCode || '',
 				poiName: item.poiName || '',
 				sourceLabel: item.sourceLabel || '',
-				safetyStatus: item.safetyStatus || '',
+				safetyStatus,
 				checkedInAt: item.checkedInAt || ''
 			}
 		},
 		createSharePublicPreview(journeyDraft = {}) {
 			const publicPreview = safeObject(journeyDraft.publicPreview)
+			const publicMaterials = safeArray(publicPreview.publicMaterials).map(item => this.sanitizePublicMaterialPreview(item)).filter(Boolean).slice(0, 20)
+			const publicStudyTaskEvidence = safeArray(publicPreview.publicStudyTaskEvidence).map(item => this.sanitizePublicStudyEvidencePreview(item)).filter(Boolean).slice(0, 20)
+			const publicRouteCheckins = safeArray(publicPreview.publicRouteCheckins).map(item => this.sanitizePublicRouteCheckinPreview(item)).filter(Boolean).slice(0, 20)
 			return {
-				publicMaterials: safeArray(publicPreview.publicMaterials).map(item => this.sanitizePublicMaterialPreview(item)).slice(0, 20),
-				publicStudyTaskEvidence: safeArray(publicPreview.publicStudyTaskEvidence).map(item => this.sanitizePublicStudyEvidencePreview(item)).slice(0, 20),
-				publicRouteCheckins: safeArray(publicPreview.publicRouteCheckins).map(item => this.sanitizePublicRouteCheckinPreview(item)).slice(0, 20),
+				publicMaterials,
+				publicStudyTaskEvidence,
+				publicRouteCheckins,
 				publicCandidateConfirmationSummary: safeObject(publicPreview.publicCandidateConfirmationSummary),
 				publicRecordingSummary: safeObject(publicPreview.publicRecordingSummary),
-				materialCount: toSafeCount(publicPreview.materialCount || journeyDraft.materialCount),
-				checkinCount: toSafeCount(publicPreview.checkinCount || journeyDraft.checkinCount),
-				studyTaskEvidenceCount: toSafeCount(publicPreview.studyTaskEvidenceCount || journeyDraft.studyTaskEvidenceCount),
+				materialCount: publicMaterials.length,
+				checkinCount: publicRouteCheckins.length,
+				studyTaskEvidenceCount: publicStudyTaskEvidence.length,
 				privacy: {
 					shareLocationPrecision: 'poi_area',
 					shareTrackDefault: 'private',

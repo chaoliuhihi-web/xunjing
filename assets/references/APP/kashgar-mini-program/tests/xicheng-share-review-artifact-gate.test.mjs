@@ -5,6 +5,12 @@ import path from 'node:path'
 const root = process.cwd()
 const share = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'share', 'share.vue'), 'utf8')
 
+assert.match(
+  share,
+  /import \{[^}]*isXichengUnsafeSafetyStatus[^}]*normalizeXichengSafetyStatus[^}]*\} from '@\/request\/xunjing\/safety\.js'/,
+  'Share page should reuse the shared Xicheng safety helpers before exporting public preview artifacts'
+)
+
 for (const required of [
   'getReviewableShareArtifacts',
   'hasReviewableShareArtifact',
@@ -62,8 +68,20 @@ assert.match(
 
 assert.match(
   share,
-  /createSharePublicPreview\(journeyDraft = \{\}\)[\s\S]*publicMaterials:\s*safeArray\(publicPreview\.publicMaterials\)\.map\(item => this\.sanitizePublicMaterialPreview\(item\)\)[\s\S]*publicStudyTaskEvidence:\s*safeArray\(publicPreview\.publicStudyTaskEvidence\)\.map\(item => this\.sanitizePublicStudyEvidencePreview\(item\)\)[\s\S]*publicRouteCheckins:\s*safeArray\(publicPreview\.publicRouteCheckins\)\.map\(item => this\.sanitizePublicRouteCheckinPreview\(item\)\)[\s\S]*shareLocationPrecision:\s*'poi_area'[\s\S]*exactCoordinatesHidden:\s*true/,
+  /createSharePublicPreview\(journeyDraft = \{\}\)[\s\S]*const publicMaterials = safeArray\(publicPreview\.publicMaterials\)\.map\(item => this\.sanitizePublicMaterialPreview\(item\)\)\.filter\(Boolean\)\.slice\(0, 20\)[\s\S]*const publicStudyTaskEvidence = safeArray\(publicPreview\.publicStudyTaskEvidence\)\.map\(item => this\.sanitizePublicStudyEvidencePreview\(item\)\)\.filter\(Boolean\)\.slice\(0, 20\)[\s\S]*const publicRouteCheckins = safeArray\(publicPreview\.publicRouteCheckins\)\.map\(item => this\.sanitizePublicRouteCheckinPreview\(item\)\)\.filter\(Boolean\)\.slice\(0, 20\)[\s\S]*materialCount:\s*publicMaterials\.length[\s\S]*checkinCount:\s*publicRouteCheckins\.length[\s\S]*shareLocationPrecision:\s*'poi_area'[\s\S]*exactCoordinatesHidden:\s*true/,
   'Share artifact public preview should expose only sanitized public journey fields and coarse location privacy'
+)
+
+assert.match(
+  share,
+  /sanitizePublicMaterialPreview\(item = \{\}\)[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(item\.safetyStatus\)[\s\S]*if \(isXichengUnsafeSafetyStatus\(safetyStatus\)\) return null[\s\S]*safetyStatus,/,
+  'Share public material preview sanitizer should drop BLOCKED or UNAVAILABLE material from public preview artifacts'
+)
+
+assert.match(
+  share,
+  /sanitizePublicRouteCheckinPreview\(item = \{\}\)[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(item\.safetyStatus\)[\s\S]*if \(isXichengUnsafeSafetyStatus\(safetyStatus\)\) return null[\s\S]*safetyStatus,/,
+  'Share public route check-in preview sanitizer should drop BLOCKED or UNAVAILABLE check-ins from public preview artifacts'
 )
 
 for (const [methodName, forbiddenPattern] of [
