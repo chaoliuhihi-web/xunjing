@@ -13,6 +13,7 @@ assert.match(
 
 for (const required of [
   'getReviewableShareArtifacts',
+  'sanitizeShareArtifactForReview',
   'hasReviewableShareArtifact',
   'showShareArtifactRequiredToast',
   'getShareJourneyDraft',
@@ -32,8 +33,14 @@ for (const required of [
 
 assert.match(
   share,
-  /getReviewableShareArtifacts\(\)\s*\{[\s\S]*return safeArray\(this\.shareArtifacts\)[\s\S]*filter\(artifact => artifact && \['poster', 'pdf', 'study'\]\.includes\(artifact\.assetType\)[\s\S]*artifact\.auditRequired === true[\s\S]*artifact\.publishStatus === 'private'[\s\S]*artifact\.reviewStatus === XICHENG_REGION_CONFIG\.reviewStatus\.pending\)/,
-  'Share review gate should only accept generated poster, PDF, or study report artifacts that remain audit-required and private'
+  /getReviewableShareArtifacts\(\)\s*\{[\s\S]*return safeArray\(this\.shareArtifacts\)[\s\S]*\.map\(artifact => this\.sanitizeShareArtifactForReview\(artifact\)\)[\s\S]*\.filter\(Boolean\)/,
+  'Share review gate should resanitize cached generated artifacts before operations review submission'
+)
+
+assert.match(
+  share,
+  /sanitizeShareArtifactForReview\(artifact = \{\}\)\s*\{[\s\S]*if \(!artifact \|\| !\['poster', 'pdf', 'study'\]\.includes\(artifact\.assetType\)\) return null[\s\S]*artifact\.auditRequired !== true[\s\S]*artifact\.publishStatus !== 'private'[\s\S]*artifact\.reviewStatus !== XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publicPreview:\s*this\.createSharePublicPreview\(\{ publicPreview: artifact\.publicPreview \}\)[\s\S]*reviewEvidencePolicy:\s*\{[\s\S]*rawEvidenceUse:\s*'local-ops-review-only'[\s\S]*publicPreviewUse:\s*'share-review-preview-only'[\s\S]*exactLocationPolicy:\s*'raw-review-only'[\s\S]*photoPathPolicy:\s*'raw-review-only'[\s\S]*auditRequired:\s*true[\s\S]*publishStatus:\s*'private'[\s\S]*publishStatus:\s*'private'[\s\S]*visibilityLabel:\s*'待审核 · 未公开'/,
+  'Share review gate should rebuild cached artifacts as private audit-only objects with sanitized public preview'
 )
 
 assert.match(
@@ -102,6 +109,12 @@ assert.doesNotMatch(
   share.match(/createShareArtifact\(assetType\)[\s\S]*?\n\t\t\},\n\t\ttoggleShareSetting/)?.[0] || '',
   /materials:\s*journeyDraft\.materials|routeCheckins:\s*journeyDraft\.routeCheckins|recordingSession:\s*journeyDraft\.recordingSession|trackPoints|stayPoints|filteredTrackPoints|latitude|longitude|imagePath:\s*|photoPath:\s*/,
   'Share page generated artifacts should not embed raw journey materials, route check-ins, recording sessions, tracks, coordinates, or local photo paths'
+)
+
+assert.doesNotMatch(
+  share.match(/sanitizeShareArtifactForReview\(artifact = \{\}\)[\s\S]*?\n\t\t\},\n\t\tgetReviewableShareArtifacts/)?.[0] || '',
+  /materials:\s*artifact\.materials|routeCheckins:\s*artifact\.routeCheckins|recordingSession:\s*artifact\.recordingSession|trackPoints|stayPoints|filteredTrackPoints|latitude|longitude|imagePath:\s*|photoPath:\s*|sources:\s*artifact\.sources|candidateConfirmationAudit|selectedCandidateConfidence/,
+  'Share review sanitizer should not pass raw cached materials, routes, tracks, coordinates, local photo paths, source payloads, or candidate audit metadata into review submissions'
 )
 
 assert.doesNotMatch(

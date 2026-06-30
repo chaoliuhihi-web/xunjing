@@ -295,12 +295,49 @@ export default {
 			if (!Object.prototype.hasOwnProperty.call(this.shareSettingState, key)) return
 			this.shareSettingState[key] = !this.shareSettingState[key]
 		},
+		sanitizeShareArtifactForReview(artifact = {}) {
+			if (!artifact || !['poster', 'pdf', 'study'].includes(artifact.assetType)) return null
+			if (artifact.auditRequired !== true
+				|| artifact.publishStatus !== 'private'
+				|| artifact.reviewStatus !== XICHENG_REGION_CONFIG.reviewStatus.pending) {
+				return null
+			}
+			const auditSummary = this.createShareAuditSummary(artifact)
+			return {
+				artifactId: artifact.artifactId || '',
+				assetType: artifact.assetType,
+				assetLabel: artifact.assetLabel || (artifact.assetType === 'pdf' ? 'PDF 纪念册' : artifact.assetType === 'study' ? '亲子研学报告' : '分享海报'),
+				templateCode: artifact.templateCode || (artifact.assetType === 'pdf' ? 'xicheng-memorial-pdf-v1' : artifact.assetType === 'study' ? 'xicheng-study-report-v1' : 'xicheng-share-poster-v1'),
+				backgroundImage: artifact.backgroundImage || this.sharePosterBackground,
+				stampImage: artifact.stampImage || this.region.visualAssets.passportStamp,
+				regionCode: artifact.regionCode || XICHENG_REGION_CONFIG.regionCode,
+				packageCode: artifact.packageCode || XICHENG_REGION_CONFIG.packageCode,
+				sceneCode: artifact.sceneCode || XICHENG_REGION_CONFIG.sceneCode,
+				sourceChannel: artifact.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
+				companionName: artifact.companionName || XICHENG_REGION_CONFIG.companionName,
+				draftExcerpt: String(artifact.draftExcerpt || '').slice(0, 80),
+				publicPreview: this.createSharePublicPreview({ publicPreview: artifact.publicPreview }),
+				reviewEvidencePolicy: {
+					rawEvidenceUse: 'local-ops-review-only',
+					publicPreviewUse: 'share-review-preview-only',
+					exactLocationPolicy: 'raw-review-only',
+					photoPathPolicy: 'raw-review-only',
+					auditRequired: true,
+					publishStatus: 'private'
+				},
+				auditRequired: true,
+				reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
+				publishStatus: 'private',
+				visibilityLabel: '待审核 · 未公开',
+				privacySettings: safeObject(artifact.privacySettings),
+				createdAt: artifact.createdAt || '',
+				...auditSummary
+			}
+		},
 		getReviewableShareArtifacts() {
 			return safeArray(this.shareArtifacts)
-				.filter(artifact => artifact && ['poster', 'pdf', 'study'].includes(artifact.assetType)
-					&& artifact.auditRequired === true
-					&& artifact.publishStatus === 'private'
-					&& artifact.reviewStatus === XICHENG_REGION_CONFIG.reviewStatus.pending)
+				.map(artifact => this.sanitizeShareArtifactForReview(artifact))
+				.filter(Boolean)
 		},
 		hasReviewableShareArtifact() {
 			return this.getReviewableShareArtifacts().length > 0
