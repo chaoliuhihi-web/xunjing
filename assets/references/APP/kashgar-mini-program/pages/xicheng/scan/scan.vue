@@ -73,6 +73,7 @@ import {
 	resolveXichengTextTrigger
 } from '@/request/xunjing/trigger.js'
 import { createXichengRouteOutputValue, decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
+import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { isXunjingUserCancelled } from '@/request/xunjing/userCancel.js'
 
 const encodeRouteValue = (value = '') => createXichengRouteOutputValue(value, { platform: process.env.UNI_PLATFORM })
@@ -227,7 +228,12 @@ export default {
 				companionName: trigger.companionName || this.routeContext.companionName,
 				tenantId: this.routeContext.tenantId
 			}
-			uni.setStorageSync(this.region.storageKey, result)
+			const unsafeSafetyStatus = isXichengUnsafeSafetyStatus(normalizeXichengSafetyStatus(result.safetyStatus))
+			if (unsafeSafetyStatus) {
+				uni.removeStorageSync(this.region.storageKey)
+			} else {
+				uni.setStorageSync(this.region.storageKey, result)
+			}
 			uni.navigateTo({
 				url: `/pages/xicheng/scan-result/scan-result?source=${encodeRouteValue(source)}&regionCode=${encodeRouteValue(result.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(result.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(result.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(result.sourceChannel || this.region.sourceChannel)}&poiCode=${encodeRouteValue(result.poiCode || '')}&poiName=${encodeRouteValue(result.poiName || '')}&companionName=${encodeRouteValue(result.companionName || this.region.companionName)}&safetyStatus=${encodeRouteValue(result.safetyStatus || '')}`
 			})

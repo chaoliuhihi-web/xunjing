@@ -530,8 +530,14 @@ export default {
 				sourceChannel: trigger.sourceChannel || this.region.sourceChannel,
 				companionName: this.region.companionName
 			}
-			uni.setStorageSync(this.region.storageKey, result)
-			this.recentRecognition = result
+			const unsafeSafetyStatus = isXichengUnsafeSafetyStatus(normalizeXichengSafetyStatus(result.safetyStatus))
+			if (unsafeSafetyStatus) {
+				uni.removeStorageSync(this.region.storageKey)
+				this.recentRecognition = null
+			} else {
+				uni.setStorageSync(this.region.storageKey, result)
+				this.recentRecognition = result
+			}
 			uni.navigateTo({
 				url: `/pages/xicheng/scan-result/scan-result?source=${encodeRouteValue(source)}&regionCode=${encodeRouteValue(result.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(result.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(result.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(result.sourceChannel || this.region.sourceChannel)}&poiCode=${encodeRouteValue(result.poiCode || '')}&poiName=${encodeRouteValue(result.poiName || '')}&companionName=${encodeRouteValue(result.companionName || this.region.companionName)}&safetyStatus=${encodeRouteValue(result.safetyStatus || '')}`
 			})
