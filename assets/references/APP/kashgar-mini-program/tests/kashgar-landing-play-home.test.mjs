@@ -61,7 +61,7 @@ for (const required of [
 
 assert.match(
   indexPage,
-  /<view v-if="useKashgarLocalContent && showKashgarLanding" class="kashgar-home kashgar-landing-entry">/,
+  /<view v-else-if="useKashgarLocalContent && showKashgarLanding" class="kashgar-home kashgar-landing-entry">/,
   'Landing screen should be a local branch inside the existing index page'
 )
 

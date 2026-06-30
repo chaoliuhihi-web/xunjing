@@ -1,6 +1,13 @@
 <template>
 	<view class="container">
-		<view v-if="useKashgarLocalContent && showKashgarLanding" class="kashgar-home kashgar-landing-entry">
+		<view v-if="isRedirectingToXicheng" class="xicheng-legacy-redirect">
+			<view class="xicheng-legacy-redirect-card">
+				<text class="xicheng-legacy-redirect-kicker">北京西城</text>
+				<text class="xicheng-legacy-redirect-title">西城 AI 旅伴</text>
+				<text class="xicheng-legacy-redirect-copy">正在进入小京讲解与路线服务</text>
+			</view>
+		</view>
+		<view v-else-if="useKashgarLocalContent && showKashgarLanding" class="kashgar-home kashgar-landing-entry">
 			<view class="kashgar-landing-nav">
 				<view class="kashgar-landing-brand">
 					<view class="kashgar-landing-logo">✦</view>
@@ -464,6 +471,7 @@ export default {
 	data() {
 			return {
 			useKashgarLocalContent: KASHGAR_LOCAL_CONTENT_ENABLED,
+			isRedirectingToXicheng: false,
 			showKashgarLanding: false,
 			showKashgarPlayHome: false,
 			kashgarCityLabel: '喀什',
@@ -562,18 +570,35 @@ export default {
 				|| options.mode === 'play'
 				|| Boolean(options.dramaId)
 		},
-		redirectLegacyIndexToXicheng(options = {}) {
-			if (this.shouldKeepKashgarLegacyIndex(options)) return false
-			const scan = this.resolveXunjingLaunchScene(options)
-			if (scan.sceneCode || scan.packageCode) return false
-			setTimeout(() => {
+		redirectToXichengHome() {
+			const runWindowFallback = () => {
 				if (typeof window !== 'undefined' && window.location && window.location.replace) {
-					window.location.replace(`#${XICHENG_HOME_ROUTE}`)
-					return
+					const origin = `${window.location.origin || ''}${window.location.pathname || ''}`
+					window.location.replace(`${origin}#${XICHENG_HOME_ROUTE}`)
 				}
+			}
+			if (typeof uni !== 'undefined' && uni.reLaunch) {
 				uni.reLaunch({
-					url: XICHENG_HOME_ROUTE
+					url: XICHENG_HOME_ROUTE,
+					fail: runWindowFallback
 				})
+				return
+			}
+			runWindowFallback()
+		},
+		redirectLegacyIndexToXicheng(options = {}) {
+			if (this.shouldKeepKashgarLegacyIndex(options)) {
+				this.isRedirectingToXicheng = false
+				return false
+			}
+			const scan = this.resolveXunjingLaunchScene(options)
+			if (scan.sceneCode || scan.packageCode) {
+				this.isRedirectingToXicheng = false
+				return false
+			}
+			this.isRedirectingToXicheng = true
+			setTimeout(() => {
+				this.redirectToXichengHome()
 			}, 0)
 			return true
 		},
@@ -1597,6 +1622,43 @@ export default {
 	padding: 0 0 20px 0;
 	background-color: #F5F1EE;
 	min-height: 100vh;
+}
+
+.xicheng-legacy-redirect {
+	min-height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 64rpx 40rpx;
+	box-sizing: border-box;
+	background: linear-gradient(180deg, #F8F1E4 0%, #EEF5EF 100%);
+	color: #183B34;
+}
+
+.xicheng-legacy-redirect-card {
+	width: 100%;
+	max-width: 560rpx;
+	display: flex;
+	flex-direction: column;
+	gap: 16rpx;
+	align-items: center;
+	text-align: center;
+}
+
+.xicheng-legacy-redirect-kicker {
+	font-size: 24rpx;
+	color: #8A6A3D;
+}
+
+.xicheng-legacy-redirect-title {
+	font-size: 44rpx;
+	font-weight: 700;
+}
+
+.xicheng-legacy-redirect-copy {
+	font-size: 26rpx;
+	color: #537166;
+	line-height: 1.5;
 }
 
 .custom-nav {

@@ -22,8 +22,26 @@ assert.match(
 
 assert.match(
   index,
-  /redirectLegacyIndexToXicheng\(options = \{\}\)[\s\S]*this\.shouldKeepKashgarLegacyIndex\(options\)[\s\S]*this\.resolveXunjingLaunchScene\(options\)[\s\S]*scan\.sceneCode \|\| scan\.packageCode[\s\S]*setTimeout\(\(\) => \{[\s\S]*typeof window !== 'undefined'[\s\S]*window\.location\.replace\(`#\$\{XICHENG_HOME_ROUTE\}`\)[\s\S]*uni\.reLaunch\(\{[\s\S]*url:\s*XICHENG_HOME_ROUTE/,
-  'Opening /pages/index/index without an explicit Kashgar or scan context should route users back to the Xicheng P0 home after the H5 route is ready, with a browser hash fallback'
+  /redirectToXichengHome\(\)[\s\S]*const runWindowFallback[\s\S]*window\.location\.replace\(`\$\{origin\}#\$\{XICHENG_HOME_ROUTE\}`\)[\s\S]*uni\.reLaunch\(\{[\s\S]*url:\s*XICHENG_HOME_ROUTE[\s\S]*fail:\s*runWindowFallback[\s\S]*redirectLegacyIndexToXicheng\(options = \{\}\)[\s\S]*this\.shouldKeepKashgarLegacyIndex\(options\)[\s\S]*this\.resolveXunjingLaunchScene\(options\)[\s\S]*scan\.sceneCode \|\| scan\.packageCode[\s\S]*setTimeout\(\(\) => \{[\s\S]*this\.redirectToXichengHome\(\)/,
+  'Opening /pages/index/index without an explicit Kashgar or scan context should route users back to the Xicheng P0 home through the Uni router, with a full H5 hash fallback'
+)
+
+assert.match(
+  index,
+  /<view v-if="isRedirectingToXicheng" class="xicheng-legacy-redirect"/,
+  'Default legacy index opens should show a Xicheng transition state instead of exposing the Kashgar template before redirect'
+)
+
+assert.match(
+  index,
+  /isRedirectingToXicheng:\s*false[\s\S]*redirectLegacyIndexToXicheng\(options = \{\}\)[\s\S]*this\.isRedirectingToXicheng = false[\s\S]*return false[\s\S]*this\.isRedirectingToXicheng = false[\s\S]*return false[\s\S]*this\.isRedirectingToXicheng = true/,
+  'Legacy index should only suppress Kashgar content while the default Xicheng redirect is active, preserving explicit Kashgar and scan contexts'
+)
+
+assert.match(
+  index,
+  /<text class="xicheng-legacy-redirect-title">西城 AI 旅伴<\/text>[\s\S]*\.xicheng-legacy-redirect\s*\{/,
+  'The legacy redirect placeholder should be visibly branded as the Xicheng AI companion'
 )
 
 assert.match(
