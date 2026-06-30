@@ -96,6 +96,6 @@ assert.match(
 
 assert.match(
   scanResult,
-  /const cachedBlockedByProductionFixture = this\.isBlockedDevelopmentRecognitionCache\(cached\)[\s\S]*if \(cachedBlockedByProductionFixture\) \{[\s\S]*uni\.removeStorageSync\(XICHENG_REGION_CONFIG\.storageKey\)[\s\S]*const selectedCached = cachedBlockedByProductionFixture[\s\S]*\? null[\s\S]*: selectCachedRecognitionForRoute\(cached, options\)/,
-  'Xicheng recognition result page should clear stale development fixture cache before normalizing the result'
+  /const mergedRouteOptions = mergeXichengScanResultRouteOptions\(options\)[\s\S]*const routeOptions = normalizeRouteOptions\(mergedRouteOptions\)[\s\S]*const routeUnsafeSafetyStatus = isXichengUnsafeSafetyStatus\(routeOptions\.safetyStatus\)[\s\S]*const cachedBlockedByProductionFixture = this\.isBlockedDevelopmentRecognitionCache\(cached\)[\s\S]*if \(cachedBlockedByProductionFixture\) \{[\s\S]*uni\.removeStorageSync\(XICHENG_REGION_CONFIG\.storageKey\)[\s\S]*const selectedCached = cachedBlockedByProductionFixture \|\| routeUnsafeSafetyStatus[\s\S]*\? null[\s\S]*: selectCachedRecognitionForRoute\(cached, mergedRouteOptions\)/,
+  'Xicheng recognition result page should clear stale development fixture cache and unsafe route cache before normalizing the result'
 )
