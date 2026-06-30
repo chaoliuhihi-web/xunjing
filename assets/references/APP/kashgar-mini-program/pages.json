@@ -12,6 +12,17 @@
 			}
 		},
 		{
+			"path": "pages/xicheng/scan/scan",
+			"style": {
+				"navigationBarTitleText": "扫一扫",
+				"navigationStyle": "custom",
+				"mp-weixin": {
+					"navigationStyle": "custom",
+					"homeButton": false
+				}
+			}
+		},
+		{
 			"path": "pages/index/index",
 			"style": {
 				"navigationBarTitleText": "首页",

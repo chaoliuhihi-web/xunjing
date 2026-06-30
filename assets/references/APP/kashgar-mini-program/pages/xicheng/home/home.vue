@@ -368,25 +368,8 @@ export default {
 		},
 		startScanRecognition() {
 			if (this.recognizing) return
-			if (!uni.scanCode) {
-				this.handleRecognitionUnavailable('scan')
-				return
-			}
-			uni.scanCode({
-				success: (res) => {
-					const scannedText = res.result || res.path || ''
-					if (!scannedText) {
-						this.handleRecognitionUnavailable('scan')
-						return
-					}
-					this.resolveTextAndOpenResult(scannedText, 'scan')
-				},
-				fail: (err) => {
-					if (isXunjingUserCancelled(err)) {
-						return
-					}
-					this.handleRecognitionUnavailable('scan')
-				}
+			uni.navigateTo({
+				url: `/pages/xicheng/scan/scan?regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&companionName=${encodeRouteValue(this.region.companionName)}`
 			})
 		},
 		async startOcrRecognition() {

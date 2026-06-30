@@ -6,6 +6,7 @@ const root = process.cwd()
 const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
 
 const home = read('pages', 'xicheng', 'home', 'home.vue')
+const scan = read('pages', 'xicheng', 'scan', 'scan.vue')
 const triggerRequest = read('request', 'xunjing', 'trigger.js')
 
 assert.doesNotMatch(
@@ -40,8 +41,14 @@ assert.doesNotMatch(
 
 assert.match(
   home,
-  /startScanRecognition\(\)\s*\{[\s\S]*if\s*\(this\.recognizing\)\s*return[\s\S]*uni\.scanCode/,
-  'Scan recognition should ignore duplicate quick-card taps while another recognition flow is already running'
+  /startScanRecognition\(\)\s*\{[\s\S]*if\s*\(this\.recognizing\)\s*return[\s\S]*uni\.navigateTo\(\{[\s\S]*\/pages\/xicheng\/scan\/scan\?/,
+  'Home scan recognition should ignore duplicate quick-card taps and open the dedicated single-entry scan page'
+)
+
+assert.match(
+  scan,
+  /startAutoRecognition\(\)\s*\{[\s\S]*if\s*\(this\.recognizing\)\s*return[\s\S]*uni\.scanCode/,
+  'Scan page auto recognition should ignore duplicate taps while another recognition flow is already running'
 )
 
 const quickCardDisabledBindings = home.match(/quick-card-disabled': recognizing/g) || []
@@ -63,9 +70,9 @@ assert.match(
 )
 
 assert.match(
-  home,
-  /startScanRecognition\(\)[\s\S]*fail:\s*\(err\)\s*=>\s*\{[\s\S]*if\s*\(isXunjingUserCancelled\(err\)\)\s*\{[\s\S]*return[\s\S]*this\.handleRecognitionUnavailable\('scan'\)/,
-  'Scan recognition should ignore normal scanner cancellation and only surface unavailable state for non-cancel failures'
+  scan,
+  /startAutoRecognition\(\)[\s\S]*fail:\s*\(err\)\s*=>\s*\{[\s\S]*if\s*\(isXunjingUserCancelled\(err\)\) return[\s\S]*this\.chooseAutoRecognitionImage\(\)/,
+  'Scan page should ignore normal scanner cancellation and only fall through to image recognition for non-cancel scanner failures'
 )
 
 assert.match(
@@ -125,7 +132,13 @@ assert.match(
 assert.match(
   home,
   /resolveTextAndOpenResult\(text = '', source = 'ocr'\)[\s\S]*catch \(error\) \{[\s\S]*this\.handleRecognitionServiceFailure\(source, error\)/,
-  'Text and scan recognition should fail closed through the shared service-unavailable handler'
+  'Text recognition should fail closed through the shared service-unavailable handler'
+)
+
+assert.match(
+  scan,
+  /resolveTextAndOpenResult\(text = '', source = 'scan'\)[\s\S]*catch \(error\) \{[\s\S]*this\.handleRecognitionServiceFailure\(source, error\)/,
+  'Dedicated scan page text recognition should fail closed through the shared service-unavailable handler'
 )
 
 assert.match(
@@ -153,7 +166,7 @@ assert.match(
 )
 
 assert.doesNotMatch(
-  `${home}\n${triggerRequest}`,
+  `${home}\n${scan}\n${triggerRequest}`,
   /COZE_CONFIG|QWEN_API_KEY|DASHSCOPE_API_KEY|Authorization['"]?\s*:\s*`Bearer|pat_[A-Za-z0-9]{20,}|https:\/\/api\.coze\.cn|sk-[A-Za-z0-9]{20,}/,
   'Production-safe recognition fallback work should not introduce client-side AI secrets'
 )

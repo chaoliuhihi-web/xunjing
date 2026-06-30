@@ -3,6 +3,7 @@ const AUTH_PAGE = '/pagesLogin/auth/auth'
 const AUTH_ROUTE = 'pagesLogin/auth/auth'
 const PUBLIC_ROUTES = [
 	'pages/xicheng/home/home',
+	'pages/xicheng/scan/scan',
 	'pages/xicheng/scan-result/scan-result',
 	'pages/xicheng/route-detail/route-detail',
 	'pages/xicheng/travelogue/travelogue',
