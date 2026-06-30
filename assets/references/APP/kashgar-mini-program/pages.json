@@ -100,6 +100,61 @@
 			}
 		},
 		{
+			"path": "pages/xicheng/footprint/footprint",
+			"style": {
+				"navigationBarTitleText": "我的西城足迹",
+				"navigationStyle": "custom",
+				"mp-weixin": {
+					"navigationStyle": "custom",
+					"homeButton": false
+				}
+			}
+		},
+		{
+			"path": "pages/xicheng/passport/passport",
+			"style": {
+				"navigationBarTitleText": "路线护照",
+				"navigationStyle": "custom",
+				"mp-weixin": {
+					"navigationStyle": "custom",
+					"homeButton": false
+				}
+			}
+		},
+		{
+			"path": "pages/xicheng/share/share",
+			"style": {
+				"navigationBarTitleText": "分享纪念",
+				"navigationStyle": "custom",
+				"mp-weixin": {
+					"navigationStyle": "custom",
+					"homeButton": false
+				}
+			}
+		},
+		{
+			"path": "pages/xicheng/works/works",
+			"style": {
+				"navigationBarTitleText": "我的作品",
+				"navigationStyle": "custom",
+				"mp-weixin": {
+					"navigationStyle": "custom",
+					"homeButton": false
+				}
+			}
+		},
+		{
+			"path": "pages/xicheng/ops-report/ops-report",
+			"style": {
+				"navigationBarTitleText": "运营报告",
+				"navigationStyle": "custom",
+				"mp-weixin": {
+					"navigationStyle": "custom",
+					"homeButton": false
+				}
+			}
+		},
+		{
 			"path": "pages/xicheng/travelogue/travelogue",
 			"style": {
 				"navigationBarTitleText": "西城游记草稿",

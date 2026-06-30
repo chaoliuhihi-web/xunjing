@@ -14,7 +14,12 @@ const pageBudgets = [
   'pages/xicheng/recording/recording.vue',
   'pages/xicheng/scan-result/scan-result.vue',
   'pages/xicheng/home/home.vue',
-  'pages/xicheng/inspiration/inspiration.vue'
+  'pages/xicheng/inspiration/inspiration.vue',
+  'pages/xicheng/footprint/footprint.vue',
+  'pages/xicheng/passport/passport.vue',
+  'pages/xicheng/share/share.vue',
+  'pages/xicheng/works/works.vue',
+  'pages/xicheng/ops-report/ops-report.vue'
 ]
 
 const lineCounts = pageBudgets.map((relativePath) => {
