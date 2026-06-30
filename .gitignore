@@ -24,6 +24,7 @@ node_modules/
 assets/brand/LOGO/ChatGPT Image*.png
 assets/brand/LOGO/newdesign/ChatGPT Image*.png
 assets/references/APP/参考图/
+assets/references/APP/xicheng-multimodal/design-mockups/p0-ui-approved-*/
 
 # Frontend build and test outputs
 dist/
