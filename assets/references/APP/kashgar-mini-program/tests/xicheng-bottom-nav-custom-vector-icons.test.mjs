@@ -11,21 +11,28 @@ const home = read('pages', 'xicheng', 'home', 'home.vue')
 
 for (const required of [
   'TAB_VECTOR_ICON_NAMES',
+  "const TAB_VECTOR_ICON_NAMES = Object.freeze(['explore'])",
   'usesCustomTabVectorIcon',
   'xicheng-tab-vector',
   'xicheng-tab-vector-explore',
-  'xicheng-tab-vector-routes',
-  'xicheng-tab-vector-favorite',
-  'xicheng-tab-vector-mine',
-  'xicheng-tab-vector-active'
+  'xicheng-tab-vector-active',
+  "routes: Object.freeze({ default: 'map', active: 'map-filled' })",
+  "favorite: Object.freeze({ default: 'star', active: 'star-filled' })",
+  "mine: Object.freeze({ default: 'person', active: 'person-filled' })"
 ]) {
-  assert.ok(iconComponent.includes(required), `Xicheng tab icons should use the unified custom vector token ${required}`)
+  assert.ok(iconComponent.includes(required), `Xicheng tab icons should use the approved token ${required}`)
 }
 
 assert.match(
   iconComponent,
   /<view\s+v-if="usesCustomTabVectorIcon"[\s\S]*:class="\[[\s\S]*'xicheng-tab-vector'[\s\S]*`xicheng-tab-vector-\$\{name\}`[\s\S]*'xicheng-tab-vector-active'[\s\S]*<uni-icons\s+v-else/,
   'Tab icons should render custom vector shapes first and only fall back to uni-icons outside the tab vector set'
+)
+
+assert.doesNotMatch(
+  iconComponent,
+  /xicheng-tab-vector-(routes|favorite|mine)|xicheng-tab-vector-star|xicheng-tab-vector-person/,
+  'Only the Xicheng heritage explore mark should be custom; map, favorite, and mine should stay on the cleaner uni-icons line set'
 )
 
 assert.doesNotMatch(

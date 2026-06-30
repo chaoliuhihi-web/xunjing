@@ -21,10 +21,43 @@ for (const required of [
   ':src="traveloguePreviewImage"',
   '在白塔下遇见西城',
   '继续编辑',
-  'generateTravelogueDraft'
+  'generateTravelogueDraft',
+  "travelogueMode: 'draft'",
+  'normalizeTravelogueMode',
+  'isTravelogueEditMode',
+  'travelogue-editor-topbar',
+  'travelogue-editor-back',
+  'travelogue-editor-more',
+  '<text class="travelogue-editor-title">编辑游记</text>',
+  'travelogueHeroTitle',
+  'travelogueHeroSubtitle',
+  '<view v-if="!isTravelogueEditMode" :class="[\'hero\'',
+  'v-if="isTravelogueEditMode"',
+  'travelogue-editor-reference-stack',
+  '编辑游记',
+  '小京已生成草稿，可继续修改',
+  '发布前提交审核'
 ]) {
   assert.ok(travelogue.includes(required), `Xicheng travelogue visual shell should include ${required}`)
 }
+
+assert.match(
+  travelogue,
+  /normalizeTravelogueMode\s*=\s*\(mode = 'draft'\) =>[\s\S]*\['draft', 'edit', 'record'\]\.includes\(normalizedMode\)/,
+  'Travelogue page should normalize route mode so mode=edit has a stable approved reference state'
+)
+
+assert.match(
+  travelogue,
+  /this\.travelogueMode\s*=\s*normalizeTravelogueMode\(options\.mode\)/,
+  'Travelogue onLoad should persist route mode before rendering the approved draft or edit reference UI'
+)
+
+assert.match(
+  travelogue,
+  /goBack\(\)[\s\S]*uni\.navigateBack[\s\S]*uni\.reLaunch\(\{\s*url:\s*'\/pages\/xicheng\/home\/home'/,
+  'Travelogue edit topbar should return to the previous page or the xicheng home fallback'
+)
 
 assert.match(
   travelogue,

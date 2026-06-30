@@ -1,23 +1,33 @@
 <template>
 	<view class="xicheng-travelogue xicheng-designed-page xicheng-bottom-safe xicheng-travelogue-shell">
-		<view class="hero xicheng-paper-card xicheng-travelogue-hero">
+		<view v-if="isTravelogueEditMode" class="travelogue-editor-topbar">
+			<view class="travelogue-editor-back" @click="goBack">
+				<uni-icons type="left" size="24" color="#102F29" />
+			</view>
+			<text class="travelogue-editor-title">编辑游记</text>
+			<view class="travelogue-editor-more" @click="openTravelogueActions">
+				<uni-icons type="more-filled" size="24" color="#102F29" />
+			</view>
+		</view>
+
+		<view v-if="!isTravelogueEditMode" :class="['hero', 'xicheng-paper-card', 'xicheng-travelogue-hero']">
 			<view class="travelogue-hero-main">
 				<view class="travelogue-hero-copy">
 					<text class="eyebrow">{{ region.cityName }} P0</text>
-					<text class="title">西城 Citywalk 记录</text>
-					<text class="subtitle">把识别、路线护照、亲子研学任务和素材时间线整理成可编辑游记草稿。</text>
+					<text class="title">{{ travelogueHeroTitle }}</text>
+					<text class="subtitle">{{ travelogueHeroSubtitle }}</text>
 				</view>
-				<view class="travelogue-companion">
+				<view v-if="!isTravelogueEditMode" class="travelogue-companion">
 					<image class="travelogue-companion-avatar" :src="region.companionAvatar" mode="aspectFit" />
 					<view class="travelogue-companion-bubble xicheng-companion-bubble">
 						<text class="companion-name">{{ region.companionName }}</text>
-						<text class="companion-line">这些片段可以生成你的游记</text>
+						<text class="companion-line">{{ travelogueCompanionLine }}</text>
 					</view>
 				</view>
 			</view>
 		</view>
 
-		<view class="travelogue-generation-hero xicheng-paper-card">
+		<view v-if="!isTravelogueEditMode" class="travelogue-generation-hero xicheng-paper-card">
 			<view class="travelogue-generation-head">
 				<image class="travelogue-generation-avatar" :src="region.companionAvatar" mode="aspectFit" />
 				<view class="travelogue-generation-bubble xicheng-companion-bubble">
@@ -71,6 +81,23 @@
 			</view>
 			<text class="travelogue-ai-notice">内容由 AI 辅助生成，请注意核实重要信息</text>
 		</view>
+
+		<xicheng-travelogue-editor-share
+			v-if="isTravelogueEditMode"
+			class="travelogue-editor-reference-stack"
+			:region="region"
+			:editable-title="editableTravelogueTitle"
+			:photo-cards="editorPhotoCards"
+			:route-items="editorRouteItems"
+			:feeling-text="editorFeelingText"
+			:xiaojing-supplement="editorXiaojingSupplement"
+			:tag-chips="travelogueTagChips"
+			@update:title="editableTravelogueTitle = $event"
+			@save="saveDraft"
+			@generate-share="generatePoster"
+			@publish="publishTravelogue"
+			@add-photo="addPhotoMaterial"
+		/>
 
 		<view class="stats-grid">
 			<view class="stat-card xicheng-paper-card">
@@ -312,6 +339,8 @@
 		</view>
 
 		<xicheng-travelogue-editor-share
+			v-if="!isTravelogueEditMode"
+			class="travelogue-secondary-editor"
 			:region="region"
 			:editable-title="editableTravelogueTitle"
 			:photo-cards="editorPhotoCards"
@@ -323,6 +352,7 @@
 			@save="saveDraft"
 			@generate-share="generatePoster"
 			@publish="publishTravelogue"
+			@add-photo="addPhotoMaterial"
 		/>
 
 	<view class="action-grid xicheng-travelogue-actions">
@@ -458,6 +488,11 @@ export const XICHENG_PLANNING_ONLY_MATERIAL_TYPES = Object.freeze([
 const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TITLE = '等待你的西城素材'
 const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TEXT = '请先通过识别、开始记录、补充照片或现场备注积累真实素材，再预览西城游记。小京会基于已审核来源、现场照片、路线轨迹和用户备注整理内容。'
 const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TAGS = Object.freeze(['待补充素材', '来源审核后生成'])
+
+export const normalizeTravelogueMode = (mode = 'draft') => {
+	const normalizedMode = String(mode || 'draft').trim()
+	return ['draft', 'edit', 'record'].includes(normalizedMode) ? normalizedMode : 'draft'
+}
 
 export const createXichengTraveloguePreviewExcerpt = (text = '', limit = 88) => {
 	const normalizedText = String(text || '').replace(/\s+/g, ' ').trim()
@@ -777,6 +812,7 @@ export default {
 			remarkInput: '',
 			editableTravelogueTitle: '在白塔下遇见西城',
 			travelogueTagChips: ['白塔寺', '什刹海', '胡同漫步'],
+			travelogueMode: 'draft',
 			activeTravelogueStyle: 'citywalk',
 			travelogueStyleOptions: [
 				{ key: 'family', title: '亲子研学' },
@@ -793,6 +829,20 @@ export default {
 		}
 	},
 	computed: {
+		isTravelogueEditMode() {
+			return this.travelogueMode === 'edit'
+		},
+		travelogueHeroTitle() {
+			return this.isTravelogueEditMode ? '编辑游记' : '生成西城游记'
+		},
+		travelogueHeroSubtitle() {
+			return this.isTravelogueEditMode
+				? '小京已生成草稿，可继续修改照片、路线、感受、来源补充和游记标签，发布前提交审核。'
+				: '把识别、路线护照、亲子研学任务和素材时间线整理成可编辑游记草稿。'
+		},
+		travelogueCompanionLine() {
+			return '这些片段可以生成你的游记'
+		},
 		materialCount() {
 			return this.materials.length
 		},
@@ -1137,7 +1187,20 @@ export default {
 		this.loadJourney(options)
 	},
 	methods: {
+		goBack() {
+			uni.navigateBack({
+				delta: 1,
+				fail: () => uni.reLaunch({ url: '/pages/xicheng/home/home' })
+			})
+		},
+		openTravelogueActions() {
+			uni.showToast({
+				title: '已在下方提供分享与审核操作',
+				icon: 'none'
+			})
+		},
 		async loadJourney(options = {}) {
+			this.travelogueMode = normalizeTravelogueMode(options.mode)
 			const storedMaterials = uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey)
 			const importedRoute = uni.getStorageSync(XICHENG_REGION_CONFIG.inspirationStorageKey)
 			const storedReviewSubmissions = uni.getStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey)

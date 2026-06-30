@@ -20,9 +20,14 @@ for (const required of [
 for (const required of [
   'travelogue-editor-share-panel',
   '编辑游记',
+  'editor-title-card',
+  '照片 ({{ photoCards.length }}/9)',
+  'editor-route-map-card',
   '今日路线',
   '我的感受',
   '小京补充',
+  '资料来源：已核实',
+  '+ 添加标签',
   '保存草稿',
   '生成分享图',
   '发布'
@@ -32,7 +37,7 @@ for (const required of [
 
 assert.match(
   editorShare,
-  /name:\s*'XichengTravelogueEditorShare'[\s\S]*emits:\s*\['update:title', 'save', 'generate-share', 'publish'\]/,
+  /name:\s*'XichengTravelogueEditorShare'[\s\S]*emits:\s*\['update:title', 'save', 'generate-share', 'publish', 'add-photo'\]/,
   'Travelogue editor share component should expose title update and action events for the parent page'
 )
 

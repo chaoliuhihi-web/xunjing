@@ -9,6 +9,37 @@
 	position: relative;
 }
 
+.travelogue-editor-topbar {
+	display: grid;
+	grid-template-columns: 76rpx minmax(0, 1fr) 76rpx;
+	align-items: center;
+	gap: 18rpx;
+	margin-bottom: 28rpx;
+}
+
+.travelogue-editor-back,
+.travelogue-editor-more {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 76rpx;
+	height: 76rpx;
+	border: 1rpx solid rgba(255, 255, 255, 0.82);
+	border-radius: 999rpx;
+	background: rgba(255, 253, 248, 0.82);
+	box-shadow: 0 12rpx 28rpx rgba(28, 35, 32, 0.1);
+}
+
+.travelogue-editor-title {
+	display: block;
+	min-width: 0;
+	color: #102F29;
+	font-size: 42rpx;
+	line-height: 1.25;
+	font-weight: 800;
+	text-align: center;
+}
+
 .hero,
 .section-card,
 .stat-card {
@@ -33,6 +64,28 @@
 .travelogue-hero-copy {
 	flex: 1;
 	min-width: 0;
+}
+
+.xicheng-travelogue-hero-edit {
+	padding: 34rpx 32rpx;
+	text-align: center;
+}
+
+.xicheng-travelogue-hero-edit .travelogue-hero-main {
+	justify-content: center;
+}
+
+.xicheng-travelogue-hero-edit .travelogue-hero-copy {
+	max-width: 620rpx;
+}
+
+.xicheng-travelogue-hero-edit .title {
+	font-size: 48rpx;
+	letter-spacing: 0;
+}
+
+.xicheng-travelogue-hero-edit .subtitle {
+	color: #6B6255;
 }
 
 .travelogue-companion {
@@ -265,6 +318,11 @@
 	line-height: 1.45;
 	text-align: center;
 	color: #8B7A61;
+}
+
+.travelogue-editor-reference-stack,
+.travelogue-secondary-editor {
+	margin-top: 24rpx;
 }
 
 .eyebrow,
