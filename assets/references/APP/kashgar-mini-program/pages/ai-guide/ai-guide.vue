@@ -2314,6 +2314,11 @@ const uploadAndSendImage = async (filePath) => {
 	}
 }
 
+const isXichengImageSelectionCancel = (err = {}) => {
+	const message = String(err && (err.errMsg || err.message || err) || '').toLowerCase()
+	return message.includes('cancel') || message.includes('取消')
+}
+
 // 选择图片并立即发送
 const chooseImage = () => {
 	if (historyLoading.value || imageUploading.value) return
@@ -2327,6 +2332,9 @@ const chooseImage = () => {
 			uploadAndSendImage(filePath)
 		},
 		fail: (err) => {
+			if (isXichengImageSelectionCancel(err)) {
+				return
+			}
 			console.error('❌ 选择图片失败:', err)
 			uni.showToast({
 				title: '选择图片失败',

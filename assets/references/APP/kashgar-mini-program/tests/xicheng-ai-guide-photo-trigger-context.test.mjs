@@ -6,6 +6,7 @@ const root = process.cwd()
 const aiGuide = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
 const uploadBlock = aiGuide.match(/const uploadAndSendImage\s*=\s*async\s*\(filePath\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const followUpsBlock = aiGuide.match(/const createXunjingTriggerFollowUps\s*=\s*\(trigger\) => \{[\s\S]*?\n\}/)?.[0] || ''
+const chooseImageBlock = aiGuide.match(/const chooseImage\s*=\s*\(\) => \{[\s\S]*?\n\}/)?.[0] || ''
 
 assert.match(
   aiGuide,
@@ -59,4 +60,16 @@ assert.match(
   uploadBlock,
   /catch \(error\) \{[\s\S]*activeRecognitionContext = \{[\s\S]*safetyStatus:\s*'UNAVAILABLE'[\s\S]*sources:\s*\[\][\s\S]*content = XICHENG_UNAVAILABLE_ANSWER/,
   'AI guide photo recognition failure should fail closed with the reviewed-source unavailable answer, no sources, and UNAVAILABLE safetyStatus'
+)
+
+assert.match(
+  aiGuide,
+  /const isXichengImageSelectionCancel\s*=\s*\(err = \{\}\) => \{[\s\S]*message\.includes\('cancel'\)[\s\S]*message\.includes\('取消'\)/,
+  'AI guide should detect normal user cancellation from album or camera selection'
+)
+
+assert.match(
+  chooseImageBlock,
+  /fail:\s*\(err\) => \{[\s\S]*if \(isXichengImageSelectionCancel\(err\)\) \{[\s\S]*return[\s\S]*console\.error/,
+  'AI guide should not log or toast when the user cancels image selection'
 )
