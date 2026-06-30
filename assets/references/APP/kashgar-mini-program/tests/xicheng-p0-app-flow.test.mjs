@@ -123,8 +123,8 @@ for (const required of [
 
 assert.match(
   scanResult,
-  /<button class="[^"]*\bprimary-button\b[^"]*" :disabled="recognitionActionBlocked" @click="askXiaojing\(\)">小京讲解<\/button>/,
-  'Recognition result primary CTA should use the P0 Xiaojing explanation label while preserving the Xiaojing route context'
+  /<view class="result-reference-actions">[\s\S]*<button class="[^"]*\bprimary-button\b[^"]*" :disabled="recognitionActionBlocked" @click="askXiaojing\(\)">开始 AI 讲解<\/button>/,
+  'Recognition result primary CTA should use the approved visual label while preserving the Xiaojing route context'
 )
 
 assert.doesNotMatch(

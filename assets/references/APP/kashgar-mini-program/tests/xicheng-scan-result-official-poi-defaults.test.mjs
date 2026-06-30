@@ -63,8 +63,8 @@ assert.match(
 
 assert.match(
   scanResult,
-  /<text class="meta-value">\{\{ confidenceDisplay \}\}<\/text>\s*<text class="meta-label">\{\{ confidenceMetaLabel \}\}<\/text>/,
-  'Recognition result first meta tile should render the dynamic confidence or official-matching label'
+  /class="confidence-line"[\s\S]*<text>\{\{ confidenceMetaLabel \}\}<\/text>[\s\S]*<text class="confidence-value">\{\{ confidenceDisplay \}\}<\/text>/,
+  'Recognition result confidence line should render the dynamic confidence or official-matching label'
 )
 
 assert.match(

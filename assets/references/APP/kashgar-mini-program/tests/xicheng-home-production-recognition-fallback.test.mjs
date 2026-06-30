@@ -51,10 +51,11 @@ assert.match(
   'Scan page auto recognition should ignore duplicate taps while another recognition flow is already running'
 )
 
-const quickCardDisabledBindings = home.match(/quick-card-disabled': recognizing/g) || []
-assert.ok(
-  quickCardDisabledBindings.length >= 6,
-  'All Xicheng home quick recognition cards should show a disabled busy state while recognition is running'
+const actionCardDisabledBindings = home.match(/'home-action-disabled': recognizing/g) || []
+assert.equal(
+  actionCardDisabledBindings.length,
+  2,
+  'The approved single-entry scan card and Xiaojing card should show a disabled busy state while recognition is running'
 )
 
 assert.match(

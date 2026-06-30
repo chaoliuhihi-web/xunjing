@@ -9,8 +9,8 @@ const template = scanResult.match(/<template>[\s\S]*?<\/template>/)?.[0] || ''
 
 assert.ok(template, 'Recognition result page should have a template')
 
-const resultCardIndex = template.indexOf('class="result-card xicheng-paper-card"')
-const primaryActionsIndex = template.indexOf('class="bottom-actions"')
+const resultCardIndex = template.indexOf('class="result-card xicheng-paper-card xicheng-reference-result-card"')
+const primaryActionsIndex = template.indexOf('class="result-reference-actions"')
 const candidateCardIndex = template.indexOf('class="candidate-card xicheng-paper-card"')
 const routeCardIndex = template.indexOf('class="route-card xicheng-paper-card"')
 const questionCardIndex = template.indexOf('class="question-card xicheng-paper-card"')
@@ -36,6 +36,6 @@ for (const [label, index] of [
 
 assert.match(
   template,
-  /<view class="bottom-actions">[\s\S]*@click="askXiaojing\(\)">小京讲解[\s\S]*@click="startRecording">开始记录/,
-  'Primary actions should keep the Xiaojing explanation and recording CTAs together'
+  /<view class="result-reference-actions">[\s\S]*@click="askXiaojing\(\)">开始 AI 讲解[\s\S]*@click="askXiaojing\(suggestedQuestions\[1\]\)">问问小京/,
+  'Primary actions should match the approved reference with AI explanation and Xiaojing Q&A CTAs'
 )

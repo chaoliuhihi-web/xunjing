@@ -58,8 +58,8 @@ assert.match(
 
 assert.match(
   scanResult,
-  /<text class="meta-value">\{\{ safetyStatusLabel \}\}<\/text>[\s\S]*<text class="meta-label">审核状态<\/text>/,
-  'Recognition result UI should show a human-readable safety audit status near confidence and trigger status'
+  /recognitionSignalItems\(\)[\s\S]*key:\s*'safety'[\s\S]*label:\s*'审核状态'[\s\S]*value:\s*this\.safetyStatusLabel/,
+  'Recognition result UI should show a human-readable safety audit status in the approved recognition signal list'
 )
 
 assert.match(

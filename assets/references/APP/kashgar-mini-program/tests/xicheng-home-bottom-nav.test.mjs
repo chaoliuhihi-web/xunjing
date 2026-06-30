@@ -19,7 +19,7 @@ for (const required of [
 
 assert.match(
   home,
-  /id="xicheng-route-section"[\s\S]*class="route-recommendation-section xicheng-paper-card"/,
+  /id="xicheng-route-section"[\s\S]*class="route-recommendation-section(?:\s+xicheng-paper-card)?"/,
   'Xicheng home bottom navigation should have a stable route-section anchor'
 )
 

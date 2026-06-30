@@ -33,17 +33,17 @@ for (const required of [
   'routeRecommendationFilters: XICHENG_ROUTE_RECOMMENDATION_FILTERS',
   'filteredRecommendedRoutes',
   'route-recommendation-section',
-  'route-filter-bar',
-  'route-filter-chip',
   '路线推荐',
+  '查看全部',
   'v-for="route in filteredRecommendedRoutes.slice(0, 3)"',
-  'recommended-route-card',
-  'route-meta',
-  'route-stops',
-  '查看路线',
-  '加入路线护照',
+  'route-reference-grid',
+  'route-reference-card',
+  'route-reference-image',
+  'route-reference-badge',
+  'getDisplayRouteTitle(route)',
+  'getRouteKeywordLine(route)',
   'openRecommendedRouteDetail(route)',
-  'openRecommendedRoute(route)'
+  'openRecommendedRoute(route = {})'
 ]) {
   assert.ok(home.includes(required), `Xicheng home should expose route recommendation UI ${required}`)
 }

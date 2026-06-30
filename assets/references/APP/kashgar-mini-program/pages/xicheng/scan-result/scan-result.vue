@@ -10,7 +10,7 @@
 			</view>
 		</view>
 
-		<view class="result-card xicheng-paper-card">
+		<view class="result-card xicheng-paper-card xicheng-reference-result-card">
 			<view class="result-hero-layout">
 				<image
 					v-if="resultVisualImage"
@@ -19,10 +19,17 @@
 					mode="aspectFill"
 				/>
 				<view class="result-hero-copy">
-					<text class="label">{{ result.sourceLabel }}</text>
 					<text class="poi-name">{{ result.poiName }}</text>
-					<text class="reason">{{ result.reason || '小京已结合扫码、拍照、OCR和定位信号完成识别。' }}</text>
-					<view class="result-source-signals">
+					<view class="confidence-line">
+						<text>{{ confidenceMetaLabel }}</text>
+						<text class="confidence-value">{{ confidenceDisplay }}</text>
+					</view>
+					<view class="official-match-row">
+						<xicheng-icon name="check" variant="primary" :size="17" />
+						<text>{{ result.requiresUserConfirm ? '待确认官方地标' : '已验证为官方地标' }}</text>
+					</view>
+					<text class="signal-title">识别信号</text>
+					<view class="result-signal-list">
 						<view
 							v-for="signal in recognitionSignalItems"
 							:key="signal.key"
@@ -32,20 +39,6 @@
 							<text class="result-source-signal-value">{{ signal.value }}</text>
 						</view>
 					</view>
-				</view>
-			</view>
-			<view class="meta-grid">
-				<view>
-					<text class="meta-value">{{ confidenceDisplay }}</text>
-					<text class="meta-label">{{ confidenceMetaLabel }}</text>
-				</view>
-				<view>
-					<text class="meta-value">{{ result.requiresUserConfirm ? '待确认' : '可直达' }}</text>
-					<text class="meta-label">触发状态</text>
-				</view>
-				<view>
-					<text class="meta-value">{{ safetyStatusLabel }}</text>
-					<text class="meta-label">审核状态</text>
 				</view>
 			</view>
 			<view class="result-source-summary" :class="{ 'result-source-summary-blocked': recognitionActionBlocked }">
@@ -69,10 +62,25 @@
 			</view>
 		</view>
 
-		<view class="bottom-actions">
-			<button class="primary-button xicheng-primary-action" :disabled="recognitionActionBlocked" @click="askXiaojing()">小京讲解</button>
-			<button class="ghost-button xicheng-secondary-action" :disabled="recognitionActionBlocked" @click="openPoiDetail">地点详情</button>
-			<button class="ghost-button xicheng-secondary-action" :disabled="recognitionActionBlocked" @click="startRecording">开始记录</button>
+		<view class="result-reference-actions">
+			<button class="primary-button xicheng-primary-action" :disabled="recognitionActionBlocked" @click="askXiaojing()">开始 AI 讲解</button>
+			<button class="ghost-button xicheng-secondary-action" :disabled="recognitionActionBlocked" @click="askXiaojing(suggestedQuestions[1])">问问小京</button>
+		</view>
+
+		<view
+			class="poi-detail-entry xicheng-paper-card"
+			:class="{ 'poi-detail-entry-disabled': recognitionActionBlocked }"
+			@click="openPoiDetail"
+		>
+			<view class="poi-detail-entry-icon">
+				<xicheng-icon name="layer" variant="primary" :size="24" />
+			</view>
+			<view class="poi-detail-entry-copy">
+				<text class="poi-detail-entry-title">建筑看点</text>
+				<text class="poi-detail-entry-desc">{{ result.poiName }}官方地点详情</text>
+			</view>
+			<text class="poi-detail-entry-label">地点详情</text>
+			<xicheng-icon name="next" variant="plain" :size="20" />
 		</view>
 
 		<view v-if="candidateList.length > 0" class="candidate-card xicheng-paper-card">
@@ -504,6 +512,11 @@ export default {
 					key: 'nearby',
 					label: '附近触发',
 					value: hasLocationSignal ? '已匹配' : '可补充'
+				},
+				{
+					key: 'safety',
+					label: '审核状态',
+					value: this.safetyStatusLabel
 				}
 			]
 		},
@@ -1382,5 +1395,219 @@ export default {
 .ghost-button {
 	background: #E8ECE7;
 	color: #1F6E5A;
+}
+
+.xicheng-reference-result-card {
+	position: relative;
+	min-height: 660rpx;
+	padding: 34rpx;
+	overflow: hidden;
+	border-radius: 34rpx;
+	background:
+		radial-gradient(circle at 94% 20%, rgba(181, 148, 94, 0.12), transparent 28%),
+		linear-gradient(145deg, rgba(255, 253, 248, 0.98), rgba(250, 245, 237, 0.94));
+}
+
+.xicheng-reference-result-card::after {
+	content: '';
+	position: absolute;
+	right: -52rpx;
+	top: 128rpx;
+	width: 270rpx;
+	height: 420rpx;
+	border-radius: 999rpx;
+	background: rgba(181, 148, 94, 0.08);
+	pointer-events: none;
+}
+
+.xicheng-reference-result-card .result-hero-layout {
+	position: relative;
+	z-index: 1;
+	align-items: flex-start;
+	gap: 30rpx;
+}
+
+.xicheng-reference-result-card .result-poi-image {
+	width: 290rpx;
+	height: 430rpx;
+	border-radius: 28rpx;
+	box-shadow: 0 16rpx 34rpx rgba(35, 42, 34, 0.12);
+}
+
+.xicheng-reference-result-card .poi-name {
+	margin-top: 18rpx;
+	font-size: 58rpx;
+	line-height: 1.1;
+}
+
+.confidence-line {
+	display: flex;
+	align-items: baseline;
+	gap: 14rpx;
+	margin-top: 28rpx;
+	font-size: 30rpx;
+	line-height: 1.35;
+	color: #746F68;
+}
+
+.confidence-value {
+	font-size: 36rpx;
+	font-weight: 800;
+	color: #B42318;
+}
+
+.official-match-row {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+	margin-top: 26rpx;
+	padding-top: 24rpx;
+	border-top: 1rpx dashed rgba(181, 148, 94, 0.28);
+	font-size: 27rpx;
+	color: #173F35;
+}
+
+.signal-title {
+	display: block;
+	margin-top: 30rpx;
+	font-size: 28rpx;
+	font-weight: 700;
+	color: #102F29;
+}
+
+.result-signal-list {
+	display: grid;
+	gap: 18rpx;
+	margin-top: 18rpx;
+}
+
+.xicheng-reference-result-card .result-source-signal {
+	min-height: 58rpx;
+	padding: 0;
+	background: transparent;
+	justify-content: flex-start;
+	gap: 16rpx;
+}
+
+.xicheng-reference-result-card .result-source-signal-label {
+	min-width: 112rpx;
+	font-size: 27rpx;
+	color: #746F68;
+}
+
+.xicheng-reference-result-card .result-source-signal-value {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 48rpx;
+	height: 48rpx;
+	border-radius: 999rpx;
+	background: rgba(23, 63, 53, 0.10);
+	font-size: 0;
+}
+
+.xicheng-reference-result-card .result-source-signal-value::after {
+	content: '';
+	width: 18rpx;
+	height: 10rpx;
+	border-left: 4rpx solid #173F35;
+	border-bottom: 4rpx solid #173F35;
+	transform: rotate(-45deg);
+}
+
+.xicheng-reference-result-card .result-source-summary {
+	position: relative;
+	z-index: 1;
+	margin-top: 28rpx;
+}
+
+.xicheng-reference-result-card .result-companion-card {
+	position: relative;
+	z-index: 1;
+	margin-top: 24rpx;
+	padding: 12rpx;
+	border-radius: 28rpx;
+	background: rgba(255, 253, 248, 0.72);
+}
+
+.xicheng-reference-result-card .result-companion-avatar {
+	width: 118rpx;
+	height: 118rpx;
+}
+
+.result-reference-actions {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 28rpx;
+	margin-top: 32rpx;
+}
+
+.result-reference-actions .primary-button,
+.result-reference-actions .ghost-button {
+	height: 104rpx;
+	line-height: 104rpx;
+	border-radius: 30rpx;
+	font-size: 34rpx;
+	font-weight: 700;
+	box-shadow: 0 16rpx 34rpx rgba(16, 47, 41, 0.12);
+}
+
+.poi-detail-entry {
+	display: grid;
+	grid-template-columns: 76rpx 1fr auto 34rpx;
+	align-items: center;
+	gap: 18rpx;
+	margin-top: 28rpx;
+	padding: 24rpx 28rpx;
+	border-radius: 30rpx;
+	background: rgba(255, 253, 248, 0.94);
+}
+
+.poi-detail-entry-disabled {
+	opacity: 0.56;
+}
+
+.poi-detail-entry-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 76rpx;
+	height: 76rpx;
+	border-radius: 999rpx;
+	background: #173F35;
+	box-shadow: 0 12rpx 26rpx rgba(16, 47, 41, 0.16);
+}
+
+.poi-detail-entry-copy {
+	min-width: 0;
+}
+
+.poi-detail-entry-title,
+.poi-detail-entry-desc {
+	display: block;
+}
+
+.poi-detail-entry-title {
+	font-size: 32rpx;
+	font-weight: 700;
+	line-height: 1.25;
+	color: #102F29;
+}
+
+.poi-detail-entry-desc {
+	margin-top: 8rpx;
+	font-size: 24rpx;
+	line-height: 1.45;
+	color: #746F68;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.poi-detail-entry-label {
+	font-size: 24rpx;
+	font-weight: 700;
+	color: #173F35;
+	white-space: nowrap;
 }
 </style>

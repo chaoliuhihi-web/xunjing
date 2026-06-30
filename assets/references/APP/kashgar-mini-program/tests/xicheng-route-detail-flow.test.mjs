@@ -34,12 +34,12 @@ for (const required of [
 }
 
 for (const required of [
-  'route-filter-bar',
-  'route-filter-chip',
   'filteredRecommendedRoutes',
   'openRecommendedRouteDetail(route)',
-  '查看路线',
-  '加入路线护照'
+  'route-reference-grid',
+  'route-reference-card',
+  'route-reference-image',
+  'getDisplayRouteTitle(route)'
 ]) {
   assert.ok(home.includes(required), `Xicheng home route list should expose ${required}`)
 }

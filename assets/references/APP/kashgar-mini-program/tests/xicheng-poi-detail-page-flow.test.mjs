@@ -26,8 +26,14 @@ assert.ok(
 
 assert.match(
   scanResult,
-  /<button class="[^"]*\bghost-button\b[^"]*" :disabled="recognitionActionBlocked" @click="openPoiDetail">地点详情<\/button>/,
-  'Recognition result should expose a gated POI detail entry beside Xiaojing and recording actions'
+  /openPoiDetail\(\)[\s\S]*if \(this\.pendingCandidateConfirmation\)[\s\S]*if \(this\.missingOfficialPoiContext\)[\s\S]*if \(this\.unsafeRecognitionSafetyStatus\)/,
+  'Recognition result should keep a gated POI detail navigation method even when the approved top action layout only shows Xiaojing actions'
+)
+
+assert.match(
+  scanResult,
+  /class="poi-detail-entry xicheng-paper-card"[\s\S]*:class="\{ 'poi-detail-entry-disabled': recognitionActionBlocked \}"[\s\S]*@click="openPoiDetail"[\s\S]*建筑看点[\s\S]*地点详情/,
+  'Recognition result should expose a visible POI detail entry without restoring the old three-button action bar'
 )
 
 assert.match(

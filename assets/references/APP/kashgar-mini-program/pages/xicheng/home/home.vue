@@ -9,7 +9,7 @@
 			<view class="home-profile-button"></view>
 		</view>
 
-		<view class="hero xicheng-paper-card xicheng-immersive-hero">
+		<view class="hero xicheng-reference-hero">
 			<image
 				v-if="region.visualAssets && region.visualAssets.heroLandmark"
 				class="hero-landmark-image"
@@ -22,10 +22,6 @@
 					<text class="eyebrow">{{ region.cityName }}</text>
 					<text class="title">西城 AI 旅伴</text>
 					<text class="subtitle">星河寻境 · 知识随行</text>
-					<view class="hero-actions">
-						<button class="primary-button xicheng-primary-action" :disabled="recognizing" @click="startScanRecognition">扫一扫</button>
-						<button class="ghost-button xicheng-secondary-action" :disabled="recognizing" @click="askXiaojing">问问小京</button>
-					</view>
 				</view>
 				<view class="companion-visual">
 					<image class="xiaojing-avatar" :src="region.companionAvatar" mode="aspectFit" />
@@ -37,30 +33,26 @@
 			</view>
 		</view>
 
-		<view class="quick-grid">
-			<view class="quick-card xicheng-paper-card quick-card-featured quick-card-scan" :class="{ 'quick-card-disabled': recognizing }" @click="startScanRecognition">
-				<text class="quick-title">扫一扫</text>
-				<text class="quick-desc">拍照识别 · 文字识别 · 附近触发</text>
+		<view class="home-action-duo">
+			<view class="home-action-card home-scan-card" :class="{ 'home-action-disabled': recognizing }" @click="startScanRecognition">
+				<view class="home-action-icon">
+					<xicheng-icon name="scan" variant="plain" active :size="28" />
+				</view>
+				<view class="home-action-copy">
+					<text class="home-action-title">扫一扫</text>
+					<text class="home-action-desc">拍照识别 · 文字识别 · 附近触发</text>
+				</view>
+				<xicheng-icon name="next" variant="plain" active :size="22" />
 			</view>
-			<view class="quick-card xicheng-paper-card quick-card-featured quick-card-ask" :class="{ 'quick-card-disabled': recognizing }" @click="askXiaojing">
-				<text class="quick-title">问问小京</text>
-				<text class="quick-desc">继续咨询路线和讲解</text>
-			</view>
-			<view class="quick-card xicheng-paper-card quick-card-photo" :class="{ 'quick-card-disabled': recognizing }" @click="startPhotoRecognition">
-				<text class="quick-title">拍照识别</text>
-				<text class="quick-desc">识别门头、文物和说明牌</text>
-			</view>
-			<view class="quick-card xicheng-paper-card quick-card-gps" :class="{ 'quick-card-disabled': recognizing }" @click="startGpsRecognition">
-				<text class="quick-title">GPS定位</text>
-				<text class="quick-desc">用当前位置识别附近文化点</text>
-			</view>
-			<view class="quick-card xicheng-paper-card quick-card-ocr" :class="{ 'quick-card-disabled': recognizing }" @click="startOcrRecognition">
-				<text class="quick-title">OCR识别</text>
-				<text class="quick-desc">从图片文字提取地点线索</text>
-			</view>
-			<view class="quick-card xicheng-paper-card quick-card-text" :class="{ 'quick-card-disabled': recognizing }" @click="startTextRecognition">
-				<text class="quick-title">文本识别</text>
-				<text class="quick-desc">粘贴地点、展牌或攻略文字</text>
+			<view class="home-action-card home-ask-card" :class="{ 'home-action-disabled': recognizing }" @click="askXiaojing">
+				<view class="home-action-icon">
+					<xicheng-icon name="qa" variant="plain" :size="28" />
+				</view>
+				<view class="home-action-copy">
+					<text class="home-action-title">问问小京</text>
+					<text class="home-action-desc">故事、路线和建筑</text>
+				</view>
+				<xicheng-icon name="next" variant="plain" :size="22" />
 			</view>
 		</view>
 
@@ -78,77 +70,36 @@
 			<button class="primary-button xicheng-primary-action" :disabled="recognizing" @click="startTextRecognition">文本识别</button>
 		</view>
 
-		<view id="xicheng-route-section" class="route-recommendation-section xicheng-paper-card">
-			<view class="section-head xicheng-section-label">
-				<view>
-					<text class="section-kicker">官方路线</text>
+		<view id="xicheng-route-section" class="route-recommendation-section">
+			<view class="section-head route-reference-head">
+				<view class="route-reference-title-wrap">
+					<xicheng-icon name="route" variant="plain" :size="24" />
 					<text class="section-title">路线推荐</text>
 				</view>
-				<text class="section-link" @click="openXichengInspiration">导入灵感</text>
+				<text class="section-link" @click="handleXichengHomeNav('routes')">查看全部</text>
 			</view>
-			<view class="route-filter-bar">
-				<text
-					v-for="filter in routeRecommendationFilters"
-					:key="filter.key"
-					class="route-filter-chip"
-					:class="{ 'route-filter-chip-active': activeRouteFilter === filter.key }"
-					@click="activeRouteFilter = filter.key"
+			<view class="route-reference-grid">
+				<view
+					v-for="route in filteredRecommendedRoutes.slice(0, 3)"
+					:key="route.routeCode"
+					class="route-reference-card"
+					@click="openRecommendedRouteDetail(route)"
 				>
-					{{ filter.title }}
-				</text>
-			</view>
-			<scroll-view scroll-x class="route-card-scroll" enable-flex>
-				<view class="route-card-strip">
-					<view
-						v-for="route in filteredRecommendedRoutes.slice(0, 3)"
-						:key="route.routeCode"
-						class="recommended-route-card xicheng-paper-card"
-						@click="openRecommendedRouteDetail(route)"
-					>
+					<view class="route-reference-image-wrap">
 						<image
 							v-if="getRouteThumbnail(route)"
-							class="route-thumbnail"
+							class="route-reference-image"
 							:src="getRouteThumbnail(route)"
 							mode="aspectFill"
 						/>
-						<view class="route-card-header">
-							<view>
-								<text class="route-title">{{ route.title }}</text>
-								<text class="route-desc">{{ route.summary }}</text>
-							</view>
-							<text class="route-theme">{{ route.theme }}</text>
-						</view>
-						<view class="route-meta">
-							<text>{{ route.durationText }}</text>
-							<text>{{ route.distanceText || '步行路线' }}</text>
-							<text>路线护照 {{ route.passportTaskCount }} 点</text>
-							<text>研学任务 {{ route.studyTaskCount }} 个</text>
-						</view>
-						<view v-if="route.keywords && route.keywords.length > 0" class="route-keywords">
-							<text
-								v-for="keyword in route.keywords"
-								:key="`${route.routeCode}-${keyword}`"
-								class="route-keyword"
-							>
-								{{ keyword }}
-							</text>
-						</view>
-						<view class="route-stops">
-							<text
-								v-for="(stop, index) in route.stops"
-								:key="`${route.routeCode}-${stop.poiCode}`"
-								class="route-stop"
-							>
-								{{ index + 1 }}. {{ stop.poiName }}
-							</text>
-						</view>
-						<view class="route-card-action">
-							<button class="mini-button xicheng-primary-action" @click.stop="openRecommendedRouteDetail(route)">查看路线</button>
-							<button class="mini-button xicheng-secondary-action" @click.stop="openRecommendedRoute(route)">加入路线护照</button>
+						<view class="route-reference-badge">
+							<xicheng-icon :name="route.routeCode === 'beihai-shichahai-waterfront' ? 'layer' : route.routeCode === 'dashilar-old-brand-walk' ? 'routes' : 'passport'" variant="primary" :size="18" />
 						</view>
 					</view>
+					<text class="route-reference-name">{{ getDisplayRouteTitle(route) }}</text>
+					<text class="route-reference-desc">{{ getRouteKeywordLine(route) }}</text>
 				</view>
-			</scroll-view>
+			</view>
 		</view>
 
 		<view v-if="recentRecognition" class="recent-panel xicheng-paper-card">
@@ -320,6 +271,16 @@ export default {
 				? this.region.visualAssets.routeThumbnails
 				: {}
 			return thumbnails[route.routeCode] || ''
+		},
+		getDisplayRouteTitle(route = {}) {
+			if (route.routeCode === 'baitasi-imperial-shichahai') return '白塔寺文化线'
+			if (route.routeCode === 'beihai-shichahai-waterfront') return '什刹海漫步线'
+			if (route.routeCode === 'dashilar-old-brand-walk') return '胡同烟火线'
+			return route.title || '西城 Citywalk'
+		},
+		getRouteKeywordLine(route = {}) {
+			const keywords = Array.isArray(route.keywords) ? route.keywords.filter(Boolean) : []
+			return keywords.length > 0 ? keywords.slice(0, 2).join(' · ') : route.theme || route.durationText || '西城文化路线'
 		},
 		isBlockedDevelopmentRecognitionCache(recognition = {}) {
 			return isXichengDevelopmentRecognitionCacheBlocked(recognition)
@@ -1108,35 +1069,11 @@ export default {
 	margin-top: 24rpx;
 }
 
-.quick-grid {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 18rpx;
-	margin-top: 24rpx;
-	padding-bottom: 8rpx;
-}
-
 .ops-section {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 20rpx;
 	margin-top: 28rpx;
-}
-
-.quick-card {
-	min-width: 0;
-	display: flex;
-	flex-direction: column;
-	justify-content: space-between;
-	min-height: 136rpx;
-	padding: 22rpx;
-	border-radius: 30rpx;
-	box-sizing: border-box;
-}
-
-.quick-card-disabled {
-	opacity: 0.56;
-	pointer-events: none;
 }
 
 .ops-card {
@@ -1146,97 +1083,6 @@ export default {
 	box-sizing: border-box;
 }
 
-.quick-card::before {
-	content: '';
-	display: block;
-	width: 52rpx;
-	height: 52rpx;
-	margin-bottom: 18rpx;
-	border-radius: 18rpx;
-	background: rgba(23, 63, 53, 0.10);
-	box-shadow: inset 0 0 0 2rpx rgba(23, 63, 53, 0.16);
-}
-
-.quick-card-featured {
-	min-height: 150rpx;
-	border: 1rpx solid rgba(255, 255, 255, 0.48);
-	box-shadow: 0 18rpx 38rpx rgba(16, 47, 41, 0.12);
-}
-
-.quick-card-scan {
-	background:
-		linear-gradient(135deg, rgba(23, 63, 53, 0.96), rgba(16, 47, 41, 0.92));
-}
-
-.quick-card-scan::before {
-	background:
-		linear-gradient(#FFF9EC, #FFF9EC) 9rpx 9rpx / 18rpx 4rpx no-repeat,
-		linear-gradient(#FFF9EC, #FFF9EC) 9rpx 9rpx / 4rpx 18rpx no-repeat,
-		linear-gradient(#FFF9EC, #FFF9EC) right 9rpx top 9rpx / 18rpx 4rpx no-repeat,
-		linear-gradient(#FFF9EC, #FFF9EC) right 9rpx top 9rpx / 4rpx 18rpx no-repeat,
-		linear-gradient(#FFF9EC, #FFF9EC) left 9rpx bottom 9rpx / 18rpx 4rpx no-repeat,
-		linear-gradient(#FFF9EC, #FFF9EC) left 9rpx bottom 9rpx / 4rpx 18rpx no-repeat,
-		linear-gradient(#FFF9EC, #FFF9EC) right 9rpx bottom 9rpx / 18rpx 4rpx no-repeat,
-		linear-gradient(#FFF9EC, #FFF9EC) right 9rpx bottom 9rpx / 4rpx 18rpx no-repeat,
-		rgba(255, 249, 236, 0.12);
-	box-shadow: inset 0 0 0 2rpx rgba(255, 249, 236, 0.34);
-}
-
-.quick-card-scan .quick-title,
-.quick-card-scan .quick-desc {
-	color: #FFF9EC;
-}
-
-.quick-card-ask {
-	background:
-		linear-gradient(145deg, rgba(255, 253, 248, 0.96), rgba(244, 236, 224, 0.86));
-}
-
-.quick-card-ask::before {
-	border-radius: 999rpx;
-	background:
-		radial-gradient(circle at 35% 44%, #173F35 0 4rpx, transparent 5rpx),
-		radial-gradient(circle at 62% 44%, #173F35 0 4rpx, transparent 5rpx),
-		linear-gradient(135deg, rgba(181, 148, 94, 0.18), rgba(23, 63, 53, 0.10));
-}
-
-.quick-card-photo::before {
-	background:
-		linear-gradient(#173F35, #173F35) center 15rpx / 20rpx 5rpx no-repeat,
-		radial-gradient(circle at 50% 58%, rgba(23, 63, 53, 0.26) 0 9rpx, transparent 10rpx),
-		rgba(23, 63, 53, 0.10);
-}
-
-.quick-card-gps::before {
-	width: 48rpx;
-	height: 48rpx;
-	margin-left: 4rpx;
-	border-radius: 999rpx 999rpx 999rpx 10rpx;
-	background:
-		radial-gradient(circle at 50% 50%, rgba(255, 253, 248, 0.98) 0 7rpx, transparent 8rpx),
-		linear-gradient(135deg, #B5945E, #173F35);
-	transform: rotate(-45deg);
-	box-shadow: 0 8rpx 18rpx rgba(16, 47, 41, 0.12);
-}
-
-.quick-card-ocr::before {
-	background:
-		linear-gradient(#173F35, #173F35) left 10rpx top 12rpx / 18rpx 4rpx no-repeat,
-		linear-gradient(#173F35, #173F35) left 10rpx top 12rpx / 4rpx 18rpx no-repeat,
-		linear-gradient(#173F35, #173F35) right 10rpx bottom 12rpx / 18rpx 4rpx no-repeat,
-		linear-gradient(#173F35, #173F35) right 10rpx bottom 12rpx / 4rpx 18rpx no-repeat,
-		rgba(23, 63, 53, 0.10);
-}
-
-.quick-card-text::before {
-	background:
-		linear-gradient(#173F35, #173F35) 14rpx 15rpx / 24rpx 4rpx no-repeat,
-		linear-gradient(rgba(23, 63, 53, 0.44), rgba(23, 63, 53, 0.44)) 14rpx 26rpx / 24rpx 4rpx no-repeat,
-		linear-gradient(rgba(181, 148, 94, 0.72), rgba(181, 148, 94, 0.72)) 14rpx 37rpx / 18rpx 4rpx no-repeat,
-		rgba(23, 63, 53, 0.10);
-}
-
-.quick-title,
 .ops-title {
 	display: block;
 	font-size: 30rpx;
@@ -1244,7 +1090,6 @@ export default {
 	color: #173F35;
 }
 
-.quick-desc,
 .ops-desc {
 	margin-top: 10rpx;
 }
@@ -1281,10 +1126,7 @@ export default {
 	border-radius: 34rpx;
 }
 
-.section-head,
-.route-card-header,
-.route-meta,
-.route-card-action {
+.section-head {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -1319,194 +1161,6 @@ export default {
 	font-size: 24rpx;
 	font-weight: 700;
 	color: #173F35;
-}
-
-.route-filter-bar {
-	display: flex;
-	gap: 14rpx;
-	margin-top: 24rpx;
-	padding: 10rpx;
-	border-radius: 999rpx;
-	background: rgba(255, 252, 246, 0.72);
-	overflow-x: auto;
-	white-space: nowrap;
-}
-
-.route-filter-chip {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-width: 118rpx;
-	height: 62rpx;
-	padding: 0 22rpx;
-	border-radius: 999rpx;
-	background: rgba(181, 148, 94, 0.10);
-	box-sizing: border-box;
-	font-size: 24rpx;
-	color: #173F35;
-}
-
-.route-filter-chip-active {
-	background: #173F35;
-	color: #FFF9EC;
-	box-shadow: 0 12rpx 24rpx rgba(16, 47, 41, 0.18);
-}
-
-.route-card-scroll {
-	margin: 22rpx -26rpx 0;
-	padding: 0 26rpx 8rpx;
-	overflow: hidden;
-	white-space: nowrap;
-	box-sizing: border-box;
-}
-
-.route-card-scroll::-webkit-scrollbar {
-	display: none;
-}
-
-.route-card-strip {
-	display: flex;
-	align-items: stretch;
-	gap: 20rpx;
-}
-
-.recommended-route-card {
-	flex: 0 0 336rpx;
-	width: 336rpx;
-	display: flex;
-	flex-direction: column;
-	margin-top: 0;
-	padding: 20rpx;
-	border: 1rpx solid rgba(181, 148, 94, 0.18);
-	border-radius: 28rpx;
-	background: rgba(255, 252, 246, 0.70);
-	box-sizing: border-box;
-	white-space: normal;
-}
-
-.route-card-header {
-	display: block;
-}
-
-.route-thumbnail {
-	display: block;
-	width: 100%;
-	aspect-ratio: 1.25;
-	height: 178rpx;
-	margin-bottom: 18rpx;
-	border-radius: 24rpx;
-	background: rgba(181, 148, 94, 0.14);
-	object-fit: cover;
-	overflow: hidden;
-}
-
-.route-title {
-	display: block;
-	font-size: 28rpx;
-	font-weight: 700;
-	line-height: 1.35;
-	color: #102F29;
-}
-
-.route-desc {
-	display: block;
-	margin-top: 8rpx;
-	font-size: 22rpx;
-	line-height: 1.5;
-	color: #746F68;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	display: -webkit-box;
-	-webkit-line-clamp: 3;
-	line-clamp: 3;
-	-webkit-box-orient: vertical;
-}
-
-.route-theme {
-	display: inline-flex;
-	margin-top: 12rpx;
-	padding: 8rpx 12rpx;
-	border-radius: 999rpx;
-	background: rgba(181, 148, 94, 0.16);
-	font-size: 22rpx;
-	color: #173F35;
-}
-
-.route-meta {
-	justify-content: flex-start;
-	flex-wrap: wrap;
-	margin-top: 16rpx;
-	gap: 10rpx;
-}
-
-.route-meta text {
-	padding: 7rpx 10rpx;
-	border-radius: 999rpx;
-	background: rgba(255, 255, 255, 0.62);
-	font-size: 20rpx;
-	color: #746F68;
-}
-
-.route-keywords {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 12rpx;
-	margin-top: 16rpx;
-}
-
-.route-keyword {
-	padding: 6rpx 10rpx;
-	border-radius: 999rpx;
-	background: rgba(181, 148, 94, 0.12);
-	font-size: 20rpx;
-	color: #8A6B3D;
-}
-
-.route-stops {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 12rpx;
-	margin-top: 18rpx;
-}
-
-.route-stop {
-	padding: 8rpx 10rpx;
-	border-radius: 999rpx;
-	background: rgba(23, 63, 53, 0.08);
-	font-size: 20rpx;
-	color: #173F35;
-}
-
-.route-card-action {
-	gap: 16rpx;
-	justify-content: flex-start;
-	margin-top: 20rpx;
-}
-
-.recommended-route-card .route-card-action {
-	margin-top: auto;
-	padding-top: 20rpx;
-	gap: 10rpx;
-}
-
-.mini-button {
-	min-width: 180rpx;
-	height: 64rpx;
-	line-height: 64rpx;
-	border-radius: 999rpx;
-	background: #FFF9EC;
-	font-size: 24rpx;
-	color: #173F35;
-}
-
-.recommended-route-card .mini-button {
-	flex: 1;
-	min-width: 0;
-	height: 58rpx;
-	line-height: 58rpx;
-	padding: 0 10rpx;
-	font-size: 21rpx;
-	white-space: nowrap;
 }
 
 .journey-panel {
@@ -1581,6 +1235,222 @@ export default {
 	font-size: 22rpx;
 	line-height: 1.2;
 	font-weight: 700;
+	white-space: nowrap;
+}
+
+.xicheng-reference-hero {
+	min-height: 640rpx;
+	padding: 44rpx 40rpx 28rpx;
+	border-radius: 38rpx;
+	overflow: hidden;
+	background:
+		linear-gradient(180deg, rgba(255, 253, 247, 0.10) 0%, rgba(255, 250, 241, 0.36) 54%, rgba(255, 250, 241, 0.96) 100%),
+		#F8F2E8;
+	box-shadow: 0 24rpx 56rpx rgba(35, 42, 34, 0.12);
+}
+
+.xicheng-reference-hero .hero-landmark-image {
+	opacity: 0.72;
+	filter: saturate(0.98) contrast(1.04);
+}
+
+.xicheng-reference-hero .hero-atmosphere {
+	height: 46%;
+	background:
+		linear-gradient(180deg, rgba(255, 250, 241, 0), rgba(255, 250, 241, 0.82));
+}
+
+.xicheng-reference-hero .hero-copy {
+	max-width: 460rpx;
+	padding-top: 42rpx;
+}
+
+.xicheng-reference-hero .eyebrow {
+	font-size: 25rpx;
+	color: #173F35;
+}
+
+.xicheng-reference-hero .title {
+	margin-top: 24rpx;
+	font-size: 66rpx;
+	letter-spacing: 0;
+}
+
+.xicheng-reference-hero .subtitle {
+	margin-top: 24rpx;
+	font-size: 30rpx;
+	letter-spacing: 6rpx;
+	color: rgba(16, 47, 41, 0.78);
+}
+
+.xicheng-reference-hero .companion-visual {
+	right: -8rpx;
+	bottom: 18rpx;
+	width: 386rpx;
+}
+
+.xicheng-reference-hero .xiaojing-avatar {
+	width: 386rpx;
+	height: 462rpx;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+.xicheng-reference-hero .companion-bubble {
+	left: -230rpx;
+	bottom: 136rpx;
+	width: 278rpx;
+	padding: 24rpx 22rpx;
+	border-radius: 34rpx;
+	background: rgba(255, 253, 248, 0.94);
+}
+
+.home-action-duo {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 18rpx;
+	margin-top: 26rpx;
+}
+
+.home-action-card {
+	min-height: 158rpx;
+	padding: 20rpx 22rpx;
+	border-radius: 30rpx;
+	box-sizing: border-box;
+	box-shadow: 0 16rpx 34rpx rgba(35, 42, 34, 0.10);
+}
+
+.home-action-disabled {
+	opacity: 0.56;
+	pointer-events: none;
+}
+
+.home-scan-card {
+	display: grid;
+	grid-template-columns: 58rpx 1fr 38rpx;
+	align-items: center;
+	gap: 18rpx;
+	background: linear-gradient(135deg, #173F35, #0F332D);
+	color: #FFF9EC;
+}
+
+.home-ask-card {
+	display: grid;
+	grid-template-columns: 58rpx 1fr 38rpx;
+	align-items: center;
+	gap: 18rpx;
+	background: rgba(255, 253, 248, 0.94);
+	color: #102F29;
+	border: 1rpx solid rgba(181, 148, 94, 0.18);
+}
+
+.home-action-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.home-action-copy {
+	min-width: 0;
+}
+
+.home-action-title,
+.home-action-desc {
+	display: block;
+}
+
+.home-action-title {
+	font-size: 34rpx;
+	font-weight: 700;
+	line-height: 1.25;
+}
+
+.home-action-desc {
+	margin-top: 12rpx;
+	font-size: 24rpx;
+	line-height: 1.35;
+	color: currentColor;
+	opacity: 0.76;
+}
+
+.route-recommendation-section {
+	margin-top: 40rpx;
+	padding: 0 8rpx;
+}
+
+.route-reference-head {
+	align-items: center;
+	margin-bottom: 22rpx;
+}
+
+.route-reference-title-wrap {
+	display: flex;
+	align-items: center;
+	gap: 14rpx;
+}
+
+.route-reference-title-wrap .section-title {
+	margin-top: 0;
+	font-size: 38rpx;
+}
+
+.route-reference-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 14rpx;
+}
+
+.route-reference-card {
+	min-width: 0;
+	padding: 12rpx;
+	border-radius: 24rpx;
+	background: rgba(255, 253, 248, 0.90);
+	border: 1rpx solid rgba(181, 148, 94, 0.16);
+	box-shadow: 0 14rpx 34rpx rgba(35, 42, 34, 0.08);
+	box-sizing: border-box;
+}
+
+.route-reference-image-wrap {
+	position: relative;
+	height: 126rpx;
+	border-radius: 20rpx;
+	overflow: hidden;
+	background: rgba(181, 148, 94, 0.12);
+}
+
+.route-reference-image {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.route-reference-badge {
+	position: absolute;
+	left: 10rpx;
+	top: 10rpx;
+}
+
+.route-reference-name,
+.route-reference-desc {
+	display: block;
+}
+
+.route-reference-name {
+	margin-top: 14rpx;
+	font-size: 25rpx;
+	line-height: 1.25;
+	font-weight: 700;
+	color: #102F29;
+}
+
+.route-reference-desc {
+	margin-top: 8rpx;
+	font-size: 20rpx;
+	line-height: 1.35;
+	color: #746F68;
+	overflow: hidden;
+	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 </style>

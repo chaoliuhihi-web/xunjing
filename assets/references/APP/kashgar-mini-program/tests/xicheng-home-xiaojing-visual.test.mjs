@@ -56,22 +56,20 @@ for (const required of [
   'class="home-location-row"',
   'class="hero-landmark-image"',
   ':src="region.visualAssets.heroLandmark"',
-  'class="hero xicheng-paper-card xicheng-immersive-hero"',
+  'class="hero xicheng-reference-hero"',
   'class="hero-atmosphere"',
   'class="hero-main"',
   'class="companion-visual"',
   'class="xiaojing-avatar"',
   ':src="region.companionAvatar"',
   'mode="aspectFit"',
-  'class="route-thumbnail"',
+  'class="home-action-duo"',
+  'home-scan-card',
+  'home-ask-card',
+  'class="route-reference-grid"',
+  'class="route-reference-card"',
+  'class="route-reference-image"',
   ':src="getRouteThumbnail(route)"',
-  'class="route-card-scroll"',
-  'class="route-card-strip"',
-  'quick-card-featured quick-card-scan',
-  'quick-card-featured quick-card-ask',
-  'quick-card-gps',
-  'quick-card-ocr',
-  'quick-card-text',
   '小京',
   '我陪你看懂西城'
 ]) {
@@ -86,12 +84,12 @@ assert.match(
 
 assert.match(
   home,
-  /quick-card-featured quick-card-scan[\s\S]*扫一扫[\s\S]*quick-card-featured quick-card-ask[\s\S]*问问小京[\s\S]*quick-card-photo[\s\S]*拍照识别/,
-  'Xicheng home first-screen action hierarchy should promote scan and Xiaojing before secondary recognition modes'
+  /home-scan-card[\s\S]*扫一扫[\s\S]*拍照识别 · 文字识别 · 附近触发[\s\S]*home-ask-card[\s\S]*问问小京/,
+  'Xicheng home first-screen action hierarchy should expose one automatic scan entry and Xiaojing, not multiple recognition choices'
 )
 
 assert.ok(
-  home.indexOf('id="xicheng-route-section"') > home.indexOf('class="quick-grid"') &&
+  home.indexOf('id="xicheng-route-section"') > home.indexOf('class="home-action-duo"') &&
     home.indexOf('id="xicheng-route-section"') < home.indexOf('v-if="recentRecognition"') &&
     home.indexOf('id="xicheng-route-section"') < home.indexOf('class="inspiration-panel') &&
     home.indexOf('id="xicheng-route-section"') < home.indexOf('class="flow-strip"'),
@@ -100,7 +98,7 @@ assert.ok(
 
 assert.match(
   styleBlock,
-  /\.xicheng-immersive-hero\s*\{[\s\S]*min-height:\s*680rpx[\s\S]*overflow:\s*hidden/,
+  /\.xicheng-reference-hero\s*\{[\s\S]*min-height:\s*640rpx[\s\S]*overflow:\s*hidden/,
   'Xicheng home hero should use an immersive first-screen hero treatment aligned with the visual reference'
 )
 
@@ -118,44 +116,38 @@ assert.match(
 
 assert.match(
   styleBlock,
-  /\.xiaojing-avatar\s*\{[\s\S]*width:\s*340rpx[\s\S]*height:\s*436rpx/,
+  /\.xicheng-reference-hero \.xiaojing-avatar\s*\{[\s\S]*width:\s*386rpx[\s\S]*height:\s*462rpx/,
   'Xicheng home Xiaojing visual should be large enough to anchor the first viewport instead of reading as a small avatar'
 )
 
 assert.match(
   styleBlock,
-  /\.quick-card-featured\s*\{[\s\S]*min-height:\s*150rpx/,
-  'Xicheng home primary action cards should be larger than secondary recognition entry cards without pushing routes below the first viewport'
+  /\.home-action-duo\s*\{[\s\S]*grid-template-columns:\s*1fr 1fr[\s\S]*\.home-action-card\s*\{[\s\S]*min-height:\s*158rpx/,
+  'Xicheng home primary action cards should match the approved two-card first-screen layout'
 )
 
 assert.match(
   styleBlock,
-  /\.quick-grid\s*\{[\s\S]*display:\s*grid[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[\s\S]*\.quick-card\s*\{[\s\S]*min-width:\s*0[\s\S]*display:\s*flex[\s\S]*flex-direction:\s*column/,
-  'Xicheng home recognition entrypoints should render as a stable two-column grid so every P0 recognition mode is directly tappable on mobile'
+  /\.home-scan-card\s*\{[\s\S]*background:\s*linear-gradient[\s\S]*\.home-ask-card\s*\{[\s\S]*background:\s*rgba\(255,\s*253,\s*248,\s*0\.94\)/,
+  'Xicheng home should visually distinguish the scan entry and Xiaojing card like the reference'
 )
 
 assert.match(
   styleBlock,
-  /\.quick-card::before\s*\{[\s\S]*width:\s*52rpx[\s\S]*height:\s*52rpx[\s\S]*\.quick-card-scan::before[\s\S]*\.quick-card-ask::before[\s\S]*\.quick-card-gps::before[\s\S]*\.quick-card-ocr::before[\s\S]*\.quick-card-text::before/,
-  'Xicheng home recognition cards should include compact CSS icons so the first screen is scannable without text-only buttons'
+  /\.route-reference-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)[\s\S]*\.route-reference-card\s*\{[\s\S]*border-radius:\s*24rpx/,
+  'Xicheng home route recommendations should use the approved three-card preview'
 )
 
 assert.match(
   styleBlock,
-  /\.hero-actions \.primary-button,\s*\.hero-actions \.ghost-button\s*\{[\s\S]*min-width:\s*0[\s\S]*padding:\s*0 4rpx[\s\S]*font-size:\s*26rpx[\s\S]*white-space:\s*nowrap/,
-  'Xicheng home hero action buttons should keep four-character labels visible in the narrow first-screen column'
-)
-
-assert.match(
-  styleBlock,
-  /\.route-thumbnail\s*\{[\s\S]*width:\s*100%[\s\S]*aspect-ratio:\s*1\.25/,
+  /\.route-reference-image-wrap\s*\{[\s\S]*height:\s*126rpx[\s\S]*border-radius:\s*20rpx/,
   'Xicheng home route cards should include stable scenic thumbnails like the route recommendation mockup'
 )
 
 assert.match(
   styleBlock,
-  /\.route-card-scroll\s*\{[\s\S]*overflow:\s*hidden[\s\S]*\.route-card-strip\s*\{[\s\S]*display:\s*flex[\s\S]*gap:\s*20rpx[\s\S]*\.recommended-route-card\s*\{[\s\S]*flex:\s*0 0 336rpx[\s\S]*width:\s*336rpx/,
-  'Xicheng home route recommendations should be a horizontal card preview like the visual reference instead of a long vertical feed'
+  /\.route-reference-name\s*\{[\s\S]*font-size:\s*25rpx[\s\S]*\.route-reference-desc\s*\{[\s\S]*font-size:\s*20rpx/,
+  'Xicheng home compact route cards should keep title and subtitle readable without becoming a long feed'
 )
 
 assert.doesNotMatch(

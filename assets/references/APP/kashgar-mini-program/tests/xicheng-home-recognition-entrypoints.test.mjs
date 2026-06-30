@@ -9,8 +9,8 @@ const regionConfig = read('config', 'regions', 'xicheng.js')
 const home = read('pages', 'xicheng', 'home', 'home.vue')
 const triggerRequest = read('request', 'xunjing', 'trigger.js')
 const resolveTextBlock = home.match(/resolveTextAndOpenResult\(text = '', source = 'ocr'\)[\s\S]*?\n\t\t\},\n\t\tstartScanRecognition/)?.[0] || ''
-const quickGridStyleBlock = home.match(/\.quick-grid\s*\{[\s\S]*?\n\s*\}/)?.[0] || ''
-const quickCardStyleBlock = home.match(/\.quick-card\s*\{[\s\S]*?\n\s*\}/)?.[0] || ''
+const homeActionDuoStyleBlock = home.match(/\.home-action-duo\s*\{[\s\S]*?\n\s*\}/)?.[0] || ''
+const homeActionCardStyleBlock = home.match(/\.home-action-card\s*\{[\s\S]*?\n\s*\}/)?.[0] || ''
 
 for (const required of [
   "{ key: 'gps'",
@@ -24,10 +24,9 @@ for (const required of [
 }
 
 for (const required of [
-  'GPS定位',
-  '用当前位置识别附近文化点',
-  '文本识别',
-  '粘贴地点、展牌或攻略文字',
+  'home-scan-card',
+  '拍照识别 · 文字识别 · 附近触发',
+  'home-ask-card',
   'textRecognitionInput',
   'textRecognitionPanelExpanded',
   'openTextRecognitionPanel',
@@ -37,6 +36,17 @@ for (const required of [
   assert.ok(home.includes(required), `Xicheng home should expose recognition entry ${required}`)
 }
 
+for (const forbidden of [
+  'quick-card-gps',
+  'quick-card-ocr',
+  'quick-card-text',
+  'GPS定位</text>',
+  'OCR识别</text>',
+  '文本识别</text>'
+]) {
+  assert.ok(!home.includes(forbidden), `Xicheng home first screen should not expose separate recognition choice ${forbidden}`)
+}
+
 assert.match(
   home,
   /v-if="textRecognitionPanelExpanded"[\s\S]*id="xicheng-text-recognition-panel"/,
@@ -44,19 +54,19 @@ assert.match(
 )
 
 assert.match(
-  quickGridStyleBlock,
-  /display:\s*grid;[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
-  'Recognition entry cards should render as a stable two-column mobile grid so every P0 entry is directly tappable'
+  homeActionDuoStyleBlock,
+  /display:\s*grid;[\s\S]*grid-template-columns:\s*1fr 1fr/,
+  'Recognition entry should render as the approved two-card mobile layout: scan and Xiaojing'
 )
 
 assert.doesNotMatch(
-  quickGridStyleBlock,
+  homeActionDuoStyleBlock,
   /overflow-x:\s*auto|scroll-snap-type/,
   'Recognition entry cards should not rely on hidden horizontal scrolling for P0 actions'
 )
 
 assert.doesNotMatch(
-  quickCardStyleBlock,
+  homeActionCardStyleBlock,
   /flex:\s*0\s+0/,
   'Recognition entry cards should not reserve horizontal carousel widths that move P0 actions outside the viewport'
 )

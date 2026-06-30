@@ -40,14 +40,14 @@ assert.match(
 
 assert.match(
   scanResult,
-  /<button class="[^"]*\bprimary-button\b[^"]*" :disabled="recognitionActionBlocked" @click="askXiaojing\(\)">小京讲解<\/button>/,
-  'Primary Xiaojing action should be disabled when the official POI context is missing'
+  /<view class="result-reference-actions">[\s\S]*<button class="[^"]*\bprimary-button\b[^"]*" :disabled="recognitionActionBlocked" @click="askXiaojing\(\)">开始 AI 讲解<\/button>/,
+  'Primary Xiaojing explanation action should be disabled when the official POI context is missing'
 )
 
 assert.match(
   scanResult,
-  /<button class="[^"]*\bghost-button\b[^"]*" :disabled="recognitionActionBlocked" @click="startRecording">开始记录<\/button>/,
-  'Start recording should be disabled when the official POI context is missing'
+  /<view class="result-reference-actions">[\s\S]*<button class="[^"]*\bghost-button\b[^"]*" :disabled="recognitionActionBlocked" @click="askXiaojing\(suggestedQuestions\[1\]\)">问问小京<\/button>/,
+  'Secondary Xiaojing question action should be disabled when the official POI context is missing'
 )
 
 assert.match(
