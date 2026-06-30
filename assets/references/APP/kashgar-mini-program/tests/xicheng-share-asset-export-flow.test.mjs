@@ -18,6 +18,8 @@ for (const required of [
   '分享产物包',
   'shareArtifacts',
   'createShareArtifact',
+  'sanitizeShareArtifactForReview',
+  'getReviewableShareArtifacts',
   'persistShareArtifact',
   'deleteShareArtifact',
   'shareAssetStorageKey',
@@ -78,8 +80,20 @@ assert.match(
 
 assert.match(
   travelogue,
-  /submitReviewPackage\(\)[\s\S]*shareArtifacts:\s*this\.shareArtifacts/,
-  'review submission package should include generated share assets'
+  /submitReviewPackage\(\)[\s\S]*const reviewableShareArtifacts = this\.getReviewableShareArtifacts\(\)[\s\S]*shareArtifacts:\s*reviewableShareArtifacts/,
+  'review submission package should include sanitized generated share assets'
+)
+
+assert.match(
+  travelogue,
+  /getReviewableShareArtifacts\(\)[\s\S]*return this\.shareArtifacts[\s\S]*\.map\(artifact => this\.sanitizeShareArtifactForReview\(artifact\)\)[\s\S]*\.filter\(Boolean\)/,
+  'Travelogue review package should resanitize cached share artifacts before operations handoff'
+)
+
+assert.match(
+  travelogue,
+  /sanitizeShareArtifactForReview\(artifact = \{\}\)[\s\S]*if \(!artifact \|\| !\['poster', 'pdf', 'study'\]\.includes\(artifact\.assetType\)\) return null[\s\S]*artifact\.auditRequired !== true[\s\S]*artifact\.publishStatus !== 'private'[\s\S]*artifact\.reviewStatus !== XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*const publicPreview = this\.createReviewPublicPreview\(\)[\s\S]*publicPreview,[\s\S]*publicMaterials:\s*publicPreview\.publicMaterials[\s\S]*publicRecordingSummary:\s*publicPreview\.publicRecordingSummary[\s\S]*reviewEvidencePolicy:\s*\{/,
+  'Travelogue share artifact sanitizer should rebuild public preview and keep artifacts private pending review'
 )
 
 assert.match(
@@ -110,6 +124,12 @@ assert.match(
   travelogue,
   /artifact\.assetLabel[\s\S]*artifact\.visibilityLabel/,
   'Share artifact list should show audit visibility so operators know generated works are not public'
+)
+
+assert.doesNotMatch(
+  travelogue.match(/sanitizeShareArtifactForReview\(artifact = \{\}\)[\s\S]*?\n\t\t\},\n\t\tcreatePosterTemplate/)?.[0] || '',
+  /materials:\s*artifact\.materials|routeCheckins:\s*artifact\.routeCheckins|recordingSession:\s*artifact\.recordingSession|trackPoints|stayPoints|filteredTrackPoints|latitude|longitude|imagePath:\s*|photoPath:\s*|sources:\s*artifact\.sources|publicPreview:\s*artifact\.publicPreview|publicMaterials:\s*artifact\.publicMaterials|templateSections:\s*artifact\.templateSections|candidateConfirmationAudit|selectedCandidateConfidence/,
+  'Travelogue share artifact sanitizer should not pass raw cached materials, tracks, coordinates, local photo paths, source payloads, public preview objects, template sections, or candidate audit metadata into review submissions'
 )
 
 assert.match(

@@ -1978,6 +1978,7 @@ export default {
 		},
 		submitReviewPackage() {
 			const submittedAt = new Date().toISOString()
+			const reviewableShareArtifacts = this.getReviewableShareArtifacts()
 			return {
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
 				packageCode: XICHENG_REGION_CONFIG.packageCode,
@@ -2035,7 +2036,9 @@ export default {
 				workCount: this.draft ? 1 : 0,
 				posterStatus: this.posterStatus,
 				pdfStatus: this.pdfStatus,
-				shareArtifacts: this.shareArtifacts
+				shareArtifacts: reviewableShareArtifacts,
+				shareArtifactCount: reviewableShareArtifacts.length,
+				assetTypes: Array.from(new Set(reviewableShareArtifacts.map(item => item.assetType)))
 			}
 		},
 		createSafetyStatusSummary() {
@@ -2248,6 +2251,77 @@ export default {
 				visibilityLabel: '待审核 · 未公开',
 				posterStatus: this.posterStatus,
 				pdfStatus: this.pdfStatus,
+				createdAt
+			}
+		},
+		getReviewableShareArtifacts() {
+			return this.shareArtifacts
+				.map(artifact => this.sanitizeShareArtifactForReview(artifact))
+				.filter(Boolean)
+		},
+		sanitizeShareArtifactForReview(artifact = {}) {
+			if (!artifact || !['poster', 'pdf', 'study'].includes(artifact.assetType)) return null
+			if (artifact.auditRequired !== true
+				|| artifact.publishStatus !== 'private'
+				|| artifact.reviewStatus !== XICHENG_REGION_CONFIG.reviewStatus.pending) {
+				return null
+			}
+			const createdAt = artifact.createdAt || new Date().toISOString()
+			const routeTitle = artifact.routeTitle || (this.recognizedRoute && this.recognizedRoute.title) || '西城 Citywalk'
+			const assetLabel = artifact.assetLabel || (artifact.assetType === 'pdf' ? 'PDF 纪念册' : artifact.assetType === 'study' ? '亲子研学报告' : '分享海报')
+			const publicPreview = this.createReviewPublicPreview()
+			return {
+				assetId: artifact.assetId || artifact.artifactId || '',
+				artifactId: artifact.artifactId || artifact.assetId || '',
+				assetType: artifact.assetType,
+				assetLabel,
+				title: artifact.title || assetLabel,
+				regionCode: XICHENG_REGION_CONFIG.regionCode,
+				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				sceneCode: XICHENG_REGION_CONFIG.sceneCode,
+				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
+				companionName: XICHENG_REGION_CONFIG.companionName,
+				routeTitle,
+				backgroundImage: XICHENG_REGION_CONFIG.visualAssets.sharePosterBackground,
+				stampImage: XICHENG_REGION_CONFIG.visualAssets.passportStamp,
+				publicPreview,
+				publicMaterials: publicPreview.publicMaterials,
+				publicStudyTaskEvidence: publicPreview.publicStudyTaskEvidence,
+				publicRouteCheckins: publicPreview.publicRouteCheckins,
+				publicCandidateConfirmationSummary: publicPreview.publicCandidateConfirmationSummary,
+				publicRecordingSummary: publicPreview.publicRecordingSummary,
+				checkinCount: publicPreview.checkinCount,
+				materialCount: publicPreview.materialCount,
+				studyTaskEvidenceCount: publicPreview.studyTaskEvidenceCount,
+				privacy: publicPreview.privacy,
+				templateCode: artifact.assetType === 'pdf' ? 'xicheng-memorial-pdf-v1' : artifact.assetType === 'study' ? 'xicheng-study-report-v1' : 'xicheng-share-poster-v1',
+				templateLabel: artifact.assetType === 'pdf' ? 'PDF固定模板：封面、路线地图、照片时间线、游记正文、知识卡片、徽章页' : artifact.assetType === 'study' ? '亲子研学报告固定模板' : '分享海报固定模板',
+				templateSections: artifact.assetType === 'pdf' ? this.createMemorialPdfTemplate(routeTitle, createdAt) : artifact.assetType === 'study' ? [] : this.createPosterTemplate(routeTitle),
+				draftExcerpt: String(this.draft || artifact.draftExcerpt || '').slice(0, 80),
+				reviewEvidencePolicy: {
+					rawEvidenceUse: 'local-ops-review-only',
+					publicPreviewUse: 'share-review-preview-only',
+					exactLocationPolicy: 'raw-review-only',
+					photoPathPolicy: 'raw-review-only',
+					publishStatus: 'private',
+					auditRequired: true
+				},
+				safetyStatusSummary: this.safetyStatusSummary,
+				safetyBlockedCount: this.safetyBlockedCount,
+				safetyUnavailableCount: this.safetyUnavailableCount,
+				reviewReadinessSummary: this.reviewReadinessSummary,
+				sourceReadinessStatus: this.reviewReadinessSummary.sourceReadinessStatus,
+				workSourceCount: this.workSourceCount,
+				reviewedSourceCount: this.reviewReadinessSummary.reviewedSourceCount,
+				reviewBlockers: this.reviewReadinessSummary.reviewBlockers,
+				reviewBlockerCount: this.reviewReadinessSummary.reviewBlockers.length,
+				sourceCount: this.sourceCount,
+				badgeName: this.badgeName,
+				passportProgress: this.passportProgress,
+				auditRequired: true,
+				reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
+				publishStatus: 'private',
+				visibilityLabel: '待审核 · 未公开',
 				createdAt
 			}
 		},
