@@ -743,6 +743,7 @@ const createOfficialRouteMaterials = ({
 			sourceLabel: '官方路线详情',
 			sources,
 			sourceCount: sources.length,
+			safetyStatus: 'PASSED',
 			reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
 			publishStatus: 'private',
 			capturedAt

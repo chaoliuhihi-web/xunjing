@@ -206,8 +206,8 @@ assert.match(
 
 assert.match(
   saveRouteBlock,
-  /route\.stops\.map\(stop => \{[\s\S]*const sources = createXichengOfficialPoiSources\(stop\)[\s\S]*type:\s*'inspiration-poi'[\s\S]*sources,[\s\S]*sourceCount:\s*sources\.length/,
-  'Inspiration route POI materials should carry approved official POI source cards so travelogue/PDF/review evidence is traceable'
+  /route\.stops\.map\(stop => \{[\s\S]*const sources = createXichengOfficialPoiSources\(stop\)[\s\S]*type:\s*'inspiration-poi'[\s\S]*sources,[\s\S]*sourceCount:\s*sources\.length[\s\S]*safetyStatus:\s*'PASSED'/,
+  'Inspiration route POI materials should carry approved official POI source cards and explicit PASSED safety status so travelogue/PDF/review evidence is traceable'
 )
 
 assert.match(

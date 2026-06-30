@@ -244,6 +244,7 @@ export default {
 						sourceLabel: '灵感导入路线',
 						sources,
 						sourceCount: sources.length,
+						safetyStatus: 'PASSED',
 						reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
 						publishStatus: 'private',
 						capturedAt: route.updatedAt

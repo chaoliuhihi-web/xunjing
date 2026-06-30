@@ -75,6 +75,12 @@ assert.match(
 )
 
 assert.match(
+  travelogue,
+  /createOfficialRouteMaterials[\s\S]*type:\s*'official-route-poi'[\s\S]*sourceCount:\s*sources\.length[\s\S]*safetyStatus:\s*'PASSED'[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  'Travelogue official route materials should carry explicit PASSED safety status so safety summaries count reviewed POI evidence'
+)
+
+assert.match(
   shouldAutoStartBlock,
   /const routeSafetyStatus = normalizeXichengSafetyStatus\(decodeJourneyRouteValue\(options\.safetyStatus\)\)[\s\S]*!\s*isXichengUnsafeSafetyStatus\(routeSafetyStatus\)/,
   'Travelogue should not auto-start recording when route params carry BLOCKED or UNAVAILABLE safety status'

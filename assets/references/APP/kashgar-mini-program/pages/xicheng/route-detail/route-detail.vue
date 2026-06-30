@@ -230,6 +230,7 @@ export default {
 					sourceLabel: '官方路线详情',
 					sources,
 					sourceCount: sources.length,
+					safetyStatus: 'PASSED',
 					reviewStatus: this.region.reviewStatus.pending,
 					publishStatus: 'private',
 					capturedAt

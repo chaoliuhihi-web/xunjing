@@ -691,6 +691,7 @@ export default {
 					sourceLabel: '官方推荐路线',
 					sources,
 					sourceCount: sources.length,
+					safetyStatus: 'PASSED',
 					reviewStatus: this.region.reviewStatus.pending,
 					publishStatus: 'private',
 					capturedAt: updatedAt

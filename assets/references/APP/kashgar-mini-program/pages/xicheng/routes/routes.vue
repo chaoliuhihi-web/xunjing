@@ -197,6 +197,7 @@ export default {
 					sourceLabel: '官方路线列表',
 					sources,
 					sourceCount: sources.length,
+					safetyStatus: 'PASSED',
 					reviewStatus: this.region.reviewStatus.pending,
 					publishStatus: 'private',
 					capturedAt: updatedAt

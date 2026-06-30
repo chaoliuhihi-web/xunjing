@@ -68,8 +68,8 @@ assert.match(
 
 assert.match(
   home,
-  /const routeMaterials = stops\.map\(stop => \{[\s\S]*type:\s*'official-route-poi'[\s\S]*sources,[\s\S]*sourceCount:\s*sources\.length[\s\S]*reviewStatus:\s*this\.region\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
-  'Home recommended route POI materials should be pending review and private before share or review handoff'
+  /const routeMaterials = stops\.map\(stop => \{[\s\S]*type:\s*'official-route-poi'[\s\S]*sources,[\s\S]*sourceCount:\s*sources\.length[\s\S]*safetyStatus:\s*'PASSED'[\s\S]*reviewStatus:\s*this\.region\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  'Home recommended route POI materials should carry explicit PASSED safety status and stay pending review/private before share or review handoff'
 )
 
 assert.match(
