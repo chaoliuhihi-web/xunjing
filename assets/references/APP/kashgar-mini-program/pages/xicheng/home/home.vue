@@ -350,6 +350,10 @@ export default {
 			const message = String((err && (err.errMsg || err.message || err)) || '').toLowerCase()
 			return message.includes('cancel') || message.includes('取消')
 		},
+		isXichengScanCancel(err = {}) {
+			const message = String((err && (err.errMsg || err.message || err)) || '').toLowerCase()
+			return message.includes('cancel') || message.includes('取消')
+		},
 		async resolveTextAndOpenResult(text = '', source = 'ocr') {
 			if (this.recognizing) return
 			this.recognizing = true
@@ -383,7 +387,10 @@ export default {
 					}
 					this.resolveTextAndOpenResult(scannedText, 'scan')
 				},
-				fail: () => {
+				fail: (err) => {
+					if (this.isXichengScanCancel(err)) {
+						return
+					}
 					this.handleRecognitionUnavailable('scan')
 				}
 			})

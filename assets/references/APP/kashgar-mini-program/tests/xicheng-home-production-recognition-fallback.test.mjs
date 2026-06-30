@@ -28,8 +28,14 @@ assert.match(
 
 assert.match(
   home,
-  /startScanRecognition\(\)[\s\S]*fail:\s*\(\)\s*=>\s*\{[\s\S]*handleRecognitionUnavailable\('scan'\)/,
-  'Scan failure should surface a no-result state instead of fabricating a POI'
+  /isXichengScanCancel\(err = \{\}\)[\s\S]*message\.includes\('cancel'\)[\s\S]*message\.includes\('取消'\)/,
+  'Xicheng home scan recognition should distinguish normal user cancellation from real scanner failures'
+)
+
+assert.match(
+  home,
+  /startScanRecognition\(\)[\s\S]*fail:\s*\(err\)\s*=>\s*\{[\s\S]*if\s*\(this\.isXichengScanCancel\(err\)\)\s*\{[\s\S]*return[\s\S]*this\.handleRecognitionUnavailable\('scan'\)/,
+  'Scan recognition should ignore normal scanner cancellation and only surface unavailable state for non-cancel failures'
 )
 
 assert.match(
