@@ -232,6 +232,15 @@ export default {
 				checkedInAt: item.checkedInAt || ''
 			}
 		},
+		sanitizePublicCandidateConfirmationSummary(summary = {}) {
+			return {
+				confirmedPoiNames: safeArray(summary.confirmedPoiNames)
+					.map(name => String(name || '').trim())
+					.filter(Boolean)
+					.slice(0, 5),
+				candidateConfirmationCount: toSafeCount(summary.candidateConfirmationCount)
+			}
+		},
 		createSharePublicPreview(journeyDraft = {}) {
 			const publicPreview = safeObject(journeyDraft.publicPreview)
 			const publicMaterials = safeArray(publicPreview.publicMaterials).map(item => this.sanitizePublicMaterialPreview(item)).filter(Boolean).slice(0, 20)
@@ -241,7 +250,7 @@ export default {
 				publicMaterials,
 				publicStudyTaskEvidence,
 				publicRouteCheckins,
-				publicCandidateConfirmationSummary: safeObject(publicPreview.publicCandidateConfirmationSummary),
+				publicCandidateConfirmationSummary: this.sanitizePublicCandidateConfirmationSummary(publicPreview.publicCandidateConfirmationSummary),
 				publicRecordingSummary: safeObject(publicPreview.publicRecordingSummary),
 				materialCount: publicMaterials.length,
 				checkinCount: publicRouteCheckins.length,

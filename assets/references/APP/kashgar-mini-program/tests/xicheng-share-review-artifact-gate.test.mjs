@@ -22,6 +22,7 @@ for (const required of [
   'sanitizePublicMaterialPreview',
   'sanitizePublicStudyEvidencePreview',
   'sanitizePublicRouteCheckinPreview',
+  'sanitizePublicCandidateConfirmationSummary',
   'reviewEvidencePolicy',
   '请先生成分享产物再提交审核',
   'shareArtifactCount',
@@ -81,6 +82,18 @@ assert.match(
 
 assert.match(
   share,
+  /sanitizePublicCandidateConfirmationSummary\(summary = \{\}\)\s*\{[\s\S]*confirmedPoiNames:\s*safeArray\(summary\.confirmedPoiNames\)[\s\S]*filter\(Boolean\)[\s\S]*slice\(0, 5\)[\s\S]*candidateConfirmationCount:\s*toSafeCount\(summary\.candidateConfirmationCount\)[\s\S]*\}/,
+  'Share public preview should whitelist only safe candidate confirmation summary fields'
+)
+
+assert.match(
+  share,
+  /createSharePublicPreview\(journeyDraft = \{\}\)[\s\S]*publicCandidateConfirmationSummary:\s*this\.sanitizePublicCandidateConfirmationSummary\(publicPreview\.publicCandidateConfirmationSummary\)/,
+  'Share public preview should resanitize cached candidate confirmation summaries before review or export'
+)
+
+assert.match(
+  share,
   /sanitizePublicMaterialPreview\(item = \{\}\)[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(item\.safetyStatus\)[\s\S]*if \(isXichengUnsafeSafetyStatus\(safetyStatus\)\) return null[\s\S]*safetyStatus,/,
   'Share public material preview sanitizer should drop BLOCKED or UNAVAILABLE material from public preview artifacts'
 )
@@ -104,6 +117,12 @@ for (const [methodName, forbiddenPattern] of [
     `${methodName} should not expose raw source, location, photo path, or candidate metadata`
   )
 }
+
+assert.doesNotMatch(
+  share.match(/sanitizePublicCandidateConfirmationSummary\(summary = \{\}\)[\s\S]*?\n\t\t\},\n\t\tcreateSharePublicPreview/)?.[0] || '',
+  /candidatePoiCodes|candidatePoiNames|selectedCandidateConfidence|reviewedSourceCount|confirmationSource|candidateConfirmationAudit|sources|latitude|longitude/,
+  'Share candidate confirmation summary sanitizer should not expose raw candidate sets, confidence, sources, internal audits, or exact location'
+)
 
 assert.doesNotMatch(
   share.match(/createShareArtifact\(assetType\)[\s\S]*?\n\t\t\},\n\t\ttoggleShareSetting/)?.[0] || '',
