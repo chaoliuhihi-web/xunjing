@@ -5,6 +5,7 @@ import path from 'node:path'
 const root = process.cwd()
 const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
 const pagesJson = JSON.parse(read('pages.json'))
+const appConfig = read('app.js')
 const app = read('App.vue')
 const index = read('pages', 'index', 'index.vue')
 
@@ -12,6 +13,18 @@ assert.equal(
   pagesJson.pages[0]?.path,
   'pages/xicheng/home/home',
   'APP default launch page should be the Xicheng P0 home, while Kashgar remains addressable at /pages/index/index'
+)
+
+assert.match(
+  appConfig,
+  /tabBar:\s*\{[\s\S]*list:\s*\[[\s\S]*pagePath:\s*'pages\/xicheng\/home\/home'[\s\S]*text:\s*'西城'/,
+  'Global APP tab config should also point the default home entry at the Xicheng P0 home'
+)
+
+assert.doesNotMatch(
+  appConfig,
+  /tabBar:\s*\{[\s\S]*list:\s*\[[\s\S]*pagePath:\s*'pages\/index\/index'[\s\S]*text:\s*'首页'/,
+  'Global APP tab config should not keep the legacy Kashgar index as the default home entry'
 )
 
 assert.match(

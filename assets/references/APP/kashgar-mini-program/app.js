@@ -29,8 +29,8 @@ export default {
     borderStyle: 'black',
     list: [
       {
-        pagePath: 'pages/index/index',
-        text: '首页',
+        pagePath: 'pages/xicheng/home/home',
+        text: '西城',
         iconPath: 'static/tabbar/xiake.png',
         selectedIconPath: 'static/tabbar/xiake1.png'
       },
