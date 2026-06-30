@@ -6,11 +6,54 @@ const root = process.cwd()
 const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
 const pagesJson = JSON.parse(read('pages.json'))
 const app = read('App.vue')
+const index = read('pages', 'index', 'index.vue')
 
 assert.equal(
   pagesJson.pages[0]?.path,
   'pages/xicheng/home/home',
   'APP default launch page should be the Xicheng P0 home, while Kashgar remains addressable at /pages/index/index'
+)
+
+assert.match(
+  index,
+  /const XICHENG_HOME_ROUTE\s*=\s*'\/pages\/xicheng\/home\/home'/,
+  'Legacy index page should centralize the Xicheng home route used for default redirects'
+)
+
+assert.match(
+  index,
+  /redirectLegacyIndexToXicheng\(options = \{\}\)[\s\S]*this\.shouldKeepKashgarLegacyIndex\(options\)[\s\S]*this\.resolveXunjingLaunchScene\(options\)[\s\S]*scan\.sceneCode \|\| scan\.packageCode[\s\S]*setTimeout\(\(\) => \{[\s\S]*typeof window !== 'undefined'[\s\S]*window\.location\.replace\(`#\$\{XICHENG_HOME_ROUTE\}`\)[\s\S]*uni\.reLaunch\(\{[\s\S]*url:\s*XICHENG_HOME_ROUTE/,
+  'Opening /pages/index/index without an explicit Kashgar or scan context should route users back to the Xicheng P0 home after the H5 route is ready, with a browser hash fallback'
+)
+
+assert.match(
+  index,
+  /shouldKeepKashgarLegacyIndex\(options = \{\}\)[\s\S]*city === 'kashgar'[\s\S]*options\.mode === 'landing'[\s\S]*options\.mode === 'play'[\s\S]*options\.dramaId/,
+  'Kashgar should remain available only through explicit city, landing/play, or drama deep-link context'
+)
+
+assert.match(
+  index,
+  /onLoad\(options = \{\}\)\s*\{[\s\S]*this\.initNavigationBar\(\)[\s\S]*if \(this\.redirectLegacyIndexToXicheng\(options\)\) return[\s\S]*this\.resolveKashgarHomeMode\(options\)[\s\S]*this\.applyKashgarHomeContent\(\)[\s\S]*this\.resolveXunjingScanLaunch\(options\)/,
+  'Legacy index onLoad should redirect default opens before rendering Kashgar, while preserving explicit Kashgar and scan flows'
+)
+
+assert.match(
+  index,
+  /getH5LegacyIndexRouteOptions\(\)[\s\S]*typeof window === 'undefined'[\s\S]*window\.location\.hash[\s\S]*\/pages\/index\/index[\s\S]*this\.parseXunjingQueryString\(query\)/,
+  'Legacy index should parse the H5 hash query so SPA navigation to the old index route can still be redirected'
+)
+
+assert.match(
+  index,
+  /onShow\(\)\s*\{[\s\S]*if \(this\.useKashgarLocalContent\) \{[\s\S]*this\.redirectLegacyIndexToXicheng\(this\.getH5LegacyIndexRouteOptions\(\)\)[\s\S]*return[\s\S]*this\.syncTheaterLikeStateFromApi\(\)/,
+  'Legacy index onShow should also redirect default H5 hash navigations that do not remount the page'
+)
+
+assert.match(
+  index,
+  /path:\s*`\/pages\/index\/index\?city=kashgar&dramaId=\$\{item\.id\}`[\s\S]*path:\s*'\/pages\/index\/index\?city=kashgar'/,
+  'Kashgar share paths should opt into the legacy Kashgar route explicitly'
 )
 
 for (const route of [

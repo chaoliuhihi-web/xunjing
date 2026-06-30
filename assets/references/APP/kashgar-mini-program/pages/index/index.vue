@@ -423,6 +423,7 @@ import {
 const KASHGAR_LOCAL_CONTENT_ENABLED = true
 const KASHGAR_LANDING_LOCAL_CONTENT_ENABLED = true
 const KASHGAR_PLAY_HOME_LOCAL_CONTENT_ENABLED = true
+const XICHENG_HOME_ROUTE = '/pages/xicheng/home/home'
 const HOME_THEATER_TYPES = [1, 2, 3]
 const HOME_THEATER_LIKE_TYPES = HOME_THEATER_TYPES.join(',')
 const QQ_MAP_KEY = 'Y2EBZ-ALIEI-542GN-UQTLT-NX6A3-VNFLA'
@@ -514,6 +515,7 @@ export default {
 	onLoad(options = {}) {
 		if (this.useKashgarLocalContent) {
 			this.initNavigationBar()
+			if (this.redirectLegacyIndexToXicheng(options)) return
 			this.resolveKashgarHomeMode(options)
 			this.applyKashgarHomeContent()
 			this.resolveXunjingScanLaunch(options)
@@ -525,7 +527,10 @@ export default {
 		uni.$on('theaterLikeChanged', this.applyTheaterLikeChange)
 	},
 	onShow() {
-		if (this.useKashgarLocalContent) { return }
+		if (this.useKashgarLocalContent) {
+			this.redirectLegacyIndexToXicheng(this.getH5LegacyIndexRouteOptions())
+			return
+		}
 		this.syncTheaterLikeStateFromApi()
 	},
 	onUnload() {
@@ -538,21 +543,50 @@ export default {
 			const item = this.currentShareItem
 			return {
 				title: item.title || '剧好玩文旅地图',
-				path: `/pages/index/index?dramaId=${item.id}`,
+				path: `/pages/index/index?city=kashgar&dramaId=${item.id}`,
 				imageUrl: item.cover || ''
 			}
 		}
 		// 默认分享内容
 		return {
 			title: '剧好玩文旅地图',
-			path: '/pages/index/index',
+			path: '/pages/index/index?city=kashgar',
 			imageUrl: ''
 		}
 	},
 	methods: {
+		shouldKeepKashgarLegacyIndex(options = {}) {
+			const city = String(options.city || '').trim().toLowerCase()
+			return city === 'kashgar'
+				|| options.mode === 'landing'
+				|| options.mode === 'play'
+				|| Boolean(options.dramaId)
+		},
+		redirectLegacyIndexToXicheng(options = {}) {
+			if (this.shouldKeepKashgarLegacyIndex(options)) return false
+			const scan = this.resolveXunjingLaunchScene(options)
+			if (scan.sceneCode || scan.packageCode) return false
+			setTimeout(() => {
+				if (typeof window !== 'undefined' && window.location && window.location.replace) {
+					window.location.replace(`#${XICHENG_HOME_ROUTE}`)
+					return
+				}
+				uni.reLaunch({
+					url: XICHENG_HOME_ROUTE
+				})
+			}, 0)
+			return true
+		},
 		resolveKashgarHomeMode(options = {}) {
 			this.showKashgarLanding = KASHGAR_LANDING_LOCAL_CONTENT_ENABLED && options.mode === 'landing'
 			this.showKashgarPlayHome = KASHGAR_PLAY_HOME_LOCAL_CONTENT_ENABLED && options.mode === 'play'
+		},
+		getH5LegacyIndexRouteOptions() {
+			if (typeof window === 'undefined' || !window.location) return {}
+			const hash = String(window.location.hash || '')
+			if (!hash.includes('/pages/index/index')) return {}
+			const query = hash.includes('?') ? hash.split('?').slice(1).join('?') : ''
+			return this.parseXunjingQueryString(query)
 		},
 		parseXunjingQueryString(query = '') {
 			return String(query || '').replace(/^[^?]*\?/, '').split('&').reduce((params, pair) => {
