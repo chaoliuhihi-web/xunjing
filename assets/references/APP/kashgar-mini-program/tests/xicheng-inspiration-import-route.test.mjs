@@ -39,6 +39,11 @@ const openTravelogueBlock = sliceBetween(
   'openTravelogue()',
   '</script>'
 )
+const dataBlock = sliceBetween(
+  inspiration,
+  'data()',
+  'methods:'
+)
 
 assert.match(
   pagesJson,
@@ -90,6 +95,18 @@ for (const required of [
 ]) {
   assert.ok(inspiration.includes(required), `Inspiration page should include ${required}`)
 }
+
+assert.match(
+  dataBlock,
+  /const rawText = ''[\s\S]*const matchedPois = extractXichengPoiMatches\(rawText\)[\s\S]*route: buildXichengWalkRoute\(matchedPois\)/,
+  'Inspiration import should start with empty user input and no default route, so the example route is not saved as real user evidence'
+)
+
+assert.match(
+  inspiration,
+  /fillExample\(\)[\s\S]*this\.rawText = '白塔寺看建筑，历代帝王庙听礼制故事，最后去什刹海散步。'[\s\S]*this\.runExtraction\(\)/,
+  'The example itinerary should remain available only after the user taps 示例'
+)
 
 assert.doesNotMatch(
   inspiration,

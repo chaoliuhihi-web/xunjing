@@ -137,7 +137,7 @@ export const buildXichengWalkRoute = (pois = []) => {
 
 export default {
 	data() {
-		const rawText = '白塔寺看建筑，历代帝王庙听礼制故事，最后去什刹海散步。'
+		const rawText = ''
 		const matchedPois = extractXichengPoiMatches(rawText)
 		return {
 			region: XICHENG_REGION_CONFIG,
