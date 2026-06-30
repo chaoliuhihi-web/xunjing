@@ -22,8 +22,8 @@ assert.doesNotMatch(
 
 assert.match(
   aiGuide,
-  /const applyXichengPhotoTriggerContext\s*=\s*\(trigger = \{\}\) => \{[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(trigger\.safetyStatus\)[\s\S]*const unsafeSafetyStatus = isXichengUnsafeSafetyStatus\(safetyStatus\)[\s\S]*sources:\s*unsafeSafetyStatus \? \[\] : normalizeXichengReviewedSources\(trigger\.sources\)[\s\S]*suggestedQuestions:\s*unsafeSafetyStatus \? \[\] : Array\.isArray\(trigger\.suggestedQuestions\) \? trigger\.suggestedQuestions : \[\][\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.storageKey, recognitionContext\)[\s\S]*xichengAiContext\.value = \{[\s\S]*\.\.\.recognitionContext/,
-  'AI guide should apply a successful photo trigger to the active Xicheng context and recognition cache'
+  /const applyXichengPhotoTriggerContext\s*=\s*\(trigger = \{\}\) => \{[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(trigger\.safetyStatus\)[\s\S]*const unsafeSafetyStatus = isXichengUnsafeSafetyStatus\(safetyStatus\)[\s\S]*sources:\s*unsafeSafetyStatus \? \[\] : normalizeXichengReviewedSources\(trigger\.sources\)[\s\S]*suggestedQuestions:\s*unsafeSafetyStatus \? \[\] : Array\.isArray\(trigger\.suggestedQuestions\) \? trigger\.suggestedQuestions : \[\][\s\S]*if \(unsafeSafetyStatus\) \{[\s\S]*uni\.removeStorageSync\(XICHENG_REGION_CONFIG\.storageKey\)[\s\S]*\} else \{[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.storageKey, recognitionContext\)[\s\S]*xichengAiContext\.value = \{[\s\S]*\.\.\.recognitionContext/,
+  'AI guide should keep unsafe photo trigger context out of the shared recognition cache while preserving the active page context'
 )
 
 assert.match(

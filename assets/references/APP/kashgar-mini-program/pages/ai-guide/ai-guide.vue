@@ -1018,7 +1018,11 @@ const applyXichengPhotoTriggerContext = (trigger = {}) => {
 		sources: unsafeSafetyStatus ? [] : normalizeXichengReviewedSources(trigger.sources),
 		suggestedQuestions: unsafeSafetyStatus ? [] : Array.isArray(trigger.suggestedQuestions) ? trigger.suggestedQuestions : []
 	}
-	uni.setStorageSync(XICHENG_REGION_CONFIG.storageKey, recognitionContext)
+	if (unsafeSafetyStatus) {
+		uni.removeStorageSync(XICHENG_REGION_CONFIG.storageKey)
+	} else {
+		uni.setStorageSync(XICHENG_REGION_CONFIG.storageKey, recognitionContext)
+	}
 	xichengAiContext.value = {
 		...xichengAiContext.value,
 		...recognitionContext
