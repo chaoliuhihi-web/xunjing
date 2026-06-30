@@ -52,6 +52,18 @@ assert.match(
 
 assert.match(
   scanResult,
+  /const getCurrentXichengScanResultRouteOptions\s*=\s*\(\) => \{[\s\S]*location\.hash[\s\S]*URLSearchParams[\s\S]*options\[key\] = decodeRouteValue\(value\)[\s\S]*options\.safetyStatus = normalizeXichengSafetyStatus\(decodeRouteValue\(options\.safetyStatus\)\)/,
+  'Recognition result should parse H5 hash route params so safetyStatus=BLOCKED is not dropped in browser QA'
+)
+
+assert.match(
+  scanResult,
+  /const mergeXichengScanResultRouteOptions\s*=\s*\(routeOptions = \{\}\) => \{[\s\S]*const h5RouteOptions = getCurrentXichengScanResultRouteOptions\(\)[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(routeOptions\.safetyStatus \|\| h5RouteOptions\.safetyStatus\)/,
+  'Recognition result should merge runtime and H5 route options while preserving explicit unsafe safetyStatus'
+)
+
+assert.match(
+  scanResult,
   /const normalizeResult = \(result = \{\}\) => \(\{[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(result\.safetyStatus\)/,
   'Recognition result normalization should preserve backend safetyStatus such as BLOCKED after normalization'
 )
@@ -180,6 +192,18 @@ assert.match(
   scanResult,
   /safetyStatus:\s*routeOptions\.safetyStatus \|\| \(selectedCached && selectedCached\.safetyStatus\) \|\| ''/,
   'Recognition result should prefer route safetyStatus and fall back to matching cached recognition safetyStatus'
+)
+
+assert.match(
+  scanResult,
+  /const routeUnsafeSafetyStatus = isXichengUnsafeSafetyStatus\(routeOptions\.safetyStatus\)[\s\S]*const selectedCached = cachedBlockedByProductionFixture \|\| routeUnsafeSafetyStatus[\s\S]*\? null[\s\S]*: selectCachedRecognitionForRoute\(cached, mergedRouteOptions\)/,
+  'Recognition result should not let stale cached POI/source data override explicit BLOCKED or UNAVAILABLE route contexts'
+)
+
+assert.match(
+  scanResult,
+  /if \(!this\.unsafeRecognitionSafetyStatus && this\.result\.officialPoiMatched && this\.result\.poiCode && this\.result\.poiName\) \{[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.storageKey, this\.result\)/,
+  'Recognition result should not persist unsafe recognition contexts back into the shared Xiaojing cache'
 )
 
 assert.match(

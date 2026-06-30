@@ -331,6 +331,54 @@ const normalizeRouteOptions = (options = {}) => ({
 	safetyStatus: normalizeXichengSafetyStatus(decodeRouteValue(options.safetyStatus))
 })
 
+const getCurrentXichengScanResultRouteOptions = () => {
+	const options = {}
+	try {
+		if (typeof getCurrentPages === 'function') {
+			const pages = getCurrentPages()
+			const currentPage = Array.isArray(pages) && pages.length > 0 ? pages[pages.length - 1] : null
+			if (currentPage && currentPage.options && typeof currentPage.options === 'object') {
+				Object.assign(options, currentPage.options)
+			}
+		}
+	} catch (error) {
+		// H5 and native runtimes expose route params differently; hash parsing below is the fallback.
+	}
+	try {
+		const currentHash = typeof location !== 'undefined' && location.hash ? String(location.hash) : ''
+		const queryIndex = currentHash.indexOf('?')
+		if (queryIndex >= 0 && typeof URLSearchParams !== 'undefined') {
+			const params = new URLSearchParams(currentHash.slice(queryIndex + 1))
+			params.forEach((value, key) => {
+				options[key] = decodeRouteValue(value)
+			})
+		}
+	} catch (error) {
+		return options
+	}
+	if (options.safetyStatus) {
+		options.safetyStatus = normalizeXichengSafetyStatus(decodeRouteValue(options.safetyStatus))
+	}
+	return options
+}
+
+const mergeXichengScanResultRouteOptions = (routeOptions = {}) => {
+	const h5RouteOptions = getCurrentXichengScanResultRouteOptions()
+	const mergedOptions = {
+		...h5RouteOptions
+	}
+	Object.keys(routeOptions || {}).forEach(key => {
+		const value = routeOptions[key]
+		if (value !== undefined && value !== null && value !== '') {
+			mergedOptions[key] = value
+		}
+	})
+	return {
+		...mergedOptions,
+		safetyStatus: normalizeXichengSafetyStatus(routeOptions.safetyStatus || h5RouteOptions.safetyStatus)
+	}
+}
+
 const selectCachedRecognitionForRoute = (cached = {}, options = {}) => {
 	if (!cached || typeof cached !== 'object') {
 		return null
@@ -572,14 +620,16 @@ export default {
 	},
 	onLoad(options = {}) {
 		const cached = uni.getStorageSync(XICHENG_REGION_CONFIG.storageKey)
-		const routeOptions = normalizeRouteOptions(options)
+		const mergedRouteOptions = mergeXichengScanResultRouteOptions(options)
+		const routeOptions = normalizeRouteOptions(mergedRouteOptions)
+		const routeUnsafeSafetyStatus = isXichengUnsafeSafetyStatus(routeOptions.safetyStatus)
 		const cachedBlockedByProductionFixture = this.isBlockedDevelopmentRecognitionCache(cached)
 		if (cachedBlockedByProductionFixture) {
 			uni.removeStorageSync(XICHENG_REGION_CONFIG.storageKey)
 		}
-		const selectedCached = cachedBlockedByProductionFixture
+		const selectedCached = cachedBlockedByProductionFixture || routeUnsafeSafetyStatus
 			? null
-			: selectCachedRecognitionForRoute(cached, options)
+			: selectCachedRecognitionForRoute(cached, mergedRouteOptions)
 		const normalizedResult = normalizeResult(applyXichengOfficialPoiDefaults({
 			...(selectedCached || {}),
 			source: routeOptions.source || (selectedCached && selectedCached.source) || '',
@@ -595,7 +645,7 @@ export default {
 			safetyStatus: routeOptions.safetyStatus || (selectedCached && selectedCached.safetyStatus) || ''
 		}))
 		this.result = normalizedResult
-		if (this.result.officialPoiMatched && this.result.poiCode && this.result.poiName) {
+		if (!this.unsafeRecognitionSafetyStatus && this.result.officialPoiMatched && this.result.poiCode && this.result.poiName) {
 			uni.setStorageSync(XICHENG_REGION_CONFIG.storageKey, this.result)
 		}
 		this.loadRecognitionFeedback()
