@@ -450,6 +450,16 @@ const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TITLE = '等待你的西城素材'
 const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TEXT = '请先通过识别、开始记录、补充照片或现场备注积累真实素材，再预览西城游记。小京会基于已审核来源、现场照片、路线轨迹和用户备注整理内容。'
 const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TAGS = Object.freeze(['待补充素材', '来源审核后生成'])
 
+export const createXichengTraveloguePreviewExcerpt = (text = '', limit = 88) => {
+	const normalizedText = String(text || '').replace(/\s+/g, ' ').trim()
+	if (!normalizedText || normalizedText.length <= limit) return normalizedText
+	const boundedText = normalizedText.slice(0, limit)
+	const punctuationIndexes = ['。', '！', '？', '；', '，'].map(mark => boundedText.lastIndexOf(mark)).filter(index => index >= Math.floor(limit * 0.56))
+	const cutIndex = punctuationIndexes.length > 0 ? Math.max(...punctuationIndexes) : -1
+	const excerpt = (cutIndex >= 0 ? boundedText.slice(0, cutIndex + 1) : boundedText).replace(/[，、；：:,\s]+$/g, '').trim()
+	return `${excerpt}…`
+}
+
 export const isUnsafeSourceBlockedMaterial = (material = {}) => {
 	const safetyStatus = normalizeXichengSafetyStatus(material.safetyStatus)
 	return isXichengUnsafeSafetyStatus(safetyStatus)
@@ -1018,7 +1028,7 @@ export default {
 		traveloguePreviewText() {
 			if (!this.hasTraveloguePreviewEvidence) return XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TEXT
 			const currentDraft = String(this.draft || '').trim()
-			if (currentDraft && !currentDraft.startsWith('请先通过识别')) return currentDraft.slice(0, 118)
+			if (currentDraft && !currentDraft.startsWith('请先通过识别')) return createXichengTraveloguePreviewExcerpt(currentDraft)
 			const style = this.travelogueStyleOptions.find(option => option.key === this.activeTravelogueStyle)
 			const styleTitle = style && style.title ? style.title : '城市漫步'
 			const stopNames = this.recognizedRouteStops.map(stop => typeof stop === 'string' ? stop : stop.poiName).filter(Boolean).slice(0, 4)
