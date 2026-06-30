@@ -111,6 +111,11 @@ assert.ok(
 )
 
 assert.ok(
+  exists('pages', 'ai-guide', 'ai-guide-xicheng-chat.css'),
+  'AI guide page should move Xicheng chat-specific styles into pages/ai-guide/ai-guide-xicheng-chat.css'
+)
+
+assert.ok(
   exists('pages', 'ai-guide', 'kashgar-ai-content.js'),
   'AI guide page should move static Kashgar AI companion content into pages/ai-guide/kashgar-ai-content.js'
 )
@@ -125,6 +130,12 @@ assert.match(
   aiGuidePage,
   /<style\s+scoped\s+src="\.\/ai-guide-chat\.css"><\/style>/,
   'AI guide should attach extracted chat CSS as a separate scoped style block after the base page style'
+)
+
+assert.match(
+  aiGuidePage,
+  /<style\s+scoped\s+src="\.\/ai-guide-xicheng-chat\.css"><\/style>/,
+  'AI guide should attach extracted Xicheng chat CSS as a separate scoped style block after the shared chat CSS'
 )
 
 for (const cssFile of [
@@ -145,10 +156,20 @@ for (const cssFile of [
 const aiGuideChat = exists('pages', 'ai-guide', 'ai-guide-chat.css')
   ? read('pages', 'ai-guide', 'ai-guide-chat.css')
   : ''
+const aiGuideXichengChat = exists('pages', 'ai-guide', 'ai-guide-xicheng-chat.css')
+  ? read('pages', 'ai-guide', 'ai-guide-xicheng-chat.css')
+  : ''
 
 for (const selector of ['.input-area', '.upload-btn', '.follow-up-list', '.message-source-list']) {
   assert.ok(
     aiGuideChat.includes(selector),
     `Extracted AI guide chat CSS should preserve ${selector} styling`
+  )
+}
+
+for (const selector of ['.xicheng-chat-container', '.xicheng-chat-hero-card', '.xicheng-chat-prompt-chip', '.xicheng-chat-shell .message-source-list']) {
+  assert.ok(
+    aiGuideXichengChat.includes(selector),
+    `Extracted Xicheng AI guide chat CSS should preserve ${selector} styling`
   )
 }

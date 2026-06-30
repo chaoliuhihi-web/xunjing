@@ -6,6 +6,7 @@ const root = process.cwd()
 const aiGuide = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
 const aiGuideTheme = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide-theme.css'), 'utf8')
 const aiGuideChat = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide-chat.css'), 'utf8')
+const aiGuideXichengChat = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide-xicheng-chat.css'), 'utf8')
 
 for (const required of [
   'class="xicheng-chat-hero-card"',
@@ -36,13 +37,13 @@ assert.match(
 )
 
 assert.match(
-  aiGuide,
+  aiGuideXichengChat,
   /\.xicheng-chat-hero-card\s*\{[\s\S]*min-height:\s*420rpx[\s\S]*border-radius:\s*34rpx/,
   'Xicheng AI guide hero should have stable mobile dimensions and match the rounded reference surface'
 )
 
 assert.match(
-  aiGuide,
+  aiGuideXichengChat,
   /\.xicheng-chat-hero-landmark\s*\{[\s\S]*position:\s*absolute[\s\S]*opacity:\s*0\.26[\s\S]*object-fit:\s*cover/,
   'Xicheng AI guide should use the shared landmark photo as a muted background, not as a full-page mockup screenshot'
 )
