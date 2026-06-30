@@ -35,8 +35,8 @@ assert.match(
 
 assert.match(
   home,
-  /handleXichengP0FlowAction\(key = 'guide'\)[\s\S]*case 'routes':[\s\S]*selector:\s*'#xicheng-route-section'/,
-  'P0 flow route action should jump to the official route recommendation section'
+  /handleXichengP0FlowAction\(key = 'guide'\)[\s\S]*case 'routes':[\s\S]*this\.openXichengRoutes\(\)/,
+  'P0 flow route action should open the dedicated official route list'
 )
 
 assert.match(

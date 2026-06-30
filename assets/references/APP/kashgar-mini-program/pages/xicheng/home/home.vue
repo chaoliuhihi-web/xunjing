@@ -613,10 +613,7 @@ export default {
 					this.askXiaojing()
 					break
 				case 'routes':
-					uni.pageScrollTo({
-						selector: '#xicheng-route-section',
-						duration: 220
-					})
+					this.openXichengRoutes()
 					break
 				case 'record':
 					this.openXichengTravelogue('record')
@@ -637,10 +634,7 @@ export default {
 					})
 					break
 				case 'routes':
-					uni.pageScrollTo({
-						selector: '#xicheng-route-section',
-						duration: 220
-					})
+					this.openXichengRoutes()
 					break
 				case 'travelogue':
 					this.openXichengTravelogue('draft')
@@ -715,6 +709,11 @@ export default {
 		openXichengInspiration() {
 			uni.navigateTo({
 				url: `/pages/xicheng/inspiration/inspiration?regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&companionName=${encodeRouteValue(this.region.companionName)}`
+			})
+		},
+		openXichengRoutes() {
+			uni.navigateTo({
+				url: `/pages/xicheng/routes/routes?regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&companionName=${encodeRouteValue(this.region.companionName)}`
 			})
 		}
 	}

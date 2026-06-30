@@ -56,6 +56,17 @@
 			}
 		},
 		{
+			"path": "pages/xicheng/routes/routes",
+			"style": {
+				"navigationBarTitleText": "路线推荐",
+				"navigationStyle": "custom",
+				"mp-weixin": {
+					"navigationStyle": "custom",
+					"homeButton": false
+				}
+			}
+		},
+		{
 			"path": "pages/xicheng/route-detail/route-detail",
 			"style": {
 				"navigationBarTitleText": "路线详情",

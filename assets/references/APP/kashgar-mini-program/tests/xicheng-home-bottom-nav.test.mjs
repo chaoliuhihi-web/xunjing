@@ -31,8 +31,14 @@ assert.match(
 
 assert.match(
   home,
-  /handleXichengHomeNav\(key = 'explore'\)[\s\S]*case 'routes':[\s\S]*selector:\s*'#xicheng-route-section'/,
-  'Map bottom nav item should jump to the route recommendation section instead of a missing map page'
+  /handleXichengHomeNav\(key = 'explore'\)[\s\S]*case 'routes':[\s\S]*this\.openXichengRoutes\(\)/,
+  'Map bottom nav item should open the dedicated Xicheng route list instead of a missing map page'
+)
+
+assert.match(
+  home,
+  /openXichengRoutes\(\)[\s\S]*\/pages\/xicheng\/routes\/routes\?[\s\S]*regionCode=\$\{encodeRouteValue\(this\.region\.regionCode\)\}/,
+  'Dedicated route list navigation should preserve Xicheng context from the home bottom nav'
 )
 
 assert.match(
