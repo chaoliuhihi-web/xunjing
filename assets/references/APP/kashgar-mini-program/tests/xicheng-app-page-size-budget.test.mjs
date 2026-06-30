@@ -10,6 +10,7 @@ const pageBudgets = [
   'pages/index/index.vue',
   'pages/xicheng/travelogue/travelogue.vue',
   'pages/xicheng/route-detail/route-detail.vue',
+  'pages/xicheng/recording/recording.vue',
   'pages/xicheng/scan-result/scan-result.vue',
   'pages/xicheng/home/home.vue',
   'pages/xicheng/inspiration/inspiration.vue'

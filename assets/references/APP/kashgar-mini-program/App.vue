@@ -7,6 +7,7 @@ const PUBLIC_ROUTES = [
 	'pages/xicheng/scan-result/scan-result',
 	'pages/xicheng/routes/routes',
 	'pages/xicheng/route-detail/route-detail',
+	'pages/xicheng/recording/recording',
 	'pages/xicheng/travelogue/travelogue',
 	'pages/xicheng/inspiration/inspiration',
 	'pages/ai-guide/ai-guide',

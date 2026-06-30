@@ -78,6 +78,17 @@
 			}
 		},
 		{
+			"path": "pages/xicheng/recording/recording",
+			"style": {
+				"navigationBarTitleText": "记录中",
+				"navigationStyle": "custom",
+				"mp-weixin": {
+					"navigationStyle": "custom",
+					"homeButton": false
+				}
+			}
+		},
+		{
 			"path": "pages/xicheng/travelogue/travelogue",
 			"style": {
 				"navigationBarTitleText": "西城游记草稿",

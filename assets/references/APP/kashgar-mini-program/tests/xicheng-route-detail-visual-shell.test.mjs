@@ -43,8 +43,8 @@ assert.match(
 
 assert.match(
   routeDetail,
-  /startRouteRecording\(\)[\s\S]*this\.persistRoutePassport\(\)[\s\S]*\/pages\/xicheng\/travelogue\/travelogue\?mode=record&autoStart=1[\s\S]*routeCode=\$\{encodeRouteValue\(this\.activeRoute\.routeCode \|\| ''\)\}[\s\S]*companionName=\$\{encodeRouteValue\(this\.routeOptions\.companionName \|\| this\.region\.companionName\)\}/,
-  'Route detail should offer a direct start-recording handoff with autoStart=1, routeCode, and decoded companionName preserved'
+  /startRouteRecording\(\)[\s\S]*this\.persistRoutePassport\(\)[\s\S]*\/pages\/xicheng\/recording\/recording\?autoStart=1[\s\S]*routeCode=\$\{encodeRouteValue\(this\.activeRoute\.routeCode \|\| ''\)\}[\s\S]*companionName=\$\{encodeRouteValue\(this\.routeOptions\.companionName \|\| this\.region\.companionName\)\}/,
+  'Route detail should offer a start-recording handoff to the dedicated recording page with autoStart=1, routeCode, and decoded companionName preserved'
 )
 
 assert.match(
