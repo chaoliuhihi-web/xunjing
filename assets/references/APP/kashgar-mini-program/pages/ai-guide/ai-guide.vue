@@ -390,6 +390,8 @@ const KASHGAR_AI_COMPANION_HOME_ENABLED = true
 const KASHGAR_DIARY_GENERATOR_ENABLED = true
 const XICHENG_BLOCKED_ANSWER = '无已审核来源，不能回答'
 const XICHENG_UNAVAILABLE_ANSWER = '小京暂时无法获取已审核来源，请稍后再试'
+const XICHENG_HOME_ROUTE = '/pages/xicheng/home/home'
+const KASHGAR_HOME_ROUTE = '/pages/index/index?city=kashgar'
 
 const XUNJING_AI_CONFIG = {
 	packageCode: 'KASHGAR-MAP-001',
@@ -2103,7 +2105,7 @@ const showXichengChatMenu = () => {
 				clearPendingUiTimers()
 				stopAiSpeech()
 				uni.reLaunch({
-					url: '/pages/xicheng/home/home'
+					url: XICHENG_HOME_ROUTE
 				})
 			}
 		}
@@ -2117,6 +2119,19 @@ const goBack = () => {
 		showAiCompanionHome.value = true
 		return
 	}
+	if (isXichengChatMode.value) {
+		clearPendingUiTimers()
+		stopAiSpeech()
+		const pages = getCurrentPages()
+		if (pages.length === 1) {
+			uni.reLaunch({
+				url: XICHENG_HOME_ROUTE
+			})
+		} else {
+			uni.navigateBack()
+		}
+		return
+	}
 	if (showAiCompanionHome.value === false && KASHGAR_AI_COMPANION_HOME_ENABLED) {
 		showAiCompanionHome.value = true
 		return
@@ -2126,7 +2141,7 @@ const goBack = () => {
 	const pages = getCurrentPages()
 	if (pages.length === 1) {
 		uni.reLaunch({
-			url: '/pages/index/index'
+			url: KASHGAR_HOME_ROUTE
 		})
 	} else {
 		uni.navigateBack()
