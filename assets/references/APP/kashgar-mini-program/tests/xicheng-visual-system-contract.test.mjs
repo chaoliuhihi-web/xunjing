@@ -162,3 +162,19 @@ for (const required of [
 ]) {
   assert.ok(qaReport.includes(required), `Xicheng design QA report should include ${required}`)
 }
+
+for (const forbidden of [
+  'Source Visual Truth',
+  'Kashgar',
+  'kashgar-',
+  '喀什',
+  '喀小寻',
+  '喀什文旅地图',
+  '沿着石巷去看喀什',
+  '生成我的喀什游记'
+]) {
+  assert.ok(
+    !qaReport.includes(forbidden),
+    `Xicheng design QA report should not include legacy Kashgar QA evidence: ${forbidden}`
+  )
+}
