@@ -88,7 +88,7 @@ for (const required of [
   'recognitionSignalItems',
   'class="result-companion-card"',
   ':src="region.companionAvatar"',
-  '小京已为你匹配到这里'
+  'resultCompanionTitle'
 ]) {
   assert.ok(scanResult.includes(required), `Recognition result visual shell should include ${required}`)
 }

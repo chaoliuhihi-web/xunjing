@@ -44,10 +44,17 @@
 					<text class="meta-label">审核状态</text>
 				</view>
 			</view>
+			<view class="result-source-summary" :class="{ 'result-source-summary-blocked': recognitionActionBlocked }">
+				<view class="result-source-summary-icon"></view>
+				<view class="result-source-summary-copywrap">
+					<text class="result-source-summary-label">{{ sourceSummaryLabel }}</text>
+					<text class="result-source-summary-copy">{{ sourceSummaryCopy }}</text>
+				</view>
+			</view>
 			<view class="result-companion-card">
 				<image class="result-companion-avatar" :src="region.companionAvatar" mode="aspectFit" />
 				<view class="result-companion-copy xicheng-companion-bubble">
-					<text class="result-companion-title">小京已为你匹配到这里</text>
+					<text class="result-companion-title">{{ resultCompanionTitle }}</text>
 					<text class="result-companion-desc">{{ recognitionActionBlocked ? questionSectionTitle : '可以继续听讲解、问路线或生成游记素材。' }}</text>
 				</view>
 			</view>
@@ -425,6 +432,17 @@ export default {
 		sourceList() {
 			return normalizeReviewedSources(this.result)
 		},
+		sourceSummaryLabel() {
+			const safetyStatus = normalizeXichengSafetyStatus(this.result.safetyStatus)
+			if (this.sourceList.length > 0) return `已审核来源 ${this.sourceList.length} 条`
+			if (safetyStatus === 'BLOCKED') return '无已审核来源'
+			if (safetyStatus === 'UNAVAILABLE') return '来源服务不可用'
+			return '来源待审核'
+		},
+		sourceSummaryCopy() {
+			if (this.sourceList.length > 0) return '小京回答将优先引用这些官方来源。'
+			return this.sourceEmptyCopy
+		},
 		resultVisualImage() {
 			return this.region && this.region.visualAssets
 				? this.region.visualAssets.heroLandmark || ''
@@ -484,10 +502,15 @@ export default {
 			return '已确认官方 POI'
 		},
 		questionSectionTitle() {
+			if (this.unsafeRecognitionSafetyStatus) return this.sourceEmptyCopy
 			if (this.pendingCandidateConfirmation) return '确认官方 POI 后可问小京'
 			if (this.missingOfficialPoiContext) return '匹配官方 POI 后可问小京'
-			if (this.unsafeRecognitionSafetyStatus) return this.sourceEmptyCopy
 			return '可以继续问小京'
+		},
+		resultCompanionTitle() {
+			if (this.unsafeRecognitionSafetyStatus) return '小京暂不能讲解这里'
+			if (this.pendingCandidateConfirmation || this.missingOfficialPoiContext) return '小京识别到待确认线索'
+			return '小京已为你匹配到这里'
 		},
 		unsafeRecognitionSafetyStatus() {
 			const safetyStatus = normalizeXichengSafetyStatus(this.result.safetyStatus)
@@ -1042,6 +1065,79 @@ export default {
 	font-size: 32rpx;
 	font-weight: 700;
 	color: #173F35;
+}
+
+.result-source-summary {
+	display: flex;
+	align-items: flex-start;
+	gap: 16rpx;
+	margin-top: 22rpx;
+	padding: 18rpx;
+	border: 1rpx solid rgba(181, 148, 94, 0.22);
+	border-radius: 24rpx;
+	background: rgba(181, 148, 94, 0.12);
+	box-sizing: border-box;
+}
+
+.result-source-summary-blocked {
+	border-color: rgba(180, 35, 24, 0.24);
+	background: rgba(180, 35, 24, 0.08);
+}
+
+.result-source-summary-icon {
+	position: relative;
+	width: 44rpx;
+	height: 44rpx;
+	flex-shrink: 0;
+	border-radius: 999rpx;
+	background: #173F35;
+}
+
+.result-source-summary-icon::before,
+.result-source-summary-icon::after {
+	content: '';
+	position: absolute;
+	background: #FFF9EC;
+}
+
+.result-source-summary-icon::before {
+	left: 13rpx;
+	top: 12rpx;
+	width: 18rpx;
+	height: 4rpx;
+	border-radius: 999rpx;
+	box-shadow: 0 8rpx 0 #FFF9EC, 0 16rpx 0 #FFF9EC;
+}
+
+.result-source-summary-icon::after {
+	right: 8rpx;
+	bottom: 8rpx;
+	width: 10rpx;
+	height: 4rpx;
+	border-radius: 999rpx;
+	transform: rotate(-42deg);
+}
+
+.result-source-summary-copywrap {
+	min-width: 0;
+}
+
+.result-source-summary-label,
+.result-source-summary-copy {
+	display: block;
+	line-height: 1.45;
+}
+
+.result-source-summary-label {
+	font-size: 26rpx;
+	font-weight: 700;
+	color: #173F35;
+}
+
+.result-source-summary-copy {
+	margin-top: 4rpx;
+	font-size: 22rpx;
+	color: #746F68;
 }
 
 .result-companion-card {

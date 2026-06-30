@@ -8,11 +8,58 @@ const sourceHelper = fs.readFileSync(path.join(root, 'request', 'xunjing', 'sour
 
 const sourceTitleHelper = scanResult.match(/getDisplaySourceTitle\(source = \{\}\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
 const sourceDescriptionHelper = scanResult.match(/getDisplaySourceDescription\(source = \{\}\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
+const sourceSummaryLabel = scanResult.match(/sourceSummaryLabel\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
+const sourceSummaryCopy = scanResult.match(/sourceSummaryCopy\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
+const questionSectionTitle = scanResult.match(/questionSectionTitle\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
+const resultCompanionTitle = scanResult.match(/resultCompanionTitle\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
 
 assert.match(
   scanResult,
   /<text class="source-title">\{\{ getDisplaySourceTitle\(source\) \|\| '审核来源' \}\}<\/text>/,
   'Recognition result source cards should render display-safe source titles'
+)
+
+assert.match(
+  scanResult,
+  /<view class="result-source-summary"[\s\S]*<text class="result-source-summary-label">\{\{ sourceSummaryLabel \}\}<\/text>[\s\S]*<text class="result-source-summary-copy">\{\{ sourceSummaryCopy \}\}<\/text>[\s\S]*<\/view>/,
+  'Recognition result summary card should surface reviewed-source status before lower detail sections'
+)
+
+assert.match(
+  scanResult,
+  /:class="\{ 'result-source-summary-blocked': recognitionActionBlocked \}"/,
+  'Recognition result source summary should visually distinguish blocked or untrusted result states'
+)
+
+assert.match(
+  sourceSummaryLabel,
+  /this\.sourceList\.length > 0[\s\S]*`已审核来源 \$\{this\.sourceList\.length\} 条`[\s\S]*BLOCKED[\s\S]*'无已审核来源'/,
+  'Recognition result source summary label should count reviewed sources and name blocked no-source states clearly'
+)
+
+assert.match(
+  sourceSummaryCopy,
+  /this\.sourceList\.length > 0[\s\S]*小京回答将优先引用这些官方来源[\s\S]*this\.sourceEmptyCopy/,
+  'Recognition result source summary copy should explain source-backed answers and reuse blocked empty-source copy'
+)
+
+assert.match(
+  scanResult,
+  /<text class="result-companion-title">\{\{ resultCompanionTitle \}\}<\/text>/,
+  'Recognition result companion title should be dynamic instead of claiming every result is matched'
+)
+
+assert.match(
+  resultCompanionTitle,
+  /if \(this\.unsafeRecognitionSafetyStatus\) return '小京暂不能讲解这里'[\s\S]*if \(this\.pendingCandidateConfirmation \|\| this\.missingOfficialPoiContext\) return '小京识别到待确认线索'[\s\S]*return '小京已为你匹配到这里'/,
+  'Recognition result companion title should not claim a matched place for blocked or untrusted route contexts'
+)
+
+assert.ok(
+  questionSectionTitle.indexOf('if (this.unsafeRecognitionSafetyStatus) return this.sourceEmptyCopy') >= 0 &&
+    questionSectionTitle.indexOf('if (this.unsafeRecognitionSafetyStatus) return this.sourceEmptyCopy') <
+      questionSectionTitle.indexOf('if (this.missingOfficialPoiContext) return'),
+  'Recognition result question title should prioritize BLOCKED source refusal before missing-POI guidance'
 )
 
 assert.match(
