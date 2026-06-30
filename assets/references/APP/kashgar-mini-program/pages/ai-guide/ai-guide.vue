@@ -822,7 +822,7 @@ const createRouteOnlyXichengRecognitionContext = (context = {}) => {
 
 const applyXichengAiContext = (options = {}) => {
 	const context = normalizeXichengAiContext(options)
-	if (context.regionCode !== XICHENG_REGION_CONFIG.regionCode && !context.poiCode && !context.poiName) {
+	if (context.regionCode && context.regionCode !== XICHENG_REGION_CONFIG.regionCode && !context.poiCode && !context.poiName) {
 		xichengAiContext.value = {
 			regionCode: '',
 			packageCode: '',
