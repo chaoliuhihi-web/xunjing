@@ -1,6 +1,8 @@
 # 城市 AI 旅伴多 AI 协作任务书
 
-更新时间：2026-06-27
+更新时间：2026-06-30
+
+> 重要更新：当前西城 P0 APP 开发以 `feature/xicheng-p0` 为唯一开发分支，`product/city-companion-main` 只作为稳定主线，不直接开发。旧任务卡里的 `feat/*`、`docs/*`、`qa/*` 分支名只作为历史分工示例，不作为当前新建分支指令。所有 AI 接手前必须先读 `docs/04_AI交接任务书/星河寻境AI开发守则.md`。
 
 ## 接手目标
 
@@ -37,9 +39,10 @@ git pull --ff-only
 3. `docs/00_项目总览/资料索引.md`
 4. `docs/02_开发规划/开发入口说明.md`
 5. `docs/02_开发规划/城市AI旅伴产品代码结构与多AI协作规范.md`
-6. `docs/01_产品规划/西城AI旅伴真实试运营版_PRD_v0.2.md`
-7. `docs/superpowers/specs/2026-06-27-xicheng-p0-full-loop-design.md`
-8. `docs/04_AI交接任务书/城市AI旅伴多AI协作任务书.md`
+6. `docs/04_AI交接任务书/星河寻境AI开发守则.md`
+7. `docs/01_产品规划/西城AI旅伴真实试运营版_PRD_v0.2.md`
+8. `docs/superpowers/specs/2026-06-27-xicheng-p0-full-loop-design.md`
+9. `docs/04_AI交接任务书/城市AI旅伴多AI协作任务书.md`
 
 ## 当前主线范围
 
