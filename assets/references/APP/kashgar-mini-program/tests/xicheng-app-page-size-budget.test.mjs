@@ -9,6 +9,7 @@ const pageBudgets = [
   'pages/ai-guide/ai-guide.vue',
   'pages/index/index.vue',
   'pages/xicheng/travelogue/travelogue.vue',
+  'pages/xicheng/poi/poi.vue',
   'pages/xicheng/route-detail/route-detail.vue',
   'pages/xicheng/recording/recording.vue',
   'pages/xicheng/scan-result/scan-result.vue',

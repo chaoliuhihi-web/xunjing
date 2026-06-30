@@ -62,6 +62,7 @@
 
 		<view class="bottom-actions">
 			<button class="primary-button xicheng-primary-action" :disabled="recognitionActionBlocked" @click="askXiaojing()">小京讲解</button>
+			<button class="ghost-button xicheng-secondary-action" :disabled="recognitionActionBlocked" @click="openPoiDetail">地点详情</button>
 			<button class="ghost-button xicheng-secondary-action" :disabled="recognitionActionBlocked" @click="startRecording">开始记录</button>
 		</view>
 
@@ -660,6 +661,24 @@ export default {
 			].join('&')
 			uni.navigateTo({
 				url: `/pages/ai-guide/ai-guide?${query}`
+			})
+		},
+		openPoiDetail() {
+			if (this.pendingCandidateConfirmation) {
+				this.requireOfficialPoiConfirmation('查看详情')
+				return
+			}
+			if (this.missingOfficialPoiContext) {
+				this.showMissingOfficialPoiToast('查看详情')
+				return
+			}
+			if (this.unsafeRecognitionSafetyStatus) {
+				this.showUnsafeRecognitionToast('查看详情')
+				return
+			}
+			uni.setStorageSync(XICHENG_REGION_CONFIG.storageKey, this.result)
+			uni.navigateTo({
+				url: `/pages/xicheng/poi/poi?poiCode=${encodeRouteValue(this.result.poiCode || '')}&poiName=${encodeRouteValue(this.result.poiName || '')}&regionCode=${encodeURIComponent(this.result.regionCode || XICHENG_REGION_CONFIG.regionCode)}&packageCode=${encodeURIComponent(this.result.packageCode || XICHENG_REGION_CONFIG.packageCode)}&sceneCode=${encodeURIComponent(this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode)}&sourceChannel=${encodeURIComponent(this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel)}&companionName=${encodeRouteValue(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}&safetyStatus=${encodeURIComponent(this.result.safetyStatus || '')}`
 			})
 		},
 		selectCandidate(candidate) {
