@@ -93,6 +93,7 @@
 
 <script>
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
+import { isXichengUnsafeSafetyStatus } from '@/request/xunjing/safety.js'
 
 const safeArray = value => Array.isArray(value) ? value : []
 
@@ -142,14 +143,15 @@ export default {
 			}))
 		},
 		sourceReadinessStatus() {
-			const blocked = this.materials.some(item => item.safetyStatus === 'BLOCKED' || item.sourceCount === 0)
+			const blocked = this.materials.some(item => isXichengUnsafeSafetyStatus(item && item.safetyStatus) || Number(item && item.sourceCount || 0) === 0)
 			return blocked ? 'SOURCE_REVIEW_REQUIRED' : 'SOURCE_READY'
 		},
 		safetyMetrics() {
+			const unsafeSafetyCount = this.materials.filter(item => isXichengUnsafeSafetyStatus(item && item.safetyStatus)).length
 			return [
 				{ label: '已审核来源', value: this.materials.reduce((sum, item) => sum + Number(item.sourceCount || 0), 0), icon: 'source' },
 				{ label: '待复核', value: this.reviewSubmissions.length, icon: 'refresh' },
-				{ label: '安全拦截', value: this.materials.filter(item => item.safetyStatus === 'BLOCKED').length, icon: 'locked' }
+				{ label: '安全拦截', value: unsafeSafetyCount, icon: 'locked' }
 			]
 		},
 		insightCopy() {
