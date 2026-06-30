@@ -10,7 +10,8 @@ const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 for (const required of [
   'decodeJourneyRouteValue',
   "import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'",
-  'const decodeJourneyRouteValue = decodeXichengRouteValue'
+  'const decodeJourneyRouteValue = decodeXichengRouteValue',
+  'normalizeXichengRouteCode'
 ]) {
   assert.ok(
     travelogue.includes(required),
@@ -26,8 +27,14 @@ assert.match(
 
 assert.match(
   travelogue,
-  /async loadJourney\(options = \{\}\)[\s\S]*const routePoiName = decodeJourneyRouteValue\(options\.poiName\)[\s\S]*poiCode: decodeJourneyRouteValue\(options\.poiCode\)/,
+  /async loadJourney\(options = \{\}\)[\s\S]*const routeCode = normalizeXichengRouteCode\(decodeJourneyRouteValue\(options\.routeCode \|\| options\.routeId\)\)[\s\S]*const routePoiName = decodeJourneyRouteValue\(options\.poiName\)[\s\S]*poiCode: decodeJourneyRouteValue\(options\.poiCode\)/,
   'Travelogue loadJourney should decode POI route params through the safe helper before saving manual entry evidence'
+)
+
+assert.match(
+  travelogue,
+  /const resolveRouteByCode = \(routeCode = ''\) => \{[\s\S]*const normalizedRouteCode = normalizeXichengRouteCode\(routeCode\)[\s\S]*route\.routeCode === normalizedRouteCode/,
+  'Travelogue route handoff should normalize legacy routeId aliases before resolving official route materials'
 )
 
 assert.doesNotMatch(

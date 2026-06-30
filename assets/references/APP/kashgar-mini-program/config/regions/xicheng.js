@@ -133,6 +133,17 @@ const createXichengRouteStops = (poiCodes = [], stopDetails = []) => poiCodes
 	})
 	.filter(Boolean)
 
+export const XICHENG_ROUTE_CODE_ALIASES = Object.freeze({
+	'baitasi-ditan-shichahai': 'baitasi-imperial-shichahai',
+	'baitasi-diwangmiao-shichahai': 'baitasi-imperial-shichahai',
+	'baitasi-emperor-shichahai': 'baitasi-imperial-shichahai'
+})
+
+export const normalizeXichengRouteCode = (routeCode = '') => {
+	const normalizedRouteCode = String(routeCode || '').trim()
+	return XICHENG_ROUTE_CODE_ALIASES[normalizedRouteCode] || normalizedRouteCode
+}
+
 export const XICHENG_RECOMMENDED_ROUTES = Object.freeze([
 	{
 		routeCode: 'baitasi-imperial-shichahai',

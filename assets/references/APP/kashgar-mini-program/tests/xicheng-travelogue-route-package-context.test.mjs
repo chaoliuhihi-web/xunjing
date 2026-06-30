@@ -64,7 +64,7 @@ assert.match(
 
 assert.match(
   loadJourneyBlock,
-  /const routeCode = decodeJourneyRouteValue\(options\.routeCode\)[\s\S]*const routeFromCode = !unsafeRouteSafetyStatus \? resolveRouteByCode\(routeCode\) : null[\s\S]*if \(routeFromCode && !this\.importedRoute\) \{[\s\S]*this\.importedRoute = \{[\s\S]*\.\.\.routeFromCode[\s\S]*regionCode: routeRegionCode[\s\S]*packageCode: routePackageCode[\s\S]*sourceChannel: routeSourceChannel[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.inspirationStorageKey, this\.importedRoute\)/,
+  /const routeCode = normalizeXichengRouteCode\(decodeJourneyRouteValue\(options\.routeCode \|\| options\.routeId\)\)[\s\S]*const routeFromCode = !unsafeRouteSafetyStatus \? resolveRouteByCode\(routeCode\) : null[\s\S]*if \(routeFromCode && !this\.importedRoute\) \{[\s\S]*this\.importedRoute = \{[\s\S]*\.\.\.routeFromCode[\s\S]*regionCode: routeRegionCode[\s\S]*packageCode: routePackageCode[\s\S]*sourceChannel: routeSourceChannel[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.inspirationStorageKey, this\.importedRoute\)/,
   'Travelogue route mode should hydrate the official route with attribution context when users open the route draft directly'
 )
 

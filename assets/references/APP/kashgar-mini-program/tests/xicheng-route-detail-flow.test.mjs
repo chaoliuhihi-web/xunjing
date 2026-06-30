@@ -21,6 +21,8 @@ assert.ok(
 
 for (const required of [
   'XICHENG_ROUTE_RECOMMENDATION_FILTERS',
+  'XICHENG_ROUTE_CODE_ALIASES',
+  'normalizeXichengRouteCode',
   'distanceText',
   'routeTips',
   'nearbyHighlights',
@@ -69,8 +71,14 @@ assert.match(
 
 assert.match(
   routeDetail,
-  /import \{ decodeXichengRouteValue, createXichengRouteOutputValue \} from '@\/request\/xunjing\/routeParams\.js'[\s\S]*const encodeRouteValue = \(value = ''\) => createXichengRouteOutputValue\(value, \{ platform: process\.env\.UNI_PLATFORM \}\)/,
+  /import \{[\s\S]*normalizeXichengRouteCode[\s\S]*\} from '@\/config\/regions\/xicheng\.js'[\s\S]*import \{ decodeXichengRouteValue, createXichengRouteOutputValue \} from '@\/request\/xunjing\/routeParams\.js'[\s\S]*const encodeRouteValue = \(value = ''\) => createXichengRouteOutputValue\(value, \{ platform: process\.env\.UNI_PLATFORM \}\)/,
   'Route detail should encode outbound route values through the shared platform-safe helper to prevent double-encoded attribution params'
+)
+
+assert.match(
+  routeDetail,
+  /routeCode:\s*normalizeXichengRouteCode\(decodeXichengRouteValue\(options\.routeCode \|\| options\.routeId\)\)/,
+  'Route detail should accept legacy routeId deep links and normalize them to official routeCode'
 )
 
 assert.match(

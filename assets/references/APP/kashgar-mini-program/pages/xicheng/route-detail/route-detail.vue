@@ -114,7 +114,8 @@
 <script>
 import {
 	XICHENG_RECOMMENDED_ROUTES,
-	XICHENG_REGION_CONFIG
+	XICHENG_REGION_CONFIG,
+	normalizeXichengRouteCode
 } from '@/config/regions/xicheng.js'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { decodeXichengRouteValue, createXichengRouteOutputValue } from '@/request/xunjing/routeParams.js'
@@ -122,7 +123,7 @@ import { decodeXichengRouteValue, createXichengRouteOutputValue } from '@/reques
 const encodeRouteValue = (value = '') => createXichengRouteOutputValue(value, { platform: process.env.UNI_PLATFORM })
 
 const normalizeRouteOptions = (options = {}) => ({
-	routeCode: decodeXichengRouteValue(options.routeCode),
+	routeCode: normalizeXichengRouteCode(decodeXichengRouteValue(options.routeCode || options.routeId)),
 	regionCode: decodeXichengRouteValue(options.regionCode),
 	packageCode: decodeXichengRouteValue(options.packageCode),
 	sceneCode: decodeXichengRouteValue(options.sceneCode),
@@ -131,7 +132,8 @@ const normalizeRouteOptions = (options = {}) => ({
 })
 
 const resolveRouteByCode = (routeCode = '') => {
-	const route = XICHENG_RECOMMENDED_ROUTES.find(item => item.routeCode === routeCode)
+	const normalizedRouteCode = normalizeXichengRouteCode(routeCode)
+	const route = XICHENG_RECOMMENDED_ROUTES.find(item => item.routeCode === normalizedRouteCode)
 	return route || XICHENG_RECOMMENDED_ROUTES[0]
 }
 

@@ -429,7 +429,12 @@
 </template>
 
 <script>
-import { XICHENG_OFFICIAL_POIS, XICHENG_RECOMMENDED_ROUTES, XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
+import {
+	XICHENG_OFFICIAL_POIS,
+	XICHENG_RECOMMENDED_ROUTES,
+	XICHENG_REGION_CONFIG,
+	normalizeXichengRouteCode
+} from '@/config/regions/xicheng.js'
 import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
 import { requestCurrentLocationForTrigger } from '@/request/xunjing/trigger.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
@@ -672,7 +677,8 @@ const calculateTrackPointDistanceMeters = (left = {}, right = {}) => {
 const decodeJourneyRouteValue = decodeXichengRouteValue
 
 const resolveRouteByCode = (routeCode = '') => {
-	return XICHENG_RECOMMENDED_ROUTES.find(route => route.routeCode === routeCode) || null
+	const normalizedRouteCode = normalizeXichengRouteCode(routeCode)
+	return XICHENG_RECOMMENDED_ROUTES.find(route => route.routeCode === normalizedRouteCode) || null
 }
 
 const createOfficialRouteMaterials = ({
@@ -1170,7 +1176,7 @@ export default {
 			const routeSourceChannel = decodeJourneyRouteValue(options.sourceChannel) || XICHENG_REGION_CONFIG.sourceChannel
 			const routeSafetyStatus = normalizeXichengSafetyStatus(decodeJourneyRouteValue(options.safetyStatus))
 			const unsafeRouteSafetyStatus = isXichengUnsafeSafetyStatus(routeSafetyStatus)
-			const routeCode = decodeJourneyRouteValue(options.routeCode)
+			const routeCode = normalizeXichengRouteCode(decodeJourneyRouteValue(options.routeCode || options.routeId))
 			const routeFromCode = !unsafeRouteSafetyStatus ? resolveRouteByCode(routeCode) : null
 			if (routeFromCode && !this.importedRoute) {
 				this.importedRoute = {
