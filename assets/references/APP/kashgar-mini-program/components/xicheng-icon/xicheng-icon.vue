@@ -34,10 +34,11 @@ const ICON_TYPE_MAP = Object.freeze({
 	record: 'flag',
 	resume: 'sound-filled',
 	locked: 'locked',
-	explore: 'home-filled',
-	routes: 'map-filled',
-	travelogue: 'star-filled',
-	mine: 'person-filled'
+	explore: Object.freeze({ default: 'shop', active: 'shop-filled' }),
+	routes: Object.freeze({ default: 'map', active: 'map-filled' }),
+	favorite: Object.freeze({ default: 'star', active: 'star-filled' }),
+	travelogue: Object.freeze({ default: 'star', active: 'star-filled' }),
+	mine: Object.freeze({ default: 'person', active: 'person-filled' })
 })
 
 export default {
@@ -66,7 +67,11 @@ export default {
 	},
 	computed: {
 		resolvedType() {
-			return ICON_TYPE_MAP[this.name] || this.name || ICON_TYPE_MAP.explore
+			const matchedType = ICON_TYPE_MAP[this.name] || this.name || ICON_TYPE_MAP.explore
+			if (matchedType && typeof matchedType === 'object') {
+				return this.active ? matchedType.active : matchedType.default
+			}
+			return matchedType
 		},
 		iconSize() {
 			const parsedSize = Number.parseInt(String(this.size), 10)
@@ -74,11 +79,12 @@ export default {
 		},
 		iconColor() {
 			if (this.disabled) return '#A8A199'
+			if (this.variant === 'tab') return this.active ? '#173F35' : '#746F68'
 			if (this.active || this.variant === 'primary') return '#FFF9EC'
 			return '#173F35'
 		},
 		containerStyle() {
-			const boxSize = Math.max(this.iconSize * 2, 34)
+			const boxSize = this.variant === 'tab' ? Math.max(this.iconSize * 1.86, 46) : Math.max(this.iconSize * 2, 34)
 			return `width:${boxSize}rpx;height:${boxSize}rpx;`
 		}
 	}
@@ -106,6 +112,12 @@ export default {
 }
 
 .xicheng-icon-plain {
+	background: transparent;
+	border-color: transparent;
+	box-shadow: none;
+}
+
+.xicheng-icon-tab {
 	background: transparent;
 	border-color: transparent;
 	box-shadow: none;

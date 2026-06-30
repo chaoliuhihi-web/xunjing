@@ -10,6 +10,10 @@ const computedBlock = home.match(/computed:\s*\{[\s\S]*?\n\t\},\n\tonLoad/)?.[0]
 
 for (const required of [
   '最近识别',
+  'home-memory-grid',
+  '生成我的西城游记',
+  'recent-compact-card',
+  'recentRecognitionVisual',
   'recentRecognition',
   'loadRecentRecognition',
   'openRecentRecognition',
@@ -100,8 +104,8 @@ assert.match(
 
 assert.match(
   home,
-  /<button class="[^"]*\bprimary-button\b[^"]*" :disabled="recentRecognitionActionBlocked" @click="continueRecentRecognitionWithXiaojing">继续问小京<\/button>/,
-  'Recent recognition card should disable the Xiaojing continuation button until official POI and reviewed-source gates are satisfied'
+  /class="recent-compact-action"[\s\S]*'recent-compact-action-disabled': recentRecognitionActionBlocked[\s\S]*@click\.stop="continueRecentRecognitionWithXiaojing"[\s\S]*开始讲解/,
+  'Recent recognition card should visually disable the Xiaojing continuation action until official POI and reviewed-source gates are satisfied'
 )
 
 assert.doesNotMatch(

@@ -41,7 +41,7 @@ assert.match(
 
 assert.match(
   home,
-  /handleXichengP0FlowAction\(key = 'guide'\)[\s\S]*case 'record':[\s\S]*this\.openXichengTravelogue\('record'\)/,
+  /handleXichengP0FlowAction\(key = 'guide'\)[\s\S]*case 'record':[\s\S]*this\.openXichengRecording\(\)/,
   'P0 flow record action should open the journey recording surface'
 )
 

@@ -4,17 +4,30 @@ import path from 'node:path'
 
 const root = process.cwd()
 const home = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'home', 'home.vue'), 'utf8')
+const bottomNav = fs.readFileSync(path.join(root, 'components', 'xicheng-bottom-nav', 'xicheng-bottom-nav.vue'), 'utf8')
 
 for (const required of [
-  'xicheng-home-bottom-nav',
+  '<xicheng-bottom-nav',
   'xichengHomeNavItems',
   "title: '探索'",
   "title: '地图'",
   "title: '收藏'",
   "title: '我的'",
-  'handleXichengHomeNav(item.key)'
+  '@navigate="handleXichengHomeNav"'
 ]) {
   assert.ok(home.includes(required), `Xicheng home should expose bottom navigation contract ${required}`)
+}
+
+for (const required of [
+  "name: 'XichengBottomNav'",
+  "emits: ['navigate']",
+  'variant="tab"',
+  ":active=\"isActive(item.key)\"",
+  "this.$emit('navigate', item.key)",
+  'xicheng-bottom-nav-shell',
+  'xicheng-bottom-nav-item-active'
+]) {
+  assert.ok(bottomNav.includes(required), `Shared Xicheng bottom nav component should include ${required}`)
 }
 
 assert.match(
@@ -43,18 +56,18 @@ assert.match(
 
 assert.match(
   home,
-  /handleXichengHomeNav\(key = 'explore'\)[\s\S]*case 'travelogue':[\s\S]*openXichengTravelogue\('draft'\)/,
-  'Collection bottom nav item should open the P0 local draft and material surface'
+  /handleXichengHomeNav\(key = 'explore'\)[\s\S]*case 'footprint':[\s\S]*openXichengFootprint\(\)/,
+  'Footprint bottom nav item should open the P0 local footprint timeline'
 )
 
 assert.match(
   home,
-  /handleXichengHomeNav\(key = 'explore'\)[\s\S]*case 'mine':[\s\S]*openXichengTravelogue\('record'\)/,
-  'Mine bottom nav item should open the local journey/material surface rather than an unrelated old account page'
+  /handleXichengHomeNav\(key = 'explore'\)[\s\S]*case 'mine':[\s\S]*openXichengWorks\(\)/,
+  'Mine bottom nav item should open the Xicheng works review surface rather than an unrelated old account page'
 )
 
 assert.doesNotMatch(
   home,
-  /<tab-bar|@\/components\/tab-bar\/tab-bar\.vue|\/subPackages\/user\/my\/my/,
+  /<tab-bar|@\/components\/tab-bar\/tab-bar\.vue|\/subPackages\/user\/my\/my|xicheng-home-bottom-nav/,
   'Xicheng home should not reuse the Kashgar tab-bar or jump to old account pages for the P0 bottom navigation'
 )

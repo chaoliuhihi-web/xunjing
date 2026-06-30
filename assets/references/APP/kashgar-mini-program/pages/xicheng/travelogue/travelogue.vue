@@ -325,11 +325,14 @@
 			@publish="publishTravelogue"
 		/>
 
-		<view class="action-grid xicheng-travelogue-actions">
-			<button class="ghost-button xicheng-secondary-action" :class="{ 'work-action-needs-evidence': !hasReviewableJourneyEvidence() }" @click="generatePoster">分享海报</button>
-			<button class="ghost-button xicheng-secondary-action" :class="{ 'work-action-needs-evidence': !hasReviewableJourneyEvidence() }" @click="exportMemorialPdf">PDF纪念册</button>
-			<button class="ghost-button xicheng-secondary-action" :class="{ 'work-action-needs-evidence': !hasReviewableJourneyEvidence() }" @click="submitReview">作品审核</button>
-		</view>
+	<view class="action-grid xicheng-travelogue-actions">
+		<button class="ghost-button xicheng-secondary-action" :class="{ 'work-action-needs-evidence': !hasReviewableJourneyEvidence() }" @click="generatePoster">分享海报</button>
+		<button class="ghost-button xicheng-secondary-action" :class="{ 'work-action-needs-evidence': !hasReviewableJourneyEvidence() }" @click="exportMemorialPdf">PDF纪念册</button>
+		<button class="ghost-button xicheng-secondary-action" :class="{ 'work-action-needs-evidence': !hasReviewableJourneyEvidence() }" @click="submitReview">作品审核</button>
+		<button class="ghost-button xicheng-secondary-action" @click="openSharePage">分享纪念</button>
+		<button class="ghost-button xicheng-secondary-action" @click="openWorksPage">我的作品</button>
+		<button class="ghost-button xicheng-secondary-action" @click="openOpsReportPage">运营报告</button>
+	</view>
 
 		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
@@ -1849,6 +1852,7 @@ export default {
 				title: '分享海报已生成',
 				icon: 'none'
 			})
+			this.openSharePage()
 		},
 		exportMemorialPdf() {
 			if (!this.hasReviewableJourneyEvidence()) {
@@ -1882,6 +1886,16 @@ export default {
 				title: '作品审核已提交',
 				icon: 'none'
 			})
+			this.openWorksPage()
+		},
+		openSharePage() {
+			uni.navigateTo({ url: '/pages/xicheng/share/share' })
+		},
+		openWorksPage() {
+			uni.navigateTo({ url: '/pages/xicheng/works/works' })
+		},
+		openOpsReportPage() {
+			uni.navigateTo({ url: '/pages/xicheng/ops-report/ops-report' })
 		},
 		withdrawReviewSubmission() {
 			const submittedAt = this.reviewSubmission && this.reviewSubmission.submittedAt ? this.reviewSubmission.submittedAt : ''

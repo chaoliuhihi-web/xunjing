@@ -27,6 +27,7 @@ const home = read('pages', 'xicheng', 'home', 'home.vue')
 const poi = read('pages', 'xicheng', 'poi', 'poi.vue')
 const routes = read('pages', 'xicheng', 'routes', 'routes.vue')
 const iconComponent = readOptional('components', 'xicheng-icon', 'xicheng-icon.vue')
+const bottomNavComponent = readOptional('components', 'xicheng-bottom-nav', 'xicheng-bottom-nav.vue')
 
 for (const [relativePath, maxBytes] of [
   ['static/xicheng/xiaojing-companion.png', 500 * 1024],
@@ -57,10 +58,12 @@ for (const required of [
   "check: 'checkmarkempty'",
   "next: 'right'",
   "refresh: 'refresh'",
-  "explore: 'home-filled'",
-  "routes: 'map-filled'",
-  "travelogue: 'star-filled'",
-  "mine: 'person-filled'",
+  "explore: Object.freeze({ default: 'shop', active: 'shop-filled' })",
+  "routes: Object.freeze({ default: 'map', active: 'map-filled' })",
+  "favorite: Object.freeze({ default: 'star', active: 'star-filled' })",
+  "mine: Object.freeze({ default: 'person', active: 'person-filled' })",
+  "this.variant === 'tab'",
+  'xicheng-icon-tab',
   'xicheng-icon-primary',
   'xicheng-icon-active'
 ]) {
@@ -69,8 +72,14 @@ for (const required of [
 
 assert.match(
   home,
-  /v-for="item in xichengHomeNavItems"[\s\S]*<xicheng-icon[\s\S]*:name="item\.icon"[\s\S]*:active="item\.key === 'explore'"/,
-  'Xicheng home bottom navigation should use the shared vector icon component instead of page-local CSS icon drawings'
+  /<xicheng-bottom-nav[\s\S]*:items="xichengHomeNavItems"[\s\S]*active-key="explore"[\s\S]*@navigate="handleXichengHomeNav"/,
+  'Xicheng home bottom navigation should use the shared bottom nav component instead of page-local tab bar markup'
+)
+
+assert.match(
+  bottomNavComponent,
+  /v-for="item in items"[\s\S]*<xicheng-icon[\s\S]*:name="item\.icon"[\s\S]*variant="tab"[\s\S]*:active="isActive\(item\.key\)"/,
+  'Shared bottom nav component should use the unified vector icon component with the tab-specific variant'
 )
 
 assert.doesNotMatch(

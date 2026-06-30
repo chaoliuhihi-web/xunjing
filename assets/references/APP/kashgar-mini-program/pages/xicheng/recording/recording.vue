@@ -81,13 +81,15 @@
 			<text class="study-task-desc">{{ currentStudyTask }}</text>
 		</view>
 
-		<view class="record-bottom-actions xicheng-paper-card">
-			<button class="bottom-action xicheng-secondary-action" @click="toggleRecordingStatus">
-				{{ recordingSession.status === 'paused' ? '继续记录' : '暂停记录' }}
-			</button>
-			<button class="bottom-action xicheng-secondary-action" :disabled="!nextStop" @click="askXiaojingForNextStop">问小京</button>
-			<button class="bottom-action xicheng-primary-action" @click="generateTravelogue">生成游记</button>
-		</view>
+	<view class="record-bottom-actions xicheng-paper-card">
+		<button class="bottom-action xicheng-secondary-action" @click="toggleRecordingStatus">
+			{{ recordingSession.status === 'paused' ? '继续记录' : '暂停记录' }}
+		</button>
+		<button class="bottom-action xicheng-secondary-action" :disabled="!nextStop" @click="askXiaojingForNextStop">问小京</button>
+		<button class="bottom-action xicheng-secondary-action" @click="openPassport">路线护照</button>
+		<button class="bottom-action xicheng-secondary-action" @click="openFootprint">我的足迹</button>
+		<button class="bottom-action xicheng-primary-action" @click="generateTravelogue">生成游记</button>
+	</view>
 
 		<text class="foreground-tip">为保证定位准确，请保持 APP 在前台运行</text>
 	</view>
@@ -415,6 +417,14 @@ export default {
 			uni.navigateTo({
 				url: `/pages/xicheng/travelogue/travelogue?mode=record&routeCode=${encodeRouteValue(this.activeRoute.routeCode || '')}&regionCode=${encodeRouteValue(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeOptions.sourceChannel || this.region.sourceChannel)}&companionName=${encodeRouteValue(this.routeOptions.companionName || this.region.companionName)}`
 			})
+		},
+		openPassport() {
+			this.saveRecordingSession()
+			uni.navigateTo({ url: '/pages/xicheng/passport/passport' })
+		},
+		openFootprint() {
+			this.saveRecordingSession()
+			uni.navigateTo({ url: '/pages/xicheng/footprint/footprint' })
 		}
 	}
 }
