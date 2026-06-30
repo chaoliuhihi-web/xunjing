@@ -40,8 +40,8 @@ for (const required of [
 
 assert.match(
   indexPage,
-  /<view v-else-if="useKashgarLocalContent" class="kashgar-home kashgar-travel-notes-home">/,
-  'Kashgar local default branch should keep the reference travel-notes home shell'
+  /<view v-else-if="legacyIndexRouteResolved && useKashgarLocalContent" class="kashgar-home kashgar-travel-notes-home">/,
+  'Kashgar local default branch should keep the reference travel-notes home shell after explicit Kashgar route classification'
 )
 
 assert.match(

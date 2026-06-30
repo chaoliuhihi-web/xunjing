@@ -34,6 +34,18 @@ assert.match(
 
 assert.match(
   index,
+  /legacyIndexRouteResolved:\s*false/,
+  'Legacy index route classification should start unresolved so default opens cannot flash Kashgar before onLoad'
+)
+
+assert.match(
+  index,
+  /<view v-else-if="legacyIndexRouteResolved && useKashgarLocalContent && showKashgarLanding"[\s\S]*<view v-else-if="legacyIndexRouteResolved && useKashgarLocalContent && showKashgarPlayHome"[\s\S]*<view v-else-if="legacyIndexRouteResolved && useKashgarLocalContent"/,
+  'Legacy index should not render Kashgar content until the route has been classified as an explicit Kashgar or scan context'
+)
+
+assert.match(
+  index,
   /isRedirectingToXicheng:\s*false[\s\S]*redirectLegacyIndexToXicheng\(options = \{\}\)[\s\S]*this\.isRedirectingToXicheng = false[\s\S]*return false[\s\S]*this\.isRedirectingToXicheng = false[\s\S]*return false[\s\S]*this\.isRedirectingToXicheng = true/,
   'Legacy index should only suppress Kashgar content while the default Xicheng redirect is active, preserving explicit Kashgar and scan contexts'
 )

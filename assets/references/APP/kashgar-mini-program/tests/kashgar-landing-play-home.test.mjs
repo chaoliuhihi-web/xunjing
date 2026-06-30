@@ -61,14 +61,14 @@ for (const required of [
 
 assert.match(
   indexPage,
-  /<view v-else-if="useKashgarLocalContent && showKashgarLanding" class="kashgar-home kashgar-landing-entry">/,
-  'Landing screen should be a local branch inside the existing index page'
+  /<view v-else-if="legacyIndexRouteResolved && useKashgarLocalContent && showKashgarLanding" class="kashgar-home kashgar-landing-entry">/,
+  'Landing screen should be a local branch inside the existing index page after explicit Kashgar route classification'
 )
 
 assert.match(
   indexPage,
-  /<view v-else-if="useKashgarLocalContent && showKashgarPlayHome" class="kashgar-home kashgar-play-home">/,
-  'Play home should be a local branch inside the existing index page'
+  /<view v-else-if="legacyIndexRouteResolved && useKashgarLocalContent && showKashgarPlayHome" class="kashgar-home kashgar-play-home">/,
+  'Play home should be a local branch inside the existing index page after explicit Kashgar route classification'
 )
 
 assert.match(

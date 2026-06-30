@@ -7,7 +7,7 @@
 				<text class="xicheng-legacy-redirect-copy">正在进入小京讲解与路线服务</text>
 			</view>
 		</view>
-		<view v-else-if="useKashgarLocalContent && showKashgarLanding" class="kashgar-home kashgar-landing-entry">
+		<view v-else-if="legacyIndexRouteResolved && useKashgarLocalContent && showKashgarLanding" class="kashgar-home kashgar-landing-entry">
 			<view class="kashgar-landing-nav">
 				<view class="kashgar-landing-brand">
 					<view class="kashgar-landing-logo">✦</view>
@@ -57,7 +57,7 @@
 				<text>进入喀什</text>
 			</view>
 		</view>
-		<view v-else-if="useKashgarLocalContent && showKashgarPlayHome" class="kashgar-home kashgar-play-home">
+		<view v-else-if="legacyIndexRouteResolved && useKashgarLocalContent && showKashgarPlayHome" class="kashgar-home kashgar-play-home">
 			<view class="kashgar-play-nav">
 				<view class="kashgar-play-brand">
 					<text class="kashgar-play-brand-icon">✦</text>
@@ -157,7 +157,7 @@
 
 			<tab-bar :current="1" />
 		</view>
-		<view v-else-if="useKashgarLocalContent" class="kashgar-home kashgar-travel-notes-home">
+		<view v-else-if="legacyIndexRouteResolved && useKashgarLocalContent" class="kashgar-home kashgar-travel-notes-home">
 			<view class="kashgar-home-sky">
 				<image class="kashgar-home-mountain" src="/static/kashgar/home-top-mountains.png" mode="aspectFill"></image>
 			</view>
@@ -469,13 +469,14 @@ export default {
 		TabBar
 	},
 	data() {
-			return {
+		return {
 			useKashgarLocalContent: KASHGAR_LOCAL_CONTENT_ENABLED,
 			isRedirectingToXicheng: false,
+			legacyIndexRouteResolved: false,
 			showKashgarLanding: false,
 			showKashgarPlayHome: false,
 			kashgarCityLabel: '喀什',
-		kashgarTravelHero: { ...KASHGAR_TRAVEL_HERO },
+			kashgarTravelHero: { ...KASHGAR_TRAVEL_HERO },
 		kashgarMapShortcuts: cloneContentList(KASHGAR_MAP_SHORTCUTS),
 		kashgarTravelNotes: cloneContentList(KASHGAR_TRAVEL_NOTES),
 		kashgarActions: cloneContentList(KASHGAR_ACTIONS),
@@ -589,13 +590,16 @@ export default {
 		redirectLegacyIndexToXicheng(options = {}) {
 			if (this.shouldKeepKashgarLegacyIndex(options)) {
 				this.isRedirectingToXicheng = false
+				this.legacyIndexRouteResolved = true
 				return false
 			}
 			const scan = this.resolveXunjingLaunchScene(options)
 			if (scan.sceneCode || scan.packageCode) {
 				this.isRedirectingToXicheng = false
+				this.legacyIndexRouteResolved = true
 				return false
 			}
+			this.legacyIndexRouteResolved = false
 			this.isRedirectingToXicheng = true
 			setTimeout(() => {
 				this.redirectToXichengHome()
