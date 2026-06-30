@@ -122,6 +122,12 @@ assert.match(
 )
 
 assert.match(
+  inspiration,
+  /isInspirationImageSelectionCancel\(err = \{\}\)[\s\S]*message\.includes\('cancel'\)[\s\S]*message\.includes\('取消'\)/,
+  'Inspiration image import should distinguish normal user cancellation from real album or camera failures'
+)
+
+assert.match(
   chooseInspirationImageBlock,
   /const filePath = res\.tempFilePaths && res\.tempFilePaths\[0\] \? res\.tempFilePaths\[0\] : ''[\s\S]*if \(!filePath\) \{[\s\S]*this\.showInspirationImageUnavailable\(\)[\s\S]*return[\s\S]*this\.imagePath = filePath[\s\S]*this\.saveInspirationRoute\(\{ silent: true, includeImageOnly: true \}\)/,
   'Inspiration image import should not create image-only evidence when the picker returns no image file'
@@ -129,8 +135,8 @@ assert.match(
 
 assert.match(
   chooseInspirationImageBlock,
-  /fail:\s*\(\) => \{[\s\S]*this\.showInspirationImageUnavailable\(\)/,
-  'Inspiration image import should surface an unavailable state when album or camera selection fails'
+  /fail:\s*\(err\) => \{[\s\S]*if\s*\(this\.isInspirationImageSelectionCancel\(err\)\)\s*\{[\s\S]*return[\s\S]*this\.showInspirationImageUnavailable\(\)/,
+  'Inspiration image import should ignore normal image picker cancellation and only surface unavailable state for non-cancel failures'
 )
 
 assert.match(

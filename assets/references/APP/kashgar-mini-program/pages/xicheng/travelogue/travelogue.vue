@@ -1505,6 +1505,10 @@ export default {
 				icon: 'none'
 			})
 		},
+		isXichengPhotoSelectionCancel(err = {}) {
+			const message = String((err && (err.errMsg || err.message || err)) || '').toLowerCase()
+			return message.includes('cancel') || message.includes('取消')
+		},
 		confirmTraveloguePhotoPurpose(actionLabel = '补充照片') {
 			return new Promise(resolve => {
 				uni.showModal({
@@ -1544,7 +1548,10 @@ export default {
 						icon: 'none'
 					})
 				},
-				fail: () => {
+				fail: (err) => {
+					if (this.isXichengPhotoSelectionCancel(err)) {
+						return
+					}
 					this.showPhotoEvidenceCaptureFailed()
 				}
 			})
@@ -1752,7 +1759,10 @@ export default {
 						icon: 'none'
 					})
 				},
-				fail: () => {
+				fail: (err) => {
+					if (this.isXichengPhotoSelectionCancel(err)) {
+						return
+					}
 					this.showPhotoEvidenceCaptureFailed()
 				}
 			})

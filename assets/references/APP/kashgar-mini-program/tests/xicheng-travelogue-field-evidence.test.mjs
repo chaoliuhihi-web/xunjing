@@ -99,8 +99,20 @@ assert.match(
 
 assert.match(
   travelogue,
+  /isXichengPhotoSelectionCancel\(err = \{\}\)[\s\S]*message\.includes\('cancel'\)[\s\S]*message\.includes\('取消'\)/,
+  'Travelogue photo evidence should distinguish normal user cancellation from real camera or album failures'
+)
+
+assert.match(
+  travelogue,
   /addPhotoMaterial\(\)[\s\S]*const confirmed = await this\.confirmTraveloguePhotoPurpose\('补充照片'\)[\s\S]*if \(!confirmed\) return[\s\S]*uni\.chooseImage/,
   'Adding a travelogue photo should ask for photo-use confirmation before opening camera or album'
+)
+
+assert.match(
+  addPhotoMaterialBlock,
+  /fail:\s*\(err\) => \{[\s\S]*if\s*\(this\.isXichengPhotoSelectionCancel\(err\)\)\s*\{[\s\S]*return[\s\S]*this\.showPhotoEvidenceCaptureFailed\(\)/,
+  'Adding a travelogue photo should ignore normal image picker cancellation and only show failure copy for non-cancel failures'
 )
 
 assert.match(

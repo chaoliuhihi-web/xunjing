@@ -168,6 +168,10 @@ export default {
 				})
 			})
 		},
+		isInspirationImageSelectionCancel(err = {}) {
+			const message = String((err && (err.errMsg || err.message || err)) || '').toLowerCase()
+			return message.includes('cancel') || message.includes('取消')
+		},
 		showInspirationImageUnavailable() {
 			uni.showToast({
 				title: '未获得可用攻略图片，请重新选择',
@@ -196,7 +200,10 @@ export default {
 					this.imagePath = filePath
 					this.saveInspirationRoute({ silent: true, includeImageOnly: true })
 				},
-				fail: () => {
+				fail: (err) => {
+					if (this.isInspirationImageSelectionCancel(err)) {
+						return
+					}
 					this.showInspirationImageUnavailable()
 				}
 			})
