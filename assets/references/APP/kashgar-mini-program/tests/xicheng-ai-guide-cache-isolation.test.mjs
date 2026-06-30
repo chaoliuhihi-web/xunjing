@@ -4,7 +4,7 @@ import path from 'node:path'
 
 const root = process.cwd()
 const aiGuide = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
-const normalizeCachedMessagesSource = aiGuide.match(/const normalizeCachedMessages\s*=\s*\(list\) => \{[\s\S]*?\n\}/)?.[0] || ''
+const messageCache = fs.readFileSync(path.join(root, 'request', 'xunjing', 'messageCache.js'), 'utf8')
 const chatKeySource = aiGuide.match(/const getActiveChatCacheKey\s*=\s*\(\)\s*=>\s*\{[\s\S]*?\n\}/)?.[0] || ''
 const conversationKeySource = aiGuide.match(/const getActiveConversationKey\s*=\s*\(\)\s*=>\s*\{[\s\S]*?\n\}/)?.[0] || ''
 
@@ -30,9 +30,9 @@ assert.ok(conversationKeySource.includes('${CONVERSATION_KEY}:xicheng:'), 'activ
 assert.ok(conversationKeySource.includes(': CONVERSATION_KEY'), 'active conversation key should preserve the original global key for non-Xicheng chat')
 
 assert.match(
-  normalizeCachedMessagesSource,
-  /const safetyStatus = normalizeXichengSafetyStatus\(item\.safetyStatus\)[\s\S]*const unsafeSafetyStatus = isXichengUnsafeSafetyStatus\(safetyStatus\)[\s\S]*followUps:\s*unsafeSafetyStatus \? \[\] : normalizeDisplayFollowUps\(item\.followUps\)[\s\S]*sources:\s*unsafeSafetyStatus \? \[\] : normalizeXichengReviewedSources\(item\.sources\)[\s\S]*safetyStatus,/,
-  'AI guide should fail closed when restoring cached BLOCKED or UNAVAILABLE messages while repairing safe cached follow-ups and reviewed sources'
+  messageCache,
+  /const safetyStatus = normalizeXichengSafetyStatus\(item\.safetyStatus\)[\s\S]*const unsafeSafetyStatus = isXichengUnsafeSafetyStatus\(safetyStatus\)[\s\S]*followUps:\s*unsafeSafetyStatus \? \[\] : normalizeXichengDisplayFollowUps\(item\.followUps\)[\s\S]*sources:\s*unsafeSafetyStatus \? \[\] : normalizeXichengReviewedSources\(item\.sources\)[\s\S]*safetyStatus,/,
+  'AI guide message cache helper should fail closed when restoring cached BLOCKED or UNAVAILABLE messages while repairing safe cached follow-ups and reviewed sources'
 )
 
 assert.match(

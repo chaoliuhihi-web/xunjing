@@ -14,6 +14,7 @@ assert.ok(
 const sourceHelper = read('request', 'xunjing', 'sources.js')
 const triggerRequest = read('request', 'xunjing', 'trigger.js')
 const chatRequest = read('request', 'xunjing', 'chat.js')
+const messageCache = read('request', 'xunjing', 'messageCache.js')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
 const aiGuide = read('pages', 'ai-guide', 'ai-guide.vue')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
@@ -55,9 +56,9 @@ assert.match(
 )
 
 assert.match(
-  aiGuide,
+  messageCache,
   /normalizeXichengReviewedSources\(item\.sources\)/,
-  'AI guide should repair cached assistant message sources before rendering reviewed-source cards'
+  'AI guide message cache helper should repair cached assistant message sources before rendering reviewed-source cards'
 )
 
 assert.match(

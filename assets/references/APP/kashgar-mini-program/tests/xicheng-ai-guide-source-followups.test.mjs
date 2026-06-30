@@ -5,10 +5,9 @@ import path from 'node:path'
 const root = process.cwd()
 const aiGuide = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
 const sourceHelper = fs.readFileSync(path.join(root, 'request', 'xunjing', 'sources.js'), 'utf8')
+const messageCache = fs.readFileSync(path.join(root, 'request', 'xunjing', 'messageCache.js'), 'utf8')
 
 const sourceFollowUpHelper = aiGuide.match(/const getDisplaySourceFollowUp\s*=\s*\(source = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
-const normalizeFollowUpsHelper = aiGuide.match(/const normalizeDisplayFollowUps\s*=\s*\(followUps = \[\]\) => \{[\s\S]*?\n\}/)?.[0] || ''
-const cachedMessagesSource = aiGuide.match(/const normalizeCachedMessages\s*=\s*\(list\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const sourceFollowUpsSource = aiGuide.match(/const createSourceFollowUps\s*=\s*\(sources = \[\]\) =>[\s\S]*?\n\nconst createXunjingResultFollowUps/)?.[0] || ''
 
 assert.match(
@@ -48,15 +47,15 @@ assert.match(
 )
 
 assert.match(
-  normalizeFollowUpsHelper,
+  messageCache,
   /String\(followUp \|\| ''\)[\s\S]*replace\(\/\\s\*POI\\s\*级已审核来源\\s\*\$\/g, ''\)[\s\S]*return `继续了解\$\{cleanedFollowUp\}`/,
-  'Xiaojing should normalize stale cached reviewed-source follow-up chips into natural questions'
+  'Xiaojing message cache helper should normalize stale cached reviewed-source follow-up chips into natural questions'
 )
 
 assert.match(
-  cachedMessagesSource,
-  /followUps:\s*unsafeSafetyStatus \? \[\] : normalizeDisplayFollowUps\(item\.followUps\)/,
-  'Xiaojing should repair cached assistant follow-up chips before rendering old conversations'
+  messageCache,
+  /followUps:\s*unsafeSafetyStatus \? \[\] : normalizeXichengDisplayFollowUps\(item\.followUps\)/,
+  'Xiaojing message cache helper should repair cached assistant follow-up chips before rendering old conversations'
 )
 
 assert.doesNotMatch(

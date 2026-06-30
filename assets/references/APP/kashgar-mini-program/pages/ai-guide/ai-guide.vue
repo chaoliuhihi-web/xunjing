@@ -354,6 +354,7 @@ import TabBar from '@/components/tab-bar/tab-bar.vue'
 import config from '@/request/config.js'
 import { resolveXichengPhotoTrigger } from '@/request/xunjing/trigger.js'
 import { normalizeXichengAiChatResponse } from '@/request/xunjing/chat.js'
+import { normalizeXichengCachedMessages } from '@/request/xunjing/messageCache.js'
 import {
 	hasCompletedInitialQuestionInMessages as hasCompletedInitialQuestionInMessageList,
 	hasPendingInitialQuestionInMessages as hasPendingInitialQuestionInMessageList
@@ -547,22 +548,6 @@ const createAssistantMessage = () => ({
 	hasSpoken: false
 })
 
-const normalizeDisplayFollowUps = (followUps = []) => {
-	if (!Array.isArray(followUps)) return []
-	return followUps
-		.map(followUp => {
-			const cleanedFollowUp = String(followUp || '')
-				.replace(/\s*POI\s*级已审核来源\s*$/g, '')
-				.replace(/\s*已审核来源\s*$/g, '')
-				.trim()
-			if (!cleanedFollowUp) return ''
-			if (cleanedFollowUp === followUp) return cleanedFollowUp
-			return `继续了解${cleanedFollowUp}`
-		})
-		.filter(Boolean)
-		.slice(0, 3)
-}
-
 const commitAssistantMessage = (message, fields = {}) => {
 	if (!message || !message.id) {
 		return message
@@ -583,27 +568,7 @@ const commitAssistantMessage = (message, fields = {}) => {
 	return message
 }
 
-const normalizeCachedMessages = (list) => {
-	if (!Array.isArray(list)) return []
-	return list
-		.filter(item => item && (item.role === 'user' || item.role === 'assistant'))
-		.filter(item => !(item.role === 'assistant' && item.isPending && !item.content))
-		.map(item => {
-			const safetyStatus = normalizeXichengSafetyStatus(item.safetyStatus)
-			const unsafeSafetyStatus = isXichengUnsafeSafetyStatus(safetyStatus)
-			return {
-				id: item.id || createMessageId(),
-				role: item.role,
-				content: item.content || '',
-				images: Array.isArray(item.images) ? item.images : [],
-				followUps: unsafeSafetyStatus ? [] : normalizeDisplayFollowUps(item.followUps),
-				sources: unsafeSafetyStatus ? [] : normalizeXichengReviewedSources(item.sources),
-				safetyStatus,
-				isPending: false,
-				interrupted: Boolean(item.interrupted)
-			}
-		})
-}
+const normalizeCachedMessages = (list) => normalizeXichengCachedMessages(list, { createMessageId })
 
 const getActiveXichengCacheScope = () => {
 	const context = xichengAiContext.value || {}

@@ -5,6 +5,7 @@ import path from 'node:path'
 const root = process.cwd()
 const aiGuidePath = path.join(root, 'pages', 'ai-guide', 'ai-guide.vue')
 const aiGuide = fs.readFileSync(aiGuidePath, 'utf8')
+const messageCache = fs.readFileSync(path.join(root, 'request', 'xunjing', 'messageCache.js'), 'utf8')
 const renderStreamContentSource = aiGuide.match(/const renderStreamContent = \(state\) => \{[\s\S]*?\n\}/)?.[0] || ''
 
 assert.match(
@@ -26,15 +27,15 @@ assert.match(
 )
 
 assert.match(
-  aiGuide,
+  messageCache,
   /\.filter\(item => !\(item\.role === 'assistant' && item\.isPending && !item\.content\)\)/,
-  'AI guide should drop stale empty pending assistant messages when restoring cache'
+  'AI guide message cache helper should drop stale empty pending assistant messages when restoring cache'
 )
 
 assert.match(
-  aiGuide,
+  messageCache,
   /isPending:\s*false/,
-  'AI guide should persist cached messages as non-pending snapshots'
+  'AI guide message cache helper should persist cached messages as non-pending snapshots'
 )
 
 assert.match(
