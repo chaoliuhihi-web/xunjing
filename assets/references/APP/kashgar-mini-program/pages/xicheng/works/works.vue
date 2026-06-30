@@ -105,6 +105,8 @@ export default {
 			}))
 			const assets = this.shareArtifacts.map((item, index) => ({
 				id: item.artifactId || `asset-${index}`,
+				assetType: item.assetType,
+				templateCode: item.templateCode,
 				icon: item.assetType === 'pdf' ? 'source' : 'travelogue',
 				title: item.assetLabel || '分享作品',
 				desc: item.templateCode || '本地分享预览',
