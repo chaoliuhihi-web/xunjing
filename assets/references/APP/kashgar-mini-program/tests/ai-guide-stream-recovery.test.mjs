@@ -9,8 +9,8 @@ const renderStreamContentSource = aiGuide.match(/const renderStreamContent = \(s
 
 assert.match(
   aiGuide,
-  /const AI_RESPONSE_TIMEOUT_MS\s*=\s*15000/,
-  'AI guide should define a short response timeout so the Xicheng loading bubble cannot hang through an on-site demo'
+  /const AI_RESPONSE_TIMEOUT_MS\s*=\s*60000/,
+  'AI guide should wait long enough for real Yudao sourced answers before falling back to local source context'
 )
 
 assert.match(
