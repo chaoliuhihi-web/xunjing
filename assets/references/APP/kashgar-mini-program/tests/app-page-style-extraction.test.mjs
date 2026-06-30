@@ -15,15 +15,44 @@ const PAGE_REFRACTOR_RESERVE_LINE_LIMIT = 3000
 
 const indexPage = read('pages', 'index', 'index.vue')
 const aiGuidePage = read('pages', 'ai-guide', 'ai-guide.vue')
+const traveloguePage = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 
 for (const [relativePath, content] of [
   ['pages/index/index.vue', indexPage],
   ['pages/ai-guide/ai-guide.vue', aiGuidePage],
+  ['pages/xicheng/travelogue/travelogue.vue', traveloguePage],
 ]) {
   const lineCount = countSourceLines(content)
   assert.ok(
     lineCount <= PAGE_REFRACTOR_RESERVE_LINE_LIMIT,
     `${relativePath} should stay under ${PAGE_REFRACTOR_RESERVE_LINE_LIMIT} lines so P0 feature work has room without crossing the 3500-line hard cap; got ${lineCount}.`
+  )
+}
+
+assert.ok(
+  exists('pages', 'xicheng', 'travelogue', 'travelogue.css'),
+  'Xicheng travelogue page should move dense page styling into pages/xicheng/travelogue/travelogue.css'
+)
+
+assert.match(
+  traveloguePage,
+  /<style\s+scoped\s+src="\.\/travelogue\.css"><\/style>/,
+  'Xicheng travelogue page should attach extracted CSS as a separate scoped style block'
+)
+
+const travelogueCss = exists('pages', 'xicheng', 'travelogue', 'travelogue.css')
+  ? read('pages', 'xicheng', 'travelogue', 'travelogue.css')
+  : ''
+
+for (const selector of [
+  '.xicheng-travelogue',
+  '.travelogue-generation-hero',
+  '.travelogue-preview-image',
+  '.xicheng-travelogue-actions'
+]) {
+  assert.ok(
+    travelogueCss.includes(selector),
+    `Extracted Xicheng travelogue CSS should preserve ${selector} styling`
   )
 }
 

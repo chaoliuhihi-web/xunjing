@@ -4,6 +4,9 @@ import path from 'node:path'
 
 const root = process.cwd()
 const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
+const travelogueCss = fs.existsSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.css'))
+  ? fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.css'), 'utf8')
+  : travelogue
 
 for (const required of [
   'travelogue-generation-hero',
@@ -42,7 +45,7 @@ assert.match(
 )
 
 assert.match(
-  travelogue,
+  travelogueCss,
   /\.travelogue-preview-image\s*\{[\s\S]*width:\s*220rpx[\s\S]*height:\s*260rpx[\s\S]*object-fit:\s*cover/,
   'Travelogue preview image should use stable mobile dimensions without layout shift'
 )
