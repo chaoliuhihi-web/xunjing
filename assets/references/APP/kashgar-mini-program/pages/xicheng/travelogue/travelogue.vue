@@ -434,6 +434,7 @@ import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
 import { requestCurrentLocationForTrigger } from '@/request/xunjing/trigger.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
+import { isXunjingUserCancelled } from '@/request/xunjing/userCancel.js'
 import XichengTravelogueEditorShare from '@/components/xicheng/travelogue-editor-share.vue'
 import {
 	getXichengDisplaySourceDescription,
@@ -1505,10 +1506,6 @@ export default {
 				icon: 'none'
 			})
 		},
-		isXichengPhotoSelectionCancel(err = {}) {
-			const message = String((err && (err.errMsg || err.message || err)) || '').toLowerCase()
-			return message.includes('cancel') || message.includes('取消')
-		},
 		confirmTraveloguePhotoPurpose(actionLabel = '补充照片') {
 			return new Promise(resolve => {
 				uni.showModal({
@@ -1549,7 +1546,7 @@ export default {
 					})
 				},
 				fail: (err) => {
-					if (this.isXichengPhotoSelectionCancel(err)) {
+					if (isXunjingUserCancelled(err)) {
 						return
 					}
 					this.showPhotoEvidenceCaptureFailed()
@@ -1760,7 +1757,7 @@ export default {
 					})
 				},
 				fail: (err) => {
-					if (this.isXichengPhotoSelectionCancel(err)) {
+					if (isXunjingUserCancelled(err)) {
 						return
 					}
 					this.showPhotoEvidenceCaptureFailed()

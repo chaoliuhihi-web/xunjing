@@ -244,6 +244,7 @@ import {
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { createXichengRouteOutputValue } from '@/request/xunjing/routeParams.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
+import { isXunjingUserCancelled } from '@/request/xunjing/userCancel.js'
 
 const XICHENG_EMPTY_RECOGNITION_POI_NAME = '待确认西城文化点'
 const encodeRouteValue = (value = '') => createXichengRouteOutputValue(value, { platform: process.env.UNI_PLATFORM })
@@ -346,14 +347,6 @@ export default {
 				})
 			})
 		},
-		isXichengImageSelectionCancel(err = {}) {
-			const message = String((err && (err.errMsg || err.message || err)) || '').toLowerCase()
-			return message.includes('cancel') || message.includes('取消')
-		},
-		isXichengScanCancel(err = {}) {
-			const message = String((err && (err.errMsg || err.message || err)) || '').toLowerCase()
-			return message.includes('cancel') || message.includes('取消')
-		},
 		async resolveTextAndOpenResult(text = '', source = 'ocr') {
 			if (this.recognizing) return
 			this.recognizing = true
@@ -388,7 +381,7 @@ export default {
 					this.resolveTextAndOpenResult(scannedText, 'scan')
 				},
 				fail: (err) => {
-					if (this.isXichengScanCancel(err)) {
+					if (isXunjingUserCancelled(err)) {
 						return
 					}
 					this.handleRecognitionUnavailable('scan')
@@ -424,7 +417,7 @@ export default {
 					}
 				},
 				fail: (err) => {
-					if (this.isXichengImageSelectionCancel(err)) {
+					if (isXunjingUserCancelled(err)) {
 						return
 					}
 					this.handleRecognitionUnavailable('ocr')
@@ -505,7 +498,7 @@ export default {
 					}
 				},
 				fail: (err) => {
-					if (this.isXichengImageSelectionCancel(err)) {
+					if (isXunjingUserCancelled(err)) {
 						return
 					}
 					this.handleRecognitionUnavailable('photo')

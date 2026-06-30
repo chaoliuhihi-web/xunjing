@@ -87,6 +87,7 @@ import {
 } from '@/config/regions/xicheng.js'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { createXichengRouteOutputValue } from '@/request/xunjing/routeParams.js'
+import { isXunjingUserCancelled } from '@/request/xunjing/userCancel.js'
 
 const encodeRouteValue = (value = '') => createXichengRouteOutputValue(value, { platform: process.env.UNI_PLATFORM })
 
@@ -168,10 +169,6 @@ export default {
 				})
 			})
 		},
-		isInspirationImageSelectionCancel(err = {}) {
-			const message = String((err && (err.errMsg || err.message || err)) || '').toLowerCase()
-			return message.includes('cancel') || message.includes('取消')
-		},
 		showInspirationImageUnavailable() {
 			uni.showToast({
 				title: '未获得可用攻略图片，请重新选择',
@@ -201,7 +198,7 @@ export default {
 					this.saveInspirationRoute({ silent: true, includeImageOnly: true })
 				},
 				fail: (err) => {
-					if (this.isInspirationImageSelectionCancel(err)) {
+					if (isXunjingUserCancelled(err)) {
 						return
 					}
 					this.showInspirationImageUnavailable()

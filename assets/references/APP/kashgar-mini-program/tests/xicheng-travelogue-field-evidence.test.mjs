@@ -99,8 +99,14 @@ assert.match(
 
 assert.match(
   travelogue,
-  /isXichengPhotoSelectionCancel\(err = \{\}\)[\s\S]*message\.includes\('cancel'\)[\s\S]*message\.includes\('取消'\)/,
-  'Travelogue photo evidence should distinguish normal user cancellation from real camera or album failures'
+  /import \{ isXunjingUserCancelled \} from '@\/request\/xunjing\/userCancel\.js'/,
+  'Travelogue photo evidence should reuse the shared user-cancel helper'
+)
+
+assert.doesNotMatch(
+  travelogue,
+  /isXichengPhotoSelectionCancel\(err = \{\}\)/,
+  'Travelogue photo evidence should not duplicate a page-local cancellation helper once the shared helper exists'
 )
 
 assert.match(
@@ -111,7 +117,7 @@ assert.match(
 
 assert.match(
   addPhotoMaterialBlock,
-  /fail:\s*\(err\) => \{[\s\S]*if\s*\(this\.isXichengPhotoSelectionCancel\(err\)\)\s*\{[\s\S]*return[\s\S]*this\.showPhotoEvidenceCaptureFailed\(\)/,
+  /fail:\s*\(err\) => \{[\s\S]*if\s*\(isXunjingUserCancelled\(err\)\)\s*\{[\s\S]*return[\s\S]*this\.showPhotoEvidenceCaptureFailed\(\)/,
   'Adding a travelogue photo should ignore normal image picker cancellation and only show failure copy for non-cancel failures'
 )
 

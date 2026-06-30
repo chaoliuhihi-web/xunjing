@@ -95,7 +95,7 @@ assert.match(
 
 assert.match(
   travelogue,
-  /addStudyTaskPhoto\(index\)[\s\S]*fail:\s*\(err\) => \{[\s\S]*if\s*\(this\.isXichengPhotoSelectionCancel\(err\)\)\s*\{[\s\S]*return[\s\S]*this\.showPhotoEvidenceCaptureFailed\(\)/,
+  /addStudyTaskPhoto\(index\)[\s\S]*fail:\s*\(err\) => \{[\s\S]*if\s*\(isXunjingUserCancelled\(err\)\)\s*\{[\s\S]*return[\s\S]*this\.showPhotoEvidenceCaptureFailed\(\)/,
   'Completing a study task by photo should ignore normal image picker cancellation and only show failure copy for non-cancel failures'
 )
 

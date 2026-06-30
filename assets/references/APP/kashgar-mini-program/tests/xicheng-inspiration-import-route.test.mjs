@@ -123,8 +123,14 @@ assert.match(
 
 assert.match(
   inspiration,
-  /isInspirationImageSelectionCancel\(err = \{\}\)[\s\S]*message\.includes\('cancel'\)[\s\S]*message\.includes\('取消'\)/,
-  'Inspiration image import should distinguish normal user cancellation from real album or camera failures'
+  /import \{ isXunjingUserCancelled \} from '@\/request\/xunjing\/userCancel\.js'/,
+  'Inspiration image import should reuse the shared user-cancel helper'
+)
+
+assert.doesNotMatch(
+  inspiration,
+  /isInspirationImageSelectionCancel\(err = \{\}\)/,
+  'Inspiration image import should not duplicate a page-local cancellation helper once the shared helper exists'
 )
 
 assert.match(
@@ -135,7 +141,7 @@ assert.match(
 
 assert.match(
   chooseInspirationImageBlock,
-  /fail:\s*\(err\) => \{[\s\S]*if\s*\(this\.isInspirationImageSelectionCancel\(err\)\)\s*\{[\s\S]*return[\s\S]*this\.showInspirationImageUnavailable\(\)/,
+  /fail:\s*\(err\) => \{[\s\S]*if\s*\(isXunjingUserCancelled\(err\)\)\s*\{[\s\S]*return[\s\S]*this\.showInspirationImageUnavailable\(\)/,
   'Inspiration image import should ignore normal image picker cancellation and only surface unavailable state for non-cancel failures'
 )
 

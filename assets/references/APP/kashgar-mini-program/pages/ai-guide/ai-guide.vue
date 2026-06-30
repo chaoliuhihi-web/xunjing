@@ -367,6 +367,7 @@ import {
 	normalizeXichengReviewedSources
 } from '@/request/xunjing/sources.js'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
+import { isXunjingUserCancelled } from '@/request/xunjing/userCancel.js'
 import {
 	createXichengPoiSuggestedQuestions,
 	XICHENG_OFFICIAL_POIS,
@@ -2314,11 +2315,6 @@ const uploadAndSendImage = async (filePath) => {
 	}
 }
 
-const isXichengImageSelectionCancel = (err = {}) => {
-	const message = String(err && (err.errMsg || err.message || err) || '').toLowerCase()
-	return message.includes('cancel') || message.includes('取消')
-}
-
 // 选择图片并立即发送
 const chooseImage = () => {
 	if (historyLoading.value || imageUploading.value) return
@@ -2332,7 +2328,7 @@ const chooseImage = () => {
 			uploadAndSendImage(filePath)
 		},
 		fail: (err) => {
-			if (isXichengImageSelectionCancel(err)) {
+			if (isXunjingUserCancelled(err)) {
 				return
 			}
 			console.error('❌ 选择图片失败:', err)

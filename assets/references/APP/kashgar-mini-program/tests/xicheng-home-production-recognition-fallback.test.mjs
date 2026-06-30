@@ -28,13 +28,19 @@ assert.match(
 
 assert.match(
   home,
-  /isXichengScanCancel\(err = \{\}\)[\s\S]*message\.includes\('cancel'\)[\s\S]*message\.includes\('取消'\)/,
-  'Xicheng home scan recognition should distinguish normal user cancellation from real scanner failures'
+  /import \{ isXunjingUserCancelled \} from '@\/request\/xunjing\/userCancel\.js'/,
+  'Xicheng home should reuse the shared user-cancel helper instead of duplicating picker and scanner cancellation checks'
+)
+
+assert.doesNotMatch(
+  home,
+  /isXicheng(?:Scan|ImageSelection)Cancel\(err = \{\}\)/,
+  'Xicheng home should not duplicate local cancellation helpers once the shared helper exists'
 )
 
 assert.match(
   home,
-  /startScanRecognition\(\)[\s\S]*fail:\s*\(err\)\s*=>\s*\{[\s\S]*if\s*\(this\.isXichengScanCancel\(err\)\)\s*\{[\s\S]*return[\s\S]*this\.handleRecognitionUnavailable\('scan'\)/,
+  /startScanRecognition\(\)[\s\S]*fail:\s*\(err\)\s*=>\s*\{[\s\S]*if\s*\(isXunjingUserCancelled\(err\)\)\s*\{[\s\S]*return[\s\S]*this\.handleRecognitionUnavailable\('scan'\)/,
   'Scan recognition should ignore normal scanner cancellation and only surface unavailable state for non-cancel failures'
 )
 
@@ -58,25 +64,19 @@ assert.match(
 
 assert.match(
   home,
-  /isXichengImageSelectionCancel\(err = \{\}\)[\s\S]*message\.includes\('cancel'\)[\s\S]*message\.includes\('取消'\)/,
-  'Xicheng home image recognition should detect normal camera or album cancellation separately from real failures'
-)
-
-assert.match(
-  home,
   /startPhotoRecognition\(\)[\s\S]*const confirmed = await this\.confirmImageRecognitionPurpose\('拍照识别'\)[\s\S]*if \(!confirmed\) return[\s\S]*uni\.chooseImage\(\{[\s\S]*const filePath = res\.tempFilePaths[\s\S]*if\s*\(!filePath\)\s*\{[\s\S]*this\.handleRecognitionUnavailable\('photo'\)[\s\S]*return[\s\S]*resolveXichengPhotoTrigger\(\{ filePath \}\)/,
   'Photo recognition should surface an unavailable state when camera or album returns no image file'
 )
 
 assert.match(
   home,
-  /startOcrRecognition\(\)[\s\S]*fail:\s*\(err\)\s*=>\s*\{[\s\S]*if\s*\(this\.isXichengImageSelectionCancel\(err\)\)\s*\{[\s\S]*return[\s\S]*this\.handleRecognitionUnavailable\('ocr'\)/,
+  /startOcrRecognition\(\)[\s\S]*fail:\s*\(err\)\s*=>\s*\{[\s\S]*if\s*\(isXunjingUserCancelled\(err\)\)\s*\{[\s\S]*return[\s\S]*this\.handleRecognitionUnavailable\('ocr'\)/,
   'OCR recognition should ignore normal image picker cancellation and only surface unavailable state for non-cancel failures'
 )
 
 assert.match(
   home,
-  /startPhotoRecognition\(\)[\s\S]*fail:\s*\(err\)\s*=>\s*\{[\s\S]*if\s*\(this\.isXichengImageSelectionCancel\(err\)\)\s*\{[\s\S]*return[\s\S]*this\.handleRecognitionUnavailable\('photo'\)/,
+  /startPhotoRecognition\(\)[\s\S]*fail:\s*\(err\)\s*=>\s*\{[\s\S]*if\s*\(isXunjingUserCancelled\(err\)\)\s*\{[\s\S]*return[\s\S]*this\.handleRecognitionUnavailable\('photo'\)/,
   'Photo recognition should ignore normal image picker cancellation and only surface unavailable state for non-cancel failures'
 )
 

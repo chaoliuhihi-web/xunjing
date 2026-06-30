@@ -64,12 +64,18 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /const isXichengImageSelectionCancel\s*=\s*\(err = \{\}\) => \{[\s\S]*message\.includes\('cancel'\)[\s\S]*message\.includes\('取消'\)/,
-  'AI guide should detect normal user cancellation from album or camera selection'
+  /import \{ isXunjingUserCancelled \} from '@\/request\/xunjing\/userCancel\.js'/,
+  'AI guide should reuse the shared user-cancel helper for album and camera cancellation'
+)
+
+assert.doesNotMatch(
+  aiGuide,
+  /const isXichengImageSelectionCancel\s*=/,
+  'AI guide should not keep a page-local image cancellation helper once the shared helper exists'
 )
 
 assert.match(
   chooseImageBlock,
-  /fail:\s*\(err\) => \{[\s\S]*if \(isXichengImageSelectionCancel\(err\)\) \{[\s\S]*return[\s\S]*console\.error/,
+  /fail:\s*\(err\) => \{[\s\S]*if \(isXunjingUserCancelled\(err\)\) \{[\s\S]*return[\s\S]*console\.error/,
   'AI guide should not log or toast when the user cancels image selection'
 )
