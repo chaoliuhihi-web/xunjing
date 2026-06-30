@@ -216,7 +216,7 @@
 					<view class="xicheng-chat-hero-overlay"></view>
 					<view class="xicheng-chat-hero-head">
 						<text class="xicheng-chat-hero-kicker">{{ xichengAiContext.poiName || XICHENG_REGION_CONFIG.cityName }}</text>
-						<text class="xicheng-chat-hero-title">问问小京</text>
+						<text class="xicheng-chat-hero-title">{{ isXichengPlaybackMode ? 'AI 讲解' : '问问小京' }}</text>
 					</view>
 					<view class="xicheng-chat-companion-row">
 						<image
@@ -229,7 +229,7 @@
 							<text class="xicheng-chat-companion-desc">{{ xichengHeroSubtitle }}</text>
 						</view>
 					</view>
-					<view class="xicheng-chat-prompt-row">
+					<view v-if="!isXichengPlaybackMode" class="xicheng-chat-prompt-row">
 						<button
 							v-for="question in xichengHeroQuestions"
 							:key="question"
@@ -238,6 +238,48 @@
 						>
 							{{ question }}
 						</button>
+					</view>
+				</view>
+				<view v-if="isXichengPlaybackMode" class="xicheng-playback-card">
+					<view class="xicheng-playback-head">
+						<text class="xicheng-playback-kicker">AI 讲解播放</text>
+						<text class="xicheng-playback-title">{{ xichengPlaybackTitle }}</text>
+						<text class="xicheng-playback-desc">{{ xichengPlaybackSourceSummary }}</text>
+					</view>
+					<view class="xicheng-playback-console">
+						<view class="xicheng-playback-ring">
+							<text class="xicheng-playback-time">00:32</text>
+							<text class="xicheng-playback-duration">/ {{ xichengPlaybackDuration }}</text>
+						</view>
+						<view class="xicheng-playback-wave" aria-label="小京 AI 讲解波形">
+							<view
+								v-for="(bar, barIndex) in XICHENG_PLAYBACK_WAVE_BARS"
+								:key="barIndex"
+								class="xicheng-playback-wave-bar"
+								:class="{ 'xicheng-playback-wave-bar-active': barIndex >= 5 && barIndex <= 9 }"
+								:style="{ height: bar + 'rpx' }"
+							></view>
+						</view>
+						<view class="xicheng-playback-controls">
+							<button class="xicheng-playback-control" @click="seekXichengPlayback(-15)">15 秒前</button>
+							<button class="xicheng-playback-main-control" @click="toggleXichengPlayback">
+								{{ xichengPlaybackPaused ? '继续' : '暂停' }}
+							</button>
+							<button class="xicheng-playback-control" @click="seekXichengPlayback(15)">15 秒后</button>
+						</view>
+					</view>
+					<view class="xicheng-playback-source-row">
+						<view
+							v-for="(source, sourceIndex) in xichengPlaybackSources"
+							:key="source.id || source.title || sourceIndex"
+							class="xicheng-playback-source-pill"
+							@click="handleFollowUpClick(getDisplaySourceFollowUp(source))"
+						>
+							<text class="xicheng-playback-source-title">{{ getDisplaySourceTitle(source) || '审核来源' }}</text>
+						</view>
+						<view v-if="xichengPlaybackSources.length === 0" class="xicheng-playback-source-pill xicheng-playback-source-empty">
+							<text class="xicheng-playback-source-title">无已审核来源</text>
+						</view>
 					</view>
 				</view>
 				<view class="message-item" v-for="(msg, index) in messages" :key="msg.id || index">
@@ -435,6 +477,7 @@ const AI_SPEECH_RENDER_DELAY_MS = 50
 const STREAM_SPEECH_MIN_LENGTH = 12
 const STREAM_SPEECH_FIRST_CHUNK_LENGTH = 36
 const STREAM_SPEECH_CHUNK_LENGTH = 110
+const XICHENG_PLAYBACK_WAVE_BARS = Object.freeze([28, 42, 62, 34, 50, 76, 96, 66, 88, 58, 44, 72, 38, 54, 30])
 const cloneContentList = (list) => list.map(item => ({ ...item }))
 
 // 响应式数据
@@ -457,6 +500,8 @@ const conversationId = ref('')
 const isStreaming = ref(false)
 const navBarHeight = ref(44)
 const chatListPaddingTop = computed(() => `${navBarHeight.value + 10}px`)
+const xichengAiGuideMode = ref('chat')
+const xichengPlaybackPaused = ref(false)
 const xichengAiContext = ref({
 	regionCode: '',
 	packageCode: '',
@@ -870,11 +915,21 @@ const hasXichengAiContext = (context = xichengAiContext.value) => (
 )
 
 const isXichengChatMode = computed(() => hasXichengAiContext())
+const isXichengRoutePlaybackMode = () => normalizeXichengAiGuideMode(getCurrentXichengAiRouteOptions().mode) === 'playback'
+const isXichengPlaybackMode = computed(() => (
+	isXichengChatMode.value
+	&& (xichengAiGuideMode.value === 'playback' || isXichengRoutePlaybackMode())
+	&& !isXichengUnsafeSafetyStatus(normalizeXichengSafetyStatus(xichengAiContext.value.safetyStatus))
+	&& getXichengContextSources().length > 0
+))
 
 const chatNavTitle = computed(() => {
 	const context = xichengAiContext.value || {}
 	if (!hasXichengAiContext(context)) {
 		return 'AI小导游'
+	}
+	if (isXichengPlaybackMode.value) {
+		return 'AI 讲解'
 	}
 	return context.poiName ? `${context.poiName} · 小京` : '小京 AI讲解'
 })
@@ -892,6 +947,9 @@ const xichengHeroSubtitle = computed(() => {
 	if (safetyStatus === 'UNAVAILABLE') {
 		return XICHENG_UNAVAILABLE_ANSWER
 	}
+	if (isXichengPlaybackMode.value) {
+		return `正在讲解${context.poiName || '西城文化点'}，播放内容基于已审核来源。`
+	}
 	const poiName = context.poiName || '西城文化点'
 	return `围绕${poiName}继续追问，答案优先使用已审核来源。`
 })
@@ -905,6 +963,33 @@ const xichengHeroQuestions = computed(() => {
 	return createXichengPoiSuggestedQuestions(context.poiName || '')
 		.slice(0, 3)
 })
+
+const xichengPlaybackTitle = computed(() => {
+	const context = xichengAiContext.value || {}
+	return `正在讲解：${context.poiName || XICHENG_REGION_CONFIG.cityName}`
+})
+
+const xichengPlaybackDuration = computed(() => {
+	const sources = getXichengContextSources()
+	return sources.length > 1 ? '01:40' : '01:20'
+})
+
+const xichengPlaybackSources = computed(() => getXichengContextSources().slice(0, 2))
+
+const xichengPlaybackSourceSummary = computed(() => {
+	if (!isXichengPlaybackMode.value) {
+		return XICHENG_BLOCKED_ANSWER
+	}
+	const sources = xichengPlaybackSources.value
+	if (sources.length === 0) {
+		return XICHENG_BLOCKED_ANSWER
+	}
+	return `基于 ${sources.length} 条已审核来源生成，播放内容可追溯。`
+})
+
+const normalizeXichengAiGuideMode = (mode = '') => (
+	String(mode || '').trim().toLowerCase() === 'playback' ? 'playback' : 'chat'
+)
 
 const getXichengContextSources = (context = xichengAiContext.value) => {
 	context = context || {}
@@ -1228,6 +1313,23 @@ const getDisplaySourceFollowUp = (source = {}) => {
 	const sourceTitle = getDisplaySourceTitle(source)
 	if (!sourceTitle) return ''
 	return `继续了解${sourceTitle}`
+}
+
+const seekXichengPlayback = (seconds = 0) => {
+	if (!isXichengPlaybackMode.value) return
+	uni.showToast({
+		icon: 'none',
+		title: seconds < 0 ? '已回退 15 秒' : '已前进 15 秒'
+	})
+}
+
+const toggleXichengPlayback = () => {
+	if (!isXichengPlaybackMode.value) return
+	xichengPlaybackPaused.value = !xichengPlaybackPaused.value
+	uni.showToast({
+		icon: 'none',
+		title: xichengPlaybackPaused.value ? '讲解已暂停' : '继续播放讲解'
+	})
 }
 
 const createSourceFollowUps = (sources = []) => sources
@@ -2474,10 +2576,13 @@ const refreshXichengAiRouteContext = ({ routeOptions: rawRouteOptions = null, pr
 	const routeOptions = mergeXichengAiRouteOptions(rawRouteOptions || {})
 	const routeSignature = createXichengRouteSignature(routeOptions)
 	if (KASHGAR_DIARY_GENERATOR_ENABLED && routeOptions.mode === 'diary') {
+		xichengAiGuideMode.value = 'chat'
 		lastAppliedXichengRouteSignature = routeSignature
 		openKashgarDiaryGenerator()
 		return null
 	}
+	xichengAiGuideMode.value = normalizeXichengAiGuideMode(routeOptions.mode)
+	xichengPlaybackPaused.value = false
 	const previousScope = getActiveXichengCacheScope()
 	const context = applyXichengAiContext(routeOptions)
 	lastAppliedXichengRouteSignature = routeSignature

@@ -10,12 +10,40 @@
 			</view>
 		</view>
 
-		<view class="poster-card xicheng-paper-card">
+		<view class="poster-card share-reference-poster-frame xicheng-paper-card">
 			<image class="poster-bg" :src="sharePosterBackground" mode="aspectFill" />
+			<view class="poster-brand-pill">
+				<xicheng-icon name="location" variant="primary" :size="16" />
+				<text>西城 AI 旅伴</text>
+			</view>
 			<view class="poster-copy">
-				<text class="poster-kicker">share-poster-background.jpg</text>
+				<text class="poster-kicker">在白塔下</text>
 				<text class="poster-title">{{ region.sharePoster.title }}</text>
 				<text class="poster-desc">{{ posterSubtitle }}</text>
+			</view>
+			<view class="poster-route-collage">
+				<view class="poster-photo-card poster-photo-card-main">
+					<image :src="region.visualAssets.heroLandmark" mode="aspectFill" />
+					<text>白塔寺</text>
+				</view>
+				<view class="poster-photo-card">
+					<image :src="region.visualAssets.routeThumbnails['baitasi-imperial-shichahai']" mode="aspectFill" />
+					<text>历代帝王庙</text>
+				</view>
+				<view class="poster-photo-card">
+					<image :src="region.visualAssets.routeThumbnails['beihai-shichahai-waterfront']" mode="aspectFill" />
+					<text>什刹海</text>
+				</view>
+			</view>
+			<view class="poster-footer">
+				<image class="poster-xiaojing" :src="region.companionAvatar" mode="aspectFit" />
+				<view class="poster-bubble">
+					<text>你好，我是小京</text>
+					<text>我陪你看懂西城，留下专属游记。</text>
+				</view>
+				<view class="poster-scan-code">
+					<text>扫码看游记</text>
+				</view>
 			</view>
 		</view>
 
@@ -35,15 +63,38 @@
 					<text class="asset-title">PDF 纪念册</text>
 					<text class="asset-desc">保留路线、来源与任务</text>
 				</view>
+				<view class="asset-tile" @click="createShareArtifact('study')">
+					<xicheng-icon name="study" variant="primary" :size="22" />
+					<text class="asset-title">亲子研学报告</text>
+					<text class="asset-desc">学习成果报告</text>
+				</view>
 			</view>
 		</view>
 
 		<view class="privacy-card xicheng-paper-card">
 			<view class="section-head">
-				<text class="section-title">隐私与审核</text>
+				<text class="section-title">分享设置</text>
 				<text class="section-badge">待审核 · 未公开</text>
 			</view>
+			<view class="share-setting-list">
+				<view v-for="setting in shareSettings" :key="setting.key" class="share-setting-row" @click="toggleShareSetting(setting.key)">
+					<xicheng-icon :name="setting.icon" variant="soft" :size="18" />
+					<view class="share-setting-copy">
+						<text class="share-setting-title">{{ setting.title }}</text>
+						<text class="share-setting-desc">{{ setting.desc }}</text>
+					</view>
+					<view class="share-switch" :class="{ 'share-switch-on': setting.enabled }">
+						<view class="share-switch-thumb"></view>
+					</view>
+				</view>
+			</view>
 			<text class="privacy-copy">分享前只生成本地预览；精确定位、照片路径和原始素材只进入本机审核包，不默认公开。</text>
+			<view class="share-review-steps">
+				<view v-for="step in reviewSteps" :key="step.title" class="review-step" :class="{ 'review-step-active': step.active }">
+					<text class="review-step-index">{{ step.index }}</text>
+					<text class="review-step-title">{{ step.title }}</text>
+				</view>
+			</view>
 			<button class="primary-button xicheng-primary-action" @click="submitReview">提交审核</button>
 		</view>
 	</view>
@@ -59,7 +110,12 @@ export default {
 		return {
 			region: XICHENG_REGION_CONFIG,
 			shareArtifacts: [],
-			reviewSubmissions: []
+			reviewSubmissions: [],
+			shareSettingState: {
+				hideExactLocation: true,
+				approvedOnly: true,
+				includeXiaojingSummary: true
+			}
 		}
 	},
 	computed: {
@@ -68,6 +124,38 @@ export default {
 		},
 		posterSubtitle() {
 			return this.region.sharePoster.subtitle || '生成可审核的西城纪念分享'
+		},
+		shareSettings() {
+			return [
+				{
+					key: 'hideExactLocation',
+					icon: 'location',
+					title: '隐藏具体定位',
+					desc: '仅展示线路和景点，不公开精确位置',
+					enabled: this.shareSettingState.hideExactLocation
+				},
+				{
+					key: 'approvedOnly',
+					icon: 'source',
+					title: '仅展示已审核内容',
+					desc: '不包含待审核或未通过内容',
+					enabled: this.shareSettingState.approvedOnly
+				},
+				{
+					key: 'includeXiaojingSummary',
+					icon: 'qa',
+					title: '带小京讲解摘要',
+					desc: '在海报中展示小京生成的讲解摘要',
+					enabled: this.shareSettingState.includeXiaojingSummary
+				}
+			]
+		},
+		reviewSteps() {
+			return [
+				{ index: '1', title: '生成预览', active: this.shareArtifacts.length > 0 },
+				{ index: '2', title: '提交审核', active: this.reviewSubmissions.length > 0 },
+				{ index: '3', title: '审核后公开', active: false }
+			]
 		}
 	},
 	onShow() {
@@ -80,17 +168,22 @@ export default {
 			const artifact = {
 				artifactId: `share-${assetType}-${Date.now()}`,
 				assetType,
-				assetLabel: assetType === 'pdf' ? 'PDF 纪念册' : '分享海报',
-				templateCode: assetType === 'pdf' ? 'xicheng-memorial-pdf-v1' : 'xicheng-share-poster-v1',
+				assetLabel: assetType === 'pdf' ? 'PDF 纪念册' : assetType === 'study' ? '亲子研学报告' : '分享海报',
+				templateCode: assetType === 'pdf' ? 'xicheng-memorial-pdf-v1' : assetType === 'study' ? 'xicheng-study-report-v1' : 'xicheng-share-poster-v1',
 				backgroundImage: this.sharePosterBackground,
 				stampImage: this.region.visualAssets.passportStamp,
 				reviewStatus: this.region.reviewStatus.pending,
 				publishStatus: 'private',
+				privacySettings: { ...this.shareSettingState },
 				createdAt
 			}
 			this.shareArtifacts = [artifact, ...this.shareArtifacts].slice(0, 8)
 			uni.setStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey, this.shareArtifacts)
 			uni.showToast({ title: `${artifact.assetLabel}已生成`, icon: 'none' })
+		},
+		toggleShareSetting(key = '') {
+			if (!Object.prototype.hasOwnProperty.call(this.shareSettingState, key)) return
+			this.shareSettingState[key] = !this.shareSettingState[key]
 		},
 		submitReview() {
 			const reviewPayload = {
@@ -161,21 +254,46 @@ export default {
 }
 .poster-card {
 	position: relative;
-	min-height: 430rpx;
+	min-height: 760rpx;
 	overflow: hidden;
 }
+
+.share-reference-poster-frame {
+	border: 1rpx solid rgba(181, 148, 94, 0.28);
+	background:
+		linear-gradient(180deg, rgba(255, 252, 246, 0.96), rgba(247, 241, 230, 0.92));
+}
+
 .poster-bg {
 	position: absolute;
 	inset: 0;
 	width: 100%;
 	height: 100%;
-	opacity: 0.72;
+	opacity: 0.30;
 }
 .poster-copy {
 	position: relative;
 	z-index: 1;
-	width: 64%;
+	width: 66%;
+	padding-top: 58rpx;
 }
+
+.poster-brand-pill {
+	position: absolute;
+	left: 26rpx;
+	top: 26rpx;
+	z-index: 2;
+	display: inline-flex;
+	align-items: center;
+	gap: 10rpx;
+	padding: 10rpx 18rpx;
+	border-radius: 999rpx;
+	background: #173F35;
+	color: #FFF9EC;
+	font-size: 23rpx;
+	font-weight: 800;
+}
+
 .poster-kicker,
 .section-badge {
 	font-size: 22rpx;
@@ -185,8 +303,9 @@ export default {
 .poster-title {
 	display: block;
 	margin-top: 18rpx;
-	font-size: 44rpx;
-	line-height: 1.2;
+	font-size: 60rpx;
+	line-height: 1.12;
+	letter-spacing: 0;
 }
 .poster-desc,
 .asset-desc,
@@ -197,22 +316,243 @@ export default {
 	line-height: 1.55;
 	color: #746F68;
 }
-.asset-grid {
+
+.poster-route-collage {
+	position: relative;
+	z-index: 1;
 	display: grid;
 	grid-template-columns: 1fr 1fr;
+	gap: 16rpx;
+	margin-top: 34rpx;
+	padding-left: 34rpx;
+}
+
+.poster-photo-card {
+	position: relative;
+	min-height: 178rpx;
+	overflow: hidden;
+	border-radius: 26rpx;
+	background: rgba(255, 252, 246, 0.82);
+	box-shadow: 0 16rpx 32rpx rgba(35, 42, 34, 0.12);
+}
+
+.poster-photo-card-main {
+	grid-row: span 2;
+	min-height: 376rpx;
+}
+
+.poster-photo-card image {
+	width: 100%;
+	height: 100%;
+	min-height: inherit;
+}
+
+.poster-photo-card text {
+	position: absolute;
+	left: 14rpx;
+	top: 14rpx;
+	padding: 7rpx 14rpx;
+	border-radius: 999rpx;
+	background: rgba(23, 63, 53, 0.90);
+	color: #FFF9EC;
+	font-size: 21rpx;
+	font-weight: 800;
+}
+
+.poster-footer {
+	position: relative;
+	z-index: 1;
+	display: grid;
+	grid-template-columns: 124rpx 1fr 112rpx;
+	align-items: end;
+	gap: 16rpx;
+	margin-top: 26rpx;
+}
+
+.poster-xiaojing {
+	width: 124rpx;
+	height: 138rpx;
+	align-self: end;
+}
+
+.poster-bubble {
+	align-self: center;
+	padding: 18rpx 20rpx;
+	border-radius: 24rpx;
+	background: rgba(255, 252, 246, 0.92);
+	border: 1rpx solid rgba(181, 148, 94, 0.18);
+}
+
+.poster-bubble text {
+	display: block;
+	font-size: 22rpx;
+	line-height: 1.45;
+	color: #102F29;
+}
+
+.poster-bubble text:first-child {
+	font-weight: 800;
+}
+
+.poster-scan-code {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 104rpx;
+	height: 104rpx;
+	padding: 10rpx;
+	border-radius: 18rpx;
+	background:
+		linear-gradient(90deg, #102F29 8rpx, transparent 8rpx) 0 0/24rpx 24rpx,
+		linear-gradient(0deg, #102F29 8rpx, transparent 8rpx) 0 0/24rpx 24rpx,
+		#FFFDF8;
+	border: 1rpx solid rgba(181, 148, 94, 0.28);
+	box-sizing: border-box;
+}
+
+.poster-scan-code text {
+	padding: 4rpx 6rpx;
+	border-radius: 8rpx;
+	background: rgba(255, 253, 248, 0.92);
+	color: #102F29;
+	font-size: 18rpx;
+	font-weight: 800;
+	text-align: center;
+}
+
+.asset-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 18rpx;
 	margin-top: 24rpx;
 }
 .asset-tile {
 	display: grid;
 	gap: 12rpx;
-	padding: 22rpx;
+	padding: 22rpx 18rpx;
 	border-radius: 28rpx;
 	background: rgba(23, 63, 53, 0.08);
+	border: 1rpx solid rgba(181, 148, 94, 0.16);
 }
 .asset-title {
-	font-size: 28rpx;
+	font-size: 26rpx;
+	line-height: 1.3;
 }
+
+.share-setting-list {
+	display: grid;
+	margin-top: 24rpx;
+	border-radius: 28rpx;
+	overflow: hidden;
+	background: rgba(255, 252, 246, 0.62);
+	border: 1rpx solid rgba(181, 148, 94, 0.16);
+}
+
+.share-setting-row {
+	display: grid;
+	grid-template-columns: 56rpx 1fr 88rpx;
+	align-items: center;
+	gap: 16rpx;
+	padding: 22rpx 20rpx;
+	border-bottom: 1rpx solid rgba(181, 148, 94, 0.14);
+}
+
+.share-setting-row:last-child {
+	border-bottom: 0;
+}
+
+.share-setting-copy {
+	min-width: 0;
+}
+
+.share-setting-title,
+.share-setting-desc {
+	display: block;
+}
+
+.share-setting-title {
+	font-size: 26rpx;
+	font-weight: 800;
+	color: #102F29;
+}
+
+.share-setting-desc {
+	margin-top: 5rpx;
+	font-size: 22rpx;
+	line-height: 1.4;
+	color: #746F68;
+}
+
+.share-switch {
+	position: relative;
+	width: 82rpx;
+	height: 48rpx;
+	border-radius: 999rpx;
+	background: rgba(116, 111, 104, 0.18);
+	transition: background 160ms ease;
+}
+
+.share-switch-thumb {
+	position: absolute;
+	left: 6rpx;
+	top: 6rpx;
+	width: 36rpx;
+	height: 36rpx;
+	border-radius: 999rpx;
+	background: #FFFDF8;
+	box-shadow: 0 4rpx 12rpx rgba(35, 42, 34, 0.16);
+	transition: transform 160ms ease;
+}
+
+.share-switch-on {
+	background: #173F35;
+}
+
+.share-switch-on .share-switch-thumb {
+	transform: translateX(34rpx);
+}
+
+.share-review-steps {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 12rpx;
+	margin-top: 24rpx;
+}
+
+.review-step {
+	display: grid;
+	justify-items: center;
+	gap: 8rpx;
+	padding: 16rpx 10rpx;
+	border-radius: 20rpx;
+	background: rgba(23, 63, 53, 0.06);
+	color: #746F68;
+}
+
+.review-step-active {
+	background: rgba(181, 148, 94, 0.18);
+	color: #173F35;
+}
+
+.review-step-index {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 40rpx;
+	height: 40rpx;
+	border-radius: 999rpx;
+	background: rgba(255, 252, 246, 0.94);
+	font-size: 22rpx;
+	font-weight: 800;
+}
+
+.review-step-title {
+	font-size: 22rpx;
+	line-height: 1.3;
+	font-weight: 800;
+	text-align: center;
+}
+
 .privacy-card button {
 	margin-top: 24rpx;
 }

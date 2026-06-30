@@ -1,6 +1,6 @@
 <template>
 	<view class="xicheng-scan xicheng-designed-page xicheng-bottom-safe">
-		<view class="scan-hero xicheng-paper-card">
+		<view class="scan-hero scan-reference-hero xicheng-paper-card">
 			<view class="scan-hero-copy">
 				<text class="scan-kicker">{{ region.cityName }}</text>
 				<text class="scan-title">扫一扫</text>

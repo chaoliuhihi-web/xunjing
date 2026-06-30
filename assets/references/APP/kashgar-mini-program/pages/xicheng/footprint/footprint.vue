@@ -10,24 +10,34 @@
 			</view>
 		</view>
 
-		<view class="hero xicheng-paper-card">
-			<text class="hero-kicker">今日记录</text>
-			<text class="hero-title">{{ footprintTitle }}</text>
-			<text class="hero-desc">识别、问答、路线打卡会沉淀为可审核素材，再生成今日游记。</text>
+		<view class="hero footprint-reference-hero xicheng-paper-card">
+			<image class="hero-companion" :src="region.companionAvatar" mode="aspectFit" />
+			<view class="hero-copy">
+				<text class="hero-kicker">今日记录</text>
+				<text class="hero-title">{{ footprintTitle }}</text>
+				<text class="hero-desc">这些片段可以生成你的游记，公开前会先进入审核。</text>
+			</view>
 			<view class="metric-grid">
 				<view class="metric-card">
+					<xicheng-icon name="photo" variant="primary" :size="18" />
 					<text class="metric-value">{{ materialCount }}</text>
 					<text class="metric-label">素材</text>
 				</view>
 				<view class="metric-card">
+					<xicheng-icon name="qa" variant="primary" :size="18" />
 					<text class="metric-value">{{ checkinCount }}</text>
 					<text class="metric-label">打卡</text>
 				</view>
 				<view class="metric-card">
+					<xicheng-icon name="source" variant="primary" :size="18" />
 					<text class="metric-value">{{ reviewedSourceCount }}</text>
 					<text class="metric-label">来源</text>
 				</view>
 			</view>
+		</view>
+
+		<view class="footprint-filter-row">
+			<text v-for="tab in footprintTabs" :key="tab" class="footprint-filter-chip">{{ tab }}</text>
 		</view>
 
 		<view class="timeline xicheng-paper-card">
@@ -41,13 +51,36 @@
 						<xicheng-icon :name="item.icon" variant="primary" :size="18" />
 					</view>
 					<view class="timeline-copy">
-						<text class="timeline-title">{{ item.title }}</text>
+						<view class="timeline-title-row">
+							<text class="timeline-title">{{ item.title }}</text>
+							<text class="timeline-type">{{ item.typeLabel }}</text>
+						</view>
 						<text class="timeline-desc">{{ item.desc }}</text>
 						<text class="timeline-time">{{ item.time }}</text>
 					</view>
 				</view>
 			</view>
-			<text v-else class="empty-copy">完成一次识别、路线记录或小京问答后，这里会出现可生成游记的足迹。</text>
+			<view v-else class="footprint-empty-state">
+				<text class="empty-copy">完成一次识别、路线记录或小京问答后，这里会出现可生成游记的足迹。</text>
+				<view class="footprint-empty-steps">
+					<view v-for="step in timelinePreviewItems" :key="step.title" class="footprint-empty-step">
+						<xicheng-icon :name="step.icon" variant="soft" :size="18" />
+						<view>
+							<text class="empty-step-title">{{ step.title }}</text>
+							<text class="empty-step-desc">{{ step.desc }}</text>
+						</view>
+					</view>
+				</view>
+			</view>
+		</view>
+
+		<view class="footprint-draft-card xicheng-paper-card">
+			<view>
+				<text class="draft-kicker">游记草稿</text>
+				<text class="draft-title">只使用可审核素材生成</text>
+				<text class="draft-desc">照片、问答和路线打卡会带来源进入草稿，不会公开精确定位。</text>
+			</view>
+			<button class="draft-button xicheng-primary-action" @click="openTravelogue">生成</button>
 		</view>
 
 		<view class="bottom-actions">
@@ -72,6 +105,9 @@ export default {
 		}
 	},
 	computed: {
+		footprintTabs() {
+			return ['全部', '识别', '问答', '路线']
+		},
 		materialCount() {
 			return this.materials.length
 		},
@@ -88,6 +124,7 @@ export default {
 			const materialItems = this.materials.slice(0, 6).map((item, index) => ({
 				id: `material-${index}-${item.createdAt || item.poiCode || item.type}`,
 				icon: item.type === 'ai-guide' ? 'qa' : 'source',
+				typeLabel: item.type === 'ai-guide' ? 'AI 问答' : '识别',
 				title: item.poiName || item.sourceLabel || '西城素材',
 				desc: item.aiAnswerExcerpt || item.remark || item.sourceLabel || '已进入本地素材盒',
 				time: formatTime(item.createdAt)
@@ -95,6 +132,7 @@ export default {
 			const checkinItems = this.routeCheckins.slice(0, 6).map((item, index) => ({
 				id: `checkin-${index}-${item.createdAt || item.poiCode}`,
 				icon: 'record',
+				typeLabel: '路线',
 				title: item.poiName || '路线打卡',
 				desc: item.routeTitle || item.routeCode || '路线记录节点',
 				time: formatTime(item.createdAt)
@@ -102,6 +140,13 @@ export default {
 			return [...materialItems, ...checkinItems]
 				.sort((a, b) => String(b.time).localeCompare(String(a.time)))
 				.slice(0, 8)
+		},
+		timelinePreviewItems() {
+			return [
+				{ icon: 'scan', title: '拍照识别文化点', desc: '匹配官方 POI 与已审核来源' },
+				{ icon: 'qa', title: '问小京补充故事', desc: '回答会带来源进入素材盒' },
+				{ icon: 'route', title: '完成路线打卡', desc: '生成路线护照和游记线索' }
+			]
 		}
 	},
 	onShow() {
@@ -165,6 +210,42 @@ export default {
 	padding: 30rpx;
 	border-radius: 34rpx;
 }
+
+.footprint-reference-hero {
+	position: relative;
+	min-height: 330rpx;
+	overflow: hidden;
+	padding: 34rpx 30rpx 30rpx 238rpx;
+	background:
+		linear-gradient(90deg, rgba(255, 252, 246, 0.96), rgba(255, 252, 246, 0.82)),
+		linear-gradient(135deg, rgba(181, 148, 94, 0.15), rgba(23, 63, 53, 0.08));
+}
+
+.footprint-reference-hero::after {
+	content: "";
+	position: absolute;
+	right: 0;
+	top: 0;
+	width: 320rpx;
+	height: 240rpx;
+	background: radial-gradient(circle at 70% 20%, rgba(181, 148, 94, 0.16), transparent 58%);
+	pointer-events: none;
+}
+
+.hero-companion {
+	position: absolute;
+	left: 18rpx;
+	bottom: -8rpx;
+	width: 218rpx;
+	height: 286rpx;
+}
+
+.hero-copy {
+	position: relative;
+	z-index: 1;
+	min-height: 132rpx;
+}
+
 .hero-kicker,
 .section-badge {
 	font-size: 24rpx;
@@ -195,9 +276,13 @@ export default {
 	margin-top: 24rpx;
 }
 .metric-card {
+	display: grid;
+	justify-items: start;
+	gap: 8rpx;
 	padding: 18rpx;
 	border-radius: 24rpx;
-	background: rgba(23, 63, 53, 0.08);
+	background: rgba(255, 252, 246, 0.84);
+	border: 1rpx solid rgba(181, 148, 94, 0.16);
 }
 .metric-value,
 .metric-label,
@@ -220,26 +305,168 @@ export default {
 	font-weight: 800;
 	color: #102F29;
 }
+
+.footprint-filter-row {
+	display: flex;
+	gap: 16rpx;
+	margin-top: 24rpx;
+	overflow: hidden;
+}
+
+.footprint-filter-chip {
+	padding: 16rpx 28rpx;
+	border-radius: 999rpx;
+	background: rgba(255, 252, 246, 0.72);
+	color: #746F68;
+	font-size: 25rpx;
+	font-weight: 700;
+	box-shadow: 0 10rpx 24rpx rgba(35, 42, 34, 0.06);
+}
+
+.footprint-filter-chip:first-child {
+	background: #173F35;
+	color: #FFF9EC;
+}
+
 .timeline-list {
 	display: grid;
 	gap: 18rpx;
 	margin-top: 24rpx;
 }
 .timeline-row {
+	position: relative;
 	display: grid;
-	grid-template-columns: 64rpx 1fr;
+	grid-template-columns: 76rpx 1fr;
 	gap: 18rpx;
 	padding-bottom: 18rpx;
 	border-bottom: 1rpx solid rgba(181, 148, 94, 0.18);
 }
+
+.timeline-row::before {
+	content: "";
+	position: absolute;
+	left: 31rpx;
+	top: 68rpx;
+	bottom: -6rpx;
+	width: 2rpx;
+	background: rgba(181, 148, 94, 0.24);
+}
+
+.timeline-row:last-child::before {
+	display: none;
+}
+
 .timeline-icon {
 	padding-top: 2rpx;
 }
+
+.timeline-title-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16rpx;
+}
+
 .timeline-title {
 	font-size: 28rpx;
 	font-weight: 700;
 	color: #102F29;
 }
+
+.timeline-type {
+	padding: 8rpx 14rpx;
+	border-radius: 999rpx;
+	background: rgba(23, 63, 53, 0.08);
+	color: #173F35;
+	font-size: 21rpx;
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+.footprint-empty-state {
+	margin-top: 20rpx;
+}
+
+.footprint-empty-steps {
+	display: grid;
+	gap: 14rpx;
+	margin-top: 20rpx;
+}
+
+.footprint-empty-step {
+	display: grid;
+	grid-template-columns: 56rpx 1fr;
+	gap: 16rpx;
+	align-items: center;
+	padding: 18rpx;
+	border-radius: 22rpx;
+	background: rgba(23, 63, 53, 0.06);
+}
+
+.empty-step-title,
+.empty-step-desc,
+.draft-kicker,
+.draft-title,
+.draft-desc {
+	display: block;
+}
+
+.empty-step-title {
+	font-size: 25rpx;
+	font-weight: 800;
+	color: #102F29;
+}
+
+.empty-step-desc {
+	margin-top: 4rpx;
+	font-size: 22rpx;
+	line-height: 1.4;
+	color: #746F68;
+}
+
+.footprint-draft-card {
+	display: grid;
+	grid-template-columns: 1fr 138rpx;
+	align-items: center;
+	gap: 22rpx;
+	margin-top: 24rpx;
+	padding: 26rpx;
+	border-radius: 30rpx;
+}
+
+.draft-kicker {
+	font-size: 22rpx;
+	font-weight: 800;
+	color: #B5945E;
+}
+
+.draft-title {
+	margin-top: 6rpx;
+	font-size: 30rpx;
+	font-weight: 800;
+	color: #102F29;
+}
+
+.draft-desc {
+	margin-top: 8rpx;
+	font-size: 23rpx;
+	line-height: 1.45;
+	color: #746F68;
+}
+
+.draft-button {
+	min-height: 76rpx;
+	margin: 0;
+	padding: 0;
+	border-radius: 999rpx;
+	font-size: 26rpx;
+	line-height: 76rpx;
+}
+
+.draft-button::after {
+	border: 0;
+}
+
 .bottom-actions {
 	margin-top: 26rpx;
 }

@@ -263,8 +263,9 @@ export default {
 			}
 			const prompt = question || this.playQuestion
 			this.persistPoiGuideContext(prompt)
+			const playbackQuery = prompt === this.playQuestion ? `&mode=${encodeRouteValue('playback')}` : ''
 			uni.navigateTo({
-				url: `/pages/ai-guide/ai-guide?question=${encodeRouteValue(prompt)}&regionCode=${encodeRouteValue(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.aiSceneCode || this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeOptions.sourceChannel || this.region.sourceChannel)}&poiCode=${encodeRouteValue(this.activePoi.poiCode || '')}&poiName=${encodeRouteValue(this.activePoi.poiName || '')}&safetyStatus=${encodeRouteValue('PASSED')}&companionName=${encodeRouteValue(this.routeOptions.companionName || this.region.companionName)}`
+				url: `/pages/ai-guide/ai-guide?question=${encodeRouteValue(prompt)}${playbackQuery}&regionCode=${encodeRouteValue(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.aiSceneCode || this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeOptions.sourceChannel || this.region.sourceChannel)}&poiCode=${encodeRouteValue(this.activePoi.poiCode || '')}&poiName=${encodeRouteValue(this.activePoi.poiName || '')}&safetyStatus=${encodeRouteValue('PASSED')}&companionName=${encodeRouteValue(this.routeOptions.companionName || this.region.companionName)}`
 			})
 		},
 		addPoiToTravelogue() {

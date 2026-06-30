@@ -10,18 +10,32 @@
 			</view>
 		</view>
 
-		<view class="passport-hero xicheng-paper-card">
-			<image class="passport-stamp" :src="passportStampImage" mode="aspectFit" />
+		<view class="passport-hero passport-reference-hero xicheng-paper-card">
 			<view class="passport-copy">
-				<text class="passport-kicker">route-passport-stamp.png</text>
+				<text class="passport-kicker">我的路线护照</text>
 				<text class="passport-title">{{ passportTitle }}</text>
-				<text class="passport-desc">{{ region.routePassport.thresholdText }}</text>
+				<text class="passport-desc">古刹文脉 · 建筑美学 · 老城风情</text>
+				<view class="passport-progress-inline">
+					<text>路线进度</text>
+					<view class="passport-progress-track">
+						<view class="passport-progress-fill" :style="{ width: progressPercent + '%' }"></view>
+					</view>
+					<text>{{ completedCheckins }}/{{ targetCheckinCount }}</text>
+				</view>
+			</view>
+			<view class="passport-stamp-orbit">
+				<image class="passport-companion" :src="region.companionAvatar" mode="aspectFit" />
+				<image class="passport-stamp" :src="passportStampImage" mode="aspectFit" />
+				<text class="passport-ribbon">小京陪伴中</text>
 			</view>
 		</view>
 
 		<view class="progress-card xicheng-paper-card">
 			<view class="section-head">
-				<text class="section-title">打卡进度</text>
+				<view class="section-title-row">
+					<xicheng-icon name="passport" variant="primary" :size="18" />
+					<text class="section-title">路线打卡印章</text>
+				</view>
 				<text class="section-badge">{{ completedCheckins }}/{{ targetCheckinCount }}</text>
 			</view>
 			<view class="progress-bar">
@@ -29,8 +43,25 @@
 			</view>
 			<view class="stamp-grid">
 				<view v-for="stamp in stampSlots" :key="stamp.key" class="stamp-cell" :class="{ 'stamp-cell-active': stamp.done }">
-					<xicheng-icon name="passport" :variant="stamp.done ? 'primary' : 'soft'" :size="18" />
-					<text>{{ stamp.label }}</text>
+					<image class="stamp-cell-image" :src="passportStampImage" mode="aspectFit" />
+					<text class="stamp-status">{{ stamp.done ? '已打卡' : '未打卡' }}</text>
+					<text class="stamp-label">{{ stamp.label }}</text>
+				</view>
+			</view>
+		</view>
+
+		<view class="badge-card xicheng-paper-card">
+			<view class="section-head">
+				<text class="section-title">已获得徽章</text>
+				<text class="section-badge">{{ badgeProgressText }}</text>
+			</view>
+			<view class="passport-badge-grid">
+				<view v-for="badge in badgeCards" :key="badge.title" class="badge-tile" :class="{ 'badge-tile-locked': badge.locked }">
+					<view class="badge-medal">
+						<xicheng-icon :name="badge.locked ? 'locked' : badge.icon" :variant="badge.locked ? 'soft' : 'primary'" :size="22" />
+					</view>
+					<text class="badge-title">{{ badge.title }}</text>
+					<text class="badge-desc">{{ badge.desc }}</text>
 				</view>
 			</view>
 		</view>
@@ -94,6 +125,16 @@ export default {
 		},
 		studyTasks() {
 			return this.region.parentChildTasks
+		},
+		badgeProgressText() {
+			return `收集进度 ${Math.min(this.completedCheckins, 2)}/3`
+		},
+		badgeCards() {
+			return [
+				{ icon: 'passport', title: '建筑观察家', desc: '发现建筑之美', locked: this.completedCheckins < 1 },
+				{ icon: 'source', title: '历史小侦探', desc: '探寻历史故事', locked: this.completedCheckins < 2 },
+				{ icon: 'locked', title: '湖畔漫步者', desc: '漫步什刹海畔', locked: this.completedCheckins < 3 }
+			]
 		}
 	},
 	onShow() {
@@ -156,15 +197,44 @@ export default {
 }
 .passport-hero,
 .progress-card,
+.badge-card,
 .task-card {
 	margin-top: 24rpx;
 	padding: 30rpx;
 	border-radius: 34rpx;
 }
+
+.passport-reference-hero {
+	position: relative;
+	overflow: hidden;
+	min-height: 382rpx;
+	align-items: stretch;
+	background:
+		linear-gradient(90deg, rgba(255, 252, 246, 0.97), rgba(255, 252, 246, 0.70)),
+		url('/static/xicheng/scene-baitasi-waterfront.jpg') center/cover;
+}
+
+.passport-reference-hero::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background:
+		linear-gradient(180deg, rgba(255, 252, 246, 0.16), rgba(255, 252, 246, 0.88)),
+		radial-gradient(circle at 78% 22%, rgba(181, 148, 94, 0.18), transparent 38%);
+	pointer-events: none;
+}
+
+.passport-reference-hero .passport-copy,
+.passport-stamp-orbit {
+	position: relative;
+	z-index: 1;
+}
+
 .passport-stamp {
-	width: 180rpx;
-	height: 180rpx;
+	width: 150rpx;
+	height: 150rpx;
 	flex-shrink: 0;
+	opacity: 0.92;
 }
 .passport-copy {
 	flex: 1;
@@ -189,6 +259,65 @@ export default {
 	line-height: 1.5;
 	color: #746F68;
 }
+
+.passport-progress-inline {
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	align-items: center;
+	gap: 16rpx;
+	margin-top: 28rpx;
+	font-size: 24rpx;
+	font-weight: 800;
+	color: #173F35;
+}
+
+.passport-progress-track {
+	height: 14rpx;
+	border-radius: 999rpx;
+	background: rgba(255, 252, 246, 0.9);
+	overflow: hidden;
+}
+
+.passport-progress-fill {
+	height: 100%;
+	border-radius: 999rpx;
+	background: #173F35;
+}
+
+.passport-stamp-orbit {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-end;
+	width: 192rpx;
+	flex: 0 0 192rpx;
+}
+
+.passport-companion {
+	width: 154rpx;
+	height: 174rpx;
+	border-radius: 999rpx;
+	background: rgba(255, 252, 246, 0.72);
+}
+
+.passport-ribbon {
+	margin-top: -10rpx;
+	padding: 8rpx 18rpx;
+	border-radius: 999rpx;
+	background: #173F35;
+	color: #FFF9EC;
+	font-size: 22rpx;
+	font-weight: 800;
+	white-space: nowrap;
+}
+
+.section-title-row {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+	min-width: 0;
+}
+
 .section-title {
 	font-size: 32rpx;
 }
@@ -213,7 +342,34 @@ export default {
 .stamp-grid {
 	grid-template-columns: repeat(3, minmax(0, 1fr));
 }
-.stamp-cell,
+.stamp-cell {
+	position: relative;
+	display: grid;
+	justify-items: center;
+	gap: 10rpx;
+	min-height: 230rpx;
+	padding: 18rpx 12rpx;
+	border-radius: 24rpx;
+	background: rgba(255, 252, 246, 0.74);
+	border: 1rpx solid rgba(181, 148, 94, 0.22);
+	box-sizing: border-box;
+	text-align: center;
+}
+
+.stamp-cell::after {
+	content: "";
+	position: absolute;
+	right: -14rpx;
+	top: 50%;
+	width: 28rpx;
+	height: 2rpx;
+	border-top: 2rpx dashed rgba(181, 148, 94, 0.32);
+}
+
+.stamp-cell:last-child::after {
+	display: none;
+}
+
 .task-row {
 	display: flex;
 	align-items: center;
@@ -226,6 +382,93 @@ export default {
 }
 .stamp-cell-active {
 	background: rgba(181, 148, 94, 0.16);
+}
+
+.stamp-cell-image {
+	width: 106rpx;
+	height: 106rpx;
+	opacity: 0.42;
+	filter: grayscale(1);
+}
+
+.stamp-cell-active .stamp-cell-image {
+	opacity: 1;
+	filter: none;
+}
+
+.stamp-status {
+	display: inline-flex;
+	padding: 7rpx 16rpx;
+	border-radius: 999rpx;
+	background: rgba(23, 63, 53, 0.08);
+	color: #173F35;
+	font-size: 21rpx;
+	font-weight: 800;
+}
+
+.stamp-cell-active .stamp-status {
+	background: #173F35;
+	color: #FFF9EC;
+}
+
+.stamp-label {
+	display: block;
+	min-height: 64rpx;
+	font-size: 24rpx;
+	line-height: 1.35;
+	font-weight: 800;
+	color: #102F29;
+}
+
+.passport-badge-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 16rpx;
+	margin-top: 24rpx;
+}
+
+.badge-tile {
+	display: grid;
+	justify-items: center;
+	gap: 10rpx;
+	padding: 20rpx 12rpx;
+	border-radius: 24rpx;
+	background: rgba(255, 252, 246, 0.78);
+	border: 1rpx solid rgba(181, 148, 94, 0.20);
+	text-align: center;
+}
+
+.badge-tile-locked {
+	opacity: 0.58;
+	filter: grayscale(0.55);
+}
+
+.badge-medal {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 82rpx;
+	height: 82rpx;
+	border-radius: 28rpx;
+	background: linear-gradient(145deg, rgba(181, 148, 94, 0.22), rgba(23, 63, 53, 0.06));
+}
+
+.badge-title,
+.badge-desc {
+	display: block;
+}
+
+.badge-title {
+	font-size: 24rpx;
+	line-height: 1.35;
+	font-weight: 800;
+	color: #102F29;
+}
+
+.badge-desc {
+	font-size: 21rpx;
+	line-height: 1.35;
+	color: #746F68;
 }
 .bottom-actions {
 	margin-top: 26rpx;
