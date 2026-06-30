@@ -411,6 +411,7 @@ import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 import { createXichengRouteOutputValue } from '@/request/xunjing/routeParams.js'
+import { isXunjingUserCancelled } from '@/request/xunjing/userCancel.js'
 import {
 	KASHGAR_ACTIONS,
 	KASHGAR_MAP_SHORTCUTS,
@@ -852,8 +853,7 @@ export default {
 					})
 				},
 				fail: (error) => {
-					const errMsg = error && error.errMsg ? String(error.errMsg) : ''
-					if (/cancel/i.test(errMsg)) return
+					if (isXunjingUserCancelled(error)) return
 					console.warn('星河寻境扫码调用失败:', error)
 					this.resolveXunjingMultimodalFromText('').then((handled) => {
 						if (!handled) this.goToMap('82')

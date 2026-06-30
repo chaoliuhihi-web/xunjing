@@ -44,6 +44,23 @@ assert.match(
   'Manual scan action should use UniApp native scanCode and reuse the same Yudao resolver'
 )
 
+assert.ok(
+  indexPage.includes("import { isXunjingUserCancelled } from '@/request/xunjing/userCancel.js'"),
+  'Manual scan cancel handling should reuse the shared UniApp user-cancel helper'
+)
+
+assert.match(
+  indexPage,
+  /fail:\s*\(error\) => \{[\s\S]*if\s*\(isXunjingUserCancelled\(error\)\)\s*return[\s\S]*console\.warn\('星河寻境扫码调用失败:'/,
+  'Manual scan action should ignore Chinese and English user cancellation before logging or falling back'
+)
+
+const manualScanSource = indexPage.match(/startKashgarManualScan\(\)\s*\{[\s\S]*?\n\t\t\},\n\t\tenterKashgarExperience/)?.[0] || ''
+assert.ok(
+  !/\/cancel\/i\.test\(errMsg\)/.test(manualScanSource),
+  'Manual scan action should not hand-roll English-only cancel detection'
+)
+
 assert.match(
   indexPage,
   /handleKashgarAction\(action\)[\s\S]*action\.target === 'map'[\s\S]*this\.startKashgarManualScan\(\)/,
