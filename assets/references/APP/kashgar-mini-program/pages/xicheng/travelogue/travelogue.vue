@@ -99,6 +99,30 @@
 			@add-photo="addPhotoMaterial"
 		/>
 
+		<view v-if="isTravelogueEditMode" class="travelogue-secondary-directory xicheng-paper-card">
+			<view class="section-head">
+				<text class="section-title">二级功能</text>
+				<text class="section-badge">按需进入</text>
+			</view>
+			<text class="section-desc">记录、护照、分享审核和运营数据不在编辑页展开，避免主编辑流程过长。</text>
+			<view class="travelogue-secondary-entry-grid">
+				<view
+					v-for="entry in travelogueSecondaryEntries"
+					:key="entry.key"
+					class="travelogue-secondary-entry"
+					@click="openTravelogueSecondaryEntry(entry)"
+				>
+					<view class="travelogue-secondary-entry-head">
+						<uni-icons :type="entry.icon" size="22" color="#1F6E5A" />
+						<text class="travelogue-secondary-entry-title">{{ entry.title }}</text>
+					</view>
+					<text class="travelogue-secondary-entry-copy">{{ entry.copy }}</text>
+					<text class="travelogue-secondary-entry-meta">{{ entry.meta }}</text>
+				</view>
+			</view>
+		</view>
+
+		<template v-if="!isTravelogueEditMode">
 		<view class="stats-grid">
 			<view class="stat-card xicheng-paper-card">
 				<text class="stat-value">{{ materialCount }}</text>
@@ -458,6 +482,7 @@
 			<text class="section-desc">优化建议：{{ opsReport.optimizationSuggestionText }}</text>
 			<text class="section-desc">试运营日报覆盖识别、路线、分享、审核来源和安全状态，可直接用于现场复盘。</text>
 		</view>
+		</template>
 	</view>
 </template>
 
@@ -844,6 +869,42 @@ export default {
 		travelogueCompanionLine() {
 			return '这些片段可以生成你的游记'
 		},
+		travelogueSecondaryEntries() {
+			return [
+				{
+					key: 'footprint',
+					title: '记录与足迹',
+					copy: '路线记录、素材盒、现场备注',
+					meta: `${this.materialCount} 素材 · ${this.routePointCount} 轨迹点`,
+					icon: 'paperplane-filled',
+					url: '/pages/xicheng/footprint/footprint'
+				},
+				{
+					key: 'passport',
+					title: '路线护照与研学',
+					copy: '打卡徽章、亲子研学任务',
+					meta: `${this.passportProgress}% 护照 · ${this.completedTaskCount}/${this.parentChildTasks.length} 任务`,
+					icon: 'flag-filled',
+					url: '/pages/xicheng/passport/passport'
+				},
+				{
+					key: 'share',
+					title: '分享与审核',
+					copy: '分享海报、PDF纪念册、作品审核',
+					meta: `${this.shareArtifacts.length} 产物 · ${this.reviewText}`,
+					icon: 'paperclip',
+					url: '/pages/xicheng/share/share'
+				},
+				{
+					key: 'ops',
+					title: '运营与隐私',
+					copy: '城市运营报告、隐私与反馈',
+					meta: `${this.opsReport.recognitionCount} 识别 · ${this.opsReport.reviewBlockerCount} 待复核`,
+					icon: 'settings-filled',
+					url: '/pages/xicheng/ops-report/ops-report'
+				}
+			]
+		},
 		materialCount() {
 			return this.materials.length
 		},
@@ -1199,6 +1260,10 @@ export default {
 				title: '已在下方提供分享与审核操作',
 				icon: 'none'
 			})
+		},
+		openTravelogueSecondaryEntry(entry = {}) {
+			if (!entry.url) return
+			uni.navigateTo({ url: entry.url })
 		},
 		async loadJourney(options = {}) {
 			this.travelogueMode = normalizeTravelogueMode(options.mode)

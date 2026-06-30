@@ -40,6 +40,67 @@
 	text-align: center;
 }
 
+.travelogue-secondary-directory {
+	margin-top: 24rpx;
+	padding: 26rpx;
+}
+
+.travelogue-secondary-entry-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16rpx;
+	margin-top: 20rpx;
+}
+
+.travelogue-secondary-entry {
+	min-height: 164rpx;
+	padding: 20rpx;
+	border: 1rpx solid rgba(181, 148, 94, 0.12);
+	border-radius: 24rpx;
+	background: rgba(255, 252, 246, 0.78);
+	box-sizing: border-box;
+	box-shadow: 0 8rpx 20rpx rgba(28, 35, 32, 0.05);
+}
+
+.travelogue-secondary-entry-head {
+	display: flex;
+	align-items: center;
+	gap: 10rpx;
+	min-width: 0;
+}
+
+.travelogue-secondary-entry-title,
+.travelogue-secondary-entry-copy,
+.travelogue-secondary-entry-meta {
+	display: block;
+}
+
+.travelogue-secondary-entry-title {
+	min-width: 0;
+	font-size: 27rpx;
+	line-height: 1.35;
+	font-weight: 800;
+	color: #173F35;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.travelogue-secondary-entry-copy {
+	margin-top: 12rpx;
+	color: #746F68;
+	font-size: 23rpx;
+	line-height: 1.45;
+}
+
+.travelogue-secondary-entry-meta {
+	margin-top: 12rpx;
+	color: #1F6E5A;
+	font-size: 22rpx;
+	line-height: 1.35;
+	font-weight: 700;
+}
+
 .hero,
 .section-card,
 .stat-card {

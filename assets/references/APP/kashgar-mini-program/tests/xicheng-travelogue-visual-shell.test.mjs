@@ -34,6 +34,13 @@ for (const required of [
   '<view v-if="!isTravelogueEditMode" :class="[\'hero\'',
   'v-if="isTravelogueEditMode"',
   'travelogue-editor-reference-stack',
+  'travelogue-secondary-directory',
+  'travelogueSecondaryEntries',
+  'openTravelogueSecondaryEntry',
+  '记录与足迹',
+  '路线护照与研学',
+  '分享与审核',
+  '运营与隐私',
   '编辑游记',
   '小京已生成草稿，可继续修改',
   '发布前提交审核'
@@ -57,6 +64,24 @@ assert.match(
   travelogue,
   /goBack\(\)[\s\S]*uni\.navigateBack[\s\S]*uni\.reLaunch\(\{\s*url:\s*'\/pages\/xicheng\/home\/home'/,
   'Travelogue edit topbar should return to the previous page or the xicheng home fallback'
+)
+
+assert.match(
+  travelogue,
+  /<view v-if="isTravelogueEditMode" class="travelogue-secondary-directory[\s\S]*v-for="entry in travelogueSecondaryEntries"[\s\S]*@click="openTravelogueSecondaryEntry\(entry\)"/,
+  'Travelogue edit mode should collapse secondary workflows into a compact directory instead of rendering one long page'
+)
+
+assert.match(
+  travelogue,
+  /<template v-if="!isTravelogueEditMode">[\s\S]*class="stats-grid"[\s\S]*记录会话[\s\S]*旅行素材盒[\s\S]*亲子研学任务[\s\S]*城市运营报告[\s\S]*<\/template>/,
+  'Long travelogue operations should stay outside edit mode and move behind secondary entries'
+)
+
+assert.match(
+  travelogueCss,
+  /\.travelogue-secondary-directory\s*\{[\s\S]*margin-top:\s*24rpx[\s\S]*\.travelogue-secondary-entry-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/,
+  'Travelogue secondary directory should render as a compact two-column mobile grid'
 )
 
 assert.match(
