@@ -6,6 +6,7 @@ const root = process.cwd()
 const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
 
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const travelogueCss = read('pages', 'xicheng', 'travelogue', 'travelogue.css')
 const workEvidenceBlock = travelogue.match(/export const hasXichengReviewableWorkEvidence\s*=\s*\(\{[\s\S]*?\n\}/)?.[0] || ''
 
 for (const required of [
@@ -64,6 +65,25 @@ assert.match(
   travelogue,
   /showWorkEvidenceRequiredToast\(actionLabel = '生成作品'\)\s*\{[\s\S]*uni\.showToast\(\{[\s\S]*title:\s*`请先补充真实素材再\$\{actionLabel\}`[\s\S]*icon:\s*'none'/,
   'Blocked work publishing actions should show a no-evidence explanation instead of creating artifacts'
+)
+
+const needsEvidenceBindings = travelogue.match(/'work-action-needs-evidence': !hasReviewableJourneyEvidence\(\)/g) || []
+assert.equal(
+  needsEvidenceBindings.length,
+  3,
+  'Poster, PDF, and review actions should visibly indicate that real journey evidence is required before they can produce reviewable work'
+)
+
+assert.match(
+  travelogueCss,
+  /\.work-action-needs-evidence\s*\{[\s\S]*opacity:\s*0\.58[\s\S]*border-style:\s*dashed/,
+  'No-evidence work actions should have a visible muted state while preserving tap-to-explain behavior'
+)
+
+assert.doesNotMatch(
+  travelogueCss.match(/\.work-action-needs-evidence\s*\{[\s\S]*?\n\}/)?.[0] || '',
+  /pointer-events:\s*none/,
+  'No-evidence action styling should not suppress clicks because the existing click handler shows the required-evidence explanation'
 )
 
 assert.match(

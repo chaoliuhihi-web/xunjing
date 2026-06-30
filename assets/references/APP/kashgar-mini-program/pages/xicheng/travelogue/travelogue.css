@@ -629,6 +629,12 @@
 	color: #1F6E5A;
 }
 
+.work-action-needs-evidence {
+	opacity: 0.58;
+	border-style: dashed;
+	border-color: rgba(31, 110, 90, 0.38);
+}
+
 .danger-button {
 	background: #FEE4E2 !important;
 	color: #B42318 !important;

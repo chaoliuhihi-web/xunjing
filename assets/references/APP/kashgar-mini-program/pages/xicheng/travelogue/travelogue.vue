@@ -326,9 +326,9 @@
 		/>
 
 		<view class="action-grid xicheng-travelogue-actions">
-			<button class="ghost-button xicheng-secondary-action" @click="generatePoster">分享海报</button>
-			<button class="ghost-button xicheng-secondary-action" @click="exportMemorialPdf">PDF纪念册</button>
-			<button class="ghost-button xicheng-secondary-action" @click="submitReview">作品审核</button>
+			<button class="ghost-button xicheng-secondary-action" :class="{ 'work-action-needs-evidence': !hasReviewableJourneyEvidence() }" @click="generatePoster">分享海报</button>
+			<button class="ghost-button xicheng-secondary-action" :class="{ 'work-action-needs-evidence': !hasReviewableJourneyEvidence() }" @click="exportMemorialPdf">PDF纪念册</button>
+			<button class="ghost-button xicheng-secondary-action" :class="{ 'work-action-needs-evidence': !hasReviewableJourneyEvidence() }" @click="submitReview">作品审核</button>
 		</view>
 
 		<view class="section-card xicheng-paper-card">
