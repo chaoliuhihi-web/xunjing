@@ -104,6 +104,11 @@
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 
 const safeArray = value => Array.isArray(value) ? value : []
+const safeObject = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {}
+const toSafeCount = value => {
+	const count = Number(value || 0)
+	return Number.isFinite(count) && count > 0 ? Math.round(count) : 0
+}
 
 export default {
 	data() {
@@ -163,8 +168,87 @@ export default {
 		this.reviewSubmissions = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey))
 	},
 	methods: {
+		getShareJourneyDraft() {
+			return safeObject(uni.getStorageSync(XICHENG_REGION_CONFIG.journeyStorageKey))
+		},
+		createShareAuditSummary(journeyDraft = {}) {
+			const reviewReadinessSummary = safeObject(journeyDraft.reviewReadinessSummary)
+			const reviewBlockers = safeArray(journeyDraft.reviewBlockers || reviewReadinessSummary.reviewBlockers).slice(0, 12)
+			const safetyStatusSummary = safeObject(journeyDraft.safetyStatusSummary)
+			return {
+				reviewReadinessSummary,
+				safetyStatusSummary,
+				safetyBlockedCount: toSafeCount(journeyDraft.safetyBlockedCount || safetyStatusSummary.blockedCount),
+				safetyUnavailableCount: toSafeCount(journeyDraft.safetyUnavailableCount || safetyStatusSummary.unavailableCount),
+				sourceReadinessStatus: journeyDraft.sourceReadinessStatus || reviewReadinessSummary.sourceReadinessStatus || 'UNKNOWN',
+				reviewedSourceCount: toSafeCount(journeyDraft.reviewedSourceCount || reviewReadinessSummary.reviewedSourceCount),
+				workSourceCount: toSafeCount(journeyDraft.workSourceCount || reviewReadinessSummary.workSourceCount),
+				reviewBlockers,
+				reviewBlockerCount: reviewBlockers.length
+			}
+		},
+		sanitizePublicMaterialPreview(item = {}) {
+			return {
+				type: item.type || '',
+				regionCode: item.regionCode || XICHENG_REGION_CONFIG.regionCode,
+				packageCode: item.packageCode || XICHENG_REGION_CONFIG.packageCode,
+				poiCode: item.poiCode || '',
+				poiName: item.poiName || '',
+				sourceLabel: item.sourceLabel || '',
+				remarkExcerpt: String(item.remarkExcerpt || '').slice(0, 80),
+				hasPhoto: Boolean(item.hasPhoto),
+				sourceCount: toSafeCount(item.sourceCount),
+				safetyStatus: item.safetyStatus || '',
+				publicLocationLabel: item.publicLocationLabel || '',
+				locationHidden: true,
+				capturedAt: item.capturedAt || ''
+			}
+		},
+		sanitizePublicStudyEvidencePreview(item = {}) {
+			return {
+				taskId: item.taskId || '',
+				taskText: item.taskText || '',
+				evidenceType: item.evidenceType || '',
+				answerExcerpt: String(item.answerExcerpt || '').slice(0, 80),
+				hasPhoto: Boolean(item.hasPhoto),
+				completedAt: item.completedAt || ''
+			}
+		},
+		sanitizePublicRouteCheckinPreview(item = {}) {
+			return {
+				checkinId: item.checkinId || '',
+				checkinType: item.checkinType || '',
+				checkinLabel: item.checkinLabel || '',
+				routeTitle: item.routeTitle || '',
+				poiCode: item.poiCode || '',
+				poiName: item.poiName || '',
+				sourceLabel: item.sourceLabel || '',
+				safetyStatus: item.safetyStatus || '',
+				checkedInAt: item.checkedInAt || ''
+			}
+		},
+		createSharePublicPreview(journeyDraft = {}) {
+			const publicPreview = safeObject(journeyDraft.publicPreview)
+			return {
+				publicMaterials: safeArray(publicPreview.publicMaterials).map(item => this.sanitizePublicMaterialPreview(item)).slice(0, 20),
+				publicStudyTaskEvidence: safeArray(publicPreview.publicStudyTaskEvidence).map(item => this.sanitizePublicStudyEvidencePreview(item)).slice(0, 20),
+				publicRouteCheckins: safeArray(publicPreview.publicRouteCheckins).map(item => this.sanitizePublicRouteCheckinPreview(item)).slice(0, 20),
+				publicCandidateConfirmationSummary: safeObject(publicPreview.publicCandidateConfirmationSummary),
+				publicRecordingSummary: safeObject(publicPreview.publicRecordingSummary),
+				materialCount: toSafeCount(publicPreview.materialCount || journeyDraft.materialCount),
+				checkinCount: toSafeCount(publicPreview.checkinCount || journeyDraft.checkinCount),
+				studyTaskEvidenceCount: toSafeCount(publicPreview.studyTaskEvidenceCount || journeyDraft.studyTaskEvidenceCount),
+				privacy: {
+					shareLocationPrecision: 'poi_area',
+					shareTrackDefault: 'private',
+					exactCoordinatesHidden: true
+				}
+			}
+		},
 		createShareArtifact(assetType) {
 			const createdAt = new Date().toISOString()
+			const journeyDraft = this.getShareJourneyDraft()
+			const auditSummary = this.createShareAuditSummary(journeyDraft)
 			const artifact = {
 				artifactId: `share-${assetType}-${Date.now()}`,
 				assetType,
@@ -172,10 +256,28 @@ export default {
 				templateCode: assetType === 'pdf' ? 'xicheng-memorial-pdf-v1' : assetType === 'study' ? 'xicheng-study-report-v1' : 'xicheng-share-poster-v1',
 				backgroundImage: this.sharePosterBackground,
 				stampImage: this.region.visualAssets.passportStamp,
+				regionCode: XICHENG_REGION_CONFIG.regionCode,
+				packageCode: XICHENG_REGION_CONFIG.packageCode,
+				sceneCode: XICHENG_REGION_CONFIG.sceneCode,
+				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
+				companionName: XICHENG_REGION_CONFIG.companionName,
+				draftExcerpt: String(journeyDraft.draft || '').slice(0, 80),
+				publicPreview: this.createSharePublicPreview(journeyDraft),
+				reviewEvidencePolicy: {
+					rawEvidenceUse: 'local-ops-review-only',
+					publicPreviewUse: 'share-review-preview-only',
+					exactLocationPolicy: 'raw-review-only',
+					photoPathPolicy: 'raw-review-only',
+					auditRequired: true,
+					publishStatus: 'private'
+				},
+				auditRequired: true,
 				reviewStatus: this.region.reviewStatus.pending,
 				publishStatus: 'private',
+				visibilityLabel: '待审核 · 未公开',
 				privacySettings: { ...this.shareSettingState },
-				createdAt
+				createdAt,
+				...auditSummary
 			}
 			this.shareArtifacts = [artifact, ...this.shareArtifacts].slice(0, 8)
 			uni.setStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey, this.shareArtifacts)
@@ -187,7 +289,10 @@ export default {
 		},
 		getReviewableShareArtifacts() {
 			return safeArray(this.shareArtifacts)
-				.filter(artifact => artifact && ['poster', 'pdf', 'study'].includes(artifact.assetType))
+				.filter(artifact => artifact && ['poster', 'pdf', 'study'].includes(artifact.assetType)
+					&& artifact.auditRequired === true
+					&& artifact.publishStatus === 'private'
+					&& artifact.reviewStatus === XICHENG_REGION_CONFIG.reviewStatus.pending)
 		},
 		hasReviewableShareArtifact() {
 			return this.getReviewableShareArtifacts().length > 0
