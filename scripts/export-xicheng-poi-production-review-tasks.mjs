@@ -140,6 +140,27 @@ function resolveSafeOutputFile(rootDir, outputFile, optionName) {
   return resolvedFile
 }
 
+function resolveSafeOutputDir(rootDir, outputDir, optionName) {
+  if (!outputDir) {
+    return undefined
+  }
+  const resolvedRoot = path.resolve(rootDir)
+  const resolvedDir = path.isAbsolute(outputDir)
+    ? path.resolve(outputDir)
+    : path.resolve(resolvedRoot, outputDir)
+  const relativePath = path.relative(resolvedRoot, resolvedDir)
+  const [topLevelDir] = relativePath.split(path.sep)
+  if (
+    !relativePath ||
+    relativePath.startsWith('..') ||
+    path.isAbsolute(relativePath) ||
+    !allowedOutputDirs.has(topLevelDir)
+  ) {
+    throw new Error(`${optionName} must be under qa/, tmp/ or workbench/`)
+  }
+  return resolvedDir
+}
+
 function parseCsv(text, label = 'CSV') {
   const rows = []
   let row = []
@@ -398,17 +419,51 @@ function buildOwnerLaneCsv(ownerLaneBreakdown, taskCsvFile, productionReviewFile
   ].join('\n')}\n`
 }
 
+function safeOwnerLaneFileName(ownerLane) {
+  return `${String(ownerLane || 'manual-review')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'manual-review'}.csv`
+}
+
+async function writeOwnerLaneTaskFiles({
+  ownerLaneDir,
+  ownerLaneBreakdown,
+  taskRows
+}) {
+  if (!ownerLaneDir) {
+    return []
+  }
+  await mkdir(ownerLaneDir, { recursive: true })
+  const taskFiles = []
+  for (const lane of ownerLaneBreakdown) {
+    const laneRows = taskRows.filter((row) => row.ownerLane === lane.ownerLane)
+    const taskFile = path.join(ownerLaneDir, safeOwnerLaneFileName(lane.ownerLane))
+    await writeFile(taskFile, buildCsv(laneRows))
+    taskFiles.push({
+      ownerLane: lane.ownerLane,
+      taskCount: laneRows.length,
+      poiCount: lane.poiCount,
+      taskFile
+    })
+  }
+  return taskFiles
+}
+
 export async function exportXichengPoiProductionReviewTasks({
   rootDir = process.cwd(),
   productionReviewFile,
   outputFile = 'workbench/xicheng-poi-production-review-tasks.csv',
   ownerLaneOutputFile = 'workbench/xicheng-poi-production-review-owner-lanes.csv',
+  ownerLaneDir,
   evidenceFile = 'qa/xicheng-poi-production-review-tasks-evidence.json'
 } = {}) {
   const resolvedRootDir = path.resolve(rootDir)
   const resolvedProductionReviewFile = resolveInputFile(resolvedRootDir, productionReviewFile, '--production-review')
   const resolvedOutputFile = resolveSafeOutputFile(resolvedRootDir, outputFile, '--output')
   const resolvedOwnerLaneOutputFile = resolveSafeOutputFile(resolvedRootDir, ownerLaneOutputFile, '--owner-lane-output')
+  const resolvedOwnerLaneDir = resolveSafeOutputDir(resolvedRootDir, ownerLaneDir, '--owner-lane-dir')
   const resolvedEvidenceFile = resolveSafeOutputFile(resolvedRootDir, evidenceFile, '--evidence-file')
   const rows = parseRows(await readFile(resolvedProductionReviewFile, 'utf8'), 'production review CSV')
   const taskRows = buildTaskRows(rows, resolvedProductionReviewFile)
@@ -418,6 +473,11 @@ export async function exportXichengPoiProductionReviewTasks({
   const ownerLaneBreakdown = summarizeOwnerLaneBreakdown(taskRows)
   const fieldBreakdown = summarizeFieldBreakdown(taskRows)
   const ok = taskRows.length === 0
+  const ownerLaneTaskFiles = await writeOwnerLaneTaskFiles({
+    ownerLaneDir: resolvedOwnerLaneDir,
+    ownerLaneBreakdown,
+    taskRows
+  })
 
   const report = {
     artifactType,
@@ -428,6 +488,8 @@ export async function exportXichengPoiProductionReviewTasks({
       productionReviewFile: resolvedProductionReviewFile,
       outputFile: resolvedOutputFile,
       ownerLaneOutputFile: resolvedOwnerLaneOutputFile,
+      ownerLaneTaskDir: resolvedOwnerLaneDir,
+      ownerLaneTaskFiles,
       evidenceFile: resolvedEvidenceFile,
       productionReviewRows: rows.length,
       readyPoiCount,
@@ -466,6 +528,7 @@ async function runCli() {
     outputFile: readArgValue(args, '--output') || 'workbench/xicheng-poi-production-review-tasks.csv',
     ownerLaneOutputFile: readArgValue(args, '--owner-lane-output') ||
       'workbench/xicheng-poi-production-review-owner-lanes.csv',
+    ownerLaneDir: readArgValue(args, '--owner-lane-dir'),
     evidenceFile: readArgValue(args, '--evidence-file') || 'qa/xicheng-poi-production-review-tasks-evidence.json'
   })
   console.log(JSON.stringify(report, null, 2))

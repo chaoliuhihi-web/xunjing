@@ -121,6 +121,63 @@ describe('xicheng POI production review task export', () => {
     })
   })
 
+  test('can split production review tasks into owner lane CSV files', async () => {
+    const rootDir = await createTempRoot()
+    const productionReviewFile = path.join(rootDir, 'workbench/xicheng-poi-production-review-summary.csv')
+    await mkdir(path.dirname(productionReviewFile), { recursive: true })
+    await writeFile(productionReviewFile, productionReviewCsv([
+      'xicheng-baitasi,REVIEW_REQUIRED,PASSED,,,,REVIEW_REQUIRED,REVIEW_REQUIRED,REVIEW_REQUIRED,DRAFT,,,Attach field evidence.',
+      'xicheng-trigger,APPROVED,NOT_RUN,https://cdn.example.com/xicheng/trigger/photo.jpg,field-team,2026-06-29,APPROVED,APPROVED,APPROVED,PUBLISHED,reviewer,2026-06-29,Run trigger smoke.'
+    ]))
+
+    const result = runProductionReviewTaskExport([
+      '--root', rootDir,
+      '--production-review', 'workbench/xicheng-poi-production-review-summary.csv',
+      '--output', 'workbench/xicheng-poi-production-review-tasks.csv',
+      '--owner-lane-output', 'workbench/xicheng-poi-production-review-owner-lanes.csv',
+      '--owner-lane-dir', 'workbench/xicheng-poi-production-review-owner-lanes',
+      '--evidence-file', 'qa/xicheng-poi-production-review-tasks-evidence.json'
+    ])
+
+    expect(result.status).toBe(0)
+    const report = JSON.parse(result.stdout)
+    expect(report.summary.ownerLaneTaskDir).toBe(
+      path.join(rootDir, 'workbench/xicheng-poi-production-review-owner-lanes')
+    )
+    expect(report.summary.ownerLaneTaskFiles).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        ownerLane: 'field-review',
+        taskCount: 4,
+        poiCount: 1,
+        taskFile: path.join(rootDir, 'workbench/xicheng-poi-production-review-owner-lanes/field-review.csv')
+      }),
+      expect.objectContaining({
+        ownerLane: 'trigger-smoke',
+        taskCount: 1,
+        poiCount: 1,
+        taskFile: path.join(rootDir, 'workbench/xicheng-poi-production-review-owner-lanes/trigger-smoke.csv')
+      })
+    ]))
+
+    const fieldReviewCsv = await readFile(
+      path.join(rootDir, 'workbench/xicheng-poi-production-review-owner-lanes/field-review.csv'),
+      'utf8'
+    )
+    expect(fieldReviewCsv).toContain('poiCode,fieldName,ownerLane,currentValue,expectedValue,taskDetail,requiredEvidence,taskStatus,productionReviewFile')
+    expect(fieldReviewCsv).toContain('xicheng-baitasi,photoEvidenceStatus,field-review,REVIEW_REQUIRED,APPROVED')
+    expect(fieldReviewCsv).not.toContain('xicheng-trigger,triggerSmokeStatus')
+
+    const triggerSmokeCsv = await readFile(
+      path.join(rootDir, 'workbench/xicheng-poi-production-review-owner-lanes/trigger-smoke.csv'),
+      'utf8'
+    )
+    expect(triggerSmokeCsv).toContain('xicheng-trigger,triggerSmokeStatus,trigger-smoke,NOT_RUN,PASSED')
+    expect(triggerSmokeCsv).not.toContain('xicheng-baitasi,photoEvidenceStatus')
+
+    const evidence = JSON.parse(await readFile(path.join(rootDir, 'qa/xicheng-poi-production-review-tasks-evidence.json'), 'utf8'))
+    expect(evidence.summary.ownerLaneTaskFiles).toEqual(report.summary.ownerLaneTaskFiles)
+  })
+
   test('reports ready when production review summary has no missing fields', async () => {
     const rootDir = await createTempRoot()
     const productionReviewFile = path.join(rootDir, 'workbench/xicheng-poi-production-review-summary.csv')
@@ -164,9 +221,11 @@ describe('xicheng POI production review task export', () => {
     expect(deployDoc).toContain('npm run xunjing:xicheng:poi:production-review:tasks:export')
     expect(deployDoc).toContain('workbench/xicheng-poi-production-review-tasks.csv')
     expect(deployDoc).toContain('workbench/xicheng-poi-production-review-owner-lanes.csv')
+    expect(deployDoc).toContain('--owner-lane-dir workbench/xicheng-poi-production-review-owner-lanes')
     expect(deployDoc).toContain('qa/xicheng-poi-production-review-tasks-evidence.json')
     expect(statusDoc).toContain('PRODUCTION_REVIEW_TASKS_REQUIRED')
     expect(statusDoc).toContain('workbench/xicheng-poi-production-review-tasks.csv')
     expect(statusDoc).toContain('workbench/xicheng-poi-production-review-owner-lanes.csv')
+    expect(statusDoc).toContain('workbench/xicheng-poi-production-review-owner-lanes/')
   })
 })
