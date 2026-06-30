@@ -1,7 +1,16 @@
 # 西城 APP 发版核查清单
 
 更新时间：2026-06-30
-最近已同步发版基线：`9864ba95`
+
+最近发版基线以当前分支实时命令为准，不在文档里写死短 SHA：
+
+```bash
+git rev-parse --short HEAD
+git rev-list --left-right --count HEAD...github/feature/xicheng-p0
+git rev-list --left-right --count HEAD...origin/feature/xicheng-p0
+```
+
+两个 ahead/behind 结果必须都是 `0 0` 后再发布。
 
 ## 分支边界
 

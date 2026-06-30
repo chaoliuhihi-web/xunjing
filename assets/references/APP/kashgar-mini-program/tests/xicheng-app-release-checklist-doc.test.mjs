@@ -33,15 +33,23 @@ for (const required of [
   '非本地 HTTPS',
   'APP readiness evidence',
   'qa/xicheng-yudao-server-smoke-evidence.json',
+  'git rev-parse --short HEAD',
+  'git rev-list --left-right --count HEAD...github/feature/xicheng-p0',
+  'git rev-list --left-right --count HEAD...origin/feature/xicheng-p0',
   'node_modules',
   'dist',
   'unpackage',
   'tmp',
-  '真实 token',
-  '9864ba95'
+  '真实 token'
 ]) {
   assert.ok(checklist.includes(required), `Xicheng APP release checklist should mention ${required}`)
 }
+
+assert.doesNotMatch(
+  checklist,
+  /最近已同步发版基线：`[0-9a-f]{7,12}`/,
+  'Xicheng APP release checklist should use live git parity commands instead of a hardcoded short SHA baseline'
+)
 
 assert.doesNotMatch(
   checklist,
