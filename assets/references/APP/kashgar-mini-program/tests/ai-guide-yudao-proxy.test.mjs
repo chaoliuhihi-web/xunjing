@@ -6,6 +6,7 @@ const root = process.cwd()
 const aiGuidePath = path.join(root, 'pages', 'ai-guide', 'ai-guide.vue')
 const aiGuide = fs.readFileSync(aiGuidePath, 'utf8')
 const recordEventSource = aiGuide.match(/const recordXunjingResourceEvent\s*=\s*\(options\) => \{[\s\S]*?\n\}/)?.[0] || ''
+const loadPackageDetailSource = aiGuide.match(/const loadXunjingPackageDetail\s*=\s*async\s*\(context = xichengAiContext\.value\) => \{[\s\S]*?\n\}\n\nconst normalizeXunjingAiResponse/)?.[0] || ''
 const askEventSource = aiGuide.match(/recordXunjingResourceEvent\(\{\s*eventType:\s*'ASK'[\s\S]*?\n\s*\}\)/)?.[0] || ''
 const viewEventSource = aiGuide.match(/recordXunjingResourceEvent\(\{\s*eventType:\s*'VIEW'[\s\S]*?\n\s*\}\)/)?.[0] || ''
 const sendMessageSource = aiGuide.match(/const sendMessage = async \(\) => \{[\s\S]*?\n\}\n\nconst sendInitialQuestion/)?.[0] || ''
@@ -87,6 +88,12 @@ assert.match(
   aiGuide,
   /const loadXunjingPackageDetail\s*=\s*async\s*\(context = xichengAiContext\.value\)[\s\S]*requestXunjingPackageDetail\(context\)[\s\S]*applyXunjingPackageDetail\(detail\)[\s\S]*catch/,
   'AI guide should load active package detail non-blockingly and keep local content on gateway failures'
+)
+
+assert.doesNotMatch(
+  loadPackageDetailSource,
+  /console\.(warn|error)/,
+  'AI guide should not pollute release QA console health when optional package detail hydration fails'
 )
 
 assert.match(

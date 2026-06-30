@@ -1108,9 +1108,7 @@ const loadXunjingPackageDetail = async (context = xichengAiContext.value) => {
 	try {
 		const detail = await requestXunjingPackageDetail(context)
 		applyXunjingPackageDetail(detail)
-	} catch (error) {
-		const fallbackCity = hasXichengAiContext(context) ? '西城' : '喀什'
-		console.warn(`星河寻境资源包接口暂不可用，继续使用本地${fallbackCity}内容:`, error && (error.errMsg || error.message) ? (error.errMsg || error.message) : error)
+	} catch (_) {
 	}
 }
 
