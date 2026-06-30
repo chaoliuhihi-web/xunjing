@@ -1,10 +1,12 @@
 <template>
 	<view class="xicheng-routes xicheng-designed-page xicheng-bottom-safe">
 		<view class="routes-nav">
-			<button class="nav-icon" @click="goBack">‹</button>
+			<button class="nav-icon" @click="goBack">
+				<xicheng-icon name="back" variant="plain" :size="24" />
+			</button>
 			<text class="nav-title">路线推荐</text>
 			<button class="nav-icon nav-icon-map" @click="refreshRecommendation">
-				<view class="map-icon"></view>
+				<xicheng-icon name="layer" variant="plain" :size="23" />
 			</button>
 		</view>
 
@@ -67,7 +69,7 @@
 		</view>
 
 		<view class="rerank-card xicheng-paper-card" @click="refreshRecommendation">
-			<text class="rerank-icon">↻</text>
+			<xicheng-icon class="rerank-icon" name="refresh" variant="plain" :size="23" />
 			<text class="rerank-title">让小京重新推荐</text>
 		</view>
 	</view>

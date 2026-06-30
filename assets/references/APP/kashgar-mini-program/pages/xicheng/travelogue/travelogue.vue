@@ -1006,9 +1006,8 @@ export default {
 			return Array.isArray(this.recordingSession.filteredTrackPoints) ? this.recordingSession.filteredTrackPoints.length : 0
 		},
 		traveloguePreviewImage() {
-			return this.region.visualAssets && this.region.visualAssets.heroLandmark
-				? this.region.visualAssets.heroLandmark
-				: ''
+			const visualAssets = this.region.visualAssets || {}
+			return visualAssets.sharePosterBackground || visualAssets.heroLandmark || ''
 		},
 		hasTraveloguePreviewEvidence() {
 			return hasXichengTravelogueDraftEvidence({ materials: this.materials, routeRecommendation: this.recognizedRoute || this.importedRoute, recordingSession: this.recordingSession, studyTaskEvidence: this.studyTaskEvidence, routeCheckins: this.routeCheckins })
@@ -1582,6 +1581,7 @@ export default {
 				passportProgress: this.passportProgress,
 				routePassportTargetCount: this.routePassportTargetCount,
 				routePassportCheckinCount: this.routePassportCheckinCount,
+				stampImage: XICHENG_REGION_CONFIG.visualAssets.passportStamp,
 				checkinCount: this.checkinCount,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
 				awardedAt,
@@ -2119,6 +2119,13 @@ export default {
 				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
 				companionName: XICHENG_REGION_CONFIG.companionName,
 				routeTitle,
+				backgroundImage: XICHENG_REGION_CONFIG.visualAssets.sharePosterBackground,
+				stampImage: XICHENG_REGION_CONFIG.visualAssets.passportStamp,
+				visualAssets: {
+					backgroundImage: XICHENG_REGION_CONFIG.visualAssets.sharePosterBackground,
+					passportStamp: XICHENG_REGION_CONFIG.visualAssets.passportStamp,
+					heroLandmark: XICHENG_REGION_CONFIG.visualAssets.heroLandmark
+				},
 				publicMaterials,
 				publicStudyTaskEvidence: this.completedStudyTaskEvidence.map(evidence => this.sanitizeStudyTaskEvidenceForPublicShare(evidence)),
 				publicRouteCheckins,
@@ -2173,6 +2180,8 @@ export default {
 					sectionKey: 'share-card',
 					title: '分享海报',
 					routeTitle,
+					backgroundImage: XICHENG_REGION_CONFIG.visualAssets.sharePosterBackground,
+					stampImage: XICHENG_REGION_CONFIG.visualAssets.passportStamp,
 					badgeName: this.badgeName,
 					passportProgress: this.passportProgress,
 					draftExcerpt: String(this.draft || '').slice(0, 80)
@@ -2239,7 +2248,8 @@ export default {
 					title: '封面',
 					routeTitle,
 					createdAt,
-					subtitle: '我的西城 Citywalk 纪念册'
+					subtitle: '我的西城 Citywalk 纪念册',
+					backgroundImage: XICHENG_REGION_CONFIG.visualAssets.sharePosterBackground
 				},
 				{
 					sectionKey: 'route-map',
@@ -2273,7 +2283,8 @@ export default {
 					sectionKey: 'badge-page',
 					title: '徽章页',
 					badgeName: this.badgeName,
-					passportProgress: this.passportProgress
+					passportProgress: this.passportProgress,
+					stampImage: XICHENG_REGION_CONFIG.visualAssets.passportStamp
 				}
 			]
 		},

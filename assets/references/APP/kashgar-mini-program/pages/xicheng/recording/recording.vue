@@ -1,10 +1,16 @@
 <template>
 	<view class="xicheng-recording xicheng-designed-page xicheng-bottom-safe">
 		<view class="record-nav">
-			<button class="nav-icon" @click="goBack">‹</button>
+			<button class="nav-icon" @click="goBack">
+				<xicheng-icon name="back" variant="plain" :size="24" />
+			</button>
 			<text class="nav-title">记录中</text>
 			<button class="nav-icon pause-icon" @click="toggleRecordingStatus">
-				<text>{{ recordingSession.status === 'paused' ? '▶' : 'Ⅱ' }}</text>
+				<xicheng-icon
+					:name="recordingSession.status === 'paused' ? 'resume' : 'record'"
+					variant="primary"
+					:size="20"
+				/>
 			</button>
 		</view>
 
@@ -13,7 +19,7 @@
 			<view class="map-water"></view>
 			<view class="record-route-line"></view>
 			<view class="record-map-card">
-				<view class="route-mini-icon">塔</view>
+				<xicheng-icon class="route-mini-icon" name="route" variant="primary" :size="22" />
 				<text class="record-map-title">{{ recordMapCard.title }}</text>
 				<view class="record-stat-row">
 					<text class="stat-label">已用时</text>
@@ -41,8 +47,12 @@
 				<text class="map-stop-label">{{ stop.poiName }}</text>
 			</view>
 			<view class="map-tools">
-				<button class="map-tool-button">定位</button>
-				<button class="map-tool-button">图层</button>
+				<button class="map-tool-button">
+					<xicheng-icon name="location" variant="plain" :size="19" />
+				</button>
+				<button class="map-tool-button">
+					<xicheng-icon name="layer" variant="plain" :size="19" />
+				</button>
 			</view>
 		</view>
 
@@ -64,7 +74,7 @@
 
 		<view class="study-task-card xicheng-paper-card">
 			<view class="study-task-head">
-				<view class="study-task-icon">亲</view>
+				<xicheng-icon class="study-task-icon" name="study" variant="primary" :size="22" />
 				<text class="study-task-title">亲子研学任务</text>
 				<text class="study-task-progress">{{ studyTaskDoneCount }} / {{ studyTasks.length }}</text>
 			</view>

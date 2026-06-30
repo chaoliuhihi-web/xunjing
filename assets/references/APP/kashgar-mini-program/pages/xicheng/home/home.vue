@@ -221,7 +221,11 @@
 				:class="{ 'xicheng-home-bottom-nav-item-active': item.key === 'explore' }"
 				@click="handleXichengHomeNav(item.key)"
 			>
-				<view class="xicheng-home-bottom-nav-icon" :class="`xicheng-home-bottom-nav-icon-${item.key}`"></view>
+				<xicheng-icon
+					:name="item.icon"
+					:active="item.key === 'explore'"
+					:size="22"
+				/>
 				<text class="xicheng-home-bottom-nav-text">{{ item.title }}</text>
 			</view>
 		</view>
@@ -260,10 +264,10 @@ export default {
 			parentChildTasks: XICHENG_REGION_CONFIG.parentChildTasks,
 			sharePoster: XICHENG_REGION_CONFIG.sharePoster,
 			xichengHomeNavItems: [
-				{ key: 'explore', title: '探索' },
-				{ key: 'routes', title: '地图' },
-				{ key: 'travelogue', title: '收藏' },
-				{ key: 'mine', title: '我的' }
+				{ key: 'explore', title: '探索', icon: 'explore' },
+				{ key: 'routes', title: '地图', icon: 'routes' },
+				{ key: 'travelogue', title: '收藏', icon: 'travelogue' },
+				{ key: 'mine', title: '我的', icon: 'mine' }
 			],
 			xichengP0FlowActions: [
 				{ key: 'guide', title: '小京讲解' },
@@ -1571,86 +1575,6 @@ export default {
 
 .xicheng-home-bottom-nav-item-active {
 	color: #173F35;
-}
-
-.xicheng-home-bottom-nav-icon {
-	position: relative;
-	width: 40rpx;
-	height: 40rpx;
-	box-sizing: border-box;
-}
-
-.xicheng-home-bottom-nav-icon-explore {
-	border-bottom: 14rpx solid #173F35;
-	border-left: 18rpx solid transparent;
-	border-right: 18rpx solid transparent;
-}
-
-.xicheng-home-bottom-nav-icon-explore::after {
-	content: '';
-	position: absolute;
-	left: -8rpx;
-	top: 14rpx;
-	width: 16rpx;
-	height: 16rpx;
-	background: #173F35;
-}
-
-.xicheng-home-bottom-nav-icon-routes {
-	border: 4rpx solid currentColor;
-	border-radius: 10rpx;
-}
-
-.xicheng-home-bottom-nav-icon-routes::before,
-.xicheng-home-bottom-nav-icon-routes::after {
-	content: '';
-	position: absolute;
-	top: 8rpx;
-	width: 8rpx;
-	height: 8rpx;
-	border-radius: 999rpx;
-	background: currentColor;
-}
-
-.xicheng-home-bottom-nav-icon-routes::before {
-	left: 7rpx;
-}
-
-.xicheng-home-bottom-nav-icon-routes::after {
-	right: 7rpx;
-}
-
-.xicheng-home-bottom-nav-icon-travelogue {
-	border: 4rpx solid currentColor;
-	border-radius: 999rpx;
-}
-
-.xicheng-home-bottom-nav-icon-travelogue::before {
-	content: '';
-	position: absolute;
-	left: 10rpx;
-	top: 10rpx;
-	width: 12rpx;
-	height: 12rpx;
-	border-radius: 999rpx;
-	background: currentColor;
-}
-
-.xicheng-home-bottom-nav-icon-mine {
-	border: 4rpx solid currentColor;
-	border-radius: 999rpx 999rpx 46rpx 46rpx;
-}
-
-.xicheng-home-bottom-nav-icon-mine::before {
-	content: '';
-	position: absolute;
-	left: 10rpx;
-	top: -16rpx;
-	width: 14rpx;
-	height: 14rpx;
-	border: 4rpx solid currentColor;
-	border-radius: 999rpx;
-	background: rgba(255, 253, 248, 0.94);
 }
 
 .xicheng-home-bottom-nav-text {

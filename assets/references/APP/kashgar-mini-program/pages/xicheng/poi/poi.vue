@@ -1,15 +1,19 @@
 <template>
 	<view class="xicheng-poi-detail xicheng-designed-page xicheng-bottom-safe">
 		<view class="poi-nav">
-			<button class="nav-icon" @click="goBack">‹</button>
+			<button class="nav-icon" @click="goBack">
+				<xicheng-icon name="back" variant="plain" :size="24" />
+			</button>
 			<text class="nav-title">{{ activePoi.poiName || '地点详情' }}</text>
-			<button class="nav-icon share-icon" @click="addPoiToTravelogue">存</button>
+			<button class="nav-icon share-icon" @click="addPoiToTravelogue">
+				<xicheng-icon name="edit" variant="plain" :size="22" />
+			</button>
 		</view>
 
 		<view class="poi-hero xicheng-paper-card">
 			<image class="poi-hero-image" :src="poiHeroImage" mode="aspectFill" />
 			<view class="identified-pill">
-				<text class="identified-dot">✓</text>
+				<xicheng-icon class="identified-dot" name="check" variant="plain" :size="15" />
 				<text>已识别地点</text>
 			</view>
 			<view class="image-count">1/6</view>
@@ -25,7 +29,7 @@
 			<view class="player-copy">
 				<text class="player-bubble">我用 1 分钟讲给你听</text>
 				<button class="play-button xicheng-primary-action" :disabled="blockedBySafety" @click="askXiaojing(playQuestion)">
-					<text class="play-dot">▶</text>
+					<xicheng-icon class="play-dot" name="play" variant="primary" :size="22" :disabled="blockedBySafety" />
 					<text>播放讲解</text>
 				</button>
 			</view>
@@ -33,20 +37,20 @@
 
 		<view class="poi-action-grid">
 			<button class="poi-action-card xicheng-paper-card" :disabled="blockedBySafety" @click="askXiaojing()">
-				<text class="action-icon">问</text>
+				<xicheng-icon class="action-icon" name="qa" variant="primary" :size="21" :disabled="blockedBySafety" />
 				<view>
 					<text class="action-title">问问小京</text>
 					<text class="action-desc">有问题随时问</text>
 				</view>
-				<text class="action-arrow">›</text>
+				<xicheng-icon class="action-arrow" name="next" variant="plain" :size="18" />
 			</button>
 			<button class="poi-action-card xicheng-paper-card" :disabled="blockedBySafety" @click="addPoiToTravelogue">
-				<text class="action-icon">记</text>
+				<xicheng-icon class="action-icon" name="edit" variant="primary" :size="21" :disabled="blockedBySafety" />
 				<view>
 					<text class="action-title">加入游记</text>
 					<text class="action-desc">记录你的西城故事</text>
 				</view>
-				<text class="action-arrow">›</text>
+				<xicheng-icon class="action-arrow" name="next" variant="plain" :size="18" />
 			</button>
 		</view>
 
@@ -84,7 +88,9 @@
 				<text class="nearby-title">{{ nearbyRecommendation.poiName }}</text>
 				<text class="nearby-desc">{{ nearbyRecommendation.summary }}</text>
 			</view>
-			<button class="nearby-button xicheng-primary-action" @click="openNearbyPoi">›</button>
+			<button class="nearby-button xicheng-primary-action" @click="openNearbyPoi">
+				<xicheng-icon name="next" variant="plain" active :size="22" />
+			</button>
 		</view>
 	</view>
 </template>
@@ -150,6 +156,10 @@ export default {
 			return isXichengUnsafeSafetyStatus(normalizeXichengSafetyStatus(this.routeOptions.safetyStatus))
 		},
 		poiHeroImage() {
+			const poiCards = this.region.visualAssets && this.region.visualAssets.poiCards
+				? this.region.visualAssets.poiCards
+				: {}
+			if (poiCards[this.activePoi.poiCode]) return poiCards[this.activePoi.poiCode]
 			const route = findRouteForPoi(this.activePoi.poiCode)
 			const thumbnails = this.region.visualAssets && this.region.visualAssets.routeThumbnails
 				? this.region.visualAssets.routeThumbnails

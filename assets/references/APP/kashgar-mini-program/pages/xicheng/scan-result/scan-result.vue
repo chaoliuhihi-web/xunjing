@@ -1,9 +1,13 @@
 <template>
 	<view class="scan-result xicheng-designed-page xicheng-bottom-safe">
 		<view class="scan-result-topbar">
-			<view class="scan-result-back" @click="goBack"></view>
+			<view class="scan-result-back" @click="goBack">
+				<xicheng-icon name="back" variant="plain" :size="22" />
+			</view>
 			<text class="scan-result-title">识别结果</text>
-			<view class="scan-result-share"></view>
+			<view class="scan-result-share">
+				<xicheng-icon name="edit" variant="plain" :size="20" />
+			</view>
 		</view>
 
 		<view class="result-card xicheng-paper-card">
@@ -45,7 +49,12 @@
 				</view>
 			</view>
 			<view class="result-source-summary" :class="{ 'result-source-summary-blocked': recognitionActionBlocked }">
-				<view class="result-source-summary-icon"></view>
+				<xicheng-icon
+					class="result-source-summary-icon"
+					:name="recognitionActionBlocked ? 'locked' : 'source'"
+					variant="primary"
+					:size="19"
+				/>
 				<view class="result-source-summary-copywrap">
 					<text class="result-source-summary-label">{{ sourceSummaryLabel }}</text>
 					<text class="result-source-summary-copy">{{ sourceSummaryCopy }}</text>
@@ -937,51 +946,14 @@ export default {
 
 .scan-result-back,
 .scan-result-share {
-	position: relative;
 	width: 64rpx;
 	height: 64rpx;
 	border-radius: 999rpx;
 	background: rgba(255, 253, 248, 0.78);
 	box-shadow: 0 10rpx 24rpx rgba(16, 47, 41, 0.08);
-}
-
-.scan-result-back::before {
-	content: '';
-	position: absolute;
-	left: 26rpx;
-	top: 20rpx;
-	width: 18rpx;
-	height: 18rpx;
-	border-left: 5rpx solid #173F35;
-	border-bottom: 5rpx solid #173F35;
-	transform: rotate(45deg);
-}
-
-.scan-result-share::before,
-.scan-result-share::after {
-	content: '';
-	position: absolute;
-	box-sizing: border-box;
-}
-
-.scan-result-share::before {
-	right: 18rpx;
-	top: 16rpx;
-	width: 30rpx;
-	height: 30rpx;
-	border: 4rpx solid #173F35;
-	border-top: 0;
-	border-radius: 6rpx;
-}
-
-.scan-result-share::after {
-	right: 16rpx;
-	top: 12rpx;
-	width: 18rpx;
-	height: 18rpx;
-	border-top: 4rpx solid #173F35;
-	border-right: 4rpx solid #173F35;
-	transform: rotate(-45deg);
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .result-card,
@@ -1104,37 +1076,7 @@ export default {
 }
 
 .result-source-summary-icon {
-	position: relative;
-	width: 44rpx;
-	height: 44rpx;
 	flex-shrink: 0;
-	border-radius: 999rpx;
-	background: #173F35;
-}
-
-.result-source-summary-icon::before,
-.result-source-summary-icon::after {
-	content: '';
-	position: absolute;
-	background: #FFF9EC;
-}
-
-.result-source-summary-icon::before {
-	left: 13rpx;
-	top: 12rpx;
-	width: 18rpx;
-	height: 4rpx;
-	border-radius: 999rpx;
-	box-shadow: 0 8rpx 0 #FFF9EC, 0 16rpx 0 #FFF9EC;
-}
-
-.result-source-summary-icon::after {
-	right: 8rpx;
-	bottom: 8rpx;
-	width: 10rpx;
-	height: 4rpx;
-	border-radius: 999rpx;
-	transform: rotate(-42deg);
 }
 
 .result-source-summary-copywrap {

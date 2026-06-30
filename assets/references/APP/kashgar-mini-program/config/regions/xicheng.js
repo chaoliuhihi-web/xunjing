@@ -13,11 +13,16 @@ const XICHENG_REGION_BASE_CONFIG = {
 	companionAvatar: '/static/xicheng/xiaojing-companion.png',
 	visualAssets: {
 		heroLandmark: '/static/xicheng/scene-baitasi-waterfront.jpg',
+		poiCards: {
+			'xicheng-baitasi': '/static/xicheng/poi-baitasi-card.jpg'
+		},
 		routeThumbnails: {
 			'baitasi-imperial-shichahai': '/static/xicheng/route-baitasi-culture.jpg',
 			'beihai-shichahai-waterfront': '/static/xicheng/route-shichahai-waterfront.jpg',
 			'dashilar-old-brand-walk': '/static/xicheng/route-hutong-life.jpg'
-		}
+		},
+		passportStamp: '/static/xicheng/route-passport-stamp.png',
+		sharePosterBackground: '/static/xicheng/share-poster-background.jpg'
 	},
 	storageKey: 'xicheng:lastRecognitionResult',
 	materialsStorageKey: 'xicheng:journeyMaterials',
@@ -54,7 +59,9 @@ const XICHENG_REGION_BASE_CONFIG = {
 	sharePoster: {
 		title: '我的西城寻径',
 		subtitle: '把今天走过的文化点生成分享海报',
-		auditStatus: 'pending'
+		auditStatus: 'pending',
+		backgroundImage: '/static/xicheng/share-poster-background.jpg',
+		stampImage: '/static/xicheng/route-passport-stamp.png'
 	}
 }
 

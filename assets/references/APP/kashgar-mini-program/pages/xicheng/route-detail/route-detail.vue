@@ -1,10 +1,12 @@
 <template>
 	<view class="xicheng-route-detail xicheng-designed-page xicheng-bottom-safe">
 		<view class="route-nav">
-			<button class="nav-icon" @click="goBack">‹</button>
+			<button class="nav-icon" @click="goBack">
+				<xicheng-icon name="back" variant="plain" :size="24" />
+			</button>
 			<text class="nav-title">路线详情</text>
 			<button class="nav-icon nav-icon-save" @click="startRoutePassport">
-				<view class="nav-bookmark-icon"></view>
+				<xicheng-icon class="nav-bookmark-icon" name="passport" variant="plain" :size="23" />
 			</button>
 		</view>
 
@@ -78,7 +80,10 @@
 					<text class="stop-desc">{{ stop.summary || stop.theme }}</text>
 					<text class="stop-walk">{{ stop.walkText || stop.durationText }}</text>
 				</view>
-				<button class="listen-button xicheng-primary-action" @click="askStopGuide(stop)">听讲解</button>
+				<button class="listen-button xicheng-primary-action" @click="askStopGuide(stop)">
+					<xicheng-icon name="play" variant="primary" :size="18" />
+					<text>听讲解</text>
+				</button>
 			</view>
 		</view>
 
@@ -331,29 +336,6 @@ export default {
 	align-items: center;
 	justify-content: center;
 	padding: 0;
-}
-
-.nav-bookmark-icon {
-	width: 26rpx;
-	height: 34rpx;
-	border: 4rpx solid currentColor;
-	border-bottom: 0;
-	border-radius: 8rpx 8rpx 0 0;
-	position: relative;
-	box-sizing: border-box;
-}
-
-.nav-bookmark-icon::after {
-	content: '';
-	position: absolute;
-	left: 3rpx;
-	right: 3rpx;
-	bottom: -10rpx;
-	height: 18rpx;
-	background: rgba(255, 252, 246, 0.86);
-	transform: rotate(45deg);
-	border-right: 4rpx solid currentColor;
-	border-bottom: 4rpx solid currentColor;
 }
 
 .nav-title {
@@ -615,11 +597,15 @@ export default {
 }
 
 .listen-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8rpx;
 	grid-column: 3 / 4;
 	justify-self: start;
 	width: 132rpx;
 	height: 66rpx;
-	line-height: 66rpx;
+	line-height: 1.2;
 	border-radius: 999rpx;
 	font-size: 24rpx;
 }
