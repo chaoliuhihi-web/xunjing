@@ -166,6 +166,23 @@ async function writeYudaoServerBuildEvidenceFile(rootDir, serverJar, overrides =
 }
 
 async function writeYudaoServerSmokeEvidenceFile(rootDir, overrides = {}) {
+  const buildEvidencePath = path.join(rootDir, 'qa/xicheng-yudao-server-build-evidence.json')
+  let buildSummary = {}
+  try {
+    const buildEvidence = JSON.parse(await readFile(buildEvidencePath, 'utf8'))
+    buildSummary = {
+      buildEvidenceFile: buildEvidencePath,
+      buildStatus: buildEvidence.status,
+      buildGitAvailable: buildEvidence.summary?.gitAvailable,
+      buildGitBranch: buildEvidence.summary?.gitBranch,
+      buildGitCommit: buildEvidence.summary?.gitCommit,
+      buildGitDirty: buildEvidence.summary?.gitDirty,
+      buildGitDirtyFileCount: buildEvidence.summary?.gitDirtyFileCount,
+      buildJarFile: buildEvidence.summary?.jarFile,
+      buildJarSha256: buildEvidence.summary?.jarSha256,
+      buildJarSizeBytes: buildEvidence.summary?.jarSizeBytes
+    }
+  } catch {}
   return writeJson(rootDir, 'qa/xicheng-yudao-server-smoke-evidence.json', mergeEvidence({
     artifactType: 'xicheng-yudao-server-smoke',
     ok: true,
@@ -184,7 +201,8 @@ async function writeYudaoServerSmokeEvidenceFile(rootDir, overrides = {}) {
       publicReportPackageCount: 1,
       publicReportReviewedKnowledgeCount: 84,
       publicReportMapPointCount: 80,
-      latencyMs: 50
+      latencyMs: 50,
+      ...buildSummary
     },
     checks: [
       { name: 'https-backend-domain', ok: true, blockers: [] },
@@ -315,6 +333,10 @@ async function writeReleaseEvidenceFile(rootDir, overrides = {}) {
       yudaoServerSmokePublicReportPackageCount: 1,
       yudaoServerSmokePublicReportReviewedKnowledgeCount: 84,
       yudaoServerSmokePublicReportMapPointCount: 80,
+      yudaoServerSmokeBuildEvidenceFile: path.join(rootDir, 'qa/xicheng-yudao-server-build-evidence.json'),
+      yudaoServerSmokeBuildGitCommit: 'a'.repeat(40),
+      yudaoServerSmokeBuildGitDirty: false,
+      yudaoServerSmokeBuildJarSha256: serverJar.jarSha256,
       manifestEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-manifest-evidence.json'),
       workbookEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json'),
       seedEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-production-seed-evidence.json'),
@@ -1045,6 +1067,31 @@ describe('xicheng release evidence package gate', () => {
     expect(evidence.status).toBe('XICHENG_RELEASE_EVIDENCE_PACKAGE_READY')
   })
 
+  test('normalizes relative Yudao server smoke build evidence paths against the release root', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
+      summary: {
+        yudaoServerSmokeBuildEvidenceFile: 'qa/xicheng-yudao-server-build-evidence.json'
+      }
+    })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(0)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('XICHENG_RELEASE_EVIDENCE_PACKAGE_READY')
+  })
+
   test('fails closed when workbook readiness evidence is missing before packaging', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeReleaseEvidenceFile(rootDir)
@@ -1719,6 +1766,35 @@ describe('xicheng release evidence package gate', () => {
     const report = JSON.parse(result.stdout)
     expect(report.status).toBe('NOT_READY')
     expect(report.blockers.join('\n')).toContain('Yudao server smoke evidence baseUrl must match release evidence summary')
+  })
+
+  test('fails closed when Yudao server smoke evidence is from a different build commit', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
+      yudaoServerSmokeEvidence: {
+        summary: {
+          buildGitCommit: '0'.repeat(40),
+          buildJarSha256: 'b'.repeat(64)
+        }
+      }
+    })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-seed-evidence', seedPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('NOT_READY')
+    expect(report.blockers.join('\n')).toContain('Yudao server smoke evidence buildGitCommit must match release evidence yudaoServerBuildGitCommit')
   })
 
   test('fails closed when runtime seed evidence file is missing from final package inputs', async () => {
@@ -2780,6 +2856,8 @@ describe('xicheng release evidence package gate', () => {
     expect(deployDoc).toContain('release-source-revision')
     expect(deployDoc).toContain('summary.gitCommit')
     expect(deployDoc).toContain('summary.yudaoServerBuildGitCommit')
+    expect(deployDoc).toContain('summary.yudaoServerSmokeBuildGitCommit')
+    expect(deployDoc).toContain('summary.yudaoServerSmokeBuildJarSha256')
     expect(deployDoc).toContain('package-source-revision')
     expect(deployDoc).toContain('summary.packageGitCommit')
     expect(deployDoc).toContain('APP API 域名一致性')

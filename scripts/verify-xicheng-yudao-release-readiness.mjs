@@ -1188,6 +1188,7 @@ async function checkYudaoServerSmokeEvidence({
   rootDir,
   env,
   yudaoServerSmokeEvidencePath,
+  yudaoServerBuildSummary,
   freshnessOptions
 }) {
   const blockers = []
@@ -1244,6 +1245,34 @@ async function checkYudaoServerSmokeEvidence({
     if (Number(summary.publicReportMapPointCount || 0) < productionPoiTarget) {
       blockers.push(`Yudao server smoke evidence publicReportMapPointCount must be at least ${productionPoiTarget}`)
     }
+    if (hasValue(yudaoServerBuildSummary?.yudaoServerBuildEvidenceFile)) {
+      const expectedBuildEvidenceFile = normalizeEvidencePath(rootDir, yudaoServerBuildSummary.yudaoServerBuildEvidenceFile)
+      const actualBuildEvidenceFile = hasValue(summary.buildEvidenceFile)
+        ? normalizeEvidencePath(rootDir, summary.buildEvidenceFile)
+        : ''
+      if (!actualBuildEvidenceFile) {
+        blockers.push('Yudao server smoke evidence buildEvidenceFile is required')
+      } else if (actualBuildEvidenceFile !== expectedBuildEvidenceFile) {
+        blockers.push('Yudao server smoke evidence buildEvidenceFile must match Yudao server build evidence file')
+      }
+    }
+    if (hasValue(yudaoServerBuildSummary?.yudaoServerBuildGitCommit)) {
+      if (!hasValue(summary.buildGitCommit)) {
+        blockers.push('Yudao server smoke evidence buildGitCommit is required')
+      } else if (summary.buildGitCommit !== yudaoServerBuildSummary.yudaoServerBuildGitCommit) {
+        blockers.push('Yudao server smoke evidence buildGitCommit must match Yudao server build evidence gitCommit')
+      }
+      if (summary.buildGitDirty !== false) {
+        blockers.push('Yudao server smoke evidence buildGitDirty must be false')
+      }
+    }
+    if (hasValue(yudaoServerBuildSummary?.yudaoServerBuildJarSha256)) {
+      if (!hasValue(summary.buildJarSha256)) {
+        blockers.push('Yudao server smoke evidence buildJarSha256 is required')
+      } else if (summary.buildJarSha256 !== yudaoServerBuildSummary.yudaoServerBuildJarSha256) {
+        blockers.push('Yudao server smoke evidence buildJarSha256 must match Yudao server build evidence jarSha256')
+      }
+    }
     blockers.push(...checkEvidenceChecks(evidence, requiredYudaoServerSmokeEvidenceChecks, 'Yudao server smoke'))
     if (!hasNoEvidenceBlockers(evidence)) {
       blockers.push(`Yudao server smoke evidence contains blockers: ${evidence.blockers.join('; ')}`)
@@ -1273,7 +1302,11 @@ async function checkYudaoServerSmokeEvidence({
       yudaoServerSmokePublicReportHttpStatus: summary.publicReportHttpStatus,
       yudaoServerSmokePublicReportPackageCount: summary.publicReportPackageCount,
       yudaoServerSmokePublicReportReviewedKnowledgeCount: summary.publicReportReviewedKnowledgeCount,
-      yudaoServerSmokePublicReportMapPointCount: summary.publicReportMapPointCount
+      yudaoServerSmokePublicReportMapPointCount: summary.publicReportMapPointCount,
+      yudaoServerSmokeBuildEvidenceFile: summary.buildEvidenceFile,
+      yudaoServerSmokeBuildGitCommit: summary.buildGitCommit,
+      yudaoServerSmokeBuildGitDirty: summary.buildGitDirty,
+      yudaoServerSmokeBuildJarSha256: summary.buildJarSha256
     }
   }
 }
@@ -2331,8 +2364,15 @@ export async function verifyXichengYudaoReleaseReadiness({
     rootDir,
     yudaoServerJarPath || env.YUDAO_SERVER_JAR
   )
-
   const sourceRevisionCheck = checkReleaseSourceRevision(rootDir, expectedGitBranch)
+  const yudaoServerBuildEvidenceCheck = await checkYudaoServerBuildEvidence({
+    rootDir,
+    yudaoServerBuildEvidencePath: yudaoServerBuildEvidencePath || env.YUDAO_SERVER_BUILD_EVIDENCE,
+    yudaoServerArtifactSummary: yudaoServerArtifactCheck.summary,
+    sourceRevisionSummary: sourceRevisionCheck.summary,
+    freshnessOptions
+  })
+
   const checks = [
     sourceRevisionCheck,
     checkRuntimeEnv(env, normalizedStage),
@@ -2372,17 +2412,12 @@ export async function verifyXichengYudaoReleaseReadiness({
     }),
     await checkFullYudaoBaseline(rootDir, yudaoBaselineSqlPath || env.YUDAO_BASELINE_SQL),
     yudaoServerArtifactCheck,
-    await checkYudaoServerBuildEvidence({
-      rootDir,
-      yudaoServerBuildEvidencePath: yudaoServerBuildEvidencePath || env.YUDAO_SERVER_BUILD_EVIDENCE,
-      yudaoServerArtifactSummary: yudaoServerArtifactCheck.summary,
-      sourceRevisionSummary: sourceRevisionCheck.summary,
-      freshnessOptions
-    }),
+    yudaoServerBuildEvidenceCheck,
     await checkYudaoServerSmokeEvidence({
       rootDir,
       env,
       yudaoServerSmokeEvidencePath: yudaoServerSmokeEvidencePath || env.YUDAO_SERVER_SMOKE_EVIDENCE,
+      yudaoServerBuildSummary: yudaoServerBuildEvidenceCheck.summary,
       freshnessOptions
     }),
     productionPoiEvidenceCheck,

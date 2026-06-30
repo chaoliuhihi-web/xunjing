@@ -141,6 +141,63 @@ describe('Xicheng Yudao server HTTP smoke verifier', () => {
     expect(JSON.stringify(evidence)).not.toContain('prod-internal-auth-token')
   })
 
+  test('binds smoke evidence to the controlled Yudao server build evidence', () => {
+    const evidence = buildYudaoServerSmokeEvidence({
+      env,
+      providerSmoke: {
+        checkedAt: '2026-06-29T08:00:00.000Z',
+        baseUrl: 'https://xunjing-api.xingheai.net',
+        providerSmokeHost: 'xunjing-api.xingheai.net',
+        tenantId: '1001',
+        packageCode: 'XICHENG-MAP-001',
+        packageHttpStatus: 200,
+        packageStatus: 'PUBLISHED',
+        packageRegionCode: 'beijing-xicheng',
+        publicReportHttpStatus: 200,
+        publicReportPackageCount: 1,
+        publicReportReviewedKnowledgeCount: 84,
+        publicReportMapPointCount: 80,
+        latencyMs: 50
+      },
+      buildEvidenceRef: {
+        path: '/repo/qa/xicheng-yudao-server-build-evidence.json',
+        data: {
+          artifactType: 'xicheng-yudao-server-build',
+          ok: true,
+          status: 'YUDAO_SERVER_JAR_BUILT',
+          summary: {
+            gitAvailable: true,
+            gitBranch: 'feature/xicheng-p0',
+            gitCommit: 'a'.repeat(40),
+            gitDirty: false,
+            gitDirtyFileCount: 0,
+            jarFile: '/repo/backend/yudao/yudao-server/target/yudao-server.jar',
+            jarSha256: 'b'.repeat(64),
+            jarSizeBytes: 123456
+          },
+          checks: [
+            { name: 'maven-package', ok: true },
+            { name: 'yudao-server-jar', ok: true }
+          ],
+          blockers: []
+        }
+      },
+      checkedAt: '2026-06-29T08:00:00.000Z'
+    })
+
+    expect(evidence.summary).toMatchObject({
+      buildEvidenceFile: '/repo/qa/xicheng-yudao-server-build-evidence.json',
+      buildStatus: 'YUDAO_SERVER_JAR_BUILT',
+      buildGitCommit: 'a'.repeat(40),
+      buildGitBranch: 'feature/xicheng-p0',
+      buildGitDirty: false,
+      buildJarFile: '/repo/backend/yudao/yudao-server/target/yudao-server.jar',
+      buildJarSha256: 'b'.repeat(64),
+      buildJarSizeBytes: 123456
+    })
+    expect(evidence.checks.map((check) => check.name)).toContain('yudao-server-build-evidence')
+  })
+
   test('rejects local or placeholder backend domains and incomplete smoke results', () => {
     expect(() => validateYudaoServerSmokeEnv({
       ...env,
@@ -206,6 +263,14 @@ describe('Xicheng Yudao server HTTP smoke verifier', () => {
       'node scripts/verify-xicheng-yudao-server-smoke.mjs'
     )
     expect(deployDoc).toContain('npm run xunjing:yudao:server:smoke')
+    expect(deployDoc).toContain('--yudao-server-build-evidence qa/xicheng-yudao-server-build-evidence.json')
+    expect(deployDoc).toContain('summary.buildGitCommit')
+    expect(deployDoc).toContain('summary.buildJarSha256')
+    expect(deployDoc).toContain('summary.buildEvidenceFile')
     expect(statusDoc).toContain('npm run xunjing:yudao:server:smoke')
+    expect(statusDoc).toContain('--yudao-server-build-evidence qa/xicheng-yudao-server-build-evidence.json')
+    expect(statusDoc).toContain('summary.buildGitCommit')
+    expect(statusDoc).toContain('summary.buildJarSha256')
+    expect(statusDoc).toContain('summary.buildEvidenceFile')
   })
 })
