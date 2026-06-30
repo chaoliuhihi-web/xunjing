@@ -587,7 +587,6 @@ export const createXichengTravelogueDraft = ({
 	const routeText = routeRecommendation && routeRecommendation.title
 		? routeRecommendation.title
 		: poiNames.length > 0 ? poiNames.join('、') : routeCheckinNames.length > 0 ? routeCheckinNames.join('、') : '本次西城 Citywalk'
-	const taskText = parentChildTasks.length > 0 ? parentChildTasks.slice(0, 2).join('；') : '完成现场观察'
 	const photoCount = reviewableMaterials.filter(material => material && material.type === 'photo').length
 	const remarkTexts = reviewableMaterials
 		.map(material => material && material.remarkText ? material.remarkText : '')
@@ -597,19 +596,24 @@ export const createXichengTravelogueDraft = ({
 		.filter(material => material && material.type === 'ai-guide' && material.aiAnswerExcerpt)
 		.map(material => material.aiAnswerExcerpt)
 		.slice(0, 2)
-	const trackText = routePointCount > 0 ? `本次主动记录了 ${routePointCount} 个前台位置点，` : ''
-	const stayText = stayPointCount > 0 ? `本次标记了 ${stayPointCount} 个停留点，` : ''
+	const trackText = routePointCount > 0 ? `本次主动记录了 ${routePointCount} 个前台位置点。` : ''
+	const stayText = stayPointCount > 0 ? `本次标记了 ${stayPointCount} 个停留点。` : ''
 	const routeCheckinText = routeCheckinNames.length > 0 ? `路线护照打卡包括：${routeCheckinNames.join('、')}。` : ''
-	const photoText = photoCount > 0 ? `现场补充了 ${photoCount} 张照片，` : ''
+	const photoText = photoCount > 0 ? `现场补充了 ${photoCount} 张照片。` : ''
 	const remarkText = remarkTexts.length > 0 ? `用户备注提到：${remarkTexts.join('；')}。` : ''
 	const aiGuideText = aiGuideExcerpts.length > 0 ? `小京回答提到：${aiGuideExcerpts.join('；')}。` : ''
 	const completedStudyEvidence = Array.isArray(studyTaskEvidence)
 		? studyTaskEvidence.filter(evidence => hasReviewableStudyTaskEvidence(evidence)).slice(0, 2)
 		: []
+	const plannedStudyTasks = Array.isArray(parentChildTasks) ? parentChildTasks.slice(0, 2).filter(Boolean) : []
 	const studyEvidenceText = completedStudyEvidence.length > 0
 		? `研学任务证据包括：${completedStudyEvidence.map(evidence => evidence.answerText || evidence.taskText || '照片观察').join('；')}。`
 		: ''
-	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒，${trackText}${stayText}${photoText}我们沿途完成了${taskText}。${routeCheckinText}${remarkText}${studyEvidenceText}${aiGuideText}这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
+	const plannedStudyTaskText = !studyEvidenceText && plannedStudyTasks.length > 0
+		? `亲子研学任务可继续围绕：${plannedStudyTasks.join('；')}，补充孩子观察或照片证据。`
+		: ''
+	const studyTaskText = studyEvidenceText || plannedStudyTaskText
+	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒。${trackText}${stayText}${photoText}${routeCheckinText}${remarkText}${studyTaskText}${aiGuideText}这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
 }
 
 const createEmptyRecordingSession = () => ({
