@@ -50,15 +50,15 @@
 				<text class="quick-title">拍照识别</text>
 				<text class="quick-desc">识别门头、文物和说明牌</text>
 			</view>
-			<view class="quick-card xicheng-paper-card" @click="startGpsRecognition">
+			<view class="quick-card xicheng-paper-card quick-card-gps" @click="startGpsRecognition">
 				<text class="quick-title">GPS定位</text>
 				<text class="quick-desc">用当前位置识别附近文化点</text>
 			</view>
-			<view class="quick-card xicheng-paper-card" @click="startOcrRecognition">
+			<view class="quick-card xicheng-paper-card quick-card-ocr" @click="startOcrRecognition">
 				<text class="quick-title">OCR识别</text>
 				<text class="quick-desc">从图片文字提取地点线索</text>
 			</view>
-			<view class="quick-card xicheng-paper-card" @click="startTextRecognition">
+			<view class="quick-card xicheng-paper-card quick-card-text" @click="startTextRecognition">
 				<text class="quick-title">文本识别</text>
 				<text class="quick-desc">粘贴地点、展牌或攻略文字</text>
 			</view>
@@ -76,40 +76,6 @@
 				auto-height
 			/>
 			<button class="primary-button xicheng-primary-action" :disabled="recognizing" @click="startTextRecognition">文本识别</button>
-		</view>
-
-		<view class="inspiration-panel xicheng-paper-card" @click="openXichengInspiration">
-			<view>
-				<text class="inspiration-title">一键抄作业</text>
-				<text class="inspiration-desc">一键导入灵感：粘贴攻略文字或地点清单，AI 提取地点并匹配官方 POI。</text>
-			</view>
-			<text class="inspiration-action">生成路线</text>
-		</view>
-
-		<view v-if="recentRecognition" class="recent-panel xicheng-paper-card">
-			<view class="recent-copy">
-				<text class="recent-kicker">最近识别</text>
-				<text class="recent-title">{{ recentRecognition.poiName || '西城文化点' }}</text>
-				<text class="recent-desc">
-					{{ recentRecognition.sourceLabel || '识别结果' }} · 置信度 {{ recentRecognitionConfidence }}%
-				</text>
-				<text class="recent-status">{{ recentRecognitionStatusCopy }}</text>
-			</view>
-			<view class="recent-actions">
-				<button class="primary-button xicheng-primary-action" :disabled="recentRecognitionActionBlocked" @click="continueRecentRecognitionWithXiaojing">继续问小京</button>
-				<button class="ghost-button xicheng-secondary-action" @click="openRecentRecognition">查看识别结果</button>
-			</view>
-		</view>
-
-		<view class="flow-strip">
-			<button
-				v-for="item in xichengP0FlowActions"
-				:key="item.key"
-				class="flow-step"
-				@click="handleXichengP0FlowAction(item.key)"
-			>
-				{{ item.title }}
-			</button>
 		</view>
 
 		<view id="xicheng-route-section" class="route-recommendation-section xicheng-paper-card">
@@ -183,6 +149,40 @@
 					</view>
 				</view>
 			</scroll-view>
+		</view>
+
+		<view v-if="recentRecognition" class="recent-panel xicheng-paper-card">
+			<view class="recent-copy">
+				<text class="recent-kicker">最近识别</text>
+				<text class="recent-title">{{ recentRecognition.poiName || '西城文化点' }}</text>
+				<text class="recent-desc">
+					{{ recentRecognition.sourceLabel || '识别结果' }} · 置信度 {{ recentRecognitionConfidence }}%
+				</text>
+				<text class="recent-status">{{ recentRecognitionStatusCopy }}</text>
+			</view>
+			<view class="recent-actions">
+				<button class="primary-button xicheng-primary-action" :disabled="recentRecognitionActionBlocked" @click="continueRecentRecognitionWithXiaojing">继续问小京</button>
+				<button class="ghost-button xicheng-secondary-action" @click="openRecentRecognition">查看识别结果</button>
+			</view>
+		</view>
+
+		<view class="inspiration-panel xicheng-paper-card" @click="openXichengInspiration">
+			<view>
+				<text class="inspiration-title">一键抄作业</text>
+				<text class="inspiration-desc">一键导入灵感：粘贴攻略文字或地点清单，AI 提取地点并匹配官方 POI。</text>
+			</view>
+			<text class="inspiration-action">生成路线</text>
+		</view>
+
+		<view class="flow-strip">
+			<button
+				v-for="item in xichengP0FlowActions"
+				:key="item.key"
+				class="flow-step"
+				@click="handleXichengP0FlowAction(item.key)"
+			>
+				{{ item.title }}
+			</button>
 		</view>
 
 		<view class="journey-panel xicheng-paper-card">
@@ -1130,14 +1130,34 @@ export default {
 	margin-top: 28rpx;
 }
 
-.quick-card,
-.ops-card {
+.quick-card {
 	flex: 0 0 calc((100% - 18rpx) / 2);
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
 	min-height: 136rpx;
 	padding: 22rpx;
 	border-radius: 30rpx;
 	box-sizing: border-box;
 	scroll-snap-align: start;
+}
+
+.ops-card {
+	min-height: 136rpx;
+	padding: 22rpx;
+	border-radius: 30rpx;
+	box-sizing: border-box;
+}
+
+.quick-card::before {
+	content: '';
+	display: block;
+	width: 52rpx;
+	height: 52rpx;
+	margin-bottom: 18rpx;
+	border-radius: 18rpx;
+	background: rgba(23, 63, 53, 0.10);
+	box-shadow: inset 0 0 0 2rpx rgba(23, 63, 53, 0.16);
 }
 
 .quick-card-featured {
@@ -1151,6 +1171,20 @@ export default {
 		linear-gradient(135deg, rgba(23, 63, 53, 0.96), rgba(16, 47, 41, 0.92));
 }
 
+.quick-card-scan::before {
+	background:
+		linear-gradient(#FFF9EC, #FFF9EC) 9rpx 9rpx / 18rpx 4rpx no-repeat,
+		linear-gradient(#FFF9EC, #FFF9EC) 9rpx 9rpx / 4rpx 18rpx no-repeat,
+		linear-gradient(#FFF9EC, #FFF9EC) right 9rpx top 9rpx / 18rpx 4rpx no-repeat,
+		linear-gradient(#FFF9EC, #FFF9EC) right 9rpx top 9rpx / 4rpx 18rpx no-repeat,
+		linear-gradient(#FFF9EC, #FFF9EC) left 9rpx bottom 9rpx / 18rpx 4rpx no-repeat,
+		linear-gradient(#FFF9EC, #FFF9EC) left 9rpx bottom 9rpx / 4rpx 18rpx no-repeat,
+		linear-gradient(#FFF9EC, #FFF9EC) right 9rpx bottom 9rpx / 18rpx 4rpx no-repeat,
+		linear-gradient(#FFF9EC, #FFF9EC) right 9rpx bottom 9rpx / 4rpx 18rpx no-repeat,
+		rgba(255, 249, 236, 0.12);
+	box-shadow: inset 0 0 0 2rpx rgba(255, 249, 236, 0.34);
+}
+
 .quick-card-scan .quick-title,
 .quick-card-scan .quick-desc {
 	color: #FFF9EC;
@@ -1159,6 +1193,50 @@ export default {
 .quick-card-ask {
 	background:
 		linear-gradient(145deg, rgba(255, 253, 248, 0.96), rgba(244, 236, 224, 0.86));
+}
+
+.quick-card-ask::before {
+	border-radius: 999rpx;
+	background:
+		radial-gradient(circle at 35% 44%, #173F35 0 4rpx, transparent 5rpx),
+		radial-gradient(circle at 62% 44%, #173F35 0 4rpx, transparent 5rpx),
+		linear-gradient(135deg, rgba(181, 148, 94, 0.18), rgba(23, 63, 53, 0.10));
+}
+
+.quick-card-photo::before {
+	background:
+		linear-gradient(#173F35, #173F35) center 15rpx / 20rpx 5rpx no-repeat,
+		radial-gradient(circle at 50% 58%, rgba(23, 63, 53, 0.26) 0 9rpx, transparent 10rpx),
+		rgba(23, 63, 53, 0.10);
+}
+
+.quick-card-gps::before {
+	width: 48rpx;
+	height: 48rpx;
+	margin-left: 4rpx;
+	border-radius: 999rpx 999rpx 999rpx 10rpx;
+	background:
+		radial-gradient(circle at 50% 50%, rgba(255, 253, 248, 0.98) 0 7rpx, transparent 8rpx),
+		linear-gradient(135deg, #B5945E, #173F35);
+	transform: rotate(-45deg);
+	box-shadow: 0 8rpx 18rpx rgba(16, 47, 41, 0.12);
+}
+
+.quick-card-ocr::before {
+	background:
+		linear-gradient(#173F35, #173F35) left 10rpx top 12rpx / 18rpx 4rpx no-repeat,
+		linear-gradient(#173F35, #173F35) left 10rpx top 12rpx / 4rpx 18rpx no-repeat,
+		linear-gradient(#173F35, #173F35) right 10rpx bottom 12rpx / 18rpx 4rpx no-repeat,
+		linear-gradient(#173F35, #173F35) right 10rpx bottom 12rpx / 4rpx 18rpx no-repeat,
+		rgba(23, 63, 53, 0.10);
+}
+
+.quick-card-text::before {
+	background:
+		linear-gradient(#173F35, #173F35) 14rpx 15rpx / 24rpx 4rpx no-repeat,
+		linear-gradient(rgba(23, 63, 53, 0.44), rgba(23, 63, 53, 0.44)) 14rpx 26rpx / 24rpx 4rpx no-repeat,
+		linear-gradient(rgba(181, 148, 94, 0.72), rgba(181, 148, 94, 0.72)) 14rpx 37rpx / 18rpx 4rpx no-repeat,
+		rgba(23, 63, 53, 0.10);
 }
 
 .quick-title,

@@ -69,6 +69,9 @@ for (const required of [
   'class="route-card-strip"',
   'quick-card-featured quick-card-scan',
   'quick-card-featured quick-card-ask',
+  'quick-card-gps',
+  'quick-card-ocr',
+  'quick-card-text',
   '小京',
   '我陪你看懂西城'
 ]) {
@@ -85,6 +88,14 @@ assert.match(
   home,
   /quick-card-featured quick-card-scan[\s\S]*扫一扫[\s\S]*quick-card-featured quick-card-ask[\s\S]*问问小京[\s\S]*quick-card-photo[\s\S]*拍照识别/,
   'Xicheng home first-screen action hierarchy should promote scan and Xiaojing before secondary recognition modes'
+)
+
+assert.ok(
+  home.indexOf('id="xicheng-route-section"') > home.indexOf('class="quick-grid"') &&
+    home.indexOf('id="xicheng-route-section"') < home.indexOf('v-if="recentRecognition"') &&
+    home.indexOf('id="xicheng-route-section"') < home.indexOf('class="inspiration-panel') &&
+    home.indexOf('id="xicheng-route-section"') < home.indexOf('class="flow-strip"'),
+  'Xicheng home should surface official route recommendations before recent and growth-operation modules like the visual reference'
 )
 
 assert.match(
@@ -119,8 +130,14 @@ assert.match(
 
 assert.match(
   styleBlock,
-  /\.quick-grid\s*\{[\s\S]*display:\s*flex[\s\S]*overflow-x:\s*auto[\s\S]*scroll-snap-type:\s*x proximity[\s\S]*\.quick-card,\s*\.ops-card\s*\{[\s\S]*flex:\s*0 0 calc\(\(100% - 18rpx\) \/ 2\)/,
-  'Xicheng home recognition entrypoints should show two complete cards and remain horizontally accessible so official routes surface earlier like the design reference'
+  /\.quick-grid\s*\{[\s\S]*display:\s*flex[\s\S]*overflow-x:\s*auto[\s\S]*scroll-snap-type:\s*x proximity[\s\S]*\.quick-card\s*\{[\s\S]*flex:\s*0 0 calc\(\(100% - 18rpx\) \/ 2\)[\s\S]*display:\s*flex[\s\S]*flex-direction:\s*column/,
+  'Xicheng home recognition entrypoints should show two complete primary cards and keep secondary recognition modes horizontally accessible so official routes surface earlier like the design reference'
+)
+
+assert.match(
+  styleBlock,
+  /\.quick-card::before\s*\{[\s\S]*width:\s*52rpx[\s\S]*height:\s*52rpx[\s\S]*\.quick-card-scan::before[\s\S]*\.quick-card-ask::before[\s\S]*\.quick-card-gps::before[\s\S]*\.quick-card-ocr::before[\s\S]*\.quick-card-text::before/,
+  'Xicheng home recognition cards should include compact CSS icons so the first screen is scannable without text-only buttons'
 )
 
 assert.match(
