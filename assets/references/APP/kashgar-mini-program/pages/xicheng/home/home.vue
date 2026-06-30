@@ -1123,17 +1123,11 @@ export default {
 }
 
 .quick-grid {
-	display: flex;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 18rpx;
 	margin-top: 24rpx;
 	padding-bottom: 8rpx;
-	overflow-x: auto;
-	scroll-snap-type: x proximity;
-	-webkit-overflow-scrolling: touch;
-}
-
-.quick-grid::-webkit-scrollbar {
-	display: none;
 }
 
 .ops-section {
@@ -1144,7 +1138,7 @@ export default {
 }
 
 .quick-card {
-	flex: 0 0 calc((100% - 18rpx) / 2);
+	min-width: 0;
 	display: flex;
 	flex-direction: column;
 	justify-content: space-between;
@@ -1152,7 +1146,6 @@ export default {
 	padding: 22rpx;
 	border-radius: 30rpx;
 	box-sizing: border-box;
-	scroll-snap-align: start;
 }
 
 .quick-card-disabled {

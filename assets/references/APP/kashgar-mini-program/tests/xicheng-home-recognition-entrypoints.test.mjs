@@ -9,6 +9,8 @@ const regionConfig = read('config', 'regions', 'xicheng.js')
 const home = read('pages', 'xicheng', 'home', 'home.vue')
 const triggerRequest = read('request', 'xunjing', 'trigger.js')
 const resolveTextBlock = home.match(/resolveTextAndOpenResult\(text = '', source = 'ocr'\)[\s\S]*?\n\t\t\},\n\t\tstartScanRecognition/)?.[0] || ''
+const quickGridStyleBlock = home.match(/\.quick-grid\s*\{[\s\S]*?\n\s*\}/)?.[0] || ''
+const quickCardStyleBlock = home.match(/\.quick-card\s*\{[\s\S]*?\n\s*\}/)?.[0] || ''
 
 for (const required of [
   "{ key: 'gps'",
@@ -39,6 +41,24 @@ assert.match(
   home,
   /v-if="textRecognitionPanelExpanded"[\s\S]*id="xicheng-text-recognition-panel"/,
   'Text recognition input panel should stay collapsed by default so the fixed bottom nav does not cover an editable field'
+)
+
+assert.match(
+  quickGridStyleBlock,
+  /display:\s*grid;[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
+  'Recognition entry cards should render as a stable two-column mobile grid so every P0 entry is directly tappable'
+)
+
+assert.doesNotMatch(
+  quickGridStyleBlock,
+  /overflow-x:\s*auto|scroll-snap-type/,
+  'Recognition entry cards should not rely on hidden horizontal scrolling for P0 actions'
+)
+
+assert.doesNotMatch(
+  quickCardStyleBlock,
+  /flex:\s*0\s+0/,
+  'Recognition entry cards should not reserve horizontal carousel widths that move P0 actions outside the viewport'
 )
 
 assert.match(

@@ -130,8 +130,8 @@ assert.match(
 
 assert.match(
   styleBlock,
-  /\.quick-grid\s*\{[\s\S]*display:\s*flex[\s\S]*overflow-x:\s*auto[\s\S]*scroll-snap-type:\s*x proximity[\s\S]*\.quick-card\s*\{[\s\S]*flex:\s*0 0 calc\(\(100% - 18rpx\) \/ 2\)[\s\S]*display:\s*flex[\s\S]*flex-direction:\s*column/,
-  'Xicheng home recognition entrypoints should show two complete primary cards and keep secondary recognition modes horizontally accessible so official routes surface earlier like the design reference'
+  /\.quick-grid\s*\{[\s\S]*display:\s*grid[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[\s\S]*\.quick-card\s*\{[\s\S]*min-width:\s*0[\s\S]*display:\s*flex[\s\S]*flex-direction:\s*column/,
+  'Xicheng home recognition entrypoints should render as a stable two-column grid so every P0 recognition mode is directly tappable on mobile'
 )
 
 assert.match(
