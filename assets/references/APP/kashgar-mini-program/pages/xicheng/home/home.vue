@@ -38,27 +38,27 @@
 		</view>
 
 		<view class="quick-grid">
-			<view class="quick-card xicheng-paper-card quick-card-featured quick-card-scan" @click="startScanRecognition">
+			<view class="quick-card xicheng-paper-card quick-card-featured quick-card-scan" :class="{ 'quick-card-disabled': recognizing }" @click="startScanRecognition">
 				<text class="quick-title">扫一扫</text>
 				<text class="quick-desc">拍照识别 · 文字识别 · 附近触发</text>
 			</view>
-			<view class="quick-card xicheng-paper-card quick-card-featured quick-card-ask" @click="askXiaojing">
+			<view class="quick-card xicheng-paper-card quick-card-featured quick-card-ask" :class="{ 'quick-card-disabled': recognizing }" @click="askXiaojing">
 				<text class="quick-title">问问小京</text>
 				<text class="quick-desc">继续咨询路线和讲解</text>
 			</view>
-			<view class="quick-card xicheng-paper-card quick-card-photo" @click="startPhotoRecognition">
+			<view class="quick-card xicheng-paper-card quick-card-photo" :class="{ 'quick-card-disabled': recognizing }" @click="startPhotoRecognition">
 				<text class="quick-title">拍照识别</text>
 				<text class="quick-desc">识别门头、文物和说明牌</text>
 			</view>
-			<view class="quick-card xicheng-paper-card quick-card-gps" @click="startGpsRecognition">
+			<view class="quick-card xicheng-paper-card quick-card-gps" :class="{ 'quick-card-disabled': recognizing }" @click="startGpsRecognition">
 				<text class="quick-title">GPS定位</text>
 				<text class="quick-desc">用当前位置识别附近文化点</text>
 			</view>
-			<view class="quick-card xicheng-paper-card quick-card-ocr" @click="startOcrRecognition">
+			<view class="quick-card xicheng-paper-card quick-card-ocr" :class="{ 'quick-card-disabled': recognizing }" @click="startOcrRecognition">
 				<text class="quick-title">OCR识别</text>
 				<text class="quick-desc">从图片文字提取地点线索</text>
 			</view>
-			<view class="quick-card xicheng-paper-card quick-card-text" @click="startTextRecognition">
+			<view class="quick-card xicheng-paper-card quick-card-text" :class="{ 'quick-card-disabled': recognizing }" @click="startTextRecognition">
 				<text class="quick-title">文本识别</text>
 				<text class="quick-desc">粘贴地点、展牌或攻略文字</text>
 			</view>
@@ -459,6 +459,7 @@ export default {
 			})
 		},
 		startTextRecognition() {
+			if (this.recognizing) return
 			const text = this.textRecognitionInput.trim()
 			if (!text) {
 				if (!this.textRecognitionPanelExpanded) {
@@ -618,6 +619,7 @@ export default {
 			})
 		},
 		askXiaojing() {
+			if (this.recognizing) return
 			uni.navigateTo({
 				url: `/pages/ai-guide/ai-guide?regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.aiSceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&companionName=${encodeRouteValue(this.region.companionName)}`
 			})
@@ -1151,6 +1153,11 @@ export default {
 	border-radius: 30rpx;
 	box-sizing: border-box;
 	scroll-snap-align: start;
+}
+
+.quick-card-disabled {
+	opacity: 0.56;
+	pointer-events: none;
 }
 
 .ops-card {

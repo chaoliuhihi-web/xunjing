@@ -44,6 +44,24 @@ assert.match(
   'Scan recognition should ignore duplicate quick-card taps while another recognition flow is already running'
 )
 
+const quickCardDisabledBindings = home.match(/quick-card-disabled': recognizing/g) || []
+assert.ok(
+  quickCardDisabledBindings.length >= 6,
+  'All Xicheng home quick recognition cards should show a disabled busy state while recognition is running'
+)
+
+assert.match(
+  home,
+  /askXiaojing\(\)\s*\{[\s\S]*if\s*\(this\.recognizing\)\s*return[\s\S]*uni\.navigateTo/,
+  'Xiaojing entry should not navigate away while a recognition flow is running'
+)
+
+assert.match(
+  home,
+  /startTextRecognition\(\)\s*\{[\s\S]*if\s*\(this\.recognizing\)\s*return[\s\S]*const text = this\.textRecognitionInput\.trim\(\)/,
+  'Text recognition should not open the text panel or retry while another recognition flow is running'
+)
+
 assert.match(
   home,
   /startScanRecognition\(\)[\s\S]*fail:\s*\(err\)\s*=>\s*\{[\s\S]*if\s*\(isXunjingUserCancelled\(err\)\)\s*\{[\s\S]*return[\s\S]*this\.handleRecognitionUnavailable\('scan'\)/,
