@@ -79,8 +79,14 @@ assert.match(
 
 assert.match(
   recording,
-  /createRouteCheckinEvent\(stop = \{\}\)[\s\S]*const sources = createXichengOfficialPoiSources\(stop\)[\s\S]*checkinType:\s*'route-stop'[\s\S]*routeCode:\s*this\.activeRoute\.routeCode[\s\S]*poiCode:\s*stop\.poiCode[\s\S]*poiName:\s*stop\.poiName[\s\S]*sources,[\s\S]*sourceCount:\s*sources\.length[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
-  'Route stop check-ins should carry official POI sources and stay private pending review'
+  /createRouteCheckinEvent\(stop = \{\}\)[\s\S]*const sources = createXichengOfficialPoiSources\(stop\)[\s\S]*checkinType:\s*'route-stop'[\s\S]*routeCode:\s*this\.activeRoute\.routeCode[\s\S]*poiCode:\s*stop\.poiCode[\s\S]*poiName:\s*stop\.poiName[\s\S]*sources,[\s\S]*sourceCount:\s*sources\.length[\s\S]*safetyStatus:\s*'PASSED'[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  'Route stop check-ins should carry official POI sources, explicit PASSED safety status, and stay private pending review'
+)
+
+assert.match(
+  recording,
+  /persistStopMaterial\(stop = \{\}, checkinEvent = \{\}\)[\s\S]*type:\s*'route-recording-checkin'[\s\S]*sources,[\s\S]*sourceCount:\s*sources\.length[\s\S]*safetyStatus:\s*'PASSED'[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  'Route recording materials should carry explicit PASSED safety status so review and share summaries count them'
 )
 
 assert.match(

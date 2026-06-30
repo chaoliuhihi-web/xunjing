@@ -343,6 +343,7 @@ export default {
 				poiName: stop.poiName,
 				sources,
 				sourceCount: sources.length,
+				safetyStatus: 'PASSED',
 				reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
 				publishStatus: 'private',
 				checkedInAt
@@ -375,6 +376,7 @@ export default {
 					sourceLabel: '路线记录打卡',
 					sources,
 					sourceCount: sources.length,
+					safetyStatus: 'PASSED',
 					reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
 					publishStatus: 'private',
 					capturedAt: checkinEvent.checkedInAt
