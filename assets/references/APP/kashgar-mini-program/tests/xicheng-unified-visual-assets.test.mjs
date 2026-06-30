@@ -59,12 +59,10 @@ for (const required of [
   "next: 'right'",
   "refresh: 'refresh'",
   'TAB_VECTOR_ICON_NAMES',
+  "const TAB_VECTOR_ICON_NAMES = Object.freeze(['explore'])",
   'usesCustomTabVectorIcon',
   'xicheng-tab-vector',
   'xicheng-tab-vector-explore',
-  'xicheng-tab-vector-routes',
-  'xicheng-tab-vector-favorite',
-  'xicheng-tab-vector-mine',
   "explore: Object.freeze({ default: 'home', active: 'home-filled' })",
   "routes: Object.freeze({ default: 'map', active: 'map-filled' })",
   "favorite: Object.freeze({ default: 'star', active: 'star-filled' })",
@@ -76,6 +74,12 @@ for (const required of [
 ]) {
   assert.ok(iconComponent.includes(required), `Unified Xicheng icon component should include ${required}`)
 }
+
+assert.doesNotMatch(
+  iconComponent,
+  /xicheng-tab-vector-(routes|favorite|mine)|xicheng-tab-vector-star|xicheng-tab-vector-person/,
+  'Unified Xicheng tab icons should keep only the heritage explore mark custom while map, favorite, and mine use the cleaner line icon set'
+)
 
 assert.match(
   home,
