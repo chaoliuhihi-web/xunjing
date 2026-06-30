@@ -838,12 +838,12 @@ export default {
 			return `/pages/ai-guide/ai-guide?question=${question}&${query}`
 		},
 		navigateToXunjingTrigger(trigger = {}) {
-			this.persistXichengMultimodalRecognition(trigger)
 			const targetUrl = this.normalizeXunjingTriggerTargetPath(trigger)
 			if (!targetUrl) {
 				return Promise.resolve(false)
 			}
 			if (!trigger.requiresUserConfirm) {
+				this.persistXichengMultimodalRecognition(trigger)
 				this.navigateToXunjingTarget(targetUrl)
 				return Promise.resolve(true)
 			}
@@ -855,6 +855,7 @@ export default {
 					cancelText: '取消',
 					success: (modalRes) => {
 						if (modalRes.confirm) {
+							this.persistXichengMultimodalRecognition(trigger)
 							this.navigateToXunjingTarget(targetUrl)
 							resolve(true)
 							return

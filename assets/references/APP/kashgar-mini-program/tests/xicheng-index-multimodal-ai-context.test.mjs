@@ -63,8 +63,20 @@ for (const required of [
 
 assert.match(
   navigateBlock,
-  /this\.persistXichengMultimodalRecognition\(trigger\)[\s\S]*const targetUrl = this\.normalizeXunjingTriggerTargetPath\(trigger\)/,
-  'Index should persist the full multimodal recognition before building Xiaojing or route target URLs'
+  /const targetUrl = this\.normalizeXunjingTriggerTargetPath\(trigger\)[\s\S]*if \(!trigger\.requiresUserConfirm\) \{[\s\S]*this\.persistXichengMultimodalRecognition\(trigger\)[\s\S]*this\.navigateToXunjingTarget\(targetUrl\)/,
+  'Index should persist multimodal recognition only when navigation does not require a user confirmation gate'
+)
+
+assert.match(
+  navigateBlock,
+  /if \(modalRes\.confirm\) \{[\s\S]*this\.persistXichengMultimodalRecognition\(trigger\)[\s\S]*this\.navigateToXunjingTarget\(targetUrl\)[\s\S]*resolve\(true\)[\s\S]*return[\s\S]*\}[\s\S]*resolve\(false\)/,
+  'Index should persist gated multimodal recognition only after the user confirms the modal'
+)
+
+assert.doesNotMatch(
+  navigateBlock,
+  /navigateToXunjingTrigger\(trigger = \{\}\)\s*\{[\s\S]*this\.persistXichengMultimodalRecognition\(trigger\)[\s\S]*const targetUrl = this\.normalizeXunjingTriggerTargetPath\(trigger\)/,
+  'Index should not write recognition cache before the modal can be cancelled'
 )
 
 assert.match(
