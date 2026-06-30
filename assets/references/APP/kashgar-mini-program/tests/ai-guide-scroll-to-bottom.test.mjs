@@ -10,6 +10,9 @@ const runScrollToBottomSource = aiGuide.match(/const runScrollToBottom = \(\) =>
 const sendMessageSource = aiGuide.match(/const sendMessage = async \(\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const loadChatHistorySource = aiGuide.match(/const loadChatHistory = async \(\{ preferCache = false \} = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const renderStreamContentSource = aiGuide.match(/const renderStreamContent = \(state\) => \{[\s\S]*?\n\}/)?.[0] || ''
+const welcomeOnlyGuardSource = aiGuide.match(/const isCurrentXichengWelcomeOnlyConversation = \(\) => \{[\s\S]*?\n\}/)?.[0] || ''
+const setWelcomeMessageSource = aiGuide.match(/const setWelcomeMessage = \([^)]*\) => \{[\s\S]*?\n\}/)?.[0] || ''
+const scheduleHistoryScrollSource = aiGuide.match(/const scheduleHistoryScrollToBottom = \(\) => \{[\s\S]*?\n\}/)?.[0] || ''
 
 assert.match(
   aiGuide,
@@ -41,6 +44,30 @@ assert.match(
   'AI guide should use pageScrollTo against the page-level bottom anchor'
 )
 
+assert.match(
+  welcomeOnlyGuardSource,
+  /hasXichengAiContext\(\)[\s\S]*messages\.value\.length !== 1[\s\S]*message\.role !== 'assistant'[\s\S]*String\(message\.content \|\| ''\) !== getXichengWelcomeContent\(\)/,
+  'Xicheng Xiaojing should detect the first welcome-only state so the hero remains visible on cold entry'
+)
+
+assert.match(
+  aiGuide,
+  /const scrollXichengWelcomeToTop = \(\) => \{[\s\S]*uni\.pageScrollTo\(\{[\s\S]*selector:\s*'\.xicheng-chat-container'[\s\S]*scrollTop:\s*0[\s\S]*duration:\s*0/,
+  'Xicheng Xiaojing welcome-only entry should explicitly reset page scroll to the page container top because H5 can preserve the previous route scroll position'
+)
+
+assert.match(
+  setWelcomeMessageSource,
+  /messages\.value = \[welcomeMessage\][\s\S]*if \(isCurrentXichengWelcomeOnlyConversation\(\)\) \{[\s\S]*scrollXichengWelcomeToTop\(\)[\s\S]*\} else \{[\s\S]*scrollToBottom\(\{ immediate: true \}\)/,
+  'Setting the Xicheng welcome message should reset to top instead of scrolling the first-screen hero under the nav'
+)
+
+assert.match(
+  scheduleHistoryScrollSource,
+  /if \(isCurrentXichengWelcomeOnlyConversation\(\)\) \{[\s\S]*scrollXichengWelcomeToTop\(\)[\s\S]*return[\s\S]*clearHistoryScrollTimer\(\)/,
+  'Scheduled history scrolling should also reset top for the Xicheng welcome-only cold entry while preserving history scroll behavior'
+)
+
 assert.doesNotMatch(
   runScrollToBottomSource,
   /scrollIntoView|scrollTop|bottomAnchorId/,
@@ -69,6 +96,18 @@ assert.match(
   aiGuide,
   /onReady\(\(\) => \{[\s\S]*scheduleHistoryScrollToBottom\(\)[\s\S]*\}\)/,
   'AI guide should retry bottom scrolling once the scroll-view is ready'
+)
+
+assert.doesNotMatch(
+  aiGuide,
+  /\/\/ 页面加载时加载历史对话[\s\S]*loadChatHistory\(\{ preferCache: true \}\)\s*<\/script>/,
+  'AI guide should not load chat history from script setup before onLoad applies the Xicheng route context'
+)
+
+assert.match(
+  aiGuide,
+  /onLoad\(\(options = \{\}\) => \{[\s\S]*const context = refreshXichengAiRouteContext[\s\S]*if \(!hasXichengAiContext\(context\) && !options\.question\) \{[\s\S]*loadChatHistory\(\{ preferCache: true \}\)/,
+  'AI guide should keep the generic non-Xicheng direct-entry fallback inside onLoad after route context is known'
 )
 
 assert.match(

@@ -515,6 +515,14 @@ const createWelcomeMessage = () => ({
 	interrupted: false,
 	hasSpoken: false
 })
+const isCurrentXichengWelcomeOnlyConversation = () => {
+	if (!hasXichengAiContext()) return false
+	if (messages.value.length !== 1) return false
+	const [message] = messages.value
+	if (!message || message.role !== 'assistant') return false
+	if (String(message.content || '') !== getXichengWelcomeContent()) return false
+	return true
+}
 const createUserMessage = ({ content = '', images = [] } = {}) => ({
 	id: createMessageId(),
 	role: 'user',
@@ -683,7 +691,11 @@ const setWelcomeMessage = () => {
 	const welcomeMessage = createWelcomeMessage()
 	messages.value = [welcomeMessage]
 	saveMessagesCache()
-	scrollToBottom({ immediate: true })
+	if (isCurrentXichengWelcomeOnlyConversation()) {
+		scrollXichengWelcomeToTop()
+	} else {
+		scrollToBottom({ immediate: true })
+	}
 	speakWelcomeMessage(welcomeMessage)
 }
 
@@ -1710,6 +1722,17 @@ const runScrollToBottom = () => {
 	})
 }
 
+const scrollXichengWelcomeToTop = () => {
+	clearScrollTimer()
+	nextTick(() => {
+		uni.pageScrollTo({
+			selector: '.xicheng-chat-container',
+			scrollTop: 0,
+			duration: 0
+		})
+	})
+}
+
 const scrollToBottom = ({ immediate = false } = {}) => {
 	if (immediate) {
 		clearScrollTimer()
@@ -1724,6 +1747,10 @@ const scrollToBottom = ({ immediate = false } = {}) => {
 }
 
 const scheduleHistoryScrollToBottom = () => {
+	if (isCurrentXichengWelcomeOnlyConversation()) {
+		scrollXichengWelcomeToTop()
+		return
+	}
 	clearHistoryScrollTimer()
 	let attempts = 0
 	const maxAttempts = 4
@@ -2557,6 +2584,9 @@ onLoad((options = {}) => {
 	if (KASHGAR_DIARY_GENERATOR_ENABLED && options.mode === 'diary') {
 		return
 	}
+	if (!hasXichengAiContext(context) && !options.question) {
+		loadChatHistory({ preferCache: true })
+	}
 })
 
 onReady(() => {
@@ -2571,9 +2601,6 @@ onUnload(() => {
 	destroyAiSpeech()
 	saveMessagesCache()
 })
-
-// 页面加载时加载历史对话
-loadChatHistory({ preferCache: true })
 </script>
 
 <style scoped>
