@@ -34,6 +34,8 @@ assert.ok(
 for (const required of [
   'applyXichengAiContext(routeOptions)',
   'routeOptions.question',
+  'createXichengRouteSignature(routeOptions)',
+  'lastAppliedXichengRouteSignature = routeSignature',
   'setWelcomeMessage()',
   'sendInitialQuestion(decodeRouteValue(routeOptions.question))',
   'loadMessagesCache()'
@@ -58,13 +60,22 @@ assert.ok(
 )
 
 assert.ok(
-  hashRouteRefreshBlock.includes('refreshXichengAiRouteContext({ preferCache: true })'),
-  'AI guide should refresh Xicheng context when an H5 hash-only route change keeps the same page instance alive'
+  hashRouteRefreshBlock.includes('const routeOptions = mergeXichengAiRouteOptions()')
+    && hashRouteRefreshBlock.includes('const nextRouteSignature = createXichengRouteSignature(routeOptions)')
+    && hashRouteRefreshBlock.includes('nextRouteSignature === lastAppliedXichengRouteSignature')
+    && hashRouteRefreshBlock.includes('return')
+    && hashRouteRefreshBlock.includes('refreshXichengAiRouteContext({ routeOptions, preferCache: true })'),
+  'AI guide should ignore duplicate H5 hashchange events for the already applied route while refreshing real same-page route changes'
 )
 
 assert.ok(
   hashRouteRefreshBlock.includes('interruptCurrentResponse({ showStatus: false })'),
   'AI guide should interrupt a stale in-flight answer before applying a new H5 hash route context'
+)
+
+assert.ok(
+  hashRouteRefreshBlock.indexOf('nextRouteSignature === lastAppliedXichengRouteSignature') < hashRouteRefreshBlock.indexOf('interruptCurrentResponse({ showStatus: false })'),
+  'AI guide should compare the H5 route signature before interrupting an in-flight initial question'
 )
 
 assert.match(

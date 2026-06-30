@@ -34,6 +34,18 @@ assert.match(
 
 assert.match(
   routeParamsSource,
+  /import \{ normalizeXichengSafetyStatus \} from '\.\/safety\.js'/,
+  'Shared route parameter helper should reuse the safetyStatus normalizer for route signatures'
+)
+
+assert.match(
+  routeParamsSource,
+  /export const createXichengRouteSignature\s*=\s*\(routeOptions = \{\}\) => JSON\.stringify\(\{[\s\S]*question:\s*decodeXichengRouteValue\(routeOptions\.question\)[\s\S]*poiCode:\s*decodeXichengRouteValue\(routeOptions\.poiCode\)[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(routeOptions\.safetyStatus\)[\s\S]*\}\)/,
+  'Shared route parameter helper should export a normalized route signature for H5 route refresh guards'
+)
+
+assert.match(
+  routeParamsSource,
   /for \(let decodeIndex = 0; decodeIndex < 3; decodeIndex \+= 1\)[\s\S]*decodeURIComponent\(decodedValue\)[\s\S]*return decodedValue/,
   'Shared route parameter helper should safely decode nested H5 route values without infinite loops'
 )
@@ -42,9 +54,12 @@ for (const [label, source] of [
   ['AI guide', aiGuide],
   ['travelogue', travelogue]
 ]) {
+  const routeImportPattern = label === 'AI guide'
+    ? /import \{ createXichengRouteSignature, decodeXichengRouteValue \} from '@\/request\/xunjing\/routeParams\.js'/
+    : /import \{ decodeXichengRouteValue \} from '@\/request\/xunjing\/routeParams\.js'/
   assert.match(
     source,
-    /import \{ decodeXichengRouteValue \} from '@\/request\/xunjing\/routeParams\.js'/,
+    routeImportPattern,
     `${label} should import the shared Xicheng route parameter decoder`
   )
 }
@@ -102,12 +117,22 @@ assert.match(
   'Travelogue should reuse the shared route decoder before creating manual route materials'
 )
 
-const runtimeSource = routeParamsSource
-const { decodeXichengRouteValue, createXichengRouteOutputValue } = await import(
-  `data:text/javascript;base64,${Buffer.from(runtimeSource).toString('base64')}`
+const runtimeSource = routeParamsSource.replace(
+  /import \{ normalizeXichengSafetyStatus \} from '\.\/safety\.js'\n/,
+  `const normalizeXichengSafetyStatus = (safetyStatus = '') => String(safetyStatus || '').trim().toUpperCase()\n`
 )
+const {
+  decodeXichengRouteValue,
+  createXichengRouteOutputValue,
+  createXichengRouteSignature
+} = await import(`data:text/javascript;base64,${Buffer.from(runtimeSource).toString('base64')}`)
 
 assert.equal(decodeXichengRouteValue('白塔寺'), '白塔寺')
+assert.equal(
+  decodeXichengRouteValue('妙应寺+白塔'),
+  '妙应寺 白塔',
+  'Route decoder should normalize query-string plus signs to spaces for consistent onLoad and H5 hash signatures'
+)
 assert.equal(decodeXichengRouteValue('%E7%99%BD%E5%A1%94%E5%AF%BA'), '白塔寺')
 assert.equal(decodeXichengRouteValue('%25E7%2599%25BD%25E5%25A1%2594%25E5%25AF%25BA'), '白塔寺')
 assert.equal(
@@ -128,4 +153,26 @@ assert.equal(
   createXichengRouteOutputValue('妙应寺白塔', { platform: 'app' }),
   '%E5%A6%99%E5%BA%94%E5%AF%BA%E7%99%BD%E5%A1%94',
   'Non-H5 route output should stay URL-encoded for app and mini-program runtimes'
+)
+assert.equal(
+  createXichengRouteSignature({
+    question: '%E8%AE%B2%E8%A7%A3+%E7%99%BD%E5%A1%94',
+    regionCode: 'xicheng',
+    poiCode: '%25E7%2599%25BD%25E5%25A1%2594',
+    poiName: '%E7%99%BD%E5%A1%94',
+    safetyStatus: ' blocked '
+  }),
+  JSON.stringify({
+    mode: '',
+    question: '讲解 白塔',
+    regionCode: 'xicheng',
+    packageCode: '',
+    sceneCode: '',
+    sourceChannel: '',
+    poiCode: '白塔',
+    poiName: '白塔',
+    companionName: '',
+    safetyStatus: 'BLOCKED'
+  }),
+  'Route signature should decode nested route fields and normalize safetyStatus'
 )

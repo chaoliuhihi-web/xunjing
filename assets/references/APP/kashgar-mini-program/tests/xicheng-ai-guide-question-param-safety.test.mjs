@@ -10,7 +10,7 @@ const refreshRouteContextBlock = aiGuide.match(/const refreshXichengAiRouteConte
 
 assert.match(
   aiGuide,
-  /import \{ decodeXichengRouteValue \} from '@\/request\/xunjing\/routeParams\.js'[\s\S]*const decodeRouteValue = decodeXichengRouteValue/,
+  /import \{[^}]*decodeXichengRouteValue[^}]*\} from '@\/request\/xunjing\/routeParams\.js'[\s\S]*const decodeRouteValue = decodeXichengRouteValue/,
   'AI guide should reuse the shared safe route value decoder for malformed or nested entry params'
 )
 

@@ -354,7 +354,11 @@ import TabBar from '@/components/tab-bar/tab-bar.vue'
 import config from '@/request/config.js'
 import { resolveXichengPhotoTrigger } from '@/request/xunjing/trigger.js'
 import { normalizeXichengAiChatResponse } from '@/request/xunjing/chat.js'
-import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
+import {
+	hasCompletedInitialQuestionInMessages as hasCompletedInitialQuestionInMessageList,
+	hasPendingInitialQuestionInMessages as hasPendingInitialQuestionInMessageList
+} from '@/request/xunjing/initialQuestion.js'
+import { createXichengRouteSignature, decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import {
 	getXichengDisplaySourceDescription,
@@ -477,6 +481,7 @@ let historyScrollTimer = null
 let shouldStartNewConversationAfterInterrupt = false
 let initialQuestionHandled = false
 let initialQuestionHandledText = ''
+let lastAppliedXichengRouteSignature = ''
 let speechAudioContext = null
 let speechRequestSeed = 0
 let speechFileSeed = 0
@@ -625,22 +630,8 @@ const saveMessagesCache = () => {
 
 const loadMessagesCache = () => normalizeCachedMessages(uni.getStorageSync(getActiveChatCacheKey()) || [])
 
-const hasCompletedInitialQuestionInMessages = (question = '') => {
-	const normalizedQuestion = String(question || '').trim()
-	if (!normalizedQuestion) return false
-	const questionIndex = messages.value.findIndex(item =>
-		item
-		&& item.role === 'user'
-		&& String(item.content || '').trim() === normalizedQuestion
-	)
-	if (questionIndex < 0) return false
-	return messages.value.slice(questionIndex + 1).some(item =>
-		item
-		&& item.role === 'assistant'
-		&& !item.isPending
-		&& String(item.content || '').trim()
-	)
-}
+const hasCompletedInitialQuestionInMessages = (question = '') => hasCompletedInitialQuestionInMessageList(messages.value, question)
+const hasPendingInitialQuestionInMessages = (question = '') => hasPendingInitialQuestionInMessageList(messages.value, question)
 
 const persistXichengAiGuideMaterial = ({ question = '', result = {}, assistantMessage = null } = {}) => {
 	const context = xichengAiContext.value || {}
@@ -2454,6 +2445,12 @@ const sendInitialQuestion = async (questionText) => {
 	const question = String(questionText || '').trim()
 	if (!question) return
 	if (initialQuestionHandled && initialQuestionHandledText === question) return
+	if (hasPendingInitialQuestionInMessages(question)) {
+		initialQuestionHandled = true
+		initialQuestionHandledText = question
+		scheduleHistoryScrollToBottom()
+		return
+	}
 	initialQuestionHandled = true
 	initialQuestionHandledText = question
 	await loadChatHistory({ preferCache: true })
@@ -2468,12 +2465,15 @@ const sendInitialQuestion = async (questionText) => {
 
 const refreshXichengAiRouteContext = ({ routeOptions: rawRouteOptions = null, preferCache = true } = {}) => {
 	const routeOptions = mergeXichengAiRouteOptions(rawRouteOptions || {})
+	const routeSignature = createXichengRouteSignature(routeOptions)
 	if (KASHGAR_DIARY_GENERATOR_ENABLED && routeOptions.mode === 'diary') {
+		lastAppliedXichengRouteSignature = routeSignature
 		openKashgarDiaryGenerator()
 		return null
 	}
 	const previousScope = getActiveXichengCacheScope()
 	const context = applyXichengAiContext(routeOptions)
+	lastAppliedXichengRouteSignature = routeSignature
 	const nextScope = getActiveXichengCacheScope()
 	const scopeChanged = previousScope !== nextScope
 	const hasInitialQuestion = Boolean(routeOptions.question)
@@ -2514,9 +2514,14 @@ const refreshXichengAiRouteContext = ({ routeOptions: rawRouteOptions = null, pr
 }
 
 const handleXichengH5RouteHashChange = () => {
+	const routeOptions = mergeXichengAiRouteOptions()
+	const nextRouteSignature = createXichengRouteSignature(routeOptions)
+	if (nextRouteSignature && nextRouteSignature === lastAppliedXichengRouteSignature) {
+		return
+	}
 	interruptCurrentResponse({ showStatus: false })
 	stopAiSpeech()
-	refreshXichengAiRouteContext({ preferCache: true })
+	refreshXichengAiRouteContext({ routeOptions, preferCache: true })
 }
 
 onShow(() => {
