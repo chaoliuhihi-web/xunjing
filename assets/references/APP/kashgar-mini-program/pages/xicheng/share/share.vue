@@ -241,6 +241,30 @@ export default {
 				candidateConfirmationCount: toSafeCount(summary.candidateConfirmationCount)
 			}
 		},
+		sanitizePublicRecordingQualityReport(qualityReport = {}) {
+			return {
+				acceptedTrackPointCount: toSafeCount(qualityReport.acceptedTrackPointCount),
+				filteredTrackPointCount: toSafeCount(qualityReport.filteredTrackPointCount),
+				lowAccuracyPointCount: toSafeCount(qualityReport.lowAccuracyPointCount),
+				abnormalJumpPointCount: toSafeCount(qualityReport.abnormalJumpPointCount),
+				usableRate: toSafeCount(qualityReport.usableRate)
+			}
+		},
+		sanitizePublicRecordingSummary(summary = {}) {
+			return {
+				routeCode: summary.routeCode || '',
+				routeTitle: summary.routeTitle || '',
+				sessionStatus: summary.sessionStatus || 'idle',
+				startedAt: summary.startedAt || '',
+				finishedAt: summary.finishedAt || '',
+				routePointCount: toSafeCount(summary.routePointCount),
+				stayPointCount: toSafeCount(summary.stayPointCount),
+				filteredTrackPointCount: toSafeCount(summary.filteredTrackPointCount),
+				qualityReport: this.sanitizePublicRecordingQualityReport(summary.qualityReport),
+				shareTrackDefault: 'private',
+				exactTrackHidden: true
+			}
+		},
 		createSharePublicPreview(journeyDraft = {}) {
 			const publicPreview = safeObject(journeyDraft.publicPreview)
 			const publicMaterials = safeArray(publicPreview.publicMaterials).map(item => this.sanitizePublicMaterialPreview(item)).filter(Boolean).slice(0, 20)
@@ -251,7 +275,7 @@ export default {
 				publicStudyTaskEvidence,
 				publicRouteCheckins,
 				publicCandidateConfirmationSummary: this.sanitizePublicCandidateConfirmationSummary(publicPreview.publicCandidateConfirmationSummary),
-				publicRecordingSummary: safeObject(publicPreview.publicRecordingSummary),
+				publicRecordingSummary: this.sanitizePublicRecordingSummary(publicPreview.publicRecordingSummary),
 				materialCount: publicMaterials.length,
 				checkinCount: publicRouteCheckins.length,
 				studyTaskEvidenceCount: publicStudyTaskEvidence.length,

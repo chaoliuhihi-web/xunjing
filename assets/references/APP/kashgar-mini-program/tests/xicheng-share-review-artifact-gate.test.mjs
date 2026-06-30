@@ -23,6 +23,7 @@ for (const required of [
   'sanitizePublicStudyEvidencePreview',
   'sanitizePublicRouteCheckinPreview',
   'sanitizePublicCandidateConfirmationSummary',
+  'sanitizePublicRecordingSummary',
   'reviewEvidencePolicy',
   '请先生成分享产物再提交审核',
   'shareArtifactCount',
@@ -94,6 +95,24 @@ assert.match(
 
 assert.match(
   share,
+  /sanitizePublicRecordingSummary\(summary = \{\}\)\s*\{[\s\S]*routeCode:\s*summary\.routeCode \|\| ''[\s\S]*routeTitle:\s*summary\.routeTitle \|\| ''[\s\S]*sessionStatus:\s*summary\.sessionStatus \|\| 'idle'[\s\S]*routePointCount:\s*toSafeCount\(summary\.routePointCount\)[\s\S]*stayPointCount:\s*toSafeCount\(summary\.stayPointCount\)[\s\S]*filteredTrackPointCount:\s*toSafeCount\(summary\.filteredTrackPointCount\)[\s\S]*qualityReport:\s*this\.sanitizePublicRecordingQualityReport\(summary\.qualityReport\)[\s\S]*shareTrackDefault:\s*'private'[\s\S]*exactTrackHidden:\s*true/,
+  'Share public preview should whitelist only safe recording summary fields and keep tracks private'
+)
+
+assert.match(
+  share,
+  /sanitizePublicRecordingQualityReport\(qualityReport = \{\}\)\s*\{[\s\S]*acceptedTrackPointCount:\s*toSafeCount\(qualityReport\.acceptedTrackPointCount\)[\s\S]*filteredTrackPointCount:\s*toSafeCount\(qualityReport\.filteredTrackPointCount\)[\s\S]*lowAccuracyPointCount:\s*toSafeCount\(qualityReport\.lowAccuracyPointCount\)[\s\S]*abnormalJumpPointCount:\s*toSafeCount\(qualityReport\.abnormalJumpPointCount\)[\s\S]*usableRate:\s*toSafeCount\(qualityReport\.usableRate\)/,
+  'Share public preview should whitelist recording quality metrics without raw point arrays'
+)
+
+assert.match(
+  share,
+  /createSharePublicPreview\(journeyDraft = \{\}\)[\s\S]*publicRecordingSummary:\s*this\.sanitizePublicRecordingSummary\(publicPreview\.publicRecordingSummary\)/,
+  'Share public preview should resanitize cached recording summaries before review or export'
+)
+
+assert.match(
+  share,
   /sanitizePublicMaterialPreview\(item = \{\}\)[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(item\.safetyStatus\)[\s\S]*if \(isXichengUnsafeSafetyStatus\(safetyStatus\)\) return null[\s\S]*safetyStatus,/,
   'Share public material preview sanitizer should drop BLOCKED or UNAVAILABLE material from public preview artifacts'
 )
@@ -122,6 +141,18 @@ assert.doesNotMatch(
   share.match(/sanitizePublicCandidateConfirmationSummary\(summary = \{\}\)[\s\S]*?\n\t\t\},\n\t\tcreateSharePublicPreview/)?.[0] || '',
   /candidatePoiCodes|candidatePoiNames|selectedCandidateConfidence|reviewedSourceCount|confirmationSource|candidateConfirmationAudit|sources|latitude|longitude/,
   'Share candidate confirmation summary sanitizer should not expose raw candidate sets, confidence, sources, internal audits, or exact location'
+)
+
+assert.doesNotMatch(
+  share.match(/sanitizePublicRecordingSummary\(summary = \{\}\)[\s\S]*?\n\t\t\},\n\t\tcreateSharePublicPreview/)?.[0] || '',
+  /trackPoints|stayPoints|filteredTrackPoints|latitude|longitude|polyline|geometry|coordinates/,
+  'Share recording summary sanitizer should not expose raw tracks, stay points, geometry, or exact coordinates'
+)
+
+assert.doesNotMatch(
+  share.match(/sanitizePublicRecordingQualityReport\(qualityReport = \{\}\)[\s\S]*?\n\t\t\},\n\t\tsanitizePublicRecordingSummary/)?.[0] || '',
+  /trackPoints|stayPoints|filteredTrackPoints|latitude|longitude|polyline|geometry|coordinates/,
+  'Share recording quality sanitizer should not expose raw point arrays, geometry, or exact coordinates'
 )
 
 assert.doesNotMatch(
