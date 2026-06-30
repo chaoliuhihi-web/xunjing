@@ -27,6 +27,23 @@
 - 生产模式不得把 `XICHENG_DEVELOPMENT_TRIGGER_FIXTURE` 当真实识别结果。
 - 白塔寺、恭王府、北京天文馆 trigger smoke 都要有通过记录。
 
+## 当前本地基线
+
+本地证据只能证明 APP/API 主链可回归，不能替代生产放行证据。当前本地验证文件是 `qa/xicheng-app-readiness-local-evidence.json`，目标结果为 20/20：
+
+```bash
+npm run xunjing:platform:verify -- \
+  --env-file ops/xunjing-platform.env.example \
+  --base-url http://localhost:48082 \
+  --tenant-id 1 \
+  --skip-admin-check \
+  --include-xicheng-app-check \
+  --include-xicheng-trigger-check \
+  --evidence-file qa/xicheng-app-readiness-local-evidence.json
+```
+
+浏览器主链 smoke 应覆盖：西城首页 -> 文本识别 -> 识别结果 -> 小京讲解 -> 开始记录 -> 西城游记草稿。
+
 ## 放行核查命令
 
 在仓库根目录使用安全环境文件执行，路径示例只表达位置，不代表真实密钥：
@@ -42,6 +59,8 @@ npm run xunjing:yudao:release:gate -- \
 ```
 
 如果该命令仍提示 `APP readiness evidence baseUrl must be a non-local HTTPS URL`，说明 APP 还没有拿到可上线证据。
+
+如果提示 `APP readiness evidence baseUrl must match release evidence appApiBaseUrl`，说明 `qa/xicheng-app-readiness-evidence.json` 和 `qa/xicheng-yudao-release-evidence.json` 不是同一个 HTTPS 后端生成，必须重新用同一个 `XUNJING_APP_API_BASE_URL` 采集。
 
 ## 本地 APP 回归
 
