@@ -5,6 +5,7 @@ import path from 'node:path'
 const root = process.cwd()
 const aiGuidePath = path.join(root, 'pages', 'ai-guide', 'ai-guide.vue')
 const aiGuide = fs.readFileSync(aiGuidePath, 'utf8')
+const aiGuideTheme = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide-theme.css'), 'utf8')
 const runScrollToBottomSource = aiGuide.match(/const runScrollToBottom = \(\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const sendMessageSource = aiGuide.match(/const sendMessage = async \(\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const loadChatHistorySource = aiGuide.match(/const loadChatHistory = async \(\{ preferCache = false \} = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
@@ -47,13 +48,13 @@ assert.doesNotMatch(
 )
 
 assert.match(
-  aiGuide,
+  aiGuideTheme,
   /\.chat-bottom-spacer\s*\{[\s\S]*height:\s*calc\(300rpx \+ env\(safe-area-inset-bottom\)\)/,
   'AI guide should leave enough scrollable bottom space for the fixed input area'
 )
 
 assert.match(
-  aiGuide,
+  aiGuideTheme,
   /\.content\s*\{[\s\S]*min-height:\s*100vh[\s\S]*padding-bottom:\s*calc\(300rpx \+ env\(safe-area-inset-bottom\)\)/,
   'AI guide page content should be naturally scrollable with room for the fixed input area'
 )

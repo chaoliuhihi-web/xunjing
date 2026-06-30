@@ -485,16 +485,27 @@ let speechQueuePlaying = false
 const activeStream = ref(null)
 
 const createMessageId = () => `msg_${Date.now()}_${messageSeed++}`
+const getXichengWelcomeContent = () => {
+	const context = xichengAiContext.value || {}
+	const safetyStatus = normalizeXichengSafetyStatus(context.safetyStatus)
+	if (safetyStatus === 'BLOCKED') {
+		return XICHENG_BLOCKED_ANSWER
+	}
+	if (safetyStatus === 'UNAVAILABLE') {
+		return XICHENG_UNAVAILABLE_ANSWER
+	}
+	return `你好，我是${context.companionName || XICHENG_REGION_CONFIG.companionName}，可以继续帮你讲解西城文化点、推荐路线或生成游记草稿。`
+}
 const createWelcomeMessage = () => ({
 	id: createMessageId(),
 	role: 'assistant',
 	content: hasXichengAiContext()
-		? `你好，我是${xichengAiContext.value.companionName || XICHENG_REGION_CONFIG.companionName}，可以继续帮你讲解西城文化点、推荐路线或生成游记草稿。`
+		? getXichengWelcomeContent()
 		: '您好！我是AI小导游，有什么可以帮助您的吗？',
 	images: [],
 	followUps: [],
 	sources: hasXichengAiContext() ? getXichengContextSources() : [],
-	safetyStatus: '',
+	safetyStatus: hasXichengAiContext() ? normalizeXichengSafetyStatus(xichengAiContext.value.safetyStatus) : '',
 	isPending: false,
 	interrupted: false,
 	hasSpoken: false
@@ -593,7 +604,9 @@ const getActiveXichengCacheScope = () => {
 	const regionCode = context.regionCode || XICHENG_REGION_CONFIG.regionCode
 	const poiCode = context.poiCode || ''
 	const poiScope = poiCode || context.poiName || 'general'
-	return `${encodeURIComponent(regionCode)}:${encodeURIComponent(poiScope)}`
+	const safetyStatus = normalizeXichengSafetyStatus(context.safetyStatus)
+	const safetyScope = safetyStatus ? `:${encodeURIComponent(safetyStatus)}` : ''
+	return `${encodeURIComponent(regionCode)}:${encodeURIComponent(poiScope)}${safetyScope}`
 }
 
 const getActiveChatCacheKey = () => {
@@ -730,6 +743,23 @@ const getCurrentXichengAiRouteOptions = () => {
 	return options
 }
 
+const mergeXichengAiRouteOptions = (routeOptions = {}) => {
+	const h5RouteOptions = getCurrentXichengAiRouteOptions()
+	const mergedOptions = {
+		...h5RouteOptions
+	}
+	Object.keys(routeOptions || {}).forEach(key => {
+		const value = routeOptions[key]
+		if (value !== undefined && value !== null && value !== '') {
+			mergedOptions[key] = value
+		}
+	})
+	return {
+		...mergedOptions,
+		safetyStatus: normalizeXichengSafetyStatus(routeOptions.safetyStatus || h5RouteOptions.safetyStatus)
+	}
+}
+
 const normalizeXichengAiContext = (options = {}) => ({
 	regionCode: decodeRouteValue(options.regionCode),
 	packageCode: decodeRouteValue(options.packageCode),
@@ -842,6 +872,8 @@ const applyXichengAiContext = (options = {}) => {
 	const routeOnlyRecognition = cachedRecognition.sources.length > 0
 		? createEmptyXichengRecognitionContext()
 		: createRouteOnlyXichengRecognitionContext(context)
+	const mergedSafetyStatus = normalizeXichengSafetyStatus(context.safetyStatus || cachedRecognition.safetyStatus || routeOnlyRecognition.safetyStatus)
+	const unsafeMergedSafetyStatus = isXichengUnsafeSafetyStatus(mergedSafetyStatus)
 	xichengAiContext.value = {
 		regionCode: context.regionCode || XICHENG_REGION_CONFIG.regionCode,
 		packageCode: context.packageCode || XICHENG_REGION_CONFIG.packageCode,
@@ -851,9 +883,9 @@ const applyXichengAiContext = (options = {}) => {
 		poiName: context.poiName || cachedRecognition.poiName || routeOnlyRecognition.poiName,
 		companionName: context.companionName || XICHENG_REGION_CONFIG.companionName,
 		confidence: context.confidence || cachedRecognition.confidence || routeOnlyRecognition.confidence,
-		sourceLabel: cachedRecognition.sourceLabel || routeOnlyRecognition.sourceLabel,
-		safetyStatus: normalizeXichengSafetyStatus(context.safetyStatus || cachedRecognition.safetyStatus || routeOnlyRecognition.safetyStatus),
-		sources: cachedRecognition.sources.length > 0 ? cachedRecognition.sources : routeOnlyRecognition.sources
+		sourceLabel: unsafeMergedSafetyStatus ? '' : (cachedRecognition.sourceLabel || routeOnlyRecognition.sourceLabel),
+		safetyStatus: mergedSafetyStatus,
+		sources: unsafeMergedSafetyStatus ? [] : (cachedRecognition.sources.length > 0 ? cachedRecognition.sources : routeOnlyRecognition.sources)
 	}
 	return xichengAiContext.value
 }
@@ -882,12 +914,23 @@ const activeAiAvatar = computed(() => (
 
 const xichengHeroSubtitle = computed(() => {
 	const context = xichengAiContext.value || {}
+	const safetyStatus = normalizeXichengSafetyStatus(context.safetyStatus)
+	if (safetyStatus === 'BLOCKED') {
+		return XICHENG_BLOCKED_ANSWER
+	}
+	if (safetyStatus === 'UNAVAILABLE') {
+		return XICHENG_UNAVAILABLE_ANSWER
+	}
 	const poiName = context.poiName || '西城文化点'
 	return `围绕${poiName}继续追问，答案优先使用已审核来源。`
 })
 
 const xichengHeroQuestions = computed(() => {
 	const context = xichengAiContext.value || {}
+	const safetyStatus = normalizeXichengSafetyStatus(context.safetyStatus)
+	if (isXichengUnsafeSafetyStatus(safetyStatus)) {
+		return []
+	}
 	return createXichengPoiSuggestedQuestions(context.poiName || '')
 		.slice(0, 3)
 })
@@ -2018,8 +2061,17 @@ const startXunjingAiRequest = ({ question, assistantMessage }) => {
 	})
 }
 
+const shouldSkipXichengUnsafeMessageCache = () => {
+	const safetyStatus = normalizeXichengSafetyStatus(xichengAiContext.value.safetyStatus)
+	return hasXichengAiContext() && isXichengUnsafeSafetyStatus(safetyStatus)
+}
+
 // 加载历史对话记录
 const loadChatHistory = async ({ preferCache = false } = {}) => {
+	if (shouldSkipXichengUnsafeMessageCache()) {
+		setWelcomeMessage()
+		return
+	}
 	const cachedMessages = loadMessagesCache()
 	if (preferCache && cachedMessages.length > 0) {
 		messages.value = cachedMessages
@@ -2414,7 +2466,8 @@ const sendInitialQuestion = async (questionText) => {
 	sendMessage()
 }
 
-const refreshXichengAiRouteContext = ({ routeOptions = getCurrentXichengAiRouteOptions(), preferCache = true } = {}) => {
+const refreshXichengAiRouteContext = ({ routeOptions: rawRouteOptions = null, preferCache = true } = {}) => {
+	const routeOptions = mergeXichengAiRouteOptions(rawRouteOptions || {})
 	if (KASHGAR_DIARY_GENERATOR_ENABLED && routeOptions.mode === 'diary') {
 		openKashgarDiaryGenerator()
 		return null
@@ -2436,7 +2489,7 @@ const refreshXichengAiRouteContext = ({ routeOptions = getCurrentXichengAiRouteO
 			sendInitialQuestion(decodeRouteValue(routeOptions.question))
 			return context
 		}
-		const cachedMessages = preferCache && !scopeChanged ? loadMessagesCache() : []
+		const cachedMessages = preferCache && !scopeChanged && !shouldSkipXichengUnsafeMessageCache() ? loadMessagesCache() : []
 		if (cachedMessages.length > 0) {
 			messages.value = cachedMessages
 			scheduleHistoryScrollToBottom()
@@ -2520,84 +2573,6 @@ loadChatHistory({ preferCache: true })
 
 <style scoped>
 @import './ai-guide-theme.css';
-
-.container {
-	min-height: 100vh;
-	display: flex;
-	flex-direction: column;
-	position: relative;
-}
-
-.bg-image {
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100vh;
-	z-index: 0;
-}
-
-/* 清空历史按钮 */
-.clear-history-btn {
-	position: fixed;
-  bottom: 150px;
-	right: 10px;
-	z-index: 9999;
-	width: 60rpx;
-	height: 60rpx;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background-color: rgba(255, 255, 255, 0.9);
-	border-radius: 50%;
-	box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
-}
-
-.clear-icon {
-	font-size: 32rpx;
-}
-
-.xicheng-chat-more-btn {
-	position: fixed;
-	top: calc(24rpx + env(safe-area-inset-top));
-	right: 30rpx;
-	z-index: 10000;
-	width: 72rpx;
-	height: 72rpx;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	border: 1rpx solid rgba(181, 148, 94, 0.22);
-	border-radius: 50%;
-	background: rgba(255, 253, 248, 0.92);
-	box-shadow: 0 12rpx 26rpx rgba(28, 35, 32, 0.10);
-}
-
-.xicheng-chat-more-dot {
-	font-size: 28rpx;
-	line-height: 1;
-	letter-spacing: 0;
-	color: #173F35;
-}
-
-.content {
-	min-height: 100vh;
-	padding-bottom: calc(300rpx + env(safe-area-inset-bottom));
-	box-sizing: border-box;
-	position: relative;
-	z-index: 1;
-}
-
-/* 聊天列表 */
-.chat-list {
-	padding: 20rpx 24rpx;
-	padding-bottom: 0;
-	box-sizing: border-box;
-}
-
-.chat-bottom-spacer {
-	height: calc(300rpx + env(safe-area-inset-bottom));
-}
 
 .message-item {
 	margin-bottom: 32rpx;

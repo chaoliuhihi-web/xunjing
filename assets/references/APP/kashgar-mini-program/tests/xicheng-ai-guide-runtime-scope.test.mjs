@@ -14,7 +14,7 @@ const normalizeContextBlock = aiGuide.match(/const normalizeXichengAiContext\s*=
 const emptyCachedRecognitionBlock = aiGuide.match(/const createEmptyXichengRecognitionContext\s*=\s*\(\) => \(\{[\s\S]*?\n\}\)/)?.[0] || ''
 const cachedRecognitionBlock = aiGuide.match(/const loadCachedXichengRecognitionContext\s*=\s*\(context = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const contextResetBlock = aiGuide.match(/xichengAiContext\.value = \{[\s\S]*?sources:\s*\[\][\s\S]*?\n\t\t\}/)?.[0] || ''
-const contextApplyBlock = aiGuide.match(/xichengAiContext\.value = \{[\s\S]*?sources:\s*cachedRecognition\.sources\.length > 0 \? cachedRecognition\.sources : routeOnlyRecognition\.sources[\s\S]*?\n\t\}/)?.[0] || ''
+const contextApplyBlock = aiGuide.match(/const applyXichengAiContext\s*=\s*\(options = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
 
 for (const [label, block] of [
   ['initial Xicheng AI context', initialXichengContext],
@@ -59,8 +59,8 @@ for (const required of [
 
 assert.match(
   contextApplyBlock,
-  /const routeOnlyRecognition = cachedRecognition\.sources\.length > 0[\s\S]*createRouteOnlyXichengRecognitionContext\(context\)[\s\S]*sources:\s*cachedRecognition\.sources\.length > 0 \? cachedRecognition\.sources : routeOnlyRecognition\.sources/,
-  'Applied Xicheng context should only use route-only official POI sources after cached recognition sources are unavailable'
+  /const routeOnlyRecognition = cachedRecognition\.sources\.length > 0[\s\S]*createRouteOnlyXichengRecognitionContext\(context\)[\s\S]*const mergedSafetyStatus = normalizeXichengSafetyStatus\(context\.safetyStatus \|\| cachedRecognition\.safetyStatus \|\| routeOnlyRecognition\.safetyStatus\)[\s\S]*sources:\s*unsafeMergedSafetyStatus \? \[\] : \(cachedRecognition\.sources\.length > 0 \? cachedRecognition\.sources : routeOnlyRecognition\.sources\)/,
+  'Applied Xicheng context should only use cached or route-only official POI sources after the final safety status allows reviewed sources'
 )
 
 assert.match(

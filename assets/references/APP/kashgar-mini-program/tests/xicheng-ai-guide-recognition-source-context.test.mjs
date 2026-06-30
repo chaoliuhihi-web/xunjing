@@ -43,8 +43,8 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /xichengAiContext\.value = \{[\s\S]*poiCode:\s*context\.poiCode \|\| cachedRecognition\.poiCode \|\| routeOnlyRecognition\.poiCode[\s\S]*poiName:\s*context\.poiName \|\| cachedRecognition\.poiName \|\| routeOnlyRecognition\.poiName[\s\S]*confidence:\s*context\.confidence \|\| cachedRecognition\.confidence \|\| routeOnlyRecognition\.confidence[\s\S]*sourceLabel:\s*cachedRecognition\.sourceLabel \|\| routeOnlyRecognition\.sourceLabel[\s\S]*sources:\s*cachedRecognition\.sources\.length > 0 \? cachedRecognition\.sources : routeOnlyRecognition\.sources/,
-  'AI guide should merge cached or route-only official POI name, confidence, source label, and sources into Xiaojing context'
+  /xichengAiContext\.value = \{[\s\S]*poiCode:\s*context\.poiCode \|\| cachedRecognition\.poiCode \|\| routeOnlyRecognition\.poiCode[\s\S]*poiName:\s*context\.poiName \|\| cachedRecognition\.poiName \|\| routeOnlyRecognition\.poiName[\s\S]*confidence:\s*context\.confidence \|\| cachedRecognition\.confidence \|\| routeOnlyRecognition\.confidence[\s\S]*sourceLabel:\s*unsafeMergedSafetyStatus \? '' : \(cachedRecognition\.sourceLabel \|\| routeOnlyRecognition\.sourceLabel\)[\s\S]*safetyStatus:\s*mergedSafetyStatus[\s\S]*sources:\s*unsafeMergedSafetyStatus \? \[\] : \(cachedRecognition\.sources\.length > 0 \? cachedRecognition\.sources : routeOnlyRecognition\.sources\)/,
+  'AI guide should merge cached or route-only official POI name, confidence, source label, and sources only after the final safety status allows reviewed sources'
 )
 
 assert.match(

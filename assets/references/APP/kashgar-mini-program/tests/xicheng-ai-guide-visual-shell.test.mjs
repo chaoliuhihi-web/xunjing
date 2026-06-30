@@ -4,6 +4,7 @@ import path from 'node:path'
 
 const root = process.cwd()
 const aiGuide = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
+const aiGuideTheme = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide-theme.css'), 'utf8')
 const aiGuideChat = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide-chat.css'), 'utf8')
 
 for (const required of [
@@ -47,7 +48,7 @@ assert.match(
 )
 
 assert.match(
-  aiGuide,
+  aiGuideTheme,
   /\.content\s*\{[\s\S]*padding-bottom:\s*calc\(300rpx \+ env\(safe-area-inset-bottom\)\)[\s\S]*\.chat-bottom-spacer\s*\{[\s\S]*height:\s*calc\(300rpx \+ env\(safe-area-inset-bottom\)\)/,
   'Xicheng AI guide chat list should reserve enough bottom space so the fixed input bar does not cover the latest answer or sources'
 )
