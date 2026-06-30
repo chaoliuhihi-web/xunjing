@@ -185,12 +185,33 @@ export default {
 			if (!Object.prototype.hasOwnProperty.call(this.shareSettingState, key)) return
 			this.shareSettingState[key] = !this.shareSettingState[key]
 		},
+		getReviewableShareArtifacts() {
+			return safeArray(this.shareArtifacts)
+				.filter(artifact => artifact && ['poster', 'pdf', 'study'].includes(artifact.assetType))
+		},
+		hasReviewableShareArtifact() {
+			return this.getReviewableShareArtifacts().length > 0
+		},
+		showShareArtifactRequiredToast() {
+			uni.showToast({
+				title: '请先生成分享产物再提交审核',
+				icon: 'none'
+			})
+		},
 		submitReview() {
+			const reviewableShareArtifacts = this.getReviewableShareArtifacts()
+			if (!this.hasReviewableShareArtifact()) {
+				this.showShareArtifactRequiredToast()
+				return
+			}
 			const reviewPayload = {
 				reviewId: `review-${Date.now()}`,
 				reviewStatus: this.region.reviewStatus.pending,
-				posterStatus: this.shareArtifacts.some(item => item.assetType === 'poster') ? '已生成' : '待生成',
-				pdfStatus: this.shareArtifacts.some(item => item.assetType === 'pdf') ? '已生成' : '待生成',
+				posterStatus: reviewableShareArtifacts.some(item => item.assetType === 'poster') ? '已生成' : '待生成',
+				pdfStatus: reviewableShareArtifacts.some(item => item.assetType === 'pdf') ? '已生成' : '待生成',
+				shareArtifacts: reviewableShareArtifacts,
+				shareArtifactCount: reviewableShareArtifacts.length,
+				assetTypes: Array.from(new Set(reviewableShareArtifacts.map(item => item.assetType))),
 				submittedAt: new Date().toISOString()
 			}
 			this.reviewSubmissions = [reviewPayload, ...this.reviewSubmissions].slice(0, 8)
