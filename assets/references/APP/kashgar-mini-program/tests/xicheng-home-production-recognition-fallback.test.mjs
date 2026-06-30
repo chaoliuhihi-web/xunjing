@@ -40,6 +40,12 @@ assert.doesNotMatch(
 
 assert.match(
   home,
+  /startScanRecognition\(\)\s*\{[\s\S]*if\s*\(this\.recognizing\)\s*return[\s\S]*uni\.scanCode/,
+  'Scan recognition should ignore duplicate quick-card taps while another recognition flow is already running'
+)
+
+assert.match(
+  home,
   /startScanRecognition\(\)[\s\S]*fail:\s*\(err\)\s*=>\s*\{[\s\S]*if\s*\(isXunjingUserCancelled\(err\)\)\s*\{[\s\S]*return[\s\S]*this\.handleRecognitionUnavailable\('scan'\)/,
   'Scan recognition should ignore normal scanner cancellation and only surface unavailable state for non-cancel failures'
 )

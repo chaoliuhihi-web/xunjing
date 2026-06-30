@@ -367,6 +367,7 @@ export default {
 			}
 		},
 		startScanRecognition() {
+			if (this.recognizing) return
 			if (!uni.scanCode) {
 				this.handleRecognitionUnavailable('scan')
 				return
