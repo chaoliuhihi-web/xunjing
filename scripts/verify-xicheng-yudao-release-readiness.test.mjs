@@ -76,6 +76,11 @@ const requiredQdrantEvidenceChecks = [
   'qdrant-image-collection',
   'secret-redaction'
 ]
+const requiredP0QdrantEvidenceChecks = [
+  'qdrant-request',
+  'qdrant-text-collection',
+  'secret-redaction'
+]
 const requiredYudaoServerSmokeEvidenceChecks = [
   'https-backend-domain',
   'tenant-header',
@@ -120,7 +125,6 @@ const requiredProductionEnvTemplateKeys = [
   'QDRANT_GRPC_PORT',
   'QDRANT_API_KEY',
   'QDRANT_TEXT_COLLECTION',
-  'QDRANT_IMAGE_COLLECTION',
   'YUDAO_SERVER_BUILD_EVIDENCE',
   'YUDAO_SERVER_SMOKE_EVIDENCE',
   'QWEN_API_KEY',
@@ -1158,6 +1162,53 @@ describe('xicheng Yudao release readiness gate', () => {
       'xicheng-production-poi',
       'xicheng-source-license'
     ])
+  })
+
+  test('accepts text-only Qdrant smoke evidence because image vectors are P2', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
+    const qdrantEvidencePath = await writeQdrantEvidence(rootDir, {
+      summary: {
+        imageCollection: undefined,
+        imageCollectionHttpStatus: undefined,
+        imageCollectionStatus: undefined,
+        imageCollectionPointsCount: undefined
+      },
+      checks: passedChecks(requiredP0QdrantEvidenceChecks)
+    })
+    const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
+    const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      aiBootstrapEvidencePath,
+      qdrantEvidencePath,
+      visionOcrEvidencePath,
+      objectStorageEvidencePath,
+      runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    const qdrantCheck = result.checks.find((check) => check.name === 'qdrant-vector-store')
+    expect(result.ok).toBe(true)
+    expect(result.status).toBe('PRODUCTION_READY_CANDIDATE')
+    expect(qdrantCheck?.ok).toBe(true)
+    expect(qdrantCheck?.summary).toMatchObject({
+      qdrantTextCollection: 'xinghe_xunjing_text_production',
+      qdrantTextCollectionStatus: 'green'
+    })
+    expect(qdrantCheck?.summary).not.toHaveProperty('qdrantImageCollection')
   })
 
   test('fails closed when Qdrant vector store smoke evidence is missing', async () => {

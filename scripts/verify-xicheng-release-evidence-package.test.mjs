@@ -1067,6 +1067,48 @@ describe('xicheng release evidence package gate', () => {
     expect(evidence.status).toBe('XICHENG_RELEASE_EVIDENCE_PACKAGE_READY')
   })
 
+  test('accepts text-only Qdrant release evidence because image vectors are P2', async () => {
+    const rootDir = await createTempRoot()
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
+      summary: {
+        qdrantImageCollection: undefined,
+        qdrantImageCollectionHttpStatus: undefined,
+        qdrantImageCollectionStatus: undefined,
+        qdrantImageCollectionPointsCount: undefined
+      }
+    })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const workbookPath = path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json')
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const sourceCoveragePath = await writeSourceCoverageEvidenceFile(rootDir)
+    const sourceReviewApplyPath = await writeSourceReviewApplyEvidenceFile(rootDir)
+    const productionReviewApplyPath = await writeProductionReviewApplyEvidenceFile(rootDir)
+    const yudaoServerSmokePath = path.join(rootDir, 'qa/xicheng-yudao-server-smoke-evidence.json')
+    const runtimeSeedPath = path.join(rootDir, 'qa/xicheng-yudao-runtime-seed-production-evidence.json')
+    const productionSeedApplyPath = path.join(rootDir, 'qa/xicheng-yudao-production-seed-apply-evidence.json')
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'production',
+      '--release-evidence', releasePath,
+      '--yudao-server-smoke-evidence', yudaoServerSmokePath,
+      '--runtime-seed-evidence', runtimeSeedPath,
+      '--production-seed-apply-evidence', productionSeedApplyPath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-workbook-evidence', workbookPath,
+      '--poi-seed-evidence', seedPath,
+      '--poi-source-coverage-evidence', sourceCoveragePath,
+      '--poi-source-review-apply-evidence', sourceReviewApplyPath,
+      '--poi-production-review-apply-evidence', productionReviewApplyPath,
+      '--app-readiness-evidence', appPath
+    ])
+
+    expect(result.status).toBe(0)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('XICHENG_RELEASE_EVIDENCE_PACKAGE_READY')
+  })
+
   test('normalizes relative Yudao server smoke build evidence paths against the release root', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeReleaseEvidenceFile(rootDir, {

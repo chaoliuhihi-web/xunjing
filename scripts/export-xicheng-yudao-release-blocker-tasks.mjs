@@ -130,7 +130,7 @@ const checkTaskInstructions = {
   },
   'qdrant-vector-store': {
     taskDetail: 'Run the Xicheng Qdrant collection smoke and provide its secret-safe evidence file.',
-    requiredEvidence: 'Release evidence records qdrantEvidenceFile text and image collection metadata from XICHENG_QDRANT_SMOKE_READY evidence.',
+    requiredEvidence: 'Release evidence records qdrantEvidenceFile and text collection metadata from XICHENG_QDRANT_SMOKE_READY evidence; image collection metadata is optional for P2.',
     verificationCommand: 'npm run xunjing:qdrant:smoke -- --env-file /secure/path/production.env --evidence-file qa/xicheng-qdrant-smoke-evidence.json'
   },
   'embedding-provider-smoke': {

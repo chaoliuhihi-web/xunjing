@@ -92,7 +92,6 @@ const requiredEmbeddingEvidenceChecks = [
 const requiredQdrantEvidenceChecks = [
   'qdrant-request',
   'qdrant-text-collection',
-  'qdrant-image-collection',
   'secret-redaction'
 ]
 
@@ -167,7 +166,6 @@ const requiredProductionEnvKeys = [
   'QDRANT_GRPC_PORT',
   'QDRANT_API_KEY',
   'QDRANT_TEXT_COLLECTION',
-  'QDRANT_IMAGE_COLLECTION',
   'QWEN_API_KEY',
   'QWEN_BASE_URL',
   'QWEN_MODEL',
@@ -765,6 +763,7 @@ async function checkQdrantSmokeEvidence({ rootDir, qdrantEvidencePath, env, fres
   const expectedTextCollection = String(env.QDRANT_TEXT_COLLECTION || '').trim()
   const expectedImageCollection = String(env.QDRANT_IMAGE_COLLECTION || '').trim()
   const ref = await loadEvidenceInput(rootDir, qdrantEvidencePath)
+  const refSummary = evidenceSummary(ref.data)
 
   if (!ref.path) {
     blockers.push('Qdrant smoke evidence is required before production release')
@@ -786,7 +785,14 @@ async function checkQdrantSmokeEvidence({ rootDir, qdrantEvidencePath, env, fres
     if (hasValue(expectedTextCollection) && String(summary.textCollection || '') !== expectedTextCollection) {
       blockers.push('Qdrant smoke evidence textCollection must match QDRANT_TEXT_COLLECTION')
     }
-    if (hasValue(expectedImageCollection) && String(summary.imageCollection || '') !== expectedImageCollection) {
+    const hasImageCollectionEvidence = hasValue(summary.imageCollection) ||
+      Number(summary.imageCollectionHttpStatus || 0) > 0 ||
+      hasValue(summary.imageCollectionStatus)
+    if (
+      hasImageCollectionEvidence &&
+      hasValue(expectedImageCollection) &&
+      String(summary.imageCollection || '') !== expectedImageCollection
+    ) {
       blockers.push('Qdrant smoke evidence imageCollection must match QDRANT_IMAGE_COLLECTION')
     }
     if (expectedEndpoint && String(summary.providerSmokeHost || '') !== expectedEndpoint.host) {
@@ -798,13 +804,16 @@ async function checkQdrantSmokeEvidence({ rootDir, qdrantEvidencePath, env, fres
     if (Number(summary.textCollectionHttpStatus || 0) < 200 || Number(summary.textCollectionHttpStatus || 0) >= 300) {
       blockers.push('Qdrant smoke evidence textCollectionHttpStatus must be 2xx')
     }
-    if (Number(summary.imageCollectionHttpStatus || 0) < 200 || Number(summary.imageCollectionHttpStatus || 0) >= 300) {
+    if (
+      hasImageCollectionEvidence &&
+      (Number(summary.imageCollectionHttpStatus || 0) < 200 || Number(summary.imageCollectionHttpStatus || 0) >= 300)
+    ) {
       blockers.push('Qdrant smoke evidence imageCollectionHttpStatus must be 2xx')
     }
     if (String(summary.textCollectionStatus || '') !== 'green') {
       blockers.push('Qdrant smoke evidence textCollectionStatus must be green')
     }
-    if (String(summary.imageCollectionStatus || '') !== 'green') {
+    if (hasImageCollectionEvidence && String(summary.imageCollectionStatus || '') !== 'green') {
       blockers.push('Qdrant smoke evidence imageCollectionStatus must be green')
     }
     blockers.push(...checkEvidenceChecks(evidence, requiredQdrantEvidenceChecks, 'Qdrant smoke'))
@@ -817,6 +826,27 @@ async function checkQdrantSmokeEvidence({ rootDir, qdrantEvidencePath, env, fres
     }
   }
 
+  const summary = {
+    qdrantEvidenceFile: ref.path,
+    qdrantCheckedAt: ref.data?.checkedAt,
+    qdrantProviderSmokeCheckedAt: refSummary.providerSmokeCheckedAt,
+    qdrantProviderSmokeHost: refSummary.providerSmokeHost,
+    qdrantProviderSmokeEndpointPath: refSummary.providerSmokeEndpointPath,
+    qdrantTextCollection: refSummary.textCollection,
+    qdrantTextCollectionHttpStatus: refSummary.textCollectionHttpStatus,
+    qdrantTextCollectionStatus: refSummary.textCollectionStatus,
+    qdrantTextCollectionPointsCount: refSummary.textCollectionPointsCount
+  }
+  const hasRefImageCollectionEvidence = hasValue(refSummary.imageCollection) ||
+    Number(refSummary.imageCollectionHttpStatus || 0) > 0 ||
+    hasValue(refSummary.imageCollectionStatus)
+  if (hasRefImageCollectionEvidence) {
+    summary.qdrantImageCollection = refSummary.imageCollection
+    summary.qdrantImageCollectionHttpStatus = refSummary.imageCollectionHttpStatus
+    summary.qdrantImageCollectionStatus = refSummary.imageCollectionStatus
+    summary.qdrantImageCollectionPointsCount = refSummary.imageCollectionPointsCount
+  }
+
   return {
     ...check(
       'qdrant-vector-store',
@@ -826,21 +856,7 @@ async function checkQdrantSmokeEvidence({ rootDir, qdrantEvidencePath, env, fres
         : blockers.join('; '),
       blockers
     ),
-    summary: {
-      qdrantEvidenceFile: ref.path,
-      qdrantCheckedAt: ref.data?.checkedAt,
-      qdrantProviderSmokeCheckedAt: evidenceSummary(ref.data).providerSmokeCheckedAt,
-      qdrantProviderSmokeHost: evidenceSummary(ref.data).providerSmokeHost,
-      qdrantProviderSmokeEndpointPath: evidenceSummary(ref.data).providerSmokeEndpointPath,
-      qdrantTextCollection: evidenceSummary(ref.data).textCollection,
-      qdrantImageCollection: evidenceSummary(ref.data).imageCollection,
-      qdrantTextCollectionHttpStatus: evidenceSummary(ref.data).textCollectionHttpStatus,
-      qdrantImageCollectionHttpStatus: evidenceSummary(ref.data).imageCollectionHttpStatus,
-      qdrantTextCollectionStatus: evidenceSummary(ref.data).textCollectionStatus,
-      qdrantImageCollectionStatus: evidenceSummary(ref.data).imageCollectionStatus,
-      qdrantTextCollectionPointsCount: evidenceSummary(ref.data).textCollectionPointsCount,
-      qdrantImageCollectionPointsCount: evidenceSummary(ref.data).imageCollectionPointsCount
-    }
+    summary
   }
 }
 

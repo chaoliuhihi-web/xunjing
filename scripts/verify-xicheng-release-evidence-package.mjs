@@ -1162,11 +1162,14 @@ function checkReleaseProviderSmokeSummary(evidence) {
   }
   checkNonLocalHostSummary(summary, 'aiBootstrapProviderSmokeHost', 'release evidence', blockers)
 
-  for (const field of ['qdrantEvidenceFile', 'qdrantTextCollection', 'qdrantImageCollection']) {
+  for (const field of ['qdrantEvidenceFile', 'qdrantTextCollection']) {
     if (!hasText(summary[field])) {
       blockers.push(`release evidence ${field} is required`)
     }
   }
+  const hasQdrantImageSummary = hasText(summary.qdrantImageCollection) ||
+    Number(summary.qdrantImageCollectionHttpStatus || 0) > 0 ||
+    hasText(summary.qdrantImageCollectionStatus)
   checkNonLocalHostSummary(summary, 'qdrantProviderSmokeHost', 'release evidence', blockers)
   if (String(summary.qdrantProviderSmokeEndpointPath || '') !== '/collections') {
     blockers.push('release evidence qdrantProviderSmokeEndpointPath must be /collections')
@@ -1174,13 +1177,16 @@ function checkReleaseProviderSmokeSummary(evidence) {
   if (Number(summary.qdrantTextCollectionHttpStatus || 0) < 200 || Number(summary.qdrantTextCollectionHttpStatus || 0) >= 300) {
     blockers.push('release evidence qdrantTextCollectionHttpStatus must be 2xx')
   }
-  if (Number(summary.qdrantImageCollectionHttpStatus || 0) < 200 || Number(summary.qdrantImageCollectionHttpStatus || 0) >= 300) {
+  if (
+    hasQdrantImageSummary &&
+    (Number(summary.qdrantImageCollectionHttpStatus || 0) < 200 || Number(summary.qdrantImageCollectionHttpStatus || 0) >= 300)
+  ) {
     blockers.push('release evidence qdrantImageCollectionHttpStatus must be 2xx')
   }
   if (String(summary.qdrantTextCollectionStatus || '') !== 'green') {
     blockers.push('release evidence qdrantTextCollectionStatus must be green')
   }
-  if (String(summary.qdrantImageCollectionStatus || '') !== 'green') {
+  if (hasQdrantImageSummary && String(summary.qdrantImageCollectionStatus || '') !== 'green') {
     blockers.push('release evidence qdrantImageCollectionStatus must be green')
   }
 

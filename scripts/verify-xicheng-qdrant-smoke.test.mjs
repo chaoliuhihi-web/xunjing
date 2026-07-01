@@ -87,6 +87,64 @@ describe('Xicheng Qdrant smoke verifier', () => {
     expect(JSON.stringify(smoke)).not.toContain(env.QDRANT_API_KEY)
   })
 
+  test('keeps image collection optional for P0 text-vector smoke evidence', async () => {
+    const textOnlyEnv = {
+      ...env,
+      QDRANT_IMAGE_COLLECTION: ''
+    }
+    const calls = []
+    const smoke = await checkQdrantProviderSmoke({
+      env: textOnlyEnv,
+      checkedAt: '2026-06-29T06:30:00.000Z',
+      nowMs: (() => {
+        let now = 1000
+        return () => {
+          now += 25
+          return now
+        }
+      })(),
+      fetchImpl: async (url, options) => {
+        calls.push({ url, options })
+        expect(options.headers['api-key']).toBe(env.QDRANT_API_KEY)
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            result: {
+              status: 'green',
+              points_count: 128
+            }
+          })
+        }
+      }
+    })
+
+    expect(calls.map((call) => new URL(call.url).pathname)).toEqual([
+      '/collections/xinghe_xunjing_text_production'
+    ])
+    expect(smoke).toMatchObject({
+      providerSmokeHost: 'qdrant.xingheai.net',
+      textCollection: 'xinghe_xunjing_text_production',
+      textCollectionHttpStatus: 200,
+      textCollectionStatus: 'green',
+      textCollectionPointsCount: 128
+    })
+    expect(smoke).not.toHaveProperty('imageCollection')
+
+    const evidence = buildQdrantSmokeEvidence({
+      env: textOnlyEnv,
+      providerSmoke: smoke,
+      checkedAt: '2026-06-29T06:30:00.000Z'
+    })
+    expect(evidence.summary).not.toHaveProperty('imageCollection')
+    expect(evidence.checks.map((check) => check.name)).toEqual([
+      'qdrant-request',
+      'qdrant-text-collection',
+      'secret-redaction'
+    ])
+    expect(JSON.stringify(evidence)).not.toContain(env.QDRANT_API_KEY)
+  })
+
   test('builds release-gate evidence that proves Qdrant collections are reachable and redacts secrets', () => {
     const evidence = buildQdrantSmokeEvidence({
       env,

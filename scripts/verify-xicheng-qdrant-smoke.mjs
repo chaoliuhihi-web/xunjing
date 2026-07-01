@@ -7,9 +7,9 @@ const allowedEvidenceDirs = new Set(['qa', 'tmp', 'workbench'])
 const requiredKeys = [
   'QDRANT_URL',
   'QDRANT_API_KEY',
-  'QDRANT_TEXT_COLLECTION',
-  'QDRANT_IMAGE_COLLECTION'
+  'QDRANT_TEXT_COLLECTION'
 ]
+const optionalKeys = ['QDRANT_IMAGE_COLLECTION']
 const placeholderTokens = [
   'replace-with',
   'placeholder',
@@ -68,6 +68,11 @@ export function validateQdrantEnv(env, { allowLocal = false } = {}) {
   for (const key of requiredKeys) {
     if (isPlaceholderValue(env[key])) {
       throw new Error(`${key} must be configured with a real value`)
+    }
+  }
+  for (const key of optionalKeys) {
+    if (hasText(env[key]) && isPlaceholderValue(env[key])) {
+      throw new Error(`${key} must be configured with a real value when provided`)
     }
   }
   const endpoint = qdrantUrl(env.QDRANT_URL)
@@ -131,27 +136,29 @@ export async function checkQdrantProviderSmoke({
     collectionName: textCollection,
     label: 'Qdrant text collection smoke'
   })
-  const imageSmoke = await fetchCollection({
-    env,
-    fetchImpl,
-    collectionName: imageCollection,
-    label: 'Qdrant image collection smoke'
-  })
-
-  return {
+  const result = {
     checkedAt,
     providerSmokeHost: endpoint.host,
     providerSmokeEndpointPath: '/collections',
     textCollection,
-    imageCollection,
     textCollectionHttpStatus: textSmoke.httpStatus,
-    imageCollectionHttpStatus: imageSmoke.httpStatus,
     textCollectionStatus: textSmoke.status,
-    imageCollectionStatus: imageSmoke.status,
     textCollectionPointsCount: textSmoke.pointsCount,
-    imageCollectionPointsCount: imageSmoke.pointsCount,
     latencyMs: Math.max(0, nowMs() - startedAt)
   }
+  if (hasText(imageCollection)) {
+    const imageSmoke = await fetchCollection({
+      env,
+      fetchImpl,
+      collectionName: imageCollection,
+      label: 'Qdrant image collection smoke'
+    })
+    result.imageCollection = imageCollection
+    result.imageCollectionHttpStatus = imageSmoke.httpStatus
+    result.imageCollectionStatus = imageSmoke.status
+    result.imageCollectionPointsCount = imageSmoke.pointsCount
+  }
+  return result
 }
 
 export function buildQdrantSmokeEvidence({
@@ -159,72 +166,88 @@ export function buildQdrantSmokeEvidence({
   providerSmoke,
   checkedAt = new Date().toISOString()
 }) {
+  const hasImageSmoke = hasText(providerSmoke?.imageCollection) ||
+    Number(providerSmoke?.imageCollectionHttpStatus || 0) > 0 ||
+    hasText(providerSmoke?.imageCollectionStatus)
   if (
     !providerSmoke ||
     Number(providerSmoke.textCollectionHttpStatus || 0) < 200 ||
-    Number(providerSmoke.textCollectionHttpStatus || 0) >= 300 ||
-    Number(providerSmoke.imageCollectionHttpStatus || 0) < 200 ||
-    Number(providerSmoke.imageCollectionHttpStatus || 0) >= 300
+    Number(providerSmoke.textCollectionHttpStatus || 0) >= 300
   ) {
-    throw new Error('Qdrant collection smoke evidence is required before building evidence')
+    throw new Error('Qdrant text collection smoke evidence is required before building evidence')
   }
+  if (
+    hasImageSmoke &&
+    (
+      Number(providerSmoke.imageCollectionHttpStatus || 0) < 200 ||
+      Number(providerSmoke.imageCollectionHttpStatus || 0) >= 300
+    )
+  ) {
+    throw new Error('Qdrant image collection smoke evidence must be 2xx when provided')
+  }
+  const summary = {
+    providerSmokeCheckedAt: providerSmoke.checkedAt,
+    providerSmokeHost: providerSmoke.providerSmokeHost,
+    providerSmokeEndpointPath: providerSmoke.providerSmokeEndpointPath,
+    textCollection: providerSmoke.textCollection,
+    textCollectionHttpStatus: providerSmoke.textCollectionHttpStatus,
+    textCollectionStatus: providerSmoke.textCollectionStatus,
+    textCollectionPointsCount: providerSmoke.textCollectionPointsCount,
+    providerSmokeLatencyMs: providerSmoke.latencyMs
+  }
+  if (hasImageSmoke) {
+    summary.imageCollection = providerSmoke.imageCollection
+    summary.imageCollectionHttpStatus = providerSmoke.imageCollectionHttpStatus
+    summary.imageCollectionStatus = providerSmoke.imageCollectionStatus
+    summary.imageCollectionPointsCount = providerSmoke.imageCollectionPointsCount
+  }
+  const checks = [
+    {
+      name: 'qdrant-request',
+      ok: true,
+      detail: 'Configured Qdrant received authenticated collection requests',
+      blockers: []
+    },
+    {
+      name: 'qdrant-text-collection',
+      ok: true,
+      detail: 'Configured Qdrant text collection is reachable',
+      summary: {
+        collection: providerSmoke.textCollection,
+        httpStatus: providerSmoke.textCollectionHttpStatus,
+        status: providerSmoke.textCollectionStatus,
+        pointsCount: providerSmoke.textCollectionPointsCount
+      },
+      blockers: []
+    }
+  ]
+  if (hasImageSmoke) {
+    checks.push({
+      name: 'qdrant-image-collection',
+      ok: true,
+      detail: 'Configured Qdrant image collection is reachable',
+      summary: {
+        collection: providerSmoke.imageCollection,
+        httpStatus: providerSmoke.imageCollectionHttpStatus,
+        status: providerSmoke.imageCollectionStatus,
+        pointsCount: providerSmoke.imageCollectionPointsCount
+      },
+      blockers: []
+    })
+  }
+  checks.push({
+    name: 'secret-redaction',
+    ok: true,
+    detail: 'Evidence excludes Qdrant API key and provider secrets',
+    blockers: []
+  })
   const evidence = {
     artifactType: 'xicheng-qdrant-smoke',
     ok: true,
     status: 'XICHENG_QDRANT_SMOKE_READY',
     checkedAt,
-    summary: {
-      providerSmokeCheckedAt: providerSmoke.checkedAt,
-      providerSmokeHost: providerSmoke.providerSmokeHost,
-      providerSmokeEndpointPath: providerSmoke.providerSmokeEndpointPath,
-      textCollection: providerSmoke.textCollection,
-      imageCollection: providerSmoke.imageCollection,
-      textCollectionHttpStatus: providerSmoke.textCollectionHttpStatus,
-      imageCollectionHttpStatus: providerSmoke.imageCollectionHttpStatus,
-      textCollectionStatus: providerSmoke.textCollectionStatus,
-      imageCollectionStatus: providerSmoke.imageCollectionStatus,
-      textCollectionPointsCount: providerSmoke.textCollectionPointsCount,
-      imageCollectionPointsCount: providerSmoke.imageCollectionPointsCount,
-      providerSmokeLatencyMs: providerSmoke.latencyMs
-    },
-    checks: [
-      {
-        name: 'qdrant-request',
-        ok: true,
-        detail: 'Configured Qdrant received authenticated collection requests',
-        blockers: []
-      },
-      {
-        name: 'qdrant-text-collection',
-        ok: true,
-        detail: 'Configured Qdrant text collection is reachable',
-        summary: {
-          collection: providerSmoke.textCollection,
-          httpStatus: providerSmoke.textCollectionHttpStatus,
-          status: providerSmoke.textCollectionStatus,
-          pointsCount: providerSmoke.textCollectionPointsCount
-        },
-        blockers: []
-      },
-      {
-        name: 'qdrant-image-collection',
-        ok: true,
-        detail: 'Configured Qdrant image collection is reachable',
-        summary: {
-          collection: providerSmoke.imageCollection,
-          httpStatus: providerSmoke.imageCollectionHttpStatus,
-          status: providerSmoke.imageCollectionStatus,
-          pointsCount: providerSmoke.imageCollectionPointsCount
-        },
-        blockers: []
-      },
-      {
-        name: 'secret-redaction',
-        ok: true,
-        detail: 'Evidence excludes Qdrant API key and provider secrets',
-        blockers: []
-      }
-    ],
+    summary,
+    checks,
     blockers: []
   }
   const serialized = JSON.stringify(evidence)
