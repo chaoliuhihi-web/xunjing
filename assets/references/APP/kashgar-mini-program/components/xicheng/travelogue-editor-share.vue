@@ -112,14 +112,18 @@
 				<xicheng-icon name="edit" variant="plain" :size="20" />
 			</view>
 			<view class="editor-tag-row">
-				<text
+				<view
 					v-for="tag in tagChips"
 					:key="tag"
 					class="editor-tag-chip"
 				>
-					{{ tag }} ×
-				</text>
-				<text class="editor-tag-chip editor-tag-add">+ 添加标签</text>
+					<text class="editor-tag-text">{{ tag }}</text>
+					<xicheng-icon name="close" variant="plain" :size="10" />
+				</view>
+				<view class="editor-tag-chip editor-tag-add">
+					<xicheng-icon name="plus" variant="plain" :size="14" />
+					<text>添加标签</text>
+				</view>
 			</view>
 		</view>
 
@@ -551,12 +555,17 @@ export default {
 }
 
 .editor-tag-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 8rpx;
+	min-height: 54rpx;
 	padding: 10rpx 18rpx;
 	border-radius: 999rpx;
 	background: rgba(181, 148, 94, 0.12);
 	font-size: 24rpx;
 	line-height: 1.35;
 	color: #173F35;
+	box-sizing: border-box;
 }
 
 .editor-tag-add {

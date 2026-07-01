@@ -27,7 +27,7 @@ for (const required of [
   '我的感受',
   '小京补充',
   '资料来源：已核实',
-  '+ 添加标签',
+  '添加标签',
   '保存草稿',
   '生成分享图',
   '发布'
@@ -47,6 +47,24 @@ for (const required of [
 ]) {
   assert.ok(editorShare.includes(required), `Travelogue editor share should use shared icon token: ${required}`)
 }
+
+assert.match(
+  editorShare,
+  /class="editor-tag-chip"[\s\S]*<text class="editor-tag-text">\{\{ tag \}\}<\/text>[\s\S]*<xicheng-icon name="close"/,
+  'Travelogue editor tag chips should use a shared close icon instead of a handwritten × glyph'
+)
+
+assert.match(
+  editorShare,
+  /class="editor-tag-chip editor-tag-add"[\s\S]*<xicheng-icon name="plus"[\s\S]*<text>添加标签<\/text>/,
+  'Travelogue editor add-tag affordance should use the shared plus icon and text separately'
+)
+
+assert.doesNotMatch(
+  editorShare,
+  /\{\{\s*tag\s*\}\}\s*×|\+\s*添加标签/,
+  'Travelogue editor tag controls should not hand-write structural × or + glyphs'
+)
 
 assert.doesNotMatch(
   editorShare,
