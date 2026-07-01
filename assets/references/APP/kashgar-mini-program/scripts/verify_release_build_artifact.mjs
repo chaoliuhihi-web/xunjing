@@ -68,6 +68,7 @@ const forbiddenPatterns = [
   { name: '192.168 LAN host', pattern: /\b192\.168\.\d{1,3}\.\d{1,3}\b/ },
   { name: '10.x LAN host', pattern: /\b10\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/ },
   { name: '172.16-31 LAN host', pattern: /\b172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}\b/ },
+  { name: '169.254 link-local host', pattern: /\b169\.254\.\d{1,3}\.\d{1,3}\b/ },
   { name: 'private/link-local IPv6 host', pattern: /https?:\/\/\[(?:::|::1|f[cd][0-9a-f]{0,2}:|fe[89ab][0-9a-f]:)/i },
   { name: 'XICHENG_DEVELOPMENT_TRIGGER_FIXTURE', pattern: /XICHENG_DEVELOPMENT_TRIGGER_FIXTURE/ },
   { name: 'VITE_XUNJING_H5_PROXY_TARGET', pattern: /VITE_XUNJING_H5_PROXY_TARGET/ },
