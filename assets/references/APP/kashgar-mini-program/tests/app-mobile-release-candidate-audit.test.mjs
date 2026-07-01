@@ -424,7 +424,7 @@ fs.writeFileSync(nativePath, `${JSON.stringify(makeNativeEvidence({
   evidenceDir: scenarioEvidenceDir
 }), null, 2)}\n`)
 
-const readyResult = runAudit([
+const skippedRemoteParityResult = runAudit([
   '--preprod-evidence',
   preprodPath,
   '--native-evidence',
@@ -435,6 +435,32 @@ const readyResult = runAudit([
 ], {
   XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
   XUNJING_TENANT_ID: '1'
+})
+assert.notEqual(
+  skippedRemoteParityResult.status,
+  0,
+  'release candidate audit should not allow GO when remote parity is skipped without an explicit test bypass'
+)
+const skippedRemoteParityAudit = parseAuditJson(skippedRemoteParityResult)
+assert.equal(skippedRemoteParityAudit.status, 'NO_GO')
+assert.equal(skippedRemoteParityAudit.gates.git.ok, false)
+assert.ok(
+  skippedRemoteParityAudit.blockers.some((blocker) => blocker.code === 'git-remote-parity-skipped'),
+  'release candidate audit should name skipped remote parity as a launch blocker'
+)
+
+const readyResult = runAudit([
+  '--preprod-evidence',
+  preprodPath,
+  '--native-evidence',
+  nativePath,
+  '--release-artifact',
+  artifactDescription.artifact,
+  '--skip-remote-parity'
+], {
+  XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
+  XUNJING_TENANT_ID: '1',
+  XUNJING_RELEASE_AUDIT_ALLOW_TEST_BYPASS: '1'
 })
 assert.equal(readyResult.status, 0, `release candidate audit should pass with complete matching evidence: ${readyResult.stderr || readyResult.stdout}`)
 const readyAudit = parseAuditJson(readyResult)

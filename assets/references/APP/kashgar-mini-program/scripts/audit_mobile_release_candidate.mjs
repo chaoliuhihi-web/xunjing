@@ -119,6 +119,8 @@ const blockers = []
 const warnings = []
 const gates = {}
 const skipRemoteParity = hasFlag('--skip-remote-parity') || process.env.XUNJING_SKIP_REMOTE_PARITY === '1'
+const allowTestBypass = process.env.XUNJING_RELEASE_AUDIT_ALLOW_TEST_BYPASS === '1'
+const remoteParitySkippedWithoutBypass = skipRemoteParity && !allowTestBypass
 const remoteRefs = String(process.env.XUNJING_RELEASE_AUDIT_REMOTE_REFS || 'github/feature/xicheng-p0,origin/feature/xicheng-p0')
   .split(',')
   .map((remoteRef) => remoteRef.trim())
@@ -126,11 +128,20 @@ const remoteRefs = String(process.env.XUNJING_RELEASE_AUDIT_REMOTE_REFS || 'gith
 const remoteParityResults = remoteRefs.map((remoteRef) => remoteParity(remoteRef))
 
 gates.git = {
-  ok: Boolean(currentHead) && (skipRemoteParity || remoteParityResults.every((remote) => remote.ok)),
+  ok: Boolean(currentHead) && !remoteParitySkippedWithoutBypass && (skipRemoteParity || remoteParityResults.every((remote) => remote.ok)),
   branch: currentBranch,
   commit: currentHead,
   skipRemoteParity,
+  testBypass: allowTestBypass,
   remotes: remoteParityResults
+}
+if (remoteParitySkippedWithoutBypass) {
+  addBlocker(
+    blockers,
+    'git-remote-parity-skipped',
+    'Remote parity was skipped, so the release candidate cannot prove GitHub/Gitee consistency',
+    'Run npm run audit:release:candidate without --skip-remote-parity or XUNJING_SKIP_REMOTE_PARITY before release'
+  )
 }
 for (const remote of gates.git.remotes) {
   if (!skipRemoteParity && !remote.ok) {
