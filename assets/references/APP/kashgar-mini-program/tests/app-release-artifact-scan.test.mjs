@@ -31,6 +31,10 @@ for (const required of [
   'APK',
   'localhost',
   'XICHENG_DEVELOPMENT_TRIGGER_FIXTURE',
+  'sk-',
+  'pat_',
+  'AKIA',
+  '真实 token',
   'release 构建产物'
 ]) {
   assert.ok(releaseChecklist.includes(required), `Release checklist should mention release artifact scan item ${required}`)
@@ -126,6 +130,35 @@ for (const [label, content, expectedMessage] of [
     `release artifact scanner should explain rejection for ${label}`
   )
 }
+
+for (const [label, content] of [
+  ['OpenAI-style secret key', `const key="sk-${'a'.repeat(32)}";`],
+  ['GitHub/Gitee PAT token', `const pat="pat_${'A'.repeat(32)}";`],
+  ['GitHub token', `const ghp="ghp_${'B'.repeat(36)}";`],
+  ['AWS access key id', 'const aws="AKIAABCDEFGHIJKLMNOP";'],
+  ['Coze API token marker', `const COZE_API_TOKEN="coze_${'c'.repeat(32)}";`],
+  ['Qwen API token marker', `const QWEN_API_KEY="qwen_${'d'.repeat(32)}";`]
+]) {
+  const artifactDir = makeArtifactDir({ 'assets/index.js': content })
+  const result = runScanner(artifactDir)
+  assert.notEqual(result.status, 0, `release artifact scanner should reject ${label}`)
+  assert.match(
+    `${result.stderr}\n${result.stdout}`,
+    /secret|token|credential|密钥|令牌/i,
+    `release artifact scanner should explain credential rejection for ${label}`
+  )
+}
+
+const apkWithSecret = makeZipArtifact({
+  'assets/index.js': `const key="sk-${'e'.repeat(32)}";`
+})
+const apkSecretResult = runScanner(apkWithSecret)
+assert.notEqual(apkSecretResult.status, 0, 'release artifact scanner should reject secrets inside APK/ZIP artifacts')
+assert.match(
+  `${apkSecretResult.stderr}\n${apkSecretResult.stdout}`,
+  /secret|token|credential|APK|ZIP|archive|密钥|令牌/i,
+  'release artifact scanner should explain credential rejection inside APK/ZIP artifacts'
+)
 
 const apkWithLocalGateway = makeZipArtifact({
   'assets/index.js': 'const apiBase="http://localhost:48082/app-api/xunjing";'

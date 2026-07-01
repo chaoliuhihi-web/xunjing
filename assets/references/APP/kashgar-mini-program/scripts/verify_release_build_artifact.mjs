@@ -56,7 +56,14 @@ const forbiddenPatterns = [
   { name: '172.16-31 LAN host', pattern: /\b172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}\b/ },
   { name: 'XICHENG_DEVELOPMENT_TRIGGER_FIXTURE', pattern: /XICHENG_DEVELOPMENT_TRIGGER_FIXTURE/ },
   { name: 'VITE_XUNJING_H5_PROXY_TARGET', pattern: /VITE_XUNJING_H5_PROXY_TARGET/ },
-  { name: 'XUNJING_LOCAL_APP_API_BASE_URL', pattern: /XUNJING_LOCAL_APP_API_BASE_URL/ }
+  { name: 'XUNJING_LOCAL_APP_API_BASE_URL', pattern: /XUNJING_LOCAL_APP_API_BASE_URL/ },
+  { name: 'OpenAI-style secret key', pattern: /\bsk-[A-Za-z0-9_-]{20,}\b/ },
+  { name: 'GitHub/Gitee PAT token', pattern: /\b(?:pat|ghp|github_pat)_[A-Za-z0-9_]{20,}\b/ },
+  { name: 'AWS access key id credential', pattern: /\bAKIA[0-9A-Z]{16}\b/ },
+  {
+    name: 'AI provider API token marker',
+    pattern: /\b(?:COZE|QWEN|DASHSCOPE|OPENAI)[A-Z0-9_]*(?:KEY|TOKEN)\b\s*[:=]\s*["'][^"']{12,}["']/i
+  }
 ]
 
 const collectFiles = (dir) => {
