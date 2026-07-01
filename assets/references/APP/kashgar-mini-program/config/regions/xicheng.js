@@ -39,6 +39,7 @@ const XICHENG_REGION_BASE_CONFIG = {
 	inspirationImportStorageKey: 'xicheng:inspirationImports',
 	recognitionFeedbackStorageKey: 'xicheng:recognitionFeedbacks',
 	visionAgentMemoryStorageKey: 'xicheng_vision_agent_memory_trail',
+	visionAgentMemorySessionStorageKey: 'xicheng_vision_agent_memory_session',
 	visionAgentServiceTasksStorageKey: 'xicheng_vision_agent_service_tasks',
 	aiGuideChatCachePrefix: 'ai_guide_messages_cache:xicheng:',
 	aiGuideConversationCachePrefix: 'ai_guide_conversation_id:xicheng:',
@@ -86,6 +87,7 @@ export const XICHENG_REGION_CONFIG = Object.freeze({
 			XICHENG_REGION_BASE_CONFIG.inspirationImportStorageKey,
 			XICHENG_REGION_BASE_CONFIG.recognitionFeedbackStorageKey,
 			XICHENG_REGION_BASE_CONFIG.visionAgentMemoryStorageKey,
+			XICHENG_REGION_BASE_CONFIG.visionAgentMemorySessionStorageKey,
 			XICHENG_REGION_BASE_CONFIG.visionAgentServiceTasksStorageKey
 		]),
 	privacyClearStorageKeyPrefixes: Object.freeze([

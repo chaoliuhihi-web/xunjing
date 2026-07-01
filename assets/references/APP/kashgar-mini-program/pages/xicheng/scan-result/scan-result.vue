@@ -84,6 +84,16 @@
 					<text class="vision-agent-memory-copy">{{ item.copy }}</text>
 				</view>
 			</view>
+			<view v-if="visionAgentMemorySessionPackage" class="vision-agent-memory-session">
+				<view class="vision-agent-memory-session-head">
+					<text class="vision-agent-memory-session-title">AI识境连续会话包</text>
+					<text class="vision-agent-memory-session-count">{{ visionAgentMemorySessionPackage.sceneCount }} 次识境</text>
+				</view>
+				<text class="vision-agent-memory-session-copy">{{ visionAgentMemorySessionPackage.poiTrailText }}</text>
+				<text class="vision-agent-memory-session-copy">{{ visionAgentMemorySessionPackage.continuityCueText }}</text>
+				<text class="vision-agent-memory-session-copy">{{ visionAgentMemorySessionPackage.domainContinuityText }}</text>
+				<text class="vision-agent-memory-session-copy">{{ visionAgentMemorySessionPackage.serviceContinuityText }}</text>
+			</view>
 		</view>
 
 		<view class="vision-agent-panel xicheng-paper-card">
@@ -879,10 +889,16 @@ export default {
 					title: nextQuestion,
 					copy: currentSnapshot.knowledgeGraphText || currentSnapshot.serviceText || '进入小京后继续追问历史、路线和服务。',
 					active: !this.recognitionActionBlocked
-				}
-			]
-		}
-	},
+					}
+				]
+			},
+			visionAgentMemorySessionPackage() {
+				return this.createVisionAgentMemorySessionPackage(
+					this.readVisionAgentMemoryTrail(),
+					this.createVisionAgentMemorySnapshot('current')
+				)
+			}
+		},
 	onLoad(options = {}) {
 		const cached = uni.getStorageSync(XICHENG_REGION_CONFIG.storageKey)
 		const mergedRouteOptions = mergeXichengScanResultRouteOptions(options)
@@ -1226,6 +1242,49 @@ export default {
 			const prompt = this.createKnowledgeGraphNodePrompt(node)
 			this.askXiaojing(prompt)
 		},
+		createVisionAgentMemorySessionPackage(memoryTrail = [], currentSnapshot = null) {
+			const rawSnapshots = [
+				currentSnapshot,
+				...(Array.isArray(memoryTrail) ? memoryTrail : [])
+			].filter(snapshot => {
+				if (!snapshot || typeof snapshot !== 'object') return false
+				const safetyStatus = normalizeXichengSafetyStatus(snapshot.safetyStatus)
+				if (isXichengUnsafeSafetyStatus(safetyStatus)) return false
+				return Boolean(snapshot.poiCode || snapshot.poiName)
+			})
+			const seenSnapshotKeys = new Set()
+			const sessionSnapshots = rawSnapshots.filter(snapshot => {
+				const snapshotKey = `${snapshot.poiCode || snapshot.poiName}-${snapshot.source || ''}`
+				if (!snapshotKey || seenSnapshotKeys.has(snapshotKey)) return false
+				seenSnapshotKeys.add(snapshotKey)
+				return true
+			}).slice(0, 8)
+			if (sessionSnapshots.length === 0) return null
+			const uniqueTexts = (items = [], limit = 6) => Array.from(new Set(
+				items.flat().map(item => String(item || '').trim()).filter(Boolean)
+			)).slice(0, limit)
+			const poiNames = uniqueTexts(sessionSnapshots.map(snapshot => snapshot.poiName || snapshot.poiCode), 6)
+			const sceneDomainLabels = uniqueTexts(sessionSnapshots.map(snapshot => snapshot.sceneDomainLabels || []), 8)
+			const serviceIntentLabels = uniqueTexts(sessionSnapshots.map(snapshot => snapshot.serviceIntentLabels || []), 8)
+			const poiTrailText = poiNames.length > 0
+				? `连续识境路线：${poiNames.join(' → ')}。`
+				: '连续识境路线正在形成。'
+			const domainCue = sceneDomainLabels.length > 0 ? sceneDomainLabels.join('、') : '当前场景'
+			const serviceCue = serviceIntentLabels.length > 0 ? serviceIntentLabels.join('、') : '讲解、路线和游记'
+			return {
+				packageName: 'AI识境连续会话包',
+				sceneCount: sessionSnapshots.length,
+				poiNames,
+				sceneDomainLabels,
+				serviceIntentLabels,
+				poiTrailText,
+				continuityCueText: `小京会按这 ${sessionSnapshots.length} 次识境继续理解，不重新开始讲解。`,
+				domainContinuityText: `连续关注的场景领域：${domainCue}。`,
+				serviceContinuityText: `后续服务保持在${serviceCue}上接力。`,
+				nextQuestionText: this.suggestedQuestions[0] || `继续问${this.result.poiName || XICHENG_REGION_CONFIG.companionName}`,
+				updatedAt: new Date().toISOString()
+			}
+		},
 		createVisionAgentMemorySnapshot(stage = 'current') {
 			const visionContext = this.result.visionAgentContext || {}
 			return {
@@ -1245,6 +1304,8 @@ export default {
 				headingText: visionContext.headingText || '',
 				serviceText: visionContext.serviceText || '',
 				knowledgeGraphText: visionContext.knowledgeGraphText || '',
+				sceneDomainLabels: this.prioritizedSceneUnderstandingCards.map(card => card.domainLabel || card.domainKey).filter(Boolean).slice(0, 6),
+				serviceIntentLabels: this.prioritizedSceneServiceActions.map(action => this.serviceIntentLabel(action.serviceIntent || '') || action.title).filter(Boolean).slice(0, 6),
 				confidence: this.result.confidence || visionContext.confidence || '',
 				safetyStatus: normalizeXichengSafetyStatus(this.result.safetyStatus || visionContext.safetyStatus),
 				sourceRecognitionContext: visionContext.sourceRecognitionContext || '',
@@ -1266,6 +1327,10 @@ export default {
 				})
 			].slice(0, 24)
 			uni.setStorageSync(XICHENG_REGION_CONFIG.visionAgentMemoryStorageKey, nextMemoryTrail)
+			const memorySessionPackage = this.createVisionAgentMemorySessionPackage(nextMemoryTrail, snapshot)
+			if (memorySessionPackage) {
+				uni.setStorageSync(XICHENG_REGION_CONFIG.visionAgentMemorySessionStorageKey, memorySessionPackage)
+			}
 			return snapshot
 		},
 		isUnsafeCandidate(candidate = {}) {
@@ -1384,6 +1449,7 @@ export default {
 				sceneCode: this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode,
 				sourceChannel: this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
 				visionAgentContext: this.result.visionAgentContext || {},
+				memorySessionPackage: this.visionAgentMemorySessionPackage,
 				status: action.status || 'collected',
 				statusText: action.statusText || '已收进任务包',
 				createdAt: new Date().toISOString()
@@ -2487,6 +2553,50 @@ export default {
 	margin-top: 8rpx;
 	font-size: 21rpx;
 	color: rgba(255, 255, 255, 0.74);
+}
+
+.vision-agent-memory-session {
+	margin-top: 18rpx;
+	padding: 18rpx;
+	border: 1rpx solid rgba(255, 255, 255, 0.18);
+	border-radius: 22rpx;
+	background: rgba(255, 253, 248, 0.13);
+	box-sizing: border-box;
+}
+
+.vision-agent-memory-session-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 14rpx;
+	margin-bottom: 10rpx;
+}
+
+.vision-agent-memory-session-title,
+.vision-agent-memory-session-count,
+.vision-agent-memory-session-copy {
+	display: block;
+	min-width: 0;
+	line-height: 1.4;
+}
+
+.vision-agent-memory-session-title {
+	font-size: 25rpx;
+	font-weight: 800;
+	color: #FFFFFF;
+}
+
+.vision-agent-memory-session-count {
+	flex-shrink: 0;
+	font-size: 21rpx;
+	font-weight: 700;
+	color: rgba(255, 255, 255, 0.76);
+}
+
+.vision-agent-memory-session-copy {
+	margin-top: 7rpx;
+	font-size: 21rpx;
+	color: rgba(255, 255, 255, 0.76);
 }
 
 .vision-agent-knowledge-panel {

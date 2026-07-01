@@ -686,7 +686,8 @@ export const hasXichengTravelogueDraftEvidence = ({
 	studyTaskEvidence = [],
 	routeRecommendation = null,
 	routeCheckins = [],
-	visionAgentServiceTasks = []
+	visionAgentServiceTasks = [],
+	visionAgentMemorySessionPackage = null
 } = {}) => {
 	const hasMaterialEvidence = Array.isArray(materials) && materials.some(material => {
 		if (!material) return false
@@ -705,7 +706,8 @@ export const hasXichengTravelogueDraftEvidence = ({
 		&& routeCheckins.some(checkin => hasReviewableRouteCheckinEvidence(checkin))
 	const hasVisionAgentServiceTaskEvidence = Array.isArray(visionAgentServiceTasks)
 		&& visionAgentServiceTasks.some(task => hasReviewableVisionAgentServiceTaskEvidence(task))
-	return hasMaterialEvidence || hasTrackEvidence || hasStudyEvidence || hasRouteEvidence || hasRouteCheckinEvidence || hasVisionAgentServiceTaskEvidence
+	const hasVisionAgentMemorySessionEvidence = Boolean(visionAgentMemorySessionPackage && Number(visionAgentMemorySessionPackage.sceneCount || 0) > 0)
+	return hasMaterialEvidence || hasTrackEvidence || hasStudyEvidence || hasRouteEvidence || hasRouteCheckinEvidence || hasVisionAgentServiceTaskEvidence || hasVisionAgentMemorySessionEvidence
 }
 
 export const hasXichengReviewableWorkEvidence = ({
@@ -734,7 +736,8 @@ export const createXichengTravelogueDraft = ({
 	recordingSession = null,
 	studyTaskEvidence = [],
 	routeCheckins = [],
-	visionAgentServiceTasks = []
+	visionAgentServiceTasks = [],
+	visionAgentMemorySessionPackage = null
 } = {}) => {
 	if (!hasXichengTravelogueDraftEvidence({
 		materials,
@@ -742,7 +745,8 @@ export const createXichengTravelogueDraft = ({
 		recordingSession,
 		studyTaskEvidence,
 		routeCheckins,
-		visionAgentServiceTasks
+		visionAgentServiceTasks,
+		visionAgentMemorySessionPackage
 	})) {
 		return `请先通过识别、开始记录、补充照片或现场备注积累真实素材，再生成西城游记草稿。小京会基于真实照片、轨迹、识别事件、停留点、研学任务证据和用户备注整理内容，不会替用户编造路线。`
 	}
@@ -800,7 +804,10 @@ export const createXichengTravelogueDraft = ({
 	const visionAgentTaskText = visionAgentAutoTraveloguePackage
 		? `AI识境已收集 ${reviewableVisionAgentTasks.length} 个后续动作：${reviewableVisionAgentTasks.map(task => `${task.taskTypeLabel || '服务'}-${task.actionTitle || task.actionCopy || '现场任务'}`).join('；')}。${visionAgentAutoTraveloguePackage.storyCueText}${visionAgentAutoTraveloguePackage.mapCueText}${visionAgentAutoTraveloguePackage.shareCueText}`
 		: ''
-	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒。${trackText}${stayText}${photoText}${routeCheckinText}${remarkText}${studyTaskText}${aiGuideText}${visionAgentTaskText}这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
+	const visionAgentMemorySessionText = visionAgentMemorySessionPackage
+		? `AI识境连续会话包：${visionAgentMemorySessionPackage.continuityCueText || ''}${visionAgentMemorySessionPackage.poiTrailText || ''}${visionAgentMemorySessionPackage.domainContinuityText || ''}`
+		: ''
+	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒。${trackText}${stayText}${photoText}${routeCheckinText}${remarkText}${studyTaskText}${aiGuideText}${visionAgentTaskText}${visionAgentMemorySessionText}这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
 }
 
 const createEmptyRecordingSession = () => ({
@@ -948,19 +955,20 @@ export default {
 			travelogueTagChips: ['白塔寺', '什刹海', '胡同漫步'],
 			travelogueMode: 'draft',
 			activeTravelogueStyle: 'citywalk',
-				travelogueStyleOptions: [
-					{ key: 'family', title: '亲子研学' },
-					{ key: 'citywalk', title: '城市漫步' },
-					{ key: 'culture', title: '文化札记' }
-				],
-				studyTaskEvidence: [],
-				studyTaskDrafts: [],
-				badgeAwards: [],
-				routeCheckins: [],
-				inspirationImports: [],
-				recognitionFeedbacks: [],
-				visionAgentServiceTasks: [],
-				recordingSession: createEmptyRecordingSession()
+			travelogueStyleOptions: [
+				{ key: 'family', title: '亲子研学' },
+				{ key: 'citywalk', title: '城市漫步' },
+				{ key: 'culture', title: '文化札记' }
+			],
+			studyTaskEvidence: [],
+			studyTaskDrafts: [],
+			badgeAwards: [],
+			routeCheckins: [],
+			inspirationImports: [],
+			recognitionFeedbacks: [],
+			visionAgentServiceTasks: [],
+			visionAgentMemorySessionPackage: null,
+			recordingSession: createEmptyRecordingSession()
 			}
 		},
 	computed: {
@@ -1205,6 +1213,8 @@ export default {
 					aiGuideMaterialCount: this.aiGuideMaterialCount,
 					visionAgentServiceTaskCount: this.visionAgentServiceTaskCount,
 					visionAgentAutoTraveloguePackage: this.visionAgentAutoTraveloguePackage,
+					visionAgentMemorySessionPackage: this.visionAgentMemorySessionPackage,
+					visionAgentMemorySceneCount: this.visionAgentMemorySessionPackage?.sceneCount || 0,
 					visionAgentSceneDomainLabels: this.visionAgentAutoTraveloguePackage?.sceneDomainLabels || [],
 					visionAgentServiceIntentLabels: this.visionAgentAutoTraveloguePackage?.serviceIntentLabels || [],
 					shareCount: this.shareArtifacts.length,
@@ -1249,7 +1259,7 @@ export default {
 			return visualAssets.sharePosterBackground || visualAssets.heroLandmark || ''
 		},
 		hasTraveloguePreviewEvidence() {
-			return hasXichengTravelogueDraftEvidence({ materials: this.materials, routeRecommendation: this.recognizedRoute || this.importedRoute, recordingSession: this.recordingSession, studyTaskEvidence: this.studyTaskEvidence, routeCheckins: this.routeCheckins, visionAgentServiceTasks: this.visionAgentServiceTasks })
+			return hasXichengTravelogueDraftEvidence({ materials: this.materials, routeRecommendation: this.recognizedRoute || this.importedRoute, recordingSession: this.recordingSession, studyTaskEvidence: this.studyTaskEvidence, routeCheckins: this.routeCheckins, visionAgentServiceTasks: this.visionAgentServiceTasks, visionAgentMemorySessionPackage: this.visionAgentMemorySessionPackage })
 		},
 		summaryCards() {
 			const recognizedPoiName = this.materials.find(material => material && material.poiName)
@@ -1261,6 +1271,7 @@ export default {
 				{ key: 'route', label: '路线', value: routeTitle },
 				{ key: 'photo', label: '照片', value: `${this.photoMaterialCount} 张` },
 				{ key: 'qa', label: '问答', value: `${this.aiGuideMaterialCount} 条` },
+				{ key: 'memory', label: '连续识境', value: `${this.visionAgentMemorySessionPackage?.sceneCount || 0} 次` },
 				{ key: 'agent', label: 'AI识境任务', value: `${this.visionAgentServiceTaskCount} 项` }
 			]
 		},
@@ -1299,9 +1310,12 @@ export default {
 			const autoPackageSummary = autoPackage
 				? `${autoPackage.storyCueText}${autoPackage.mapCueText}`
 				: ''
+			const memorySessionSummary = this.visionAgentMemorySessionPackage
+				? `${this.visionAgentMemorySessionPackage.continuityCueText || ''}${this.visionAgentMemorySessionPackage.poiTrailText || ''}`
+				: ''
 			return previewNames.length > 0
-				? `${trackSummary}${taskSummary}${autoPackageSummary}已收集 ${previewNames.join('、')} 等真实地点素材，可按「${styleTitle}」整理成可编辑游记草稿。`
-				: `${trackSummary}${taskSummary}${autoPackageSummary}已收集照片、问答、研学任务、AI识境任务或现场备注，可按「${styleTitle}」生成西城游记草稿。`
+				? `${trackSummary}${taskSummary}${autoPackageSummary}${memorySessionSummary}已收集 ${previewNames.join('、')} 等真实地点素材，可按「${styleTitle}」整理成可编辑游记草稿。`
+				: `${trackSummary}${taskSummary}${autoPackageSummary}${memorySessionSummary}已收集照片、问答、研学任务、AI识境任务或现场备注，可按「${styleTitle}」生成西城游记草稿。`
 		},
 		traveloguePreviewTags() {
 			if (!this.hasTraveloguePreviewEvidence) return [...XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TAGS]
@@ -1408,6 +1422,13 @@ export default {
 					: []
 				return this.visionAgentServiceTasks
 			},
+			loadVisionAgentMemorySessionPackage() {
+				const storedPackage = uni.getStorageSync(XICHENG_REGION_CONFIG.visionAgentMemorySessionStorageKey)
+				this.visionAgentMemorySessionPackage = storedPackage && typeof storedPackage === 'object'
+					? storedPackage
+					: null
+				return this.visionAgentMemorySessionPackage
+			},
 			formatVisionAgentServiceTaskType(task = {}) {
 				if (task.taskTypeLabel) return task.taskTypeLabel
 				if (task.taskType === 'merchant') return '商家'
@@ -1442,6 +1463,7 @@ export default {
 			async loadJourney(options = {}) {
 				this.travelogueMode = normalizeTravelogueMode(options.mode)
 				this.loadVisionAgentServiceTasks()
+				this.loadVisionAgentMemorySessionPackage()
 				const storedMaterials = uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey)
 				const importedRoute = uni.getStorageSync(XICHENG_REGION_CONFIG.inspirationStorageKey)
 			const storedReviewSubmissions = uni.getStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey)
@@ -1538,7 +1560,8 @@ export default {
 						recordingSession: this.recordingSession,
 						studyTaskEvidence: this.studyTaskEvidence,
 						routeCheckins: this.routeCheckins,
-						visionAgentServiceTasks: this.visionAgentServiceTasks
+						visionAgentServiceTasks: this.visionAgentServiceTasks,
+						visionAgentMemorySessionPackage: this.visionAgentMemorySessionPackage
 					})
 				this.reviewText = cachedDraft && cachedDraft.reviewText ? cachedDraft.reviewText : this.reviewText
 			this.posterStatus = cachedDraft && cachedDraft.posterStatus ? cachedDraft.posterStatus : this.posterStatus
@@ -1727,7 +1750,8 @@ export default {
 					recordingSession: this.recordingSession,
 					studyTaskEvidence: this.studyTaskEvidence,
 					routeCheckins: this.routeCheckins,
-					visionAgentServiceTasks: this.visionAgentServiceTasks
+					visionAgentServiceTasks: this.visionAgentServiceTasks,
+					visionAgentMemorySessionPackage: this.visionAgentMemorySessionPackage
 				})
 				this.saveDraft({ silent: true })
 			},
@@ -2119,6 +2143,7 @@ export default {
 					visionAgentServiceTasks: this.visionAgentServiceTasks,
 					visionAgentServiceTaskCount: this.visionAgentServiceTaskCount,
 					visionAgentAutoTraveloguePackage: this.visionAgentAutoTraveloguePackage,
+					visionAgentMemorySessionPackage: this.visionAgentMemorySessionPackage,
 					candidateConfirmationAudits: this.candidateConfirmationAudits,
 					candidateConfirmationCount: this.candidateConfirmationCount,
 				aiGuideMaterialCount: this.aiGuideMaterialCount,
@@ -2251,6 +2276,7 @@ export default {
 				candidateConfirmationAudits: this.candidateConfirmationAudits,
 				candidateConfirmationCount: this.candidateConfirmationCount,
 				visionAgentAutoTraveloguePackage: this.visionAgentAutoTraveloguePackage,
+				visionAgentMemorySessionPackage: this.visionAgentMemorySessionPackage,
 				aiGuideMaterialCount: this.aiGuideMaterialCount,
 				studyTaskEvidence: this.studyTaskEvidence,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
