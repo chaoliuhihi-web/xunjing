@@ -301,6 +301,21 @@ assert.match(
   'release artifact scanner should explain credential rejection from Yudao/internal auth token markers'
 )
 
+const artifactDirWithBearerToken = makeArtifactDir({
+  'assets/index.js': `const apiBase="https://api.xingheai.net";const tenantId="1";const headers={Authorization:"Bearer ${'jwtsegment.'.repeat(4)}signature"};`
+})
+const bearerTokenResult = runScanner(artifactDirWithBearerToken)
+assert.notEqual(
+  bearerTokenResult.status,
+  0,
+  'release artifact scanner should reject embedded Authorization Bearer tokens'
+)
+assert.match(
+  `${bearerTokenResult.stderr}\n${bearerTokenResult.stdout}`,
+  /Authorization|Bearer|secret|token|credential|密钥|令牌/i,
+  'release artifact scanner should explain credential rejection from embedded Bearer tokens'
+)
+
 const apkWithLocalGateway = makeZipArtifact({
   'assets/index.js': 'const apiBase="http://localhost:48082/app-api/xunjing";'
 })
