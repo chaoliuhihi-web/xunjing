@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { loadReleaseEnvFile } from './release_env_loader.mjs'
+import { normalizeReleaseHttpsUrl } from './release_url_guard.mjs'
 
 loadReleaseEnvFile()
 
@@ -68,6 +69,14 @@ const evidenceFreshness = (label, value) => {
     return { ok: false, code: 'stale', detail: `${label} is stale; evidence must be fresh within ${maxEvidenceAgeHours} hours` }
   }
   return { ok: true, code: 'fresh', detail: 'fresh' }
+}
+
+const releaseHttpsUrl = (label, value) => {
+  try {
+    return { ok: true, normalized: normalizeReleaseHttpsUrl(label, value), detail: 'pass' }
+  } catch (error) {
+    return { ok: false, normalized: normalizeUrl(value), detail: error.message }
+  }
 }
 
 const describeNativeReleaseArtifactPath = (artifactPath) => {
@@ -260,12 +269,14 @@ if (!preprodEvidence.exists) {
   const preprodScopeOk = String(summary.xichengRegionCode || '').trim() === expectedXichengRegionCode &&
     String(summary.xichengPackageCode || '').trim() === expectedXichengPackageCode
   const preprodFreshness = evidenceFreshness('APP readiness evidence checkedAt', preprodEvidence.json?.checkedAt)
+  const preprodBaseUrl = releaseHttpsUrl('APP readiness evidence summary.baseUrl', summary.baseUrl)
   gates.preprodEvidence = {
     ...gates.preprodEvidence,
-    ok: preprodBaseOk && preprodScopeOk && preprodFreshness.ok,
+    ok: preprodBaseOk && preprodScopeOk && preprodFreshness.ok && preprodBaseUrl.ok,
     checkedAt: preprodEvidence.json?.checkedAt || '',
     freshness: preprodFreshness,
-    baseUrl: normalizeUrl(summary.baseUrl),
+    baseUrl: preprodBaseUrl.normalized,
+    baseUrlValidation: preprodBaseUrl,
     tenantId: String(summary.tenantId || ''),
     xichengRegionCode: String(summary.xichengRegionCode || ''),
     xichengPackageCode: String(summary.xichengPackageCode || '')
@@ -292,6 +303,14 @@ if (!preprodEvidence.exists) {
       preprodFreshness.code === 'stale' ? 'preprod-evidence-stale' : 'preprod-evidence-invalid-checked-at',
       preprodFreshness.detail,
       'Regenerate qa/xicheng-app-readiness-evidence.json from the non-local HTTPS preprod readiness command within the freshness window'
+    )
+  }
+  if (!preprodBaseUrl.ok) {
+    addBlocker(
+      blockers,
+      'preprod-evidence-invalid-base-url',
+      preprodBaseUrl.detail,
+      'Regenerate qa/xicheng-app-readiness-evidence.json from a non-local HTTPS Yudao APP API gateway'
     )
   }
 }

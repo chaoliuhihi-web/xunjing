@@ -20,6 +20,7 @@ for (const required of [
   'summary.xichengRegionCode',
   'summary.xichengPackageCode',
   'preprod-evidence-stale',
+  'preprod-evidence-invalid-base-url',
   'beijing-xicheng',
   'XUNJING_APP_API_BASE_URL',
   'XUNJING_RELEASE_ENV_FILE',

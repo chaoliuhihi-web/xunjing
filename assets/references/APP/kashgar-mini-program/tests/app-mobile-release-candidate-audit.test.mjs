@@ -340,6 +340,39 @@ assert.match(
   'release candidate audit should explain preprod evidence freshness rejection'
 )
 
+const localPreprodPath = path.join(missingTempDir, 'local-preprod.json')
+fs.writeFileSync(localPreprodPath, `${JSON.stringify(makePreprodEvidence({
+  summary: { baseUrl: 'http://127.0.0.1:48082' }
+}), null, 2)}\n`)
+const localPreprodResult = runAudit([
+  '--preprod-evidence',
+  localPreprodPath,
+  '--native-evidence',
+  path.join(missingTempDir, 'missing-native.json'),
+  '--release-artifact',
+  path.join(missingTempDir, 'missing-release.apk')
+])
+assert.notEqual(
+  localPreprodResult.status,
+  0,
+  'release candidate audit should reject local HTTP preprod evidence even before native evidence exists'
+)
+const localPreprodAudit = parseAuditJson(localPreprodResult)
+assert.equal(
+  localPreprodAudit.gates.preprodEvidence.ok,
+  false,
+  'release candidate audit preprod gate should fail when baseUrl is local or non-HTTPS'
+)
+assert.ok(
+  localPreprodAudit.blockers.some((blocker) => blocker.code === 'preprod-evidence-invalid-base-url'),
+  'release candidate audit should name local or non-HTTPS preprod baseUrl as a launch blocker'
+)
+assert.match(
+  `${localPreprodResult.stderr}\n${localPreprodResult.stdout}`,
+  /baseUrl|non-local HTTPS|localhost|127\.0\.0\.1|非本地 HTTPS/i,
+  'release candidate audit should explain preprod baseUrl release URL validation'
+)
+
 const keystorePath = path.join(missingTempDir, 'xicheng-release.keystore')
 const keytoolResult = spawnSync('keytool', [
   '-genkeypair',

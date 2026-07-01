@@ -41,6 +41,7 @@ for (const required of [
   'summary.xichengRegionCode',
   'summary.xichengPackageCode',
   'preprod-evidence-stale',
+  'preprod-evidence-invalid-base-url',
   'beijing-xicheng',
   '/app-api/xunjing/scan/resolve',
   'API 可达性',
