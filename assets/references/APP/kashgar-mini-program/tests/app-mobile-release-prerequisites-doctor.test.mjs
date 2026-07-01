@@ -163,7 +163,7 @@ const appApiServerPath = path.join(tempDir, 'app-api-server.mjs')
 fs.writeFileSync(appApiServerPath, [
   "import http from 'node:http'",
   "const server = http.createServer((request, response) => {",
-  "  if (request.url === '/app-api/xunjing/scan/resolve' && request.headers['tenant-id'] === '1') {",
+  "  if (['/app-api/xunjing/scan/resolve', '/app-api/xunjing/ai/chat'].includes(request.url) && request.headers['tenant-id'] === '1') {",
   "    response.writeHead(405, { 'content-type': 'application/json' })",
   "    response.end(JSON.stringify({ code: 405, msg: 'method not allowed' }))",
   "    return",
@@ -200,8 +200,16 @@ try {
   const reachableJson = JSON.parse(reachableResult.stdout)
   assert.equal(reachableJson.checks.apiDns.ok, true)
   assert.equal(reachableJson.checks.apiReachability.ok, true)
-  assert.equal(reachableJson.checks.apiReachability.endpoint, '/app-api/xunjing/scan/resolve')
-  assert.equal(reachableJson.checks.apiReachability.status, 405)
+  assert.deepEqual(
+    reachableJson.checks.apiReachability.endpoints,
+    ['/app-api/xunjing/scan/resolve', '/app-api/xunjing/ai/chat'],
+    'release prerequisite doctor should probe the scan and Xiaojing chat APP API routes required by the P0 flow'
+  )
+  assert.equal(reachableJson.checks.apiReachability.results.length, 2)
+  assert.equal(reachableJson.checks.apiReachability.results[0].endpoint, '/app-api/xunjing/scan/resolve')
+  assert.equal(reachableJson.checks.apiReachability.results[0].status, 405)
+  assert.equal(reachableJson.checks.apiReachability.results[1].endpoint, '/app-api/xunjing/ai/chat')
+  assert.equal(reachableJson.checks.apiReachability.results[1].status, 405)
   assert.equal(
     reachableJson.checks.apiReachability.tenantIdHeader,
     '1',
@@ -243,11 +251,11 @@ try {
   assert.notEqual(
     missingRouteResult.status,
     0,
-    `release prerequisite doctor should fail when the APP API gateway returns 404 for /app-api/xunjing/scan/resolve: ${missingRouteResult.stderr || missingRouteResult.stdout}`
+    `release prerequisite doctor should fail when the APP API gateway returns 404 for required /app-api/xunjing/** routes: ${missingRouteResult.stderr || missingRouteResult.stdout}`
   )
   const missingRouteJson = JSON.parse(missingRouteResult.stdout)
   assert.equal(missingRouteJson.checks.apiReachability.ok, false)
-  assert.equal(missingRouteJson.checks.apiReachability.status, 404)
+  assert.equal(missingRouteJson.checks.apiReachability.results[0].status, 404)
   assert.ok(
     missingRouteJson.blockers.includes('api-route-missing'),
     'release prerequisite doctor should distinguish a missing /app-api/xunjing/** route from generic network reachability'
@@ -266,7 +274,7 @@ const unauthorizedServerPath = path.join(tempDir, 'app-api-unauthorized-server.m
 fs.writeFileSync(unauthorizedServerPath, [
   "import http from 'node:http'",
   "const server = http.createServer((request, response) => {",
-  "  if (request.url === '/app-api/xunjing/scan/resolve') {",
+  "  if (['/app-api/xunjing/scan/resolve', '/app-api/xunjing/ai/chat'].includes(request.url)) {",
   "    response.writeHead(401, { 'content-type': 'application/json' })",
   "    response.end(JSON.stringify({ code: 401, msg: 'unauthorized' }))",
   "    return",

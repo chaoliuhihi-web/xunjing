@@ -114,12 +114,95 @@ const checkApiDns = async (apiBaseUrl) => {
   }
 }
 
+const requiredAppApiEndpoints = [
+  '/app-api/xunjing/scan/resolve',
+  '/app-api/xunjing/ai/chat'
+]
+
+const probeAppApiEndpoint = async ({ origin, endpoint, tenantIdHeader }) => {
+  const url = new URL(endpoint, origin)
+  const response = await withTimeout(
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        'tenant-id': tenantIdHeader
+      }
+    }),
+    Number(process.env.XUNJING_RELEASE_PREREQ_HTTP_TIMEOUT_MS || 10000),
+    `APP API reachability request timed out for ${url.origin}${endpoint}`
+  )
+  return {
+    origin: url.origin,
+    endpoint,
+    tenantIdHeader,
+    status: response.status,
+    statusText: response.statusText
+  }
+}
+
+const createApiReachabilityFailure = ({ origin, endpoint, tenantIdHeader, results = [], error = null }) => {
+  const failedResult = results.find((result) => result.status === 404)
+    || results.find((result) => result.status === 401 || result.status === 403)
+    || results.find((result) => result.status < 200 || result.status >= 500)
+    || null
+  const failedEndpoint = failedResult?.endpoint || endpoint
+  const failedStatus = failedResult?.status || 0
+
+  if (failedStatus === 404) {
+    return {
+      ok: false,
+      blockerCode: 'api-route-missing',
+      origin,
+      endpoint: failedEndpoint,
+      endpoints: requiredAppApiEndpoints,
+      tenantIdHeader,
+      status: failedStatus,
+      statusText: failedResult.statusText,
+      results,
+      message: `APP API route is missing for ${origin}${failedEndpoint}`,
+      nextAction: `Fix the deployed APP API gateway route for ${origin}${failedEndpoint}; /app-api/xunjing/** must be reachable before collecting preprod evidence.`
+    }
+  }
+
+  if (failedStatus === 401 || failedStatus === 403) {
+    return {
+      ok: false,
+      blockerCode: 'api-unauthorized',
+      origin,
+      endpoint: failedEndpoint,
+      endpoints: requiredAppApiEndpoints,
+      tenantIdHeader,
+      status: failedStatus,
+      statusText: failedResult.statusText,
+      results,
+      message: `APP API route requires auth or lacks permission for ${origin}${failedEndpoint}`,
+      nextAction: `Fix auth or permission policy for the public APP API route ${origin}${failedEndpoint}; /app-api/xunjing/** must accept P0 scan, recognition, and Xiaojing chat traffic with tenant-id before release.`
+    }
+  }
+
+  return {
+    ok: false,
+    origin,
+    endpoint: failedEndpoint,
+    endpoints: requiredAppApiEndpoints,
+    tenantIdHeader,
+    status: failedStatus || undefined,
+    statusText: failedResult?.statusText,
+    results,
+    message: error ? error.message : undefined,
+    nextAction: error
+      ? `Fix HTTPS/network access to ${origin}${failedEndpoint}, then rerun npm run doctor:release:prereqs.`
+      : `Fix APP API gateway health for ${origin}${failedEndpoint}; expected reachable /app-api/xunjing/** responses before preprod evidence.`
+  }
+}
+
 const checkApiReachability = async (apiBaseUrl, tenantId, apiDns) => {
   const tenantIdHeader = String(tenantId || '').trim()
   if (process.env.XUNJING_RELEASE_PREREQ_SKIP_NETWORK === '1') {
     return {
       ok: true,
       skipped: true,
+      endpoints: requiredAppApiEndpoints,
       tenantIdHeader,
       detail: 'network checks skipped by XUNJING_RELEASE_PREREQ_SKIP_NETWORK=1'
     }
@@ -128,6 +211,7 @@ const checkApiReachability = async (apiBaseUrl, tenantId, apiDns) => {
     return {
       ok: true,
       skipped: true,
+      endpoints: requiredAppApiEndpoints,
       tenantIdHeader,
       detail: 'skipped because API DNS check failed',
       nextAction: apiDns.nextAction
@@ -135,66 +219,40 @@ const checkApiReachability = async (apiBaseUrl, tenantId, apiDns) => {
   }
 
   const origin = String(process.env.XUNJING_RELEASE_PREREQ_API_ORIGIN_OVERRIDE || apiBaseUrl).trim()
-  const endpoint = '/app-api/xunjing/scan/resolve'
-  const url = new URL(endpoint, origin)
   try {
-    const response = await withTimeout(
-      fetch(url, {
-        method: 'GET',
-        headers: {
-          'tenant-id': tenantId
-        }
-      }),
-      Number(process.env.XUNJING_RELEASE_PREREQ_HTTP_TIMEOUT_MS || 10000),
-      `APP API reachability request timed out for ${url.origin}${endpoint}`
-    )
-    if (response.status === 404) {
-      return {
-        ok: false,
-        blockerCode: 'api-route-missing',
-        origin: url.origin,
-        endpoint,
-        tenantIdHeader,
-        status: response.status,
-        statusText: response.statusText,
-        message: `APP API route is missing for ${url.origin}${endpoint}`,
-        nextAction: `Fix the deployed APP API gateway route for ${url.origin}${endpoint}; /app-api/xunjing/** must be reachable before collecting preprod evidence.`
-      }
+    const results = []
+    for (const endpoint of requiredAppApiEndpoints) {
+      results.push(await probeAppApiEndpoint({ origin, endpoint, tenantIdHeader }))
     }
-    if (response.status === 401 || response.status === 403) {
-      return {
-        ok: false,
-        blockerCode: 'api-unauthorized',
-        origin: url.origin,
-        endpoint,
+    const originUrl = results[0]?.origin || new URL(requiredAppApiEndpoints[0], origin).origin
+    const ok = results.every((result) => result.status >= 200 && result.status < 500)
+      && results.every((result) => result.status !== 401 && result.status !== 403 && result.status !== 404)
+    if (!ok) {
+      return createApiReachabilityFailure({
+        origin: originUrl,
+        endpoint: requiredAppApiEndpoints[0],
         tenantIdHeader,
-        status: response.status,
-        statusText: response.statusText,
-        message: `APP API route requires auth or lacks permission for ${url.origin}${endpoint}`,
-        nextAction: `Fix auth or permission policy for the public APP API route ${url.origin}${endpoint}; /app-api/xunjing/** must accept P0 scan and recognition traffic with tenant-id before release.`
-      }
+        results
+      })
     }
-    const ok = response.status >= 200 && response.status < 500
     return {
       ok,
-      origin: url.origin,
-      endpoint,
+      origin: originUrl,
+      endpoint: requiredAppApiEndpoints[0],
+      endpoints: requiredAppApiEndpoints,
       tenantIdHeader,
-      status: response.status,
-      statusText: response.statusText,
-      nextAction: ok
-        ? undefined
-        : `Fix APP API gateway health for ${url.origin}${endpoint}; expected a reachable /app-api/xunjing/** response before preprod evidence.`
+      status: results[0]?.status,
+      statusText: results[0]?.statusText,
+      results
     }
   } catch (error) {
-    return {
-      ok: false,
+    const url = new URL(requiredAppApiEndpoints[0], origin)
+    return createApiReachabilityFailure({
       origin: url.origin,
-      endpoint,
+      endpoint: requiredAppApiEndpoints[0],
       tenantIdHeader,
-      message: error.message,
-      nextAction: `Fix HTTPS/network access to ${url.origin}${endpoint}, then rerun npm run doctor:release:prereqs.`
-    }
+      error
+    })
   }
 }
 
