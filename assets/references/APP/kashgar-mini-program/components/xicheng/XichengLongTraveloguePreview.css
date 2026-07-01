@@ -442,6 +442,12 @@
 	height: 150rpx;
 }
 
+.long-photo-placeholder {
+	width: 178rpx;
+	height: 150rpx;
+	background: linear-gradient(135deg, rgba(23, 63, 53, 0.12), rgba(181, 148, 94, 0.16));
+}
+
 .long-photo-label {
 	padding: 12rpx;
 	color: #173F35;

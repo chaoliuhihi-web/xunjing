@@ -19,7 +19,7 @@
 						<text class="long-section-kicker">行程路线概览</text>
 						<text class="long-section-title">两日慢行路线</text>
 					</view>
-					<text class="long-section-meta">约 8 公里 · 步行为主</text>
+					<text class="long-section-meta">{{ routeMetaText }}</text>
 				</view>
 				<view class="long-map-card">
 					<view class="long-map-grid"></view>
@@ -44,8 +44,8 @@
 					<view class="long-route-summary">
 						<text class="long-route-summary-title">两日慢行路线</text>
 						<text class="long-route-summary-copy">{{ routeSummary }}</text>
-						<text class="long-route-day">DAY 1  白塔寺 -> 什刹海 -> 北海北门</text>
-						<text class="long-route-day">DAY 2  胡同小店 -> 护国寺街 -> 日落 Citywalk</text>
+						<text class="long-route-day">{{ dayOneRouteText }}</text>
+						<text class="long-route-day">{{ dayTwoRouteText }}</text>
 					</view>
 				</view>
 			</view>
@@ -93,7 +93,8 @@
 							:key="photo.key"
 							class="long-photo-card"
 						>
-							<image class="long-photo-image" :src="photo.image" mode="aspectFill" />
+							<image v-if="photo.image" class="long-photo-image" :src="photo.image" mode="aspectFill" />
+							<view v-else class="long-photo-placeholder"></view>
 							<text class="long-photo-label">{{ photo.label }}</text>
 						</view>
 					</view>
@@ -122,7 +123,7 @@
 
 			<view class="long-ending-card">
 				<text class="long-section-kicker">写在最后</text>
-				<text class="long-ending-text">西城没有喧嚣的终点，却有最真实的生活。两天的时间，我没有赶路，也没有清单，只是跟着自己喜欢的节奏，在老城里慢慢走、慢慢看。也许，这就是旅行最好的样子：我在路上，也在成为更好的自己。</text>
+				<text class="long-ending-text">{{ endingText }}</text>
 				<text class="long-privacy">{{ privacyText }}</text>
 			</view>
 		</view>
@@ -179,6 +180,10 @@ export default {
 		sourceCount: {
 			type: Number,
 			default: 0
+		},
+		hasEvidence: {
+			type: Boolean,
+			default: true
 		}
 	},
 	emits: ['save', 'edit', 'export-pdf', 'publish-moments', 'publish-xhs'],
@@ -187,9 +192,28 @@ export default {
 			return this.safeRouteItems.slice(0, 3)
 		},
 		routeSummary() {
+			if (!this.hasEvidence) return '待补充真实路线和照片'
 			return this.safeRouteItems.length > 0 ? `${this.safeRouteItems.length} 个地点 · 照片和路线已排好` : '白塔寺、什刹海、胡同院落和日落街景'
 		},
+		routeMetaText() {
+			return this.hasEvidence ? '约 8 公里 · 步行为主' : '路线和距离待记录'
+		},
+		dayOneRouteText() {
+			if (!this.hasEvidence) return 'DAY 1  继续识别地点 -> 开始记录 -> 补充照片'
+			return 'DAY 1  白塔寺 -> 什刹海 -> 北海北门'
+		},
+		dayTwoRouteText() {
+			if (!this.hasEvidence) return 'DAY 2  写下备注 -> 选择模板 -> 生成长文'
+			return 'DAY 2  胡同小店 -> 护国寺街 -> 日落 Citywalk'
+		},
 		safeRouteItems() {
+			if (!this.hasEvidence) {
+				return [
+					{ time: '--', title: '待补充素材', desc: '继续识别一个真实西城地点。' },
+					{ time: '--', title: '继续记录路线', desc: '开始路线记录后再生成路线故事线。' },
+					{ time: '--', title: '保存照片备注', desc: '补充照片或一句现场感受。' }
+				]
+			}
 			const fallback = [
 				{ time: '09:30', title: '白塔寺', desc: '清晨的白塔寺格外安静。' },
 				{ time: '12:00', title: '什刹海', desc: '水面把午后的光分成很多小片。' },
@@ -201,6 +225,9 @@ export default {
 			return (Array.isArray(this.routeItems) && this.routeItems.length > 0 ? this.routeItems : fallback).slice(0, 6)
 		},
 		safePhotoCards() {
+			if (!this.hasEvidence) {
+				return [{ key: 'empty-photo', label: '等待补充照片', image: '' }]
+			}
 			const fallbackImage = this.coverImage
 			const fallback = this.safeRouteItems.slice(0, 5).map((item, index) => ({
 				key: `fallback-photo-${index}`,
@@ -210,6 +237,13 @@ export default {
 			return (Array.isArray(this.photoCards) && this.photoCards.length > 0 ? this.photoCards : fallback).slice(0, 6)
 		},
 		safeChapters() {
+			if (!this.hasEvidence) {
+				return [
+					{ title: '继续补充真实素材', text: '先识别地点、记录路线、补充照片或现场备注，再生成像人写的完整长文。', image: '' },
+					{ title: '不生成空游记', text: '没有可审核素材时，预览只展示待补充结构，不虚构旅行路线和照片故事。', image: '' },
+					{ title: '保留编辑入口', text: '素材准备好后，可以选择模板、定制封面和排版，再生成可分享的游记。', image: '' }
+				]
+			}
 			if (Array.isArray(this.chapters) && this.chapters.length > 0) {
 				return this.chapters.slice(0, 6)
 			}
@@ -252,6 +286,11 @@ export default {
 				{ icon: '食', title: '美食推荐', copy: '护国寺小吃、糖火烧和胡同咖啡都值得试。' },
 				{ icon: '心', title: '温馨提醒', copy: '街巷里请轻声慢行，把时间留给生活。' }
 			]
+		},
+		endingText() {
+			return this.hasEvidence
+				? '西城没有喧嚣的终点，却有最真实的生活。两天的时间，我没有赶路，也没有清单，只是跟着自己喜欢的节奏，在老城里慢慢走、慢慢看。也许，这就是旅行最好的样子：我在路上，也在成为更好的自己。'
+				: '继续补充真实素材后，这里会生成完整结尾。现在先保留结构和模板，不替你编造一段并没有发生的旅行。'
 		},
 		privacyText() {
 			const checkedText = this.sourceCount > 0 ? `${this.sourceCount} 条地点资料已核对` : '地点与照片可继续补充'

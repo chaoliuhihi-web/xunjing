@@ -50,8 +50,9 @@
 			<view class="travelogue-style-selector"><button v-for="style in travelogueStyleOptions" :key="style.key" :class="['travelogue-style-chip', activeTravelogueStyle === style.key ? 'travelogue-style-chip-active' : '']" @click="applyTravelogueTemplate(style)">{{ style.title }}</button></view>
 			<xicheng-travelogue-template-gallery :selected-key="selectedTravelogueTemplate" @select="applyTravelogueTemplate" @apply="applyTravelogueTemplate" />
 			<xicheng-travelogue-template-settings :template-title="activeTravelogueStyleTitle" :settings="travelogueTemplateSettings" @change="updateTravelogueTemplateSettings" />
+			<xicheng-travelogue-generation-state-panel v-if="travelogueGenerationState !== 'ready'" :status="travelogueGenerationState" :material-hints="travelogueMaterialHints" :failure-reason="travelogueGenerationFailureReason" @explore="openRoutesPage" @add-photo="addPhotoMaterial" @retry="generateTravelogueDraft" @manual-edit="scrollToDraftEditor" />
 
-			<xicheng-long-travelogue-preview :cover-image="traveloguePreviewImage" :title="traveloguePreviewTitle" :subtitle="longTravelogueSubtitle" :intro="longTravelogueIntro" :template-title="activeTravelogueStyleTitle" :route-items="editorRouteItems" :chapters="longTravelogueChapters" :photo-cards="editorPhotoCards" :tags="traveloguePreviewTags" :source-count="workSourceCount" @edit="scrollToDraftEditor" @export-pdf="exportMemorialPdf" @publish-moments="openSharePage" @publish-xhs="openSharePage" />
+			<xicheng-long-travelogue-preview :has-evidence="hasTraveloguePreviewEvidence" :cover-image="traveloguePreviewImage" :title="traveloguePreviewTitle" :subtitle="longTravelogueSubtitle" :intro="longTravelogueIntro" :template-title="activeTravelogueStyleTitle" :route-items="editorRouteItems" :chapters="longTravelogueChapters" :photo-cards="editorPhotoCards" :tags="traveloguePreviewTags" :source-count="workSourceCount" @edit="scrollToDraftEditor" @export-pdf="exportMemorialPdf" @publish-moments="openSharePage" @publish-xhs="openSharePage" />
 
 			<view v-if="visionAgentAutoTraveloguePackage" class="vision-agent-auto-package">
 				<view class="vision-agent-auto-package-head">
@@ -512,7 +513,9 @@ import { isXunjingUserCancelled } from '@/request/xunjing/userCancel.js'
 import XichengLongTraveloguePreview from '@/components/xicheng/XichengLongTraveloguePreview.vue'
 import XichengTravelogueTemplateGallery from '@/components/xicheng/XichengTravelogueTemplateGallery.vue'
 import XichengTravelogueTemplateSettings from '@/components/xicheng/XichengTravelogueTemplateSettings.vue'
+import XichengTravelogueGenerationStatePanel from '@/components/xicheng/XichengTravelogueGenerationStatePanel.vue'
 import XichengTravelogueEditorShare from '@/components/xicheng/travelogue-editor-share.vue'
+import { createXichengTravelogueGenerationStateMixin } from '@/components/xicheng/travelogueGenerationState.js'
 import {
 	getXichengDisplaySourceDescription,
 	getXichengDisplaySourceTitle,
@@ -845,7 +848,8 @@ export const resolvePhotoEvidenceFileMeta = (chooseImageResult = {}) => {
 }
 
 export default {
-	components: { XichengLongTraveloguePreview, XichengTravelogueTemplateGallery, XichengTravelogueTemplateSettings, XichengTravelogueEditorShare },
+	components: { XichengLongTraveloguePreview, XichengTravelogueTemplateGallery, XichengTravelogueTemplateSettings, XichengTravelogueGenerationStatePanel, XichengTravelogueEditorShare },
+	mixins: [createXichengTravelogueGenerationStateMixin()],
 	data() {
 		return {
 			region: XICHENG_REGION_CONFIG,
@@ -1706,13 +1710,6 @@ export default {
 				})
 				this.saveDraft({ silent: true })
 			},
-		generateTravelogueDraft() {
-			this.refreshDraftFromEvidence()
-			uni.showToast({
-				title: '游记草稿已生成',
-				icon: 'none'
-			})
-		},
 		applyTravelogueTemplate(template = {}) {
 			const templateKey = template.key || 'citywalk'
 			this.selectedTravelogueTemplate = this.activeTravelogueStyle = templateKey
