@@ -1345,9 +1345,25 @@ export default {
 			},
 			createVisionAgentServiceTaskMeta(task = {}) {
 				const poiName = task.poiName || '当前场景'
+				const sceneDomain = task.sceneDomain ? ` · ${this.createVisionAgentSceneDomainLabel(task.sceneDomain)}` : ''
 				const actionPrompt = task.actionPrompt ? ` · ${String(task.actionPrompt).slice(0, 24)}` : ''
 				const statusText = task.statusText || '已收进任务包'
-				return `${poiName}${actionPrompt} · ${statusText}`
+				return `${poiName}${sceneDomain}${actionPrompt} · ${statusText}`
+			},
+			createVisionAgentSceneDomainLabel(sceneDomain = '') {
+				const labels = {
+					architecture: '建筑',
+					artifact: '文物',
+					menu: '菜单',
+					food: '食物',
+					'sign-ocr': '路牌/OCR',
+					heritage: '非遗',
+					plant: '植物',
+					animal: '动物',
+					person: '人物',
+					event: '活动'
+				}
+				return labels[sceneDomain] || sceneDomain
 			},
 			async loadJourney(options = {}) {
 				this.travelogueMode = normalizeTravelogueMode(options.mode)

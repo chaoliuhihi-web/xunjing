@@ -109,6 +109,22 @@
 					</text>
 				</view>
 			</view>
+			<view v-if="prioritizedSceneUnderstandingCards.length > 0" class="scene-understanding-panel">
+				<text class="scene-understanding-title">看见什么，就能问什么</text>
+				<view class="scene-understanding-grid">
+					<view
+						v-for="card in prioritizedSceneUnderstandingCards"
+						:key="card.domainKey"
+						class="scene-understanding-card"
+						:class="{ 'scene-understanding-card-active': card.score > 0 }"
+						@click="openSceneUnderstandingCard(card)"
+					>
+						<text class="scene-understanding-label">{{ card.domainLabel }}</text>
+						<text class="scene-understanding-card-title">{{ card.title }}</text>
+						<text class="scene-understanding-card-copy">{{ card.copy }}</text>
+					</view>
+				</view>
+			</view>
 			<view class="vision-agent-action-grid">
 				<view
 					v-for="action in prioritizedVisionAgentActionCards"
@@ -726,6 +742,34 @@ export default {
 				{ actionKey: 'english', title: 'English', copy: 'Switch to English guide.', requiresRecognition: true }
 			]
 		},
+		sceneUnderstandingCards() {
+			return [
+				{ domainKey: 'architecture', domainLabel: '建筑', title: '建筑/空间', copy: '年代、结构、修复和拍照角度。', matchers: ['建筑', '门', '楼', '塔', '桥', '亭', '寺', '庙', '院', '胡同'] },
+				{ domainKey: 'artifact', domainLabel: '文物', title: '文物/展陈', copy: '用途、工艺、年代和同时代事件。', matchers: ['文物', '博物馆', '展品', '青铜', '陶', '瓷', '碑', '展陈'] },
+				{ domainKey: 'menu', domainLabel: '菜单', title: '菜单理解', copy: '辣度、清真、推荐菜和人数建议。', matchers: ['菜单', '菜品', '点菜', '价格', '清真', '辣'] },
+				{ domainKey: 'food', domainLabel: '食物', title: '食物讲解', copy: '来源、吃法、搭配和附近推荐。', matchers: ['食物', '小吃', '美食', '餐', '包子', '烤', '茶', '饮料'] },
+				{ domainKey: 'sign-ocr', domainLabel: '路牌/OCR', title: '文字与导航', copy: '翻译、发音、意义和怎么走。', matchers: ['路牌', '牌匾', '招牌', 'OCR', '文字', '维吾尔', '英文', '导航'] },
+				{ domainKey: 'heritage', domainLabel: '非遗', title: '非遗体验', copy: '器物、技艺、演奏和附近体验。', matchers: ['非遗', '乐器', '手作', '工艺', '体验', '热瓦普', '传承'] },
+				{ domainKey: 'plant', domainLabel: '植物', title: '植物观察', copy: '树龄、分布、季节和生态知识。', matchers: ['植物', '树', '花', '胡杨', '古树', '园林'] },
+				{ domainKey: 'animal', domainLabel: '动物', title: '动物保护', copy: '习性、栖息地、保护和安全距离。', matchers: ['动物', '鸟', '猫', '豹', '雪豹', '保护', '栖息'] },
+				{ domainKey: 'person', domainLabel: '人物', title: '人物故事', copy: '雕像、人物贡献和时代关系。', matchers: ['人物', '雕像', '塑像', '名人', '纪念', '故居'] },
+				{ domainKey: 'event', domainLabel: '活动', title: '活动/演出', copy: '节目、时间、票务和下一步服务。', matchers: ['活动', '演出', '节目', '票', '开场', '演员', '市集'] }
+			]
+		},
+		prioritizedSceneUnderstandingCards() {
+			if (this.recognitionActionBlocked) return []
+			return this.sceneUnderstandingCards
+				.map(card => ({
+					...card,
+					score: this.inferSceneUnderstandingDomainScore(card)
+				}))
+				.sort((left, right) => {
+					if (right.score !== left.score) return right.score - left.score
+					return this.sceneUnderstandingCards.findIndex(card => card.domainKey === left.domainKey)
+						- this.sceneUnderstandingCards.findIndex(card => card.domainKey === right.domainKey)
+				})
+				.slice(0, 6)
+		},
 		sceneFusionSignalBadges() {
 			const visionContext = this.result.visionAgentContext || {}
 			const sceneFusionSignals = Array.isArray(visionContext.sceneFusionSignals)
@@ -993,6 +1037,76 @@ export default {
 				return rightScore - leftScore
 			})
 		},
+		inferSceneUnderstandingDomainScore(card = {}) {
+			const visionContext = this.result.visionAgentContext || {}
+			const visionCaption = String(visionContext.visionCaption || this.result.visionCaption || this.result.poiName || '')
+			const ocrText = String(visionContext.ocrText || this.result.ocrText || this.result.text || '')
+			const serviceText = String(visionContext.serviceText || '')
+			const activityText = String(visionContext.activityText || '')
+			const knowledgeGraphText = String(visionContext.knowledgeGraphText || this.result.theme || this.result.reason || '')
+			const combinedText = [
+				visionCaption,
+				ocrText,
+				serviceText,
+				activityText,
+				knowledgeGraphText,
+				this.result.poiName,
+				this.result.sourceLabel,
+				this.result.reason
+			].join(' ').toLowerCase()
+			const matchers = Array.isArray(card.matchers) ? card.matchers : []
+			const matchedScore = matchers.reduce((total, matcher) => {
+				return combinedText.includes(String(matcher || '').toLowerCase()) ? total + 32 : total
+			}, 0)
+			const sourceBoost = card.domainKey === 'sign-ocr' && ['scan', 'ocr', 'text'].includes(String(this.result.source || '')) ? 18 : 0
+			const serviceBoost = ['menu', 'food', 'heritage', 'event'].includes(card.domainKey) && (serviceText || activityText) ? 14 : 0
+			return matchedScore + sourceBoost + serviceBoost
+		},
+		createSceneUnderstandingPrompt(card = {}) {
+			const subject = this.result.poiName || '当前场景'
+			if (card.domainKey === 'menu') {
+				return `把${subject}当作菜单来理解：告诉我菜品、辣度、是否清真、推荐菜、适合几个人和本地来源。`
+			}
+			if (card.domainKey === 'food') {
+				return `把${subject}当作食物来理解：讲它来自哪里、怎么吃、配什么饮料，以及附近哪里更值得试。`
+			}
+			if (card.domainKey === 'sign-ocr') {
+				return `把${subject}里的路牌/OCR文字翻译出来，给我发音、意义、历史背景和导航建议。`
+			}
+			if (card.domainKey === 'heritage') {
+				return `把${subject}当作非遗线索理解：讲器物或技艺、制作过程、表演方式，并推荐附近体验。`
+			}
+			if (card.domainKey === 'artifact') {
+				return `把${subject}当作文物来理解：讲用途、工艺、年代、同时代事件，以及和其它文物的区别。`
+			}
+			if (card.domainKey === 'plant') {
+				return `把${subject}当作植物来理解：讲树龄或季节、生态特点、分布和最佳观赏时间。`
+			}
+			if (card.domainKey === 'animal') {
+				return `把${subject}当作动物来理解：讲习性、栖息地、保护情况、是否危险和观察距离。`
+			}
+			if (card.domainKey === 'person') {
+				return `把${subject}当作人物线索来理解：讲人物故事、贡献、为什么在这里，以及同时期人物。`
+			}
+			if (card.domainKey === 'event') {
+				return `把${subject}当作活动现场来理解：讲节目、背景、开始时间、票务和附近下一步安排。`
+			}
+			return `把${subject}当作建筑来理解：讲年代、建筑特点、结构、修复历史、隐藏细节和拍照角度。`
+		},
+		openSceneUnderstandingCard(card = {}) {
+			if (this.recognitionActionBlocked) {
+				this.showMissingOfficialPoiToast(card.title || '继续理解')
+				return
+			}
+			const prompt = this.createSceneUnderstandingPrompt(card)
+			this.rememberVisionAgentExecutionTask({
+				actionKey: `scene-domain-${card.domainKey || 'unknown'}`,
+				title: card.title || card.domainLabel || '场景理解',
+				copy: card.copy || '',
+				sceneDomain: card.domainKey
+			}, prompt)
+			this.askXiaojing(prompt)
+		},
 		createCityKnowledgeGraphNodes() {
 			if (this.recognitionActionBlocked) return []
 			const officialPoi = findXichengOfficialPoiForResult(this.result) || {}
@@ -1218,6 +1332,7 @@ export default {
 				actionTitle: action.title || '',
 				actionCopy: action.copy || '',
 				actionPrompt: action.actionPrompt || '',
+				sceneDomain: action.sceneDomain || '',
 				agentDecisionActionKey: action.agentDecisionActionKey || '',
 				poiCode: this.result.poiCode || '',
 				poiName: this.result.poiName || '',
@@ -2183,6 +2298,72 @@ export default {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.scene-understanding-panel {
+	margin-top: 22rpx;
+	padding: 20rpx;
+	border-radius: 24rpx;
+	background: rgba(255, 252, 246, 0.72);
+	border: 1rpx solid rgba(181, 148, 94, 0.18);
+}
+
+.scene-understanding-title {
+	display: block;
+	font-size: 24rpx;
+	font-weight: 800;
+	color: #102F29;
+}
+
+.scene-understanding-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 12rpx;
+	margin-top: 16rpx;
+}
+
+.scene-understanding-card {
+	min-width: 0;
+	min-height: 156rpx;
+	padding: 16rpx;
+	border-radius: 20rpx;
+	background: rgba(23, 63, 53, 0.06);
+	border: 1rpx solid rgba(31, 110, 90, 0.10);
+	box-sizing: border-box;
+}
+
+.scene-understanding-card-active {
+	background: rgba(31, 110, 90, 0.11);
+	border-color: rgba(31, 110, 90, 0.24);
+}
+
+.scene-understanding-label,
+.scene-understanding-card-title,
+.scene-understanding-card-copy {
+	display: block;
+	line-height: 1.35;
+}
+
+.scene-understanding-label {
+	font-size: 20rpx;
+	font-weight: 800;
+	color: #B8812B;
+}
+
+.scene-understanding-card-title {
+	margin-top: 7rpx;
+	font-size: 23rpx;
+	font-weight: 800;
+	color: #173F35;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.scene-understanding-card-copy {
+	margin-top: 7rpx;
+	font-size: 20rpx;
+	color: rgba(16, 47, 41, 0.62);
 }
 
 .vision-agent-memory-panel {
