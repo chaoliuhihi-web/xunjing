@@ -285,6 +285,22 @@ assert.match(
   'release artifact scanner should explain credential rejection from unquoted dot-env provider secrets'
 )
 
+const artifactDirWithYudaoInternalToken = makeArtifactDir({
+  'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";',
+  '.env.production': `YUDAO_INTERNAL_AUTH_TOKEN=yudao_${'h'.repeat(32)}`
+})
+const yudaoInternalTokenResult = runScanner(artifactDirWithYudaoInternalToken)
+assert.notEqual(
+  yudaoInternalTokenResult.status,
+  0,
+  'release artifact scanner should reject Yudao/internal auth tokens from dot-env files'
+)
+assert.match(
+  `${yudaoInternalTokenResult.stderr}\n${yudaoInternalTokenResult.stdout}`,
+  /YUDAO_INTERNAL_AUTH_TOKEN|secret|token|credential|密钥|令牌/i,
+  'release artifact scanner should explain credential rejection from Yudao/internal auth token markers'
+)
+
 const apkWithLocalGateway = makeZipArtifact({
   'assets/index.js': 'const apiBase="http://localhost:48082/app-api/xunjing";'
 })

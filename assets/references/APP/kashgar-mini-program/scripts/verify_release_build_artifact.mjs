@@ -77,6 +77,10 @@ const forbiddenPatterns = [
   {
     name: 'AI provider API token marker',
     pattern: /\b(?:COZE|QWEN|DASHSCOPE|OPENAI)[A-Z0-9_]*(?:KEY|TOKEN)\b\s*[:=]\s*(?:"[^"\r\n]{12,}"|'[^'\r\n]{12,}'|[A-Za-z0-9_./+=:-]{12,})/i
+  },
+  {
+    name: 'server-side/internal credential marker',
+    pattern: /\b(?:YUDAO|XUNJING|WX|WECHAT|WEIXIN|INTERNAL)[A-Z0-9_]*(?:SECRET|TOKEN|KEY|PASSWORD)\b\s*[:=]\s*(?:"[^"\r\n]{12,}"|'[^'\r\n]{12,}'|[A-Za-z0-9_./+=:-]{12,})/i
   }
 ]
 
