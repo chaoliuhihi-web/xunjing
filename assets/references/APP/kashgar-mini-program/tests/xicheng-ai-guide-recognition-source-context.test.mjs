@@ -36,6 +36,12 @@ assert.match(
 )
 
 assert.match(
+  loadCachedRecognitionBlock,
+  /const matchesRegionCode = !context\.regionCode \|\| !cached\.regionCode \|\| cached\.regionCode === context\.regionCode[\s\S]*const matchesPackageCode = !context\.packageCode \|\| !cached\.packageCode \|\| cached\.packageCode === context\.packageCode[\s\S]*if \(!matchesRegionCode \|\| !matchesPackageCode\) \{[\s\S]*return createEmptyXichengRecognitionContext\(\)/,
+  'AI guide should reject cached recognition sources when regionCode or packageCode differs from the active Xiaojing context'
+)
+
+assert.match(
   aiGuide,
   /const routeOnlyRecognition = cachedRecognition\.sources\.length > 0[\s\S]*createEmptyXichengRecognitionContext\(\)[\s\S]*createRouteOnlyXichengRecognitionContext\(context\)/,
   'AI guide should only use route-only official POI sources when no cached reviewed sources are available'

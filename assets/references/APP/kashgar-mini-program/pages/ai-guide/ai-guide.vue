@@ -830,6 +830,11 @@ const loadCachedXichengRecognitionContext = (context = {}) => {
 	if (!matchesPoiCode && !matchesPoiName) {
 		return createEmptyXichengRecognitionContext()
 	}
+	const matchesRegionCode = !context.regionCode || !cached.regionCode || cached.regionCode === context.regionCode
+	const matchesPackageCode = !context.packageCode || !cached.packageCode || cached.packageCode === context.packageCode
+	if (!matchesRegionCode || !matchesPackageCode) {
+		return createEmptyXichengRecognitionContext()
+	}
 	const safetyStatus = normalizeXichengSafetyStatus(cached.safetyStatus)
 	const unsafeSafetyStatus = isXichengUnsafeSafetyStatus(safetyStatus)
 	return {
