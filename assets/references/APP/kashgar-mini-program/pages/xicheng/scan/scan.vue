@@ -118,7 +118,13 @@ export default {
 		startAutoRecognition() {
 			if (this.recognizing) return
 			this.lastError = ''
-			if (uni.scanCode) {
+			const manualText = this.manualText.trim()
+			if (manualText) {
+				this.resolveTextAndOpenResult(manualText, 'text')
+				return
+			}
+			const shouldTryNativeScan = process.env.UNI_PLATFORM !== 'h5' && uni.scanCode
+			if (shouldTryNativeScan) {
 				uni.scanCode({
 					success: async (res) => {
 						if (res.result || res.path) {

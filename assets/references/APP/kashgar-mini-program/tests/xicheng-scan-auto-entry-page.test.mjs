@@ -70,6 +70,12 @@ assert.match(
 
 assert.match(
   scan,
+  /const manualText = this\.manualText\.trim\(\)[\s\S]*if \(manualText\) \{[\s\S]*this\.resolveTextAndOpenResult\(manualText,\s*'text'\)[\s\S]*return[\s\S]*const shouldTryNativeScan = process\.env\.UNI_PLATFORM !== 'h5' && uni\.scanCode/,
+  'Scan page should let typed text run directly through text recognition and avoid blocking mobile H5 on native scanCode'
+)
+
+assert.match(
+  scan,
   /uni\.chooseImage\([\s\S]*sourceType:\s*\['camera',\s*'album'\][\s\S]*resolveXichengPhotoTrigger/,
   'Scan page should use one camera/album chooser for photo, OCR, and route-map recognition signals'
 )
