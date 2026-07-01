@@ -81,6 +81,31 @@
 			<text v-else class="empty-copy">AI识境服务动作累积后，会在这里看到点餐、优惠、预约和票务体验需求。</text>
 		</view>
 
+		<view v-if="visionAgentOpsBoundarySummary.hasBoundary" class="ranking-card service-boundary-card xicheng-paper-card">
+			<view class="section-head">
+				<text class="section-title">AI识境服务待接入</text>
+				<text class="section-badge">{{ visionAgentOpsBoundarySummary.realSystemRequiredTaskCount }} 项</text>
+			</view>
+			<text class="service-boundary-kicker">真实系统待确认</text>
+			<text class="service-boundary-copy">{{ visionAgentOpsBoundarySummary.boundaryText }}</text>
+			<view class="service-boundary-tags">
+				<text
+					v-for="label in visionAgentOpsBoundarySummary.sceneDomainLabels"
+					:key="`domain-${label}`"
+					class="service-boundary-tag"
+				>
+					{{ label }}
+				</text>
+				<text
+					v-for="label in visionAgentOpsBoundarySummary.serviceIntentLabels"
+					:key="`intent-${label}`"
+					class="service-boundary-tag service-boundary-tag-gold"
+				>
+					{{ label }}
+				</text>
+			</view>
+		</view>
+
 		<view class="ranking-card ops-safety-lane xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">审核安全</text>
@@ -111,11 +136,13 @@ import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import { isXichengUnsafeSafetyStatus } from '@/request/xunjing/safety.js'
 
 const safeArray = value => Array.isArray(value) ? value : []
+const safeObject = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {}
 
 export default {
 	data() {
 		return {
 			region: XICHENG_REGION_CONFIG,
+			localOpsReport: {},
 			materials: [],
 			shareArtifacts: [],
 			routeCheckins: [],
@@ -208,6 +235,51 @@ export default {
 					poiLabel: card.poiNames.length > 0 ? card.poiNames.slice(0, 2).join('、') : '待形成 POI'
 				}))
 		},
+		visionAgentOpsBoundarySummary() {
+			const localOpsReport = safeObject(this.localOpsReport)
+			const reportBoundaryText = localOpsReport.visionAgentRealSystemBoundary || ''
+			const sharePackages = this.shareArtifacts
+				.map(artifact => {
+					const publicPreview = safeObject(artifact && artifact.publicPreview)
+					return safeObject(artifact && artifact.visionAgentAutoTraveloguePackage).realSystemBoundaryText
+						? safeObject(artifact.visionAgentAutoTraveloguePackage)
+						: safeObject(publicPreview.publicVisionAgentAutoTraveloguePackage)
+				})
+				.filter(packagePayload => Object.keys(packagePayload).length > 0)
+			const shareBoundaryText = this.shareArtifacts
+				.map(artifact => {
+					const safeArtifact = safeObject(artifact)
+					const publicPreview = safeObject(safeArtifact.publicPreview)
+					const artifactPackage = safeObject(safeArtifact.visionAgentAutoTraveloguePackage)
+					const publicPackage = safeObject(publicPreview.publicVisionAgentAutoTraveloguePackage)
+					return safeArtifact.visionAgentRealSystemBoundary
+						|| publicPreview.publicVisionAgentRealSystemBoundary
+						|| artifactPackage.realSystemBoundaryText
+						|| publicPackage.realSystemBoundaryText
+						|| ''
+				})
+				.find(Boolean) || ''
+			const reportPackage = safeObject(localOpsReport.visionAgentAutoTraveloguePackage)
+			const packageSummary = Object.keys(reportPackage).length > 0 ? reportPackage : safeObject(sharePackages[0])
+			const realSystemRequiredTaskCount = Number(localOpsReport.visionAgentRealSystemRequiredTaskCount || packageSummary.realSystemRequiredTaskCount || 0)
+			const sceneDomainLabels = safeArray(localOpsReport.visionAgentSceneDomainLabels).length > 0
+				? safeArray(localOpsReport.visionAgentSceneDomainLabels)
+				: safeArray(packageSummary.sceneDomainLabels)
+			const serviceIntentLabels = safeArray(localOpsReport.visionAgentServiceIntentLabels).length > 0
+				? safeArray(localOpsReport.visionAgentServiceIntentLabels)
+				: safeArray(packageSummary.serviceIntentLabels)
+			const boundaryText = reportBoundaryText
+				|| shareBoundaryText
+				|| packageSummary.realSystemBoundaryText
+				|| ''
+			return {
+				hasBoundary: Boolean(boundaryText || realSystemRequiredTaskCount > 0 || sceneDomainLabels.length > 0 || serviceIntentLabels.length > 0),
+				boundaryText: boundaryText || 'AI识境已形成服务动作，需要接入真实商家、票务、优惠或预约系统后再对游客承诺结果。',
+				realSystemRequiredTaskCount,
+				sceneDomainLabels: sceneDomainLabels.slice(0, 6),
+				serviceIntentLabels: serviceIntentLabels.slice(0, 6)
+			}
+		},
 		insightCopy() {
 			if (this.merchantServiceTaskCount > 0) {
 				return `AI识境已捕捉 ${this.merchantServiceTaskCount} 条商家服务意图，可优先复盘点餐、优惠和预约需求。`
@@ -224,7 +296,10 @@ export default {
 	methods: {
 		refreshReport() {
 			this.materials = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey))
-			this.shareArtifacts = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey))
+			const storedLocalOpsReport = uni.getStorageSync(XICHENG_REGION_CONFIG.localOpsReportKey)
+			this.localOpsReport = safeObject(storedLocalOpsReport)
+			const storedShareArtifacts = uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey)
+			this.shareArtifacts = safeArray(storedShareArtifacts)
 			this.routeCheckins = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.checkinStorageKey))
 			this.reviewSubmissions = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey))
 			const storedTasks = uni.getStorageSync(XICHENG_REGION_CONFIG.visionAgentServiceTasksStorageKey)
@@ -607,6 +682,55 @@ export default {
 	font-size: 21rpx;
 	line-height: 1.35;
 	color: rgba(255, 249, 236, 0.72);
+}
+
+.service-boundary-card {
+	border: 1rpx solid rgba(181, 148, 94, 0.22);
+	background:
+		linear-gradient(135deg, rgba(255, 252, 246, 0.98), rgba(245, 249, 243, 0.92)),
+		linear-gradient(180deg, rgba(181, 148, 94, 0.14), rgba(255, 255, 255, 0));
+}
+
+.service-boundary-kicker,
+.service-boundary-copy {
+	display: block;
+}
+
+.service-boundary-kicker {
+	margin-top: 18rpx;
+	font-size: 23rpx;
+	font-weight: 800;
+	color: #9A7132;
+}
+
+.service-boundary-copy {
+	margin-top: 8rpx;
+	font-size: 24rpx;
+	line-height: 1.55;
+	color: #3D4D47;
+}
+
+.service-boundary-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12rpx;
+	margin-top: 18rpx;
+}
+
+.service-boundary-tag {
+	max-width: 100%;
+	padding: 8rpx 16rpx;
+	border-radius: 999rpx;
+	background: rgba(23, 63, 53, 0.08);
+	color: #173F35;
+	font-size: 21rpx;
+	font-weight: 800;
+	box-sizing: border-box;
+}
+
+.service-boundary-tag-gold {
+	background: rgba(181, 148, 94, 0.16);
+	color: #8B6428;
 }
 
 .ops-safety-lane {
