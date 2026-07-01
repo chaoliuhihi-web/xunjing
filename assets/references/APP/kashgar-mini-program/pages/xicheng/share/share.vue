@@ -111,17 +111,25 @@ const toSafeCount = value => {
 	return Number.isFinite(count) && count > 0 ? Math.round(count) : 0
 }
 
+const XICHENG_DEFAULT_SHARE_SETTING_STATE = Object.freeze({
+	hideExactLocation: true,
+	approvedOnly: true,
+	includeXiaojingSummary: true
+})
+
+const normalizeShareSettingState = (settings = {}) => ({
+	hideExactLocation: settings.hideExactLocation !== false,
+	approvedOnly: settings.approvedOnly !== false,
+	includeXiaojingSummary: settings.includeXiaojingSummary !== false
+})
+
 export default {
 	data() {
 		return {
 			region: XICHENG_REGION_CONFIG,
 			shareArtifacts: [],
 			reviewSubmissions: [],
-			shareSettingState: {
-				hideExactLocation: true,
-				approvedOnly: true,
-				includeXiaojingSummary: true
-			}
+			shareSettingState: { ...XICHENG_DEFAULT_SHARE_SETTING_STATE }
 		}
 	},
 	computed: {
@@ -165,10 +173,19 @@ export default {
 		}
 	},
 	onShow() {
+		this.restoreShareSettings()
 		this.shareArtifacts = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey))
 		this.reviewSubmissions = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey))
 	},
 	methods: {
+		restoreShareSettings() {
+			const storedShareSettings = safeObject(uni.getStorageSync(XICHENG_REGION_CONFIG.shareSettingStorageKey))
+			this.shareSettingState = normalizeShareSettingState(storedShareSettings)
+		},
+		persistShareSettings() {
+			this.shareSettingState = normalizeShareSettingState(this.shareSettingState)
+			uni.setStorageSync(XICHENG_REGION_CONFIG.shareSettingStorageKey, this.shareSettingState)
+		},
 		getShareJourneyDraft() {
 			return safeObject(uni.getStorageSync(XICHENG_REGION_CONFIG.journeyStorageKey))
 		},
@@ -319,7 +336,7 @@ export default {
 				reviewStatus: this.region.reviewStatus.pending,
 				publishStatus: 'private',
 				visibilityLabel: '待审核 · 未公开',
-				privacySettings: { ...this.shareSettingState },
+				privacySettings: normalizeShareSettingState(this.shareSettingState),
 				createdAt,
 				...auditSummary
 			}
@@ -330,6 +347,7 @@ export default {
 		toggleShareSetting(key = '') {
 			if (!Object.prototype.hasOwnProperty.call(this.shareSettingState, key)) return
 			this.shareSettingState[key] = !this.shareSettingState[key]
+			this.persistShareSettings()
 		},
 		sanitizeShareArtifactForReview(artifact = {}) {
 			if (!artifact || !['poster', 'pdf', 'study'].includes(artifact.assetType)) return null
