@@ -27,7 +27,7 @@ git pull --ff-only
 - 先读：
   - `00-page-reference-index.md`
   - `20-frontend-implementation-handoff.md`
-  - `01` 到 `19` 是主链路页面，`30` 到 `38` 是权限、不可用、暂停、素材不足、未登录和隐私公开范围等补充分支状态页。
+  - `01` 到 `19` 是主链路页面，`30` 到 `38` 是权限、不可用、暂停、素材不足、未登录和隐私公开范围等补充分支状态页，`39` 到 `44` 是游记预览、编辑、朋友圈、小红书和 PDF 打印发布闭环。
 
 不要改：
 
@@ -41,7 +41,7 @@ git pull --ff-only
 
 按 `p0-ui-approved-20260630` 的 `01` 到 `19` 页面参考图，把西城 APP P0 客户端页面实现完整。主链路必须跑通：
 
-`西城首页 -> 扫一扫/拍照/OCR/GPS/文本识别 -> 识别结果页 -> 带 regionCode + poiCode + poiName 进入小京 -> 展示 AI 回答和来源 -> 路线记录 -> 生成游记草稿 -> 分享/审核`
+`西城首页 -> 扫一扫/拍照/OCR/GPS/文本识别 -> 识别结果页 -> 带 regionCode + poiCode + poiName 进入小京 -> 展示 AI 回答和来源 -> 路线记录 -> 生成游记草稿 -> 游记预览/编辑 -> 发布到星河/朋友圈/小红书 -> PDF 打印`
 
 优先级：
 
@@ -54,6 +54,9 @@ git pull --ff-only
 7. 生产模式不能把 `XICHENG_DEVELOPMENT_TRIGGER_FIXTURE` 当真实结果。
 8. 新增功能不要继续堆进 `ai-guide.vue`、`travelogue.vue`；接近 3500 行必须拆组件或新增页面。
 9. 西城页面系统图标统一用 `components/xicheng-icon/xicheng-icon.vue`，不要手写 `‹`、`›`、`▶`、`↻`，也不要复用旧 `/static/tabbar/*.png` 做系统图标。
+10. 游记发布必须支持游记预览、深度编辑、发布渠道、朋友圈预览、小红书预览、PDF 打印预览。
+11. 朋友圈、小红书发布按系统分享或平台 SDK 唤起用户确认；客户端不得绕过平台规则静默发布。
+12. PDF 纪念册必须支持保存 PDF、预览全部页面、A4 打印设置、系统打印或分享 PDF。
 
 需要新增或补齐的页面：
 
@@ -64,6 +67,7 @@ git pull --ff-only
 - `pages/xicheng/share/share.vue`
 - `pages/xicheng/works/works.vue`
 - `pages/xicheng/ops-report/ops-report.vue`
+- `pages/xicheng/pdf-print/pdf-print.vue`
 
 优先拆这些组件：
 
