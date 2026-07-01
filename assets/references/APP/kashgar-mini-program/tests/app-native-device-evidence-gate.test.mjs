@@ -32,6 +32,7 @@ const artifactBytes = Buffer.from('signed release apk placeholder for validator 
 fs.writeFileSync(artifactPath, artifactBytes)
 const artifactSha256 = crypto.createHash('sha256').update(artifactBytes).digest('hex')
 const freshTimestamp = new Date().toISOString()
+const scenarioEvidenceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-native-scenario-evidence-'))
 
 assert.ok(
   fs.existsSync(scriptPath),
@@ -62,6 +63,9 @@ for (const required of [
   'release 包',
   'artifactSha256',
   'artifactSizeBytes',
+  'evidenceRef',
+  '截图',
+  '录屏',
   'createdAt',
   '72 小时'
 ]) {
@@ -97,11 +101,18 @@ const baseEvidence = {
     id,
     platform: 'android',
     status: 'PASS',
-    evidenceRef: `qa/native/${id}.jpg`,
+    evidenceRef: path.join(scenarioEvidenceDir, `${id}.jpg`),
     notes: id === 'scan-entry-map-detail'
       ? 'Scanned QR-XICHENG-MAP-001 on physical device and landed on /pages/map/detail?packageCode=XICHENG-MAP-001'
       : `${id} verified on physical device`
   }))
+}
+
+for (const scenario of baseEvidence.scenarios) {
+  fs.writeFileSync(
+    scenario.evidenceRef,
+    `${scenario.id} physical-device screenshot or recording placeholder\n`
+  )
 }
 
 const runValidator = (payload) => {
@@ -161,6 +172,46 @@ assert.match(
   `${wrongScanEntryNotesResult.stderr}\n${wrongScanEntryNotesResult.stdout}`,
   /scan-entry-map-detail|\/pages\/map\/detail|XICHENG-MAP-001/,
   'native evidence validator should explain the scan entry target requirement'
+)
+
+const missingEvidenceRefFileResult = runValidator({
+  ...baseEvidence,
+  scenarios: baseEvidence.scenarios.map((scenario) => (
+    scenario.id === 'camera-photo-recognition'
+      ? { ...scenario, evidenceRef: path.join(scenarioEvidenceDir, 'missing-camera-photo-recognition.jpg') }
+      : scenario
+  ))
+})
+assert.notEqual(
+  missingEvidenceRefFileResult.status,
+  0,
+  'native evidence validator should reject scenario evidenceRef paths that do not exist'
+)
+assert.match(
+  `${missingEvidenceRefFileResult.stderr}\n${missingEvidenceRefFileResult.stdout}`,
+  /camera-photo-recognition|evidenceRef|not found|截图|录屏/i,
+  'native evidence validator should name the missing scenario evidence file'
+)
+
+const emptyEvidenceRefFile = path.join(scenarioEvidenceDir, 'empty-xiaojing-blocked-answer.jpg')
+fs.writeFileSync(emptyEvidenceRefFile, '')
+const emptyEvidenceRefFileResult = runValidator({
+  ...baseEvidence,
+  scenarios: baseEvidence.scenarios.map((scenario) => (
+    scenario.id === 'xiaojing-blocked-answer'
+      ? { ...scenario, evidenceRef: emptyEvidenceRefFile }
+      : scenario
+  ))
+})
+assert.notEqual(
+  emptyEvidenceRefFileResult.status,
+  0,
+  'native evidence validator should reject empty scenario evidence files'
+)
+assert.match(
+  `${emptyEvidenceRefFileResult.stderr}\n${emptyEvidenceRefFileResult.stdout}`,
+  /xiaojing-blocked-answer|evidenceRef|empty|截图|录屏/i,
+  'native evidence validator should explain empty scenario evidence file rejection'
 )
 
 const localGatewayResult = runValidator({

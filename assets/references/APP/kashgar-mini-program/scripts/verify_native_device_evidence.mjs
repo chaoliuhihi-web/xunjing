@@ -58,6 +58,13 @@ const resolveArtifactPath = (artifactPath) => {
   return path.resolve(getRepoRoot(), artifactPath)
 }
 
+const resolveEvidenceRefPath = (evidenceRef) => {
+  if (path.isAbsolute(evidenceRef)) {
+    return evidenceRef
+  }
+  return path.resolve(getRepoRoot(), evidenceRef)
+}
+
 const evidencePath = process.argv[2] || process.env.XUNJING_NATIVE_DEVICE_EVIDENCE_FILE || '../../../../qa/xicheng-native-device-evidence.json'
 const resolvedEvidencePath = path.resolve(process.cwd(), evidencePath)
 
@@ -189,6 +196,14 @@ for (const id of requiredScenarioIds) {
   if (!String(scenario.evidenceRef || '').trim()) {
     fail(`Native device evidence scenario ${id} must include evidenceRef`)
   }
+  const resolvedEvidenceRef = resolveEvidenceRefPath(String(scenario.evidenceRef).trim())
+  if (!fs.existsSync(resolvedEvidenceRef)) {
+    fail(`Native device evidence scenario ${id} evidenceRef file not found: ${resolvedEvidenceRef} (截图/录屏)`)
+  }
+  const evidenceRefStat = fs.statSync(resolvedEvidenceRef)
+  if (!evidenceRefStat.isFile() || evidenceRefStat.size <= 0) {
+    fail(`Native device evidence scenario ${id} evidenceRef file must be a non-empty screenshot or recording`)
+  }
 }
 
 const scanEntryScenario = scenarioById.get('scan-entry-map-detail')
@@ -205,5 +220,6 @@ console.log(JSON.stringify({
   artifactSizeBytes,
   artifactSha256,
   deviceCount: devices.length,
-  scenarioCount: requiredScenarioIds.length
+  scenarioCount: requiredScenarioIds.length,
+  scenarioEvidenceFileCount: requiredScenarioIds.length
 }, null, 2))

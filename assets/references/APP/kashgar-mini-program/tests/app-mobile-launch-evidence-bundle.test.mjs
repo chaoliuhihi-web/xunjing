@@ -64,6 +64,15 @@ const requiredScenarioIds = [
   'travelogue-draft-generated'
 ]
 
+const scenarioEvidenceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-launch-scenario-evidence-'))
+const scenarioEvidenceRefById = new Map(requiredScenarioIds.map((id) => [
+  id,
+  path.join(scenarioEvidenceDir, `${id}.jpg`)
+]))
+for (const [id, evidenceRef] of scenarioEvidenceRefById.entries()) {
+  fs.writeFileSync(evidenceRef, `${id} physical-device screenshot or recording placeholder\n`)
+}
+
 const makePreprodEvidence = (overrides = {}) => {
   const { summary: summaryOverrides = {}, checks: extraChecks = [], ...topLevelOverrides } = overrides
   return {
@@ -148,7 +157,7 @@ const makeNativeEvidence = (overrides = {}) => ({
     id,
     platform: 'android',
     status: 'PASS',
-    evidenceRef: `qa/native/${id}.jpg`,
+    evidenceRef: scenarioEvidenceRefById.get(id),
     notes: id === 'scan-entry-map-detail'
       ? 'Scanned QR-XICHENG-MAP-001 on physical device and landed on /pages/map/detail?packageCode=XICHENG-MAP-001'
       : `${id} verified on physical device`
