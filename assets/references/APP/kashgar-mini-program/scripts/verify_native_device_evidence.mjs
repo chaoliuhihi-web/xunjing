@@ -27,6 +27,7 @@ const supportedEvidenceRefExtensions = new Set([
   '.mp4',
   '.mov'
 ])
+const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
 
 const fail = (message) => {
   console.error(message)
@@ -90,6 +91,34 @@ const resolveEvidenceRefPath = (evidenceRef) => {
     return evidenceRef
   }
   return path.resolve(repoRoot, evidenceRef)
+}
+
+const readFileHeader = (filePath, byteCount = 32) => {
+  const fd = fs.openSync(filePath, 'r')
+  try {
+    const header = Buffer.alloc(byteCount)
+    const bytesRead = fs.readSync(fd, header, 0, byteCount, 0)
+    return header.subarray(0, bytesRead)
+  } finally {
+    fs.closeSync(fd)
+  }
+}
+
+const evidenceRefContentMatchesExtension = (filePath, ext) => {
+  const header = readFileHeader(filePath)
+  if (ext === '.jpg' || ext === '.jpeg') {
+    return header.length >= 3 && header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff
+  }
+  if (ext === '.png') {
+    return header.length >= pngSignature.length && header.subarray(0, pngSignature.length).equals(pngSignature)
+  }
+  if (ext === '.webp') {
+    return header.length >= 12 && header.toString('ascii', 0, 4) === 'RIFF' && header.toString('ascii', 8, 12) === 'WEBP'
+  }
+  if (ext === '.mp4' || ext === '.mov') {
+    return header.length >= 12 && header.toString('ascii', 4, 8) === 'ftyp'
+  }
+  return false
 }
 
 const assertMobileReleaseArtifact = (label, artifactPath) => {
@@ -278,6 +307,9 @@ for (const id of requiredScenarioIds) {
   const evidenceRefStat = fs.statSync(resolvedEvidenceRef)
   if (!evidenceRefStat.isFile() || evidenceRefStat.size <= 0) {
     fail(`Native device evidence scenario ${id} evidenceRef file must be a non-empty screenshot or recording`)
+  }
+  if (!evidenceRefContentMatchesExtension(resolvedEvidenceRef, evidenceRefExt)) {
+    fail(`Native device evidence scenario ${id} evidenceRef file content must match a supported screenshot or recording media signature: JPEG, PNG, WebP, MP4, or MOV`)
   }
 }
 

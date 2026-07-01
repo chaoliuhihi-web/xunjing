@@ -381,8 +381,12 @@ const scenarioEvidenceDir = fs.mkdtempSync(path.join(repoRoot, 'qa', 'release-ca
 process.on('exit', () => {
   fs.rmSync(scenarioEvidenceDir, { recursive: true, force: true })
 })
+const jpegEvidenceBytes = Buffer.from([
+  0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46,
+  0x49, 0x46, 0x00, 0x01, 0xff, 0xd9
+])
 for (const id of requiredScenarioIds) {
-  fs.writeFileSync(path.join(scenarioEvidenceDir, `${id}.jpg`), `${id} physical-device proof\n`)
+  fs.writeFileSync(path.join(scenarioEvidenceDir, `${id}.jpg`), jpegEvidenceBytes)
 }
 const artifactDescription = describeArtifact(makeZipArtifact({
   'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";'

@@ -50,6 +50,10 @@ const currentCommit = spawnSync('git', ['rev-parse', 'HEAD'], {
 }).stdout.trim()
 const qaEvidenceDir = fs.mkdtempSync(path.join(repoRoot, 'qa', 'native-evidence-test-'))
 const outsideQaEvidenceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-native-scenario-evidence-'))
+const jpegEvidenceBytes = Buffer.from([
+  0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46,
+  0x49, 0x46, 0x00, 0x01, 0xff, 0xd9
+])
 process.on('exit', () => {
   fs.rmSync(qaEvidenceDir, { recursive: true, force: true })
 })
@@ -138,7 +142,7 @@ const baseEvidence = {
 for (const scenario of baseEvidence.scenarios) {
   fs.writeFileSync(
     path.resolve(repoRoot, scenario.evidenceRef),
-    `${scenario.id} physical-device screenshot or recording placeholder\n`
+    jpegEvidenceBytes
   )
 }
 
@@ -284,6 +288,27 @@ assert.match(
   `${outsideQaEvidenceRefResult.stderr}\n${outsideQaEvidenceRefResult.stdout}`,
   /recording-start-stop|evidenceRef|qa\//i,
   'native evidence validator should explain that scenario evidence must be stored under qa/'
+)
+
+const fakeJpegEvidenceRefFile = path.join(qaEvidenceDir, 'fake-camera-photo-recognition.jpg')
+fs.writeFileSync(fakeJpegEvidenceRefFile, 'renamed text file is not real screenshot media\n')
+const fakeJpegEvidenceRefResult = runValidator({
+  ...baseEvidence,
+  scenarios: baseEvidence.scenarios.map((scenario) => (
+    scenario.id === 'camera-photo-recognition'
+      ? { ...scenario, evidenceRef: path.relative(repoRoot, fakeJpegEvidenceRefFile) }
+      : scenario
+  ))
+})
+assert.notEqual(
+  fakeJpegEvidenceRefResult.status,
+  0,
+  'native evidence validator should reject text files renamed with a screenshot extension'
+)
+assert.match(
+  `${fakeJpegEvidenceRefResult.stderr}\n${fakeJpegEvidenceRefResult.stdout}`,
+  /camera-photo-recognition|evidenceRef|media|screenshot|recording|截图|录屏|jpg|png|mp4/i,
+  'native evidence validator should explain evidenceRef media signature validation'
 )
 
 const textEvidenceRefFile = path.join(qaEvidenceDir, 'ocr-text-recognition.txt')

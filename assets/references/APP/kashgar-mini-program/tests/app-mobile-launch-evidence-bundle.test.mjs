@@ -72,12 +72,16 @@ const scenarioEvidenceDir = fs.mkdtempSync(path.join(repoRoot, 'qa', 'launch-sce
 process.on('exit', () => {
   fs.rmSync(scenarioEvidenceDir, { recursive: true, force: true })
 })
+const jpegEvidenceBytes = Buffer.from([
+  0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46,
+  0x49, 0x46, 0x00, 0x01, 0xff, 0xd9
+])
 const scenarioEvidenceRefById = new Map(requiredScenarioIds.map((id) => [
   id,
   path.relative(repoRoot, path.join(scenarioEvidenceDir, `${id}.jpg`))
 ]))
 for (const [id, evidenceRef] of scenarioEvidenceRefById.entries()) {
-  fs.writeFileSync(path.resolve(repoRoot, evidenceRef), `${id} physical-device screenshot or recording placeholder\n`)
+  fs.writeFileSync(path.resolve(repoRoot, evidenceRef), jpegEvidenceBytes)
 }
 
 const makePreprodEvidence = (overrides = {}) => {
