@@ -125,6 +125,23 @@ assert.match(
   'release artifact scanner should report scanned APK/ZIP inner files'
 )
 
+for (const mobileArchiveName of ['xicheng-release.aab', 'xicheng-release.ipa']) {
+  const validMobileArchive = makeZipArtifact({
+    'assets/index.js': 'const apiBase="https://api.example.com";const tenantId="1";'
+  }, mobileArchiveName)
+  const result = runScanner(validMobileArchive)
+  assert.equal(
+    result.status,
+    0,
+    `release artifact scanner should accept a clean mobile package archive ${mobileArchiveName}: ${result.stderr || result.stdout}`
+  )
+  assert.match(
+    result.stdout,
+    /archiveFilesScanned/,
+    `release artifact scanner should report scanned mobile package archive files for ${mobileArchiveName}`
+  )
+}
+
 for (const [label, content, expectedMessage] of [
   ['localhost gateway', 'const apiBase="http://localhost:48082/app-api/xunjing";', /localhost|local/i],
   ['lan gateway', 'const apiBase="https://192.168.1.8/app-api/xunjing";', /192\.168|local|LAN/i],

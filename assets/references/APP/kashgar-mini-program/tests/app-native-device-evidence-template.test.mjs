@@ -64,6 +64,8 @@ const artifactBytes = Buffer.from('release candidate apk bytes for native templa
 fs.writeFileSync(artifactPath, artifactBytes)
 const artifactSha256 = crypto.createHash('sha256').update(artifactBytes).digest('hex')
 const outputPath = path.join(tempDir, 'native-evidence.json')
+const nonMobileArtifactPath = path.join(tempDir, 'xicheng-release.txt')
+fs.writeFileSync(nonMobileArtifactPath, 'not a mobile install package\n')
 
 const result = spawnSync(
   process.execPath,
@@ -181,4 +183,24 @@ assert.match(
   `${invalidTenantResult.stderr}\n${invalidTenantResult.stdout}`,
   /tenant.*positive integer|正整数/i,
   'native evidence template generator should explain tenant id validation'
+)
+
+const invalidArtifactTypeResult = spawnSync(
+  process.execPath,
+  [scriptPath, '--artifact', nonMobileArtifactPath, '--output', path.join(tempDir, 'invalid-artifact-type.json'), '--force'],
+  {
+    cwd: root,
+    env: {
+      ...process.env,
+      XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+      XUNJING_TENANT_ID: '1'
+    },
+    encoding: 'utf8'
+  }
+)
+assert.notEqual(invalidArtifactTypeResult.status, 0, 'native evidence template generator should reject non-mobile release artifacts')
+assert.match(
+  `${invalidArtifactTypeResult.stderr}\n${invalidArtifactTypeResult.stdout}`,
+  /APK|AAB|IPA|install package|安装包/i,
+  'native evidence template generator should explain release artifact type validation'
 )

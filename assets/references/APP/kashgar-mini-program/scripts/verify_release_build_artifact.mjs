@@ -51,6 +51,13 @@ const textExtensions = new Set([
   '.map'
 ])
 
+const mobileArchiveExtensions = new Set([
+  '.apk',
+  '.aab',
+  '.ipa',
+  '.zip'
+])
+
 const forbiddenPatterns = [
   { name: 'localhost', pattern: /\blocalhost\b/i },
   { name: '127.0.0.1', pattern: /\b127\.0\.0\.1\b/ },
@@ -157,13 +164,13 @@ const scanArchiveArtifact = () => {
 
 if (artifactStat.isDirectory()) {
   scanDirectoryArtifact()
-} else if (artifactStat.isFile() && ['.apk', '.zip'].includes(path.extname(resolvedArtifactDir).toLowerCase())) {
+} else if (artifactStat.isFile() && mobileArchiveExtensions.has(path.extname(resolvedArtifactDir).toLowerCase())) {
   scanArchiveArtifact()
 } else if (artifactStat.isFile() && isTextCandidate(resolvedArtifactDir)) {
   textFilesScanned += 1
   scanTextContent(path.basename(resolvedArtifactDir), fs.readFileSync(resolvedArtifactDir, 'utf8'))
 } else {
-  fail(`Release artifact path must be a directory, APK, ZIP, or scannable text file: ${resolvedArtifactDir}`)
+  fail(`Release artifact path must be a directory, APK, AAB, IPA, ZIP, or scannable text file: ${resolvedArtifactDir}`)
 }
 
 for (const embeddedUrl of embeddedUrls) {

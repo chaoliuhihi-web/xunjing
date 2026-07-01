@@ -31,6 +31,10 @@ const artifactPath = path.join(artifactTempDir, 'xicheng-release.apk')
 const artifactBytes = Buffer.from('signed release apk placeholder for validator tests\n', 'utf8')
 fs.writeFileSync(artifactPath, artifactBytes)
 const artifactSha256 = crypto.createHash('sha256').update(artifactBytes).digest('hex')
+const nonMobileArtifactPath = path.join(artifactTempDir, 'xicheng-release.txt')
+const nonMobileArtifactBytes = Buffer.from('not a mobile install package\n', 'utf8')
+fs.writeFileSync(nonMobileArtifactPath, nonMobileArtifactBytes)
+const nonMobileArtifactSha256 = crypto.createHash('sha256').update(nonMobileArtifactBytes).digest('hex')
 const freshTimestamp = new Date().toISOString()
 const repoRoot = spawnSync('git', ['rev-parse', '--show-toplevel'], {
   cwd: root,
@@ -303,6 +307,22 @@ assert.match(
   `${missingArtifactResult.stderr}\n${missingArtifactResult.stdout}`,
   /artifact.*not found|release artifact/i,
   'native evidence validator should explain the missing release artifact'
+)
+
+const invalidArtifactTypeResult = runValidator({
+  ...baseEvidence,
+  build: {
+    ...baseEvidence.build,
+    artifact: nonMobileArtifactPath,
+    artifactSha256: nonMobileArtifactSha256,
+    artifactSizeBytes: nonMobileArtifactBytes.length
+  }
+})
+assert.notEqual(invalidArtifactTypeResult.status, 0, 'native evidence validator should reject non-mobile release artifacts')
+assert.match(
+  `${invalidArtifactTypeResult.stderr}\n${invalidArtifactTypeResult.stdout}`,
+  /APK|AAB|IPA|install package|安装包/i,
+  'native evidence validator should explain release artifact type validation'
 )
 
 const staleEvidenceResult = runValidator({

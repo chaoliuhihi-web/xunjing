@@ -87,6 +87,13 @@ const resolveInputFile = (label, inputPath) => {
   return resolved
 }
 
+const assertMobileReleaseArtifact = (label, artifactPath) => {
+  const ext = path.extname(artifactPath).toLowerCase()
+  if (!['.apk', '.aab', '.ipa'].includes(ext)) {
+    fail(`${label} must be a mobile install package: APK, AAB, or IPA`)
+  }
+}
+
 const artifactArg = readArg('--artifact', process.env.XUNJING_RELEASE_ARTIFACT)
 const outputArg = readArg('--output', process.env.XUNJING_NATIVE_DEVICE_EVIDENCE_FILE || defaultOutputPath)
 const appApiBaseUrl = assertNonLocalHttpsUrl('XUNJING_APP_API_BASE_URL', process.env.XUNJING_APP_API_BASE_URL)
@@ -101,6 +108,7 @@ if (!/^[1-9]\d*$/.test(tenantId)) {
 }
 
 const artifactPath = resolveInputFile('Release artifact', artifactArg)
+assertMobileReleaseArtifact('Release artifact', artifactPath)
 const outputPath = path.resolve(process.cwd(), outputArg)
 const force = hasFlag('--force')
 

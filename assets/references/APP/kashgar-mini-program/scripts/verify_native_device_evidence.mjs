@@ -73,6 +73,13 @@ const resolveEvidenceRefPath = (evidenceRef) => {
   return path.resolve(repoRoot, evidenceRef)
 }
 
+const assertMobileReleaseArtifact = (label, artifactPath) => {
+  const ext = path.extname(artifactPath).toLowerCase()
+  if (!['.apk', '.aab', '.ipa'].includes(ext)) {
+    fail(`${label} must be a mobile install package: APK, AAB, or IPA`)
+  }
+}
+
 const evidencePath = process.argv[2] || process.env.XUNJING_NATIVE_DEVICE_EVIDENCE_FILE || '../../../../qa/xicheng-native-device-evidence.json'
 const resolvedEvidencePath = path.resolve(process.cwd(), evidencePath)
 
@@ -150,6 +157,8 @@ const resolvedArtifactPath = resolveArtifactPath(String(evidence.build.artifact)
 if (!fs.existsSync(resolvedArtifactPath)) {
   fail(`Native device evidence release artifact not found: ${resolvedArtifactPath}`)
 }
+
+assertMobileReleaseArtifact('Native device evidence release artifact', resolvedArtifactPath)
 
 const artifactStat = fs.statSync(resolvedArtifactPath)
 if (!artifactStat.isFile()) {
