@@ -24,6 +24,10 @@ export const buildXichengRecognitionFeedbackEventPayload = (feedback = {}) => ({
 	sourceChannel: feedback.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
 	userTraceId: getXunjingUserTraceId(),
 	payloadJson: JSON.stringify({
+		regionCode: feedback.regionCode || XICHENG_REGION_CONFIG.regionCode,
+		packageCode: feedback.packageCode || XICHENG_REGION_CONFIG.packageCode,
+		sceneCode: feedback.sceneCode || XICHENG_REGION_CONFIG.sceneCode,
+		sourceChannel: feedback.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
 		category: feedback.misTrigger ? 'recognition_wrong' : 'recognition_confirmed',
 		feedbackId: feedback.feedbackId || '',
 		feedbackType: feedback.feedbackType || '',

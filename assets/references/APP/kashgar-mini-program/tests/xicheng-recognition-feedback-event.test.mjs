@@ -41,6 +41,12 @@ assert.match(
   'Recognition feedback event payload should send a safety-aware bounded normalized-source summary instead of raw source arrays'
 )
 
+assert.match(
+  eventRequest,
+  /payloadJson:\s*JSON\.stringify\(\{[\s\S]*regionCode:\s*feedback\.regionCode \|\| XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*feedback\.packageCode \|\| XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*feedback\.sceneCode \|\| XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*feedback\.sourceChannel \|\| XICHENG_REGION_CONFIG\.sourceChannel/,
+  'Recognition feedback event payloadJson should carry region, package, scene, and source channel context for operations attribution'
+)
+
 assert.doesNotMatch(
   eventRequest,
   /sources:\s*feedback\.sources|candidateConfirmationAudit|imageBase64|imageUrl|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
@@ -104,6 +110,10 @@ const { buildXichengRecognitionFeedbackEventPayload } = await import(
 )
 const feedbackPayload = buildXichengRecognitionFeedbackEventPayload({
   feedbackId: 'feedback-1',
+  regionCode: 'beijing-xicheng',
+  packageCode: 'XICHENG-MAP-001',
+  sceneCode: 'xicheng-multimodal-trigger',
+  sourceChannel: 'APP_UNIAPP',
   poiCode: 'xicheng-baitasi',
   poiName: '白塔寺',
   safetyStatus: 'approved',
@@ -119,6 +129,22 @@ assert.equal(
   parsedFeedbackPayload.sourceCount,
   1,
   'Recognition feedback event should count only normalized reviewed sources'
+)
+
+assert.deepEqual(
+  {
+    regionCode: parsedFeedbackPayload.regionCode,
+    packageCode: parsedFeedbackPayload.packageCode,
+    sceneCode: parsedFeedbackPayload.sceneCode,
+    sourceChannel: parsedFeedbackPayload.sourceChannel
+  },
+  {
+    regionCode: 'beijing-xicheng',
+    packageCode: 'XICHENG-MAP-001',
+    sceneCode: 'xicheng-multimodal-trigger',
+    sourceChannel: 'APP_UNIAPP'
+  },
+  'Recognition feedback event should keep city and package attribution inside payloadJson without requiring a backend VO change'
 )
 
 const blockedFeedbackPayload = buildXichengRecognitionFeedbackEventPayload({
