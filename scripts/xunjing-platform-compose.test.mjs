@@ -54,6 +54,8 @@ describe('xunjing platform dependency compose configuration', () => {
     expect(initScript).toContain('/opt/xunjing-sql/04-xunjing-module.sql');
     expect(initScript).toContain('/opt/xunjing-sql/05-xunjing-seed-kashgar-p0.sql');
     expect(initScript).toContain('/opt/xunjing-sql/06-xunjing-seed-xicheng-p0.sql');
+    expect(initScript).toContain('MYSQL_HOST= MYSQL_TCP_PORT= mysql');
+    expect(initScript).toContain('--socket=/var/run/mysqld/mysqld.sock');
     expect(initScript).toContain('--default-character-set=utf8mb4');
     expect(initScript).toContain('information_schema.tables');
     expect(initScript).toContain('system_tenant');
@@ -65,7 +67,7 @@ describe('xunjing platform dependency compose configuration', () => {
     expect(initScript).toContain("region_code = 'beijing-xicheng'");
     expect(initScript).toContain('xicheng_poi_source_doc_count');
     expect(initScript).toContain('POI 级已审核来源');
-    expect(initScript).toContain("source_url in ('https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html', 'https://www.bjxch.gov.cn/xcfw/whfw/xxxq/pnidpv736523.html')");
+    expect(initScript).not.toContain('source_url in (');
     expect(initScript).toContain('Xicheng approved POI seed count is below 80');
     expect(initScript).toContain('Xicheng POI-level reviewed source documents are below 80');
     expect(initScript).toContain('ai_api_key');

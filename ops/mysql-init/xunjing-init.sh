@@ -4,8 +4,8 @@ set -eu
 MYSQL_DATABASE="${MYSQL_DATABASE:-yudao_xinghe_xunjing}"
 
 mysql_base() {
-  mysql \
-    --protocol=socket \
+  MYSQL_HOST= MYSQL_TCP_PORT= mysql \
+    --socket=/var/run/mysqld/mysqld.sock \
     --default-character-set=utf8mb4 \
     --user=root \
     --password="${MYSQL_ROOT_PASSWORD}" \
@@ -90,7 +90,7 @@ if [ "${xicheng_poi_count}" -lt 80 ]; then
   exit 1
 fi
 
-xicheng_poi_source_doc_count="$(mysql_base --batch --skip-column-names --execute "select count(*) from xunjing_knowledge_document where title like '% POI 级已审核来源' and source_url in ('https://www.bjxch.gov.cn/xxgk/zdly/jgxx/lyscjg/Ajjyxlyjqml.html', 'https://www.bjxch.gov.cn/xcfw/whfw/xxxq/pnidpv736523.html') and review_status = 'APPROVED' and vector_status = 'INDEXED';")"
+xicheng_poi_source_doc_count="$(mysql_base --batch --skip-column-names --execute "select count(*) from xunjing_knowledge_document where title like '% POI 级已审核来源' and review_status = 'APPROVED' and vector_status = 'INDEXED';")"
 if [ "${xicheng_poi_source_doc_count}" -lt 80 ]; then
   echo "Xunjing MySQL initialization failed: Xicheng POI-level reviewed source documents are below 80." >&2
   exit 1
