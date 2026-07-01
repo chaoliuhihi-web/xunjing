@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 const root = process.cwd()
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
@@ -13,6 +14,7 @@ const releaseUrlGuard = fs.readFileSync(path.join(root, 'scripts', 'release_url_
 const releaseBuildRunner = fs.readFileSync(path.join(root, 'scripts', 'run_release_app_build.mjs'), 'utf8')
 const preprodRunner = fs.readFileSync(path.join(root, 'scripts', 'run_preprod_yudao_verify.mjs'), 'utf8')
 const scripts = packageJson.scripts || {}
+const { normalizeReleaseHttpsUrl } = await import(pathToFileURL(path.join(root, 'scripts', 'release_url_guard.mjs')).href)
 
 assert.match(
   config,
@@ -85,16 +87,17 @@ assert.match(
 )
 
 for (const forbiddenReleaseBase of [
-  "hostname === 'localhost'",
-  "hostname === '127.0.0.1'",
-  "hostname === '0.0.0.0'",
-  "hostname === '::1'",
-  "hostname.startsWith('192.168.')",
-  "hostname.startsWith('10.')",
-  "hostname.startsWith('172.')",
+  'https://localhost',
+  'https://127.0.0.1',
+  'https://0.0.0.0',
+  'https://[::1]',
+  'https://192.168.110.190',
+  'https://10.0.0.8',
+  'https://172.16.0.8',
 ]) {
-  assert.ok(
-    releaseUrlGuard.includes(forbiddenReleaseBase),
+  assert.throws(
+    () => normalizeReleaseHttpsUrl('test release URL', forbiddenReleaseBase),
+    /non-local HTTPS URL|reserved|placeholder/i,
     `APP release environment guard should reject ${forbiddenReleaseBase}`
   )
 }

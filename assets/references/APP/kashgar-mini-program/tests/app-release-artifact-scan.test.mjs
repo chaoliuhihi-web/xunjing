@@ -223,6 +223,21 @@ for (const [label, content, expectedMessage] of [
     /169\.254|link-local|local|LAN/i
   ],
   [
+    'CGNAT asset URL',
+    'const apiBase="https://api.xingheai.net";const tenantId="1";const previewImage="https://100.64.1.8/poster.png";',
+    /100\.64|CGNAT|reserved|local|LAN/i
+  ],
+  [
+    'benchmark reserved asset URL',
+    'const apiBase="https://api.xingheai.net";const tenantId="1";const previewImage="https://198.18.1.8/poster.png";',
+    /198\.18|benchmark|reserved|local|LAN/i
+  ],
+  [
+    'multicast asset URL',
+    'const apiBase="https://api.xingheai.net";const tenantId="1";const previewImage="https://224.0.0.1/poster.png";',
+    /224\.0\.0\.1|multicast|reserved|local|LAN/i
+  ],
+  [
     'private IPv6 gateway',
     'const apiBase="https://api.xingheai.net";const tenantId="1";const fallback="https://[fd00::1]/app-api/xunjing";',
     /IPv6|private|local|LAN|fd00/i
