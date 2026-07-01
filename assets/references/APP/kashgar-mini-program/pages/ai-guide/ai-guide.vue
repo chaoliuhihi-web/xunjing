@@ -628,11 +628,12 @@ const getActiveXichengCacheScope = () => {
 		return ''
 	}
 	const regionCode = context.regionCode || XICHENG_REGION_CONFIG.regionCode
+	const packageCode = context.packageCode || XICHENG_REGION_CONFIG.packageCode
 	const poiCode = context.poiCode || ''
 	const poiScope = poiCode || context.poiName || 'general'
 	const safetyStatus = normalizeXichengSafetyStatus(context.safetyStatus)
 	const safetyScope = safetyStatus ? `:${encodeURIComponent(safetyStatus)}` : ''
-	return `${encodeURIComponent(regionCode)}:${encodeURIComponent(poiScope)}${safetyScope}`
+	return `${encodeURIComponent(regionCode)}:${encodeURIComponent(packageCode)}:${encodeURIComponent(poiScope)}${safetyScope}`
 }
 
 const getActiveChatCacheKey = () => {

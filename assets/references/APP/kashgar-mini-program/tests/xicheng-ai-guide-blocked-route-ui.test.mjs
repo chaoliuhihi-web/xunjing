@@ -47,8 +47,8 @@ assert.match(
 
 assert.match(
   cacheScopeBlock,
-  /const safetyStatus = normalizeXichengSafetyStatus\(context\.safetyStatus\)[\s\S]*const safetyScope = safetyStatus \? `:\$\{encodeURIComponent\(safetyStatus\)\}` : ''[\s\S]*return `\$\{encodeURIComponent\(regionCode\)\}:\$\{encodeURIComponent\(poiScope\)\}\$\{safetyScope\}`/,
-  'Xicheng chat cache keys should include safetyStatus so old sourced answers are not reused in BLOCKED sessions'
+  /const packageCode = context\.packageCode \|\| XICHENG_REGION_CONFIG\.packageCode[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(context\.safetyStatus\)[\s\S]*const safetyScope = safetyStatus \? `:\$\{encodeURIComponent\(safetyStatus\)\}` : ''[\s\S]*return `\$\{encodeURIComponent\(regionCode\)\}:\$\{encodeURIComponent\(packageCode\)\}:\$\{encodeURIComponent\(poiScope\)\}\$\{safetyScope\}`/,
+  'Xicheng chat cache keys should include packageCode and safetyStatus so package-scoped old sourced answers are not reused in BLOCKED sessions'
 )
 
 assert.match(

@@ -5,6 +5,7 @@ import path from 'node:path'
 const root = process.cwd()
 const aiGuide = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
 const messageCache = fs.readFileSync(path.join(root, 'request', 'xunjing', 'messageCache.js'), 'utf8')
+const cacheScopeSource = aiGuide.match(/const getActiveXichengCacheScope\s*=\s*\(\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const chatKeySource = aiGuide.match(/const getActiveChatCacheKey\s*=\s*\(\)\s*=>\s*\{[\s\S]*?\n\}/)?.[0] || ''
 const conversationKeySource = aiGuide.match(/const getActiveConversationKey\s*=\s*\(\)\s*=>\s*\{[\s\S]*?\n\}/)?.[0] || ''
 
@@ -15,11 +16,18 @@ for (const required of [
   'xichengAiContext.value',
   'poiCode || context.poiName ||',
   'regionCode',
+  'packageCode',
   'CHAT_CACHE_KEY',
   'CONVERSATION_KEY'
 ]) {
   assert.ok(aiGuide.includes(required), `AI guide should define Xicheng-aware cache isolation token ${required}`)
 }
+
+assert.match(
+  cacheScopeSource,
+  /const packageCode = context\.packageCode \|\| XICHENG_REGION_CONFIG\.packageCode[\s\S]*return `\$\{encodeURIComponent\(regionCode\)\}:\$\{encodeURIComponent\(packageCode\)\}:\$\{encodeURIComponent\(poiScope\)\}\$\{safetyScope\}`/,
+  'Xicheng chat cache scope should include packageCode so package-scoped POI answers do not share chat history'
+)
 
 assert.ok(chatKeySource.includes('getActiveXichengCacheScope()'), 'active chat cache key should read the Xicheng cache scope')
 assert.ok(chatKeySource.includes('${CHAT_CACHE_KEY}:xicheng:'), 'active chat cache key should namespace Xicheng messages')
