@@ -204,3 +204,32 @@ assert.match(
   /APK|AAB|IPA|install package|安装包/i,
   'native evidence template generator should explain release artifact type validation'
 )
+
+const invalidPlatformResult = spawnSync(
+  process.execPath,
+  [
+    scriptPath,
+    '--artifact',
+    artifactPath,
+    '--output',
+    path.join(tempDir, 'invalid-platform.json'),
+    '--platform',
+    'web',
+    '--force'
+  ],
+  {
+    cwd: root,
+    env: {
+      ...process.env,
+      XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+      XUNJING_TENANT_ID: '1'
+    },
+    encoding: 'utf8'
+  }
+)
+assert.notEqual(invalidPlatformResult.status, 0, 'native evidence template generator should reject non-mobile release targets')
+assert.match(
+  `${invalidPlatformResult.stderr}\n${invalidPlatformResult.stdout}`,
+  /releaseTargets|platform|android|ios|手机/i,
+  'native evidence template generator should explain supported mobile release targets'
+)

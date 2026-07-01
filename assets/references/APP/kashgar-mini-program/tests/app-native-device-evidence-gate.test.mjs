@@ -325,6 +325,29 @@ assert.match(
   'native evidence validator should explain release artifact type validation'
 )
 
+const invalidReleaseTargetResult = runValidator({
+  ...baseEvidence,
+  releaseTargets: ['web'],
+  devices: [
+    {
+      platform: 'web',
+      model: 'Chrome desktop',
+      osVersion: 'macOS',
+      appVersion: '1.0.0'
+    }
+  ],
+  scenarios: baseEvidence.scenarios.map((scenario) => ({
+    ...scenario,
+    platform: 'web'
+  }))
+})
+assert.notEqual(invalidReleaseTargetResult.status, 0, 'native evidence validator should reject non-mobile release targets')
+assert.match(
+  `${invalidReleaseTargetResult.stderr}\n${invalidReleaseTargetResult.stdout}`,
+  /releaseTargets|platform|android|ios|手机/i,
+  'native evidence validator should explain supported mobile release targets'
+)
+
 const staleEvidenceResult = runValidator({
   ...baseEvidence,
   createdAt: '2000-01-01T00:00:00.000Z'

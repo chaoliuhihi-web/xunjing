@@ -4,6 +4,7 @@ import crypto from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 
 const defaultOutputPath = '../../../../qa/xicheng-native-device-evidence.json'
+const supportedReleaseTargets = new Set(['android', 'ios'])
 const requiredScenarioIds = [
   'install-release-build',
   'home-loads-xicheng',
@@ -124,6 +125,11 @@ const releaseTargets = platformArg
 
 if (releaseTargets.length === 0) {
   fail('At least one release target platform is required')
+}
+
+const unsupportedReleaseTargets = releaseTargets.filter((target) => !supportedReleaseTargets.has(target))
+if (unsupportedReleaseTargets.length > 0) {
+  fail(`XUNJING_RELEASE_TARGETS releaseTargets must be mobile platforms: android or ios; unsupported platform(s): ${unsupportedReleaseTargets.join(', ')}`)
 }
 
 const artifactBytes = fs.readFileSync(artifactPath)

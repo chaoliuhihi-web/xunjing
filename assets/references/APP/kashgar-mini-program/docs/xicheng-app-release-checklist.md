@@ -53,6 +53,8 @@ npm run prepare:native:evidence
 
 `npm run prepare:native:evidence` 只根据 `XUNJING_RELEASE_ARTIFACT` 初始化真机证据模板，自动写入当前 commit、`createdAt`、release 包路径、`artifactSha256` 和 `artifactSizeBytes`。`XUNJING_RELEASE_ARTIFACT` 必须是手机安装包文件：Android APK/AAB 或 iOS IPA。模板里的场景状态全部是 `TODO`，`evidenceRef` 默认指向 `qa/native/<scenario>.jpg`；不得把模板当成通过证据，必须在真实手机完成验证并补齐设备信息、截图或录屏引用 `evidenceRef` 后，才能把对应场景改成 `PASS`。
 
+`XUNJING_RELEASE_TARGETS` 或 `--platform` 只允许手机端发布目标：`android`、`ios`。不要把 H5、web 或小程序目标写入手机端上线证据。
+
 ```bash
 XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-evidence.json" \
 npm run verify:native:evidence
@@ -61,6 +63,8 @@ npm run verify:native:evidence
 真机证据至少覆盖 `camera-photo-recognition`、`ocr-text-recognition`、`gps-recognition-permission`、`scan-entry-map-detail`、`xiaojing-sourced-answer`、`xiaojing-blocked-answer`、`recording-start-stop` 和 `travelogue-draft-generated`。每个场景的 `evidenceRef` 必须指向仓库 `qa/` 下真实存在且非空的截图或录屏文件，建议使用 `qa/native/` 归档。`scan-entry-map-detail` 必须在真实手机扫码后落到 `/pages/map/detail`，并在备注中记录 `XICHENG-MAP-001`。
 
 真机证据的 `build.artifact` 必须指向真实手机安装包 release 文件，只接受 `.apk`、`.aab` 或 `.ipa`，并记录 `artifactSha256` 和 `artifactSizeBytes`。`npm run verify:native:evidence` 会读取该 release 包文件，校验 SHA256 和大小，避免证据里只写路径但没有对应安装包。
+
+真机证据的 `releaseTargets` 只允许 `android` 或 `ios`；每个目标都必须有真实设备记录。
 
 预发证据和真机证据必须属于同一个手机端发布候选。`qa/xicheng-app-readiness-evidence.json` 里的 `baseUrl`、`tenantId` 必须和 `qa/xicheng-native-device-evidence.json` 里的 `appApiBaseUrl`、`tenantId` 一致，真机证据里的 `commit` 必须等于当前 `git HEAD`；预发证据 `checkedAt` 和真机证据 `createdAt` 都必须在 72 小时内；预发证据必须包含扫码入口解析 `live-xicheng-scan-resolve`，且 `targetPath` 指向 `/pages/map/detail`、`packageCode` 为 `XICHENG-MAP-001`、`tenantId` 和预发汇总一致；最终 `verify:launch:evidence` 会复用 `verify:release:artifact` 扫描真机证据里的安装包本体 `build.artifact`，拒绝 localhost、局域网、fixture 或真实 token 进入最终手机包：
 

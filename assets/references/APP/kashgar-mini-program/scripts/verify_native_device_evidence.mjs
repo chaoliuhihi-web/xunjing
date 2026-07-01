@@ -17,6 +17,7 @@ const requiredScenarioIds = [
   'recording-start-stop',
   'travelogue-draft-generated'
 ]
+const supportedReleaseTargets = new Set(['android', 'ios'])
 
 const fail = (message) => {
   console.error(message)
@@ -184,6 +185,11 @@ const releaseTargets = Array.isArray(evidence.releaseTargets) && evidence.releas
 
 if (releaseTargets.length === 0) {
   fail('Native device evidence releaseTargets must include at least one platform')
+}
+
+const unsupportedReleaseTargets = releaseTargets.filter((target) => !supportedReleaseTargets.has(target))
+if (unsupportedReleaseTargets.length > 0) {
+  fail(`Native device evidence releaseTargets must be mobile platforms: android or ios; unsupported platform(s): ${unsupportedReleaseTargets.join(', ')}`)
 }
 
 const devices = Array.isArray(evidence.devices) ? evidence.devices : []
