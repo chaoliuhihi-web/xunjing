@@ -70,3 +70,23 @@ assert.match(
   /VITE_XUNJING_TENANT_ID="\$\{XUNJING_TENANT_ID:\?Set XUNJING_TENANT_ID/,
   'APP release build should require the release tenant id instead of silently using tenant 1'
 )
+
+assert.match(
+  scripts['verify:yudao:local'] || '',
+  /cd \.\.\/\.\.\/\.\.\/\.\. && npm run xunjing:platform:verify --/,
+  'APP local readiness script should run the root Yudao platform verifier from the APP directory'
+)
+
+for (const required of [
+  '--base-url ${XUNJING_LOCAL_APP_API_BASE_URL:-http://127.0.0.1:48082}',
+  '--tenant-id ${XUNJING_TENANT_ID:-1}',
+  '--skip-admin-check',
+  '--include-xicheng-app-check',
+  '--include-xicheng-trigger-check',
+  '--evidence-file qa/xicheng-app-readiness-local-evidence.json'
+]) {
+  assert.ok(
+    (scripts['verify:yudao:local'] || '').includes(required),
+    `APP local readiness script should include ${required}`
+  )
+}

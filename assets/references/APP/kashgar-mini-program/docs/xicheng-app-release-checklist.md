@@ -25,6 +25,7 @@ git rev-list --left-right --count HEAD...origin/feature/xicheng-p0
 ```bash
 for f in tests/*.test.mjs; do node "$f" || exit 1; done
 npm run build
+npm run verify:yudao:local
 ```
 
 预发或上线真机包必须使用带网关校验的 release 构建入口：

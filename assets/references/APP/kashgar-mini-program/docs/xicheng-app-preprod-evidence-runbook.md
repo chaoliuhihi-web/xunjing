@@ -31,6 +31,14 @@
 
 本地证据只能证明 APP/API 主链可回归，不能替代生产放行证据。当前本地验证文件是 `qa/xicheng-app-readiness-local-evidence.json`，目标结果为 20/20：
 
+在 `assets/references/APP/kashgar-mini-program` 可直接运行：
+
+```bash
+npm run verify:yudao:local
+```
+
+等价的仓库根目录命令是：
+
 ```bash
 npm run xunjing:platform:verify -- \
   --env-file ops/xunjing-platform.env.example \
