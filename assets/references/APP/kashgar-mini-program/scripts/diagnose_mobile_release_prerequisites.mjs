@@ -91,8 +91,11 @@ const checkApiDns = async (apiBaseUrl) => {
   }
 
   try {
+    const overrideHost = String(process.env.XUNJING_RELEASE_PREREQ_DNS_HOST_OVERRIDE || '').trim()
     const addresses = await withTimeout(
-      dns.lookup(hostname, { all: true }),
+      overrideHost
+        ? Promise.resolve([{ address: overrideHost }])
+        : dns.lookup(hostname, { all: true }),
       Number(process.env.XUNJING_RELEASE_PREREQ_DNS_TIMEOUT_MS || 8000),
       `DNS lookup timed out for ${hostname}`
     )
@@ -107,6 +110,59 @@ const checkApiDns = async (apiBaseUrl) => {
       hostname,
       message: error.message,
       nextAction: `Fix DNS or network access for ${hostname}, then rerun npm run verify:yudao:preprod.`
+    }
+  }
+}
+
+const checkApiReachability = async (apiBaseUrl, tenantId, apiDns) => {
+  if (process.env.XUNJING_RELEASE_PREREQ_SKIP_NETWORK === '1') {
+    return {
+      ok: true,
+      skipped: true,
+      detail: 'network checks skipped by XUNJING_RELEASE_PREREQ_SKIP_NETWORK=1'
+    }
+  }
+  if (!apiDns.ok) {
+    return {
+      ok: true,
+      skipped: true,
+      detail: 'skipped because API DNS check failed',
+      nextAction: apiDns.nextAction
+    }
+  }
+
+  const origin = String(process.env.XUNJING_RELEASE_PREREQ_API_ORIGIN_OVERRIDE || apiBaseUrl).trim()
+  const endpoint = '/app-api/xunjing/scan/resolve'
+  const url = new URL(endpoint, origin)
+  try {
+    const response = await withTimeout(
+      fetch(url, {
+        method: 'GET',
+        headers: {
+          'tenant-id': tenantId
+        }
+      }),
+      Number(process.env.XUNJING_RELEASE_PREREQ_HTTP_TIMEOUT_MS || 10000),
+      `APP API reachability request timed out for ${url.origin}${endpoint}`
+    )
+    const ok = response.status >= 200 && response.status < 500
+    return {
+      ok,
+      origin: url.origin,
+      endpoint,
+      status: response.status,
+      statusText: response.statusText,
+      nextAction: ok
+        ? undefined
+        : `Fix APP API gateway health for ${url.origin}${endpoint}; expected a reachable /app-api/xunjing/** response before preprod evidence.`
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      origin: url.origin,
+      endpoint,
+      message: error.message,
+      nextAction: `Fix HTTPS/network access to ${url.origin}${endpoint}, then rerun npm run doctor:release:prereqs.`
     }
   }
 }
@@ -180,21 +236,26 @@ const releaseEnv = checkReleaseEnv()
 const apiDns = releaseEnv.ok
   ? await checkApiDns(releaseEnv.apiBaseUrl)
   : { ok: false, skipped: true, detail: 'skipped because release env is invalid' }
+const apiReachability = releaseEnv.ok
+  ? await checkApiReachability(releaseEnv.apiBaseUrl, releaseEnv.tenantId, apiDns)
+  : { ok: false, skipped: true, detail: 'skipped because release env is invalid' }
 const nativePackageDryRun = checkNativePackageDryRun()
 const hbuilderxLogin = checkHbuilderxLogin(nativePackageDryRun)
 
 const checks = {
   releaseEnv,
   apiDns,
+  apiReachability,
   nativePackageDryRun,
   hbuilderxLogin
 }
 
 const blockers = Object.entries(checks)
-  .filter(([, check]) => !check.ok)
+  .filter(([, check]) => !check.ok && !check.skipped)
   .map(([name]) => ({
     releaseEnv: 'release-env-invalid',
     apiDns: 'api-dns-unavailable',
+    apiReachability: 'api-unreachable',
     nativePackageDryRun: 'native-package-dry-run-failed',
     hbuilderxLogin: 'hbuilderx-login-missing'
   }[name]))
@@ -203,6 +264,7 @@ const blockers = Object.entries(checks)
 const nextActions = Object.values(checks)
   .map((check) => check.nextAction)
   .filter(Boolean)
+  .filter((action, index, actions) => actions.indexOf(action) === index)
 
 const response = {
   ok: blockers.length === 0,

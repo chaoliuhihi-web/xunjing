@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { spawnSync } from 'node:child_process'
+import { once } from 'node:events'
+import { spawn, spawnSync } from 'node:child_process'
 
 const root = process.cwd()
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
@@ -135,3 +136,73 @@ assert.equal(loggedInJson.checks.releaseEnv.ok, true)
 assert.equal(loggedInJson.checks.nativePackageDryRun.ok, true)
 assert.equal(loggedInJson.checks.hbuilderxLogin.ok, true)
 assert.match(loggedInJson.checks.hbuilderxLogin.account, /release@example\.com/)
+
+const dnsFailedResult = runDoctor({
+  HBUILDERX_CLI: loggedInCliPath,
+  XUNJING_APP_API_BASE_URL: 'https://xicheng-prereq-doctor.no-such-xunjing',
+  XUNJING_RELEASE_PREREQ_SKIP_NETWORK: '',
+  XUNJING_RELEASE_PREREQ_DNS_TIMEOUT_MS: '300'
+})
+assert.notEqual(
+  dnsFailedResult.status,
+  0,
+  'release prerequisite doctor should fail when the APP API DNS hostname cannot resolve'
+)
+const dnsFailedJson = JSON.parse(dnsFailedResult.stdout)
+assert.ok(dnsFailedJson.blockers.includes('api-dns-unavailable'))
+assert.ok(!dnsFailedJson.blockers.includes('api-unreachable'))
+assert.equal(dnsFailedJson.checks.apiReachability.ok, true)
+assert.equal(dnsFailedJson.checks.apiReachability.skipped, true)
+assert.equal(
+  dnsFailedJson.nextActions.filter((action) => /Fix DNS or network access/.test(action)).length,
+  1,
+  'dependent skipped checks should not duplicate the DNS repair action'
+)
+
+const appApiServerPath = path.join(tempDir, 'app-api-server.mjs')
+fs.writeFileSync(appApiServerPath, [
+  "import http from 'node:http'",
+  "const server = http.createServer((request, response) => {",
+  "  if (request.url === '/app-api/xunjing/scan/resolve' && request.headers['tenant-id'] === '1') {",
+  "    response.writeHead(405, { 'content-type': 'application/json' })",
+  "    response.end(JSON.stringify({ code: 405, msg: 'method not allowed' }))",
+  "    return",
+  "  }",
+  "  response.writeHead(404, { 'content-type': 'application/json' })",
+  "  response.end(JSON.stringify({ code: 404, msg: 'not found' }))",
+  "})",
+  "server.listen(0, '127.0.0.1', () => console.log(server.address().port))",
+  "process.on('SIGTERM', () => server.close(() => process.exit(0)))"
+].join('\n'))
+const appApiServer = spawn(process.execPath, [appApiServerPath], {
+  cwd: tempDir,
+  stdio: ['ignore', 'pipe', 'inherit']
+})
+const appApiPort = await new Promise((resolve, reject) => {
+  appApiServer.stdout.once('data', (data) => resolve(Number(String(data).trim())))
+  appApiServer.once('error', reject)
+  appApiServer.once('exit', (code) => {
+    if (code !== 0) reject(new Error(`mock APP API server exited before listening: ${code}`))
+  })
+})
+try {
+  const reachableResult = runDoctor({
+    HBUILDERX_CLI: loggedInCliPath,
+    XUNJING_RELEASE_PREREQ_SKIP_NETWORK: '',
+    XUNJING_RELEASE_PREREQ_DNS_HOST_OVERRIDE: '127.0.0.1',
+    XUNJING_RELEASE_PREREQ_API_ORIGIN_OVERRIDE: `http://127.0.0.1:${appApiPort}`
+  })
+  assert.equal(
+    reachableResult.status,
+    0,
+    `release prerequisite doctor should pass when the APP API gateway is reachable: ${reachableResult.stderr || reachableResult.stdout}`
+  )
+  const reachableJson = JSON.parse(reachableResult.stdout)
+  assert.equal(reachableJson.checks.apiDns.ok, true)
+  assert.equal(reachableJson.checks.apiReachability.ok, true)
+  assert.equal(reachableJson.checks.apiReachability.endpoint, '/app-api/xunjing/scan/resolve')
+  assert.equal(reachableJson.checks.apiReachability.status, 405)
+} finally {
+  appApiServer.kill('SIGTERM')
+  await once(appApiServer, 'exit')
+}
