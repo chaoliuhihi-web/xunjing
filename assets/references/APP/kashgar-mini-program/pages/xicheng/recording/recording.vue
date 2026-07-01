@@ -42,15 +42,15 @@
 				:key="`${stop.poiCode}-${index}`"
 				class="map-stop"
 				:class="[`map-stop-${index}`, isStopCompleted(stop) ? 'map-stop-done' : '', nextStop && nextStop.poiCode === stop.poiCode ? 'map-stop-active' : '']"
-			>
-				<text class="map-stop-dot">{{ index + 1 }}</text>
-				<text class="map-stop-label">{{ stop.poiName }}</text>
+				>
+					<text class="map-stop-dot">{{ index + 1 }}</text>
+					<text class="map-stop-label">{{ stop.poiName }}</text>
 			</view>
 			<view class="map-tools">
-				<button class="map-tool-button">
+				<button class="map-tool-button" @click="centerOnRecordingLocation">
 					<xicheng-icon name="location" variant="plain" :size="19" />
 				</button>
-				<button class="map-tool-button">
+				<button class="map-tool-button" @click="toggleRecordingMapLayer">
 					<xicheng-icon name="layer" variant="plain" :size="19" />
 				</button>
 			</view>
@@ -128,6 +128,7 @@ const createEmptyRecordingSession = () => ({
 	routeCode: '',
 	routeTitle: '',
 	status: 'idle',
+	mapLayerMode: 'route',
 	startedAt: '',
 	pausedAt: '',
 	resumedAt: '',
@@ -244,6 +245,7 @@ export default {
 				routeCode: this.activeRoute.routeCode,
 				routeTitle: this.activeRoute.title,
 				status: 'recording',
+				mapLayerMode: this.recordingSession.mapLayerMode || 'route',
 				startedAt: startedAt,
 				pausedAt: '',
 				resumedAt: '',
@@ -259,6 +261,28 @@ export default {
 		},
 		saveRecordingSession() {
 			uni.setStorageSync(XICHENG_REGION_CONFIG.recordingStorageKey, this.recordingSession)
+		},
+		centerOnRecordingLocation() {
+			this.ensureRecordingSession()
+			this.captureForegroundTrackPoint('recenter')
+			this.saveRecordingSession()
+			uni.showToast({
+				title: '已校准当前位置',
+				icon: 'none'
+			})
+		},
+		toggleRecordingMapLayer() {
+			const nextLayerMode = this.recordingSession.mapLayerMode === 'source' ? 'route' : 'source'
+			this.recordingSession = {
+				...this.recordingSession,
+				mapLayerMode: nextLayerMode,
+				updatedAt: new Date().toISOString()
+			}
+			this.saveRecordingSession()
+			uni.showToast({
+				title: nextLayerMode === 'source' ? '已切换来源图层' : '已切换路线图层',
+				icon: 'none'
+			})
 		},
 		captureForegroundTrackPoint(pointType = 'manual') {
 			const capturedAt = new Date().toISOString()

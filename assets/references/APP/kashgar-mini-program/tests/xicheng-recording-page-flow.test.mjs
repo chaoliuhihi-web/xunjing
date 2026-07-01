@@ -48,10 +48,18 @@ for (const required of [
   'checkinStorageKey',
   'createRouteCheckinEvent',
   'persistRouteCheckinEvent',
-  'createXichengOfficialPoiSources'
+  'createXichengOfficialPoiSources',
+  'centerOnRecordingLocation',
+  'toggleRecordingMapLayer'
 ]) {
   assert.ok(recording.includes(required), `Dedicated recording page should expose ${required}`)
 }
+
+assert.match(
+  recording,
+  /<button class="map-tool-button" @click="centerOnRecordingLocation">[\s\S]*<xicheng-icon name="location"[\s\S]*<button class="map-tool-button" @click="toggleRecordingMapLayer">[\s\S]*<xicheng-icon name="layer"/,
+  'Recording map location and layer tool buttons should be wired to functional handlers instead of inert buttons'
+)
 
 assert.match(
   recording,
@@ -69,6 +77,18 @@ assert.match(
   recording,
   /saveRecordingSession\(\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.recordingStorageKey,\s*this\.recordingSession\)/,
   'Recording page should persist the active session to the canonical local recording storage key'
+)
+
+assert.match(
+  recording,
+  /centerOnRecordingLocation\(\)[\s\S]*this\.ensureRecordingSession\(\)[\s\S]*this\.captureForegroundTrackPoint\('recenter'\)[\s\S]*this\.saveRecordingSession\(\)[\s\S]*uni\.showToast\(\{[\s\S]*title:\s*'已校准当前位置'/,
+  'Recording location tool should add a foreground recenter track point, save the session, and provide user feedback'
+)
+
+assert.match(
+  recording,
+  /toggleRecordingMapLayer\(\)[\s\S]*const nextLayerMode = this\.recordingSession\.mapLayerMode === 'source' \? 'route' : 'source'[\s\S]*mapLayerMode:\s*nextLayerMode[\s\S]*this\.saveRecordingSession\(\)[\s\S]*uni\.showToast\(\{[\s\S]*title:\s*nextLayerMode === 'source' \? '已切换来源图层' : '已切换路线图层'/,
+  'Recording layer tool should toggle and persist the route/source map layer mode with user feedback'
 )
 
 assert.match(
