@@ -34,5 +34,6 @@ export const createXichengRouteSignature = (routeOptions = {}) => JSON.stringify
 	poiCode: decodeXichengRouteValue(routeOptions.poiCode),
 	poiName: decodeXichengRouteValue(routeOptions.poiName),
 	companionName: decodeXichengRouteValue(routeOptions.companionName),
-	safetyStatus: normalizeXichengSafetyStatus(routeOptions.safetyStatus)
+	safetyStatus: normalizeXichengSafetyStatus(routeOptions.safetyStatus),
+	serviceHandoffContext: decodeXichengRouteValue(routeOptions.serviceHandoffContext)
 })

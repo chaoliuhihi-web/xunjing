@@ -58,7 +58,7 @@ assert.ok(
 
 const askXiaojingBlock = getBlock(
   scanResult,
-  /askXiaojing\(question = ''\)[\s\S]*?\n\t\t\},\n\t\topenVisionAgentAction/,
+  /askXiaojing\(question = '', \{ serviceHandoffContext = null \} = \{\}\)[\s\S]*?\n\t\t\},\n\t\topenVisionAgentAction/,
   'scan result askXiaojing block'
 )
 assert.match(

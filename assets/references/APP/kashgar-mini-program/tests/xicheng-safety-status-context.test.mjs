@@ -15,7 +15,7 @@ const questionEmptyCopyBlock = scanResult.match(/questionEmptyCopy\(\) \{[\s\S]*
 const suggestedQuestionsBlock = scanResult.match(/suggestedQuestions\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
 const sourceListBlock = scanResult.match(/sourceList\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
 const unsafeRecognitionSafetyStatusBlock = scanResult.match(/unsafeRecognitionSafetyStatus\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
-const askXiaojingBlock = scanResult.match(/askXiaojing\(question = ''\)[\s\S]*?\n\t\t\},\n\t\tselectCandidate/)?.[0] || ''
+const askXiaojingBlock = scanResult.match(/askXiaojing\(question = '', \{ serviceHandoffContext = null \} = \{\}\)[\s\S]*?\n\t\t\},\n\t\tselectCandidate/)?.[0] || ''
 const startRecordingBlock = scanResult.match(/startRecording\(\)[\s\S]*?\n\t\t\},\n\t\tcreateRouteCheckinEvent/)?.[0] || ''
 const normalizeSuggestedQuestionsBlock = scanResult.match(/const normalizeSuggestedQuestions\s*=\s*\(result = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const normalizeReviewedSourcesBlock = scanResult.match(/const normalizeReviewedSources\s*=\s*\(result = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''

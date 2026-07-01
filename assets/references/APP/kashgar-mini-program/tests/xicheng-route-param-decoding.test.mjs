@@ -169,10 +169,11 @@ assert.equal(
     packageCode: '',
     sceneCode: '',
     sourceChannel: '',
-    poiCode: '白塔',
-    poiName: '白塔',
-    companionName: '',
-    safetyStatus: 'BLOCKED'
-  }),
+	    poiCode: '白塔',
+	    poiName: '白塔',
+	    companionName: '',
+	    safetyStatus: 'BLOCKED',
+	    serviceHandoffContext: ''
+	  }),
   'Route signature should decode nested route fields and normalize safetyStatus'
 )

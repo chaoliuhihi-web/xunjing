@@ -61,7 +61,7 @@ const onLoadBlock = getBlock(
 )
 const scanAskXiaojingBlock = getBlock(
   scanResult,
-  /askXiaojing\(question = ''\)[\s\S]*?\n\t\t\},\n\t\tselectCandidate/,
+  /askXiaojing\(question = '', \{ serviceHandoffContext = null \} = \{\}\)[\s\S]*?\n\t\t\},\n\t\tselectCandidate/,
   'scan result askXiaojing block'
 )
 const startRecordingBlock = getBlock(

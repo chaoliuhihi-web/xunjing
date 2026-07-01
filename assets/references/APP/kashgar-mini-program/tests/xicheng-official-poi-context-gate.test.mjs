@@ -58,7 +58,7 @@ assert.match(
 
 assert.match(
   scanResult,
-  /askXiaojing\(question = ''\)\s*\{[\s\S]*if \(this\.missingOfficialPoiContext\) \{[\s\S]*this\.showMissingOfficialPoiToast\('问小京'\)[\s\S]*return[\s\S]*const prompt = question/,
+  /askXiaojing\(question = '', \{ serviceHandoffContext = null \} = \{\}\)\s*\{[\s\S]*if \(this\.missingOfficialPoiContext\) \{[\s\S]*this\.showMissingOfficialPoiToast\('问小京'\)[\s\S]*return[\s\S]*const prompt = question/,
   'Xiaojing entry should not navigate before a recognition result has official poiCode and poiName'
 )
 

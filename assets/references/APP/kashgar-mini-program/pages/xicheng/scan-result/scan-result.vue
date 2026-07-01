@@ -1389,7 +1389,7 @@ export default {
 				icon: 'none'
 			})
 		},
-		askXiaojing(question = '') {
+		askXiaojing(question = '', { serviceHandoffContext = null } = {}) {
 			if (this.pendingCandidateConfirmation) {
 				this.requireOfficialPoiConfirmation('问小京')
 				return
@@ -1418,9 +1418,12 @@ export default {
 				`safetyStatus=${encodeURIComponent(this.result.safetyStatus || '')}`,
 				`visionAgentContext=${encodeRouteValue(JSON.stringify(visionAgentContext))}`,
 				`sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || '')}`
-			].join('&')
+			]
+			if (serviceHandoffContext) {
+				query.push(`serviceHandoffContext=${encodeRouteValue(JSON.stringify(serviceHandoffContext))}`)
+			}
 			uni.navigateTo({
-				url: `/pages/ai-guide/ai-guide?${query}`
+				url: `/pages/ai-guide/ai-guide?${query.join('&')}`
 			})
 		},
 		openVisionAgentAction(action = {}) {
@@ -1539,17 +1542,40 @@ export default {
 				: ''
 			return `围绕${poiName}的${task.actionTitle || task.taskTypeLabel || '服务'}，结合AI识境现场上下文，给我${stepText || '下一步'}方案；如果涉及商家、优惠、票务或预约，请明确哪些需要真实系统确认，不要编造可用券、库存或排队结果。`
 		},
+		createServiceHandoffRouteContext(task = {}) {
+			return {
+				actionKey: task.actionKey || '',
+				actionTitle: task.actionTitle || '',
+				taskType: task.taskType || '',
+				taskTypeLabel: task.taskTypeLabel || '',
+				serviceIntent: task.serviceIntent || '',
+				serviceIntentLabel: task.serviceIntentLabel || '',
+				serviceIntentText: task.serviceIntentText || task.serviceIntentLabel || task.taskTypeLabel || '',
+				sceneDomain: task.sceneDomain || '',
+				handoffSummary: task.handoffSummary || '',
+				handoffSteps: Array.isArray(task.handoffSteps)
+					? task.handoffSteps
+						.map(step => ({
+							label: step.label || '',
+							copy: step.copy || ''
+						}))
+						.filter(step => step.label || step.copy)
+						.slice(0, 3)
+					: []
+			}
+		},
 		openServiceHandoffPrimaryAction() {
 			const task = this.activeServiceHandoffTask
 			if (!task) return
 			const prompt = this.createServiceHandoffPrompt(task)
+			const serviceHandoffContext = this.createServiceHandoffRouteContext(task)
 			this.rememberVisionAgentServiceTask({
 				...task,
 				actionPrompt: prompt,
 				status: 'handoff',
 				statusText: '已交给小京继续'
 			})
-			this.askXiaojing(prompt)
+			this.askXiaojing(prompt, { serviceHandoffContext })
 		},
 		closeServiceHandoffPanel() {
 			this.activeServiceHandoffTask = null

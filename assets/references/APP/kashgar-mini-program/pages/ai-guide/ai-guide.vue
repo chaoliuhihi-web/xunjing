@@ -229,25 +229,30 @@
 							<text class="xicheng-chat-companion-desc">{{ xichengHeroSubtitle }}</text>
 						</view>
 					</view>
-					<view v-if="xichengVisionAgentContextChips.length > 0" class="xicheng-vision-agent-strip">
-						<text class="xicheng-vision-agent-strip-title">AI识境已接入</text>
-						<view class="xicheng-vision-agent-chip-row">
-							<text
-								v-for="chip in xichengVisionAgentContextChips"
-								:key="chip.key"
-								class="xicheng-vision-agent-chip"
-							>
-								{{ chip.label }} {{ chip.value }}
-							</text>
+						<view v-if="xichengVisionAgentContextChips.length > 0" class="xicheng-vision-agent-strip">
+							<text class="xicheng-vision-agent-strip-title">AI识境已接入</text>
+							<view class="xicheng-vision-agent-chip-row">
+								<text
+									v-for="chip in xichengVisionAgentContextChips"
+									:key="chip.key"
+									class="xicheng-vision-agent-chip"
+								>
+									{{ chip.label }} {{ chip.value }}
+								</text>
+							</view>
 						</view>
-					</view>
-					<view v-if="!isXichengPlaybackMode" class="xicheng-chat-prompt-row">
-						<button
-							v-for="question in xichengHeroQuestions"
-							:key="question"
-							class="xicheng-chat-prompt-chip"
-							@click="handleFollowUpClick(question)"
-						>
+						<view v-if="xichengServiceHandoffContext" class="xicheng-service-handoff-strip">
+							<text class="xicheng-service-handoff-kicker">AI识境服务承接</text>
+							<text class="xicheng-service-handoff-title">{{ xichengServiceHandoffContext.title }}</text>
+							<view class="xicheng-service-handoff-row"><text class="xicheng-service-handoff-pill">{{ xichengServiceHandoffContext.intentText }}</text><text class="xicheng-service-handoff-next">{{ xichengServiceHandoffContext.stepText }}</text></view>
+						</view>
+						<view v-if="!isXichengPlaybackMode" class="xicheng-chat-prompt-row">
+							<button
+								v-for="question in xichengHeroQuestions"
+								:key="question"
+								class="xicheng-chat-prompt-chip"
+								@click="handleFollowUpClick(question)"
+							>
 							{{ question }}
 						</button>
 					</view>
@@ -420,6 +425,7 @@ import {
 	getXichengDisplaySourceTitle,
 	normalizeXichengReviewedSources
 } from '@/request/xunjing/sources.js'
+import { buildXichengServiceHandoffPromptPrefix, createXichengServiceHandoffRouteContext, createXichengServiceHandoffViewContext } from '@/request/xunjing/serviceHandoff.js'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { isXunjingUserCancelled } from '@/request/xunjing/userCancel.js'
 import {
@@ -845,7 +851,8 @@ const normalizeXichengAiContext = (options = {}) => ({
 	headingText: parseXichengVisionAgentContext(options.visionAgentContext).headingText || '',
 	serviceText: parseXichengVisionAgentContext(options.visionAgentContext).serviceText || '',
 	knowledgeGraphText: parseXichengVisionAgentContext(options.visionAgentContext).knowledgeGraphText || '',
-	agentDecisionActionTitle: parseXichengVisionAgentContext(options.visionAgentContext).agentDecisionActionTitle || ''
+	agentDecisionActionTitle: parseXichengVisionAgentContext(options.visionAgentContext).agentDecisionActionTitle || '',
+	...createXichengServiceHandoffRouteContext(options.serviceHandoffContext)
 })
 
 const createEmptyXichengRecognitionContext = () => ({
@@ -990,6 +997,11 @@ const applyXichengAiContext = (options = {}) => {
 		serviceText: context.serviceText,
 		knowledgeGraphText: context.knowledgeGraphText,
 		agentDecisionActionTitle: context.agentDecisionActionTitle,
+		serviceHandoffContext: context.serviceHandoffContext,
+		serviceHandoffTitle: context.serviceHandoffTitle,
+		serviceHandoffIntentText: context.serviceHandoffIntentText,
+		serviceHandoffStepText: context.serviceHandoffStepText,
+		serviceHandoffSummary: context.serviceHandoffSummary,
 		sources: unsafeMergedSafetyStatus ? [] : (cachedRecognition.sources.length > 0 ? cachedRecognition.sources : routeOnlyRecognition.sources)
 	}
 	return xichengAiContext.value
@@ -1067,6 +1079,7 @@ const xichengVisionAgentContextChips = computed(() => {
 	return chips.slice(0, 4)
 })
 
+const xichengServiceHandoffContext = computed(() => createXichengServiceHandoffViewContext(xichengAiContext.value || {}))
 const xichengHeroQuestions = computed(() => {
 	const context = xichengAiContext.value || {}
 	const safetyStatus = normalizeXichengSafetyStatus(context.safetyStatus)
@@ -1196,7 +1209,8 @@ const buildXichengContextQuestion = (question = '', context = xichengAiContext.v
 	const memorySessionText = context.visionAgentMemorySessionText ? `连续识境：${context.visionAgentMemorySessionText}。` : ''
 	const liveSignalText = [context.localTimeText, context.weatherText, context.headingText].filter(Boolean).join(' ')
 	const liveSignals = liveSignalText ? `现场信号：${liveSignalText}。` : ''
-	return `你是${context.companionName || XICHENG_REGION_CONFIG.companionName}，服务北京西城试运营路线。${poiText}${confidenceText}${sceneFusionSummary}${memorySessionText}${liveSignals}用户问题：${question}`
+	const serviceHandoffText = buildXichengServiceHandoffPromptPrefix(context)
+	return `你是${context.companionName || XICHENG_REGION_CONFIG.companionName}，服务北京西城试运营路线。${poiText}${confidenceText}${sceneFusionSummary}${memorySessionText}${liveSignals}${serviceHandoffText}用户问题：${question}`
 }
 
 const buildYudaoAppApiUrl = (path) => {

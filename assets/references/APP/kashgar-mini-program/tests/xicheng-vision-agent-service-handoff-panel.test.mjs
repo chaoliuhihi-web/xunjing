@@ -53,6 +53,6 @@ assert.match(
 
 assert.match(
   scanResult,
-  /openServiceHandoffPrimaryAction\(\)[\s\S]*const task = this\.activeServiceHandoffTask[\s\S]*const prompt = this\.createServiceHandoffPrompt\(task\)[\s\S]*this\.askXiaojing\(prompt\)/,
-  'Primary service handoff action should continue through Xiaojing with a task-specific prompt'
+  /openServiceHandoffPrimaryAction\(\)[\s\S]*const task = this\.activeServiceHandoffTask[\s\S]*const prompt = this\.createServiceHandoffPrompt\(task\)[\s\S]*const serviceHandoffContext = this\.createServiceHandoffRouteContext\(task\)[\s\S]*this\.askXiaojing\(prompt,\s*\{ serviceHandoffContext \}\)/,
+  'Primary service handoff action should continue through Xiaojing with a task-specific prompt and structured handoff context'
 )

@@ -61,7 +61,7 @@ assert.match(
 
 assert.match(
   scanResult,
-  /askXiaojing\(question = ''\)\s*\{[\s\S]*if \(this\.pendingCandidateConfirmation\) \{[\s\S]*this\.requireOfficialPoiConfirmation\('问小京'\)[\s\S]*return[\s\S]*const prompt = question/,
+  /askXiaojing\(question = '', \{ serviceHandoffContext = null \} = \{\}\)\s*\{[\s\S]*if \(this\.pendingCandidateConfirmation\) \{[\s\S]*this\.requireOfficialPoiConfirmation\('问小京'\)[\s\S]*return[\s\S]*const prompt = question/,
   'Question rows and Xiaojing entry should not navigate before candidate confirmation'
 )
 

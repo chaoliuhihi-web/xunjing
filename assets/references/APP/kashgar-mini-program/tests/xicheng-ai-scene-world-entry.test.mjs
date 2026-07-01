@@ -120,6 +120,6 @@ assert.match(
 
 assert.match(
   scanResult,
-  /askXiaojing\(question = ''\)[\s\S]*visionAgentContext[\s\S]*sourceRecognitionContext/,
+  /askXiaojing\(question = '', \{ serviceHandoffContext = null \} = \{\}\)[\s\S]*visionAgentContext[\s\S]*sourceRecognitionContext/,
   'Continuing into Xiaojing should preserve Vision Agent memory context'
 )
