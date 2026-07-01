@@ -42,10 +42,14 @@ if (!fs.existsSync(resolvedArtifactDir)) {
 const artifactStat = fs.statSync(resolvedArtifactDir)
 
 const textExtensions = new Set([
+  '.conf',
+  '.env',
   '.html',
+  '.ini',
   '.js',
   '.json',
   '.css',
+  '.properties',
   '.txt',
   '.xml',
   '.map'
@@ -93,7 +97,8 @@ const collectFiles = (dir) => {
 
 const isTextCandidate = (filePath) => {
   const ext = path.extname(filePath).toLowerCase()
-  return textExtensions.has(ext)
+  const baseName = path.basename(filePath).toLowerCase()
+  return textExtensions.has(ext) || baseName === '.env' || baseName.startsWith('.env.')
 }
 
 const normalizeUrl = (value) => String(value || '').trim().replace(/[\\.,;]+$/, '').replace(/\/+$/, '')

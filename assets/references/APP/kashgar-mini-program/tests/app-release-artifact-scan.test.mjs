@@ -242,6 +242,18 @@ assert.match(
   'release artifact scanner should explain credential rejection inside APK/ZIP artifacts'
 )
 
+const artifactDirWithEnvSecret = makeArtifactDir({
+  'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";',
+  '.env': `OPENAI_API_KEY="sk-${'f'.repeat(32)}"`
+})
+const envSecretResult = runScanner(artifactDirWithEnvSecret)
+assert.notEqual(envSecretResult.status, 0, 'release artifact scanner should scan dot-env files and reject embedded secrets')
+assert.match(
+  `${envSecretResult.stderr}\n${envSecretResult.stdout}`,
+  /\.env|secret|token|credential|密钥|令牌/i,
+  'release artifact scanner should explain credential rejection from dot-env files'
+)
+
 const apkWithLocalGateway = makeZipArtifact({
   'assets/index.js': 'const apiBase="http://localhost:48082/app-api/xunjing";'
 })
