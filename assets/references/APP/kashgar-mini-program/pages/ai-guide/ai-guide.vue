@@ -229,6 +229,18 @@
 							<text class="xicheng-chat-companion-desc">{{ xichengHeroSubtitle }}</text>
 						</view>
 					</view>
+					<view v-if="xichengVisionAgentContextChips.length > 0" class="xicheng-vision-agent-strip">
+						<text class="xicheng-vision-agent-strip-title">AI识境已接入</text>
+						<view class="xicheng-vision-agent-chip-row">
+							<text
+								v-for="chip in xichengVisionAgentContextChips"
+								:key="chip.key"
+								class="xicheng-vision-agent-chip"
+							>
+								{{ chip.label }} {{ chip.value }}
+							</text>
+						</view>
+					</view>
 					<view v-if="!isXichengPlaybackMode" class="xicheng-chat-prompt-row">
 						<button
 							v-for="question in xichengHeroQuestions"
@@ -514,6 +526,18 @@ const xichengAiContext = ref({
 	confidence: '',
 	sourceLabel: '',
 	safetyStatus: '',
+	visionAgentContext: {},
+	sourceRecognitionContext: '',
+	sceneFusionSummary: '',
+	sceneFusionSignals: [],
+	visionAgentMemorySessionText: '',
+	memorySessionSceneCount: '',
+	localTimeText: '',
+	weatherText: '',
+	headingText: '',
+	serviceText: '',
+	knowledgeGraphText: '',
+	agentDecisionActionTitle: '',
 	sources: []
 })
 
@@ -548,6 +572,10 @@ const getXichengWelcomeContent = () => {
 	}
 	if (safetyStatus === 'UNAVAILABLE') {
 		return XICHENG_UNAVAILABLE_ANSWER
+	}
+	const visionAgentCue = context.sceneFusionSummary || context.visionAgentMemorySessionText
+	if (visionAgentCue) {
+		return `我已接上AI识境：${visionAgentCue} 可以继续帮你讲解、推荐路线或生成游记草稿。`.slice(0, 110)
 	}
 	return `你好，我是${context.companionName || XICHENG_REGION_CONFIG.companionName}，可以继续帮你讲解西城文化点、推荐路线或生成游记草稿。`
 }
@@ -778,6 +806,22 @@ const mergeXichengAiRouteOptions = (routeOptions = {}) => {
 	}
 }
 
+const parseXichengVisionAgentContext = (value = '') => {
+	if (value && typeof value === 'object') {
+		return value
+	}
+	const decodedValue = decodeRouteValue(value)
+	if (!decodedValue) return {}
+	try {
+		const parsed = JSON.parse(decodedValue)
+		return parsed && typeof parsed === 'object' ? parsed : {}
+	} catch (error) {
+		return {
+			sourceRecognitionContext: decodedValue
+		}
+	}
+}
+
 const normalizeXichengAiContext = (options = {}) => ({
 	regionCode: decodeRouteValue(options.regionCode),
 	packageCode: decodeRouteValue(options.packageCode),
@@ -787,7 +831,21 @@ const normalizeXichengAiContext = (options = {}) => ({
 	poiName: decodeRouteValue(options.poiName),
 	companionName: decodeRouteValue(options.companionName),
 	confidence: decodeRouteValue(options.confidence),
-	safetyStatus: normalizeXichengSafetyStatus(decodeRouteValue(options.safetyStatus))
+	safetyStatus: normalizeXichengSafetyStatus(decodeRouteValue(options.safetyStatus)),
+	visionAgentContext: parseXichengVisionAgentContext(options.visionAgentContext),
+	sourceRecognitionContext: decodeRouteValue(options.sourceRecognitionContext) || parseXichengVisionAgentContext(options.visionAgentContext).sourceRecognitionContext || '',
+	sceneFusionSummary: parseXichengVisionAgentContext(options.visionAgentContext).sceneFusionSummary || '',
+	sceneFusionSignals: Array.isArray(parseXichengVisionAgentContext(options.visionAgentContext).sceneFusionSignals)
+		? parseXichengVisionAgentContext(options.visionAgentContext).sceneFusionSignals
+		: [],
+	visionAgentMemorySessionText: parseXichengVisionAgentContext(options.visionAgentContext).visionAgentMemorySessionText || parseXichengVisionAgentContext(options.visionAgentContext).memorySessionText || '',
+	memorySessionSceneCount: parseXichengVisionAgentContext(options.visionAgentContext).memorySessionSceneCount || '',
+	localTimeText: parseXichengVisionAgentContext(options.visionAgentContext).localTimeText || '',
+	weatherText: parseXichengVisionAgentContext(options.visionAgentContext).weatherText || '',
+	headingText: parseXichengVisionAgentContext(options.visionAgentContext).headingText || '',
+	serviceText: parseXichengVisionAgentContext(options.visionAgentContext).serviceText || '',
+	knowledgeGraphText: parseXichengVisionAgentContext(options.visionAgentContext).knowledgeGraphText || '',
+	agentDecisionActionTitle: parseXichengVisionAgentContext(options.visionAgentContext).agentDecisionActionTitle || ''
 })
 
 const createEmptyXichengRecognitionContext = () => ({
@@ -887,6 +945,18 @@ const applyXichengAiContext = (options = {}) => {
 			confidence: '',
 			sourceLabel: '',
 			safetyStatus: '',
+			visionAgentContext: {},
+			sourceRecognitionContext: '',
+			sceneFusionSummary: '',
+			sceneFusionSignals: [],
+			visionAgentMemorySessionText: '',
+			memorySessionSceneCount: '',
+			localTimeText: '',
+			weatherText: '',
+			headingText: '',
+			serviceText: '',
+			knowledgeGraphText: '',
+			agentDecisionActionTitle: '',
 			sources: []
 		}
 		return xichengAiContext.value
@@ -908,6 +978,18 @@ const applyXichengAiContext = (options = {}) => {
 		confidence: context.confidence || cachedRecognition.confidence || routeOnlyRecognition.confidence,
 		sourceLabel: unsafeMergedSafetyStatus ? '' : (cachedRecognition.sourceLabel || routeOnlyRecognition.sourceLabel),
 		safetyStatus: mergedSafetyStatus,
+		visionAgentContext: context.visionAgentContext,
+		sourceRecognitionContext: context.sourceRecognitionContext,
+		sceneFusionSummary: context.sceneFusionSummary,
+		sceneFusionSignals: context.sceneFusionSignals,
+		visionAgentMemorySessionText: context.visionAgentMemorySessionText,
+		memorySessionSceneCount: context.memorySessionSceneCount,
+		localTimeText: context.localTimeText,
+		weatherText: context.weatherText,
+		headingText: context.headingText,
+		serviceText: context.serviceText,
+		knowledgeGraphText: context.knowledgeGraphText,
+		agentDecisionActionTitle: context.agentDecisionActionTitle,
 		sources: unsafeMergedSafetyStatus ? [] : (cachedRecognition.sources.length > 0 ? cachedRecognition.sources : routeOnlyRecognition.sources)
 	}
 	return xichengAiContext.value
@@ -957,8 +1039,32 @@ const xichengHeroSubtitle = computed(() => {
 	if (isXichengPlaybackMode.value) {
 		return `正在讲解${context.poiName || '西城文化点'}，播放内容基于已审核来源。`
 	}
+	const sceneFusionSummary = context.sceneFusionSummary || ''
+	if (sceneFusionSummary || context.visionAgentMemorySessionText) {
+		return `AI识境已接入${sceneFusionSummary || context.visionAgentMemorySessionText}，可以接着问。`.slice(0, 88)
+	}
 	const poiName = context.poiName || '西城文化点'
 	return `围绕${poiName}继续追问，答案优先使用已审核来源。`
+})
+
+const xichengVisionAgentContextChips = computed(() => {
+	const context = xichengAiContext.value || {}
+	const chips = []
+	const appendChip = (key, label, value) => {
+		const text = String(value || '').trim()
+		if (!text) return
+		chips.push({
+			key,
+			label,
+			value: text.slice(0, 32)
+		})
+	}
+	appendChip('scene', '现场', context.sceneFusionSummary)
+	appendChip('memory', '连续', context.visionAgentMemorySessionText)
+	appendChip('time', '时间', context.localTimeText)
+	appendChip('weather', '天气', context.weatherText)
+	appendChip('heading', '方向', context.headingText)
+	return chips.slice(0, 4)
 })
 
 const xichengHeroQuestions = computed(() => {
@@ -1086,7 +1192,11 @@ const buildXichengContextQuestion = (question = '', context = xichengAiContext.v
 	}
 	const poiText = context.poiName ? `识别地点：${context.poiName}。` : ''
 	const confidenceText = context.confidence ? `识别置信度：${context.confidence}。` : ''
-	return `你是${context.companionName || XICHENG_REGION_CONFIG.companionName}，服务北京西城试运营路线。${poiText}${confidenceText}用户问题：${question}`
+	const sceneFusionSummary = context.sceneFusionSummary ? `AI识境现场判断：${context.sceneFusionSummary}。` : ''
+	const memorySessionText = context.visionAgentMemorySessionText ? `连续识境：${context.visionAgentMemorySessionText}。` : ''
+	const liveSignalText = [context.localTimeText, context.weatherText, context.headingText].filter(Boolean).join(' ')
+	const liveSignals = liveSignalText ? `现场信号：${liveSignalText}。` : ''
+	return `你是${context.companionName || XICHENG_REGION_CONFIG.companionName}，服务北京西城试运营路线。${poiText}${confidenceText}${sceneFusionSummary}${memorySessionText}${liveSignals}用户问题：${question}`
 }
 
 const buildYudaoAppApiUrl = (path) => {

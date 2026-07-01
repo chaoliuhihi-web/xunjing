@@ -49,6 +49,7 @@
 
 .xicheng-chat-hero-head,
 .xicheng-chat-companion-row,
+.xicheng-vision-agent-strip,
 .xicheng-chat-prompt-row {
 	position: relative;
 	z-index: 1;
@@ -117,6 +118,40 @@
 	font-size: 22rpx;
 	line-height: 1.45;
 	color: #746F68;
+}
+
+.xicheng-vision-agent-strip {
+	margin-top: 20rpx;
+	padding: 18rpx 20rpx;
+	border-radius: 22rpx;
+	background: rgba(23, 63, 53, 0.88);
+	box-sizing: border-box;
+}
+
+.xicheng-vision-agent-strip-title {
+	display: block;
+	font-size: 21rpx;
+	line-height: 1.35;
+	font-weight: 800;
+	color: #FCE8A9;
+}
+
+.xicheng-vision-agent-chip-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10rpx;
+	margin-top: 12rpx;
+}
+
+.xicheng-vision-agent-chip {
+	max-width: 100%;
+	padding: 7rpx 12rpx;
+	border-radius: 999rpx;
+	background: rgba(255, 253, 248, 0.12);
+	color: rgba(255, 253, 248, 0.92);
+	font-size: 20rpx;
+	line-height: 1.35;
+	box-sizing: border-box;
 }
 
 .xicheng-chat-prompt-row {
