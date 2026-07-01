@@ -119,16 +119,18 @@ const blockers = []
 const warnings = []
 const gates = {}
 const skipRemoteParity = hasFlag('--skip-remote-parity') || process.env.XUNJING_SKIP_REMOTE_PARITY === '1'
+const remoteRefs = String(process.env.XUNJING_RELEASE_AUDIT_REMOTE_REFS || 'github/feature/xicheng-p0,origin/feature/xicheng-p0')
+  .split(',')
+  .map((remoteRef) => remoteRef.trim())
+  .filter(Boolean)
+const remoteParityResults = remoteRefs.map((remoteRef) => remoteParity(remoteRef))
 
 gates.git = {
-  ok: Boolean(currentHead),
+  ok: Boolean(currentHead) && (skipRemoteParity || remoteParityResults.every((remote) => remote.ok)),
   branch: currentBranch,
   commit: currentHead,
   skipRemoteParity,
-  remotes: [
-    remoteParity('github/feature/xicheng-p0'),
-    remoteParity('origin/feature/xicheng-p0')
-  ]
+  remotes: remoteParityResults
 }
 for (const remote of gates.git.remotes) {
   if (!skipRemoteParity && !remote.ok) {

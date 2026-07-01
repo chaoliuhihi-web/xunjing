@@ -220,6 +220,31 @@ assert.ok(
   missingAudit.blockers.some((blocker) => blocker.code === 'native-release-artifact-missing'),
   'release candidate audit should name the missing native release artifact blocker'
 )
+const missingRefResult = runAudit([
+  '--preprod-evidence',
+  path.join(missingTempDir, 'missing-preprod.json'),
+  '--native-evidence',
+  path.join(missingTempDir, 'missing-native.json'),
+  '--release-artifact',
+  path.join(missingTempDir, 'missing-release.apk')
+], {
+  XUNJING_RELEASE_AUDIT_REMOTE_REFS: 'HEAD,refs/heads/xicheng-release-audit-missing-ref'
+})
+assert.notEqual(missingRefResult.status, 0, 'release candidate audit should fail when any configured remote ref is not in sync')
+const missingRefAudit = parseAuditJson(missingRefResult)
+assert.equal(
+  missingRefAudit.gates.git.ok,
+  false,
+  'release candidate audit git gate should be false when any configured remote ref is missing or out of sync'
+)
+assert.ok(
+  missingRefAudit.gates.git.remotes.some((remote) => remote.ok === false),
+  'release candidate audit should retain per-remote failure details'
+)
+assert.ok(
+  missingRefAudit.blockers.some((blocker) => blocker.code.startsWith('git-remote-not-in-sync-')),
+  'release candidate audit should include a git remote blocker when any configured remote ref is missing or out of sync'
+)
 assert.ok(
   missingAudit.blockers.some((blocker) => blocker.code === 'native-package-readiness-not-passing'),
   'release candidate audit should surface native package readiness blockers before a signed package exists'
