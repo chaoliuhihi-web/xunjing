@@ -91,9 +91,24 @@
 				<text class="section-title">AI识境推荐动作</text>
 				<text class="section-badge">Scene Vision Agent</text>
 			</view>
+			<view class="vision-agent-decision-strip">
+				<view class="vision-agent-decision-copy">
+					<text class="vision-agent-decision-kicker">Agent 决策</text>
+					<text class="vision-agent-decision-summary">{{ visionAgentDecisionSummary }}</text>
+				</view>
+				<view class="vision-agent-signal-badges">
+					<text
+						v-for="signal in sceneFusionSignalBadges"
+						:key="signal.key"
+						class="vision-agent-signal-badge"
+					>
+						{{ signal.label }}
+					</text>
+				</view>
+			</view>
 			<view class="vision-agent-action-grid">
 				<view
-					v-for="action in visionAgentActionCards"
+					v-for="action in prioritizedVisionAgentActionCards"
 					:key="action.actionKey"
 					class="vision-agent-action"
 					:class="{ 'vision-agent-action-disabled': recognitionActionBlocked && action.requiresRecognition }"
@@ -105,7 +120,7 @@
 			</view>
 			<view class="scene-service-grid">
 				<view
-					v-for="action in sceneServiceActions"
+					v-for="action in prioritizedSceneServiceActions"
 					:key="action.actionKey"
 					class="scene-service-action"
 					@click="openSceneServiceAction(action)"
@@ -676,12 +691,44 @@ export default {
 		},
 		visionAgentActionCards() {
 			return [
+				{ actionKey: 'photo-spot', title: '拍照建议', copy: '先判断光线、角度和适合拍的细节。', requiresRecognition: true },
 				{ actionKey: 'guide', title: '开始讲解', copy: '结合现场信号进入讲解。', requiresRecognition: true },
 				{ actionKey: 'video-brief', title: '30秒视频', copy: '生成适合现场的短讲解。', requiresRecognition: true },
 				{ actionKey: 'deep-history', title: '深入历史', copy: '展开人物、年代和城市知识图谱。', requiresRecognition: true },
 				{ actionKey: 'kids-story', title: '儿童版', copy: '换成孩子能听懂的故事。', requiresRecognition: true },
 				{ actionKey: 'english', title: 'English', copy: 'Switch to English guide.', requiresRecognition: true }
 			]
+		},
+		sceneFusionSignalBadges() {
+			const visionContext = this.result.visionAgentContext || {}
+			const sceneFusionSignals = Array.isArray(visionContext.sceneFusionSignals)
+				? visionContext.sceneFusionSignals
+				: []
+			return sceneFusionSignals
+				.filter(signal => signal && signal.active)
+				.map(signal => ({
+					key: signal.key || signal.label || signal.statusText,
+					label: signal.label || signal.statusText || '现场信号',
+					statusText: signal.statusText || ''
+				}))
+				.slice(0, 4)
+		},
+		visionAgentDecisionSummary() {
+			if (this.recognitionActionBlocked) {
+				return '先确认官方 POI 和审核来源，再继续讲解、路线或服务动作。'
+			}
+			const visionContext = this.result.visionAgentContext || {}
+			const sceneFusionSummary = visionContext.sceneFusionSummary || ''
+			const signalCount = this.sceneFusionSignalBadges.length
+			const routeCue = this.recommendedRoute && (this.recommendedRoute.title || this.recommendedRoute.theme)
+				? `优先可接入${this.recommendedRoute.title || this.recommendedRoute.theme}`
+				: '优先给出讲解、拍照和下一步服务'
+			return sceneFusionSummary
+				? `${sceneFusionSummary}，${routeCue}`
+				: `已融合${signalCount || 1}类现场信号，${routeCue}`
+		},
+		prioritizedVisionAgentActionCards() {
+			return this.prioritizeVisionAgentActions(this.visionAgentActionCards)
 		},
 		sceneServiceActions() {
 			return [
@@ -691,6 +738,9 @@ export default {
 				{ actionKey: 'badge', title: '领取徽章', copy: '完成打卡并收集徽章', taskType: 'growth' },
 				{ actionKey: 'travelogue', title: '生成游记', copy: '把这一站写进今天故事', taskType: 'travelogue' }
 			]
+		},
+		prioritizedSceneServiceActions() {
+			return this.prioritizeSceneServiceActions(this.sceneServiceActions)
 		},
 		visionAgentTimelineItems() {
 			const visionContext = this.result.visionAgentContext || {}
@@ -841,6 +891,45 @@ export default {
 				return []
 			}
 		},
+		prioritizeVisionAgentActions(actions = []) {
+			const visionContext = this.result.visionAgentContext || {}
+			const localTimeText = String(visionContext.localTimeText || '')
+			const weatherText = String(visionContext.weatherText || '')
+			const knowledgeGraphText = String(visionContext.knowledgeGraphText || '')
+			const userInterestTags = String(visionContext.userInterestTags || '')
+			const routeHint = this.recommendedRoute ? 8 : 0
+			const scoreMap = {
+				'photo-spot': localTimeText || weatherText ? 40 : 16,
+				'deep-history': knowledgeGraphText ? 34 : 20,
+				'kids-story': /亲子|儿童|孩子|family|kid/i.test(userInterestTags) ? 36 : 12,
+				'video-brief': weatherText || localTimeText ? 26 : 14,
+				guide: 24 + routeHint,
+				english: 8
+			}
+			return [...actions].sort((left, right) => {
+				const rightScore = scoreMap[right.actionKey] || 0
+				const leftScore = scoreMap[left.actionKey] || 0
+				return rightScore - leftScore
+			})
+		},
+		prioritizeSceneServiceActions(actions = []) {
+			const hasRecommendedRoute = Boolean(this.recommendedRoute)
+			const visionContext = this.result.visionAgentContext || {}
+			const serviceText = String(visionContext.serviceText || '')
+			const hasMerchantCue = /美食|商家|餐|merchant|food/i.test(serviceText)
+			const scoreMap = {
+				'next-stop': hasRecommendedRoute ? 42 : 18,
+				travelogue: hasRecommendedRoute ? 34 : 26,
+				'nearby-food': hasMerchantCue ? 36 : 20,
+				souvenir: hasMerchantCue ? 28 : 12,
+				badge: 22
+			}
+			return [...actions].sort((left, right) => {
+				const rightScore = scoreMap[right.actionKey] || 0
+				const leftScore = scoreMap[left.actionKey] || 0
+				return rightScore - leftScore
+			})
+		},
 		createVisionAgentMemorySnapshot(stage = 'current') {
 			const visionContext = this.result.visionAgentContext || {}
 			return {
@@ -941,13 +1030,15 @@ export default {
 			}
 			const prompt = action.actionKey === 'video-brief'
 				? `用30秒视频脚本讲讲${this.result.poiName}`
-				: action.actionKey === 'deep-history'
-					? `深入讲讲${this.result.poiName}的历史和城市知识图谱`
-					: action.actionKey === 'kids-story'
-						? `用儿童版讲讲${this.result.poiName}`
-						: action.actionKey === 'english'
-							? `Explain ${this.result.poiName} in English`
-							: ''
+				: action.actionKey === 'photo-spot'
+					? `先给我${this.result.poiName}的拍照建议，结合现在的时间、天气、方位和现场细节`
+					: action.actionKey === 'deep-history'
+						? `深入讲讲${this.result.poiName}的历史和城市知识图谱`
+						: action.actionKey === 'kids-story'
+							? `用儿童版讲讲${this.result.poiName}`
+							: action.actionKey === 'english'
+								? `Explain ${this.result.poiName} in English`
+								: ''
 			this.askXiaojing(prompt)
 		},
 		openSceneServiceAction(action = {}) {
@@ -1866,6 +1957,65 @@ export default {
 	padding: 26rpx;
 	border-radius: 30rpx;
 	background: rgba(255, 253, 248, 0.94);
+}
+
+.vision-agent-decision-strip {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 20rpx;
+	margin-top: 22rpx;
+	padding: 20rpx;
+	border-radius: 24rpx;
+	background: rgba(31, 110, 90, 0.10);
+	border: 1rpx solid rgba(31, 110, 90, 0.16);
+	box-sizing: border-box;
+}
+
+.vision-agent-decision-copy {
+	flex: 1;
+	min-width: 0;
+}
+
+.vision-agent-decision-kicker,
+.vision-agent-decision-summary {
+	display: block;
+	line-height: 1.45;
+}
+
+.vision-agent-decision-kicker {
+	font-size: 22rpx;
+	font-weight: 800;
+	color: #1F6E5A;
+}
+
+.vision-agent-decision-summary {
+	margin-top: 8rpx;
+	font-size: 24rpx;
+	color: rgba(16, 47, 41, 0.76);
+}
+
+.vision-agent-signal-badges {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 10rpx;
+	width: 210rpx;
+	flex-shrink: 0;
+}
+
+.vision-agent-signal-badge {
+	max-width: 100%;
+	padding: 7rpx 12rpx;
+	border-radius: 999rpx;
+	background: rgba(255, 253, 248, 0.86);
+	font-size: 20rpx;
+	line-height: 1.3;
+	font-weight: 700;
+	color: #173F35;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .vision-agent-memory-panel {
