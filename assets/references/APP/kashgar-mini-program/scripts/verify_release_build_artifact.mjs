@@ -58,8 +58,7 @@ const textExtensions = new Set([
 const mobileArchiveExtensions = new Set([
   '.apk',
   '.aab',
-  '.ipa',
-  '.zip'
+  '.ipa'
 ])
 
 const forbiddenPatterns = [
@@ -206,7 +205,7 @@ if (artifactStat.isDirectory()) {
   textFilesScanned += 1
   scanTextContent(path.basename(resolvedArtifactDir), fs.readFileSync(resolvedArtifactDir, 'utf8'))
 } else {
-  fail(`Release artifact path must be a directory, APK, AAB, IPA, ZIP, or scannable text file: ${resolvedArtifactDir}`)
+  fail(`Release artifact path must be a directory, APK, AAB, IPA, or scannable text file: ${resolvedArtifactDir}. Plain ZIP files are not final mobile install packages.`)
 }
 
 const isExpectedApiUrl = (url) => url === expectedApiBaseUrl || url.startsWith(`${expectedApiBaseUrl}/`)

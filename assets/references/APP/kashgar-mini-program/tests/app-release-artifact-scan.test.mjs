@@ -172,12 +172,27 @@ const validApkResult = runScanner(validApkArtifact)
 assert.equal(
   validApkResult.status,
   0,
-  `release artifact scanner should accept a clean APK/ZIP artifact: ${validApkResult.stderr || validApkResult.stdout}`
+  `release artifact scanner should accept a clean APK artifact: ${validApkResult.stderr || validApkResult.stdout}`
 )
 assert.match(
   validApkResult.stdout,
   /archiveFilesScanned/,
-  'release artifact scanner should report scanned APK/ZIP inner files'
+  'release artifact scanner should report scanned APK inner files'
+)
+
+const plainZipArtifact = makeZipArtifact({
+  'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";'
+}, 'xicheng-release.zip')
+const plainZipResult = runScanner(plainZipArtifact)
+assert.notEqual(
+  plainZipResult.status,
+  0,
+  'release artifact scanner should reject plain ZIP files as final mobile release artifacts'
+)
+assert.match(
+  `${plainZipResult.stderr}\n${plainZipResult.stdout}`,
+  /APK|AAB|IPA|mobile|install package|安装包/i,
+  'release artifact scanner should explain that final mobile release artifacts must be APK, AAB, or IPA'
 )
 
 for (const mobileArchiveName of ['xicheng-release.aab', 'xicheng-release.ipa']) {
