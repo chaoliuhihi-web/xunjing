@@ -73,6 +73,9 @@ const getCurrentHead = () => {
 
 const currentHead = getCurrentHead()
 const qaEvidenceRoot = path.join(repoRoot, 'qa')
+const qaEvidenceRootRealPath = fs.existsSync(qaEvidenceRoot)
+  ? fs.realpathSync(qaEvidenceRoot)
+  : qaEvidenceRoot
 
 const isInsideDir = (childPath, parentPath) => {
   const relativePath = path.relative(parentPath, childPath)
@@ -343,6 +346,10 @@ for (const id of requiredScenarioIds) {
   }
   if (!fs.existsSync(resolvedEvidenceRef)) {
     fail(`Native device evidence scenario ${id} evidenceRef file not found: ${resolvedEvidenceRef} (截图/录屏)`)
+  }
+  const resolvedEvidenceRefRealPath = fs.realpathSync(resolvedEvidenceRef)
+  if (!isInsideDir(resolvedEvidenceRefRealPath, qaEvidenceRootRealPath)) {
+    fail(`Native device evidence scenario ${id} evidenceRef real path must stay under qa/: ${resolvedEvidenceRefRealPath}`)
   }
   const evidenceRefExt = path.extname(resolvedEvidenceRef).toLowerCase()
   if (!supportedEvidenceRefExtensions.has(evidenceRefExt)) {

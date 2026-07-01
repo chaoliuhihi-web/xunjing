@@ -124,6 +124,8 @@ for (const required of [
   '安装渠道',
   '截图',
   '录屏',
+  '软链接',
+  '真实路径',
   'jpg',
   'png',
   'mp4',
@@ -363,6 +365,35 @@ assert.match(
   /recording-start-stop|evidenceRef|qa\//i,
   'native evidence validator should explain that scenario evidence must be stored under qa/'
 )
+
+const outsideQaSymlinkTargetFile = path.join(outsideQaEvidenceDir, 'xiaojing-sourced-answer.jpg')
+fs.writeFileSync(outsideQaSymlinkTargetFile, jpegEvidenceBytes)
+const symlinkEvidenceRefFile = path.join(qaEvidenceDir, 'symlink-xiaojing-sourced-answer.jpg')
+try {
+  fs.symlinkSync(outsideQaSymlinkTargetFile, symlinkEvidenceRefFile)
+  const symlinkEvidenceRefResult = runValidator({
+    ...baseEvidence,
+    scenarios: baseEvidence.scenarios.map((scenario) => (
+      scenario.id === 'xiaojing-sourced-answer'
+        ? { ...scenario, evidenceRef: path.relative(repoRoot, symlinkEvidenceRefFile) }
+        : scenario
+    ))
+  })
+  assert.notEqual(
+    symlinkEvidenceRefResult.status,
+    0,
+    'native evidence validator should reject qa/ evidenceRef symlinks that resolve outside qa/'
+  )
+  assert.match(
+    `${symlinkEvidenceRefResult.stderr}\n${symlinkEvidenceRefResult.stdout}`,
+    /xiaojing-sourced-answer|evidenceRef|qa\/|symlink|real path|真实路径/i,
+    'native evidence validator should explain that evidenceRef real paths must stay under qa/'
+  )
+} catch (error) {
+  if (!['EPERM', 'EACCES', 'ENOTSUP'].includes(error?.code)) {
+    throw error
+  }
+}
 
 const fakeJpegEvidenceRefFile = path.join(qaEvidenceDir, 'fake-camera-photo-recognition.jpg')
 fs.writeFileSync(fakeJpegEvidenceRefFile, 'renamed text file is not real screenshot media\n')
