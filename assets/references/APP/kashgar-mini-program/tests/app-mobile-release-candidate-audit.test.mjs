@@ -420,3 +420,35 @@ assert.equal(readyAudit.gates.nativeEvidence.ok, true)
 assert.equal(readyAudit.gates.releaseArtifactScan.ok, true)
 assert.equal(readyAudit.gates.nativePackageReadiness.skipped, true)
 assert.equal(readyAudit.gates.releasePrerequisites.skipped, true)
+
+const mismatchedArtifactDescription = describeArtifact(makeZipArtifact({
+  'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";const build="different-release-artifact";'
+}, 'xicheng-different-release.apk'))
+const mismatchedArtifactResult = runAudit([
+  '--preprod-evidence',
+  preprodPath,
+  '--native-evidence',
+  nativePath,
+  '--release-artifact',
+  mismatchedArtifactDescription.artifact,
+  '--skip-remote-parity'
+], {
+  XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
+  XUNJING_TENANT_ID: '1'
+})
+assert.notEqual(
+  mismatchedArtifactResult.status,
+  0,
+  'release candidate audit should reject a CLI release artifact that differs from native evidence build.artifact'
+)
+const mismatchedArtifactAudit = parseAuditJson(mismatchedArtifactResult)
+assert.equal(mismatchedArtifactAudit.status, 'NO_GO')
+assert.ok(
+  mismatchedArtifactAudit.blockers.some((blocker) => blocker.code === 'release-artifact-native-evidence-mismatch'),
+  'release candidate audit should name the native evidence artifact mismatch blocker'
+)
+assert.match(
+  `${mismatchedArtifactResult.stderr}\n${mismatchedArtifactResult.stdout}`,
+  /release artifact|build\.artifact|native evidence|same candidate/i,
+  'release candidate audit should explain that the scanned artifact must match native evidence build.artifact'
+)

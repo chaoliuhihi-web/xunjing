@@ -81,6 +81,8 @@ XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-eviden
 npm run verify:launch:evidence
 ```
 
+如果 `audit:release:candidate` 显式传入 `--release-artifact` 或设置 `XUNJING_RELEASE_ARTIFACT`，它必须和真机证据 `build.artifact` 指向同一个签名 APK/AAB/IPA；不能用一个包做扫描，再用另一个包的真机截图或录屏证据放行。
+
 预发或上线真机包必须使用带网关校验的 release 构建入口：
 
 ```bash

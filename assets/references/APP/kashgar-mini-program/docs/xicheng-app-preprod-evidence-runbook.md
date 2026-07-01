@@ -125,6 +125,8 @@ npm run verify:native:evidence
 
 最终 `verify:launch:evidence` 会复用 `verify:release:artifact` 扫描真机证据里的安装包本体 `build.artifact`。如果签名后的 APK/ZIP 内部包含 localhost、局域网、fixture、H5 proxy 标记或真实 token，不能放行。
 
+如果运行 `npm run audit:release:candidate` 时显式传入 `--release-artifact` 或 `XUNJING_RELEASE_ARTIFACT`，该路径必须和真机证据 `build.artifact` 指向同一个签名 APK/AAB/IPA；不能扫描一个包、拿另一个包的真机证据放行。
+
 在 `assets/references/APP/kashgar-mini-program` 运行：
 
 ```bash

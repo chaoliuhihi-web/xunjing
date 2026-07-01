@@ -36,6 +36,17 @@ const resolveInputPath = (inputPath) => {
   return path.isAbsolute(inputPath) ? inputPath : path.resolve(process.cwd(), inputPath)
 }
 
+const resolveRepoInputPath = (inputPath) => {
+  if (!String(inputPath || '').trim()) return ''
+  return path.isAbsolute(inputPath) ? inputPath : path.resolve(repoRoot, inputPath)
+}
+
+const normalizePathForComparison = (inputPath) => {
+  if (!String(inputPath || '').trim()) return ''
+  if (!fs.existsSync(inputPath)) return path.resolve(inputPath)
+  return fs.realpathSync(inputPath)
+}
+
 const normalizeUrl = (value) => String(value || '').trim().replace(/\/+$/, '')
 
 const readJsonIfPresent = (inputPath) => {
@@ -211,15 +222,29 @@ if (!nativeEvidence.exists) {
   }
 }
 
-const releaseArtifactPath = resolveInputPath(
-  releaseArtifactArg ||
-    nativeEvidence.json?.build?.artifact ||
-    ''
-)
+const explicitReleaseArtifactPath = resolveInputPath(releaseArtifactArg)
+const nativeEvidenceArtifactPath = resolveRepoInputPath(nativeEvidence.json?.build?.artifact || '')
+const releaseArtifactPath = explicitReleaseArtifactPath || nativeEvidenceArtifactPath
 gates.nativeReleaseArtifact = {
   ok: Boolean(releaseArtifactPath && fs.existsSync(releaseArtifactPath)),
   path: releaseArtifactPath,
+  nativeEvidenceArtifact: nativeEvidenceArtifactPath,
+  explicitReleaseArtifact: explicitReleaseArtifactPath,
   exists: Boolean(releaseArtifactPath && fs.existsSync(releaseArtifactPath))
+}
+if (
+  explicitReleaseArtifactPath &&
+  nativeEvidence.exists &&
+  !nativeEvidence.error &&
+  nativeEvidenceArtifactPath &&
+  normalizePathForComparison(explicitReleaseArtifactPath) !== normalizePathForComparison(nativeEvidenceArtifactPath)
+) {
+  addBlocker(
+    blockers,
+    'release-artifact-native-evidence-mismatch',
+    'Explicit release artifact must match native evidence build.artifact for the same release candidate',
+    'Use the same signed APK/AAB/IPA path in --release-artifact or XUNJING_RELEASE_ARTIFACT and qa/xicheng-native-device-evidence.json build.artifact; regenerate native evidence if the package changed'
+  )
 }
 if (!gates.nativeReleaseArtifact.exists) {
   addBlocker(
