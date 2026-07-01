@@ -25,6 +25,12 @@ assert.match(
 )
 
 assert.match(
+  selectCachedBlock,
+  /const routePackageCode = decodeRouteValue\(options\.packageCode\)[\s\S]*if \(routePackageCode && cached\.packageCode && cached\.packageCode !== routePackageCode\) \{[\s\S]*return null/,
+  'Cached recognition should be rejected when the route packageCode differs from the cached packageCode'
+)
+
+assert.match(
   onLoadBlock,
   /const mergedRouteOptions = mergeXichengScanResultRouteOptions\(options\)[\s\S]*const routeOptions = normalizeRouteOptions\(mergedRouteOptions\)[\s\S]*const routeUnsafeSafetyStatus = isXichengUnsafeSafetyStatus\(routeOptions\.safetyStatus\)[\s\S]*const cachedBlockedByProductionFixture = this\.isBlockedDevelopmentRecognitionCache\(cached\)[\s\S]*const selectedCached = cachedBlockedByProductionFixture \|\| routeUnsafeSafetyStatus[\s\S]*\? null[\s\S]*: selectCachedRecognitionForRoute\(cached, mergedRouteOptions\)[\s\S]*\.\.\.\(selectedCached \|\| \{\}\)/,
   'Recognition result onLoad should only merge a cache object after production fixture, unsafe route safety, and route consistency checks'

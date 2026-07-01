@@ -395,6 +395,10 @@ const selectCachedRecognitionForRoute = (cached = {}, options = {}) => {
 	if (routeRegionCode && cached.regionCode && cached.regionCode !== routeRegionCode) {
 		return null
 	}
+	const routePackageCode = decodeRouteValue(options.packageCode)
+	if (routePackageCode && cached.packageCode && cached.packageCode !== routePackageCode) {
+		return null
+	}
 	return cached
 }
 
