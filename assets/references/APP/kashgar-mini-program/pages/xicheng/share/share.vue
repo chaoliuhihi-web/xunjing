@@ -208,12 +208,15 @@ export default {
 			}
 		},
 		sanitizePublicStudyEvidencePreview(item = {}) {
+			const safetyStatus = normalizeXichengSafetyStatus(item.safetyStatus)
+			if (isXichengUnsafeSafetyStatus(safetyStatus)) return null
 			return {
 				taskId: item.taskId || '',
 				taskText: item.taskText || '',
 				evidenceType: item.evidenceType || '',
 				answerExcerpt: String(item.answerExcerpt || '').slice(0, 80),
 				hasPhoto: Boolean(item.hasPhoto),
+				safetyStatus,
 				completedAt: item.completedAt || ''
 			}
 		},

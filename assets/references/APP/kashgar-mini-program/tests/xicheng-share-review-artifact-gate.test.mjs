@@ -4,6 +4,11 @@ import path from 'node:path'
 
 const root = process.cwd()
 const share = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'share', 'share.vue'), 'utf8')
+const extractPublicPreviewMethodBlock = (methodName) => {
+  const block = share.match(new RegExp(`${methodName}\\(item = \\{\\}\\)[\\s\\S]*?\\n\\t\\t\\},\\n\\t\\t`))?.[0] || ''
+  assert.ok(block, `Share page should define ${methodName}`)
+  return block
+}
 
 assert.match(
   share,
@@ -123,13 +128,20 @@ assert.match(
   'Share public route check-in preview sanitizer should drop BLOCKED or UNAVAILABLE check-ins from public preview artifacts'
 )
 
+const publicStudyEvidencePreviewBlock = extractPublicPreviewMethodBlock('sanitizePublicStudyEvidencePreview')
+
+assert.match(
+  publicStudyEvidencePreviewBlock,
+  /const safetyStatus = normalizeXichengSafetyStatus\(item\.safetyStatus\)[\s\S]*if \(isXichengUnsafeSafetyStatus\(safetyStatus\)\) return null[\s\S]*safetyStatus,/,
+  'Share public study evidence preview sanitizer should drop BLOCKED or UNAVAILABLE study evidence from public preview artifacts'
+)
+
 for (const [methodName, forbiddenPattern] of [
   ['sanitizePublicMaterialPreview', /imagePath|photoPath|captureLocation|exifLocation|nearestTrackPoint|latitude|longitude|sources:/],
   ['sanitizePublicStudyEvidencePreview', /photoPath|imagePath|answerText|captureLocation|exifLocation|latitude|longitude/],
   ['sanitizePublicRouteCheckinPreview', /sources:|candidateConfirmationAudit|selectedCandidateConfidence|captureLocation|exifLocation|latitude|longitude/]
 ]) {
-  const block = share.match(new RegExp(`${methodName}\\(item = \\{\\}\\)[\\s\\S]*?\\n\\t\\t\\},\\n\\t\\t`))?.[0] || ''
-  assert.ok(block, `Share page should define ${methodName}`)
+  const block = extractPublicPreviewMethodBlock(methodName)
   assert.doesNotMatch(
     block,
     forbiddenPattern,
