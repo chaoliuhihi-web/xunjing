@@ -6,47 +6,36 @@ const root = process.cwd()
 const home = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'home', 'home.vue'), 'utf8')
 
 for (const required of [
-  'xichengP0FlowActions',
-  "key: 'guide'",
-  "title: '小京讲解'",
-  "key: 'routes'",
-  "title: '推荐路线'",
-  "key: 'record'",
-  "title: '开始记录'",
-  "key: 'draft'",
-  "title: '生成游记草稿'",
-  'handleXichengP0FlowAction(item.key)',
-  'class="flow-step"'
+  'id="xicheng-map-entry-section"',
+  'class="home-light-entry-grid"',
+  'class="home-light-entry home-map-entry xicheng-paper-card"',
+  'class="home-light-entry home-record-entry xicheng-paper-card"',
+  '文旅地图',
+  'POI 地图 · 路线推荐',
+  '西城 Citywalk',
+  '开始记录 Citywalk',
+  '@click="openXichengRoutes"',
+  '@click="openXichengRecording"',
+  'class="home-share-button"',
+  '@click="openXichengShare"'
 ]) {
-  assert.ok(home.includes(required), `Xicheng home P0 flow strip should expose actionable flow contract ${required}`)
+  assert.ok(home.includes(required), `Xicheng home should expose compact primary P0 entry ${required}`)
 }
 
 assert.match(
   home,
-  /<view class="flow-strip"[\s\S]*v-for="item in xichengP0FlowActions"[\s\S]*@click="handleXichengP0FlowAction\(item\.key\)"[\s\S]*{{ item\.title }}/,
-  'Xicheng home P0 flow strip should render the P0 sequence as clickable actions instead of static text'
+  /xichengHomeNavItems:\s*\[[\s\S]*\{ key: 'record', title: '记录', icon: 'record' \}/,
+  'The old 收藏 bottom tab should become the Citywalk recording tab'
 )
 
 assert.match(
   home,
-  /handleXichengP0FlowAction\(key = 'guide'\)[\s\S]*case 'guide':[\s\S]*this\.askXiaojing\(\)/,
-  'P0 flow guide action should enter Xiaojing explanation from the home page'
+  /handleXichengHomeNav\(key = 'explore'\)[\s\S]*case 'record':[\s\S]*this\.openXichengRecording\(\)/,
+  'The bottom record tab should open the Citywalk recording page'
 )
 
-assert.match(
+assert.doesNotMatch(
   home,
-  /handleXichengP0FlowAction\(key = 'guide'\)[\s\S]*case 'routes':[\s\S]*this\.openXichengRoutes\(\)/,
-  'P0 flow route action should open the dedicated official route list'
-)
-
-assert.match(
-  home,
-  /handleXichengP0FlowAction\(key = 'guide'\)[\s\S]*case 'record':[\s\S]*this\.openXichengRecording\(\)/,
-  'P0 flow record action should open the journey recording surface'
-)
-
-assert.match(
-  home,
-  /handleXichengP0FlowAction\(key = 'guide'\)[\s\S]*case 'draft':[\s\S]*this\.openXichengTravelogue\('draft'\)/,
-  'P0 flow draft action should open the travelogue draft surface'
+  /homeSecondaryEntries|openHomeSecondaryEntry|class="flow-strip"|class="journey-panel|class="ops-section|class="inspiration-panel|title: '收藏'|key: 'footprint'|亲子研学|运营报告|一键抄作业/,
+  'Xicheng home should not keep hidden growth, parent-child study, ops report, favorite, or inspiration-import entrypoints on the primary page'
 )

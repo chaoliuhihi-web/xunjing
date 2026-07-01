@@ -10,36 +10,28 @@ const recording = read('pages', 'xicheng', 'recording', 'recording.vue')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 
 for (const required of [
-  "{ key: 'footprint', title: '收藏', icon: 'favorite' }",
+  "{ key: 'record', title: '记录', icon: 'record' }",
   "{ key: 'mine', title: '我的', icon: 'mine' }",
-  "openXichengFootprint()",
   "openXichengRecording()",
-  "openXichengPassport()",
   "openXichengShare()",
   "openXichengWorks()",
-  "openXichengOpsReport()",
-  "url: '/pages/xicheng/footprint/footprint'",
-  "url: '/pages/xicheng/passport/passport'",
   "url: '/pages/xicheng/share/share'",
   "url: '/pages/xicheng/works/works'",
-  "url: '/pages/xicheng/ops-report/ops-report'",
-  "@click=\"openXichengPassport\"",
-  "@click=\"openXichengShare\"",
-  "@click=\"openXichengOpsReport\""
+  'class="home-share-button"'
 ]) {
-  assert.ok(home.includes(required), `Xicheng home should expose growth page entry ${required}`)
+  assert.ok(home.includes(required), `Xicheng home should expose only current top-level growth/personal entry ${required}`)
 }
 
 assert.match(
   home,
-  /handleXichengHomeNav\(key = 'explore'\)[\s\S]*case 'footprint':[\s\S]*this\.openXichengFootprint\(\)[\s\S]*case 'mine':[\s\S]*this\.openXichengWorks\(\)/,
-  'Home bottom nav should route 收藏 to footprint and 我的 to works instead of hiding both behind travelogue'
+  /handleXichengHomeNav\(key = 'explore'\)[\s\S]*case 'record':[\s\S]*this\.openXichengRecording\(\)[\s\S]*case 'mine':[\s\S]*this\.openXichengWorks\(\)/,
+  'Home bottom nav should route 记录 to Citywalk recording and 我的 to the personal works surface'
 )
 
-assert.match(
+assert.doesNotMatch(
   home,
-  /handleXichengP0FlowAction\(key = 'guide'\)[\s\S]*case 'record':[\s\S]*this\.openXichengRecording\(\)[\s\S]*case 'draft':[\s\S]*this\.openXichengTravelogue\('draft'\)/,
-  'Home P0 flow strip should send 开始记录 into the route recording page rather than only the travelogue editor'
+  /homeSecondaryEntries|openHomeSecondaryEntry|key: 'passport'|key: 'share'|key: 'ops'|key: 'footprint'|title: '收藏'|openXichengPassport|openXichengOpsReport|openXichengFootprint|url: '\/pages\/xicheng\/ops-report\/ops-report'|亲子研学任务|运营报告/,
+  'Home should hide route passport, parent-child study, ops report, and 收藏 as top-level growth entries'
 )
 
 for (const required of [
@@ -50,7 +42,7 @@ for (const required of [
   '@click="openPassport"',
   '@click="openFootprint"'
 ]) {
-  assert.ok(recording.includes(required), `Recording page should expose post-recording entry ${required}`)
+  assert.ok(recording.includes(required), `Recording page should keep post-recording secondary entry ${required}`)
 }
 
 for (const required of [
@@ -64,7 +56,7 @@ for (const required of [
   '@click="openWorksPage"',
   '@click="openOpsReportPage"'
 ]) {
-  assert.ok(travelogue.includes(required), `Travelogue should link split growth page ${required}`)
+  assert.ok(travelogue.includes(required), `Travelogue should link split secondary growth page ${required}`)
 }
 
 assert.match(

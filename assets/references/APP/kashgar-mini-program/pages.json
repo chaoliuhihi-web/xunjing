@@ -69,7 +69,7 @@
 		{
 			"path": "pages/xicheng/routes/routes",
 			"style": {
-				"navigationBarTitleText": "路线推荐",
+				"navigationBarTitleText": "文旅地图",
 				"navigationStyle": "custom",
 				"mp-weixin": {
 					"navigationStyle": "custom",

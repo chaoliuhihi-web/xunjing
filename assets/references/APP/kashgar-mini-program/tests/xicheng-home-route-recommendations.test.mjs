@@ -7,11 +7,12 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const home = read('pages', 'xicheng', 'home', 'home.vue')
+const routes = read('pages', 'xicheng', 'routes', 'routes.vue')
 
 assert.match(
   regionConfig,
   /export const XICHENG_RECOMMENDED_ROUTES\s*=\s*Object\.freeze\(\[/,
-  'Xicheng config should expose official route recommendations for home operations'
+  'Xicheng config should expose official route recommendations for map and route operations'
 )
 
 for (const required of [
@@ -26,72 +27,58 @@ for (const required of [
 }
 
 for (const required of [
-  'XICHENG_RECOMMENDED_ROUTES',
-  'XICHENG_ROUTE_RECOMMENDATION_FILTERS',
-  'createXichengOfficialPoiSources',
-  'recommendedRoutes: XICHENG_RECOMMENDED_ROUTES',
-  'routeRecommendationFilters: XICHENG_ROUTE_RECOMMENDATION_FILTERS',
-  'filteredRecommendedRoutes',
-  'route-recommendation-section',
-  '路线推荐',
-  '查看全部',
-  'v-for="route in filteredRecommendedRoutes.slice(0, 3)"',
-  'route-reference-grid',
-  'route-reference-card',
-  'route-reference-image',
-  'route-reference-badge',
-  'getDisplayRouteTitle(route)',
-  'getRouteKeywordLine(route)',
-  'openRecommendedRouteDetail(route)',
-  'openRecommendedRoute(route = {})'
+  'id="xicheng-map-entry-section"',
+  '文旅地图',
+  'POI 地图 · 路线推荐',
+  'openXichengRoutes',
+  '/pages/xicheng/routes/routes?'
 ]) {
-  assert.ok(home.includes(required), `Xicheng home should expose route recommendation UI ${required}`)
+  assert.ok(home.includes(required), `Xicheng home should expose only a compact map entry ${required}`)
 }
-
-assert.match(
-  home,
-  /openRecommendedRoute\(route = \{\}\)[\s\S]*routePayload[\s\S]*regionCode:\s*this\.region\.regionCode[\s\S]*packageCode:\s*this\.region\.packageCode[\s\S]*sceneCode:\s*this\.region\.sceneCode[\s\S]*sourceChannel:\s*this\.region\.sourceChannel[\s\S]*routeSource:\s*'home-recommendation'[\s\S]*sourceLabel:\s*'官方推荐路线'/,
-  'Opening a home recommended route should persist full route attribution for route passport operations'
-)
-
-assert.match(
-  home,
-  /import \{ createXichengOfficialPoiSources \} from '@\/request\/xunjing\/officialPoi\.js'/,
-  'Home recommended routes should reuse the shared official POI source helper'
-)
-
-assert.match(
-  home,
-  /const routeMaterials = stops\.map\(stop => \{[\s\S]*const sources = createXichengOfficialPoiSources\(stop\)[\s\S]*return \{[\s\S]*type:\s*'official-route-poi'[\s\S]*regionCode:\s*this\.region\.regionCode[\s\S]*packageCode:\s*this\.region\.packageCode[\s\S]*sceneCode:\s*this\.region\.sceneCode[\s\S]*sourceChannel:\s*this\.region\.sourceChannel[\s\S]*routeCode:\s*route\.routeCode/,
-  'Home recommended route POI materials should carry scene and source channel for review and city operations reports'
-)
-
-assert.match(
-  home,
-  /const routeMaterials = stops\.map\(stop => \{[\s\S]*type:\s*'official-route-poi'[\s\S]*sources,[\s\S]*sourceCount:\s*sources\.length[\s\S]*safetyStatus:\s*'PASSED'[\s\S]*reviewStatus:\s*this\.region\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
-  'Home recommended route POI materials should carry explicit PASSED safety status and stay pending review/private before share or review handoff'
-)
-
-assert.match(
-  home,
-  /uni\.setStorageSync\(this\.region\.inspirationStorageKey,\s*routePayload\)[\s\S]*uni\.setStorageSync\(this\.region\.materialsStorageKey/,
-  'Home recommended routes should save the route and route POI materials before opening the travelogue'
-)
-
-assert.match(
-  home,
-  /openRecommendedRoute\(route = \{\}\)[\s\S]*\/pages\/xicheng\/travelogue\/travelogue\?mode=route[\s\S]*regionCode=\$\{encodeRouteValue\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeRouteValue\(this\.region\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeRouteValue\(this\.region\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeRouteValue\(this\.region\.sourceChannel\)\}[\s\S]*routeCode=\$\{encodeRouteValue\(route\.routeCode \|\| ''\)\}[\s\S]*companionName=\$\{encodeRouteValue\(this\.region\.companionName\)\}/,
-  'Home recommended route navigation should preserve Xicheng region, package, scene, source channel, route, and companion context'
-)
-
-assert.match(
-  home,
-  /openXichengTravelogue\(mode = 'record'\)[\s\S]*\/pages\/xicheng\/travelogue\/travelogue\?mode=\$\{encodeRouteValue\(mode\)\}[\s\S]*regionCode=\$\{encodeRouteValue\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeRouteValue\(this\.region\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeRouteValue\(this\.region\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeRouteValue\(this\.region\.sourceChannel\)\}[\s\S]*companionName=\$\{encodeRouteValue\(this\.region\.companionName\)\}/,
-  'Home direct travelogue entry should preserve scene and source channel for review and city operations attribution'
-)
 
 assert.doesNotMatch(
   home,
+  /filteredRecommendedRoutes|route-recommendation-section|route-reference-grid|v-for="route in filteredRecommendedRoutes\.slice\(0, 3\)"|openRecommendedRoute\(route = \{\}\)|createXichengOfficialPoiSources/,
+  'Home should not own route recommendation rendering or route material persistence after route recommendations move to the cultural map page'
+)
+
+for (const required of [
+  '西城文旅地图',
+  'culture-map-card',
+  'culture-map-canvas',
+  'mapPreviewRoute',
+  'mapPreviewStops',
+  'getMapPinStyle(index)',
+  'id="xicheng-route-recommendation-bottom"',
+  '路线推荐',
+  '官方 Citywalk',
+  'XICHENG_RECOMMENDED_ROUTES',
+  'XICHENG_ROUTE_RECOMMENDATION_FILTERS',
+  'createXichengOfficialPoiSources',
+  'filteredRoutes',
+  'route-list-card',
+  '查看路线',
+  '路线护照',
+  'generateRouteTravelogue(route)',
+  'openInspirationImport'
+]) {
+  assert.ok(routes.includes(required), `Xicheng cultural map page should own route recommendation UI ${required}`)
+}
+
+assert.match(
+  routes,
+  /persistRoutePassport\(route = \{\}\)[\s\S]*routeSource:\s*'route-list'[\s\S]*sourceLabel:\s*'官方路线列表'[\s\S]*uni\.setStorageSync\(this\.region\.inspirationStorageKey,\s*routePayload\)[\s\S]*uni\.setStorageSync\(this\.region\.materialsStorageKey/,
+  'Route recommendation selections should persist full route attribution from the cultural map page'
+)
+
+assert.match(
+  routes,
+  /const routeMaterials = stops\.map\(stop => \{[\s\S]*const sources = createXichengOfficialPoiSources\(stop\)[\s\S]*type:\s*'official-route-poi'[\s\S]*sourceCount:\s*sources\.length[\s\S]*safetyStatus:\s*'PASSED'[\s\S]*reviewStatus:\s*this\.region\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  'Route recommendation POI materials should carry approved source cards, explicit PASSED safety status, and private pending-review status'
+)
+
+assert.doesNotMatch(
+  `${home}\n${routes}`,
   /\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
-  'Home route recommendation MVP should not add backend calls or client-side secrets'
+  'Home and cultural map route recommendation MVP should not add backend calls or client-side secrets'
 )

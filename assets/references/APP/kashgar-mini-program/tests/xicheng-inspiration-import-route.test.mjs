@@ -14,6 +14,7 @@ assert.ok(
 const pagesJson = read('pages.json')
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const home = read('pages', 'xicheng', 'home', 'home.vue')
+const routes = read('pages', 'xicheng', 'routes', 'routes.vue')
 const inspiration = read('pages', 'xicheng', 'inspiration', 'inspiration.vue')
 const officialPoiSources = read('request', 'xunjing', 'officialPoi.js')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
@@ -62,20 +63,26 @@ for (const required of [
   assert.ok(regionConfig.includes(required), `Xicheng config should include official POI matching data ${required}`)
 }
 
+assert.doesNotMatch(
+  home,
+  /一键抄作业|一键导入灵感|openXichengInspiration|\/pages\/xicheng\/inspiration\/inspiration\?/,
+  'Xicheng home should not expose inspiration import as a prominent primary-page entry'
+)
+
 for (const required of [
+  'id="xicheng-route-recommendation-bottom"',
+  '路线推荐',
   '一键抄作业',
-  '一键导入灵感',
-  'AI 提取地点',
-  'openXichengInspiration',
-  '/pages/xicheng/inspiration/inspiration?'
+  'openInspirationImport',
+  '/pages/xicheng/inspiration/inspiration?target=map'
 ]) {
-  assert.ok(home.includes(required), `Xicheng home should expose inspiration import entry ${required}`)
+  assert.ok(routes.includes(required), `Xicheng cultural map should expose route inspiration import entry ${required}`)
 }
 
 assert.match(
-  home,
-  /openXichengInspiration\(\)[\s\S]*\/pages\/xicheng\/inspiration\/inspiration\?[\s\S]*regionCode=\$\{encodeRouteValue\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeRouteValue\(this\.region\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeRouteValue\(this\.region\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeRouteValue\(this\.region\.sourceChannel\)\}[\s\S]*companionName=\$\{encodeRouteValue\(this\.region\.companionName\)\}/,
-  'Home inspiration entry should preserve Xicheng package, scene, source channel, and companion context'
+  routes,
+  /openInspirationImport\(\)[\s\S]*\/pages\/xicheng\/inspiration\/inspiration\?target=map[\s\S]*regionCode=\$\{encodeRouteValue\(this\.routeContext\.regionCode\)\}[\s\S]*packageCode=\$\{encodeRouteValue\(this\.routeContext\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeRouteValue\(this\.routeContext\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeRouteValue\(this\.routeContext\.sourceChannel\)\}[\s\S]*companionName=\$\{encodeRouteValue\(this\.routeContext\.companionName\)\}/,
+  'Map inspiration entry should preserve Xicheng package, scene, source channel, and companion context'
 )
 
 for (const required of [
@@ -91,10 +98,24 @@ for (const required of [
   'buildXichengWalkRoute',
   'chooseInspirationImage',
   'saveInspirationRoute',
+  'isMapTarget',
+  '生成到文旅地图',
   'openTravelogue'
 ]) {
   assert.ok(inspiration.includes(required), `Inspiration page should include ${required}`)
 }
+
+assert.match(
+  inspiration,
+  /onLoad\(options = \{\}\)[\s\S]*this\.target = options\.target === 'map' \? 'map' : ''/,
+  'Inspiration page should recognize map target mode from the cultural map entrypoint'
+)
+
+assert.match(
+  inspiration,
+  /if \(this\.isMapTarget\) \{[\s\S]*setTimeout\(\(\) => \{[\s\S]*uni\.navigateBack\(\{ delta: 1 \}\)/,
+  'Saving a map-target inspiration route should return to the cultural map so it can render generated route POI pins on show'
+)
 
 assert.match(
   dataBlock,

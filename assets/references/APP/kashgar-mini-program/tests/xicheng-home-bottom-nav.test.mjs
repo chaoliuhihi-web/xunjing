@@ -11,7 +11,7 @@ for (const required of [
   'xichengHomeNavItems',
   "title: '探索'",
   "title: '地图'",
-  "title: '收藏'",
+  "title: '记录'",
   "title: '我的'",
   '@navigate="handleXichengHomeNav"'
 ]) {
@@ -30,10 +30,9 @@ for (const required of [
   assert.ok(bottomNav.includes(required), `Shared Xicheng bottom nav component should include ${required}`)
 }
 
-assert.match(
-  home,
-  /id="xicheng-route-section"[\s\S]*class="route-recommendation-section(?:\s+xicheng-paper-card)?"/,
-  'Xicheng home bottom navigation should have a stable route-section anchor'
+assert.ok(
+  home.includes('id="xicheng-map-entry-section"') && home.includes('class="home-light-entry-grid"'),
+  'Xicheng home should expose a compact map and Citywalk entry section instead of a route-feed anchor'
 )
 
 assert.match(
@@ -45,7 +44,7 @@ assert.match(
 assert.match(
   home,
   /handleXichengHomeNav\(key = 'explore'\)[\s\S]*case 'routes':[\s\S]*this\.openXichengRoutes\(\)/,
-  'Map bottom nav item should open the dedicated Xicheng route list instead of a missing map page'
+  'Map bottom nav item should open the dedicated Xicheng cultural map page'
 )
 
 assert.match(
@@ -56,8 +55,8 @@ assert.match(
 
 assert.match(
   home,
-  /handleXichengHomeNav\(key = 'explore'\)[\s\S]*case 'footprint':[\s\S]*openXichengFootprint\(\)/,
-  'Footprint bottom nav item should open the P0 local footprint timeline'
+  /handleXichengHomeNav\(key = 'explore'\)[\s\S]*case 'record':[\s\S]*openXichengRecording\(\)/,
+  'Record bottom nav item should open the P0 Citywalk recording surface'
 )
 
 assert.match(
@@ -68,6 +67,6 @@ assert.match(
 
 assert.doesNotMatch(
   home,
-  /<tab-bar|@\/components\/tab-bar\/tab-bar\.vue|\/subPackages\/user\/my\/my|xicheng-home-bottom-nav/,
-  'Xicheng home should not reuse the Kashgar tab-bar or jump to old account pages for the P0 bottom navigation'
+  /<tab-bar|@\/components\/tab-bar\/tab-bar\.vue|\/subPackages\/user\/my\/my|xicheng-home-bottom-nav|title: '收藏'|key: 'footprint'/,
+  'Xicheng home should not reuse the Kashgar tab-bar, jump to old account pages, or keep 收藏 as a top-level bottom tab'
 )

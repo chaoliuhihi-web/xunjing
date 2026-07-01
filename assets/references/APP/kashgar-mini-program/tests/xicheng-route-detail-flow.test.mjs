@@ -12,6 +12,7 @@ const readOptional = (...segments) => {
 const pagesJson = read('pages.json')
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const home = read('pages', 'xicheng', 'home', 'home.vue')
+const routes = read('pages', 'xicheng', 'routes', 'routes.vue')
 const routeDetail = readOptional('pages', 'xicheng', 'route-detail', 'route-detail.vue')
 
 assert.ok(
@@ -34,20 +35,23 @@ for (const required of [
 }
 
 for (const required of [
-  'filteredRecommendedRoutes',
-  'openRecommendedRouteDetail(route)',
-  'route-reference-grid',
-  'route-reference-card',
-  'route-reference-image',
-  'getDisplayRouteTitle(route)'
+  'id="xicheng-map-entry-section"',
+  'openXichengRoutes',
+  '西城 Citywalk'
 ]) {
-  assert.ok(home.includes(required), `Xicheng home route list should expose ${required}`)
+  assert.ok(home.includes(required), `Xicheng home should only expose compact route/map handoff ${required}`)
 }
 
 assert.match(
+  routes,
+  /openRouteDetail\(route = \{\}\)[\s\S]*\/pages\/xicheng\/route-detail\/route-detail\?routeCode=\$\{encodeRouteValue\(route\.routeCode \|\| ''\)\}[\s\S]*regionCode=\$\{encodeRouteValue\(this\.routeContext\.regionCode\)\}[\s\S]*packageCode=\$\{encodeRouteValue\(this\.routeContext\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeRouteValue\(this\.routeContext\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeRouteValue\(this\.routeContext\.sourceChannel\)\}[\s\S]*companionName=\$\{encodeRouteValue\(this\.routeContext\.companionName\)\}/,
+  'Cultural map route detail entry should preserve routeCode and Xicheng attribution context'
+)
+
+assert.doesNotMatch(
   home,
-  /openRecommendedRouteDetail\(route = \{\}\)[\s\S]*\/pages\/xicheng\/route-detail\/route-detail\?routeCode=\$\{encodeRouteValue\(route\.routeCode \|\| ''\)\}[\s\S]*regionCode=\$\{encodeRouteValue\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeRouteValue\(this\.region\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeRouteValue\(this\.region\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeRouteValue\(this\.region\.sourceChannel\)\}[\s\S]*companionName=\$\{encodeRouteValue\(this\.region\.companionName\)\}/,
-  'Home route detail entry should preserve routeCode and Xicheng attribution context'
+  /filteredRecommendedRoutes|route-reference-grid|openRecommendedRouteDetail/,
+  'Home should not directly own route detail entrypoints after route recommendations move to the cultural map'
 )
 
 for (const required of [

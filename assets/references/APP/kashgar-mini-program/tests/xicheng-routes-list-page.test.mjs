@@ -19,8 +19,8 @@ const routes = read('pages', 'xicheng', 'routes', 'routes.vue')
 
 assert.match(
   pagesJson,
-  /"path":\s*"pages\/xicheng\/routes\/routes"[\s\S]*"navigationBarTitleText":\s*"路线推荐"/,
-  'pages.json should register pages/xicheng/routes/routes as the Xicheng route list'
+  /"path":\s*"pages\/xicheng\/routes\/routes"[\s\S]*"navigationBarTitleText":\s*"文旅地图"/,
+  'pages.json should register pages/xicheng/routes/routes as the Xicheng cultural map page'
 )
 
 assert.ok(
@@ -37,12 +37,24 @@ assert.match(
 assert.match(
   home,
   /case 'routes':[\s\S]*this\.openXichengRoutes\(\)/,
-  'Home P0 flow route action should open the dedicated route list instead of only scrolling the home page'
+  'Home P0 map action should open the dedicated cultural map instead of only scrolling the home page'
 )
 
 for (const required of [
+  '文旅地图',
+  '西城文旅地图',
+  '看官方 POI、路线推荐和 Citywalk 记录',
+  'culture-map-card',
+  'culture-map-canvas',
+  'culture-map-pin',
+  'mapPreviewRoute',
+  'mapPreviewStops',
+  'loadInspirationRoute',
+  'getMapPinStyle(index)',
+  'id="xicheng-route-recommendation-bottom"',
   '路线推荐',
-  '我按时间和兴趣帮你选路线',
+  '官方 Citywalk',
+  '一键抄作业',
   'XICHENG_RECOMMENDED_ROUTES',
   'XICHENG_ROUTE_RECOMMENDATION_FILTERS',
   'filteredRoutes',
@@ -53,10 +65,29 @@ for (const required of [
   'createXichengOfficialPoiSources',
   'openRouteDetail(route)',
   'startRoutePassport(route)',
-  'generateRouteTravelogue(route)'
+  'generateRouteTravelogue(route)',
+  'openInspirationImport'
 ]) {
-  assert.ok(routes.includes(required), `Route list page should include ${required}`)
+  assert.ok(routes.includes(required), `Cultural map route page should include ${required}`)
 }
+
+assert.match(
+  routes,
+  /<view class="culture-map-card xicheng-paper-card"[\s\S]*class="culture-map-canvas"[\s\S]*v-for="\(\s*stop,\s*index\s*\) in mapPreviewStops"[\s\S]*:style="getMapPinStyle\(index\)"/,
+  'Cultural map should render POI pins from the active imported or official route'
+)
+
+assert.match(
+  routes,
+  /mapPreviewRoute\(\)[\s\S]*this\.inspirationRoute[\s\S]*return importedRoute \|\| this\.filteredRoutes\[0\]/,
+  'Cultural map should prefer an imported inspiration route when one exists'
+)
+
+assert.match(
+  routes,
+  /openInspirationImport\(\)[\s\S]*\/pages\/xicheng\/inspiration\/inspiration\?target=map[\s\S]*regionCode=\$\{encodeRouteValue\(this\.routeContext\.regionCode\)\}/,
+  'One-click homework should open inspiration import in map target mode with Xicheng context'
+)
 
 assert.match(
   routes,

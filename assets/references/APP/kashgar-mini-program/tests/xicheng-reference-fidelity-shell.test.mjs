@@ -24,14 +24,26 @@ assert.doesNotMatch(
 
 assert.match(
   home,
-  /class="route-reference-grid"[\s\S]*filteredRecommendedRoutes\.slice\(0, 3\)[\s\S]*class="route-reference-card"/,
-  'Xicheng home should show the approved three-card route preview instead of a long feed card'
+  /id="xicheng-map-entry-section"[\s\S]*class="home-light-entry-grid"[\s\S]*文旅地图[\s\S]*西城 Citywalk/,
+  'Xicheng home should show compact map and Citywalk entries instead of a long route feed'
 )
 
 assert.match(
   homeStyle,
-  /\.xicheng-reference-hero\s*\{[\s\S]*min-height:\s*640rpx[\s\S]*border-radius:\s*38rpx[\s\S]*\.home-action-duo\s*\{[\s\S]*grid-template-columns:\s*1fr 1fr[\s\S]*\.route-reference-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/,
-  'Xicheng home styles should preserve reference proportions: tall hero, two action cards, three route cards'
+  /\.xicheng-reference-hero\s*\{[\s\S]*min-height:\s*640rpx[\s\S]*border-radius:\s*38rpx/,
+  'Xicheng home styles should preserve the tall approved hero proportions'
+)
+
+assert.match(
+  homeStyle,
+  /\.home-action-duo\s*\{[\s\S]*grid-template-columns:\s*1fr 1fr/,
+  'Xicheng home styles should preserve the approved two action card grid'
+)
+
+assert.match(
+  homeStyle,
+  /\.home-light-entry-grid\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) minmax\(0,\s*1fr\)/,
+  'Xicheng home styles should add a compact two-entry IA section'
 )
 
 for (const required of [

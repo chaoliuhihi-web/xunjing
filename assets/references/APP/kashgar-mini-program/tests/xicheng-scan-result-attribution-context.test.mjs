@@ -31,7 +31,7 @@ const continueRecentRecognitionBlock = getBlock(
 )
 const homeAskXiaojingBlock = getBlock(
   home,
-  /askXiaojing\(\)[\s\S]*?\n\t\t\},\n\t\topenRecommendedRoute/,
+  /askXiaojing\(\)[\s\S]*?\n\t\t\},\n\t\thandleXichengHomeNav/,
   'home askXiaojing block'
 )
 const emptyRecognitionBlock = getBlock(

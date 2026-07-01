@@ -6,7 +6,9 @@
 				<text>{{ region.cityName }}</text>
 				<view class="home-location-caret"></view>
 			</view>
-			<view class="home-profile-button"></view>
+			<view class="home-share-button" @click="openXichengShare">
+				<xicheng-icon name="travelogue" variant="plain" :size="22" />
+			</view>
 		</view>
 
 		<view class="hero xicheng-reference-hero">
@@ -70,35 +72,20 @@
 			<button class="primary-button xicheng-primary-action" :disabled="recognizing" @click="startTextRecognition">文本识别</button>
 		</view>
 
-		<view id="xicheng-route-section" class="route-recommendation-section">
-			<view class="section-head route-reference-head">
-				<view class="route-reference-title-wrap">
-					<xicheng-icon name="route" variant="plain" :size="24" />
-					<text class="section-title">路线推荐</text>
+		<view id="xicheng-map-entry-section" class="home-light-entry-grid">
+			<view class="home-light-entry home-map-entry xicheng-paper-card" @click="openXichengRoutes">
+				<view class="home-light-entry-icon">
+					<xicheng-icon name="routes" variant="plain" :size="25" />
 				</view>
-				<text class="section-link" @click="handleXichengHomeNav('routes')">查看全部</text>
+				<text class="home-light-entry-title">文旅地图</text>
+				<text class="home-light-entry-copy">POI 地图 · 路线推荐</text>
 			</view>
-			<view class="route-reference-grid">
-				<view
-					v-for="route in filteredRecommendedRoutes.slice(0, 3)"
-					:key="route.routeCode"
-					class="route-reference-card"
-					@click="openRecommendedRouteDetail(route)"
-				>
-					<view class="route-reference-image-wrap">
-						<image
-							v-if="getRouteThumbnail(route)"
-							class="route-reference-image"
-							:src="getRouteThumbnail(route)"
-							mode="aspectFill"
-						/>
-						<view class="route-reference-badge">
-							<xicheng-icon :name="route.routeCode === 'beihai-shichahai-waterfront' ? 'layer' : route.routeCode === 'dashilar-old-brand-walk' ? 'routes' : 'passport'" variant="primary" :size="18" />
-						</view>
-					</view>
-					<text class="route-reference-name">{{ getDisplayRouteTitle(route) }}</text>
-					<text class="route-reference-desc">{{ getRouteKeywordLine(route) }}</text>
+			<view class="home-light-entry home-record-entry xicheng-paper-card" @click="openXichengRecording">
+				<view class="home-light-entry-icon">
+					<xicheng-icon name="record" variant="plain" :size="25" />
 				</view>
+				<text class="home-light-entry-title">西城 Citywalk</text>
+				<text class="home-light-entry-copy">开始记录 Citywalk</text>
 			</view>
 		</view>
 
@@ -147,55 +134,6 @@
 			</view>
 		</view>
 
-		<view class="inspiration-panel xicheng-paper-card" @click="openXichengInspiration">
-			<view>
-				<text class="inspiration-title">一键抄作业</text>
-				<text class="inspiration-desc">一键导入灵感：粘贴攻略文字或地点清单，AI 提取地点并匹配官方 POI。</text>
-			</view>
-			<text class="inspiration-action">生成路线</text>
-		</view>
-
-		<view class="flow-strip">
-			<button
-				v-for="item in xichengP0FlowActions"
-				:key="item.key"
-				class="flow-step"
-				@click="handleXichengP0FlowAction(item.key)"
-			>
-				{{ item.title }}
-			</button>
-		</view>
-
-		<view class="journey-panel xicheng-paper-card">
-			<view>
-				<text class="journey-title">西城 Citywalk 记录</text>
-				<text class="journey-desc">把识别点、照片、备注和任务沉淀为旅行素材盒。</text>
-			</view>
-			<view class="journey-actions">
-				<button class="primary-button xicheng-primary-action" @click="openXichengRecording">开始记录 Citywalk</button>
-				<button class="ghost-button xicheng-secondary-action" @click="openXichengTravelogue('draft')">生成游记草稿</button>
-			</view>
-		</view>
-
-		<view class="ops-section">
-			<view class="ops-card xicheng-paper-card" @click="openXichengPassport">
-				<text class="ops-title">{{ routePassport.title }}</text>
-				<text class="ops-desc">{{ routePassport.thresholdText }}</text>
-			</view>
-			<view class="ops-card xicheng-paper-card">
-				<text class="ops-title">亲子研学任务</text>
-				<text class="ops-desc">{{ parentChildTasks[0] }}</text>
-			</view>
-			<view class="ops-card xicheng-paper-card" @click="openXichengShare">
-				<text class="ops-title">分享海报</text>
-				<text class="ops-desc">{{ sharePoster.subtitle }}</text>
-			</view>
-			<view class="ops-card xicheng-paper-card" @click="openXichengOpsReport">
-				<text class="ops-title">运营报告</text>
-				<text class="ops-desc">查看识别、路线、分享和审核安全汇总</text>
-			</view>
-		</view>
-
 		<view v-if="lastError" class="error-line">{{ lastError }}</view>
 
 		<xicheng-bottom-nav
@@ -208,8 +146,6 @@
 
 <script>
 import {
-	XICHENG_ROUTE_RECOMMENDATION_FILTERS,
-	XICHENG_RECOMMENDED_ROUTES,
 	XICHENG_REGION_CONFIG
 } from '@/config/regions/xicheng.js'
 import {
@@ -219,7 +155,6 @@ import {
 	resolveXichengPhotoTrigger,
 	resolveXichengTextTrigger
 } from '@/request/xunjing/trigger.js'
-import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { createXichengRouteOutputValue } from '@/request/xunjing/routeParams.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { isXunjingUserCancelled } from '@/request/xunjing/userCancel.js'
@@ -235,23 +170,11 @@ export default {
 	data() {
 		return {
 			region: XICHENG_REGION_CONFIG,
-			recommendedRoutes: XICHENG_RECOMMENDED_ROUTES,
-			routeRecommendationFilters: XICHENG_ROUTE_RECOMMENDATION_FILTERS,
-			activeRouteFilter: XICHENG_ROUTE_RECOMMENDATION_FILTERS[0] ? XICHENG_ROUTE_RECOMMENDATION_FILTERS[0].key : '',
-			routePassport: XICHENG_REGION_CONFIG.routePassport,
-			parentChildTasks: XICHENG_REGION_CONFIG.parentChildTasks,
-			sharePoster: XICHENG_REGION_CONFIG.sharePoster,
 			xichengHomeNavItems: [
 				{ key: 'explore', title: '探索', icon: 'explore' },
 				{ key: 'routes', title: '地图', icon: 'routes' },
-				{ key: 'footprint', title: '收藏', icon: 'favorite' },
+				{ key: 'record', title: '记录', icon: 'record' },
 				{ key: 'mine', title: '我的', icon: 'mine' }
-			],
-			xichengP0FlowActions: [
-				{ key: 'guide', title: '小京讲解' },
-				{ key: 'routes', title: '推荐路线' },
-				{ key: 'record', title: '开始记录' },
-				{ key: 'draft', title: '生成游记草稿' }
 			],
 			currentLocation: null,
 			textRecognitionInput: '',
@@ -282,14 +205,6 @@ export default {
 			return this.recentRecognitionNeedsCandidateConfirmation()
 				|| this.recentRecognitionMissingOfficialPoi()
 				|| this.recentRecognitionUnsafeSafetyStatus()
-		},
-		filteredRecommendedRoutes() {
-			if (!this.activeRouteFilter) return this.recommendedRoutes
-			const filteredRoutes = this.recommendedRoutes.filter(route => {
-				const filterKeys = Array.isArray(route.recommendedFilterKeys) ? route.recommendedFilterKeys : []
-				return filterKeys.includes(this.activeRouteFilter)
-			})
-			return filteredRoutes.length > 0 ? filteredRoutes : this.recommendedRoutes
 		}
 	},
 	onLoad() {
@@ -299,22 +214,6 @@ export default {
 		this.loadRecentRecognition()
 	},
 	methods: {
-		getRouteThumbnail(route = {}) {
-			const thumbnails = this.region && this.region.visualAssets && this.region.visualAssets.routeThumbnails
-				? this.region.visualAssets.routeThumbnails
-				: {}
-			return thumbnails[route.routeCode] || ''
-		},
-		getDisplayRouteTitle(route = {}) {
-			if (route.routeCode === 'baitasi-imperial-shichahai') return '白塔寺文化线'
-			if (route.routeCode === 'beihai-shichahai-waterfront') return '什刹海漫步线'
-			if (route.routeCode === 'dashilar-old-brand-walk') return '胡同烟火线'
-			return route.title || '西城 Citywalk'
-		},
-		getRouteKeywordLine(route = {}) {
-			const keywords = Array.isArray(route.keywords) ? route.keywords.filter(Boolean) : []
-			return keywords.length > 0 ? keywords.slice(0, 2).join(' · ') : route.theme || route.durationText || '西城文化路线'
-		},
 		isBlockedDevelopmentRecognitionCache(recognition = {}) {
 			return isXichengDevelopmentRecognitionCacheBlocked(recognition)
 		},
@@ -611,24 +510,6 @@ export default {
 				url: `/pages/ai-guide/ai-guide?regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.aiSceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&companionName=${encodeRouteValue(this.region.companionName)}`
 			})
 		},
-		handleXichengP0FlowAction(key = 'guide') {
-			switch (key) {
-				case 'guide':
-					this.askXiaojing()
-					break
-				case 'routes':
-					this.openXichengRoutes()
-					break
-				case 'record':
-					this.openXichengRecording()
-					break
-				case 'draft':
-					this.openXichengTravelogue('draft')
-					break
-				default:
-					this.askXiaojing()
-			}
-		},
 		handleXichengHomeNav(key = 'explore') {
 			switch (key) {
 				case 'explore':
@@ -640,8 +521,8 @@ export default {
 				case 'routes':
 					this.openXichengRoutes()
 					break
-				case 'footprint':
-					this.openXichengFootprint()
+				case 'record':
+					this.openXichengRecording()
 					break
 				case 'mine':
 					this.openXichengWorks()
@@ -653,59 +534,6 @@ export default {
 					})
 			}
 		},
-		openRecommendedRouteDetail(route = {}) {
-			uni.navigateTo({
-				url: `/pages/xicheng/route-detail/route-detail?routeCode=${encodeRouteValue(route.routeCode || '')}&regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&companionName=${encodeRouteValue(this.region.companionName)}`
-			})
-		},
-		openRecommendedRoute(route = {}) {
-			const updatedAt = new Date().toISOString()
-			const stops = Array.isArray(route.stops)
-				? route.stops.map(stop => ({ ...stop }))
-				: []
-			const routePayload = {
-				...route,
-				stops,
-				regionCode: this.region.regionCode,
-				packageCode: this.region.packageCode,
-				sceneCode: this.region.sceneCode,
-				sourceChannel: this.region.sourceChannel,
-				routeSource: 'home-recommendation',
-				sourceLabel: '官方推荐路线',
-				updatedAt
-			}
-			const existingMaterials = uni.getStorageSync(this.region.materialsStorageKey)
-			const materials = Array.isArray(existingMaterials) ? existingMaterials : []
-			const routeMaterials = stops.map(stop => {
-				const sources = createXichengOfficialPoiSources(stop)
-				return {
-					type: 'official-route-poi',
-					regionCode: this.region.regionCode,
-					packageCode: this.region.packageCode,
-					sceneCode: this.region.sceneCode,
-					sourceChannel: this.region.sourceChannel,
-					poiCode: stop.poiCode,
-					poiName: stop.poiName,
-					routeCode: route.routeCode,
-					routeTitle: route.title,
-					sourceLabel: '官方推荐路线',
-					sources,
-					sourceCount: sources.length,
-					safetyStatus: 'PASSED',
-					reviewStatus: this.region.reviewStatus.pending,
-					publishStatus: 'private',
-					capturedAt: updatedAt
-				}
-			})
-			uni.setStorageSync(this.region.inspirationStorageKey, routePayload)
-			uni.setStorageSync(this.region.materialsStorageKey, [
-				...routeMaterials,
-				...materials
-			].slice(0, 80))
-			uni.navigateTo({
-				url: `/pages/xicheng/travelogue/travelogue?mode=route&regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&routeCode=${encodeRouteValue(route.routeCode || '')}&companionName=${encodeRouteValue(this.region.companionName)}`
-			})
-		},
 		openXichengTravelogue(mode = 'record') {
 			uni.navigateTo({
 				url: `/pages/xicheng/travelogue/travelogue?mode=${encodeRouteValue(mode)}&autoStart=${encodeRouteValue(mode === 'record' ? '1' : '')}&regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&companionName=${encodeRouteValue(this.region.companionName)}`
@@ -716,25 +544,11 @@ export default {
 				url: `/pages/xicheng/recording/recording?autoStart=1&regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&companionName=${encodeRouteValue(this.region.companionName)}`
 			})
 		},
-		openXichengFootprint() {
-			uni.navigateTo({ url: '/pages/xicheng/footprint/footprint' })
-		},
-		openXichengPassport() {
-			uni.navigateTo({ url: '/pages/xicheng/passport/passport' })
-		},
 		openXichengShare() {
 			uni.navigateTo({ url: '/pages/xicheng/share/share' })
 		},
 		openXichengWorks() {
 			uni.navigateTo({ url: '/pages/xicheng/works/works' })
-		},
-		openXichengOpsReport() {
-			uni.navigateTo({ url: '/pages/xicheng/ops-report/ops-report' })
-		},
-		openXichengInspiration() {
-			uni.navigateTo({
-				url: `/pages/xicheng/inspiration/inspiration?regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&companionName=${encodeRouteValue(this.region.companionName)}`
-			})
 		},
 		openXichengRoutes() {
 			uni.navigateTo({
@@ -801,8 +615,10 @@ export default {
 	border-top: 10rpx solid currentColor;
 }
 
-.home-profile-button {
-	position: relative;
+.home-share-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
 	width: 64rpx;
 	height: 64rpx;
 	border: 2rpx solid rgba(23, 63, 53, 0.16);
@@ -810,31 +626,6 @@ export default {
 	background: rgba(255, 253, 248, 0.88);
 	box-shadow: 0 10rpx 24rpx rgba(16, 47, 41, 0.08);
 	box-sizing: border-box;
-}
-
-.home-profile-button::before,
-.home-profile-button::after {
-	content: '';
-	position: absolute;
-	left: 50%;
-	transform: translateX(-50%);
-	border: 4rpx solid #173F35;
-	box-sizing: border-box;
-}
-
-.home-profile-button::before {
-	top: 14rpx;
-	width: 18rpx;
-	height: 18rpx;
-	border-radius: 999rpx;
-}
-
-.home-profile-button::after {
-	bottom: 12rpx;
-	width: 34rpx;
-	height: 20rpx;
-	border-radius: 999rpx 999rpx 0 0;
-	border-bottom: 0;
 }
 
 .hero {
@@ -965,8 +756,6 @@ export default {
 
 .eyebrow,
 .subtitle,
-.quick-desc,
-.ops-desc,
 .error-line {
 	display: block;
 	font-size: 24rpx;
@@ -1020,45 +809,6 @@ export default {
 	color: #1F6E5A;
 }
 
-.inspiration-panel {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 20rpx;
-	margin-top: 24rpx;
-	padding: 26rpx;
-	border-radius: 34rpx;
-	background:
-		linear-gradient(135deg, rgba(255, 253, 248, 0.96), rgba(246, 239, 226, 0.92));
-	color: #102F29;
-	box-shadow: 0 16rpx 38rpx rgba(35, 42, 34, 0.08);
-}
-
-.inspiration-title {
-	display: block;
-	font-size: 31rpx;
-	font-weight: 700;
-	color: #173F35;
-}
-
-.inspiration-desc {
-	display: block;
-	margin-top: 10rpx;
-	font-size: 24rpx;
-	line-height: 1.55;
-	color: #746F68;
-}
-
-.inspiration-action {
-	flex-shrink: 0;
-	padding: 12rpx 18rpx;
-	border-radius: 999rpx;
-	background: #B5945E;
-	font-size: 24rpx;
-	font-weight: 700;
-	color: #FFF9EC;
-}
-
 .text-recognition-panel {
 	margin-top: 28rpx;
 	padding: 24rpx;
@@ -1081,6 +831,62 @@ export default {
 .text-recognition-panel .primary-button {
 	margin-top: 20rpx;
 	width: 100%;
+}
+
+.home-light-entry-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: 18rpx;
+	margin-top: 24rpx;
+}
+
+.home-light-entry {
+	position: relative;
+	min-height: 170rpx;
+	padding: 24rpx;
+	border-radius: 32rpx;
+	overflow: hidden;
+	box-sizing: border-box;
+}
+
+.home-map-entry {
+	background:
+		linear-gradient(135deg, rgba(255, 253, 248, 0.96), rgba(226, 239, 230, 0.88));
+}
+
+.home-record-entry {
+	background:
+		linear-gradient(135deg, rgba(255, 249, 238, 0.98), rgba(239, 222, 190, 0.60));
+}
+
+.home-light-entry-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 56rpx;
+	height: 56rpx;
+	border-radius: 18rpx;
+	background: rgba(255, 252, 246, 0.78);
+}
+
+.home-light-entry-title,
+.home-light-entry-copy {
+	display: block;
+}
+
+.home-light-entry-title {
+	margin-top: 18rpx;
+	font-size: 31rpx;
+	line-height: 1.25;
+	font-weight: 800;
+	color: #102F29;
+}
+
+.home-light-entry-copy {
+	margin-top: 10rpx;
+	font-size: 23rpx;
+	line-height: 1.45;
+	color: #746F68;
 }
 
 .home-memory-grid {
@@ -1219,131 +1025,6 @@ export default {
 
 .recent-compact-action-empty {
 	background: linear-gradient(135deg, #173F35, #102F29);
-}
-
-.ops-section {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 20rpx;
-	margin-top: 28rpx;
-}
-
-.ops-card {
-	min-height: 136rpx;
-	padding: 22rpx;
-	border-radius: 30rpx;
-	box-sizing: border-box;
-}
-
-.ops-title {
-	display: block;
-	font-size: 30rpx;
-	font-weight: 700;
-	color: #173F35;
-}
-
-.ops-desc {
-	margin-top: 10rpx;
-}
-
-.flow-strip {
-	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 12rpx;
-	margin-top: 22rpx;
-}
-
-.flow-step {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	min-height: 64rpx;
-	padding: 8rpx;
-	border-radius: 999rpx;
-	background: rgba(181, 148, 94, 0.15);
-	font-size: 22rpx;
-	line-height: 1.25;
-	text-align: center;
-	color: #173F35;
-	box-sizing: border-box;
-}
-
-.flow-step::after {
-	border: 0;
-}
-
-.route-recommendation-section {
-	margin-top: 24rpx;
-	padding: 26rpx;
-	border-radius: 34rpx;
-}
-
-.section-head {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 18rpx;
-}
-
-.section-head.xicheng-section-label {
-	justify-content: flex-start;
-}
-
-.section-head.xicheng-section-label .section-link {
-	margin-left: auto;
-}
-
-.section-kicker {
-	display: block;
-	font-size: 22rpx;
-	line-height: 1.4;
-	color: #B5945E;
-}
-
-.section-title {
-	display: block;
-	margin-top: 6rpx;
-	font-size: 34rpx;
-	font-weight: 700;
-	color: #102F29;
-}
-
-.section-link {
-	flex-shrink: 0;
-	font-size: 24rpx;
-	font-weight: 700;
-	color: #173F35;
-}
-
-.journey-panel {
-	margin-top: 28rpx;
-	padding: 32rpx;
-	border-radius: 34rpx;
-}
-
-.journey-title {
-	display: block;
-	font-size: 32rpx;
-	font-weight: 700;
-	color: #102F29;
-}
-
-.journey-desc {
-	display: block;
-	margin-top: 10rpx;
-	font-size: 24rpx;
-	line-height: 1.6;
-	color: #746F68;
-}
-
-.journey-actions {
-	display: flex;
-	gap: 20rpx;
-	margin-top: 24rpx;
-}
-
-.ops-section {
-	grid-template-columns: 1fr;
 }
 
 .error-line {
@@ -1487,83 +1168,4 @@ export default {
 	opacity: 0.76;
 }
 
-.route-recommendation-section {
-	margin-top: 40rpx;
-	padding: 0 8rpx;
-}
-
-.route-reference-head {
-	align-items: center;
-	margin-bottom: 22rpx;
-}
-
-.route-reference-title-wrap {
-	display: flex;
-	align-items: center;
-	gap: 14rpx;
-}
-
-.route-reference-title-wrap .section-title {
-	margin-top: 0;
-	font-size: 38rpx;
-}
-
-.route-reference-grid {
-	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 14rpx;
-}
-
-.route-reference-card {
-	min-width: 0;
-	padding: 12rpx;
-	border-radius: 24rpx;
-	background: rgba(255, 253, 248, 0.90);
-	border: 1rpx solid rgba(181, 148, 94, 0.16);
-	box-shadow: 0 14rpx 34rpx rgba(35, 42, 34, 0.08);
-	box-sizing: border-box;
-}
-
-.route-reference-image-wrap {
-	position: relative;
-	height: 126rpx;
-	border-radius: 20rpx;
-	overflow: hidden;
-	background: rgba(181, 148, 94, 0.12);
-}
-
-.route-reference-image {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-}
-
-.route-reference-badge {
-	position: absolute;
-	left: 10rpx;
-	top: 10rpx;
-}
-
-.route-reference-name,
-.route-reference-desc {
-	display: block;
-}
-
-.route-reference-name {
-	margin-top: 14rpx;
-	font-size: 25rpx;
-	line-height: 1.25;
-	font-weight: 700;
-	color: #102F29;
-}
-
-.route-reference-desc {
-	margin-top: 8rpx;
-	font-size: 20rpx;
-	line-height: 1.35;
-	color: #746F68;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
 </style>

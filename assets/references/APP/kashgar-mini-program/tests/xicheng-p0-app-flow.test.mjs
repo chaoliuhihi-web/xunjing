@@ -92,18 +92,22 @@ for (const required of [
   '扫一扫',
   '拍照识别',
   'OCR识别',
-  '推荐路线',
+  '文旅地图',
+  '路线推荐',
   '开始记录',
-  '生成游记草稿',
-  'routePassport',
-  'parentChildTasks',
-  'sharePoster',
+  '生成我的西城游记',
   'resolveXichengTextTrigger',
   'resolveXichengPhotoTrigger',
   '/pages/xicheng/scan-result/scan-result'
 ]) {
   assert.ok(home.includes(required), `Xicheng home should include ${required}`)
 }
+
+assert.doesNotMatch(
+  home,
+  /routePassport|parentChildTasks|sharePoster|亲子研学任务|运营报告|title: '收藏'/,
+  'Xicheng home should not keep hidden growth and operations modules in the primary page state'
+)
 
 for (const required of [
   'confidencePercent',

@@ -66,10 +66,11 @@ for (const required of [
   'class="home-action-duo"',
   'home-scan-card',
   'home-ask-card',
-  'class="route-reference-grid"',
-  'class="route-reference-card"',
-  'class="route-reference-image"',
-  ':src="getRouteThumbnail(route)"',
+  'class="home-share-button"',
+  'id="xicheng-map-entry-section"',
+  'class="home-light-entry-grid"',
+  '文旅地图',
+  '西城 Citywalk',
   '小京',
   '我陪你看懂西城'
 ]) {
@@ -89,11 +90,15 @@ assert.match(
 )
 
 assert.ok(
-  home.indexOf('id="xicheng-route-section"') > home.indexOf('class="home-action-duo"') &&
-    home.indexOf('id="xicheng-route-section"') < home.indexOf('v-if="recentRecognition"') &&
-    home.indexOf('id="xicheng-route-section"') < home.indexOf('class="inspiration-panel') &&
-    home.indexOf('id="xicheng-route-section"') < home.indexOf('class="flow-strip"'),
-  'Xicheng home should surface official route recommendations before recent and growth-operation modules like the visual reference'
+  home.indexOf('id="xicheng-map-entry-section"') > home.indexOf('class="home-action-duo"') &&
+    home.indexOf('id="xicheng-map-entry-section"') < home.indexOf('class="home-memory-grid"'),
+  'Xicheng home should surface compact map and Citywalk entries after the two primary action cards'
+)
+
+assert.match(
+  home,
+  /class="home-share-button"[\s\S]*@click="openXichengShare"/,
+  'Xicheng home should keep the share poster entry as a small top-right action instead of a prominent home card'
 )
 
 assert.match(
@@ -123,7 +128,7 @@ assert.match(
 assert.match(
   styleBlock,
   /\.home-action-duo\s*\{[\s\S]*grid-template-columns:\s*1fr 1fr[\s\S]*\.home-action-card\s*\{[\s\S]*min-height:\s*158rpx/,
-  'Xicheng home primary action cards should match the approved two-card first-screen layout'
+  'Xicheng home primary action cards should preserve the approved two-card first-screen layout'
 )
 
 assert.match(
@@ -134,20 +139,14 @@ assert.match(
 
 assert.match(
   styleBlock,
-  /\.route-reference-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)[\s\S]*\.route-reference-card\s*\{[\s\S]*border-radius:\s*24rpx/,
-  'Xicheng home route recommendations should use the approved three-card preview'
+  /\.home-light-entry-grid\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) minmax\(0,\s*1fr\)[\s\S]*\.home-light-entry\s*\{[\s\S]*min-height:\s*170rpx/,
+  'Xicheng home should use a compact two-column map and recording entry grid instead of long stacked sections'
 )
 
-assert.match(
-  styleBlock,
-  /\.route-reference-image-wrap\s*\{[\s\S]*height:\s*126rpx[\s\S]*border-radius:\s*20rpx/,
-  'Xicheng home route cards should include stable scenic thumbnails like the route recommendation mockup'
-)
-
-assert.match(
-  styleBlock,
-  /\.route-reference-name\s*\{[\s\S]*font-size:\s*25rpx[\s\S]*\.route-reference-desc\s*\{[\s\S]*font-size:\s*20rpx/,
-  'Xicheng home compact route cards should keep title and subtitle readable without becoming a long feed'
+assert.doesNotMatch(
+  home,
+  /route-reference-grid|home-secondary-directory|亲子研学|运营报告|一键抄作业/,
+  'Xicheng home should not keep hidden route-feed, parent-child study, ops report, or inspiration-import modules'
 )
 
 assert.doesNotMatch(

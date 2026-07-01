@@ -34,7 +34,7 @@ for (const required of [
 
 for (const required of [
   '开始记录 Citywalk',
-  '生成游记草稿',
+  '生成我的西城游记',
   'openXichengTravelogue',
   '/pages/xicheng/travelogue/travelogue?'
 ]) {

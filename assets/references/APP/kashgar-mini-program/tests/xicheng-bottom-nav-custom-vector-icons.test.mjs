@@ -17,7 +17,7 @@ for (const required of [
   'xicheng-tab-vector-explore',
   'xicheng-tab-vector-active',
   "routes: Object.freeze({ default: 'map', active: 'map-filled' })",
-  "favorite: Object.freeze({ default: 'star', active: 'star-filled' })",
+  "record: 'flag'",
   "mine: Object.freeze({ default: 'person', active: 'person-filled' })"
 ]) {
   assert.ok(iconComponent.includes(required), `Xicheng tab icons should use the approved token ${required}`)
@@ -31,8 +31,8 @@ assert.match(
 
 assert.doesNotMatch(
   iconComponent,
-  /xicheng-tab-vector-(routes|favorite|mine)|xicheng-tab-vector-star|xicheng-tab-vector-person/,
-  'Only the Xicheng heritage explore mark should be custom; map, favorite, and mine should stay on the cleaner uni-icons line set'
+  /xicheng-tab-vector-(routes|record|mine)|xicheng-tab-vector-star|xicheng-tab-vector-person/,
+  'Only the Xicheng heritage explore mark should be custom; map, record, and mine should stay on the cleaner uni-icons line set'
 )
 
 assert.doesNotMatch(
@@ -49,6 +49,6 @@ assert.match(
 
 assert.match(
   home,
-  /xichengHomeNavItems:\s*\[[\s\S]*\{ key: 'explore', title: '探索', icon: 'explore' \}[\s\S]*\{ key: 'routes', title: '地图', icon: 'routes' \}[\s\S]*\{ key: 'footprint', title: '收藏', icon: 'favorite' \}[\s\S]*\{ key: 'mine', title: '我的', icon: 'mine' \}/,
-  'Home bottom nav should preserve approved labels while using the unified semantic icon names'
+  /xichengHomeNavItems:\s*\[[\s\S]*\{ key: 'explore', title: '探索', icon: 'explore' \}[\s\S]*\{ key: 'routes', title: '地图', icon: 'routes' \}[\s\S]*\{ key: 'record', title: '记录', icon: 'record' \}[\s\S]*\{ key: 'mine', title: '我的', icon: 'mine' \}/,
+  'Home bottom nav should use the latest approved labels while routing icons through unified semantic names'
 )
