@@ -44,13 +44,14 @@ for (const required of [
   '文旅地图',
   '西城文旅地图',
   '看官方 POI、路线推荐和 Citywalk 记录',
+  'XichengCulturalMap',
   'culture-map-card',
-  'culture-map-canvas',
-  'culture-map-pin',
+  'xicheng-cultural-map',
+  'mapPois',
+  'selectedMapPoi',
   'mapPreviewRoute',
   'mapPreviewStops',
   'loadInspirationRoute',
-  'getMapPinStyle(index)',
   'id="xicheng-route-recommendation-bottom"',
   '路线推荐',
   '官方 Citywalk',
@@ -73,8 +74,8 @@ for (const required of [
 
 assert.match(
   routes,
-  /<view class="culture-map-card xicheng-paper-card"[\s\S]*class="culture-map-canvas"[\s\S]*v-for="\(\s*stop,\s*index\s*\) in mapPreviewStops"[\s\S]*:style="getMapPinStyle\(index\)"/,
-  'Cultural map should render POI pins from the active imported or official route'
+  /<xicheng-cultural-map[\s\S]*:pois="mapPois"[\s\S]*:route-stops="mapPreviewStops"[\s\S]*@select-poi="selectMapPoi"[\s\S]*@navigate-poi="navigateToMapPoi"[\s\S]*@ask-poi="askMapPoi"[\s\S]*@add-poi-to-route="addMapPoiToRoute"/,
+  'Cultural map should render POI pins and route stops through the dedicated high-fidelity map component'
 )
 
 assert.match(
@@ -117,6 +118,12 @@ assert.match(
   routes,
   /const routeMaterials = stops\.map\(stop => \{[\s\S]*const sources = createXichengOfficialPoiSources\(stop\)[\s\S]*type:\s*'official-route-poi'[\s\S]*sourceCount:\s*sources\.length[\s\S]*safetyStatus:\s*'PASSED'[\s\S]*reviewStatus:\s*this\.region\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
   'Route list route materials should carry approved source cards, explicit PASSED safety status, and private pending-review status'
+)
+
+assert.match(
+  routes,
+  /persistMapSelectedPoi\(poi = \{\}\)[\s\S]*const sources = createXichengOfficialPoiSources\(poi\)[\s\S]*type:\s*'map-selected-poi'[\s\S]*sourceLabel:\s*'文旅地图选点'[\s\S]*sourceCount:\s*sources\.length[\s\S]*safetyStatus:\s*'PASSED'[\s\S]*publishStatus:\s*'private'/,
+  'Cultural map selected POI materials should also carry approved source cards and private pending-review status'
 )
 
 assert.match(

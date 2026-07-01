@@ -28,37 +28,17 @@
 		</view>
 
 		<view class="culture-map-card xicheng-paper-card">
-			<view class="culture-map-head">
-				<view>
-					<text class="culture-map-kicker">文旅地图</text>
-					<text class="culture-map-title">{{ getDisplayRouteTitle(mapPreviewRoute) }}</text>
-				</view>
-				<text class="culture-map-pill">{{ mapPreviewStops.length }} 个 POI</text>
-			</view>
-			<view class="culture-map-canvas">
-				<view class="culture-map-water"></view>
-				<view class="culture-map-street culture-map-street-one"></view>
-				<view class="culture-map-street culture-map-street-two"></view>
-				<view class="culture-map-route-line"></view>
-				<view
-					v-for="(stop, index) in mapPreviewStops"
-					:key="stop.poiCode || `${stop.poiName}-${index}`"
-					class="culture-map-pin"
-					:style="getMapPinStyle(index)"
-				>
-					<text>{{ index + 1 }}</text>
-				</view>
-			</view>
-			<view class="culture-map-stop-list">
-				<view
-					v-for="(stop, index) in mapPreviewStops"
-					:key="`stop-${stop.poiCode || stop.poiName}-${index}`"
-					class="culture-map-stop"
-				>
-					<text class="culture-map-stop-index">{{ index + 1 }}</text>
-					<text class="culture-map-stop-name">{{ stop.poiName }}</text>
-				</view>
-			</view>
+			<xicheng-cultural-map
+				:pois="mapPois"
+				:route-stops="mapPreviewStops"
+				@select-poi="selectMapPoi"
+				@navigate-poi="navigateToMapPoi"
+				@ask-poi="askMapPoi"
+				@add-poi-to-route="addMapPoiToRoute"
+				@toggle-layer="refreshRecommendation"
+				@locate="refreshRecommendation"
+				@zoom-in="refreshRecommendation"
+			/>
 		</view>
 
 		<view id="xicheng-route-recommendation-bottom" class="route-recommendation-panel">
@@ -121,10 +101,12 @@
 
 <script>
 import {
+	XICHENG_OFFICIAL_POIS,
 	XICHENG_RECOMMENDED_ROUTES,
 	XICHENG_REGION_CONFIG,
 	XICHENG_ROUTE_RECOMMENDATION_FILTERS
 } from '@/config/regions/xicheng.js'
+import XichengCulturalMap from '@/components/xicheng/XichengCulturalMap.vue'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { mergeXichengOfficialRouteMaterials } from '@/request/xunjing/routeMaterials.js'
 import { createXichengRouteOutputValue, decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
@@ -132,6 +114,33 @@ import { createXichengRouteOutputValue, decodeXichengRouteValue } from '@/reques
 const XICHENG_HOME_ROUTE = '/pages/xicheng/home/home'
 const encodeRouteValue = (value = '') => createXichengRouteOutputValue(value, { platform: process.env.UNI_PLATFORM })
 const decodeRouteValue = decodeXichengRouteValue
+
+const XICHENG_CULTURAL_MAP_SUPPLEMENTAL_POIS = Object.freeze([
+	{
+		poiCode: 'xicheng-beihai-north-gate',
+		poiName: '北海北门',
+		theme: '文化建筑',
+		categoryKey: 'culture-building',
+		durationText: '20分钟',
+		summary: '连接北海与什刹海的水岸入口，适合加入半日 Citywalk。'
+	},
+	{
+		poiCode: 'xicheng-huguosi-street',
+		poiName: '护国寺街',
+		theme: '历史遗迹',
+		categoryKey: 'historic-site',
+		durationText: '30分钟',
+		summary: '从寺庙旧址延展出的京味街区，可串联小吃、胡同和老北京生活。'
+	},
+	{
+		poiCode: 'xicheng-hutong-yard',
+		poiName: '胡同院落',
+		theme: '胡同院落',
+		categoryKey: 'hutong',
+		durationText: '25分钟',
+		summary: '观察门楼、影壁和街巷尺度的院落场景，适合写入图文游记。'
+	}
+])
 
 const normalizeRouteContext = (options = {}) => ({
 	regionCode: decodeRouteValue(options.regionCode) || XICHENG_REGION_CONFIG.regionCode,
@@ -142,6 +151,9 @@ const normalizeRouteContext = (options = {}) => ({
 })
 
 export default {
+	components: {
+		XichengCulturalMap
+	},
 	data() {
 		return {
 			region: XICHENG_REGION_CONFIG,
@@ -149,10 +161,30 @@ export default {
 			recommendedRoutes: XICHENG_RECOMMENDED_ROUTES,
 			routeRecommendationFilters: XICHENG_ROUTE_RECOMMENDATION_FILTERS,
 			activeRouteFilter: XICHENG_ROUTE_RECOMMENDATION_FILTERS[0] ? XICHENG_ROUTE_RECOMMENDATION_FILTERS[0].key : '',
-			inspirationRoute: null
+			inspirationRoute: null,
+			selectedMapPoi: null
 		}
 	},
 	computed: {
+		mapPois() {
+			const categoryMap = {
+				'xicheng-baitasi': 'culture-building',
+				'xicheng-imperial-temple': 'historic-site',
+				'xicheng-shichahai': 'nature',
+				'xicheng-beihai': 'nature',
+				'xicheng-dashilar': 'food-shopping'
+			}
+			return [
+				...XICHENG_OFFICIAL_POIS.map(poi => ({
+					...poi,
+					categoryKey: categoryMap[poi.poiCode] || 'culture-building',
+					image: this.region.visualAssets && this.region.visualAssets.poiCards
+						? this.region.visualAssets.poiCards[poi.poiCode] || ''
+						: ''
+				})),
+				...XICHENG_CULTURAL_MAP_SUPPLEMENTAL_POIS
+			]
+		},
 		filteredRoutes() {
 			const filteredRoutes = this.recommendedRoutes.filter(route => {
 				const filterKeys = Array.isArray(route.recommendedFilterKeys) ? route.recommendedFilterKeys : []
@@ -206,17 +238,6 @@ export default {
 			this.inspirationRoute = cachedRoute && Array.isArray(cachedRoute.stops) && cachedRoute.stops.length > 0
 				? cachedRoute
 				: null
-		},
-		getMapPinStyle(index = 0) {
-			const pinPositions = [
-				{ left: 18, top: 58 },
-				{ left: 34, top: 36 },
-				{ left: 52, top: 48 },
-				{ left: 66, top: 26 },
-				{ left: 78, top: 54 }
-			]
-			const position = pinPositions[index % pinPositions.length]
-			return `left:${position.left}%;top:${position.top}%;`
 		},
 		getRouteThumbnail(route = {}) {
 			const thumbnails = this.region.visualAssets && this.region.visualAssets.routeThumbnails
@@ -281,6 +302,51 @@ export default {
 			})
 			uni.setStorageSync(this.region.inspirationStorageKey, routePayload)
 			uni.setStorageSync(this.region.materialsStorageKey, mergeXichengOfficialRouteMaterials(routeMaterials, materials).slice(0, 80))
+		},
+		selectMapPoi(poi = {}) {
+			this.selectedMapPoi = poi
+		},
+		persistMapSelectedPoi(poi = {}) {
+			const sources = createXichengOfficialPoiSources(poi)
+			const existingMaterials = uni.getStorageSync(this.region.materialsStorageKey)
+			const materials = Array.isArray(existingMaterials) ? existingMaterials : []
+			const material = {
+				type: 'map-selected-poi',
+				regionCode: this.routeContext.regionCode,
+				packageCode: this.routeContext.packageCode,
+				sceneCode: this.routeContext.sceneCode,
+				sourceChannel: this.routeContext.sourceChannel,
+				poiCode: poi.poiCode || '',
+				poiName: poi.poiName || '西城文化点',
+				sourceLabel: '文旅地图选点',
+				sources,
+				sourceCount: sources.length,
+				safetyStatus: 'PASSED',
+				reviewStatus: this.region.reviewStatus.pending,
+				publishStatus: 'private',
+				capturedAt: new Date().toISOString()
+			}
+			uni.setStorageSync(this.region.materialsStorageKey, mergeXichengOfficialRouteMaterials([material], materials).slice(0, 80))
+			return material
+		},
+		navigateToMapPoi(poi = {}) {
+			this.persistMapSelectedPoi(poi)
+			uni.navigateTo({
+				url: `/pages/xicheng/poi/poi?poiCode=${encodeRouteValue(poi.poiCode || '')}&poiName=${encodeRouteValue(poi.poiName || '')}&regionCode=${encodeRouteValue(this.routeContext.regionCode)}&packageCode=${encodeRouteValue(this.routeContext.packageCode)}&sceneCode=${encodeRouteValue(this.routeContext.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeContext.sourceChannel)}&companionName=${encodeRouteValue(this.routeContext.companionName)}&safetyStatus=PASSED`
+			})
+		},
+		askMapPoi(poi = {}) {
+			this.persistMapSelectedPoi(poi)
+			uni.navigateTo({
+				url: `/pages/ai-guide/ai-guide?regionCode=${encodeRouteValue(this.routeContext.regionCode)}&packageCode=${encodeRouteValue(this.routeContext.packageCode)}&sceneCode=${encodeRouteValue(this.routeContext.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeContext.sourceChannel)}&poiCode=${encodeRouteValue(poi.poiCode || '')}&poiName=${encodeRouteValue(poi.poiName || '')}&companionName=${encodeRouteValue(this.routeContext.companionName)}&safetyStatus=PASSED&sourceCount=1&question=${encodeRouteValue(`讲讲${poi.poiName || '这个点'}的历史故事`)}`
+			})
+		},
+		addMapPoiToRoute(poi = {}) {
+			this.persistMapSelectedPoi(poi)
+			uni.showToast({
+				icon: 'none',
+				title: '已加入路线'
+			})
 		},
 		startRoutePassport(route = {}) {
 			this.persistRoutePassport(route)

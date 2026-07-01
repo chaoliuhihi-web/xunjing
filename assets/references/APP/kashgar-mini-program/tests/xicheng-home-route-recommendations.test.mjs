@@ -45,10 +45,16 @@ assert.doesNotMatch(
 for (const required of [
   '西城文旅地图',
   'culture-map-card',
-  'culture-map-canvas',
+  'XichengCulturalMap',
+  'xicheng-cultural-map',
+  'mapPois',
+  'selectedMapPoi',
   'mapPreviewRoute',
   'mapPreviewStops',
-  'getMapPinStyle(index)',
+  'selectMapPoi(poi = {})',
+  'navigateToMapPoi(poi = {})',
+  'askMapPoi(poi = {})',
+  'addMapPoiToRoute(poi = {})',
   'id="xicheng-route-recommendation-bottom"',
   '路线推荐',
   '官方 Citywalk',
@@ -75,6 +81,12 @@ assert.match(
   routes,
   /const routeMaterials = stops\.map\(stop => \{[\s\S]*const sources = createXichengOfficialPoiSources\(stop\)[\s\S]*type:\s*'official-route-poi'[\s\S]*sourceCount:\s*sources\.length[\s\S]*safetyStatus:\s*'PASSED'[\s\S]*reviewStatus:\s*this\.region\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
   'Route recommendation POI materials should carry approved source cards, explicit PASSED safety status, and private pending-review status'
+)
+
+assert.match(
+  routes,
+  /persistMapSelectedPoi\(poi = \{\}\)[\s\S]*const sources = createXichengOfficialPoiSources\(poi\)[\s\S]*type:\s*'map-selected-poi'[\s\S]*sourceLabel:\s*'文旅地图选点'[\s\S]*safetyStatus:\s*'PASSED'[\s\S]*publishStatus:\s*'private'/,
+  'Cultural map POI selections should carry approved source cards and private pending-review status before handoff'
 )
 
 assert.doesNotMatch(
