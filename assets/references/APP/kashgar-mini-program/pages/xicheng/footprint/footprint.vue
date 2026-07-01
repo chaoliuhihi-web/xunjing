@@ -33,6 +33,11 @@
 					<text class="metric-value">{{ reviewedSourceCount }}</text>
 					<text class="metric-label">来源</text>
 				</view>
+				<view class="metric-card">
+					<xicheng-icon name="scan" variant="primary" :size="18" />
+					<text class="metric-value">{{ visionAgentServiceTaskCount }}</text>
+					<text class="metric-label">AI任务</text>
+				</view>
 			</view>
 		</view>
 
@@ -78,7 +83,7 @@
 			<view>
 				<text class="draft-kicker">游记草稿</text>
 				<text class="draft-title">只使用可审核素材生成</text>
-				<text class="draft-desc">照片、问答和路线打卡会带来源进入草稿，不会公开精确定位。</text>
+				<text class="draft-desc">照片、问答、路线打卡和AI识境任务会带来源进入草稿，不会公开精确定位。</text>
 			</view>
 			<button class="draft-button xicheng-primary-action" @click="openTravelogue">生成</button>
 		</view>
@@ -101,12 +106,13 @@ export default {
 		return {
 			region: XICHENG_REGION_CONFIG,
 			materials: [],
-			routeCheckins: []
+			routeCheckins: [],
+			visionAgentServiceTasks: []
 		}
 	},
 	computed: {
 		footprintTabs() {
-			return ['全部', '识别', '问答', '路线']
+			return ['全部', '识别', '问答', '路线', 'AI识境']
 		},
 		materialCount() {
 			return this.materials.length
@@ -114,11 +120,14 @@ export default {
 		checkinCount() {
 			return this.routeCheckins.length
 		},
+		visionAgentServiceTaskCount() {
+			return this.visionAgentServiceTasks.length
+		},
 		reviewedSourceCount() {
 			return this.materials.reduce((count, item) => count + Number(item.sourceCount || 0), 0)
 		},
 		footprintTitle() {
-			return this.materialCount + this.checkinCount > 0 ? '已收集真实西城素材' : '从一次识别开始'
+			return this.materialCount + this.checkinCount + this.visionAgentServiceTaskCount > 0 ? '已收集真实西城素材' : '从一次识别开始'
 		},
 		timelineItems() {
 			const materialItems = this.materials.slice(0, 6).map((item, index) => ({
@@ -137,15 +146,24 @@ export default {
 				desc: item.routeTitle || item.routeCode || '路线记录节点',
 				time: formatTime(item.createdAt)
 			}))
-			return [...materialItems, ...checkinItems]
+			const visionAgentTaskItems = this.visionAgentServiceTasks.slice(0, 6).map((task, index) => ({
+				id: `vision-agent-task-${index}-${task.id || task.createdAt || task.actionKey}`,
+				icon: task.taskType === 'merchant' ? 'source' : task.taskType === 'route' ? 'route' : 'scan',
+				typeLabel: 'AI识境任务',
+				title: task.actionTitle || task.actionCopy || 'AI识境后续动作',
+				desc: this.formatVisionAgentFootprintTaskDesc(task),
+				time: formatTime(task.createdAt)
+			}))
+			return [...materialItems, ...checkinItems, ...visionAgentTaskItems]
 				.sort((a, b) => String(b.time).localeCompare(String(a.time)))
-				.slice(0, 8)
+				.slice(0, 10)
 		},
 		timelinePreviewItems() {
 			return [
 				{ icon: 'scan', title: '拍照识别文化点', desc: '匹配官方 POI 与已审核来源' },
 				{ icon: 'qa', title: '问小京补充故事', desc: '回答会带来源进入素材盒' },
-				{ icon: 'route', title: '完成路线打卡', desc: '生成路线护照和游记线索' }
+				{ icon: 'route', title: '完成路线打卡', desc: '生成路线护照和游记线索' },
+				{ icon: 'scan', title: '执行AI识境任务', desc: '商家、路线、成长和Agent动作会进入足迹' }
 			]
 		}
 	},
@@ -153,9 +171,25 @@ export default {
 		this.loadFootprint()
 	},
 	methods: {
+		loadVisionAgentFootprintTasks() {
+			const storedTasks = uni.getStorageSync(XICHENG_REGION_CONFIG.visionAgentServiceTasksStorageKey)
+			this.visionAgentServiceTasks = safeArray(storedTasks)
+				.filter(task => task && typeof task === 'object')
+				.slice(0, 50)
+			return this.visionAgentServiceTasks
+		},
+		formatVisionAgentFootprintTaskDesc(task = {}) {
+			const poiName = task.poiName || '当前场景'
+			const taskTypeLabel = task.taskTypeLabel || (task.taskType === 'merchant' ? '商家' : task.taskType === 'route' ? '路线' : task.taskType === 'growth' ? '成长' : task.taskType === 'agent' ? 'Agent' : '服务')
+			const serviceIntentLabel = task.serviceIntentLabel ? ` · ${task.serviceIntentLabel}` : ''
+			const actionPrompt = task.actionPrompt ? ` · ${String(task.actionPrompt).slice(0, 28)}` : ''
+			const statusText = task.statusText || '已收进任务包'
+			return `${poiName} · ${taskTypeLabel}${serviceIntentLabel}${actionPrompt} · ${statusText}`
+		},
 		loadFootprint() {
 			this.materials = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey))
 			this.routeCheckins = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.checkinStorageKey))
+			this.loadVisionAgentFootprintTasks()
 		},
 		openTravelogue() {
 			uni.navigateTo({ url: '/pages/xicheng/travelogue/travelogue?mode=footprint' })
@@ -271,7 +305,7 @@ export default {
 }
 .metric-grid {
 	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
+	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 14rpx;
 	margin-top: 24rpx;
 }
