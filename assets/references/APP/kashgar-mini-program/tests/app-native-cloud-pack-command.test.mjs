@@ -31,7 +31,8 @@ for (const required of [
   'XUNJING_NATIVE_PACK_CONFIRM=cloud-pack',
   'run_native_cloud_pack.mjs',
   '--android.packagename',
-  '--android.certfile'
+  '--android.certfile',
+  '请先导入'
 ]) {
   assert.ok(releaseChecklist.includes(required), `Release checklist should mention native cloud pack item ${required}`)
   assert.ok(preprodRunbook.includes(required), `Preprod runbook should mention native cloud pack item ${required}`)
@@ -40,6 +41,7 @@ for (const required of [
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-native-cloud-pack-'))
 const keystorePath = path.join(tempDir, 'xicheng-release.keystore')
 const fakeCliPath = path.join(tempDir, 'hbuilderx-cli')
+const softFailureCliPath = path.join(tempDir, 'hbuilderx-soft-failure-cli')
 const invocationPath = path.join(tempDir, 'hbuilderx-invocation.json')
 
 const keytoolResult = spawnSync('keytool', [
@@ -78,6 +80,13 @@ fs.writeFileSync(fakeCliPath, [
   'exit 0'
 ].join('\n'))
 fs.chmodSync(fakeCliPath, 0o755)
+
+fs.writeFileSync(softFailureCliPath, [
+  '#!/bin/sh',
+  'printf "%s\\n" "01:44:51.737 项目 /tmp/xunjing-app 不存在，请先导入"',
+  'exit 0'
+].join('\n'))
+fs.chmodSync(softFailureCliPath, 0o755)
 
 const baseEnv = {
   XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
@@ -156,6 +165,21 @@ assert.ok(invokedArgs.includes('--android.certpassword'))
 assert.ok(invokedArgs.includes('key-secret'))
 assert.ok(invokedArgs.includes('--android.storepassword'))
 assert.ok(invokedArgs.includes('store-secret'))
+
+const softFailureExecuteResult = runPack({
+  XUNJING_NATIVE_PACK_CONFIRM: 'cloud-pack',
+  HBUILDERX_CLI: softFailureCliPath
+}, ['--execute'])
+assert.notEqual(
+  softFailureExecuteResult.status,
+  0,
+  'native cloud pack execute should fail when HBuilderX prints a project-not-imported soft failure even with exit 0'
+)
+assert.match(
+  `${softFailureExecuteResult.stderr}\n${softFailureExecuteResult.stdout}`,
+  /不存在|请先导入|project/i,
+  'native cloud pack execute should explain HBuilderX soft failure output'
+)
 
 const missingEnvResult = runPack({
   XUNJING_ANDROID_PACKAGE_NAME: ''

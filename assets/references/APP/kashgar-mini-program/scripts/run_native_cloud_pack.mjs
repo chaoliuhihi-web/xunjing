@@ -136,6 +136,16 @@ const redactArgv = (argv) => argv.map((value, index) => (
     : value
 ))
 
+const hbuilderxSoftFailurePatterns = [
+  /项目[\s\S]*不存在[\s\S]*请先导入/,
+  /project[\s\S]*(not found|does not exist|not imported|import first)/i
+]
+
+const detectHbuilderxSoftFailure = (output = '') => {
+  const text = String(output || '')
+  return hbuilderxSoftFailurePatterns.find((pattern) => pattern.test(text)) || null
+}
+
 const shellQuote = (value) => {
   const text = String(value)
   return /^[A-Za-z0-9_./:=@-]+$/.test(text)
@@ -174,9 +184,13 @@ const packResult = spawnSync(executable, rawArgv, {
   env: process.env,
   encoding: 'utf8'
 })
+const redactedStdout = redactText(packResult.stdout).trim()
+const redactedStderr = redactText(packResult.stderr).trim()
+const softFailurePattern = detectHbuilderxSoftFailure(`${packResult.stdout}\n${packResult.stderr}`)
+const packOk = packResult.status === 0 && !softFailurePattern
 
 const response = {
-  ok: packResult.status === 0,
+  ok: packOk,
   artifactType: 'xicheng-native-cloud-pack-command',
   checkedAt: new Date().toISOString(),
   mode: 'execute',
@@ -187,14 +201,18 @@ const response = {
   },
   redactedCommand,
   exitCode: packResult.status,
-  stdout: redactText(packResult.stdout).trim(),
-  stderr: redactText(packResult.stderr).trim(),
+  stdout: redactedStdout,
+  stderr: redactedStderr,
+  softFailure: softFailurePattern
+    ? 'HBuilderX returned exit 0 but reported that the project is not imported or does not exist'
+    : '',
   nextCommands: [
     'Locate the signed APK/AAB or IPA produced by HBuilderX.',
+    'If HBuilderX reports the project is not imported, import the APP project in HBuilderX or configure the CLI workspace before rerunning cloud pack.',
     'XUNJING_RELEASE_ENV_FILE=/secure/path/preprod.env XUNJING_RELEASE_ARTIFACT=/path/to/signed.apk npm run prepare:native:evidence',
     'Complete physical-device scenarios, then run npm run verify:native:evidence and npm run verify:launch:evidence.'
   ]
 }
 
-console[packResult.status === 0 ? 'log' : 'error'](JSON.stringify(response, null, 2))
-process.exit(packResult.status === 0 ? 0 : 1)
+console[packOk ? 'log' : 'error'](JSON.stringify(response, null, 2))
+process.exit(packOk ? 0 : 1)

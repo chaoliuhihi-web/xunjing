@@ -104,7 +104,7 @@ XUNJING_RELEASE_ENV_FILE="/secure/path/preprod.env" npm run pack:native:cloud:dr
 XUNJING_RELEASE_ENV_FILE="/secure/path/preprod.env" XUNJING_NATIVE_PACK_CONFIRM=cloud-pack npm run pack:native:cloud
 ```
 
-真实打包会调用 HBuilderX `pack`，并把签名密码作为进程参数传入；脚本输出会脱敏 `--android.certpassword`、`--android.storepassword` 和 iOS 证书密码。打包完成后，把 HBuilderX 生成的 signed APK/AAB 或 IPA 路径写入 `XUNJING_RELEASE_ARTIFACT`，再执行 `npm run prepare:native:evidence`。
+真实打包会调用 HBuilderX `pack`，并把签名密码作为进程参数传入；脚本输出会脱敏 `--android.certpassword`、`--android.storepassword` 和 iOS 证书密码。如果 HBuilderX 输出“项目不存在，请先导入”或 project-not-imported 类提示，即使 CLI exit code 为 0 也不能算打包成功，必须先在 HBuilderX 中导入 APP 项目或配置 CLI 工作区后重跑。打包完成后，把 HBuilderX 生成的 signed APK/AAB 或 IPA 路径写入 `XUNJING_RELEASE_ARTIFACT`，再执行 `npm run prepare:native:evidence`。
 
 Android env 文件至少包含：
 
