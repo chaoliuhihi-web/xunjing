@@ -887,10 +887,10 @@ export default {
 			travelogueMode: 'draft',
 			activeTravelogueStyle: 'citywalk',
 			travelogueStyleOptions: [
+				{ key: 'family', title: '亲子研学' },
 				{ key: 'citywalk', title: '城市漫步杂志' },
-				{ key: 'hutong', title: '胡同手账' },
-				{ key: 'album', title: '照片纪念册' },
-				{ key: 'culture', title: '古建札记' }
+				{ key: 'culture', title: '文化札记' },
+				{ key: 'album', title: '照片纪念册' }
 			],
 			studyTaskEvidence: [],
 			studyTaskDrafts: [],

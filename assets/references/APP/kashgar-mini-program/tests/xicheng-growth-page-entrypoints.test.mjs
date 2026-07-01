@@ -36,14 +36,24 @@ assert.doesNotMatch(
 )
 
 for (const required of [
-  '我的收藏',
+  '我的游记',
+  '登录信息',
+  '西城足迹',
+  '隐私授权',
   'personal-entry-card',
   'openFootprint',
+  'openTravelogue',
   "url: '/pages/xicheng/footprint/footprint'",
   '@click="openFootprint"'
 ]) {
-  assert.ok(works.includes(required), `Works personal center should expose favorite/footprint entry ${required}`)
+  assert.ok(works.includes(required), `Works personal center should expose simplified travelogue entry ${required}`)
 }
+
+assert.doesNotMatch(
+  works,
+  /我的收藏|审核状态总览|作品审核状态|生成分享海报|提交审核|亲子研学任务/,
+  'Works personal center should not reintroduce duplicated favorite/share/review modules'
+)
 
 for (const required of [
   'openPassport',

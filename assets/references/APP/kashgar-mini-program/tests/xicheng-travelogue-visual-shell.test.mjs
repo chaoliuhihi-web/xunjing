@@ -7,6 +7,7 @@ const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelog
 const travelogueCss = fs.existsSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.css'))
   ? fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.css'), 'utf8')
   : travelogue
+const longTraveloguePreview = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengLongTraveloguePreview.vue'), 'utf8')
 
 for (const required of [
   'travelogue-generation-hero',
@@ -17,8 +18,11 @@ for (const required of [
   'class="travelogue-style-selector"',
   'travelogueStyleOptions',
   'activeTravelogueStyle',
-  'xicheng-long-travelogue-preview',
+  '<xicheng-long-travelogue-preview',
   ':cover-image="traveloguePreviewImage"',
+  ':chapters="longTravelogueChapters"',
+  '@export-pdf="exportMemorialPdf"',
+  '@publish-xhs="openSharePage"',
   '在白塔下遇见西城',
   '继续编辑',
   'generateTravelogueDraft',
@@ -43,6 +47,7 @@ for (const required of [
   '运营与隐私',
   '编辑游记',
   '小京已整理',
+  '预览内容来自你的照片、路线、备注和已核对资料',
   '发布前确认公开范围'
 ]) {
   assert.ok(travelogue.includes(required), `Xicheng travelogue visual shell should include ${required}`)
@@ -98,7 +103,7 @@ assert.match(
 
 assert.match(
   travelogue,
-  /travelogueStyleOptions:\s*\[[\s\S]*城市漫步杂志[\s\S]*胡同手账[\s\S]*照片纪念册[\s\S]*古建札记/,
+  /travelogueStyleOptions:\s*\[[\s\S]*亲子研学[\s\S]*城市漫步杂志[\s\S]*文化札记[\s\S]*照片纪念册/,
   'Travelogue generation should expose the approved long-form travelogue template choices'
 )
 
@@ -109,6 +114,28 @@ assert.ok(
     travelogue.includes(':tags="traveloguePreviewTags"'),
   'Travelogue preview should use the approved long-form preview component with stable route, photo and tag inputs'
 )
+
+assert.match(
+  longTraveloguePreview,
+  /\.long-cover-image\s*\{[\s\S]*width:\s*100%[\s\S]*height:\s*100%[\s\S]*\.long-chapter-image\s*\{/,
+  'Long travelogue preview should use stable mobile image containers without layout shift'
+)
+
+assert.ok(
+  longTraveloguePreview.includes('mode="aspectFill"'),
+  'Long travelogue preview images should keep aspectFill rendering'
+)
+
+for (const required of [
+  '我的西城游记',
+  '今天这样走',
+  '照片记忆',
+  '导出PDF',
+  '发朋友圈',
+  '发布到小红书'
+]) {
+  assert.ok(longTraveloguePreview.includes(required), `Long travelogue preview should include publish-ready module ${required}`)
+}
 
 assert.doesNotMatch(
   travelogue,

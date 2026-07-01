@@ -6,6 +6,7 @@
   "scripts": {
     "serve": "npm run dev:h5",
     "build": "npm run build:app",
+    "prebuild:app": "node scripts/verify_uni_cli_available.mjs",
     "build:app": "UNI_INPUT_DIR=. UNI_OUTPUT_DIR=dist/build/app uni build -p app",
     "build:app:release": "node scripts/run_release_app_build.mjs",
     "verify:yudao:local": "cd ../../../.. && npm run xunjing:platform:verify -- --env-file ops/xunjing-platform.env.example --base-url ${XUNJING_LOCAL_APP_API_BASE_URL:-http://127.0.0.1:48082} --tenant-id ${XUNJING_TENANT_ID:-1} --skip-admin-check --include-xicheng-app-check --include-xicheng-trigger-check --evidence-file qa/xicheng-app-readiness-local-evidence.json",

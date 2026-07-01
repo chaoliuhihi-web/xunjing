@@ -30,6 +30,15 @@ if (dryRun) {
   process.exit(0)
 }
 
+const cliCheck = spawnSync(process.execPath, ['scripts/verify_uni_cli_available.mjs'], {
+  cwd: process.cwd(),
+  env: buildEnv,
+  stdio: 'inherit'
+})
+if (cliCheck.status !== 0) {
+  process.exit(cliCheck.status || 1)
+}
+
 const buildResult = spawnSync('uni', ['build', '-p', 'app'], {
   cwd: process.cwd(),
   env: buildEnv,

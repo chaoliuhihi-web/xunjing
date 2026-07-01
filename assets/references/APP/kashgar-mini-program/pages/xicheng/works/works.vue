@@ -4,53 +4,52 @@
 			<view class="topbar-button" @click="goBack">
 				<xicheng-icon name="back" variant="plain" :size="22" />
 			</view>
-			<text class="topbar-title">我的作品</text>
-			<view class="topbar-button" @click="openShare">
+			<text class="topbar-title">我的游记</text>
+			<view class="topbar-button" @click="openTravelogue">
 				<xicheng-icon name="edit" variant="plain" :size="21" />
 			</view>
 		</view>
 
-		<view class="works-reference-hero">
-			<text class="works-hero-title">审核状态总览</text>
-			<text class="works-hero-subtitle">公开作品只展示已审核内容，隐私安全有保障。</text>
+		<view class="profile-card xicheng-paper-card">
+			<image class="profile-avatar" :src="region.companionAvatar" mode="aspectFit" />
+			<view class="profile-copy">
+				<text class="profile-kicker">登录信息</text>
+				<text class="profile-name">西城旅伴用户</text>
+				<text class="profile-desc">游客模式可先保存本机游记，登录后同步我的游记、草稿和收藏。</text>
+			</view>
+			<button class="profile-login-button" @click="openLogin">登录</button>
 		</view>
 
-		<view class="status-strip">
-			<view class="status-card status-card-approved xicheng-paper-card">
-				<xicheng-icon name="check" variant="primary" :size="20" />
-				<text class="status-label">已发布</text>
-				<text class="status-value">{{ approvedCount }}</text>
-				<text class="status-copy">已通过审核并公开</text>
+		<view class="library-overview">
+			<view class="library-stat xicheng-paper-card">
+				<text class="library-stat-value">{{ travelogueItems.length }}</text>
+				<text class="library-stat-label">我的游记</text>
 			</view>
-			<view class="status-card status-card-pending xicheng-paper-card">
-				<xicheng-icon name="refresh" variant="primary" :size="20" />
-				<text class="status-label">审核中</text>
-				<text class="status-value">{{ pendingCount }}</text>
-				<text class="status-copy">预计 24 小时内完成</text>
+			<view class="library-stat xicheng-paper-card">
+				<text class="library-stat-value">{{ draftCount }}</text>
+				<text class="library-stat-label">草稿</text>
 			</view>
-			<view class="status-card status-card-rejected xicheng-paper-card">
-				<xicheng-icon name="source" variant="soft" :size="20" />
-				<text class="status-label">需修改</text>
-				<text class="status-value">{{ rejectedCount }}</text>
-				<text class="status-copy">未通过审核，需修改</text>
+			<view class="library-stat xicheng-paper-card">
+				<text class="library-stat-value">{{ favoriteCount }}</text>
+				<text class="library-stat-label">收藏</text>
 			</view>
 		</view>
 
 		<view class="personal-entry-card xicheng-paper-card" @click="openFootprint">
 			<view>
-				<text class="personal-entry-title">我的收藏</text>
-				<text class="personal-entry-copy">收藏、足迹和 Citywalk 记录统一放在个人中心查看。</text>
+				<text class="personal-entry-title">西城足迹</text>
+				<text class="personal-entry-copy">查看识别、路线记录和照片素材，继续生成游记。</text>
 			</view>
 			<xicheng-icon name="next" variant="plain" :size="22" />
 		</view>
 
 		<view class="works-card xicheng-paper-card">
 			<view class="section-head">
-				<text class="section-title">作品审核状态</text>
-				<text class="section-badge">{{ workItems.length }} 条</text>
+				<text class="section-title">我的游记</text>
+				<text class="section-badge">{{ travelogueItems.length }} 篇</text>
 			</view>
-			<view v-if="workItems.length > 0" class="work-list">
-				<view v-for="item in workItems" :key="item.id" class="work-row">
+			<view v-if="travelogueItems.length > 0" class="work-list">
+				<view v-for="item in travelogueItems" :key="item.id" class="work-row" @click="openTravelogue">
 					<image class="work-thumb" :src="getWorkThumb(item)" mode="aspectFill" />
 					<view class="work-copy">
 						<view class="work-title-line">
@@ -58,32 +57,30 @@
 							<xicheng-icon name="edit" variant="plain" :size="15" />
 						</view>
 						<text class="work-desc">{{ item.desc }}</text>
-						<view v-if="item.status === '需修改'" class="work-review-note">
-							<text>含未核实资料，请修改后重新提交</text>
-						</view>
-						<view v-else-if="item.status === '审核中' || item.status === '待审核'" class="work-review-note work-review-note-pending">
-							<text>AI 正在审核中，请耐心等待</text>
-						</view>
 					</view>
-					<text class="work-status" :class="getStatusClass(item.status)">{{ item.status }}</text>
+					<text class="work-status">{{ item.status }}</text>
 				</view>
 			</view>
 			<view v-else class="works-empty-state">
-				<text class="empty-copy">暂无审核作品。生成分享海报或 PDF 纪念册后，可在这里查看审核进度。</text>
-				<view class="work-empty-action-grid">
-					<button class="empty-action-card" @click="openShare">生成分享海报</button>
-					<button class="empty-action-card" @click="openShare">生成 PDF 纪念册</button>
-					<button class="empty-action-card" @click="openShare">提交审核</button>
-				</view>
+				<text class="empty-copy">暂无游记。完成一次识别或路线记录后，可以生成一篇西城长文游记。</text>
+				<button class="empty-action-card" @click="openTravelogue">去生成游记</button>
 			</view>
-			<button class="ghost-button xicheng-secondary-action" @click="openShare">继续编辑</button>
+			<button class="ghost-button xicheng-secondary-action" @click="openTravelogue">继续编辑</button>
+		</view>
+
+		<view class="privacy-card xicheng-paper-card">
+			<view>
+				<text class="privacy-title">隐私授权</text>
+				<text class="privacy-copy">精确轨迹默认隐藏；发布前可单独设置正文、地点、照片和问答记录的公开范围。</text>
+			</view>
+			<xicheng-icon name="locked" variant="plain" :size="23" />
 		</view>
 
 		<view class="works-tip-card xicheng-paper-card">
 			<image class="works-tip-avatar" :src="region.companionAvatar" mode="aspectFit" />
 			<view class="works-tip-bubble">
 				<text class="works-tip-title">小京提示</text>
-				<text class="works-tip-copy">公开作品只展示已审核内容，保护隐私和版权。</text>
+				<text class="works-tip-copy">我的页面只放账号、游记和隐私设置，运营玩法会独立放在专门页面。</text>
 			</view>
 		</view>
 	</view>
@@ -98,59 +95,55 @@ export default {
 	data() {
 		return {
 			region: XICHENG_REGION_CONFIG,
-			reviewSubmissions: [],
-			shareArtifacts: []
+			shareArtifacts: [],
+			cachedDraft: null
 		}
 	},
 	computed: {
-		workItems() {
-			const reviews = this.reviewSubmissions.map((item, index) => ({
-				id: item.reviewId || `review-${index}`,
-				icon: 'source',
-				title: '西城游记审核包',
-				desc: `海报 ${item.posterStatus || '待生成'} · PDF ${item.pdfStatus || '待生成'}`,
-				status: item.reviewStatus || '审核中'
-			}))
+		travelogueItems() {
+			const draft = this.cachedDraft && this.cachedDraft.draft ? [{
+				id: 'local-draft',
+				assetType: 'draft',
+				title: this.cachedDraft.editableTravelogueTitle || '在白塔下遇见西城',
+				desc: '本机草稿 · 可继续编辑成长文游记',
+				status: '草稿'
+			}] : []
 			const assets = this.shareArtifacts.map((item, index) => ({
 				id: item.artifactId || `asset-${index}`,
 				assetType: item.assetType,
 				templateCode: item.templateCode,
 				icon: item.assetType === 'pdf' ? 'source' : 'travelogue',
-				title: item.assetLabel || '分享作品',
-				desc: item.templateCode || '本地分享预览',
-				status: item.reviewStatus || '审核中'
+				title: item.title || item.assetLabel || '西城纪念游记',
+				desc: item.templateCode || '已保存的游记素材',
+				status: item.assetType === 'pdf' ? 'PDF' : '已保存'
 			}))
-			return [...reviews, ...assets].slice(0, 10)
+			return [...draft, ...assets].slice(0, 10)
 		},
-		pendingCount() {
-			return this.workItems.filter(item => item.status === this.region.reviewStatus.pending || item.status === '审核中').length
+		draftCount() {
+			return this.cachedDraft && this.cachedDraft.draft ? 1 : 0
 		},
-		rejectedCount() {
-			return this.workItems.filter(item => item.status === this.region.reviewStatus.rejected || item.status === '需修改').length
-		},
-		approvedCount() {
-			return this.workItems.filter(item => item.status === this.region.reviewStatus.approved || item.status === '已发布').length
+		favoriteCount() {
+			return 0
 		}
 	},
 	onShow() {
-		this.reviewSubmissions = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey))
 		this.shareArtifacts = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey))
+		this.cachedDraft = uni.getStorageSync(XICHENG_REGION_CONFIG.journeyStorageKey) || null
 	},
 	methods: {
-		openShare() {
-			uni.navigateTo({ url: '/pages/xicheng/share/share' })
+		openTravelogue() {
+			uni.navigateTo({ url: '/pages/xicheng/travelogue/travelogue?mode=edit' })
+		},
+		openLogin() {
+			uni.navigateTo({ url: '/pagesLogin/auth/auth' })
 		},
 		openFootprint() {
 			uni.navigateTo({ url: '/pages/xicheng/footprint/footprint' })
 		},
 		getWorkThumb(item = {}) {
 			if (item.assetType === 'pdf') return this.region.visualAssets.passportStamp
+			if (item.assetType === 'draft') return this.region.visualAssets.heroLandmark
 			return this.region.visualAssets.sharePosterBackground || this.region.visualAssets.heroLandmark
-		},
-		getStatusClass(status = '') {
-			if (status === this.region.reviewStatus.rejected || status === '需修改') return 'work-status-rejected'
-			if (status === this.region.reviewStatus.approved || status === '已发布') return 'work-status-approved'
-			return 'work-status-pending'
 		},
 		goBack() {
 			const pages = getCurrentPages()
@@ -172,7 +165,6 @@ export default {
 }
 .topbar,
 .section-head,
-.status-strip,
 .work-row {
 	display: flex;
 	align-items: center;
@@ -191,7 +183,6 @@ export default {
 }
 .topbar-title,
 .section-title,
-.status-value,
 .work-title {
 	font-weight: 800;
 	color: #102F29;
@@ -200,54 +191,108 @@ export default {
 	font-size: 34rpx;
 }
 
-.works-reference-hero {
-	position: relative;
+.profile-card {
+	display: grid;
+	grid-template-columns: 112rpx 1fr auto;
+	align-items: center;
+	gap: 20rpx;
 	margin-top: 20rpx;
-	padding: 20rpx 0 6rpx 18rpx;
+	padding: 24rpx;
+	border-radius: 32rpx;
+	box-sizing: border-box;
 }
 
-.works-reference-hero::before {
-	content: "";
-	position: absolute;
-	left: 0;
-	top: 24rpx;
-	width: 8rpx;
-	height: 42rpx;
-	border-radius: 999rpx;
-	background: #B5945E;
+.profile-avatar {
+	width: 112rpx;
+	height: 124rpx;
+	object-fit: contain;
 }
 
-.works-reference-hero::after {
-	content: "";
-	position: absolute;
-	right: 10rpx;
-	top: -12rpx;
-	width: 210rpx;
-	height: 150rpx;
-	background: radial-gradient(circle, rgba(181, 148, 94, 0.14), transparent 68%);
-	pointer-events: none;
+.profile-copy {
+	min-width: 0;
 }
 
-.works-hero-title,
-.works-hero-subtitle {
+.profile-kicker,
+.profile-name,
+.profile-desc,
+.library-stat-value,
+.library-stat-label,
+.personal-entry-title,
+.personal-entry-copy,
+.privacy-title,
+.privacy-copy {
 	display: block;
 }
 
-.works-hero-title {
-	font-size: 34rpx;
+.profile-kicker {
+	font-size: 22rpx;
+	line-height: 1.2;
+	color: #B5945E;
 	font-weight: 800;
-	color: #102F29;
 }
 
-.works-hero-subtitle {
+.profile-name {
+	margin-top: 8rpx;
+	font-size: 32rpx;
+	line-height: 1.22;
+	color: #102F29;
+	font-weight: 800;
+}
+
+.profile-desc {
 	margin-top: 8rpx;
 	font-size: 23rpx;
 	line-height: 1.45;
-	color: #746F68;
+	color: rgba(16, 47, 41, 0.62);
 }
 
-.status-strip {
-	margin-top: 24rpx;
+.profile-login-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 112rpx;
+	height: 64rpx;
+	margin: 0;
+	padding: 0;
+	border-radius: 999rpx;
+	background: #173F35;
+	color: #FFF8EA;
+	font-size: 24rpx;
+	line-height: 64rpx;
+	font-weight: 800;
+}
+
+.profile-login-button::after {
+	border: 0;
+}
+
+.library-overview {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 14rpx;
+	margin-top: 20rpx;
+}
+
+.library-stat {
+	min-height: 136rpx;
+	padding: 22rpx 14rpx;
+	border-radius: 26rpx;
+	text-align: center;
+	box-sizing: border-box;
+}
+
+.library-stat-value {
+	font-size: 38rpx;
+	line-height: 1;
+	font-weight: 900;
+	color: #173F35;
+}
+
+.library-stat-label {
+	margin-top: 12rpx;
+	font-size: 23rpx;
+	line-height: 1.2;
+	color: rgba(16, 47, 41, 0.62);
 }
 
 .personal-entry-card {
@@ -259,11 +304,6 @@ export default {
 	padding: 24rpx;
 	border-radius: 28rpx;
 	box-sizing: border-box;
-}
-
-.personal-entry-title,
-.personal-entry-copy {
-	display: block;
 }
 
 .personal-entry-title {
@@ -280,24 +320,6 @@ export default {
 	color: rgba(16, 47, 41, 0.62);
 }
 
-.status-card {
-	flex: 1;
-	display: grid;
-	align-content: start;
-	gap: 10rpx;
-	min-height: 180rpx;
-	padding: 24rpx 18rpx;
-	border-radius: 28rpx;
-}
-.status-value,
-.status-label {
-	display: block;
-}
-.status-value {
-	font-size: 38rpx;
-}
-.status-copy,
-.status-label,
 .section-badge,
 .work-desc,
 .empty-copy {
@@ -305,23 +327,6 @@ export default {
 	font-size: 24rpx;
 	line-height: 1.45;
 	color: #746F68;
-}
-
-.status-copy {
-	margin-top: 0;
-	font-size: 21rpx;
-}
-
-.status-card-approved {
-	background: linear-gradient(180deg, rgba(243, 249, 242, 0.98), rgba(255, 252, 246, 0.94));
-}
-
-.status-card-pending {
-	background: linear-gradient(180deg, rgba(252, 247, 235, 0.98), rgba(255, 252, 246, 0.94));
-}
-
-.status-card-rejected {
-	background: linear-gradient(180deg, rgba(252, 239, 235, 0.98), rgba(255, 252, 246, 0.94));
 }
 
 .works-card {
@@ -377,54 +382,20 @@ export default {
 	white-space: nowrap;
 }
 
-.work-status-approved {
-	color: #1F7A4C;
-}
-
-.work-status-pending {
-	color: #9A7132;
-}
-
-.work-status-rejected {
-	color: #A23E2A;
-}
-
-.work-review-note {
-	margin-top: 14rpx;
-	padding: 16rpx 18rpx;
-	border-radius: 18rpx;
-	background: rgba(162, 62, 42, 0.08);
-	color: #8B2D21;
-	font-size: 22rpx;
-	line-height: 1.45;
-}
-
-.work-review-note-pending {
-	background: rgba(181, 148, 94, 0.10);
-	color: #8A5B1E;
-}
-
 .works-empty-state {
 	margin-top: 20rpx;
 }
 
-.work-empty-action-grid {
-	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 12rpx;
-	margin-top: 18rpx;
-}
-
 .empty-action-card {
 	min-height: 86rpx;
-	margin: 0;
-	padding: 0 12rpx;
+	margin: 18rpx 0 0;
+	padding: 0 28rpx;
 	border: 1rpx solid rgba(181, 148, 94, 0.22);
 	border-radius: 20rpx;
 	background: rgba(255, 252, 246, 0.88);
 	color: #173F35;
-	font-size: 22rpx;
-	line-height: 1.25;
+	font-size: 24rpx;
+	line-height: 86rpx;
 	font-weight: 800;
 }
 
@@ -434,6 +405,30 @@ export default {
 
 .works-card button {
 	margin-top: 24rpx;
+}
+
+.privacy-card {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 20rpx;
+	margin-top: 24rpx;
+	padding: 26rpx 28rpx;
+	border-radius: 30rpx;
+}
+
+.privacy-title {
+	font-size: 29rpx;
+	line-height: 1.3;
+	font-weight: 800;
+	color: #102F29;
+}
+
+.privacy-copy {
+	margin-top: 8rpx;
+	font-size: 23rpx;
+	line-height: 1.48;
+	color: #746F68;
 }
 
 .works-tip-card {

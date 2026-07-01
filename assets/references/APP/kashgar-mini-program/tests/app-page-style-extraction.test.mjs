@@ -16,6 +16,9 @@ const PAGE_REFRACTOR_RESERVE_LINE_LIMIT = 3000
 const indexPage = read('pages', 'index', 'index.vue')
 const aiGuidePage = read('pages', 'ai-guide', 'ai-guide.vue')
 const traveloguePage = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const longTraveloguePreview = exists('components', 'xicheng', 'XichengLongTraveloguePreview.vue')
+  ? read('components', 'xicheng', 'XichengLongTraveloguePreview.vue')
+  : ''
 
 for (const [relativePath, content] of [
   ['pages/index/index.vue', indexPage],
@@ -47,12 +50,23 @@ const travelogueCss = exists('pages', 'xicheng', 'travelogue', 'travelogue.css')
 for (const selector of [
   '.xicheng-travelogue',
   '.travelogue-generation-hero',
-  '.travelogue-preview-image',
+  '.travelogue-style-selector',
   '.xicheng-travelogue-actions'
 ]) {
   assert.ok(
     travelogueCss.includes(selector),
     `Extracted Xicheng travelogue CSS should preserve ${selector} styling`
+  )
+}
+
+for (const selector of [
+  '.xicheng-long-travelogue',
+  '.long-cover-image',
+  '.long-chapter-image'
+]) {
+  assert.ok(
+    longTraveloguePreview.includes(selector),
+    `Long travelogue preview component should preserve ${selector} styling after page style extraction`
   )
 }
 

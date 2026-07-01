@@ -135,7 +135,7 @@
 		{
 			"path": "pages/xicheng/works/works",
 			"style": {
-				"navigationBarTitleText": "我的作品",
+				"navigationBarTitleText": "我的游记",
 				"navigationStyle": "custom",
 				"mp-weixin": {
 					"navigationStyle": "custom",

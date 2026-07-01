@@ -54,16 +54,19 @@ const requiredPages = [
   },
   {
     route: 'pages/xicheng/works/works',
-    title: '我的作品',
+    title: '我的游记',
     file: ['pages', 'xicheng', 'works', 'works.vue'],
     requiredTokens: [
       'xicheng-works',
-      'XICHENG_REGION_CONFIG.reviewStorageKey',
-      '审核中',
-      '需修改',
+      'XICHENG_REGION_CONFIG.journeyStorageKey',
+      '登录信息',
+      '我的游记',
+      '隐私授权',
+      'openTravelogue',
       '继续编辑',
       'xicheng-icon name="edit"'
-    ]
+    ],
+    forbiddenPattern: /审核状态总览|作品审核状态|AI 正在审核中|生成分享海报|提交审核|路线护照|徽章|亲子研学任务|积分/
   },
   {
     route: 'pages/xicheng/ops-report/ops-report',
@@ -81,9 +84,15 @@ const requiredPages = [
 ]
 
 for (const page of requiredPages) {
+  const pageEntry = pagesJson.pages.find(entry => entry.path === page.route)
   assert.ok(
-    pagesJson.pages.some(entry => entry.path === page.route && entry.style?.navigationStyle === 'custom'),
+    pageEntry?.style?.navigationStyle === 'custom',
     `pages.json should register ${page.route} as a custom-navigation Xicheng P0 page`
+  )
+  assert.equal(
+    pageEntry.style?.navigationBarTitleText,
+    page.title,
+    `pages.json should keep ${page.route} title aligned with the page shell`
   )
 
   assert.ok(
@@ -107,4 +116,12 @@ for (const page of requiredPages) {
     /\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}|background-location|startLocationUpdateBackground/,
     `${page.route} should not introduce backend calls, client secrets, or high-risk background permissions`
   )
+
+  if (page.forbiddenPattern) {
+    assert.doesNotMatch(
+      source,
+      page.forbiddenPattern,
+      `${page.route} should not surface disabled or duplicated product modules`
+    )
+  }
 }
