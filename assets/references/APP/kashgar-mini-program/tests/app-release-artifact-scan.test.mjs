@@ -331,6 +331,21 @@ assert.match(
   'release artifact scanner should explain credential rejection from quoted Bearer tokens'
 )
 
+const artifactDirWithTemplateBearerToken = makeArtifactDir({
+  'assets/index.js': `const apiBase="https://api.xingheai.net";const tenantId="1";const headers={Authorization:\`Bearer ${'templatejwt.'.repeat(4)}signature\`};`
+})
+const templateBearerTokenResult = runScanner(artifactDirWithTemplateBearerToken)
+assert.notEqual(
+  templateBearerTokenResult.status,
+  0,
+  'release artifact scanner should reject template-literal Authorization Bearer tokens'
+)
+assert.match(
+  `${templateBearerTokenResult.stderr}\n${templateBearerTokenResult.stdout}`,
+  /Authorization|Bearer|secret|token|credential|密钥|令牌/i,
+  'release artifact scanner should explain credential rejection from template-literal Bearer tokens'
+)
+
 const apkWithLocalGateway = makeZipArtifact({
   'assets/index.js': 'const apiBase="http://localhost:48082/app-api/xunjing";'
 })
