@@ -83,6 +83,18 @@ assert.match(
 
 assert.match(
   travelogue,
+  /<button class="ghost-button xicheng-secondary-action" @click="openWorksPage">我的游记<\/button>/,
+  'Travelogue page should link to the personal keepsake library as 我的游记, not 我的作品'
+)
+
+assert.doesNotMatch(
+  travelogue,
+  /<button class="ghost-button xicheng-secondary-action" @click="openWorksPage">我的作品<\/button>/,
+  'Travelogue page should not expose the old 我的作品 label after the approved simplification'
+)
+
+assert.match(
+  travelogue,
   /<template v-if="!isTravelogueEditMode">[\s\S]*class="stats-grid"[\s\S]*记录会话[\s\S]*旅行素材盒[\s\S]*亲子研学任务[\s\S]*城市运营报告[\s\S]*<\/template>/,
   'Long travelogue operations should stay outside edit mode and move behind secondary entries'
 )

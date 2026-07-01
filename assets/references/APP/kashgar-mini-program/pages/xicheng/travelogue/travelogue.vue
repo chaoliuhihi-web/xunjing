@@ -396,7 +396,7 @@
 		<button class="ghost-button xicheng-secondary-action" :class="{ 'work-action-needs-evidence': !hasReviewableJourneyEvidence() }" @click="exportMemorialPdf">PDF纪念册</button>
 		<button class="ghost-button xicheng-secondary-action" :class="{ 'work-action-needs-evidence': !hasReviewableJourneyEvidence() }" @click="submitReview">作品审核</button>
 		<button class="ghost-button xicheng-secondary-action" @click="openSharePage">分享纪念</button>
-		<button class="ghost-button xicheng-secondary-action" @click="openWorksPage">我的作品</button>
+		<button class="ghost-button xicheng-secondary-action" @click="openWorksPage">我的游记</button>
 		<button class="ghost-button xicheng-secondary-action" @click="openOpsReportPage">运营报告</button>
 	</view>
 
