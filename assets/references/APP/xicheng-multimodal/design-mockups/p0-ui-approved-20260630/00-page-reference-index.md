@@ -66,6 +66,17 @@
 | `43-travelogue-xiaohongshu-note-preview.jpg` | 小红书笔记预览 | 生成小红书标题、正文、标签、图集和发布素材，并唤起小红书发布确认 | `pages/xicheng/share/share.vue` |
 | `44-travelogue-pdf-print-preview.jpg` | PDF 打印预览 | PDF 纪念册页码预览、A4 打印设置、保存 PDF、系统打印/分享 PDF | 建议新增 `pages/xicheng/pdf-print/pdf-print.vue` |
 
+## 模板化精美游记补充页
+
+`45` 到 `48` 是 2026-07-01 补齐的模板化游记生成页面，用于让用户基于模板生成更精美、更值得长期回看的纪念游记。
+
+| 文件 | 页面/状态 | 主要用途 | 建议实现位置 |
+| --- | --- | --- | --- |
+| `45-travelogue-template-gallery.jpg` | 游记模板库 | 展示城市漫步杂志、胡同手账、古建札记、相册纪念、PDF 纪念册等模板 | `pages/xicheng/travelogue/travelogue.vue` / `pages/xicheng/share/share.vue` |
+| `46-travelogue-template-customization.jpg` | 模板细节定制 | 定制封面、标题、排版风格、内容重点、图片裁切、文字润色和隐私来源设置 | `pages/xicheng/travelogue/travelogue.vue` |
+| `47-travelogue-keepsake-reader.jpg` | 精美游记成品阅读 | 以杂志式图文、路线故事线、照片叙事、小京来源补充展示成品游记 | 建议新增 `pages/xicheng/travelogue-reader/travelogue-reader.vue` |
+| `48-travelogue-keepsake-library.jpg` | 我的纪念游记书架 | 长期保存的精美游记、PDF 纪念册、发布素材和草稿回看入口 | `pages/xicheng/works/works.vue` |
+
 ## 实现拆分建议
 
 - `components/xicheng/XichengPageShell.vue`：通用背景、顶部栏、安全区。
@@ -86,6 +97,8 @@
 - 地图主页面必须能看到多个 POI 点、分类筛选、选点状态，并支持从 POI 组合生成可走线路。
 - 记录主页面以游记生成为核心，能汇总识别/路线/照片/问答素材并生成可编辑草稿。
 - 游记发布闭环必须覆盖预览、深度编辑、发布渠道、朋友圈预览、小红书预览和 PDF 打印预览。
+- 游记生成必须支持选择模板、定制封面和排版风格，成品要适合长期收藏和反复打开回看。
+- 精美游记模板至少覆盖城市漫步杂志、胡同手账、古建札记、相册纪念、PDF 纪念册和简洁图文。
 - 朋友圈、小红书发布必须先生成图片/文案/标签，再按系统分享或平台 SDK 唤起用户确认，不得默认静默发布。
 - PDF 纪念册必须支持保存 PDF、预览全部页面、A4 打印设置和系统打印/分享 PDF。
 - 导入灵感必须走“AI 提取地点 -> 匹配官方 POI -> 生成可走路线”。

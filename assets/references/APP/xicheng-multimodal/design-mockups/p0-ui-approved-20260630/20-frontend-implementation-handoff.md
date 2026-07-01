@@ -64,6 +64,15 @@
 | `43-travelogue-xiaohongshu-note-preview.jpg` | 小红书笔记预览 | 归属分享页 | 生成小红书标题、正文、图集和标签，按系统能力唤起发布确认 |
 | `44-travelogue-pdf-print-preview.jpg` | PDF 打印预览 | 未独立 | 新增 `pages/xicheng/pdf-print/pdf-print.vue`，支持保存 PDF、预览全部和系统打印 |
 
+模板化精美游记补充页：
+
+| UI 图 | 页面 | 当前状态 | 实现策略 |
+| --- | --- | --- | --- |
+| `45-travelogue-template-gallery.jpg` | 游记模板库 | 归属游记/分享 | 用户选择城市漫步杂志、胡同手账、古建札记、相册纪念、PDF 纪念册等模板 |
+| `46-travelogue-template-customization.jpg` | 模板细节定制 | 归属游记生成 | 定制封面、标题、排版风格、内容重点、图片裁切、文字润色、来源与隐私 |
+| `47-travelogue-keepsake-reader.jpg` | 精美游记成品阅读 | 未独立 | 新增 `pages/xicheng/travelogue-reader/travelogue-reader.vue`，承接长期回看的杂志式游记 |
+| `48-travelogue-keepsake-library.jpg` | 我的纪念游记书架 | 归属我的 | 在 `works` 中展示精美游记、PDF 纪念册、已发布素材和草稿 |
+
 ## 页面流转
 
 P0 主链路：
@@ -76,11 +85,13 @@ P0 主链路：
 6. `route-detail` 点击“开始记录”进入 `recording`。
 7. `recording` 完成打卡后进入 `passport` 或 `footprint`。
 8. `footprint` 点击“生成今日游记”进入 `travelogue`。
-9. `travelogue` 生成草稿后先进入游记预览和编辑，确认后进入 `share`。
-10. `share` 选择星河公开、朋友圈、小红书和 PDF 打印；公开分享必须先完成隐私和来源检查。
-11. `share` 的朋友圈/小红书只负责生成图片、文案、标签并唤起用户发布确认，不做静默发布。
-12. `pdf-print` 生成可打印 PDF，支持保存 PDF、预览全部、系统打印或分享 PDF。
-13. `works` 展示已发布、审核中、需修改作品。
+9. `travelogue` 生成草稿后进入模板库，选择模板并定制封面、排版风格和内容重点。
+10. 模板生成完成后进入 `travelogue-reader`，以精美成品阅读页承接长期回看。
+11. 用户从 `travelogue-reader` 进入编辑或发布设置，确认后进入 `share`。
+12. `share` 选择星河公开、朋友圈、小红书和 PDF 打印；公开分享必须先完成隐私和来源检查。
+13. `share` 的朋友圈/小红书只负责生成图片、文案、标签并唤起用户发布确认，不做静默发布。
+14. `pdf-print` 生成可打印 PDF，支持保存 PDF、预览全部、系统打印或分享 PDF。
+15. `works` 展示精美游记、PDF 纪念册、已发布素材、审核中、需修改作品和草稿。
 
 运营扩展链路：
 
@@ -133,12 +144,16 @@ P0 主链路：
 | 游记草稿 | `travelogue` | 素材汇总、风格选择、草稿预览、继续编辑 |
 | 游记素材不足 | `travelogue` | 禁止生成草稿、补素材清单、继续探索、添加照片 |
 | 游记生成失败 | `travelogue` | 素材已保存、重新生成、手动编辑、失败原因 |
+| 游记模板选择 | `travelogue` / `share` | 模板卡、素材摘要、模板效果预览、使用此模板生成 |
+| 游记模板定制 | `travelogue` | 封面、标题、排版风格、内容重点、图片裁切、文字润色、来源与隐私 |
+| 精美游记阅读 | `travelogue-reader` | 杂志式封面、章节、路线故事线、照片叙事、小京来源补充、继续阅读 |
 | 游记公开预览 | `travelogue` / `share` | 文章预览、来源、轨迹隐藏状态、继续编辑、生成 PDF、去发布 |
 | 游记深度编辑 | `travelogue` | 标题、封面、照片、路线、正文、小京补充、隐私检查、来源检查 |
 | 分享提交 | `share` | 渠道选择、海报/PDF 预览、朋友圈、小红书、隐私开关、提交审核 |
 | 朋友圈发布 | `share` | 图片、文案、标签、隐私摘要、复制文案、保存图片、唤起发布确认 |
 | 小红书发布 | `share` | 标题、正文、图集、标签、复制文案、保存图片、唤起发布确认 |
 | PDF 打印 | `pdf-print` | A4 设置、页码预览、保存 PDF、预览全部、系统打印/分享 PDF |
+| 我的纪念游记 | `works` | 精美游记、PDF 纪念册、已发布素材、草稿、继续阅读、分享和打印入口 |
 | 未登录 | `works` | 游客模式、登录入口、登录后同步说明 |
 | 公开范围设置 | `works` / `share` | 精确轨迹默认隐藏、正文/地点/照片/问答公开开关 |
 | 作品审核中 | `works` | 审核中、预计时间、不可公开分享 |
@@ -161,6 +176,10 @@ P0 主链路：
 - `components/xicheng/XichengPublishChannelGrid.vue`：星河公开、朋友圈、小红书、PDF 打印渠道选择。
 - `components/xicheng/XichengSocialSharePreview.vue`：朋友圈/小红书发布素材预览。
 - `components/xicheng/XichengPdfPrintPreview.vue`：PDF 页码预览、A4 设置和系统打印入口。
+- `components/xicheng/XichengTravelogueTemplateGallery.vue`：游记模板库、模板选中态和素材摘要。
+- `components/xicheng/XichengTravelogueTemplateSettings.vue`：封面、标题、排版风格和内容重点定制。
+- `components/xicheng/XichengTravelogueMagazinePage.vue`：精美游记阅读页的杂志式章节、照片叙事和路线故事线。
+- `components/xicheng/XichengKeepsakeTravelogueCard.vue`：我的游记书架中的精美游记/PDF/草稿卡片。
 
 公共数据、格式化与安全判断放到 `request/xunjing/` 或独立配置文件，不要散落在页面模板里。
 
@@ -188,11 +207,14 @@ P0 主链路：
 2. 对齐 `home`、`scan`、`scan-result`、`ai-guide` 四个主链路页面。
 3. 补 `poi`、`recording`、`passport`、`footprint` 四个新增体验页。
 4. 收敛 `travelogue`，把分享、PDF、审核状态拆到 `share` 和 `works`。
-5. 补 `share` 的朋友圈、小红书发布素材预览，发布动作按系统分享/平台 SDK 唤起确认。
-6. 新增 `pdf-print`，承接 PDF 纪念册保存、预览和打印，不继续堆进 `travelogue.vue`。
-7. 补 `ops-report`，只用汇总 mock/接口字段，不引入隐私明细。
-8. 更新 `pages.json` 路由。
-9. 补测试并跑完整门禁。
+5. 补游记模板库和模板定制组件，让生成游记先选模板再生成精排成品。
+6. 新增 `travelogue-reader`，承接长期回看的精美游记阅读体验，不继续堆进 `travelogue.vue`。
+7. 补 `share` 的朋友圈、小红书发布素材预览，发布动作按系统分享/平台 SDK 唤起确认。
+8. 新增 `pdf-print`，承接 PDF 纪念册保存、预览和打印，不继续堆进 `travelogue.vue`。
+9. 补 `works` 的纪念游记书架入口，支持继续阅读、分享和打印 PDF。
+10. 补 `ops-report`，只用汇总 mock/接口字段，不引入隐私明细。
+11. 更新 `pages.json` 路由。
+12. 补测试并跑完整门禁。
 
 ## 验收命令
 
@@ -221,7 +243,7 @@ node tests/xicheng-app-page-size-budget.test.mjs
 
 - `01` 到 `19` 的页面职责都有对应实现或明确状态实现。
 - 主链路可以从首页走到识别结果、小京、路线记录、生成游记、分享审核。
-- 游记可以从生成草稿进入预览、编辑、发布渠道、朋友圈、小红书和 PDF 打印预览。
+- 游记可以从生成草稿进入模板选择、模板定制、精美阅读、预览、编辑、发布渠道、朋友圈、小红书和 PDF 打印预览。
 - `sources` 和 `safetyStatus=BLOCKED` 行为与后端契约一致。
 - 新增页面已写入 `pages.json`。
 - 大页面没有超过 3500 行。
