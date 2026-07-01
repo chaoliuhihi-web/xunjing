@@ -1,97 +1,33 @@
 <template>
 	<view class="xicheng-recording xicheng-designed-page xicheng-bottom-safe">
-		<view class="record-nav">
-			<button class="nav-icon" @click="goBack">
-				<xicheng-icon name="back" variant="plain" :size="24" />
-			</button>
-			<text class="nav-title">记录中</text>
-			<button class="nav-icon pause-icon" @click="toggleRecordingStatus">
-				<xicheng-icon
-					:name="recordingSession.status === 'paused' ? 'resume' : 'record'"
-					variant="primary"
-					:size="20"
-				/>
-			</button>
-		</view>
-
-		<view class="record-map-card xicheng-paper-card">
-			<view class="map-grid"></view>
-			<view class="map-water"></view>
-			<view class="record-route-line"></view>
-			<view class="record-map-card">
-				<xicheng-icon class="route-mini-icon" name="route" variant="primary" :size="22" />
-				<text class="record-map-title">{{ recordMapCard.title }}</text>
-				<view class="record-stat-row">
-					<text class="stat-label">已用时</text>
-					<text class="stat-value">{{ elapsedMinutes }}</text>
-					<text class="stat-unit">分钟</text>
-				</view>
-				<view class="record-stat-row">
-					<text class="stat-label">已走距离</text>
-					<text class="stat-value">{{ distanceKilometers }}</text>
-					<text class="stat-unit">km</text>
-				</view>
-				<view class="record-stat-row">
-					<text class="stat-label">完成进度</text>
-					<text class="stat-value">{{ completedStopCount }}</text>
-					<text class="stat-unit">/ {{ routeStopCards.length }}</text>
-				</view>
-			</view>
-			<view
-				v-for="(stop, index) in routeStopCards"
-				:key="`${stop.poiCode}-${index}`"
-				class="map-stop"
-				:class="[`map-stop-${index}`, isStopCompleted(stop) ? 'map-stop-done' : '', nextStop && nextStop.poiCode === stop.poiCode ? 'map-stop-active' : '']"
-				>
-					<text class="map-stop-dot">{{ index + 1 }}</text>
-					<text class="map-stop-label">{{ stop.poiName }}</text>
-			</view>
-			<view class="map-tools">
-				<button class="map-tool-button" @click="centerOnRecordingLocation">
-					<xicheng-icon name="location" variant="plain" :size="19" />
-				</button>
-				<button class="map-tool-button" @click="toggleRecordingMapLayer">
-					<xicheng-icon name="layer" variant="plain" :size="19" />
-				</button>
-			</view>
-		</view>
-
-		<view class="next-stop-card xicheng-paper-card">
-			<image
-				v-if="nextStopImage"
-				class="next-stop-image"
-				:src="nextStopImage"
-				mode="aspectFill"
-			/>
-			<view class="next-stop-copy">
-				<text class="next-stop-kicker">下一站</text>
-				<text class="next-stop-title">{{ nextStop ? nextStop.poiName : '路线已完成' }}</text>
-				<text class="next-stop-meta">{{ nextStop ? nextStop.walkText || nextStop.durationText : '可以生成游记草稿' }}</text>
-				<text class="next-stop-address">{{ recordMapCard.address }}</text>
-			</view>
-			<button class="checkin-button xicheng-primary-action" :disabled="!nextStop" @click="arriveAtNextStop">到达打卡</button>
-		</view>
-
-		<view class="study-task-card xicheng-paper-card">
-			<view class="study-task-head">
-				<xicheng-icon class="study-task-icon" name="study" variant="primary" :size="22" />
-				<text class="study-task-title">亲子研学任务</text>
-				<text class="study-task-progress">{{ studyTaskDoneCount }} / {{ studyTasks.length }}</text>
-			</view>
-			<text class="study-task-desc">{{ currentStudyTask }}</text>
-		</view>
-
-	<view class="record-bottom-actions xicheng-paper-card">
-		<button class="bottom-action xicheng-secondary-action" @click="toggleRecordingStatus">
-			{{ recordingSession.status === 'paused' ? '继续记录' : '暂停记录' }}
-		</button>
-		<button class="bottom-action xicheng-secondary-action" :disabled="!nextStop" @click="askXiaojingForNextStop">问小京</button>
-		<button class="bottom-action xicheng-secondary-action" @click="openPassport">路线护照</button>
-		<button class="bottom-action xicheng-secondary-action" @click="openFootprint">我的足迹</button>
-		<button class="bottom-action xicheng-primary-action" @click="generateTravelogue">生成游记</button>
-	</view>
-
-		<text class="foreground-tip">为保证定位准确，请保持 APP 在前台运行</text>
+		<xicheng-route-recording-panel
+			:session="recordingSession"
+			:route="activeRoute"
+			:route-stops="routeStopCards"
+			:next-stop="nextStop"
+			:next-stop-image="nextStopImage"
+			:map-card="recordMapCard"
+			:elapsed-minutes="elapsedMinutes"
+			:distance-kilometers="distanceKilometers"
+			:completed-stop-count="completedStopCount"
+			:study-task-done-count="studyTaskDoneCount"
+			:study-task-count="studyTaskCount"
+			:current-study-task="currentStudyTask"
+			:companion-avatar="companionAvatar"
+			@arrive="arriveAtNextStop"
+			@pause="pauseRecordingSession"
+			@resume="resumeRecordingSession"
+			@finish="generateTravelogue"
+			@ask="askXiaojingForNextStop"
+			@locate="centerOnRecordingLocation"
+			@toggle-layer="toggleRecordingMapLayer"
+			@back="goBack"
+			@navigate-next="navigateToNextStop"
+			@photo="addPhotoMaterial"
+			@materials="openTodayMaterials"
+			@passport="openPassport"
+			@footprint="openFootprint"
+		/>
 	</view>
 </template>
 
@@ -101,6 +37,7 @@ import {
 	XICHENG_REGION_CONFIG,
 	normalizeXichengRouteCode
 } from '@/config/regions/xicheng.js'
+import XichengRouteRecordingPanel from '@/components/xicheng/XichengRouteRecordingPanel.vue'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { decodeXichengRouteValue, createXichengRouteOutputValue } from '@/request/xunjing/routeParams.js'
 
@@ -141,6 +78,9 @@ const createEmptyRecordingSession = () => ({
 })
 
 export default {
+	components: {
+		XichengRouteRecordingPanel
+	},
 	data() {
 		return {
 			region: XICHENG_REGION_CONFIG,
@@ -190,8 +130,14 @@ export default {
 		studyTaskDoneCount() {
 			return Math.min(this.completedStopCount, this.studyTasks.length)
 		},
+		studyTaskCount() {
+			return Math.max(this.studyTasks.length, 1)
+		},
 		currentStudyTask() {
 			return this.studyTasks[this.studyTaskDoneCount] || '完成路线后生成亲子研学报告。'
+		},
+		companionAvatar() {
+			return this.region.companionAvatar || ''
 		}
 	},
 	onLoad(options = {}) {
@@ -438,6 +384,27 @@ export default {
 				url: `/pages/ai-guide/ai-guide?question=${encodeRouteValue(question)}&regionCode=${encodeRouteValue(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.aiSceneCode || this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeOptions.sourceChannel || this.region.sourceChannel)}&poiCode=${encodeRouteValue(stop.poiCode || '')}&poiName=${encodeRouteValue(stop.poiName || '')}&safetyStatus=${encodeRouteValue('PASSED')}&companionName=${encodeRouteValue(this.routeOptions.companionName || this.region.companionName)}`
 			})
 		},
+		navigateToNextStop() {
+			const stop = this.nextStop
+			if (!stop) {
+				uni.showToast({ title: '路线已完成', icon: 'none' })
+				return
+			}
+			this.persistStopGuideContext(stop, `导航去${stop.poiName}`)
+			this.saveRecordingSession()
+			uni.navigateTo({
+				url: `/pages/xicheng/poi/poi?poiCode=${encodeRouteValue(stop.poiCode || '')}&poiName=${encodeRouteValue(stop.poiName || '')}&regionCode=${encodeRouteValue(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeOptions.sourceChannel || this.region.sourceChannel)}&companionName=${encodeRouteValue(this.routeOptions.companionName || this.region.companionName)}&safetyStatus=${encodeRouteValue('PASSED')}`
+			})
+		},
+		addPhotoMaterial() {
+			this.saveRecordingSession()
+			uni.navigateTo({
+				url: `/pages/xicheng/scan/scan?entryMode=${encodeRouteValue('photo')}&regionCode=${encodeRouteValue(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeOptions.sourceChannel || this.region.sourceChannel)}&companionName=${encodeRouteValue(this.routeOptions.companionName || this.region.companionName)}`
+			})
+		},
+		openTodayMaterials() {
+			this.generateTravelogue()
+		},
 		generateTravelogue() {
 			this.saveRecordingSession()
 			uni.navigateTo({
@@ -459,7 +426,7 @@ export default {
 <style scoped>
 .xicheng-recording {
 	min-height: 100vh;
-	padding: 34rpx 28rpx 48rpx;
+	padding: 0;
 	box-sizing: border-box;
 	color: #102F29;
 }

@@ -10,6 +10,8 @@ const routes = read('pages', 'xicheng', 'routes', 'routes.vue')
 const poi = read('pages', 'xicheng', 'poi', 'poi.vue')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
 const recording = read('pages', 'xicheng', 'recording', 'recording.vue')
+const recordingPanel = read('components', 'xicheng', 'XichengRouteRecordingPanel.vue')
+const recordingShell = `${recording}\n${recordingPanel}`
 const routeDetail = read('pages', 'xicheng', 'route-detail', 'route-detail.vue')
 
 for (const required of [
@@ -44,8 +46,8 @@ assert.match(
 )
 
 assert.match(
-  recording,
-  /<xicheng-icon[\s\S]*name="back"[\s\S]*:name="recordingSession\.status === 'paused' \? 'resume' : 'record'"[\s\S]*name="route"[\s\S]*name="study"/,
+  recordingShell,
+  /<xicheng-icon[\s\S]*name="back"[\s\S]*name="record"[\s\S]*name="route"[\s\S]*name="study"[\s\S]*name="resume"/,
   'Recording page should use shared icons for navigation, recording state, route marker, and study task'
 )
 

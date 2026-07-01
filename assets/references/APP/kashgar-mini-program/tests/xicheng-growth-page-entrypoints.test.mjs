@@ -7,6 +7,8 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const home = read('pages', 'xicheng', 'home', 'home.vue')
 const recording = read('pages', 'xicheng', 'recording', 'recording.vue')
+const recordingPanel = read('components', 'xicheng', 'XichengRouteRecordingPanel.vue')
+const recordingShell = `${recording}\n${recordingPanel}`
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 const works = read('pages', 'xicheng', 'works', 'works.vue')
 
@@ -60,10 +62,12 @@ for (const required of [
   'openFootprint',
   "url: '/pages/xicheng/passport/passport'",
   "url: '/pages/xicheng/footprint/footprint'",
-  '@click="openPassport"',
-  '@click="openFootprint"'
+  '@passport="openPassport"',
+  '@footprint="openFootprint"',
+  "$emit('passport')",
+  "$emit('footprint')"
 ]) {
-  assert.ok(recording.includes(required), `Recording page should keep post-recording secondary entry ${required}`)
+  assert.ok(recordingShell.includes(required), `Recording page should keep post-recording secondary entry ${required}`)
 }
 
 for (const required of [

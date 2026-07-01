@@ -13,6 +13,8 @@ const pagesJson = read('pages.json')
 const app = read('App.vue')
 const routeDetail = read('pages', 'xicheng', 'route-detail', 'route-detail.vue')
 const recording = readOptional('pages', 'xicheng', 'recording', 'recording.vue')
+const recordingPanel = readOptional('components', 'xicheng', 'XichengRouteRecordingPanel.vue')
+const recordingShell = `${recording}\n${recordingPanel}`
 
 assert.ok(
   pagesJson.includes('"path": "pages/xicheng/recording/recording"'),
@@ -52,13 +54,13 @@ for (const required of [
   'centerOnRecordingLocation',
   'toggleRecordingMapLayer'
 ]) {
-  assert.ok(recording.includes(required), `Dedicated recording page should expose ${required}`)
+  assert.ok(recordingShell.includes(required), `Dedicated recording page should expose ${required}`)
 }
 
 assert.match(
-  recording,
-  /<button class="map-tool-button" @click="centerOnRecordingLocation">[\s\S]*<xicheng-icon name="location"[\s\S]*<button class="map-tool-button" @click="toggleRecordingMapLayer">[\s\S]*<xicheng-icon name="layer"/,
-  'Recording map location and layer tool buttons should be wired to functional handlers instead of inert buttons'
+  recordingShell,
+  /<button class="recording-map-tool" @click="\$emit\('locate'\)">[\s\S]*<xicheng-icon name="location"[\s\S]*<button class="recording-map-tool" @click="\$emit\('toggle-layer'\)">[\s\S]*<xicheng-icon name="layer"/,
+  'Recording map location and layer tool buttons should be wired through component events instead of inert buttons'
 )
 
 assert.match(

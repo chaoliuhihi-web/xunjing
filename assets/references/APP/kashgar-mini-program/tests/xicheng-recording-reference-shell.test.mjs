@@ -1,0 +1,78 @@
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
+
+const root = process.cwd()
+const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
+const exists = (...segments) => fs.existsSync(path.join(root, ...segments))
+
+const componentPath = ['components', 'xicheng', 'XichengRouteRecordingPanel.vue']
+
+assert.ok(
+  exists(...componentPath),
+  'Route recording page should extract the approved UI shell into a dedicated component'
+)
+
+const recording = read('pages', 'xicheng', 'recording', 'recording.vue')
+const panel = read(...componentPath)
+
+assert.match(
+  recording,
+  /import XichengRouteRecordingPanel from '@\/components\/xicheng\/XichengRouteRecordingPanel\.vue'/,
+  'Recording page should import the dedicated recording panel component'
+)
+
+assert.match(
+  recording,
+  /<xicheng-route-recording-panel[\s\S]*:session="recordingSession"[\s\S]*:route="activeRoute"[\s\S]*:route-stops="routeStopCards"[\s\S]*:next-stop="nextStop"[\s\S]*@arrive="arriveAtNextStop"[\s\S]*@pause="pauseRecordingSession"[\s\S]*@resume="resumeRecordingSession"[\s\S]*@finish="generateTravelogue"/,
+  'Recording page should pass route state into the component and wire live recording actions back to page methods'
+)
+
+for (const required of [
+  '记录中',
+  '已暂停',
+  '白塔寺文化线',
+  '路线进度',
+  '已用时',
+  '已走距离',
+  '完成进度',
+  'recording-map-canvas',
+  'recording-route-path',
+  'recording-live-pin',
+  'recording-progress-card',
+  '下一站',
+  '预计步行时间',
+  '到达打卡',
+  '亲子研学任务',
+  '暂停记录',
+  '继续记录',
+  '结束并生成游记素材',
+  '导航到下一站',
+  '补记照片',
+  '查看今日素材',
+  '为保证定位准确，请保持 APP 在前台运行'
+]) {
+  assert.ok(panel.includes(required), `Recording panel should include approved UI element ${required}`)
+}
+
+assert.match(
+  panel,
+  /v-if="isPaused"[\s\S]*class="recording-paused-stats[^"]*"[\s\S]*已记录[\s\S]*用时[\s\S]*已到达[\s\S]*素材/,
+  'Paused recording shell should expose a compact route summary matching the approved paused/finish reference'
+)
+
+assert.match(
+  panel,
+  /v-else[\s\S]*class="recording-live-next-card[^"]*"[\s\S]*下一站[\s\S]*到达打卡/,
+  'Live recording shell should prioritize the next stop card and check-in action'
+)
+
+for (const eventName of ['pause', 'resume', 'arrive', 'finish', 'ask', 'locate', 'toggle-layer']) {
+  assert.ok(panel.includes(`$emit('${eventName}')`), `Recording panel should emit ${eventName} instead of mutating route state directly`)
+}
+
+assert.doesNotMatch(
+  panel + recording,
+  /\/app-api\/xunjing|Authorization['"]?\s*:\s*`Bearer|pat_[A-Za-z0-9]{20,}|https:\/\/api\.coze\.cn|sk-[A-Za-z0-9]{20,}/,
+  'High-fidelity recording shell should not introduce backend calls or client-side secrets'
+)
