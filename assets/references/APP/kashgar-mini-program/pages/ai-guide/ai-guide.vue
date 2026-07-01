@@ -536,6 +536,8 @@ const xichengAiContext = ref({
 	sourceRecognitionContext: '',
 	sceneFusionSummary: '',
 	sceneFusionSignals: [],
+	worldInterfaceSummary: '',
+	worldInterfaceSignals: [],
 	visionAgentMemorySessionText: '',
 	memorySessionSceneCount: '',
 	localTimeText: '',
@@ -579,7 +581,7 @@ const getXichengWelcomeContent = () => {
 	if (safetyStatus === 'UNAVAILABLE') {
 		return XICHENG_UNAVAILABLE_ANSWER
 	}
-	const visionAgentCue = context.sceneFusionSummary || context.visionAgentMemorySessionText
+	const visionAgentCue = context.worldInterfaceSummary || context.sceneFusionSummary || context.visionAgentMemorySessionText
 	if (visionAgentCue) {
 		return `我已接上AI识境：${visionAgentCue} 可以继续帮你讲解、推荐路线或生成游记草稿。`.slice(0, 110)
 	}
@@ -844,6 +846,12 @@ const normalizeXichengAiContext = (options = {}) => ({
 	sceneFusionSignals: Array.isArray(parseXichengVisionAgentContext(options.visionAgentContext).sceneFusionSignals)
 		? parseXichengVisionAgentContext(options.visionAgentContext).sceneFusionSignals
 		: [],
+	worldInterfaceSummary: parseXichengVisionAgentContext(options.visionAgentContext).worldInterfaceSummary || (parseXichengVisionAgentContext(options.visionAgentContext).worldInterfaceSnapshot && parseXichengVisionAgentContext(options.visionAgentContext).worldInterfaceSnapshot.summary) || '',
+	worldInterfaceSignals: Array.isArray(parseXichengVisionAgentContext(options.visionAgentContext).worldInterfaceSignals)
+		? parseXichengVisionAgentContext(options.visionAgentContext).worldInterfaceSignals
+		: parseXichengVisionAgentContext(options.visionAgentContext).worldInterfaceSnapshot && Array.isArray(parseXichengVisionAgentContext(options.visionAgentContext).worldInterfaceSnapshot.signals)
+			? parseXichengVisionAgentContext(options.visionAgentContext).worldInterfaceSnapshot.signals
+			: [],
 	visionAgentMemorySessionText: parseXichengVisionAgentContext(options.visionAgentContext).visionAgentMemorySessionText || parseXichengVisionAgentContext(options.visionAgentContext).memorySessionText || '',
 	memorySessionSceneCount: parseXichengVisionAgentContext(options.visionAgentContext).memorySessionSceneCount || '',
 	localTimeText: parseXichengVisionAgentContext(options.visionAgentContext).localTimeText || '',
@@ -956,6 +964,8 @@ const applyXichengAiContext = (options = {}) => {
 			sourceRecognitionContext: '',
 			sceneFusionSummary: '',
 			sceneFusionSignals: [],
+			worldInterfaceSummary: '',
+			worldInterfaceSignals: [],
 			visionAgentMemorySessionText: '',
 			memorySessionSceneCount: '',
 			localTimeText: '',
@@ -989,6 +999,8 @@ const applyXichengAiContext = (options = {}) => {
 		sourceRecognitionContext: context.sourceRecognitionContext,
 		sceneFusionSummary: context.sceneFusionSummary,
 		sceneFusionSignals: context.sceneFusionSignals,
+		worldInterfaceSummary: context.worldInterfaceSummary,
+		worldInterfaceSignals: context.worldInterfaceSignals,
 		visionAgentMemorySessionText: context.visionAgentMemorySessionText,
 		memorySessionSceneCount: context.memorySessionSceneCount,
 		localTimeText: context.localTimeText,
@@ -1051,9 +1063,10 @@ const xichengHeroSubtitle = computed(() => {
 	if (isXichengPlaybackMode.value) {
 		return `正在讲解${context.poiName || '西城文化点'}，播放内容基于已审核来源。`
 	}
+	const worldInterfaceSummary = context.worldInterfaceSummary || ''
 	const sceneFusionSummary = context.sceneFusionSummary || ''
-	if (sceneFusionSummary || context.visionAgentMemorySessionText) {
-		return `AI识境已接入${sceneFusionSummary || context.visionAgentMemorySessionText}，可以接着问。`.slice(0, 88)
+	if (worldInterfaceSummary || sceneFusionSummary || context.visionAgentMemorySessionText) {
+		return `AI识境已接入${worldInterfaceSummary || sceneFusionSummary || context.visionAgentMemorySessionText}，可以接着问。`.slice(0, 88)
 	}
 	const poiName = context.poiName || '西城文化点'
 	return `围绕${poiName}继续追问，答案优先使用已审核来源。`
@@ -1071,12 +1084,13 @@ const xichengVisionAgentContextChips = computed(() => {
 			value: text.slice(0, 32)
 		})
 	}
+	appendChip('world', '识境', context.worldInterfaceSummary)
 	appendChip('scene', '现场', context.sceneFusionSummary)
 	appendChip('memory', '连续', context.visionAgentMemorySessionText)
 	appendChip('time', '时间', context.localTimeText)
 	appendChip('weather', '天气', context.weatherText)
 	appendChip('heading', '方向', context.headingText)
-	return chips.slice(0, 4)
+	return chips.slice(0, 5)
 })
 
 const xichengServiceHandoffContext = computed(() => createXichengServiceHandoffViewContext(xichengAiContext.value || {}))
@@ -1205,12 +1219,13 @@ const buildXichengContextQuestion = (question = '', context = xichengAiContext.v
 	}
 	const poiText = context.poiName ? `识别地点：${context.poiName}。` : ''
 	const confidenceText = context.confidence ? `识别置信度：${context.confidence}。` : ''
+	const worldInterfaceSummary = context.worldInterfaceSummary ? `世界交互入口：${context.worldInterfaceSummary}。` : ''
 	const sceneFusionSummary = context.sceneFusionSummary ? `AI识境现场判断：${context.sceneFusionSummary}。` : ''
 	const memorySessionText = context.visionAgentMemorySessionText ? `连续识境：${context.visionAgentMemorySessionText}。` : ''
 	const liveSignalText = [context.localTimeText, context.weatherText, context.headingText].filter(Boolean).join(' ')
 	const liveSignals = liveSignalText ? `现场信号：${liveSignalText}。` : ''
 	const serviceHandoffText = buildXichengServiceHandoffPromptPrefix(context)
-	return `你是${context.companionName || XICHENG_REGION_CONFIG.companionName}，服务北京西城试运营路线。${poiText}${confidenceText}${sceneFusionSummary}${memorySessionText}${liveSignals}${serviceHandoffText}用户问题：${question}`
+	return `你是${context.companionName || XICHENG_REGION_CONFIG.companionName}，服务北京西城试运营路线。${poiText}${confidenceText}${worldInterfaceSummary}${sceneFusionSummary}${memorySessionText}${liveSignals}${serviceHandoffText}用户问题：${question}`
 }
 
 const buildYudaoAppApiUrl = (path) => {
@@ -2848,152 +2863,7 @@ onUnload(() => {
 })
 </script>
 
-<style scoped>
-@import './ai-guide-theme.css';
-
-.message-item {
-	margin-bottom: 32rpx;
-}
-
-/* 用户消息 */
-.message-user {
-	display: flex;
-	justify-content: flex-end;
-	align-items: flex-start;
-	gap: 16rpx;
-  padding-right: 20px;
-}
-
-.user-avatar {
-	width: 72rpx;
-	height: 72rpx;
-	border-radius: 50%;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	flex-shrink: 0;
-	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
-}
-
-.message-content-wrapper {
-	max-width: 65%;
-	display: flex;
-	flex-direction: column;
-	gap: 12rpx;
-}
-
-.user-content {
-	padding: 24rpx 28rpx;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	color: #FFFFFF;
-	border-radius: 20rpx 20rpx 4rpx 20rpx;
-	word-break: break-all;
-	line-height: 1.7;
-	font-size: 30rpx;
-	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.2);
-}
-
-/* 消息中的图片 */
-.message-images {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 12rpx;
-}
-
-.message-image {
-	width: 200rpx;
-	height: 200rpx;
-	border-radius: 12rpx;
-	background-color: #F0F0F0;
-}
-
-/* AI消息容器 */
-.message-ai-wrapper {
-	width: 100%;
-}
-
-.message-status {
-	display: block;
-	margin-top: 12rpx;
-	margin-left: 88rpx;
-	color: #999999;
-	font-size: 22rpx;
-	line-height: 1.4;
-}
-
-/* AI消息 */
-.message-ai {
-	display: flex;
-	justify-content: flex-start;
-	align-items: flex-start;
-	gap: 16rpx;
-	margin-top: 50px;
-}
-
-.ai-avatar {
-	width: 72rpx;
-	height: 72rpx;
-	border-radius: 50%;
-	background: #FFFFFF;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	flex-shrink: 0;
-	overflow: hidden;
-	box-shadow: 0 4rpx 12rpx rgba(86, 157, 144, 0.24);
-}
-
-.ai-avatar-image {
-	width: 100%;
-	height: 100%;
-}
-
-.ai-content {
-	max-width: 65%;
-	padding: 24rpx 28rpx;
-	background-color: #FFFFFF;
-	color: #333333;
-	border-radius: 20rpx 20rpx 20rpx 4rpx;
-	box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
-	word-break: break-all;
-	line-height: 1.7;
-	font-size: 30rpx;
-}
-
-.ai-content .md-p {
-	margin: 0 0 12rpx;
-	line-height: 1.75;
-}
-
-.ai-content .md-p:last-child {
-	margin-bottom: 0;
-}
-
-.ai-content .md-empty {
-	height: 10rpx;
-	line-height: 10rpx;
-}
-
-.ai-content .md-heading {
-	margin: 12rpx 0;
-	font-weight: 700;
-	color: #1f1f1f;
-}
-
-.ai-content .md-list {
-	padding-left: 8rpx;
-}
-
-.ai-content .md-inline-code {
-	padding: 2rpx 8rpx;
-	border-radius: 6rpx;
-	background: #f3f3f3;
-	color: #d14;
-	font-family: monospace;
-}
-
-</style>
+<style scoped src="./ai-guide-base.css"></style>
 <style scoped src="./ai-guide-kashgar-diary.css"></style>
 <style scoped src="./ai-guide-kashgar-home.css"></style>
 <style scoped src="./ai-guide-chat.css"></style>
