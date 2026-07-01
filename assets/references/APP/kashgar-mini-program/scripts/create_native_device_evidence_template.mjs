@@ -80,6 +80,29 @@ const assertMobileReleaseArtifact = (label, artifactPath) => {
   }
 }
 
+const assertReadableMobileArchive = (label, artifactPath) => {
+  const result = spawnSync('unzip', ['-tq', artifactPath], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    maxBuffer: 50 * 1024 * 1024
+  })
+  if (result.status !== 0) {
+    fail(`${label} must be a readable APK/AAB/IPA ZIP archive: ${result.stderr || result.stdout}`)
+  }
+}
+
+const listMobileArchiveEntries = (label, artifactPath) => {
+  const result = spawnSync('unzip', ['-Z', '-1', artifactPath], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    maxBuffer: 50 * 1024 * 1024
+  })
+  if (result.status !== 0) {
+    fail(`${label} entries cannot be read as an APK/AAB/IPA ZIP archive: ${result.stderr || result.stdout}`)
+  }
+  return result.stdout.split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean)
+}
+
 const assertArtifactMatchesReleaseTargets = ({ artifactPath, releaseTargets, label }) => {
   if (releaseTargets.length !== 1) {
     fail(`${label} supports one platform per single release artifact. Create separate native evidence files for android and ios.`)
@@ -91,6 +114,20 @@ const assertArtifactMatchesReleaseTargets = ({ artifactPath, releaseTargets, lab
   }
   if (target === 'ios' && ext !== '.ipa') {
     fail(`${label} for ios must use an IPA release artifact`)
+  }
+}
+
+const assertMobileArchiveMatchesPlatform = ({ artifactPath, releaseTarget, label }) => {
+  const ext = path.extname(artifactPath).toLowerCase()
+  const entries = listMobileArchiveEntries(label, artifactPath)
+  if (releaseTarget === 'android' && ext === '.apk' && !entries.includes('AndroidManifest.xml')) {
+    fail(`${label} for android APK must contain AndroidManifest.xml at the archive root`)
+  }
+  if (releaseTarget === 'android' && ext === '.aab' && !entries.includes('base/manifest/AndroidManifest.xml')) {
+    fail(`${label} for android AAB must contain base/manifest/AndroidManifest.xml`)
+  }
+  if (releaseTarget === 'ios' && ext === '.ipa' && !entries.some((entry) => /^Payload\/[^/]+\.app(?:\/|$)/.test(entry))) {
+    fail(`${label} for ios IPA must contain a Payload/*.app bundle`)
   }
 }
 
@@ -109,6 +146,7 @@ if (!/^[1-9]\d*$/.test(tenantId)) {
 
 const artifactPath = resolveInputFile('Release artifact', artifactArg)
 assertMobileReleaseArtifact('Release artifact', artifactPath)
+assertReadableMobileArchive('Release artifact', artifactPath)
 const outputPath = path.resolve(process.cwd(), outputArg)
 const force = hasFlag('--force')
 
@@ -135,6 +173,11 @@ assertArtifactMatchesReleaseTargets({
   artifactPath,
   releaseTargets,
   label: 'XUNJING_RELEASE_TARGETS'
+})
+assertMobileArchiveMatchesPlatform({
+  artifactPath,
+  releaseTarget: releaseTargets[0],
+  label: 'Release artifact'
 })
 
 const artifactBytes = fs.readFileSync(artifactPath)

@@ -64,12 +64,42 @@ for (const required of [
 }
 
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-native-template-'))
-const artifactPath = path.join(tempDir, 'xicheng-release.apk')
-const artifactBytes = Buffer.from('release candidate apk bytes for native template test\n', 'utf8')
-fs.writeFileSync(artifactPath, artifactBytes)
-const artifactSha256 = crypto.createHash('sha256').update(artifactBytes).digest('hex')
-const iosArtifactPath = path.join(tempDir, 'xicheng-release.ipa')
-fs.writeFileSync(iosArtifactPath, 'release candidate ipa bytes for native template test\n')
+const createZipArtifact = (fileName, files) => {
+  const sourceDir = fs.mkdtempSync(path.join(tempDir, `${path.basename(fileName, path.extname(fileName))}-source-`))
+  for (const [relativePath, content] of Object.entries(files)) {
+    const filePath = path.join(sourceDir, relativePath)
+    fs.mkdirSync(path.dirname(filePath), { recursive: true })
+    fs.writeFileSync(filePath, content)
+  }
+  const artifactPath = path.join(tempDir, fileName)
+  const zipResult = spawnSync('zip', ['-qr', artifactPath, '.'], {
+    cwd: sourceDir,
+    encoding: 'utf8'
+  })
+  assert.equal(zipResult.status, 0, `test fixture should create readable ${fileName}: ${zipResult.stderr || zipResult.stdout}`)
+  const artifactBytes = fs.readFileSync(artifactPath)
+  return {
+    artifactPath,
+    artifactBytes,
+    artifactSha256: crypto.createHash('sha256').update(artifactBytes).digest('hex')
+  }
+}
+const androidArtifact = createZipArtifact('xicheng-release.apk', {
+  'AndroidManifest.xml': '<manifest package="com.xinghe.xunjing"></manifest>',
+  'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";'
+})
+const artifactPath = androidArtifact.artifactPath
+const artifactBytes = androidArtifact.artifactBytes
+const artifactSha256 = androidArtifact.artifactSha256
+const iosArtifact = createZipArtifact('xicheng-release.ipa', {
+  'Payload/XingheXunjing.app/config.json': '{"apiBase":"https://api.xingheai.net","tenantId":"1"}'
+})
+const iosArtifactPath = iosArtifact.artifactPath
+const renamedTextArtifactPath = path.join(tempDir, 'xicheng-renamed-text.apk')
+fs.writeFileSync(renamedTextArtifactPath, 'renamed text file is not a readable mobile archive\n')
+const genericZipArtifact = createZipArtifact('xicheng-generic-renamed.apk', {
+  'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";'
+})
 const outputPath = path.join(tempDir, 'native-evidence.json')
 const nonMobileArtifactPath = path.join(tempDir, 'xicheng-release.txt')
 fs.writeFileSync(nonMobileArtifactPath, 'not a mobile install package\n')
@@ -283,6 +313,48 @@ assert.match(
   `${invalidArtifactTypeResult.stderr}\n${invalidArtifactTypeResult.stdout}`,
   /APK|AAB|IPA|install package|安装包/i,
   'native evidence template generator should explain release artifact type validation'
+)
+
+const renamedTextArtifactResult = spawnSync(
+  process.execPath,
+  [scriptPath, '--artifact', renamedTextArtifactPath, '--output', path.join(tempDir, 'renamed-text-artifact.json'), '--force'],
+  {
+    cwd: root,
+    env: {
+      ...process.env,
+      XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
+      XUNJING_TENANT_ID: '1',
+      XUNJING_RELEASE_TARGETS: 'android'
+    },
+    encoding: 'utf8'
+  }
+)
+assert.notEqual(renamedTextArtifactResult.status, 0, 'native evidence template generator should reject text files renamed with an APK extension')
+assert.match(
+  `${renamedTextArtifactResult.stderr}\n${renamedTextArtifactResult.stdout}`,
+  /APK|AAB|IPA|archive|ZIP|install package|安装包/i,
+  'native evidence template generator should explain readable mobile archive validation'
+)
+
+const genericZipArtifactResult = spawnSync(
+  process.execPath,
+  [scriptPath, '--artifact', genericZipArtifact.artifactPath, '--output', path.join(tempDir, 'generic-zip-artifact.json'), '--force'],
+  {
+    cwd: root,
+    env: {
+      ...process.env,
+      XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
+      XUNJING_TENANT_ID: '1',
+      XUNJING_RELEASE_TARGETS: 'android'
+    },
+    encoding: 'utf8'
+  }
+)
+assert.notEqual(genericZipArtifactResult.status, 0, 'native evidence template generator should reject a generic ZIP renamed with an APK extension')
+assert.match(
+  `${genericZipArtifactResult.stderr}\n${genericZipArtifactResult.stdout}`,
+  /AndroidManifest|APK|AAB|IPA|platform|install package|安装包/i,
+  'native evidence template generator should explain platform-specific mobile package structure validation'
 )
 
 const invalidPlatformResult = spawnSync(
