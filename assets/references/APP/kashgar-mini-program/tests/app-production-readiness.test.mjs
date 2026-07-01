@@ -64,6 +64,11 @@ assert.equal(
   'APP build script should use the root UniApp input and APP output directory'
 )
 
+assert.ok(
+  packageJson.dependencies?.['@dcloudio/uni-app-plus'],
+  'APP build must include @dcloudio/uni-app-plus so `uni build -p app` produces a real mobile APP target instead of a thin H5 shell'
+)
+
 assert.equal(
   packageJson.name,
   'xinghe-xunjing-kashgar-app',

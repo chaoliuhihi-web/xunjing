@@ -96,9 +96,19 @@ const isTextCandidate = (filePath) => {
   return textExtensions.has(ext)
 }
 
-const normalizeUrl = (value) => String(value || '').trim().replace(/\/+$/, '')
+const normalizeUrl = (value) => String(value || '').trim().replace(/[\\.,;]+$/, '').replace(/\/+$/, '')
+const allowedNonNetworkUrls = new Set([
+  'http://www.w3.org/2000/svg',
+  'http://www.w3.org/1998/Math/MathML',
+  'http://www.w3.org/1999/xhtml',
+  'http://www.w3.org/1999/xlink',
+  'http://www.w3.org/XML/1998/namespace',
+  'http://www.w3.org/2001/XMLSchema',
+  'http://schemas.android.com/apk/res/android'
+])
 
 const embeddedUrls = new Set()
+const embeddedUrlRecords = []
 const urlPattern = /https?:\/\/[A-Za-z0-9.-]+(?::\d+)?(?:\/[^\s"'`<>)]*)?/g
 let textFilesScanned = 0
 let archiveFilesScanned = 0
@@ -111,7 +121,18 @@ const scanTextContent = (sourceLabel, content) => {
   }
 
   for (const match of content.matchAll(urlPattern)) {
-    embeddedUrls.add(normalizeUrl(match[0]))
+    const embeddedUrl = normalizeUrl(match[0])
+    const matchIndex = match.index || 0
+    const contextStart = Math.max(0, matchIndex - 120)
+    const contextEnd = Math.min(content.length, matchIndex + match[0].length + 120)
+    embeddedUrls.add(embeddedUrl)
+    embeddedUrlRecords.push({
+      url: embeddedUrl,
+      sourceLabel,
+      context: content.slice(contextStart, contextEnd),
+      before: content.slice(Math.max(0, matchIndex - 48), matchIndex),
+      after: content.slice(matchIndex + match[0].length, Math.min(content.length, matchIndex + match[0].length + 48))
+    })
   }
 }
 
@@ -173,13 +194,31 @@ if (artifactStat.isDirectory()) {
   fail(`Release artifact path must be a directory, APK, AAB, IPA, ZIP, or scannable text file: ${resolvedArtifactDir}`)
 }
 
-for (const embeddedUrl of embeddedUrls) {
-  if (embeddedUrl.startsWith('http://')) {
-    fail(`Release artifact contains non-HTTPS URL: ${embeddedUrl}`)
+const isExpectedApiUrl = (url) => url === expectedApiBaseUrl || url.startsWith(`${expectedApiBaseUrl}/`)
+const isApiGatewayContext = (record) => {
+  const assignmentMatch = record.before.match(/([A-Za-z0-9_$.-]+)\s*[:=]\s*["']?$/)
+  const assignedKey = assignmentMatch ? assignmentMatch[1] : ''
+  return (
+    /api|UrlYudao|VITE_XUNJING|XUNJING|baseUrl|baseURL/i.test(assignedKey) ||
+    /app-api|xunjing/i.test(record.after) ||
+    /\/app-api\//i.test(record.url)
+  )
+}
+
+for (const record of embeddedUrlRecords) {
+  if (allowedNonNetworkUrls.has(record.url)) {
+    continue
   }
-  if (!embeddedUrl.startsWith(expectedApiBaseUrl)) {
-    fail(`Release artifact contains ${embeddedUrl}; expected API base from XUNJING_APP_API_BASE_URL is ${expectedApiBaseUrl}`)
+  if (record.url.startsWith('http://')) {
+    fail(`Release artifact contains non-HTTPS URL: ${record.url}`)
   }
+  if (!isExpectedApiUrl(record.url) && isApiGatewayContext(record)) {
+    fail(`Release artifact contains API gateway ${record.url} in ${record.sourceLabel}; expected API base from XUNJING_APP_API_BASE_URL is ${expectedApiBaseUrl}`)
+  }
+}
+
+if (!embeddedUrlRecords.some((record) => isExpectedApiUrl(record.url))) {
+  fail(`Release artifact must embed the configured API base from XUNJING_APP_API_BASE_URL: ${expectedApiBaseUrl}`)
 }
 
 console.log(JSON.stringify({

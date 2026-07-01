@@ -5,6 +5,7 @@ import path from 'node:path'
 const root = process.cwd()
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
 const config = fs.readFileSync(path.join(root, 'request', 'config.js'), 'utf8')
+const viteConfig = fs.readFileSync(path.join(root, 'vite.config.js'), 'utf8')
 const apiContract = fs.readFileSync(path.join(root, 'docs', 'online-api-first-contract.md'), 'utf8')
 const releaseEnvGuard = fs.readFileSync(path.join(root, 'scripts', 'verify_release_app_env.mjs'), 'utf8')
 const scripts = packageJson.scripts || {}
@@ -21,6 +22,18 @@ assert.match(
   'Yudao tenant id should be overridable at APP build time'
 )
 
+assert.ok(
+  viteConfig.includes('__XUNJING_BUILD_YUDAO_APP_BASE_URL__') &&
+  viteConfig.includes('__XUNJING_BUILD_TENANT_ID__'),
+  'Vite config should define release build constants so app-plus output can inline the selected Yudao APP gateway and tenant'
+)
+
+assert.ok(
+  config.includes('__XUNJING_BUILD_YUDAO_APP_BASE_URL__') &&
+  config.includes('__XUNJING_BUILD_TENANT_ID__'),
+  'Request config should prefer build-time constants before import.meta.env so release app-plus bundles do not retain stale Yudao fallback gateways'
+)
+
 assert.match(
   config,
   /const normalizeApiBaseUrl\s*=\s*\(value\)[\s\S]*replace\(\/\\\/\+\$\/,\s*''\)[\s\S]*`\$\{base\}\/`/,
@@ -29,14 +42,14 @@ assert.match(
 
 assert.match(
   config,
-  /UrlYudaoAppRequest:\s*normalizeApiBaseUrl\(runtimeEnv\.VITE_XUNJING_YUDAO_APP_BASE_URL\s*\|\|\s*"https:\/\/kashi\.weiapp\.net\/"\)/,
-  'Yudao APP API base should default to the current online domain while allowing deployment override'
+  /UrlYudaoAppRequest:\s*normalizeApiBaseUrl\(buildTimeYudaoAppBaseUrl\s*\|\|\s*runtimeEnv\.VITE_XUNJING_YUDAO_APP_BASE_URL\s*\|\|\s*"https:\/\/kashi\.weiapp\.net\/"\)/,
+  'Yudao APP API base should prefer build-time release constants, then runtime env, then the current online fallback'
 )
 
 assert.match(
   config,
-  /XunjingTenantId:\s*String\(runtimeEnv\.VITE_XUNJING_TENANT_ID\s*\|\|\s*"1"\)/,
-  'Yudao tenant id should default to the Kashgar P0 tenant and allow deployment override'
+  /XunjingTenantId:\s*String\(buildTimeTenantId\s*\|\|\s*runtimeEnv\.VITE_XUNJING_TENANT_ID\s*\|\|\s*"1"\)/,
+  'Yudao tenant id should prefer build-time release constants, then runtime env, then tenant 1 fallback'
 )
 
 assert.ok(

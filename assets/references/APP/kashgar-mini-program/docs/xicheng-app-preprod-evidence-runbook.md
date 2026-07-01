@@ -157,7 +157,7 @@ npm run build
 for f in tests/*.test.mjs; do node "$f" || exit 1; done
 ```
 
-预发或上线真机包必须使用 release 打包入口，避免把 localhost、局域网或旧线上默认域名打进 APP 包：
+预发或上线真机包必须使用 release 打包入口，避免把 localhost、局域网或旧 Yudao 默认域名打进 APP 包：
 
 ```bash
 XUNJING_APP_API_BASE_URL="$XUNJING_APP_API_BASE_URL" \
@@ -165,7 +165,7 @@ XUNJING_TENANT_ID="$XUNJING_TENANT_ID" \
 npm run build:app:release
 ```
 
-该 release 构建会自动执行 `npm run verify:release:artifact` 扫描 `dist/build/app-release`；同一脚本也可扫描 APK/ZIP 安装包内部文本资源。release 构建产物不得包含 `localhost`、`127.0.0.1`、局域网地址、`XICHENG_DEVELOPMENT_TRIGGER_FIXTURE`、H5 proxy 标记、`sk-`、`pat_`、`AKIA`、真实 token 或与 `XUNJING_APP_API_BASE_URL` 不一致的 HTTPS 网关。
+该 release 构建会自动执行 `npm run verify:release:artifact` 扫描 `dist/build/app-release`；同一脚本也可扫描 APK/ZIP 安装包内部文本资源。release 构建产物不得包含 `localhost`、`127.0.0.1`、局域网地址、`XICHENG_DEVELOPMENT_TRIGGER_FIXTURE`、H5 proxy 标记、`sk-`、`pat_`、`AKIA`、真实 token 或与 `XUNJING_APP_API_BASE_URL` 不一致的 Yudao APP API 网关。包内必须能扫描到 `XUNJING_APP_API_BASE_URL` 指定的 Yudao APP API 网关；旧 `api2/*`、图片和静态资源仍可保留原线上域名，但不得替代 `/app-api/xunjing/**` 的 release 网关。
 
 并在仓库根目录运行：
 

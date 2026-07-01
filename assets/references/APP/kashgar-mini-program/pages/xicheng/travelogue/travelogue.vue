@@ -1302,7 +1302,7 @@ export default {
 			return previewNames.length > 0
 				? `${trackSummary}${taskSummary}${autoPackageSummary}已收集 ${previewNames.join('、')} 等真实地点素材，可按「${styleTitle}」整理成可编辑游记草稿。`
 				: `${trackSummary}${taskSummary}${autoPackageSummary}已收集照片、问答、研学任务、AI识境任务或现场备注，可按「${styleTitle}」生成西城游记草稿。`
-			},
+		},
 		traveloguePreviewTags() {
 			if (!this.hasTraveloguePreviewEvidence) return [...XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TAGS]
 			const routeStopTags = this.recognizedRouteStops.map(stop => typeof stop === 'string' ? stop : stop.poiName).filter(Boolean).slice(0, 3)

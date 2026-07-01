@@ -29,14 +29,14 @@ assert.match(
 
 assert.match(
   config,
-  /UrlYudaoAppRequest:\s*normalizeApiBaseUrl\(runtimeEnv\.VITE_XUNJING_YUDAO_APP_BASE_URL\s*\|\|\s*"https:\/\/kashi\.weiapp\.net\/"\)/,
-  'Yudao APP API should default to the online HTTPS base while allowing deployment override'
+  /UrlYudaoAppRequest:\s*normalizeApiBaseUrl\(buildTimeYudaoAppBaseUrl\s*\|\|\s*runtimeEnv\.VITE_XUNJING_YUDAO_APP_BASE_URL\s*\|\|\s*"https:\/\/kashi\.weiapp\.net\/"\)/,
+  'Yudao APP API should prefer build-time release constants while keeping the online HTTPS fallback'
 )
 
 assert.match(
   config,
-  /XunjingTenantId:\s*String\(runtimeEnv\.VITE_XUNJING_TENANT_ID\s*\|\|\s*"1"\)/,
-  'Yudao APP API calls should carry the configured tenant id required by the backend'
+  /XunjingTenantId:\s*String\(buildTimeTenantId\s*\|\|\s*runtimeEnv\.VITE_XUNJING_TENANT_ID\s*\|\|\s*"1"\)/,
+  'Yudao APP API calls should carry the build-time or runtime configured tenant id required by the backend'
 )
 
 assert.match(

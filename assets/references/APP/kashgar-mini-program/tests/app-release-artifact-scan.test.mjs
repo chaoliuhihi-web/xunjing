@@ -86,7 +86,7 @@ const runScanner = (artifactDir, env = {}) => spawnSync(
 
 const validArtifactDir = makeArtifactDir({
   'index.html': '<!doctype html><script src="./assets/index.js"></script>',
-  'assets/index.js': 'const apiBase="https://api.example.com";const tenantId="1";'
+  'assets/index.js': 'const apiBase="https://api.example.com";const docs="https://github.com/uuidjs/uuid#getrandomvalues-not-supported";const tenantId="1";'
 })
 const validResult = runScanner(validArtifactDir)
 assert.equal(
@@ -98,6 +98,41 @@ assert.match(
   validResult.stdout,
   /"ok": true/,
   'release artifact scanner should print a machine-readable OK summary'
+)
+
+const legacyOnlineApiDir = makeArtifactDir({
+  'assets/index.js': 'const apiBase="https://api.example.com";const UrlRequest="https://kashi.weiapp.net/";'
+})
+const legacyOnlineApiResult = runScanner(legacyOnlineApiDir)
+assert.equal(
+  legacyOnlineApiResult.status,
+  0,
+  `release artifact scanner should allow the legacy online api2 base while Yudao APP API uses the release gateway: ${legacyOnlineApiResult.stderr || legacyOnlineApiResult.stdout}`
+)
+
+const svgNamespaceDir = makeArtifactDir({
+  'assets/index.js': 'const apiBase="https://api.example.com";const icon="<svg xmlns=\\"http://www.w3.org/2000/svg\\"></svg>";'
+})
+const svgNamespaceResult = runScanner(svgNamespaceDir)
+assert.equal(
+  svgNamespaceResult.status,
+  0,
+  `release artifact scanner should allow standard SVG/XML namespace URLs while still enforcing API gateways: ${svgNamespaceResult.stderr || svgNamespaceResult.stdout}`
+)
+
+const missingExpectedGatewayDir = makeArtifactDir({
+  'assets/index.js': 'const tenantId="1"; const relativeApi="/app-api/xunjing";'
+})
+const missingExpectedGatewayResult = runScanner(missingExpectedGatewayDir)
+assert.notEqual(
+  missingExpectedGatewayResult.status,
+  0,
+  'release artifact scanner should reject artifacts that do not embed the configured release API gateway'
+)
+assert.match(
+  `${missingExpectedGatewayResult.stderr}\n${missingExpectedGatewayResult.stdout}`,
+  /expected API|XUNJING_APP_API_BASE_URL|embed|网关/i,
+  'release artifact scanner should explain that the configured release API gateway must be embedded in the package'
 )
 
 for (const invalidTenantId of ['0', '-1', 'tenant-prod']) {

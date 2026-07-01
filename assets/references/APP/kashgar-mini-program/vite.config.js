@@ -107,7 +107,14 @@ function copyMiniProgramStaticAssets() {
   }
 }
 
+const xunjingBuildYudaoAppBaseUrl = process.env.VITE_XUNJING_YUDAO_APP_BASE_URL || ''
+const xunjingBuildTenantId = process.env.VITE_XUNJING_TENANT_ID || ''
+
 export default defineConfig({
+  define: {
+    __XUNJING_BUILD_YUDAO_APP_BASE_URL__: JSON.stringify(xunjingBuildYudaoAppBaseUrl),
+    __XUNJING_BUILD_TENANT_ID__: JSON.stringify(xunjingBuildTenantId)
+  },
   plugins: [uni(), copyMiniProgramStaticAssets()],
   server: {
     proxy: {
