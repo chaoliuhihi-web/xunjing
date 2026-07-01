@@ -53,6 +53,19 @@
 | `37-my-logged-out-visitor-mode.jpg` | 我的未登录 | 游客模式、手机号登录、登录后同步游记草稿和收藏 | `pages/xicheng/works/works.vue` |
 | `38-privacy-public-scope-settings.jpg` | 公开范围设置 | 发布前设置正文、地点、照片、精确轨迹和问答记录公开范围 | `pages/xicheng/works/works.vue` / `pages/xicheng/share/share.vue` |
 
+## 游记预览、发布和打印补充页
+
+`39` 到 `44` 是 2026-07-01 补齐的游记发布闭环页面，用于明确游记生成后的预览、编辑、发布渠道、朋友圈、小红书和 PDF 打印体验。第三方平台发布按系统分享/平台 SDK 能力唤起确认，不在客户端静默绕过用户确认。
+
+| 文件 | 页面/状态 | 主要用途 | 建议实现位置 |
+| --- | --- | --- | --- |
+| `39-travelogue-public-preview.jpg` | 游记公开预览 | 游记文章预览、来源提示、轨迹隐藏状态、继续编辑、生成 PDF、去发布 | `pages/xicheng/travelogue/travelogue.vue` / `pages/xicheng/share/share.vue` |
+| `40-travelogue-rich-editor.jpg` | 游记深度编辑 | 标题、封面、照片、路线、正文、小京补充、隐私检查和来源检查 | `pages/xicheng/travelogue/travelogue.vue` |
+| `41-travelogue-publish-channel-settings.jpg` | 发布渠道设置 | 选择星河寻境公开游记、朋友圈、小红书、PDF 打印，并完成发布前检查 | `pages/xicheng/share/share.vue` |
+| `42-travelogue-wechat-moments-preview.jpg` | 朋友圈发布预览 | 生成朋友圈图片、文案、标签和隐私摘要，并唤起朋友圈发布确认 | `pages/xicheng/share/share.vue` |
+| `43-travelogue-xiaohongshu-note-preview.jpg` | 小红书笔记预览 | 生成小红书标题、正文、标签、图集和发布素材，并唤起小红书发布确认 | `pages/xicheng/share/share.vue` |
+| `44-travelogue-pdf-print-preview.jpg` | PDF 打印预览 | PDF 纪念册页码预览、A4 打印设置、保存 PDF、系统打印/分享 PDF | 建议新增 `pages/xicheng/pdf-print/pdf-print.vue` |
+
 ## 实现拆分建议
 
 - `components/xicheng/XichengPageShell.vue`：通用背景、顶部栏、安全区。
@@ -72,6 +85,9 @@
 - 识别结果、小京回答、AI 讲解都必须有来源区域。
 - 地图主页面必须能看到多个 POI 点、分类筛选、选点状态，并支持从 POI 组合生成可走线路。
 - 记录主页面以游记生成为核心，能汇总识别/路线/照片/问答素材并生成可编辑草稿。
+- 游记发布闭环必须覆盖预览、深度编辑、发布渠道、朋友圈预览、小红书预览和 PDF 打印预览。
+- 朋友圈、小红书发布必须先生成图片/文案/标签，再按系统分享或平台 SDK 唤起用户确认，不得默认静默发布。
+- PDF 纪念册必须支持保存 PDF、预览全部页面、A4 打印设置和系统打印/分享 PDF。
 - 导入灵感必须走“AI 提取地点 -> 匹配官方 POI -> 生成可走路线”。
 - 我的主页面必须展示登录状态、账号信息、我的游记、草稿/收藏、隐私授权和账号设置，不放积分、护照、徽章、审核状态和亲子研学任务。
 - 运营报告只展示汇总与审核数据，不暴露用户隐私。
