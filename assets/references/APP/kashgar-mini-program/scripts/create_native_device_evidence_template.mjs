@@ -151,7 +151,7 @@ const evidence = {
       id,
       platform: firstPlatform,
       status: 'TODO',
-      evidenceRef: 'TODO screenshot-or-recording-path',
+      evidenceRef: `qa/native/${id}.jpg`,
       notes
     }
   }),

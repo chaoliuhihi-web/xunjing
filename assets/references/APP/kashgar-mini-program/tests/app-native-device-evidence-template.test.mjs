@@ -50,6 +50,7 @@ for (const required of [
   'scan-entry-map-detail',
   '/pages/map/detail',
   'XICHENG-MAP-001',
+  'qa/native',
   'TODO',
   '不得把模板当成通过证据'
 ]) {
@@ -107,6 +108,10 @@ assert.equal(generated.devices.length, 1)
 assert.equal(generated.devices[0].platform, 'android')
 assert.equal(generated.devices[0].model, 'TODO physical device model')
 assert.deepEqual(generated.scenarios.map((scenario) => scenario.id), requiredScenarioIds)
+assert.ok(
+  generated.scenarios.every((scenario) => scenario.evidenceRef === `qa/native/${scenario.id}.jpg`),
+  'native evidence template should suggest durable qa/native evidenceRef paths'
+)
 const generatedScanEntryScenario = generated.scenarios.find((scenario) => scenario.id === 'scan-entry-map-detail')
 assert.ok(
   generatedScanEntryScenario.notes.includes('/pages/map/detail') &&
@@ -114,7 +119,7 @@ assert.ok(
   'native evidence template should tell testers to prove scan entry lands on the Xicheng map detail page'
 )
 assert.ok(
-  generated.scenarios.every((scenario) => scenario.status === 'TODO' && scenario.evidenceRef === 'TODO screenshot-or-recording-path'),
+  generated.scenarios.every((scenario) => scenario.status === 'TODO'),
   'native evidence template generator must not mark scenarios PASS before real-device verification'
 )
 

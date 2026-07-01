@@ -64,13 +64,20 @@ const requiredScenarioIds = [
   'travelogue-draft-generated'
 ]
 
-const scenarioEvidenceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-launch-scenario-evidence-'))
+const repoRoot = spawnSync('git', ['rev-parse', '--show-toplevel'], {
+  cwd: root,
+  encoding: 'utf8'
+}).stdout.trim()
+const scenarioEvidenceDir = fs.mkdtempSync(path.join(repoRoot, 'qa', 'launch-scenario-evidence-test-'))
+process.on('exit', () => {
+  fs.rmSync(scenarioEvidenceDir, { recursive: true, force: true })
+})
 const scenarioEvidenceRefById = new Map(requiredScenarioIds.map((id) => [
   id,
-  path.join(scenarioEvidenceDir, `${id}.jpg`)
+  path.relative(repoRoot, path.join(scenarioEvidenceDir, `${id}.jpg`))
 ]))
 for (const [id, evidenceRef] of scenarioEvidenceRefById.entries()) {
-  fs.writeFileSync(evidenceRef, `${id} physical-device screenshot or recording placeholder\n`)
+  fs.writeFileSync(path.resolve(repoRoot, evidenceRef), `${id} physical-device screenshot or recording placeholder\n`)
 }
 
 const makePreprodEvidence = (overrides = {}) => {

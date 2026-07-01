@@ -32,7 +32,15 @@ const artifactBytes = Buffer.from('signed release apk placeholder for validator 
 fs.writeFileSync(artifactPath, artifactBytes)
 const artifactSha256 = crypto.createHash('sha256').update(artifactBytes).digest('hex')
 const freshTimestamp = new Date().toISOString()
-const scenarioEvidenceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-native-scenario-evidence-'))
+const repoRoot = spawnSync('git', ['rev-parse', '--show-toplevel'], {
+  cwd: root,
+  encoding: 'utf8'
+}).stdout.trim()
+const qaEvidenceDir = fs.mkdtempSync(path.join(repoRoot, 'qa', 'native-evidence-test-'))
+const outsideQaEvidenceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-native-scenario-evidence-'))
+process.on('exit', () => {
+  fs.rmSync(qaEvidenceDir, { recursive: true, force: true })
+})
 
 assert.ok(
   fs.existsSync(scriptPath),
@@ -66,6 +74,7 @@ for (const required of [
   'evidenceRef',
   '截图',
   '录屏',
+  'qa/',
   'createdAt',
   '72 小时'
 ]) {
@@ -101,7 +110,7 @@ const baseEvidence = {
     id,
     platform: 'android',
     status: 'PASS',
-    evidenceRef: path.join(scenarioEvidenceDir, `${id}.jpg`),
+    evidenceRef: path.relative(repoRoot, path.join(qaEvidenceDir, `${id}.jpg`)),
     notes: id === 'scan-entry-map-detail'
       ? 'Scanned QR-XICHENG-MAP-001 on physical device and landed on /pages/map/detail?packageCode=XICHENG-MAP-001'
       : `${id} verified on physical device`
@@ -110,7 +119,7 @@ const baseEvidence = {
 
 for (const scenario of baseEvidence.scenarios) {
   fs.writeFileSync(
-    scenario.evidenceRef,
+    path.resolve(repoRoot, scenario.evidenceRef),
     `${scenario.id} physical-device screenshot or recording placeholder\n`
   )
 }
@@ -178,7 +187,7 @@ const missingEvidenceRefFileResult = runValidator({
   ...baseEvidence,
   scenarios: baseEvidence.scenarios.map((scenario) => (
     scenario.id === 'camera-photo-recognition'
-      ? { ...scenario, evidenceRef: path.join(scenarioEvidenceDir, 'missing-camera-photo-recognition.jpg') }
+      ? { ...scenario, evidenceRef: path.relative(repoRoot, path.join(qaEvidenceDir, 'missing-camera-photo-recognition.jpg')) }
       : scenario
   ))
 })
@@ -193,7 +202,7 @@ assert.match(
   'native evidence validator should name the missing scenario evidence file'
 )
 
-const emptyEvidenceRefFile = path.join(scenarioEvidenceDir, 'empty-xiaojing-blocked-answer.jpg')
+const emptyEvidenceRefFile = path.join(qaEvidenceDir, 'empty-xiaojing-blocked-answer.jpg')
 fs.writeFileSync(emptyEvidenceRefFile, '')
 const emptyEvidenceRefFileResult = runValidator({
   ...baseEvidence,
@@ -212,6 +221,27 @@ assert.match(
   `${emptyEvidenceRefFileResult.stderr}\n${emptyEvidenceRefFileResult.stdout}`,
   /xiaojing-blocked-answer|evidenceRef|empty|截图|录屏/i,
   'native evidence validator should explain empty scenario evidence file rejection'
+)
+
+const outsideQaEvidenceRefFile = path.join(outsideQaEvidenceDir, 'recording-start-stop.jpg')
+fs.writeFileSync(outsideQaEvidenceRefFile, 'recording-start-stop proof outside qa should be rejected\n')
+const outsideQaEvidenceRefResult = runValidator({
+  ...baseEvidence,
+  scenarios: baseEvidence.scenarios.map((scenario) => (
+    scenario.id === 'recording-start-stop'
+      ? { ...scenario, evidenceRef: outsideQaEvidenceRefFile }
+      : scenario
+  ))
+})
+assert.notEqual(
+  outsideQaEvidenceRefResult.status,
+  0,
+  'native evidence validator should reject evidenceRef files outside the repository qa directory'
+)
+assert.match(
+  `${outsideQaEvidenceRefResult.stderr}\n${outsideQaEvidenceRefResult.stdout}`,
+  /recording-start-stop|evidenceRef|qa\//i,
+  'native evidence validator should explain that scenario evidence must be stored under qa/'
 )
 
 const localGatewayResult = runValidator({

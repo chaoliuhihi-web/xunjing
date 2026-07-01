@@ -51,18 +51,26 @@ const getRepoRoot = () => {
     : process.cwd()
 }
 
+const repoRoot = getRepoRoot()
+const qaEvidenceRoot = path.join(repoRoot, 'qa')
+
+const isInsideDir = (childPath, parentPath) => {
+  const relativePath = path.relative(parentPath, childPath)
+  return Boolean(relativePath) && !relativePath.startsWith('..') && !path.isAbsolute(relativePath)
+}
+
 const resolveArtifactPath = (artifactPath) => {
   if (path.isAbsolute(artifactPath)) {
     return artifactPath
   }
-  return path.resolve(getRepoRoot(), artifactPath)
+  return path.resolve(repoRoot, artifactPath)
 }
 
 const resolveEvidenceRefPath = (evidenceRef) => {
   if (path.isAbsolute(evidenceRef)) {
     return evidenceRef
   }
-  return path.resolve(getRepoRoot(), evidenceRef)
+  return path.resolve(repoRoot, evidenceRef)
 }
 
 const evidencePath = process.argv[2] || process.env.XUNJING_NATIVE_DEVICE_EVIDENCE_FILE || '../../../../qa/xicheng-native-device-evidence.json'
@@ -197,6 +205,9 @@ for (const id of requiredScenarioIds) {
     fail(`Native device evidence scenario ${id} must include evidenceRef`)
   }
   const resolvedEvidenceRef = resolveEvidenceRefPath(String(scenario.evidenceRef).trim())
+  if (!isInsideDir(resolvedEvidenceRef, qaEvidenceRoot)) {
+    fail(`Native device evidence scenario ${id} evidenceRef must be stored under qa/: ${resolvedEvidenceRef}`)
+  }
   if (!fs.existsSync(resolvedEvidenceRef)) {
     fail(`Native device evidence scenario ${id} evidenceRef file not found: ${resolvedEvidenceRef} (截图/录屏)`)
   }

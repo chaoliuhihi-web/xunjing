@@ -49,14 +49,14 @@ XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-eviden
 npm run prepare:native:evidence
 ```
 
-`npm run prepare:native:evidence` 只根据 `XUNJING_RELEASE_ARTIFACT` 初始化真机证据模板，自动写入当前 commit、`createdAt`、release 包路径、`artifactSha256` 和 `artifactSizeBytes`。模板里的场景状态全部是 `TODO`，不得把模板当成通过证据；必须在真实手机完成验证并补齐设备信息、截图或录屏引用 `evidenceRef` 后，才能把对应场景改成 `PASS`。
+`npm run prepare:native:evidence` 只根据 `XUNJING_RELEASE_ARTIFACT` 初始化真机证据模板，自动写入当前 commit、`createdAt`、release 包路径、`artifactSha256` 和 `artifactSizeBytes`。模板里的场景状态全部是 `TODO`，`evidenceRef` 默认指向 `qa/native/<scenario>.jpg`；不得把模板当成通过证据，必须在真实手机完成验证并补齐设备信息、截图或录屏引用 `evidenceRef` 后，才能把对应场景改成 `PASS`。
 
 ```bash
 XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-evidence.json" \
 npm run verify:native:evidence
 ```
 
-真机证据至少覆盖 `camera-photo-recognition`、`ocr-text-recognition`、`gps-recognition-permission`、`scan-entry-map-detail`、`xiaojing-sourced-answer`、`xiaojing-blocked-answer`、`recording-start-stop` 和 `travelogue-draft-generated`。每个场景的 `evidenceRef` 必须指向真实存在且非空的截图或录屏文件。`scan-entry-map-detail` 必须在真实手机扫码后落到 `/pages/map/detail`，并在备注中记录 `XICHENG-MAP-001`。
+真机证据至少覆盖 `camera-photo-recognition`、`ocr-text-recognition`、`gps-recognition-permission`、`scan-entry-map-detail`、`xiaojing-sourced-answer`、`xiaojing-blocked-answer`、`recording-start-stop` 和 `travelogue-draft-generated`。每个场景的 `evidenceRef` 必须指向仓库 `qa/` 下真实存在且非空的截图或录屏文件，建议使用 `qa/native/` 归档。`scan-entry-map-detail` 必须在真实手机扫码后落到 `/pages/map/detail`，并在备注中记录 `XICHENG-MAP-001`。
 
 真机证据的 `build.artifact` 必须指向真实 release 包，并记录 `artifactSha256` 和 `artifactSizeBytes`。`npm run verify:native:evidence` 会读取该 release 包文件，校验 SHA256 和大小，避免证据里只写路径但没有对应安装包。
 
