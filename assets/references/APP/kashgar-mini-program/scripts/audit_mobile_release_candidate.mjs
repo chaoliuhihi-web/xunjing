@@ -254,6 +254,51 @@ if (!gates.nativeReleaseArtifact.exists) {
   }
 }
 
+const needsReleasePrerequisites = !gates.preprodEvidence.ok ||
+  !gates.nativeEvidence.ok ||
+  !gates.nativeReleaseArtifact.exists
+gates.releasePrerequisites = {
+  ok: !needsReleasePrerequisites,
+  skipped: !needsReleasePrerequisites,
+  detail: needsReleasePrerequisites
+    ? ''
+    : 'skipped because preprod evidence, native evidence and native release artifact are already present'
+}
+if (needsReleasePrerequisites) {
+  const prereqGate = runNodeGate('diagnose_mobile_release_prerequisites.mjs', [])
+  let prereqJson = null
+  try {
+    prereqJson = JSON.parse(prereqGate.stdout)
+  } catch {
+    // Keep prereqJson empty; detail below will carry the command failure summary.
+  }
+
+  gates.releasePrerequisites = {
+    ok: prereqGate.ok,
+    skipped: false,
+    detail: prereqGate.ok
+      ? 'pass'
+      : (Array.isArray(prereqJson?.blockers) && prereqJson.blockers.length > 0
+          ? prereqJson.blockers.join('; ')
+          : prereqGate.detail),
+    checks: prereqJson?.checks || null
+  }
+
+  if (!prereqGate.ok) {
+    const prereqBlockers = Array.isArray(prereqJson?.blockers) && prereqJson.blockers.length > 0
+      ? prereqJson.blockers
+      : ['diagnostic-failed']
+    for (const prereqBlocker of prereqBlockers) {
+      addBlocker(
+        blockers,
+        `release-prerequisite-${String(prereqBlocker).replace(/[^a-z0-9]+/gi, '-')}`,
+        `Release prerequisite diagnostic failed: ${prereqBlocker}`,
+        'Run XUNJING_RELEASE_ENV_FILE=/secure/path/preprod.env npm run doctor:release:prereqs, then resolve every reported blocker'
+      )
+    }
+  }
+}
+
 const expectedApiBaseUrl = normalizeUrl(process.env.XUNJING_APP_API_BASE_URL || gates.preprodEvidence.baseUrl)
 const expectedTenantId = String(process.env.XUNJING_TENANT_ID || gates.preprodEvidence.tenantId || '').trim()
 gates.releaseArtifactScan = {
@@ -332,7 +377,7 @@ if (!gates.appResourceBuild.ok) {
   })
 }
 
-const nextActions = blockers.map((blocker) => blocker.nextAction)
+const nextActions = [...new Set(blockers.map((blocker) => blocker.nextAction))]
 if (nextActions.length === 0) {
   nextActions.push('Run the final store/channel-specific signing and distribution checklist outside this repository gate')
 }
@@ -350,5 +395,6 @@ const report = {
   nextActions
 }
 
-console.log(JSON.stringify(report, null, 2))
-process.exit(status === 'GO' ? 0 : 1)
+process.stdout.write(`${JSON.stringify(report, null, 2)}\n`, () => {
+  process.exit(status === 'GO' ? 0 : 1)
+})

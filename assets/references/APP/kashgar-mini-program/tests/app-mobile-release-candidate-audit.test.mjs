@@ -269,6 +269,26 @@ assert.equal(
   `test fixture should create a valid Android keystore with keytool: ${keytoolResult.stderr || keytoolResult.stdout}`
 )
 const releaseEnvFilePath = path.join(missingTempDir, 'xicheng-release.env')
+const loggedInCliPath = path.join(missingTempDir, 'hbuilderx-logged-in-cli')
+const loggedOutCliPath = path.join(missingTempDir, 'hbuilderx-logged-out-cli')
+fs.writeFileSync(loggedInCliPath, [
+  '#!/bin/sh',
+  'if [ "$1" = "user" ] && [ "$2" = "info" ]; then',
+  '  printf "%s\\n" "username: release@example.com" "0:user info:OK"',
+  '  exit 0',
+  'fi',
+  'exit 0'
+].join('\n'))
+fs.chmodSync(loggedInCliPath, 0o755)
+fs.writeFileSync(loggedOutCliPath, [
+  '#!/bin/sh',
+  'if [ "$1" = "user" ] && [ "$2" = "info" ]; then',
+  '  printf "%s\\n" "" "0:user info:OK"',
+  '  exit 0',
+  'fi',
+  'exit 0'
+].join('\n'))
+fs.chmodSync(loggedOutCliPath, 0o755)
 fs.writeFileSync(releaseEnvFilePath, [
   'XUNJING_APP_API_BASE_URL=https://api.xingheai.net',
   'XUNJING_TENANT_ID=1',
@@ -298,7 +318,9 @@ const missingWithReleaseEnvResult = runAudit([
   XUNJING_ANDROID_KEY_ALIAS: '',
   XUNJING_ANDROID_KEYSTORE_PASSWORD: '',
   XUNJING_ANDROID_KEY_PASSWORD: '',
-  XUNJING_SKIP_NATIVE_TOOL_CHECK: ''
+  XUNJING_SKIP_NATIVE_TOOL_CHECK: '',
+  XUNJING_RELEASE_PREREQ_SKIP_NETWORK: '1',
+  HBUILDERX_CLI: loggedInCliPath
 })
 assert.notEqual(
   missingWithReleaseEnvResult.status,
@@ -311,6 +333,47 @@ assert.equal(missingWithReleaseEnvAudit.gates.nativePackageReadiness.detail, 'pa
 assert.ok(
   !missingWithReleaseEnvAudit.blockers.some((blocker) => blocker.code === 'native-package-readiness-not-passing'),
   'release candidate audit should not report native package readiness when XUNJING_RELEASE_ENV_FILE has complete signing config'
+)
+assert.equal(missingWithReleaseEnvAudit.gates.releasePrerequisites.ok, true)
+assert.equal(missingWithReleaseEnvAudit.gates.releasePrerequisites.detail, 'pass')
+
+const prereqFailureResult = runAudit([
+  '--preprod-evidence',
+  path.join(missingTempDir, 'missing-preprod.json'),
+  '--native-evidence',
+  path.join(missingTempDir, 'missing-native.json'),
+  '--release-artifact',
+  path.join(missingTempDir, 'missing-release.apk'),
+  '--skip-remote-parity'
+], {
+  XUNJING_RELEASE_ENV_FILE: releaseEnvFilePath,
+  XUNJING_APP_API_BASE_URL: '',
+  XUNJING_TENANT_ID: '',
+  XUNJING_RELEASE_TARGETS: '',
+  XUNJING_ANDROID_PACKAGE_NAME: '',
+  XUNJING_ANDROID_KEYSTORE: '',
+  XUNJING_ANDROID_KEY_ALIAS: '',
+  XUNJING_ANDROID_KEYSTORE_PASSWORD: '',
+  XUNJING_ANDROID_KEY_PASSWORD: '',
+  XUNJING_SKIP_NATIVE_TOOL_CHECK: '',
+  XUNJING_RELEASE_PREREQ_SKIP_NETWORK: '1',
+  HBUILDERX_CLI: loggedOutCliPath
+})
+assert.notEqual(prereqFailureResult.status, 0, 'release candidate audit should fail when prereq doctor finds HBuilderX login missing')
+const prereqFailureAudit = parseAuditJson(prereqFailureResult)
+assert.equal(prereqFailureAudit.gates.releasePrerequisites.ok, false)
+assert.ok(
+  prereqFailureAudit.blockers.some((blocker) => blocker.code === 'release-prerequisite-hbuilderx-login-missing'),
+  'release candidate audit should surface HBuilderX login prereq blocker'
+)
+assert.ok(
+  prereqFailureAudit.nextActions.some((action) => action.includes('doctor:release:prereqs')),
+  'release candidate audit should point operators to the prereq doctor command'
+)
+assert.equal(
+  prereqFailureAudit.nextActions.length,
+  new Set(prereqFailureAudit.nextActions).size,
+  'release candidate audit should not repeat identical nextActions'
 )
 
 const readyTempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-audit-ready-'))
@@ -352,3 +415,4 @@ assert.equal(readyAudit.gates.launchEvidence.ok, true)
 assert.equal(readyAudit.gates.nativeEvidence.ok, true)
 assert.equal(readyAudit.gates.releaseArtifactScan.ok, true)
 assert.equal(readyAudit.gates.nativePackageReadiness.skipped, true)
+assert.equal(readyAudit.gates.releasePrerequisites.skipped, true)
