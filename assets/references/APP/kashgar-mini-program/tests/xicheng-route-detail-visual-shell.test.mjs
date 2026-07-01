@@ -4,41 +4,43 @@ import path from 'node:path'
 
 const root = process.cwd()
 const routeDetail = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'route-detail', 'route-detail.vue'), 'utf8')
+const routeDetailPanel = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengRouteDetailPanel.vue'), 'utf8')
+const routeDetailShell = `${routeDetail}\n${routeDetailPanel}`
 
 for (const required of [
-  'class="route-hero-image"',
+  'class="route-detail-hero-image"',
   ':src="routeHeroImage"',
-  'class="route-map-trail"',
-  'route-operation-strip',
-  'class="nav-icon nav-icon-save"',
-  'class="nav-bookmark-icon"',
-  '路线护照',
-  '亲子研学任务',
+  'class="route-detail-dashed-path"',
+  'route-detail-timeline',
+  'class="route-detail-nav-button route-detail-share-button"',
+  'name="passport"',
+  '沿途看点',
+  '听讲解',
   '开始记录',
-  'class="stop-thumbnail"',
+  'class="route-detail-stop-image"',
   ':src="getStopThumbnail(stop, index)"',
   'startRouteRecording',
   'generateRouteTravelogue'
 ]) {
-  assert.ok(routeDetail.includes(required), `Xicheng route detail visual shell should include ${required}`)
+  assert.ok(routeDetailShell.includes(required), `Xicheng route detail visual shell should include ${required}`)
 }
 
 assert.match(
-  routeDetail,
+  routeDetailShell,
   /routeHeroImage\(\)[\s\S]*this\.region\.visualAssets[\s\S]*routeThumbnails[\s\S]*this\.activeRoute\.routeCode[\s\S]*heroLandmark/,
   'Route detail hero should use compact route thumbnails and fall back to the Xicheng hero landmark asset'
 )
 
 assert.match(
-  routeDetail,
-  /routeOperationCards\(\)[\s\S]*路线护照[\s\S]*亲子研学任务[\s\S]*步行距离/,
-  'Route detail should summarize passport, study task, and walking distance before the route timeline'
+  routeDetailShell,
+  /displayRouteTitle\(\)[\s\S]*白塔寺文化线[\s\S]*什刹海水岸线[\s\S]*胡同烟火线/,
+  'Route detail component should translate official route titles into concise display route names'
 )
 
 assert.match(
-  routeDetail,
-  /getStopThumbnail\(stop = \{\}, index = 0\)[\s\S]*return this\.routeHeroImage/,
-  'Route stop cards should use a stable thumbnail helper instead of full-page design mockup images'
+  routeDetailShell,
+  /getStopThumbnail\(stop = \{\}, index = 0\)[\s\S]*xicheng-baitasi[\s\S]*xicheng-shichahai[\s\S]*this\.routeHeroImage/,
+  'Route stop cards should use stable POI/route thumbnails instead of full-page design mockup images'
 )
 
 assert.match(
@@ -48,25 +50,25 @@ assert.match(
 )
 
 assert.match(
-  routeDetail,
-  /\.route-hero-image\s*\{[\s\S]*width:\s*240rpx[\s\S]*height:\s*250rpx[\s\S]*object-fit:\s*cover/,
+  routeDetailShell,
+  /\.route-detail-hero-image\s*\{[\s\S]*width:\s*100%[\s\S]*height:\s*100%[\s\S]*object-fit:\s*cover/,
   'Route hero image should keep stable mobile dimensions without layout shift'
 )
 
 assert.match(
-  routeDetail,
-  /\.stop-thumbnail\s*\{[\s\S]*width:\s*150rpx[\s\S]*height:\s*150rpx[\s\S]*object-fit:\s*cover/,
+  routeDetailShell,
+  /\.route-detail-stop-image\s*\{[\s\S]*width:\s*180rpx[\s\S]*height:\s*154rpx[\s\S]*object-fit:\s*cover/,
   'Route stop thumbnail should keep stable mobile dimensions without layout shift'
 )
 
 assert.doesNotMatch(
-  routeDetail,
+  routeDetailShell,
   /<button class="nav-icon" @click="startRoutePassport">存<\/button>/,
   'Route detail passport action should use a familiar bookmark-style icon instead of the ambiguous visible text 存'
 )
 
 assert.doesNotMatch(
-  routeDetail,
+  routeDetailShell,
   /xicheng-multimodal\/design-mockups|04-route-detail-baitasi-culture\.png/,
   'Route detail runtime UI should not reference full-page design mockup screenshots'
 )

@@ -14,6 +14,8 @@ const regionConfig = read('config', 'regions', 'xicheng.js')
 const home = read('pages', 'xicheng', 'home', 'home.vue')
 const routes = read('pages', 'xicheng', 'routes', 'routes.vue')
 const routeDetail = readOptional('pages', 'xicheng', 'route-detail', 'route-detail.vue')
+const routeDetailPanel = readOptional('components', 'xicheng', 'XichengRouteDetailPanel.vue')
+const routeDetailShell = `${routeDetail}\n${routeDetailPanel}`
 
 assert.ok(
   pagesJson.includes('"path": "pages/xicheng/route-detail/route-detail"'),
@@ -62,9 +64,10 @@ for (const required of [
   '听讲解',
   'startRoutePassport',
   'generateRouteTravelogue',
-  'askStopGuide(stop)'
+  'askStopGuide(stop = {})',
+  "$emit('ask-stop', stop)"
 ]) {
-  assert.ok(routeDetail.includes(required), `Route detail page should expose ${required}`)
+  assert.ok(routeDetailShell.includes(required), `Route detail page should expose ${required}`)
 }
 
 assert.match(

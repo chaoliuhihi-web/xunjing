@@ -13,6 +13,8 @@ const recording = read('pages', 'xicheng', 'recording', 'recording.vue')
 const recordingPanel = read('components', 'xicheng', 'XichengRouteRecordingPanel.vue')
 const recordingShell = `${recording}\n${recordingPanel}`
 const routeDetail = read('pages', 'xicheng', 'route-detail', 'route-detail.vue')
+const routeDetailPanel = read('components', 'xicheng', 'XichengRouteDetailPanel.vue')
+const routeDetailShell = `${routeDetail}\n${routeDetailPanel}`
 
 for (const required of [
   "refresh: 'refresh'",
@@ -52,7 +54,7 @@ assert.match(
 )
 
 assert.match(
-  routeDetail,
+  routeDetailShell,
   /<xicheng-icon[\s\S]*name="back"[\s\S]*name="passport"[\s\S]*name="play"/,
   'Route detail should use shared icons for back, route passport, and playback'
 )

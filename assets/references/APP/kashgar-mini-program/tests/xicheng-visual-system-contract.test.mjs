@@ -12,6 +12,8 @@ const home = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'home', 'hom
 const inspiration = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'inspiration', 'inspiration.vue'), 'utf8')
 const scanResult = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
 const routeDetail = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'route-detail', 'route-detail.vue'), 'utf8')
+const routeDetailPanel = fs.readFileSync(path.join(appRoot, 'components', 'xicheng', 'XichengRouteDetailPanel.vue'), 'utf8')
+const routeDetailShell = `${routeDetail}\n${routeDetailPanel}`
 const travelogue = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
 const travelogueCss = fs.existsSync(path.join(appRoot, 'pages', 'xicheng', 'travelogue', 'travelogue.css'))
   ? fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'travelogue', 'travelogue.css'), 'utf8')
@@ -68,7 +70,7 @@ for (const [fileName, source] of [
   ['home.vue', home],
   ['inspiration.vue', inspiration],
   ['scan-result.vue', scanResult],
-  ['route-detail.vue', routeDetail],
+  ['route-detail.vue', routeDetailShell],
   ['travelogue.vue', travelogue]
 ]) {
   for (const className of [
@@ -113,11 +115,11 @@ assert.doesNotMatch(
 
 for (const token of [
   'xicheng-route-detail',
-  'route-hero',
-  'route-stop-card',
-  'xiaojing-card'
+  'route-detail-hero',
+  'route-detail-stop-card',
+  'route-detail-xiaojing'
 ]) {
-  assert.ok(routeDetail.includes(token), `route-detail.vue should support Xicheng route detail visual token ${token}`)
+  assert.ok(routeDetailShell.includes(token), `route-detail.vue should support Xicheng route detail visual token ${token}`)
 }
 
 for (const token of [
