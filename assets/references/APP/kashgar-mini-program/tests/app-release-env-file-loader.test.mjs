@@ -114,6 +114,30 @@ assert.equal(preprodDryRunJson.args[preprodDryRunJson.args.indexOf('--env-file')
 assert.equal(preprodDryRunJson.args[preprodDryRunJson.args.indexOf('--base-url') + 1], 'https://api.xingheai.net/')
 assert.equal(preprodDryRunJson.args[preprodDryRunJson.args.indexOf('--tenant-id') + 1], '1')
 
+const relativePlatformDryRunResult = spawnSync(process.execPath, [preprodRunnerPath, '--dry-run'], {
+  cwd: root,
+  env: {
+    ...process.env,
+    XUNJING_RELEASE_ENV_FILE: envFilePath,
+    XUNJING_PLATFORM_ENV_FILE: 'ops/xunjing-platform.env.example',
+    XUNJING_APP_API_BASE_URL: '',
+    XUNJING_TENANT_ID: ''
+  },
+  encoding: 'utf8'
+})
+
+assert.equal(
+  relativePlatformDryRunResult.status,
+  0,
+  `preprod verify runner should accept repo-root relative platform env paths: ${relativePlatformDryRunResult.stderr || relativePlatformDryRunResult.stdout}`
+)
+const relativePlatformDryRunJson = JSON.parse(relativePlatformDryRunResult.stdout)
+assert.equal(
+  relativePlatformDryRunJson.args[relativePlatformDryRunJson.args.indexOf('--env-file') + 1],
+  path.join(repoRoot, 'ops', 'xunjing-platform.env.example'),
+  'preprod verify runner should resolve relative XUNJING_PLATFORM_ENV_FILE from repo root, not the APP package directory'
+)
+
 const localEnvFilePath = path.join(tempDir, 'local.env')
 fs.writeFileSync(localEnvFilePath, [
   'XUNJING_APP_API_BASE_URL=http://127.0.0.1:48082',

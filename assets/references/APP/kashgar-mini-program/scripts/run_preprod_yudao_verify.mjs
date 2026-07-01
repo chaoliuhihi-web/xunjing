@@ -6,7 +6,7 @@ const args = process.argv.slice(2)
 const dryRun = args.includes('--dry-run')
 const releaseEnv = readReleaseAppEnv()
 const releaseEnvFile = String(process.env.XUNJING_RELEASE_ENV_FILE || '').trim()
-const platformEnvFile = String(process.env.XUNJING_PLATFORM_ENV_FILE || releaseEnvFile).trim()
+const platformEnvFile = String(process.env.XUNJING_PLATFORM_ENV_FILE || '').trim()
 
 if (!releaseEnvFile) {
   console.error('Set XUNJING_RELEASE_ENV_FILE to the preprod or production env file')
@@ -26,9 +26,9 @@ const repoRoot = gitRootResult.stdout.trim()
 const resolvedReleaseEnvFile = path.isAbsolute(releaseEnvFile)
   ? releaseEnvFile
   : path.resolve(process.cwd(), releaseEnvFile)
-const resolvedPlatformEnvFile = path.isAbsolute(platformEnvFile)
-  ? platformEnvFile
-  : path.resolve(process.cwd(), platformEnvFile)
+const resolvedPlatformEnvFile = platformEnvFile
+  ? (path.isAbsolute(platformEnvFile) ? platformEnvFile : path.resolve(repoRoot, platformEnvFile))
+  : resolvedReleaseEnvFile
 const verifyArgs = [
   'run',
   'xunjing:platform:verify',

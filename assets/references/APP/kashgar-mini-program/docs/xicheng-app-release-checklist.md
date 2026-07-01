@@ -36,7 +36,7 @@ XUNJING_PLATFORM_ENV_FILE="/secure/path/platform-preprod.env" \
 npm run verify:yudao:preprod
 ```
 
-`XUNJING_RELEASE_ENV_FILE` 可以集中保存预发/生产网关、租户和签名配置；该文件不得提交到仓库。脚本会从该文件加载缺失的 `XUNJING_APP_API_BASE_URL`、`XUNJING_TENANT_ID`、`XUNJING_RELEASE_TARGETS` 和签名相关变量，命令行显式传入的变量优先。`XUNJING_PLATFORM_ENV_FILE` 用于传给根目录 `npm run xunjing:platform:verify -- --env-file`，必须包含平台 readiness 所需的 `SPRING_PROFILES_ACTIVE`、数据库、Redis、OSS、Qdrant、Qwen 和内部鉴权变量；如果不设置，脚本会回退使用 `XUNJING_RELEASE_ENV_FILE`，因此单独的 APP 打包 env 不能直接替代完整平台 env。
+`XUNJING_RELEASE_ENV_FILE` 可以集中保存预发/生产网关、租户和签名配置；该文件不得提交到仓库。脚本会从该文件加载缺失的 `XUNJING_APP_API_BASE_URL`、`XUNJING_TENANT_ID`、`XUNJING_RELEASE_TARGETS` 和签名相关变量，命令行显式传入的变量优先。`XUNJING_PLATFORM_ENV_FILE` 用于传给根目录 `npm run xunjing:platform:verify -- --env-file`，相对路径按仓库根目录解析；该文件必须包含平台 readiness 所需的 `SPRING_PROFILES_ACTIVE`、数据库、Redis、OSS、Qdrant、Qwen 和内部鉴权变量。如果不设置，脚本会回退使用 `XUNJING_RELEASE_ENV_FILE`，因此单独的 APP 打包 env 不能直接替代完整平台 env。
 
 `XUNJING_TENANT_ID` 必须是 Yudao 租户正整数编号，不能使用 `0`、负数或环境名占位符。
 
