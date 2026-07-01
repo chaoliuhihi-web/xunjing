@@ -29,7 +29,7 @@ assert.match(
 
 assert.match(
   worldInterfaceStrip,
-  /<view v-if="signalBadges\.length > 0" class="vision-agent-world-interface-strip">[\s\S]*summary[\s\S]*v-for="signal in signalBadges"/,
+  /<view v-if="signalBadges\.length > 0 \|\| reasonCards\.length > 0 \|\| summary" class="vision-agent-world-interface-strip">[\s\S]*summary[\s\S]*v-for="signal in signalBadges"/,
   'Result page should make the scan-page world-interface snapshot visible near Agent decisions'
 )
 

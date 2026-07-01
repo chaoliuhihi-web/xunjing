@@ -1,5 +1,5 @@
 <template>
-	<view v-if="signalBadges.length > 0" class="vision-agent-world-interface-strip">
+	<view v-if="signalBadges.length > 0 || reasonCards.length > 0 || summary" class="vision-agent-world-interface-strip">
 		<view class="vision-agent-world-interface-copy">
 			<text class="vision-agent-world-interface-kicker">世界交互承接</text>
 			<text class="vision-agent-world-interface-summary">{{ summary }}</text>
@@ -12,6 +12,17 @@
 			>
 				{{ signal.label }}
 			</text>
+		</view>
+		<view v-if="reasonCards.length > 0" class="vision-agent-world-interface-reason-grid">
+			<view
+				v-for="reason in reasonCards"
+				:key="reason.key"
+				class="vision-agent-world-interface-reason"
+			>
+				<text class="vision-agent-world-interface-reason-label">{{ reason.label || '决策依据' }}</text>
+				<text class="vision-agent-world-interface-reason-title">{{ reason.title || '为什么先做这个' }}</text>
+				<text class="vision-agent-world-interface-reason-copy">{{ reason.copy }}</text>
+			</view>
 		</view>
 		<text class="vision-agent-world-interface-mark">World Interface</text>
 	</view>
@@ -26,6 +37,10 @@ export default {
 			default: ''
 		},
 		signalBadges: {
+			type: Array,
+			default: () => []
+		},
+		reasonCards: {
 			type: Array,
 			default: () => []
 		}
@@ -47,6 +62,7 @@ export default {
 	border: 1rpx solid rgba(184, 129, 43, 0.18);
 	box-sizing: border-box;
 	overflow: hidden;
+	flex-wrap: wrap;
 }
 
 .vision-agent-world-interface-copy {
@@ -94,6 +110,47 @@ export default {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.vision-agent-world-interface-reason-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 10rpx;
+	width: 100%;
+}
+
+.vision-agent-world-interface-reason {
+	padding: 14rpx;
+	border-radius: 18rpx;
+	background: rgba(255, 253, 248, 0.86);
+	border: 1rpx solid rgba(23, 63, 53, 0.08);
+	box-sizing: border-box;
+}
+
+.vision-agent-world-interface-reason-label,
+.vision-agent-world-interface-reason-title,
+.vision-agent-world-interface-reason-copy {
+	display: block;
+	line-height: 1.36;
+}
+
+.vision-agent-world-interface-reason-label {
+	font-size: 18rpx;
+	font-weight: 800;
+	color: rgba(138, 91, 30, 0.72);
+}
+
+.vision-agent-world-interface-reason-title {
+	margin-top: 5rpx;
+	font-size: 22rpx;
+	font-weight: 900;
+	color: #173F35;
+}
+
+.vision-agent-world-interface-reason-copy {
+	margin-top: 5rpx;
+	font-size: 20rpx;
+	color: rgba(16, 47, 41, 0.68);
 }
 
 .vision-agent-world-interface-mark {

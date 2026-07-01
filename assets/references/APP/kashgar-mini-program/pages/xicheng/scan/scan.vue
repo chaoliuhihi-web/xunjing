@@ -459,6 +459,8 @@ export default {
 				agentDecisionActionKey: agentDecisionSnapshot.selectedSceneAgentActionKey,
 				agentDecisionActionTitle: agentDecisionSnapshot.agentDecisionActionTitle,
 				agentDecisionPreviewSummary: agentDecisionSnapshot.agentDecisionPreviewSummary,
+				agentDecisionReasonCards: agentDecisionSnapshot.agentDecisionReasonCards,
+				agentDecisionReasonSummary: agentDecisionSnapshot.agentDecisionReasonSummary,
 				sceneAgentActionPreviews: agentDecisionSnapshot.sceneAgentActionPreviews
 			}
 		},
@@ -520,6 +522,63 @@ export default {
 				.slice(0, 3)
 				.map(({ score, ...action }) => action)
 		},
+		createAgentDecisionReasonCards(context = {}, selectedAction = {}) {
+			const actionTitle = selectedAction.title || '下一步动作'
+			const localTimeText = String(context.localTimeText || '').trim()
+			const weatherText = String(context.weatherText || '').trim()
+			const locationText = String(context.locationText || '').trim()
+			const headingText = String(context.headingText || '').trim()
+			const knowledgeGraphText = String(context.knowledgeGraphText || '').trim()
+			const serviceText = String(context.serviceText || context.activityText || '').trim()
+			const memoryText = String(context.visionAgentMemorySessionText || '').trim()
+			const memoryTrail = Array.isArray(context.memoryTrail) ? context.memoryTrail : []
+			const worldInterfaceSnapshot = this.buildWorldInterfaceSnapshot(context)
+			const environmentText = [localTimeText, weatherText].filter(Boolean).join(' / ')
+			const placeText = [locationText, headingText].filter(Boolean).join(' / ')
+			const reasonCards = [
+				{
+					key: 'environment',
+					label: '时间天气',
+					title: '先看当下时机',
+					copy: environmentText ? `${environmentText}，所以先${actionTitle}。` : `结合时间天气判断是否先${actionTitle}。`,
+					weight: environmentText ? 42 : 14
+				},
+				{
+					key: 'world-interface',
+					label: '世界交互',
+					title: '镜头不是孤立识别',
+					copy: worldInterfaceSnapshot.summary || `把镜头、GPS和城市知识一起交给 Agent 决策。`,
+					weight: worldInterfaceSnapshot.summary ? 38 : 20
+				},
+				{
+					key: 'knowledge-service',
+					label: serviceText ? '城市服务' : '知识图谱',
+					title: serviceText ? '接后续服务' : '沿知识网络追问',
+					copy: serviceText || knowledgeGraphText
+						? `结合${serviceText || knowledgeGraphText}，识别后直接接下一步。`
+						: '识别后可继续讲历史、路线、打卡和游记。',
+					weight: serviceText || knowledgeGraphText ? 36 : 18
+				},
+				{
+					key: 'memory',
+					label: '连续记忆',
+					title: '不从零开始',
+					copy: memoryText || (memoryTrail.length > 0 ? '沿上一处识境继续理解现场。' : '本次识境会写入连续会话，下一次可接着问。'),
+					weight: memoryText || memoryTrail.length > 0 ? 34 : 12
+				},
+				{
+					key: 'position',
+					label: '位置方向',
+					title: '确认现场方位',
+					copy: placeText ? `${placeText}，用来判断你正看向哪里。` : '结合定位和朝向判断当前世界。',
+					weight: placeText ? 32 : 10
+				}
+			]
+			return reasonCards
+				.sort((left, right) => right.weight - left.weight)
+				.slice(0, 3)
+				.map(({ weight, ...reason }) => reason)
+		},
 		selectSceneAgentAction(action = {}) {
 			if (!action.key) return
 			this.selectedSceneAgentActionKey = action.key
@@ -531,12 +590,19 @@ export default {
 			const selectedAction = sceneAgentActionPreviews.find(action => action.key === this.selectedSceneAgentActionKey)
 				|| sceneAgentActionPreviews[0]
 				|| {}
+			const agentDecisionReasonCards = this.createAgentDecisionReasonCards(context, selectedAction)
+			const agentDecisionReasonSummary = agentDecisionReasonCards
+				.map(card => `${card.label}：${card.copy}`)
+				.join('；')
+				.slice(0, 180)
 			return {
 				selectedSceneAgentActionKey: selectedAction.key || '',
 				agentDecisionPreviewSummary: selectedAction.title
 					? `Agent建议先${selectedAction.title}，${selectedAction.copy}`.slice(0, 88)
 					: '',
 				sceneAgentActionPreviews,
+				agentDecisionReasonCards,
+				agentDecisionReasonSummary,
 				agentDecisionActionTitle: selectedAction.title || '',
 				agentDecisionActionCopy: selectedAction.copy || '',
 				visionAgentMemorySessionPackage: context.visionAgentMemorySessionPackage,

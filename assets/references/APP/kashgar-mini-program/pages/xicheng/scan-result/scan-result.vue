@@ -122,6 +122,7 @@
 			<xicheng-vision-agent-world-interface-strip
 				:summary="worldInterfaceSummary"
 				:signal-badges="worldInterfaceSignalBadges"
+				:reason-cards="agentDecisionReasonCardItems"
 			/>
 			<view v-if="prioritizedSceneUnderstandingCards.length > 0" class="scene-understanding-panel">
 				<text class="scene-understanding-title">看见什么，就能问什么</text>
@@ -885,6 +886,30 @@ export default {
 		cameraAgentDecisionSummary() {
 			return this.cameraAgentDecisionSnapshot.agentDecisionPreviewSummary
 		},
+		agentDecisionReasonCardItems() {
+			const visionContext = this.result.visionAgentContext || {}
+			const reasonCards = Array.isArray(visionContext.agentDecisionReasonCards)
+				? visionContext.agentDecisionReasonCards
+				: []
+			const agentDecisionReasonSummary = String(visionContext.agentDecisionReasonSummary || '')
+			const normalizedCards = reasonCards
+				.map((card, index) => ({
+					key: card.key || `reason-${index}`,
+					label: card.label || '决策依据',
+					title: card.title || card.label || '为什么先做这个',
+					copy: card.copy || ''
+				}))
+				.filter(card => card.title || card.copy)
+			if (normalizedCards.length === 0 && agentDecisionReasonSummary) {
+				return [{
+					key: 'reason-summary',
+					label: '决策依据',
+					title: '为什么先做这个',
+					copy: agentDecisionReasonSummary
+				}]
+			}
+			return normalizedCards.slice(0, 3)
+		},
 		visionAgentDecisionSummary() {
 			if (this.recognitionActionBlocked) {
 				return '先确认官方 POI 和审核来源，再继续讲解、路线或服务动作。'
@@ -1436,6 +1461,8 @@ export default {
 				knowledgeGraphText: visionContext.knowledgeGraphText || '',
 				worldInterfaceSummary: this.worldInterfaceSummary,
 				worldInterfaceSignals: this.worldInterfaceSnapshot.signals,
+				agentDecisionReasonSummary: visionContext.agentDecisionReasonSummary || '',
+				agentDecisionReasonCards: this.agentDecisionReasonCardItems,
 				sceneDomainLabels: this.prioritizedSceneUnderstandingCards.map(card => card.domainLabel || card.domainKey).filter(Boolean).slice(0, 6),
 				serviceIntentLabels: this.prioritizedSceneServiceActions.map(action => this.serviceIntentLabel(action.serviceIntent || '') || action.title).filter(Boolean).slice(0, 6),
 				confidence: this.result.confidence || visionContext.confidence || '',
