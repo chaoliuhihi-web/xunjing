@@ -578,6 +578,8 @@ export const getReviewableRouteCheckinSources = (checkin = {}) => {
 
 export const hasReviewableStudyTaskEvidence = (evidence = {}) => {
 	if (!evidence || !evidence.completedAt) return false
+	const safetyStatus = normalizeXichengSafetyStatus(evidence.safetyStatus)
+	if (isXichengUnsafeSafetyStatus(safetyStatus)) return false
 	return Boolean(
 		String(evidence.answerText || '').trim()
 		|| evidence.photoPath

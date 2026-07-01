@@ -7,8 +7,8 @@ const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelog
 
 assert.match(
   travelogue,
-  /export const hasReviewableStudyTaskEvidence\s*=\s*\(evidence = \{\}\) => \{[\s\S]*if \(!evidence \|\| !evidence\.completedAt\) return false[\s\S]*return Boolean\([\s\S]*String\(evidence\.answerText \|\| ''\)\.trim\(\)[\s\S]*evidence\.photoPath[\s\S]*\)[\s\S]*\}/,
-  'Travelogue should require completed study task evidence to contain observation text or a photo before it can unlock drafts, review, or sharing'
+  /export const hasReviewableStudyTaskEvidence\s*=\s*\(evidence = \{\}\) => \{[\s\S]*if \(!evidence \|\| !evidence\.completedAt\) return false[\s\S]*const safetyStatus = normalizeXichengSafetyStatus\(evidence\.safetyStatus\)[\s\S]*if \(isXichengUnsafeSafetyStatus\(safetyStatus\)\) return false[\s\S]*return Boolean\([\s\S]*String\(evidence\.answerText \|\| ''\)\.trim\(\)[\s\S]*evidence\.photoPath[\s\S]*\)[\s\S]*\}/,
+  'Travelogue should reject unsafe completed study task evidence before it can unlock drafts, review, or sharing'
 )
 
 assert.match(
