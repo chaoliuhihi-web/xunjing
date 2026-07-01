@@ -452,6 +452,7 @@ const XUNJING_RESOURCE_CONFIG = {
 const XUNJING_EVENT_CONFIG = {
 	apiPath: 'app-api/xunjing/resource/events',
 	packageCode: XUNJING_AI_CONFIG.packageCode,
+	sceneCode: XUNJING_AI_CONFIG.sceneCode,
 	sourceChannel: XUNJING_AI_CONFIG.sourceChannel,
 	tenantId: XUNJING_AI_CONFIG.tenantId
 }
@@ -1053,6 +1054,7 @@ const getActiveXunjingEventConfig = (context = xichengAiContext.value) => {
 		return {
 			...XUNJING_EVENT_CONFIG,
 			packageCode: context.packageCode || XICHENG_REGION_CONFIG.packageCode,
+			sceneCode: context.sceneCode || XICHENG_REGION_CONFIG.aiSceneCode,
 			tenantId: XICHENG_REGION_CONFIG.tenantId,
 			sourceChannel: XICHENG_REGION_CONFIG.sourceChannel
 		}
@@ -1164,6 +1166,7 @@ const requestXunjingResourceEvent = ({ eventType = 'VIEW', payload = {}, context
 			},
 			data: {
 				packageCode: eventConfig.packageCode,
+				sceneCode: eventConfig.sceneCode,
 				eventType,
 				sourceChannel: eventConfig.sourceChannel,
 				userTraceId: getUserTraceId(),

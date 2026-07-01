@@ -38,8 +38,8 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /const XUNJING_EVENT_CONFIG\s*=\s*\{[\s\S]*apiPath:\s*'app-api\/xunjing\/resource\/events'[\s\S]*packageCode:\s*XUNJING_AI_CONFIG\.packageCode/,
-  'AI guide should centralize the Yudao resource event endpoint without hardcoding a second package code'
+  /const XUNJING_EVENT_CONFIG\s*=\s*\{[\s\S]*apiPath:\s*'app-api\/xunjing\/resource\/events'[\s\S]*packageCode:\s*XUNJING_AI_CONFIG\.packageCode[\s\S]*sceneCode:\s*XUNJING_AI_CONFIG\.sceneCode/,
+  'AI guide should centralize the Yudao resource event endpoint with package and scene context'
 )
 
 assert.match(
@@ -56,8 +56,8 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /const requestXunjingResourceEvent\s*=\s*\(\{ eventType = 'VIEW', payload = \{\}, context = xichengAiContext\.value \} = \{\}\)[\s\S]*const eventConfig = getActiveXunjingEventConfig\(context\)[\s\S]*const eventPayload = buildXunjingResourceEventPayload\(\{ payload, context, eventConfig \}\)[\s\S]*uni\.request\(\{[\s\S]*url:\s*buildYudaoAppApiUrl\(eventConfig\.apiPath\)[\s\S]*method:\s*'POST'[\s\S]*'tenant-id':\s*eventConfig\.tenantId[\s\S]*packageCode:\s*eventConfig\.packageCode[\s\S]*eventType[\s\S]*sourceChannel:\s*eventConfig\.sourceChannel[\s\S]*payloadJson:\s*JSON\.stringify\(eventPayload\)/,
-  'AI guide should post Yudao resource events with active tenant-id, packageCode, eventType, sourceChannel, userTraceId, and normalized payloadJson'
+  /const requestXunjingResourceEvent\s*=\s*\(\{ eventType = 'VIEW', payload = \{\}, context = xichengAiContext\.value \} = \{\}\)[\s\S]*const eventConfig = getActiveXunjingEventConfig\(context\)[\s\S]*const eventPayload = buildXunjingResourceEventPayload\(\{ payload, context, eventConfig \}\)[\s\S]*uni\.request\(\{[\s\S]*url:\s*buildYudaoAppApiUrl\(eventConfig\.apiPath\)[\s\S]*method:\s*'POST'[\s\S]*'tenant-id':\s*eventConfig\.tenantId[\s\S]*packageCode:\s*eventConfig\.packageCode[\s\S]*sceneCode:\s*eventConfig\.sceneCode[\s\S]*eventType[\s\S]*sourceChannel:\s*eventConfig\.sourceChannel[\s\S]*payloadJson:\s*JSON\.stringify\(eventPayload\)/,
+  'AI guide should post Yudao resource events with active tenant-id, packageCode, sceneCode, eventType, sourceChannel, userTraceId, and normalized payloadJson'
 )
 
 assert.match(
