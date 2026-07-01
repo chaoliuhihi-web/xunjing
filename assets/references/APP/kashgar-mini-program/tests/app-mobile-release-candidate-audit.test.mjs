@@ -78,6 +78,16 @@ const makeZipArtifact = (files, fileName = 'xicheng-release.apk') => {
   return archivePath
 }
 
+const makeArtifactDir = (files) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-audit-resource-dir-'))
+  for (const [relativePath, content] of Object.entries(files)) {
+    const filePath = path.join(tempDir, relativePath)
+    fs.mkdirSync(path.dirname(filePath), { recursive: true })
+    fs.writeFileSync(filePath, content)
+  }
+  return tempDir
+}
+
 const describeArtifact = (artifactPath) => {
   const artifactBytes = fs.readFileSync(artifactPath)
   return {
@@ -361,6 +371,55 @@ assert.ok(
 )
 assert.equal(missingWithReleaseEnvAudit.gates.releasePrerequisites.ok, true)
 assert.equal(missingWithReleaseEnvAudit.gates.releasePrerequisites.detail, 'pass')
+
+const appResourceArtifactDir = makeArtifactDir({
+  'index.html': '<!doctype html><script src="./assets/index.js"></script>',
+  'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";'
+})
+const appResourceArtifactResult = runAudit([
+  '--preprod-evidence',
+  path.join(missingTempDir, 'missing-preprod.json'),
+  '--native-evidence',
+  path.join(missingTempDir, 'missing-native.json'),
+  '--release-artifact',
+  appResourceArtifactDir,
+  '--skip-remote-parity'
+], {
+  XUNJING_RELEASE_ENV_FILE: releaseEnvFilePath,
+  XUNJING_APP_API_BASE_URL: '',
+  XUNJING_TENANT_ID: '',
+  XUNJING_RELEASE_TARGETS: '',
+  XUNJING_ANDROID_PACKAGE_NAME: '',
+  XUNJING_ANDROID_KEYSTORE: '',
+  XUNJING_ANDROID_KEY_ALIAS: '',
+  XUNJING_ANDROID_KEYSTORE_PASSWORD: '',
+  XUNJING_ANDROID_KEY_PASSWORD: '',
+  XUNJING_SKIP_NATIVE_TOOL_CHECK: '',
+  XUNJING_RELEASE_PREREQ_SKIP_NETWORK: '1',
+  HBUILDERX_CLI: loggedInCliPath
+})
+assert.notEqual(
+  appResourceArtifactResult.status,
+  0,
+  'release candidate audit should reject app resource directories as native release artifacts'
+)
+const appResourceArtifactAudit = parseAuditJson(appResourceArtifactResult)
+assert.equal(appResourceArtifactAudit.gates.nativeReleaseArtifact.exists, true)
+assert.equal(appResourceArtifactAudit.gates.nativeReleaseArtifact.ok, false)
+assert.equal(
+  appResourceArtifactAudit.gates.nativePackageReadiness.skipped,
+  false,
+  'release candidate audit should not skip native package readiness when only an app resource directory was provided'
+)
+assert.ok(
+  appResourceArtifactAudit.blockers.some((blocker) => blocker.code === 'native-release-artifact-invalid'),
+  'release candidate audit should name app resource directories as invalid native release artifacts'
+)
+assert.match(
+  `${appResourceArtifactResult.stderr}\n${appResourceArtifactResult.stdout}`,
+  /APK|AAB|IPA|signed|install package|resource directory|安装包/i,
+  'release candidate audit should explain that native release artifacts must be signed mobile packages, not resource directories'
+)
 
 const prereqFailureResult = runAudit([
   '--preprod-evidence',

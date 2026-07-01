@@ -48,6 +48,35 @@ const normalizePathForComparison = (inputPath) => {
 }
 
 const normalizeUrl = (value) => String(value || '').trim().replace(/\/+$/, '')
+const mobileReleaseArtifactExtensions = new Set(['.apk', '.aab', '.ipa'])
+
+const describeNativeReleaseArtifactPath = (artifactPath) => {
+  if (!artifactPath || !fs.existsSync(artifactPath)) {
+    return {
+      exists: false,
+      ok: false,
+      isFile: false,
+      extension: '',
+      invalidReason: ''
+    }
+  }
+  const stat = fs.statSync(artifactPath)
+  const extension = path.extname(artifactPath).toLowerCase()
+  const isFile = stat.isFile()
+  const ok = isFile && mobileReleaseArtifactExtensions.has(extension)
+  const invalidReason = ok
+    ? ''
+    : (isFile
+        ? `expected APK/AAB/IPA, got ${extension || 'file without extension'}`
+        : 'expected signed mobile install package file, got app resource directory or non-file path')
+  return {
+    exists: true,
+    ok,
+    isFile,
+    extension,
+    invalidReason
+  }
+}
 
 const readJsonIfPresent = (inputPath) => {
   const resolvedPath = resolveInputPath(inputPath)
@@ -269,12 +298,16 @@ if (!nativeEvidence.exists) {
 const explicitReleaseArtifactPath = resolveInputPath(releaseArtifactArg)
 const nativeEvidenceArtifactPath = resolveRepoInputPath(nativeEvidence.json?.build?.artifact || '')
 const releaseArtifactPath = explicitReleaseArtifactPath || nativeEvidenceArtifactPath
+const nativeReleaseArtifactDescription = describeNativeReleaseArtifactPath(releaseArtifactPath)
 gates.nativeReleaseArtifact = {
-  ok: Boolean(releaseArtifactPath && fs.existsSync(releaseArtifactPath)),
+  ok: nativeReleaseArtifactDescription.ok,
   path: releaseArtifactPath,
   nativeEvidenceArtifact: nativeEvidenceArtifactPath,
   explicitReleaseArtifact: explicitReleaseArtifactPath,
-  exists: Boolean(releaseArtifactPath && fs.existsSync(releaseArtifactPath))
+  exists: nativeReleaseArtifactDescription.exists,
+  isFile: nativeReleaseArtifactDescription.isFile,
+  extension: nativeReleaseArtifactDescription.extension,
+  invalidReason: nativeReleaseArtifactDescription.invalidReason
 }
 if (
   explicitReleaseArtifactPath &&
@@ -298,15 +331,23 @@ if (!gates.nativeReleaseArtifact.exists) {
     'Run XUNJING_RELEASE_ENV_FILE=/secure/path/preprod.env npm run pack:native:cloud:dry-run, then XUNJING_RELEASE_ENV_FILE=/secure/path/preprod.env XUNJING_NATIVE_PACK_CONFIRM=cloud-pack npm run pack:native:cloud; set XUNJING_RELEASE_ARTIFACT to the signed APK/AAB or IPA before preparing native evidence'
   )
 }
+if (gates.nativeReleaseArtifact.exists && !gates.nativeReleaseArtifact.ok) {
+  addBlocker(
+    blockers,
+    'native-release-artifact-invalid',
+    `Native release artifact must be a signed mobile install package file (APK/AAB/IPA), not an app resource directory or unsupported file: ${releaseArtifactPath}`,
+    'Set XUNJING_RELEASE_ARTIFACT to the signed APK/AAB/IPA produced by HBuilderX cloud packaging before preparing native evidence'
+  )
+}
 
 gates.nativePackageReadiness = {
   ok: false,
-  skipped: gates.nativeReleaseArtifact.exists,
-  detail: gates.nativeReleaseArtifact.exists
+  skipped: gates.nativeReleaseArtifact.ok,
+  detail: gates.nativeReleaseArtifact.ok
     ? 'skipped because a native release artifact is already configured'
     : ''
 }
-if (!gates.nativeReleaseArtifact.exists) {
+if (!gates.nativeReleaseArtifact.ok) {
   const readinessGate = runNodeGate('verify_native_package_readiness.mjs', [])
   gates.nativePackageReadiness = {
     ...gates.nativePackageReadiness,
@@ -325,7 +366,7 @@ if (!gates.nativeReleaseArtifact.exists) {
 
 const needsReleasePrerequisites = !gates.preprodEvidence.ok ||
   !gates.nativeEvidence.ok ||
-  !gates.nativeReleaseArtifact.exists
+  !gates.nativeReleaseArtifact.ok
 gates.releasePrerequisites = {
   ok: !needsReleasePrerequisites,
   skipped: !needsReleasePrerequisites,
@@ -376,7 +417,7 @@ gates.releaseArtifactScan = {
   expectedApiBaseUrl,
   expectedTenantId
 }
-if (gates.nativeReleaseArtifact.exists) {
+if (gates.nativeReleaseArtifact.ok) {
   if (!expectedApiBaseUrl || !expectedTenantId) {
     addBlocker(
       blockers,
