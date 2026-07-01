@@ -19,6 +19,7 @@ for (const required of [
   'npm run build',
   'npm run build:app:release',
   'npm run verify:yudao:local',
+  'npm run verify:yudao:preprod',
   'npm run test:run',
   'xicheng-app-page-size-budget.test.mjs',
   '/app-api/xunjing/**',

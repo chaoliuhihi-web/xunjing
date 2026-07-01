@@ -52,6 +52,19 @@ npm run xunjing:platform:verify -- \
 
 浏览器主链 smoke 应覆盖：西城首页 -> 文本识别 -> 识别结果 -> 小京讲解 -> 开始记录 -> 西城游记草稿。
 
+## 预发 APP evidence 采集
+
+在 `assets/references/APP/kashgar-mini-program` 使用同一个非本地 HTTPS 后端采集 APP readiness evidence：
+
+```bash
+XUNJING_RELEASE_ENV_FILE="/secure/path/preprod.env" \
+XUNJING_APP_API_BASE_URL="$XUNJING_APP_API_BASE_URL" \
+XUNJING_TENANT_ID="$XUNJING_TENANT_ID" \
+npm run verify:yudao:preprod
+```
+
+该命令会先执行 release 环境校验，拒绝 localhost、127.0.0.1、局域网和非 HTTPS 地址，然后调用仓库根目录 `npm run xunjing:platform:verify --`，输出 `qa/xicheng-app-readiness-evidence.json`。
+
 ## 放行核查命令
 
 在仓库根目录使用安全环境文件执行，路径示例只表达位置，不代表真实密钥：

@@ -117,3 +117,30 @@ for (const required of [
     `APP local readiness script should include ${required}`
   )
 }
+
+assert.match(
+  scripts['verify:yudao:preprod'] || '',
+  /node scripts\/verify_release_app_env\.mjs/,
+  'APP preprod readiness script should reuse the non-local HTTPS release environment guard'
+)
+
+assert.match(
+  scripts['verify:yudao:preprod'] || '',
+  /cd \.\.\/\.\.\/\.\.\/\.\. && npm run xunjing:platform:verify --/,
+  'APP preprod readiness script should run the root Yudao platform verifier from the APP directory'
+)
+
+for (const required of [
+  '--env-file ${XUNJING_RELEASE_ENV_FILE:?Set XUNJING_RELEASE_ENV_FILE to the preprod or production env file}',
+  '--base-url "$XUNJING_APP_API_BASE_URL"',
+  '--tenant-id "$XUNJING_TENANT_ID"',
+  '--skip-admin-check',
+  '--include-xicheng-app-check',
+  '--include-xicheng-trigger-check',
+  '--evidence-file qa/xicheng-app-readiness-evidence.json'
+]) {
+  assert.ok(
+    (scripts['verify:yudao:preprod'] || '').includes(required),
+    `APP preprod readiness script should include ${required}`
+  )
+}
