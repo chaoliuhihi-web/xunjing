@@ -88,7 +88,7 @@ XUNJING_RELEASE_ENV_FILE="/secure/path/preprod.env" npm run build:app:release
 XUNJING_RELEASE_ENV_FILE="/secure/path/preprod.env" npm run verify:native:package:ready
 ```
 
-该命令检查 HBuilderX CLI、APP 名称、appid、versionName、versionCode、Android package name、签名 keystore、key alias、密码是否已注入，并用 keytool 验证 keystore 可读且 alias 存在；同时确认 Android 权限仍限定在 `ACCESS_NETWORK_STATE`、`CAMERA`、`ACCESS_COARSE_LOCATION`、`ACCESS_FINE_LOCATION`。它不会生成安装包，也不会输出密钥内容；通过后再用 HBuilderX 原生发布流程生成 `signed APK/AAB`，再进入 `npm run prepare:native:evidence`。
+该命令检查 HBuilderX CLI、APP 名称、appid、versionName、versionCode、Android package name、签名 keystore、key alias、密码是否已注入，并用 keytool 验证 keystore 可读且 alias 存在；同时确认 Android 权限仍限定在 `ACCESS_NETWORK_STATE`、`CAMERA`、`ACCESS_COARSE_LOCATION`、`ACCESS_FINE_LOCATION`。Android package name 必须是真实发布包名，不能使用 `example`、`test`、`demo`、`placeholder`、`xinxiake`、`uni-app` 等示例或脚手架标记。它不会生成安装包，也不会输出密钥内容；通过后再用 HBuilderX 原生发布流程生成 `signed APK/AAB`，再进入 `npm run prepare:native:evidence`。
 
 就绪门禁通过后，先生成一份脱敏的 HBuilderX 云打包命令预览：
 

@@ -26,6 +26,8 @@ for (const required of [
   'XUNJING_ANDROID_KEYSTORE',
   'XUNJING_ANDROID_KEY_ALIAS',
   'XUNJING_RELEASE_TARGETS',
+  'example',
+  'placeholder',
   'signed APK/AAB',
   'HBuilderX',
   'keytool',
@@ -212,6 +214,21 @@ assert.match(
   `${invalidPackageNameResult.stderr}\n${invalidPackageNameResult.stdout}`,
   /Android package name|XUNJING_ANDROID_PACKAGE_NAME/i,
   'native package readiness should explain Android package name validation'
+)
+
+const placeholderPackageNameResult = runReadiness({
+  ...baseEnv,
+  XUNJING_ANDROID_PACKAGE_NAME: 'com.example.xunjing'
+}, ['--skip-tool-check'])
+assert.notEqual(
+  placeholderPackageNameResult.status,
+  0,
+  'native package readiness should reject reserved or placeholder Android package names'
+)
+assert.match(
+  `${placeholderPackageNameResult.stderr}\n${placeholderPackageNameResult.stdout}`,
+  /XUNJING_ANDROID_PACKAGE_NAME|placeholder|reserved|example/i,
+  'native package readiness should explain placeholder Android package name validation'
 )
 
 const missingKeystoreResult = runReadiness({

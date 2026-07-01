@@ -62,6 +62,12 @@ const assertReverseDnsIdentifier = (label, value, example) => {
   if (!packagePattern.test(packageName)) {
     throw new Error(`${label} must be a valid reverse-DNS identifier such as ${example}`)
   }
+  const packageParts = packageName.toLowerCase().split(/[._-]+/)
+  const reservedParts = new Set(['example', 'test', 'demo', 'placeholder', 'xinxiake', 'uniapp'])
+  const reservedPart = packageParts.find((part) => reservedParts.has(part))
+  if (reservedPart || /uni-app/i.test(packageName)) {
+    throw new Error(`${label} must not use a reserved or placeholder package name segment`)
+  }
   return packageName
 }
 

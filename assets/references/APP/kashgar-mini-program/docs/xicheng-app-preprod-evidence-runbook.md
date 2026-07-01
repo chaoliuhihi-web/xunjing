@@ -186,7 +186,7 @@ XUNJING_ANDROID_KEY_PASSWORD="$XUNJING_ANDROID_KEY_PASSWORD" \
 npm run verify:native:package:ready
 ```
 
-该命令会检查 HBuilderX CLI 是否可用、release 网关和租户是否有效、Android package name 和签名配置是否齐全，并用 keytool 验证 keystore 可读且 alias 存在；同时确认 Android 权限仍只包含 `ACCESS_NETWORK_STATE`、`CAMERA`、`ACCESS_COARSE_LOCATION`、`ACCESS_FINE_LOCATION`。门禁通过不等于已经生成安装包；它只是说明当前配置可以进入 HBuilderX signed APK/AAB 原生打包，然后再用 `XUNJING_RELEASE_ARTIFACT` 生成真机 evidence 模板。
+该命令会检查 HBuilderX CLI 是否可用、release 网关和租户是否有效、Android package name 和签名配置是否齐全，并用 keytool 验证 keystore 可读且 alias 存在；同时确认 Android 权限仍只包含 `ACCESS_NETWORK_STATE`、`CAMERA`、`ACCESS_COARSE_LOCATION`、`ACCESS_FINE_LOCATION`。Android package name 必须是真实发布包名，不能使用 `example`、`test`、`demo`、`placeholder`、`xinxiake`、`uni-app` 等示例或脚手架标记。门禁通过不等于已经生成安装包；它只是说明当前配置可以进入 HBuilderX signed APK/AAB 原生打包，然后再用 `XUNJING_RELEASE_ARTIFACT` 生成真机 evidence 模板。
 
 先 dry-run 检查 HBuilderX 云打包命令是否正确，脚本不会执行真实打包，也不会输出签名密码：
 
