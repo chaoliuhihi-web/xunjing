@@ -119,7 +119,10 @@ const blockers = []
 const warnings = []
 const gates = {}
 const skipRemoteParity = hasFlag('--skip-remote-parity') || process.env.XUNJING_SKIP_REMOTE_PARITY === '1'
-const allowTestBypass = process.env.XUNJING_RELEASE_AUDIT_ALLOW_TEST_BYPASS === '1'
+const requestedTestBypass = process.env.XUNJING_RELEASE_AUDIT_ALLOW_TEST_BYPASS === '1'
+const testMode = process.env.XUNJING_RELEASE_AUDIT_TEST_MODE === '1'
+const allowTestBypass = requestedTestBypass && testMode
+const unsafeTestBypassWithoutTestMode = requestedTestBypass && !testMode
 const remoteParitySkippedWithoutBypass = skipRemoteParity && !allowTestBypass
 const gitStatusPorcelain = readGit(['status', '--porcelain', '--untracked-files=all'])
 const dirtyEntries = gitStatusPorcelain ? gitStatusPorcelain.split('\n').filter(Boolean) : []
@@ -142,8 +145,18 @@ gates.git = {
   dirtyEntryCount: dirtyEntries.length,
   dirtyEntries: dirtyEntries.slice(0, 20),
   skipRemoteParity,
+  testBypassRequested: requestedTestBypass,
+  testMode,
   testBypass: allowTestBypass,
   remotes: remoteParityResults
+}
+if (unsafeTestBypassWithoutTestMode) {
+  addBlocker(
+    blockers,
+    'release-audit-test-bypass-without-test-mode',
+    'Release audit test bypass was requested without explicit test mode, so it cannot affect a release candidate',
+    'Unset XUNJING_RELEASE_AUDIT_ALLOW_TEST_BYPASS and run npm run audit:release:candidate normally for release'
+  )
 }
 if (worktreeDirtyWithoutBypass) {
   addBlocker(

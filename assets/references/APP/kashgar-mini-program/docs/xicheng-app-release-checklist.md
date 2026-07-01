@@ -140,7 +140,7 @@ npm run audit:release:candidate
 
 正式候选审计必须先让 `git status --short` 为空。未提交源码、文档、证据文件或未追踪文件都会触发 `git-worktree-dirty`，不能得到 `GO`。
 
-不要在正式发布审计里使用 `--skip-remote-parity` 或 `XUNJING_SKIP_REMOTE_PARITY=1`。跳过 GitHub/Gitee 双远端一致性只能用于本地测试夹具；正式候选会被 `git-remote-parity-skipped` 阻断，不能得到 `GO`。
+不要在正式发布审计里使用 `--skip-remote-parity` 或 `XUNJING_SKIP_REMOTE_PARITY=1`。跳过 GitHub/Gitee 双远端一致性只能用于本地测试夹具；正式候选会被 `git-remote-parity-skipped` 阻断，不能得到 `GO`。测试夹具内部使用的 `XUNJING_RELEASE_AUDIT_ALLOW_TEST_BYPASS=1` 必须同时带 `XUNJING_RELEASE_AUDIT_TEST_MODE=1` 才会生效；正式环境单独设置 bypass 会被 `release-audit-test-bypass-without-test-mode` 阻断。
 
 在仓库根目录运行：
 

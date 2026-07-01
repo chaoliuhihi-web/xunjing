@@ -449,7 +449,7 @@ assert.ok(
   'release candidate audit should name skipped remote parity as a launch blocker'
 )
 
-const readyResult = runAudit([
+const unsafeTestBypassResult = runAudit([
   '--preprod-evidence',
   preprodPath,
   '--native-evidence',
@@ -461,6 +461,33 @@ const readyResult = runAudit([
   XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
   XUNJING_TENANT_ID: '1',
   XUNJING_RELEASE_AUDIT_ALLOW_TEST_BYPASS: '1'
+})
+assert.notEqual(
+  unsafeTestBypassResult.status,
+  0,
+  'release candidate audit should not allow a test bypass unless explicit test mode is also enabled'
+)
+const unsafeTestBypassAudit = parseAuditJson(unsafeTestBypassResult)
+assert.equal(unsafeTestBypassAudit.status, 'NO_GO')
+assert.equal(unsafeTestBypassAudit.gates.git.testBypass, false)
+assert.ok(
+  unsafeTestBypassAudit.blockers.some((blocker) => blocker.code === 'release-audit-test-bypass-without-test-mode'),
+  'release candidate audit should name unsafe test bypass configuration as a launch blocker'
+)
+
+const readyResult = runAudit([
+  '--preprod-evidence',
+  preprodPath,
+  '--native-evidence',
+  nativePath,
+  '--release-artifact',
+  artifactDescription.artifact,
+  '--skip-remote-parity'
+], {
+  XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
+  XUNJING_TENANT_ID: '1',
+  XUNJING_RELEASE_AUDIT_ALLOW_TEST_BYPASS: '1',
+  XUNJING_RELEASE_AUDIT_TEST_MODE: '1'
 })
 assert.equal(readyResult.status, 0, `release candidate audit should pass with complete matching evidence: ${readyResult.stderr || readyResult.stdout}`)
 const readyAudit = parseAuditJson(readyResult)
