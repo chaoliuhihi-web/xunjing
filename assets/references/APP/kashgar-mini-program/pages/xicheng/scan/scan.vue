@@ -15,6 +15,28 @@
 			</view>
 		</view>
 
+		<view class="scan-fusion-panel xicheng-paper-card">
+			<view class="section-head xicheng-section-label">
+				<view>
+					<text class="section-kicker">场景融合</text>
+					<text class="section-title">镜头打开前，小京已接入这些信号</text>
+				</view>
+				<text class="section-badge">Scene Engine</text>
+			</view>
+			<text class="scan-fusion-summary">{{ sceneFusionSummary }}</text>
+			<view class="scan-fusion-grid">
+				<view
+					v-for="signal in sceneFusionSignals"
+					:key="signal.key"
+					class="scan-fusion-signal"
+					:class="{ 'scan-fusion-signal-active': signal.active }"
+				>
+					<text class="scan-fusion-signal-label">{{ signal.label }}</text>
+					<text class="scan-fusion-signal-status">{{ signal.statusText }}</text>
+				</view>
+			</view>
+		</view>
+
 		<view class="scan-panel xicheng-paper-card">
 			<view class="scan-frame">
 				<view class="scan-frame-corner scan-frame-corner-tl"></view>
@@ -87,6 +109,8 @@ export default {
 			lastError: '',
 			manualText: '',
 			currentLocation: null,
+			sceneFusionSignals: [],
+			sceneFusionSummary: '镜头待命，正在接入现场信号',
 			routeContext: {
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
 				packageCode: XICHENG_REGION_CONFIG.packageCode,
@@ -106,6 +130,7 @@ export default {
 	},
 	onLoad(options = {}) {
 		this.applyVisionAgentQueryContext(options)
+		this.refreshSceneFusionPanel()
 		this.routeContext = {
 			regionCode: decodeRouteValue(options.regionCode) || XICHENG_REGION_CONFIG.regionCode,
 			packageCode: decodeRouteValue(options.packageCode) || XICHENG_REGION_CONFIG.packageCode,
@@ -136,9 +161,83 @@ export default {
 				userInterestTags: decodeRouteValue(options.userInterestTags)
 			}
 		},
+		formatSceneFusionTime(date = new Date()) {
+			const pad = (number) => String(number).padStart(2, '0')
+			return `${pad(date.getHours())}:${pad(date.getMinutes())}`
+		},
+		parseVisionAgentSourceContext(sourceRecognitionContext = '') {
+			if (!sourceRecognitionContext) return {}
+			if (typeof sourceRecognitionContext === 'object') return sourceRecognitionContext
+			try {
+				const parsedContext = JSON.parse(String(sourceRecognitionContext))
+				return parsedContext && typeof parsedContext === 'object' ? parsedContext : {}
+			} catch (error) {
+				return {
+					visionCaption: String(sourceRecognitionContext).slice(0, 48)
+				}
+			}
+		},
+		readVisionAgentMemoryTrail() {
+			try {
+				const memoryTrail = uni.getStorageSync(XICHENG_REGION_CONFIG.visionAgentMemoryStorageKey)
+				return Array.isArray(memoryTrail)
+					? memoryTrail.filter(item => item && typeof item === 'object')
+					: []
+			} catch (error) {
+				return []
+			}
+		},
+		buildSceneFusionContext() {
+			const visionContext = this.visionAgentContext || {}
+			const previousContext = this.parseVisionAgentSourceContext(visionContext.sourceRecognitionContext)
+			const memoryTrail = this.readVisionAgentMemoryTrail()
+			const hasLocation = Boolean(this.currentLocation || visionContext.locationText)
+			return {
+				...visionContext,
+				previousContext,
+				memoryTrail,
+				locationText: visionContext.locationText || (hasLocation ? 'GPS已授权' : ''),
+				localTimeText: visionContext.localTimeText || this.formatSceneFusionTime(),
+				weatherText: visionContext.weatherText || '',
+				headingText: visionContext.headingText || '',
+				headingDegrees: visionContext.headingDegrees || '',
+				knowledgeGraphText: visionContext.knowledgeGraphText || '',
+				serviceText: visionContext.serviceText || '',
+				activityText: visionContext.activityText || ''
+			}
+		},
+		buildSceneFusionSignals(context = this.buildSceneFusionContext()) {
+			const memoryText = context.previousContext.poiName
+				|| context.previousContext.visionCaption
+				|| (context.memoryTrail[0] && context.memoryTrail[0].poiName)
+				|| ''
+			const environmentText = [context.localTimeText, context.weatherText].filter(Boolean).join(' ')
+			const knowledgeText = context.knowledgeGraphText || context.activityText || context.serviceText || ''
+			return [
+				{ key: 'camera', label: '镜头', statusText: this.recognizing ? '理解中' : '待拍摄', active: true },
+				{ key: 'gps', label: 'GPS', statusText: context.locationText || '待授权', active: Boolean(context.locationText) },
+				{ key: 'environment', label: '时间天气', statusText: environmentText || '待刷新', active: Boolean(environmentText) },
+				{ key: 'heading', label: '方向', statusText: context.headingText || (context.headingDegrees ? `${context.headingDegrees}°` : '待校准'), active: Boolean(context.headingText || context.headingDegrees) },
+				{ key: 'memory', label: 'Memory', statusText: memoryText || '待形成', active: Boolean(memoryText) },
+				{ key: 'knowledge', label: '知识图谱', statusText: knowledgeText || '待连接', active: Boolean(knowledgeText) }
+			]
+		},
+		buildSceneFusionSummary(context = this.buildSceneFusionContext(), signals = this.buildSceneFusionSignals(context)) {
+			const activeCount = signals.filter(signal => signal && signal.active).length
+			const subject = context.locationText || context.visionCaption || context.previousContext.poiName || this.region.cityName
+			const nextCue = context.knowledgeGraphText || context.serviceText || context.activityText || '拍一下后自动进入场景理解'
+			return `${subject} · ${activeCount}类现场信号已接入，${nextCue}`.slice(0, 88)
+		},
+		refreshSceneFusionPanel() {
+			const context = this.buildSceneFusionContext()
+			this.sceneFusionSignals = this.buildSceneFusionSignals(context)
+			this.sceneFusionSummary = this.buildSceneFusionSummary(context, this.sceneFusionSignals)
+		},
 		buildVisionAgentSceneContext(source = '', trigger = {}) {
 			return {
 				...this.visionAgentContext,
+				sceneFusionSummary: this.sceneFusionSummary,
+				sceneFusionSignals: this.sceneFusionSignals,
 				source,
 				poiCode: trigger.poiCode || '',
 				poiName: trigger.poiName || '',
@@ -191,6 +290,7 @@ export default {
 					}
 					this.recognizing = true
 					this.lastError = ''
+					this.refreshSceneFusionPanel()
 					try {
 						const text = this.manualText.trim()
 						const trigger = await resolveXichengPhotoTrigger({
@@ -219,6 +319,7 @@ export default {
 			try {
 				const location = await requestCurrentLocationForTrigger()
 				this.currentLocation = location
+				this.refreshSceneFusionPanel()
 				const text = this.manualText.trim() || '当前位置附近西城文化点'
 				const trigger = await resolveXichengTextTrigger({
 					text,
@@ -237,6 +338,7 @@ export default {
 			if (this.recognizing) return
 			this.recognizing = true
 			this.lastError = ''
+			this.refreshSceneFusionPanel()
 			try {
 				const trigger = await resolveXichengTextTrigger({
 					text,
@@ -384,9 +486,66 @@ export default {
 }
 
 .scan-panel,
+.scan-fusion-panel,
 .scan-capabilities {
 	margin-top: 24rpx;
 	padding: 28rpx;
+}
+
+.scan-fusion-panel {
+	background:
+		linear-gradient(135deg, rgba(255, 253, 248, 0.96), rgba(232, 241, 233, 0.94));
+}
+
+.scan-fusion-summary {
+	display: block;
+	margin-top: 18rpx;
+	font-size: 25rpx;
+	line-height: 1.55;
+	color: rgba(16, 47, 41, 0.74);
+}
+
+.scan-fusion-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 14rpx;
+	margin-top: 22rpx;
+}
+
+.scan-fusion-signal {
+	min-width: 0;
+	min-height: 100rpx;
+	padding: 18rpx;
+	border-radius: 22rpx;
+	border: 1rpx solid rgba(16, 47, 41, 0.08);
+	background: rgba(255, 252, 244, 0.72);
+	box-sizing: border-box;
+}
+
+.scan-fusion-signal-active {
+	border-color: rgba(31, 110, 90, 0.24);
+	background: rgba(31, 110, 90, 0.10);
+}
+
+.scan-fusion-signal-label,
+.scan-fusion-signal-status {
+	display: block;
+	line-height: 1.4;
+}
+
+.scan-fusion-signal-label {
+	font-size: 22rpx;
+	color: rgba(16, 47, 41, 0.56);
+}
+
+.scan-fusion-signal-status {
+	margin-top: 8rpx;
+	font-size: 25rpx;
+	font-weight: 800;
+	color: #102F29;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .scan-frame {
