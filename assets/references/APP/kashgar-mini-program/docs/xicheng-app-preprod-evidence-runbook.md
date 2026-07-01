@@ -96,7 +96,7 @@ XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-eviden
 npm run verify:native:evidence
 ```
 
-真机证据的 `build.artifact` 必须记录真实手机安装包 release 路径，只接受 `.apk`、`.aab` 或 `.ipa`，并记录 `artifactSha256` 和 `artifactSizeBytes`。校验命令会读取该 release 包并比对 SHA256/大小；如果 release 包不存在、大小不一致、哈希不一致或不是手机安装包，不能放行。
+真机证据的 `build.artifact` 必须记录真实手机安装包 release 路径，只接受 `.apk`、`.aab` 或 `.ipa`，并记录 `artifactSha256` 和 `artifactSizeBytes`。校验命令会读取该 release 包并比对 SHA256、大小和平台包结构；Android APK 必须包含根部 `AndroidManifest.xml`，Android AAB 必须包含 `base/manifest/AndroidManifest.xml`，iOS IPA 必须包含 `Payload/*.app`。如果 release 包不存在、大小不一致、哈希不一致、不是可解包手机安装包，或只是普通 ZIP 改名，不能放行。
 
 真机证据的 `releaseTargets` 只允许 `android` 或 `ios`；每个目标都必须有真实设备记录，且设备记录必须包含 `installer` 安装渠道。
 

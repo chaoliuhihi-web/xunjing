@@ -48,6 +48,7 @@ const createZipArtifact = (fileName, files) => {
   }
 }
 const androidArtifact = createZipArtifact('xicheng-release.apk', {
+  'AndroidManifest.xml': '<manifest package="com.xinghe.xunjing"></manifest>',
   'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";'
 })
 const artifactPath = androidArtifact.artifactPath
@@ -63,6 +64,9 @@ const renamedTextArtifactPath = path.join(artifactTempDir, 'xicheng-renamed-text
 const renamedTextArtifactBytes = Buffer.from('renamed text file is not a readable mobile archive\n', 'utf8')
 fs.writeFileSync(renamedTextArtifactPath, renamedTextArtifactBytes)
 const renamedTextArtifactSha256 = crypto.createHash('sha256').update(renamedTextArtifactBytes).digest('hex')
+const genericZipArtifact = createZipArtifact('xicheng-generic-renamed.apk', {
+  'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";'
+})
 const nonMobileArtifactPath = path.join(artifactTempDir, 'xicheng-release.txt')
 const nonMobileArtifactBytes = Buffer.from('not a mobile install package\n', 'utf8')
 fs.writeFileSync(nonMobileArtifactPath, nonMobileArtifactBytes)
@@ -210,6 +214,26 @@ assert.match(
   `${renamedTextApkResult.stderr}\n${renamedTextApkResult.stdout}`,
   /APK|AAB|IPA|archive|ZIP|install package|安装包/i,
   'native evidence validator should explain that the release artifact must be a readable mobile archive'
+)
+
+const genericZipApkResult = runValidator({
+  ...baseEvidence,
+  build: {
+    ...baseEvidence.build,
+    artifact: genericZipArtifact.artifactPath,
+    artifactSha256: genericZipArtifact.artifactSha256,
+    artifactSizeBytes: genericZipArtifact.artifactBytes.length
+  }
+})
+assert.notEqual(
+  genericZipApkResult.status,
+  0,
+  'native evidence validator should reject a generic ZIP renamed with an APK extension'
+)
+assert.match(
+  `${genericZipApkResult.stderr}\n${genericZipApkResult.stdout}`,
+  /AndroidManifest|APK|AAB|IPA|platform|install package|安装包/i,
+  'native evidence validator should explain platform-specific mobile package structure validation'
 )
 
 const templatePlaceholderResult = runValidator({

@@ -414,6 +414,7 @@ for (const id of requiredScenarioIds) {
   fs.writeFileSync(path.join(scenarioEvidenceDir, `${id}.jpg`), jpegEvidenceBytes)
 }
 const artifactDescription = describeArtifact(makeZipArtifact({
+  'AndroidManifest.xml': '<manifest package="com.xinghe.xunjing"></manifest>',
   'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";'
 }))
 const preprodPath = path.join(readyTempDir, 'preprod.json')
@@ -526,6 +527,7 @@ assert.ok(
 )
 
 const mismatchedArtifactDescription = describeArtifact(makeZipArtifact({
+  'AndroidManifest.xml': '<manifest package="com.xinghe.xunjing"></manifest>',
   'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";const build="different-release-artifact";'
 }, 'xicheng-different-release.apk'))
 const mismatchedArtifactResult = runAudit([

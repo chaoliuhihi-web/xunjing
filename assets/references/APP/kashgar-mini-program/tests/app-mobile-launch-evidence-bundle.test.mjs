@@ -46,6 +46,7 @@ const describeArtifact = (artifactPath) => {
 }
 
 const cleanArtifact = describeArtifact(makeZipArtifact({
+  'AndroidManifest.xml': '<manifest package="com.xinghe.xunjing"></manifest>',
   'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";'
 }))
 
@@ -453,6 +454,7 @@ assert.match(
 )
 
 const artifactWithLocalGateway = describeArtifact(makeZipArtifact({
+  'AndroidManifest.xml': '<manifest package="com.xinghe.xunjing"></manifest>',
   'assets/index.js': 'const apiBase="http://localhost:48082/app-api/xunjing";'
 }, 'xicheng-local-gateway.apk'))
 const localGatewayArtifactResult = runBundleGate(
