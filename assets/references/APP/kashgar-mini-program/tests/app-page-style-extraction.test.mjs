@@ -19,6 +19,10 @@ const traveloguePage = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 const longTraveloguePreview = exists('components', 'xicheng', 'XichengLongTraveloguePreview.vue')
   ? read('components', 'xicheng', 'XichengLongTraveloguePreview.vue')
   : ''
+const longTraveloguePreviewCss = exists('components', 'xicheng', 'XichengLongTraveloguePreview.css')
+  ? read('components', 'xicheng', 'XichengLongTraveloguePreview.css')
+  : ''
+const longTraveloguePreviewShell = `${longTraveloguePreview}\n${longTraveloguePreviewCss}`
 
 for (const [relativePath, content] of [
   ['pages/index/index.vue', indexPage],
@@ -65,10 +69,16 @@ for (const selector of [
   '.long-chapter-image'
 ]) {
   assert.ok(
-    longTraveloguePreview.includes(selector),
+    longTraveloguePreviewShell.includes(selector),
     `Long travelogue preview component should preserve ${selector} styling after page style extraction`
   )
 }
+
+assert.match(
+  longTraveloguePreview,
+  /<style\s+scoped\s+src="\.\/XichengLongTraveloguePreview\.css"><\/style>/,
+  'Long travelogue preview component should attach extracted CSS as a separate scoped style block'
+)
 
 assert.ok(
   exists('pages', 'index', 'index-theme.css'),

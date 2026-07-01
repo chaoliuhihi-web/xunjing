@@ -14,6 +14,8 @@ const app = read('App.vue')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 const share = read('pages', 'xicheng', 'share', 'share.vue')
 const works = read('pages', 'xicheng', 'works', 'works.vue')
+const longTraveloguePreview = readOptional('components', 'xicheng', 'XichengLongTraveloguePreview.vue')
+const longTraveloguePreviewCss = readOptional('components', 'xicheng', 'XichengLongTraveloguePreview.css')
 
 const requiredPages = [
   {
@@ -22,15 +24,18 @@ const requiredPages = [
     file: ['pages', 'xicheng', 'travelogue-reader', 'travelogue-reader.vue'],
     tokens: [
       'xicheng-travelogue-reader',
-      '杂志式封面',
-      '路线故事线',
-      '照片叙事',
-      '继续编辑',
-      '发布设置',
-      'PDF打印',
+      'xicheng-long-travelogue-preview',
+      '出版级长文预览',
+      '行程路线概览',
+      'DAY 1',
+      'DAY 2',
+      '我记住的瞬间',
+      '西城慢行小贴士',
+      '导出PDF',
       'XICHENG_REGION_CONFIG.journeyStorageKey',
       'XICHENG_REGION_CONFIG.shareAssetStorageKey'
-    ]
+    ],
+    includeLongPreview: true
   },
   {
     route: 'pages/xicheng/pdf-print/pdf-print',
@@ -56,9 +61,12 @@ for (const page of requiredPages) {
   assert.equal(pageEntry.style?.navigationStyle, 'custom', `${page.route} should use the Xicheng custom shell`)
   assert.ok(app.includes(`'${page.route}'`), `${page.route} should be public for saved travelogue links`)
 
-  const source = readOptional(...page.file)
+  const pageSource = readOptional(...page.file)
+  const source = page.includeLongPreview
+    ? `${pageSource}\n${longTraveloguePreview}\n${longTraveloguePreviewCss}`
+    : pageSource
   assert.ok(source, `${page.route} should have an implemented Vue page`)
-  assert.ok(source.split(/\r?\n/).length < 900, `${page.route} should stay focused and component-friendly`)
+  assert.ok(pageSource.split(/\r?\n/).length < 900, `${page.route} should stay focused and component-friendly`)
   for (const token of page.tokens) {
     assert.ok(source.includes(token), `${page.route} should expose ${token}`)
   }

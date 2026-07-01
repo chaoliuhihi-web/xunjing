@@ -8,6 +8,10 @@ const travelogueCss = fs.existsSync(path.join(root, 'pages', 'xicheng', 'travelo
   ? fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.css'), 'utf8')
   : travelogue
 const longTraveloguePreview = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengLongTraveloguePreview.vue'), 'utf8')
+const longTraveloguePreviewCss = fs.existsSync(path.join(root, 'components', 'xicheng', 'XichengLongTraveloguePreview.css'))
+  ? fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengLongTraveloguePreview.css'), 'utf8')
+  : ''
+const longTraveloguePreviewShell = `${longTraveloguePreview}\n${longTraveloguePreviewCss}`
 
 for (const required of [
   'travelogue-generation-hero',
@@ -116,7 +120,7 @@ assert.ok(
 )
 
 assert.match(
-  longTraveloguePreview,
+  longTraveloguePreviewShell,
   /\.long-cover-image\s*\{[\s\S]*width:\s*100%[\s\S]*height:\s*100%[\s\S]*\.long-chapter-image\s*\{/,
   'Long travelogue preview should use stable mobile image containers without layout shift'
 )
@@ -128,13 +132,16 @@ assert.ok(
 
 for (const required of [
   '我的西城游记',
-  '今天这样走',
+  '行程路线概览',
+  'DAY 1',
+  'DAY 2',
   '照片记忆',
+  '西城慢行小贴士',
   '导出PDF',
   '发朋友圈',
   '发布到小红书'
 ]) {
-  assert.ok(longTraveloguePreview.includes(required), `Long travelogue preview should include publish-ready module ${required}`)
+  assert.ok(longTraveloguePreviewShell.includes(required), `Long travelogue preview should include publish-ready module ${required}`)
 }
 
 assert.doesNotMatch(

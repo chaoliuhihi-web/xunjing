@@ -1,0 +1,577 @@
+.xicheng-long-travelogue {
+	margin-top: 8rpx;
+	padding: 0;
+	border-radius: 36rpx;
+	overflow: hidden;
+	background: #FFFCF6;
+	box-shadow: 0 22rpx 56rpx rgba(28, 35, 32, 0.12);
+}
+
+.long-cover {
+	position: relative;
+	min-height: 690rpx;
+	overflow: hidden;
+}
+
+.long-cover-image,
+.long-cover-scrim {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.long-cover-image {
+	width: 100%;
+	height: 100%;
+}
+
+.long-cover-scrim {
+	background: linear-gradient(90deg, rgba(255, 252, 246, 0.95), rgba(255, 252, 246, 0.68) 45%, rgba(16, 47, 41, 0.08)), linear-gradient(180deg, rgba(255, 252, 246, 0.05), rgba(16, 47, 41, 0.22));
+}
+
+.long-cover-copy {
+	position: absolute;
+	left: 38rpx;
+	right: 38rpx;
+	bottom: 54rpx;
+	z-index: 2;
+}
+
+.long-kicker,
+.long-title,
+.long-subtitle,
+.long-intro,
+.long-template-pill,
+.long-section-kicker,
+.long-section-title,
+.long-section-meta,
+.long-route-summary-title,
+.long-route-summary-copy,
+.long-route-day,
+.long-day-label,
+.long-day-title,
+.long-chapter-time,
+.long-chapter-title,
+.long-chapter-text,
+.long-photo-label,
+.long-quote-mark,
+.long-quote-text,
+.long-tip-icon,
+.long-tip-title,
+.long-tip-copy,
+.long-ending-text,
+.long-privacy {
+	display: block;
+	letter-spacing: 0;
+}
+
+.long-kicker {
+	width: fit-content;
+	padding: 8rpx 16rpx;
+	border: 2rpx solid rgba(184, 129, 43, 0.35);
+	border-radius: 10rpx;
+	color: #B8812B;
+	font-size: 24rpx;
+	line-height: 1.35;
+	font-weight: 800;
+	background: rgba(255, 252, 246, 0.72);
+}
+
+.long-title {
+	margin-top: 34rpx;
+	max-width: 640rpx;
+	color: #173F35;
+	font-size: 54rpx;
+	line-height: 1.18;
+	font-weight: 900;
+}
+
+.long-subtitle {
+	margin-top: 22rpx;
+	color: #5D4B31;
+	font-size: 27rpx;
+	line-height: 1.55;
+	font-weight: 700;
+}
+
+.long-intro {
+	margin-top: 34rpx;
+	max-width: 430rpx;
+	color: #3A403D;
+	font-size: 26rpx;
+	line-height: 1.86;
+}
+
+.long-template-pill {
+	position: absolute;
+	right: 28rpx;
+	top: 30rpx;
+	z-index: 3;
+	padding: 12rpx 20rpx;
+	border-radius: 999rpx;
+	background: rgba(255, 252, 246, 0.9);
+	color: #173F35;
+	font-size: 22rpx;
+	line-height: 1.35;
+	font-weight: 800;
+}
+
+.long-body {
+	padding: 28rpx;
+}
+
+.long-route-overview,
+.long-day-card,
+.long-photo-memory,
+.long-quote-panel,
+.long-tips-panel,
+.long-ending-card {
+	margin-top: 24rpx;
+	border: 1rpx solid rgba(181, 148, 94, 0.18);
+	border-radius: 30rpx;
+	background: rgba(255, 255, 255, 0.78);
+	box-sizing: border-box;
+	overflow: hidden;
+}
+
+.long-route-overview,
+.long-photo-memory,
+.long-quote-panel,
+.long-tips-panel,
+.long-ending-card {
+	padding: 28rpx;
+}
+
+.long-section-head {
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 20rpx;
+}
+
+.long-section-kicker {
+	color: #B8812B;
+	font-size: 23rpx;
+	line-height: 1.35;
+	font-weight: 800;
+}
+
+.long-section-title {
+	margin-top: 8rpx;
+	color: #102F29;
+	font-size: 34rpx;
+	line-height: 1.3;
+	font-weight: 900;
+}
+
+.long-section-meta {
+	color: #8B7A61;
+	font-size: 22rpx;
+	line-height: 1.35;
+	white-space: nowrap;
+}
+
+.long-map-card {
+	position: relative;
+	min-height: 500rpx;
+	margin-top: 24rpx;
+	border-radius: 26rpx;
+	overflow: hidden;
+	background: #F8F0E3;
+}
+
+.long-map-grid {
+	position: absolute;
+	inset: 0;
+	background-image: linear-gradient(rgba(184, 129, 43, 0.13) 1rpx, transparent 1rpx), linear-gradient(90deg, rgba(184, 129, 43, 0.11) 1rpx, transparent 1rpx);
+	background-size: 58rpx 58rpx;
+	opacity: 0.68;
+}
+
+.long-map-water {
+	position: absolute;
+	border-radius: 48% 52% 44% 56%;
+	background: rgba(128, 181, 196, 0.42);
+	filter: blur(0.1rpx);
+}
+
+.long-map-water-left {
+	top: 72rpx;
+	left: 164rpx;
+	width: 220rpx;
+	height: 172rpx;
+	transform: rotate(-10deg);
+}
+
+.long-map-water-right {
+	top: 92rpx;
+	right: 82rpx;
+	width: 150rpx;
+	height: 206rpx;
+	transform: rotate(18deg);
+}
+
+.long-map-route {
+	position: absolute;
+	left: 156rpx;
+	top: 228rpx;
+	width: 330rpx;
+	height: 190rpx;
+	border-left: 7rpx solid #1F6E5A;
+	border-bottom: 7rpx solid #1F6E5A;
+	border-right: 7rpx solid #1F6E5A;
+	border-radius: 26rpx 44rpx 32rpx 26rpx;
+	transform: skewY(10deg);
+}
+
+.long-map-legend {
+	position: absolute;
+	top: 34rpx;
+	left: 28rpx;
+	display: grid;
+	gap: 12rpx;
+	padding: 18rpx 20rpx;
+	border-radius: 22rpx;
+	background: rgba(255, 252, 246, 0.9);
+	box-shadow: 0 8rpx 24rpx rgba(28, 35, 32, 0.08);
+}
+
+.long-map-legend-item {
+	color: #3E5048;
+	font-size: 21rpx;
+	line-height: 1.35;
+	font-weight: 700;
+}
+
+.long-map-pin {
+	position: absolute;
+	display: flex;
+	align-items: center;
+	gap: 8rpx;
+	padding: 8rpx 12rpx 8rpx 8rpx;
+	border-radius: 999rpx;
+	background: rgba(255, 252, 246, 0.94);
+	color: #173F35;
+	font-size: 21rpx;
+	line-height: 1.35;
+	font-weight: 800;
+	box-shadow: 0 8rpx 24rpx rgba(28, 35, 32, 0.14);
+}
+
+.long-map-pin text {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 42rpx;
+	height: 42rpx;
+	border-radius: 999rpx;
+	background: #1F6E5A;
+	color: #FFF8EA;
+}
+
+.long-map-pin-1 {
+	left: 150rpx;
+	top: 306rpx;
+}
+
+.long-map-pin-2 {
+	left: 270rpx;
+	top: 190rpx;
+}
+
+.long-map-pin-3 {
+	right: 128rpx;
+	top: 282rpx;
+}
+
+.long-route-summary {
+	position: absolute;
+	right: 26rpx;
+	bottom: 26rpx;
+	width: 238rpx;
+	padding: 22rpx;
+	border-radius: 24rpx;
+	background: rgba(255, 248, 234, 0.92);
+	box-shadow: 0 10rpx 28rpx rgba(28, 35, 32, 0.1);
+}
+
+.long-route-summary-title {
+	color: #173F35;
+	font-size: 25rpx;
+	line-height: 1.35;
+	font-weight: 900;
+}
+
+.long-route-summary-copy,
+.long-route-day {
+	margin-top: 12rpx;
+	color: #6E5E44;
+	font-size: 20rpx;
+	line-height: 1.45;
+}
+
+.long-day-card {
+	padding: 26rpx;
+}
+
+.long-day-head {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+}
+
+.long-day-dot {
+	width: 22rpx;
+	height: 22rpx;
+	border-radius: 999rpx;
+	background: #1F6E5A;
+	box-shadow: 0 0 0 8rpx rgba(31, 110, 90, 0.09);
+}
+
+.long-day-label {
+	color: #8B7A61;
+	font-size: 22rpx;
+	line-height: 1.35;
+	font-weight: 900;
+}
+
+.long-day-title {
+	color: #173F35;
+	font-size: 28rpx;
+	line-height: 1.35;
+	font-weight: 900;
+}
+
+.long-day-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 18rpx;
+	margin-top: 24rpx;
+}
+
+.long-chapter {
+	min-width: 0;
+}
+
+.long-chapter-time-line {
+	display: flex;
+	align-items: center;
+	gap: 10rpx;
+}
+
+.long-chapter-time {
+	color: #B8812B;
+	font-size: 22rpx;
+	line-height: 1.35;
+	font-weight: 900;
+}
+
+.long-chapter-dot {
+	flex: 1;
+	height: 2rpx;
+	background: rgba(31, 110, 90, 0.34);
+}
+
+.long-chapter-title {
+	margin-top: 16rpx;
+	color: #102F29;
+	font-size: 27rpx;
+	line-height: 1.35;
+	font-weight: 900;
+}
+
+.long-chapter-text {
+	margin-top: 12rpx;
+	color: #3A403D;
+	font-size: 22rpx;
+	line-height: 1.7;
+}
+
+.long-chapter-image {
+	width: 100%;
+	height: 210rpx;
+	margin-top: 18rpx;
+	border-radius: 18rpx;
+	background: rgba(31, 110, 90, 0.08);
+}
+
+.long-stamp {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	max-width: 150rpx;
+	min-height: 42rpx;
+	margin-top: -22rpx;
+	margin-left: 12rpx;
+	padding: 0 12rpx;
+	border: 2rpx solid rgba(184, 129, 43, 0.34);
+	border-radius: 999rpx;
+	background: rgba(255, 252, 246, 0.92);
+	color: #B8812B;
+	font-size: 19rpx;
+	line-height: 1.25;
+	font-weight: 800;
+	transform: rotate(-8deg);
+}
+
+.long-photo-scroll {
+	margin-top: 24rpx;
+	white-space: nowrap;
+}
+
+.long-photo-strip {
+	display: inline-flex;
+	gap: 14rpx;
+	padding-bottom: 4rpx;
+}
+
+.long-photo-card {
+	width: 178rpx;
+	border-radius: 18rpx;
+	background: rgba(255, 252, 246, 0.92);
+	overflow: hidden;
+	box-shadow: 0 8rpx 20rpx rgba(28, 35, 32, 0.08);
+}
+
+.long-photo-image {
+	width: 178rpx;
+	height: 150rpx;
+}
+
+.long-photo-label {
+	padding: 12rpx;
+	color: #173F35;
+	font-size: 20rpx;
+	line-height: 1.35;
+	font-weight: 800;
+	text-align: center;
+}
+
+.long-quote-panel {
+	display: grid;
+	grid-template-columns: 52rpx 1fr;
+	align-items: center;
+	gap: 18rpx;
+	background: linear-gradient(135deg, rgba(255, 248, 234, 0.92), rgba(247, 241, 229, 0.96));
+}
+
+.long-quote-mark {
+	color: #B8812B;
+	font-size: 72rpx;
+	line-height: 1;
+	font-weight: 900;
+}
+
+.long-quote-text {
+	color: #6D5733;
+	font-size: 30rpx;
+	line-height: 1.65;
+	font-weight: 800;
+}
+
+.long-tips-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16rpx;
+	margin-top: 22rpx;
+}
+
+.long-tip-card {
+	min-height: 168rpx;
+	padding: 20rpx;
+	border: 1rpx solid rgba(181, 148, 94, 0.14);
+	border-radius: 22rpx;
+	background: rgba(255, 252, 246, 0.88);
+	box-sizing: border-box;
+}
+
+.long-tip-icon {
+	font-size: 36rpx;
+	line-height: 1.2;
+}
+
+.long-tip-title {
+	margin-top: 8rpx;
+	color: #173F35;
+	font-size: 24rpx;
+	line-height: 1.35;
+	font-weight: 900;
+}
+
+.long-tip-copy {
+	margin-top: 8rpx;
+	color: #6E5E44;
+	font-size: 21rpx;
+	line-height: 1.55;
+}
+
+.long-ending-card {
+	background: linear-gradient(135deg, rgba(31, 110, 90, 0.08), rgba(184, 129, 43, 0.08));
+}
+
+.long-ending-text {
+	margin-top: 16rpx;
+	color: #3A403D;
+	font-size: 28rpx;
+	line-height: 1.8;
+}
+
+.long-privacy {
+	margin-top: 24rpx;
+	color: #8B7A61;
+	font-size: 22rpx;
+	line-height: 1.45;
+}
+
+.long-actions {
+	position: sticky;
+	bottom: 0;
+	z-index: 8;
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 12rpx;
+	padding: 18rpx 24rpx 26rpx;
+	background: linear-gradient(180deg, rgba(255, 252, 246, 0), rgba(255, 252, 246, 0.96) 32%, rgba(255, 252, 246, 0.98));
+}
+
+.long-action-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 78rpx;
+	margin: 0;
+	padding: 0 12rpx;
+	border-radius: 16rpx;
+	font-size: 23rpx;
+	line-height: 1.25;
+	font-weight: 900;
+}
+
+.long-action-button::after {
+	border: 0;
+}
+
+.long-action-save {
+	background: #173F35;
+	color: #FFF8EA;
+}
+
+.long-action-ghost {
+	border: 1rpx solid rgba(181, 148, 94, 0.2);
+	background: #FFF8EA;
+	color: #6D5733;
+}
+
+.long-action-red {
+	background: #C85955;
+	color: #FFF8EA;
+}
+
+.long-action-primary {
+	background: #1F6E5A;
+	color: #FFF8EA;
+}
