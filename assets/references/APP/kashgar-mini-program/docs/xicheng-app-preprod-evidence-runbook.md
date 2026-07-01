@@ -65,6 +65,29 @@ npm run verify:yudao:preprod
 
 该命令会先执行 release 环境校验，拒绝 localhost、127.0.0.1、局域网和非 HTTPS 地址，然后调用仓库根目录 `npm run xunjing:platform:verify --`，输出 `qa/xicheng-app-readiness-evidence.json`。
 
+## 真机证据校验
+
+预发或上线前，必须在真实手机上安装 release 包，记录 `qa/xicheng-native-device-evidence.json`，并在 `assets/references/APP/kashgar-mini-program` 运行：
+
+```bash
+XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-evidence.json" \
+npm run verify:native:evidence
+```
+
+真机场景至少覆盖：
+
+- `install-release-build`：安装 release 包并确认版本。
+- `home-loads-xicheng`：打开首页并确认西城 P0 首页。
+- `camera-photo-recognition`：真机拍照识别进入后端触发链路。
+- `ocr-text-recognition`：OCR 或图片文字识别进入识别结果页。
+- `gps-recognition-permission`：用户触发后授权定位并完成 GPS 识别失败/成功处理。
+- `text-recognition-baitasi`：文本识别白塔寺。
+- `scan-result-sources`：识别结果页展示已审核来源。
+- `xiaojing-sourced-answer`：小京展示有来源回答。
+- `xiaojing-blocked-answer`：无来源点位只显示“无已审核来源，不能回答”。
+- `recording-start-stop`：开始和停止记录。
+- `travelogue-draft-generated`：生成游记草稿。
+
 ## 放行核查命令
 
 在仓库根目录使用安全环境文件执行，路径示例只表达位置，不代表真实密钥：

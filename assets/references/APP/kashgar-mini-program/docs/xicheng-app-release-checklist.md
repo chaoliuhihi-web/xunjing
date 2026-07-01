@@ -37,6 +37,15 @@ XUNJING_TENANT_ID="$XUNJING_TENANT_ID" \
 npm run verify:yudao:preprod
 ```
 
+真机证据必须记录在 `qa/xicheng-native-device-evidence.json` 并通过 APP 侧校验：
+
+```bash
+XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-evidence.json" \
+npm run verify:native:evidence
+```
+
+真机证据至少覆盖 `camera-photo-recognition`、`ocr-text-recognition`、`gps-recognition-permission`、`xiaojing-sourced-answer`、`xiaojing-blocked-answer`、`recording-start-stop` 和 `travelogue-draft-generated`。
+
 预发或上线真机包必须使用带网关校验的 release 构建入口：
 
 ```bash
