@@ -307,6 +307,39 @@ assert.ok(
   'release candidate audit should name the Xicheng region/package scope mismatch'
 )
 
+const stalePreprodPath = path.join(missingTempDir, 'stale-preprod.json')
+fs.writeFileSync(stalePreprodPath, `${JSON.stringify(makePreprodEvidence({
+  checkedAt: '2000-01-01T00:00:00.000Z'
+}), null, 2)}\n`)
+const stalePreprodResult = runAudit([
+  '--preprod-evidence',
+  stalePreprodPath,
+  '--native-evidence',
+  path.join(missingTempDir, 'missing-native.json'),
+  '--release-artifact',
+  path.join(missingTempDir, 'missing-release.apk')
+])
+assert.notEqual(
+  stalePreprodResult.status,
+  0,
+  'release candidate audit should reject stale preprod evidence even before native evidence exists'
+)
+const stalePreprodAudit = parseAuditJson(stalePreprodResult)
+assert.equal(
+  stalePreprodAudit.gates.preprodEvidence.ok,
+  false,
+  'release candidate audit preprod gate should fail when checkedAt is outside the freshness window'
+)
+assert.ok(
+  stalePreprodAudit.blockers.some((blocker) => blocker.code === 'preprod-evidence-stale'),
+  'release candidate audit should name stale preprod evidence as a launch blocker'
+)
+assert.match(
+  `${stalePreprodResult.stderr}\n${stalePreprodResult.stdout}`,
+  /checkedAt|stale|fresh|72|过期|新鲜度/i,
+  'release candidate audit should explain preprod evidence freshness rejection'
+)
+
 const keystorePath = path.join(missingTempDir, 'xicheng-release.keystore')
 const keytoolResult = spawnSync('keytool', [
   '-genkeypair',

@@ -40,6 +40,7 @@ for (const required of [
   'APP readiness evidence',
   'summary.xichengRegionCode',
   'summary.xichengPackageCode',
+  'preprod-evidence-stale',
   'beijing-xicheng',
   '/app-api/xunjing/scan/resolve',
   'API 可达性',

@@ -19,6 +19,7 @@ for (const required of [
   'APP readiness evidence',
   'summary.xichengRegionCode',
   'summary.xichengPackageCode',
+  'preprod-evidence-stale',
   'beijing-xicheng',
   'XUNJING_APP_API_BASE_URL',
   'XUNJING_RELEASE_ENV_FILE',

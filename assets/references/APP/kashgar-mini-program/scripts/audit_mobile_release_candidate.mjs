@@ -51,6 +51,24 @@ const normalizeUrl = (value) => String(value || '').trim().replace(/\/+$/, '')
 const mobileReleaseArtifactExtensions = new Set(['.apk', '.aab', '.ipa'])
 const expectedXichengRegionCode = 'beijing-xicheng'
 const expectedXichengPackageCode = 'XICHENG-MAP-001'
+const maxEvidenceAgeHours = Number(process.env.XUNJING_EVIDENCE_MAX_AGE_HOURS || 72)
+const maxFutureSkewMs = 5 * 60 * 1000
+
+const evidenceFreshness = (label, value) => {
+  const parsedTime = Date.parse(String(value || ''))
+  if (!Number.isFinite(parsedTime)) {
+    return { ok: false, code: 'invalid-timestamp', detail: `${label} must be a valid ISO timestamp` }
+  }
+  const now = Date.now()
+  if (parsedTime - now > maxFutureSkewMs) {
+    return { ok: false, code: 'future-timestamp', detail: `${label} must not be in the future` }
+  }
+  const ageHours = (now - parsedTime) / 1000 / 60 / 60
+  if (ageHours > maxEvidenceAgeHours) {
+    return { ok: false, code: 'stale', detail: `${label} is stale; evidence must be fresh within ${maxEvidenceAgeHours} hours` }
+  }
+  return { ok: true, code: 'fresh', detail: 'fresh' }
+}
 
 const describeNativeReleaseArtifactPath = (artifactPath) => {
   if (!artifactPath || !fs.existsSync(artifactPath)) {
@@ -241,10 +259,12 @@ if (!preprodEvidence.exists) {
   const preprodBaseOk = preprodEvidence.json?.artifactType === 'xunjing-platform-readiness' && preprodEvidence.json?.ok === true
   const preprodScopeOk = String(summary.xichengRegionCode || '').trim() === expectedXichengRegionCode &&
     String(summary.xichengPackageCode || '').trim() === expectedXichengPackageCode
+  const preprodFreshness = evidenceFreshness('APP readiness evidence checkedAt', preprodEvidence.json?.checkedAt)
   gates.preprodEvidence = {
     ...gates.preprodEvidence,
-    ok: preprodBaseOk && preprodScopeOk,
+    ok: preprodBaseOk && preprodScopeOk && preprodFreshness.ok,
     checkedAt: preprodEvidence.json?.checkedAt || '',
+    freshness: preprodFreshness,
     baseUrl: normalizeUrl(summary.baseUrl),
     tenantId: String(summary.tenantId || ''),
     xichengRegionCode: String(summary.xichengRegionCode || ''),
@@ -264,6 +284,14 @@ if (!preprodEvidence.exists) {
       'preprod-evidence-xicheng-scope-mismatch',
       `APP readiness evidence must be scoped to ${expectedXichengRegionCode} / ${expectedXichengPackageCode}`,
       'Regenerate qa/xicheng-app-readiness-evidence.json with --include-xicheng-app-check and --include-xicheng-trigger-check against the Xicheng package'
+    )
+  }
+  if (!preprodFreshness.ok) {
+    addBlocker(
+      blockers,
+      preprodFreshness.code === 'stale' ? 'preprod-evidence-stale' : 'preprod-evidence-invalid-checked-at',
+      preprodFreshness.detail,
+      'Regenerate qa/xicheng-app-readiness-evidence.json from the non-local HTTPS preprod readiness command within the freshness window'
     )
   }
 }
