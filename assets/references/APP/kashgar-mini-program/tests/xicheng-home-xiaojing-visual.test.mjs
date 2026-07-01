@@ -70,7 +70,7 @@ for (const required of [
   'id="xicheng-map-entry-section"',
   'class="home-light-entry-grid"',
   '文旅地图',
-  '西城 Citywalk',
+  '游记生成',
   '小京',
   '我陪你看懂西城'
 ]) {

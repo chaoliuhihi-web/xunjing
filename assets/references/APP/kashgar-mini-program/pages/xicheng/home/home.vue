@@ -102,25 +102,16 @@
 				<text class="home-light-entry-title">文旅地图</text>
 				<text class="home-light-entry-copy">POI 地图 · 路线推荐</text>
 			</view>
-			<view class="home-light-entry home-record-entry xicheng-paper-card" @click="openXichengRecording">
+			<view class="home-light-entry home-travelogue-entry xicheng-paper-card" @click="openXichengTravelogue('draft')">
 				<view class="home-light-entry-icon">
-					<xicheng-icon name="record" variant="plain" :size="25" />
+					<xicheng-icon name="edit" variant="plain" :size="25" />
 				</view>
-				<text class="home-light-entry-title">西城 Citywalk</text>
-				<text class="home-light-entry-copy">开始记录 Citywalk</text>
+				<text class="home-light-entry-title">游记生成</text>
+				<text class="home-light-entry-copy">开始记录后 · 模板精排</text>
 			</view>
 		</view>
 
 		<view class="home-memory-grid">
-			<view class="travelogue-teaser-card xicheng-paper-card" @click="openXichengTravelogue('draft')">
-				<view class="travelogue-teaser-head">
-					<xicheng-icon name="edit" variant="plain" :size="24" />
-					<text class="travelogue-teaser-title">生成我的西城游记</text>
-				</view>
-				<text class="travelogue-teaser-desc">AI 帮你记录行程，生成专属游记</text>
-				<xicheng-icon class="travelogue-teaser-arrow" name="next" variant="primary" :size="22" />
-			</view>
-
 			<view
 				class="recent-panel recent-compact-card xicheng-paper-card"
 				:class="{ 'recent-panel-empty': !recentRecognition }"
@@ -1059,7 +1050,7 @@ export default {
 		linear-gradient(135deg, rgba(255, 253, 248, 0.96), rgba(226, 239, 230, 0.88));
 }
 
-.home-record-entry {
+.home-travelogue-entry {
 	background:
 		linear-gradient(135deg, rgba(255, 249, 238, 0.98), rgba(239, 222, 190, 0.60));
 }
@@ -1096,51 +1087,16 @@ export default {
 
 .home-memory-grid {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	grid-template-columns: minmax(0, 1fr);
 	gap: 18rpx;
 	margin-top: 24rpx;
 }
 
-.travelogue-teaser-card,
 .recent-compact-card {
 	min-height: 216rpx;
 	padding: 24rpx;
 	border-radius: 34rpx;
 	box-sizing: border-box;
-}
-
-.travelogue-teaser-card {
-	position: relative;
-	background:
-		linear-gradient(135deg, rgba(255, 253, 248, 0.96), rgba(239, 233, 219, 0.90));
-}
-
-.travelogue-teaser-head {
-	display: flex;
-	align-items: center;
-	gap: 10rpx;
-}
-
-.travelogue-teaser-title {
-	font-size: 31rpx;
-	line-height: 1.25;
-	font-weight: 700;
-	color: #102F29;
-}
-
-.travelogue-teaser-desc {
-	display: block;
-	margin-top: 18rpx;
-	max-width: 230rpx;
-	font-size: 24rpx;
-	line-height: 1.55;
-	color: #746F68;
-}
-
-.travelogue-teaser-arrow {
-	position: absolute;
-	right: 22rpx;
-	bottom: 22rpx;
 }
 
 .recent-panel {

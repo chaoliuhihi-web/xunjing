@@ -95,7 +95,7 @@ for (const required of [
   '文旅地图',
   '路线推荐',
   '开始记录',
-  '生成我的西城游记',
+  '游记生成',
   'resolveXichengTextTrigger',
   'resolveXichengPhotoTrigger',
   '/pages/xicheng/scan-result/scan-result'

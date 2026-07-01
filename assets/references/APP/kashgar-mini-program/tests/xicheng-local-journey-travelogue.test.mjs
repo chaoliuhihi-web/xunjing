@@ -33,8 +33,8 @@ for (const required of [
 }
 
 for (const required of [
-  '开始记录 Citywalk',
-  '生成我的西城游记',
+  '开始记录后 · 模板精排',
+  '游记生成',
   'openXichengTravelogue',
   '/pages/xicheng/travelogue/travelogue?'
 ]) {

@@ -24,8 +24,8 @@ assert.doesNotMatch(
 
 assert.match(
   home,
-  /id="xicheng-map-entry-section"[\s\S]*class="home-light-entry-grid"[\s\S]*文旅地图[\s\S]*西城 Citywalk/,
-  'Xicheng home should show compact map and Citywalk entries instead of a long route feed'
+  /id="xicheng-map-entry-section"[\s\S]*class="home-light-entry-grid"[\s\S]*文旅地图[\s\S]*游记生成/,
+  'Xicheng home should show compact map and travelogue generation entries instead of a long route feed'
 )
 
 assert.match(

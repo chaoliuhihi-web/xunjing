@@ -39,7 +39,7 @@ for (const required of [
 for (const required of [
   'id="xicheng-map-entry-section"',
   'openXichengRoutes',
-  '西城 Citywalk'
+  '游记生成'
 ]) {
   assert.ok(home.includes(required), `Xicheng home should only expose compact route/map handoff ${required}`)
 }
