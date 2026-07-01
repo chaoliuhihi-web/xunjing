@@ -425,7 +425,7 @@ import {
 	getXichengDisplaySourceTitle,
 	normalizeXichengReviewedSources
 } from '@/request/xunjing/sources.js'
-import { buildXichengServiceHandoffPromptPrefix, createXichengServiceHandoffRouteContext, createXichengServiceHandoffViewContext } from '@/request/xunjing/serviceHandoff.js'
+import { buildXichengServiceHandoffPromptPrefix, createXichengServiceHandoffEvidenceFields, createXichengServiceHandoffRouteContext, createXichengServiceHandoffViewContext } from '@/request/xunjing/serviceHandoff.js'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { isXunjingUserCancelled } from '@/request/xunjing/userCancel.js'
 import {
@@ -689,7 +689,6 @@ const loadMessagesCache = () => normalizeCachedMessages(uni.getStorageSync(getAc
 
 const hasCompletedInitialQuestionInMessages = (question = '') => hasCompletedInitialQuestionInMessageList(messages.value, question)
 const hasPendingInitialQuestionInMessages = (question = '') => hasPendingInitialQuestionInMessageList(messages.value, question)
-
 const persistXichengAiGuideMaterial = ({ question = '', result = {}, assistantMessage = null } = {}) => {
 	const context = xichengAiContext.value || {}
 	if (!hasXichengAiContext(context)) return null
@@ -722,6 +721,7 @@ const persistXichengAiGuideMaterial = ({ question = '', result = {}, assistantMe
 		suggestedQuestions,
 		safetyStatus: materialSafetyStatus,
 		fallback: Boolean(result.fallback),
+		...createXichengServiceHandoffEvidenceFields(context),
 		reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
 		publishStatus: 'private',
 		capturedAt: new Date().toISOString()
@@ -1272,11 +1272,11 @@ const buildXunjingResourceEventPayload = ({ payload = {}, context = {}, eventCon
 		sourceChannel: payload.sourceChannel || context.sourceChannel || eventConfig.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
 		poiCode: payload.poiCode || context.poiCode || '',
 		poiName: payload.poiName || context.poiName || '',
+		...createXichengServiceHandoffEvidenceFields(context),
 		companionName: payload.companionName || context.companionName || XICHENG_REGION_CONFIG.companionName,
 		safetyStatus: normalizeXichengSafetyStatus(payload.safetyStatus || context.safetyStatus || '')
 	}
 }
-
 const requestXunjingResourceEvent = ({ eventType = 'VIEW', payload = {}, context = xichengAiContext.value } = {}) => {
 	const eventConfig = getActiveXunjingEventConfig(context)
 	const eventPayload = buildXunjingResourceEventPayload({ payload, context, eventConfig })
@@ -1506,7 +1506,6 @@ const createXunjingResultFollowUps = (result = {}) => {
 }
 
 const getDisplaySourceDescription = getXichengDisplaySourceDescription
-
 const requestXunjingAiChat = (question) => {
 	let requestTask = null
 	const context = xichengAiContext.value || {}
@@ -1537,6 +1536,7 @@ const requestXunjingAiChat = (question) => {
 		requestPayload.companionName = context.companionName || XICHENG_REGION_CONFIG.companionName
 		requestPayload.recognitionConfidence = context.confidence || ''
 		requestPayload.safetyStatus = normalizeXichengSafetyStatus(context.safetyStatus)
+		Object.assign(requestPayload, createXichengServiceHandoffEvidenceFields(context))
 	}
 	const pendingRequest = new Promise((resolve, reject) => {
 		requestTask = uni.request({

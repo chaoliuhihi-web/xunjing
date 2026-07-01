@@ -72,3 +72,17 @@ export const buildXichengServiceHandoffPromptPrefix = (context = {}) => {
 	const serviceHandoffStepText = context.serviceHandoffStepText ? `下一步：${context.serviceHandoffStepText}。` : ''
 	return `${serviceHandoffTitle}${serviceHandoffIntentText}${serviceHandoffStepText}服务边界：涉及商家、优惠、票务或预约时，不要编造可用券、库存或排队结果，必须说明哪些需要真实系统确认。`
 }
+
+export const createXichengServiceHandoffEvidenceFields = (context = {}) => {
+	const serviceHandoffContext = context.serviceHandoffContext || {}
+	if (!serviceHandoffContext || !context.serviceHandoffTitle) return {}
+	return {
+		serviceHandoffActionKey: serviceHandoffContext.actionKey || '',
+		serviceHandoffTaskType: serviceHandoffContext.taskType || '',
+		serviceHandoffIntent: serviceHandoffContext.serviceIntent || '',
+		serviceHandoffIntentText: context.serviceHandoffIntentText || getXichengServiceHandoffIntentText(serviceHandoffContext),
+		serviceHandoffStepText: context.serviceHandoffStepText || getXichengServiceHandoffStepText(serviceHandoffContext),
+		serviceHandoffSummary: context.serviceHandoffSummary || serviceHandoffContext.handoffSummary || '',
+		serviceHandoffRequiresRealSystem: Boolean(serviceHandoffContext.serviceIntent || serviceHandoffContext.taskType)
+	}
+}
