@@ -4,68 +4,128 @@
 			<view class="topbar-button" @click="goBack">
 				<xicheng-icon name="back" variant="plain" :size="22" />
 			</view>
-			<text class="topbar-title">PDF打印预览</text>
+			<text class="topbar-title">PDF 纪念册</text>
 			<view class="topbar-button" @click="openSharePage">
-				<xicheng-icon name="source" variant="plain" :size="21" />
+				<text class="topbar-action">设置</text>
 			</view>
 		</view>
 
-		<view class="print-hero xicheng-paper-card">
-			<view class="print-hero-copy">
-				<text class="print-kicker">A4 打印设置</text>
-				<text class="print-title">{{ printTitle }}</text>
-				<text class="print-subtitle">按出版小册子的节奏整理封面、路线地图、照片页和正文页。</text>
-			</view>
-			<view class="print-paper-stack">
-				<view class="paper-page paper-page-back"></view>
-				<view class="paper-page paper-page-front">
-					<image class="paper-cover" :src="coverImage" mode="aspectFill" />
-					<text class="paper-title">西城游记</text>
-					<text class="paper-meta">A4 · 300dpi · 可打印</text>
+		<view class="print-summary-card xicheng-paper-card">
+			<image class="summary-cover" :src="coverImage" mode="aspectFill" />
+			<view class="summary-copy">
+				<text class="summary-title">{{ printTitle }}</text>
+				<text class="summary-subtitle">星河寻境西城 · Citywalk 纪念册</text>
+				<view class="summary-tags">
+					<text>A4 纵向</text>
+					<text>6 页</text>
+					<text>可打印</text>
 				</view>
 			</view>
+			<view class="summary-illustration">
+				<text>西城记忆</text>
+			</view>
 		</view>
 
-		<view class="settings-card xicheng-paper-card">
-			<view class="section-head">
-				<text class="section-title">打印规格</text>
-				<text class="section-badge">预配置模板</text>
-			</view>
-			<view class="setting-grid">
-				<view v-for="setting in printSettings" :key="setting.label" class="setting-item">
-					<text class="setting-value">{{ setting.value }}</text>
-					<text class="setting-label">{{ setting.label }}</text>
+		<view class="print-page-stage xicheng-paper-card">
+			<view class="print-page-sheet" :class="`print-page-sheet-${currentPreviewPage.type}`">
+				<view class="sheet-watermark"></view>
+				<view class="sheet-head">
+					<text class="sheet-title">{{ currentPreviewPage.title }}</text>
+					<text class="sheet-subtitle">{{ currentPreviewPage.subtitle }}</text>
 				</view>
-			</view>
-		</view>
-
-		<view class="preview-card xicheng-paper-card">
-			<view class="section-head">
-				<text class="section-title">页码预览</text>
-				<text class="section-badge">预览全部页面</text>
-			</view>
-			<view class="page-strip">
-				<view v-for="page in previewPages" :key="page.pageNo" class="preview-page">
-					<image v-if="page.image" class="preview-page-image" :src="page.image" mode="aspectFill" />
-					<view class="preview-page-copy">
-						<text class="preview-page-no">P{{ page.pageNo }}</text>
-						<text class="preview-page-title">{{ page.title }}</text>
-						<text class="preview-page-desc">{{ page.desc }}</text>
+				<image v-if="currentPreviewPage.image" class="sheet-image" :src="currentPreviewPage.image" mode="aspectFill" />
+				<view v-if="currentPreviewPage.type === 'cover'" class="sheet-route">
+					<view v-for="(stop, index) in routeStops" :key="stop" class="sheet-route-stop">
+						<text class="sheet-route-index">{{ index + 1 }}</text>
+						<text class="sheet-route-name">{{ stop }}</text>
 					</view>
 				</view>
+				<view v-else-if="currentPreviewPage.type === 'route'" class="sheet-mini-map">
+					<view class="sheet-map-water sheet-map-water-left"></view>
+					<view class="sheet-map-water sheet-map-water-right"></view>
+					<view class="sheet-map-line"></view>
+					<view v-for="(stop, index) in routeStops.slice(0, 4)" :key="stop" class="sheet-map-pin" :class="`sheet-map-pin-${index + 1}`">
+						<text>{{ index + 1 }}</text>
+					</view>
+				</view>
+				<view v-else-if="currentPreviewPage.type === 'photos'" class="sheet-photo-grid">
+					<image v-for="photo in selectedPhotos" :key="photo.label" class="sheet-photo" :src="photo.image" mode="aspectFill" />
+				</view>
+				<view v-else class="sheet-text-blocks">
+					<text v-for="line in currentPreviewPage.lines" :key="line" class="sheet-text-line">{{ line }}</text>
+				</view>
+				<view class="sheet-companion">
+					<image class="sheet-companion-avatar" :src="region.companionAvatar" mode="aspectFit" />
+					<text>{{ currentPreviewPage.caption }}</text>
+				</view>
 			</view>
 		</view>
 
-		<view class="print-note xicheng-paper-card">
-			<text class="print-note-title">出版前检查</text>
-			<text class="print-note-copy">PDF 只读取已保存的游记草稿、分享产物和公开预览字段；照片原始路径、精确坐标和私密素材不会写入公开 PDF。</text>
+		<view class="print-page-counter">
+			<text @click="selectPreviewPage(Math.max(currentPageIndex - 1, 0))">‹</text>
+			<text>页码预览 第 {{ currentPageIndex + 1 }} / {{ previewPages.length }} 页</text>
+			<text @click="selectPreviewPage(Math.min(currentPageIndex + 1, previewPages.length - 1))">›</text>
+		</view>
+
+		<scroll-view class="print-thumbnail-strip" scroll-x :show-scrollbar="false">
+			<view class="thumbnail-row">
+				<view
+					v-for="(page, index) in previewPages"
+					:key="page.label"
+					class="thumbnail-item"
+					:class="{ 'thumbnail-item-active': index === currentPageIndex }"
+					@click="selectPreviewPage(index)"
+				>
+					<view class="thumbnail-paper">
+						<image v-if="page.image" class="thumbnail-image" :src="page.image" mode="aspectFill" />
+						<text class="thumbnail-no">P{{ page.pageNo }}</text>
+					</view>
+					<text class="thumbnail-label">{{ page.label }}</text>
+				</view>
+			</view>
+		</scroll-view>
+
+		<view class="print-bottom-grid">
+			<view class="print-settings-grid xicheng-paper-card">
+				<view class="section-head">
+					<view class="section-title-row">
+						<xicheng-icon name="source" variant="plain" :size="19" />
+						<text class="section-title">打印设置</text>
+					</view>
+					<text class="section-badge">A4 打印设置</text>
+				</view>
+				<view v-for="setting in printSettings" :key="setting.key" class="setting-row">
+					<text class="setting-label">{{ setting.label }}</text>
+					<text class="setting-value" :class="{ 'setting-value-on': setting.enabled }">{{ setting.value }}</text>
+				</view>
+			</view>
+
+			<view class="export-content-card xicheng-paper-card">
+				<view class="section-head">
+					<view class="section-title-row">
+						<xicheng-icon name="check" variant="plain" :size="19" />
+						<text class="section-title">导出内容</text>
+					</view>
+					<text class="section-badge">已检查</text>
+				</view>
+				<view v-for="item in exportContentItems" :key="item.title" class="export-row">
+					<xicheng-icon name="check" variant="primary" :size="13" />
+					<view class="export-copy">
+						<text class="export-title">{{ item.title }}</text>
+						<text class="export-desc">{{ item.desc }}</text>
+					</view>
+					<text class="export-count">{{ item.count }}</text>
+				</view>
+			</view>
 		</view>
 
 		<view class="print-actions">
 			<button class="ghost-button xicheng-secondary-action" @click="savePdf">保存 PDF</button>
-			<button class="ghost-button xicheng-secondary-action" @click="systemPrintPdf">系统打印</button>
-			<button class="primary-button xicheng-primary-action" @click="sharePdf">分享 PDF</button>
+			<button class="ghost-button xicheng-secondary-action" @click="previewAllPages">预览全部</button>
+			<button class="primary-button xicheng-primary-action" @click="systemPrintPdf">打印 / 分享 PDF</button>
 		</view>
+
+		<text class="print-footnote">生成 PDF 后可保存到本地，支持系统打印或发送到微信文件助手。</text>
 	</view>
 </template>
 
@@ -74,13 +134,18 @@ import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 
 const safeArray = value => Array.isArray(value) ? value : []
 const safeObject = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {}
+const toSafeCount = value => {
+	const count = Number(value || 0)
+	return Number.isFinite(count) && count > 0 ? Math.round(count) : 0
+}
 
 export default {
 	data() {
 		return {
 			region: XICHENG_REGION_CONFIG,
 			journeyDraft: {},
-			shareArtifacts: []
+			shareArtifacts: [],
+			currentPageIndex: 0
 		}
 	},
 	computed: {
@@ -90,23 +155,115 @@ export default {
 		printTitle() {
 			return this.journeyDraft.editableTravelogueTitle || '在白塔下遇见西城'
 		},
-		printSettings() {
+		routeStops() {
+			const recordedStops = safeArray(this.journeyDraft.routeCheckins)
+				.map(item => item.poiName)
+				.filter(Boolean)
+			return recordedStops.length ? recordedStops.slice(0, 5) : ['白塔寺', '历代帝王庙', '什刹海', '护国寺街']
+		},
+		selectedPhotos() {
 			return [
-				{ label: '纸张', value: 'A4' },
-				{ label: '版式', value: '竖版' },
-				{ label: '页数', value: `${this.previewPages.length}页` },
-				{ label: '质量', value: '高清' }
+				{ label: '白塔寺晨光', image: this.region.visualAssets.heroLandmark },
+				{ label: '路线回望', image: this.region.visualAssets.routeThumbnails['baitasi-imperial-shichahai'] },
+				{ label: '什刹海水面', image: this.region.visualAssets.routeThumbnails['beihai-shichahai-waterfront'] },
+				{ label: '胡同院落', image: this.region.visualAssets.poiCards['xicheng-baitasi'] || this.region.visualAssets.heroLandmark }
 			]
 		},
-		previewPages() {
+		materialCount() {
 			const pdfAsset = this.shareArtifacts.find(item => item && item.assetType === 'pdf') || {}
 			const publicPreview = safeObject(pdfAsset.publicPreview)
-			const materialCount = Number(publicPreview.materialCount || this.journeyDraft.photoMaterialCount || 3)
+			return toSafeCount(publicPreview.materialCount || this.journeyDraft.photoMaterialCount || this.selectedPhotos.length)
+		},
+		reviewedSourceCount() {
+			const pdfAsset = this.shareArtifacts.find(item => item && item.assetType === 'pdf') || {}
+			return toSafeCount(pdfAsset.reviewedSourceCount || this.journeyDraft.reviewedSourceCount || 6)
+		},
+		previewPages() {
 			return [
-				{ pageNo: 1, title: '封面', desc: this.printTitle, image: this.coverImage },
-				{ pageNo: 2, title: '路线地图', desc: '按当天路线和停留顺序排版', image: this.region.visualAssets.routeThumbnails['baitasi-imperial-shichahai'] },
-				{ pageNo: 3, title: '照片时间线', desc: `${materialCount} 个素材进入精选页`, image: this.region.visualAssets.heroLandmark },
-				{ pageNo: 4, title: '长文正文', desc: '以完整游记段落呈现，可继续编辑', image: '' }
+				{
+					pageNo: 1,
+					label: '封面',
+					type: 'cover',
+					title: this.printTitle,
+					subtitle: '星河寻境西城 · Citywalk 纪念册',
+					image: this.coverImage,
+					caption: '你好，我是小京，陪你在西城慢慢走，遇见历史与生活。',
+					lines: []
+				},
+				{
+					pageNo: 2,
+					label: '路线',
+					type: 'route',
+					title: '路线概览',
+					subtitle: `${this.routeStops.length} 个地点 · 步行约 3.2 公里`,
+					image: '',
+					caption: '路线页只展示景点级位置，默认隐藏精确轨迹。',
+					lines: ['白塔寺出发，沿胡同向东南慢行。', '经过历代帝王庙，转向什刹海水岸。']
+				},
+				{
+					pageNo: 3,
+					label: '照片',
+					type: 'photos',
+					title: '精选照片',
+					subtitle: `${this.materialCount} 张照片进入纪念册`,
+					image: '',
+					caption: '照片页使用预配置裁切，保留旅途温度。',
+					lines: []
+				},
+				{
+					pageNo: 4,
+					label: '游记',
+					type: 'article',
+					title: '游记正文',
+					subtitle: '像一篇完整长文，适合长期保存',
+					image: '',
+					caption: '正文按章节排版，读起来像一次完整回望。',
+					lines: ['白塔寺之后，西城的时间慢了下来。', '湖面、屋檐和胡同里的光，把这趟路变成可以反复翻看的记忆。']
+				},
+				{
+					pageNo: 5,
+					label: '来源',
+					type: 'sources',
+					title: '资料来源',
+					subtitle: `${this.reviewedSourceCount} 条已审核来源`,
+					image: '',
+					caption: '来源页只导出审核通过的公开信息。',
+					lines: ['官方 POI 资料、路线说明和讲解来源。', '未审核或安全状态异常的内容不会进入 PDF。']
+				},
+				{
+					pageNo: 6,
+					label: '封底',
+					type: 'back',
+					title: '把西城带回家',
+					subtitle: '扫码回看游记与路线',
+					image: this.region.visualAssets.heroLandmark,
+					caption: '愿你下次再来，还能从这里继续出发。',
+					lines: ['西城没有喧嚣的终点，只有愿意停下来的片刻。']
+				}
+			]
+		},
+		currentPreviewPage() {
+			return this.previewPages[this.currentPageIndex] || this.previewPages[0]
+		},
+		printSettings() {
+			const hideExactTrack = true
+			const officialSources = true
+			return [
+				{ key: 'paper', label: '纸张', value: 'A4', enabled: true },
+				{ key: 'margin', label: '边距', value: '标准', enabled: true },
+				{ key: 'quality', label: '图片质量', value: '高清', enabled: true },
+				{ key: 'hideExactTrack', label: '隐藏精确轨迹', value: hideExactTrack ? '已开启' : '未开启', enabled: hideExactTrack },
+				{ key: 'officialSources', label: '附官方来源页', value: officialSources ? '已开启' : '未开启', enabled: officialSources }
+			]
+		},
+		exportContentItems() {
+			const reviewedSourceCount = this.reviewedSourceCount
+			const materialCount = this.materialCount
+			return [
+				{ title: '游记正文', desc: '长文排版和章节标题', count: '已选' },
+				{ title: '路线概览', desc: '景点级路线和站点顺序', count: `${this.routeStops.length} 点` },
+				{ title: '精选照片', desc: '自动裁切为打印比例', count: `${materialCount} 张` },
+				{ title: '资料来源', desc: '只导出已审核来源', count: `${reviewedSourceCount} 条` }
 			]
 		}
 	},
@@ -115,14 +272,22 @@ export default {
 		this.shareArtifacts = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey))
 	},
 	methods: {
+		selectPreviewPage(index) {
+			const nextIndex = Number(index)
+			if (!Number.isFinite(nextIndex)) return
+			this.currentPageIndex = Math.min(Math.max(Math.round(nextIndex), 0), this.previewPages.length - 1)
+		},
+		previewAllPages() {
+			uni.showToast({ title: '预览全部页面', icon: 'none' })
+		},
 		savePdf() {
 			uni.showToast({ title: 'PDF 已保存到本机预览', icon: 'none' })
 		},
 		systemPrintPdf() {
-			uni.showToast({ title: '将接入系统打印能力', icon: 'none' })
+			this.sharePdf()
 		},
 		sharePdf() {
-			uni.showToast({ title: 'PDF 分享已准备', icon: 'none' })
+			uni.showToast({ title: '将唤起系统打印或分享 PDF', icon: 'none' })
 		},
 		openSharePage() {
 			uni.navigateTo({ url: '/pages/xicheng/share/share' })
@@ -142,16 +307,24 @@ export default {
 <style scoped>
 .xicheng-pdf-print {
 	min-height: 100vh;
-	padding: 24rpx 30rpx 44rpx;
+	padding: 24rpx 30rpx 42rpx;
 	box-sizing: border-box;
 }
 .topbar,
 .section-head,
-.print-actions {
+.summary-tags,
+.print-actions,
+.sheet-route,
+.thumbnail-row,
+.setting-row,
+.export-row {
 	display: flex;
 	align-items: center;
+}
+.topbar,
+.section-head,
+.setting-row {
 	justify-content: space-between;
-	gap: 18rpx;
 }
 .topbar {
 	height: 72rpx;
@@ -160,185 +333,421 @@ export default {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 60rpx;
+	min-width: 60rpx;
 	height: 60rpx;
 }
 .topbar-title,
-.print-title,
+.summary-title,
+.sheet-title,
 .section-title,
-.preview-page-title,
-.print-note-title {
-	font-weight: 800;
+.export-title {
+	font-weight: 900;
 	color: #102F29;
 }
 .topbar-title {
-	font-size: 34rpx;
+	font-size: 38rpx;
+	letter-spacing: 0;
 }
-.print-hero,
-.settings-card,
-.preview-card,
-.print-note {
-	margin-top: 24rpx;
-	padding: 30rpx;
-	border-radius: 34rpx;
+.topbar-action,
+.section-badge,
+.summary-subtitle,
+.setting-label,
+.export-desc,
+.print-footnote {
+	color: #746F68;
 }
-.print-hero {
+.topbar-action {
+	font-size: 27rpx;
+}
+.print-summary-card,
+.print-page-stage,
+.print-settings-grid,
+.export-content-card {
+	margin-top: 22rpx;
+	border-radius: 26rpx;
+}
+.print-summary-card {
+	position: relative;
 	display: flex;
-	align-items: stretch;
-	gap: 26rpx;
-	min-height: 360rpx;
+	gap: 24rpx;
+	padding: 24rpx;
 	overflow: hidden;
 }
-.print-hero-copy {
+.summary-cover {
+	width: 142rpx;
+	height: 170rpx;
+	border-radius: 18rpx;
+	flex-shrink: 0;
+}
+.summary-copy {
+	position: relative;
+	z-index: 1;
 	flex: 1;
 	min-width: 0;
 	padding-top: 8rpx;
 }
-.print-kicker,
-.print-title,
-.print-subtitle,
-.setting-value,
-.setting-label,
-.preview-page-no,
-.preview-page-title,
-.preview-page-desc,
-.print-note-title,
-.print-note-copy {
+.summary-title {
 	display: block;
+	font-size: 36rpx;
+	line-height: 1.24;
 }
-.print-kicker {
-	font-size: 24rpx;
-	color: #B5945E;
-	font-weight: 900;
-}
-.print-title {
-	margin-top: 14rpx;
-	font-size: 43rpx;
-	line-height: 1.16;
-}
-.print-subtitle,
-.preview-page-desc,
-.print-note-copy {
+.summary-subtitle {
+	display: block;
 	margin-top: 12rpx;
-	font-size: 24rpx;
-	line-height: 1.55;
-	color: #746F68;
-}
-.print-paper-stack {
-	position: relative;
-	width: 236rpx;
-	flex-shrink: 0;
-}
-.paper-page {
-	position: absolute;
-	width: 192rpx;
-	height: 286rpx;
-	border-radius: 18rpx;
-	background: #FFFDF8;
-	box-shadow: 0 20rpx 46rpx rgba(28, 35, 32, 0.16);
-	overflow: hidden;
-}
-.paper-page-back {
-	top: 14rpx;
-	right: 0;
-	transform: rotate(5deg);
-	border: 1rpx solid rgba(181, 148, 94, 0.2);
-}
-.paper-page-front {
-	top: 0;
-	right: 34rpx;
-	padding: 14rpx;
-	box-sizing: border-box;
-	transform: rotate(-3deg);
-}
-.paper-cover {
-	width: 100%;
-	height: 150rpx;
-	border-radius: 14rpx;
-}
-.paper-title {
-	display: block;
-	margin-top: 16rpx;
 	font-size: 25rpx;
-	font-weight: 900;
-	color: #173F35;
 }
-.paper-meta {
-	display: block;
-	margin-top: 8rpx;
-	font-size: 18rpx;
-	color: #B5945E;
-}
-.section-title {
-	font-size: 32rpx;
-}
-.section-badge,
-.setting-label {
-	font-size: 23rpx;
-	color: #8C8278;
-}
-.setting-grid {
-	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 14rpx;
+.summary-tags {
+	flex-wrap: wrap;
+	gap: 12rpx;
 	margin-top: 22rpx;
 }
-.setting-item {
-	padding: 18rpx 10rpx;
-	border-radius: 22rpx;
-	background: rgba(23, 63, 53, 0.07);
+.summary-tags text {
+	padding: 10rpx 20rpx;
+	border-radius: 14rpx;
+	background: rgba(255, 252, 246, 0.9);
+	border: 1rpx solid rgba(181, 148, 94, 0.16);
+	font-size: 23rpx;
+	color: #173F35;
+}
+.summary-illustration {
+	position: absolute;
+	right: 22rpx;
+	bottom: 18rpx;
+	width: 180rpx;
+	height: 116rpx;
+	border-radius: 90rpx 90rpx 0 0;
+	border: 2rpx solid rgba(181, 148, 94, 0.18);
+	color: rgba(181, 148, 94, 0.35);
+	font-size: 24rpx;
+	text-align: center;
+	line-height: 116rpx;
+}
+.print-page-stage {
+	padding: 26rpx;
+}
+.print-page-sheet {
+	position: relative;
+	min-height: 720rpx;
+	padding: 44rpx 42rpx 34rpx;
+	border-radius: 12rpx;
+	background: #FFFDF8;
+	box-shadow: 0 18rpx 46rpx rgba(36, 31, 24, 0.16);
+	overflow: hidden;
+	box-sizing: border-box;
+}
+.sheet-watermark {
+	position: absolute;
+	right: 18rpx;
+	bottom: 14rpx;
+	width: 190rpx;
+	height: 150rpx;
+	border: 2rpx solid rgba(181, 148, 94, 0.12);
+	border-radius: 90rpx 90rpx 12rpx 12rpx;
+}
+.sheet-head {
+	position: relative;
+	z-index: 1;
 	text-align: center;
 }
-.setting-value {
-	font-size: 27rpx;
-	font-weight: 900;
-	color: #173F35;
+.sheet-title,
+.sheet-subtitle,
+.sheet-companion text,
+.sheet-text-line,
+.thumbnail-label,
+.setting-label,
+.setting-value,
+.export-title,
+.export-desc,
+.export-count,
+.print-footnote {
+	display: block;
 }
-.page-strip {
-	display: grid;
-	gap: 18rpx;
-	margin-top: 22rpx;
+.sheet-title {
+	font-size: 44rpx;
+	line-height: 1.18;
 }
-.preview-page {
-	display: flex;
-	gap: 18rpx;
-	min-height: 150rpx;
-	padding: 18rpx;
-	border-radius: 26rpx;
-	background: rgba(255, 248, 234, 0.74);
-	border: 1rpx solid rgba(181, 148, 94, 0.16);
-	box-sizing: border-box;
+.sheet-subtitle {
+	margin-top: 14rpx;
+	font-size: 25rpx;
+	color: #5C574F;
 }
-.preview-page-image {
-	width: 112rpx;
-	height: 112rpx;
-	border-radius: 20rpx;
-	background: rgba(23, 63, 53, 0.08);
-	flex-shrink: 0;
+.sheet-image {
+	position: relative;
+	z-index: 1;
+	width: 100%;
+	height: 330rpx;
+	margin-top: 34rpx;
+	border-radius: 8rpx 8rpx 38rpx 38rpx;
 }
-.preview-page-copy {
+.sheet-route {
+	position: relative;
+	z-index: 1;
+	justify-content: space-between;
+	gap: 12rpx;
+	margin-top: 28rpx;
+	padding-top: 20rpx;
+	border-top: 2rpx dashed rgba(181, 148, 94, 0.46);
+}
+.sheet-route-stop {
+	text-align: center;
 	flex: 1;
 	min-width: 0;
 }
-.preview-page-no {
-	font-size: 21rpx;
-	color: #B5945E;
+.sheet-route-index,
+.sheet-map-pin text {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 42rpx;
+	height: 42rpx;
+	border-radius: 999px;
+	background: #173F35;
+	color: #FFF9EC;
+	font-size: 24rpx;
 	font-weight: 900;
 }
-.preview-page-title {
+.sheet-route-name {
+	display: block;
+	margin-top: 9rpx;
+	font-size: 21rpx;
+	color: #173F35;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.sheet-mini-map {
+	position: relative;
+	height: 330rpx;
+	margin-top: 34rpx;
+	border-radius: 18rpx;
+	background: linear-gradient(90deg, rgba(181, 148, 94, 0.12) 1rpx, transparent 1rpx), linear-gradient(0deg, rgba(181, 148, 94, 0.12) 1rpx, transparent 1rpx), #F8F0DF;
+	background-size: 54rpx 54rpx;
+	overflow: hidden;
+}
+.sheet-map-water {
+	position: absolute;
+	border-radius: 999px;
+	background: rgba(142, 185, 190, 0.42);
+}
+.sheet-map-water-left {
+	left: 116rpx;
+	top: 78rpx;
+	width: 210rpx;
+	height: 132rpx;
+}
+.sheet-map-water-right {
+	right: 80rpx;
+	top: 72rpx;
+	width: 122rpx;
+	height: 180rpx;
+}
+.sheet-map-line {
+	position: absolute;
+	left: 108rpx;
+	right: 102rpx;
+	top: 176rpx;
+	height: 100rpx;
+	border-left: 6rpx solid #173F35;
+	border-bottom: 6rpx solid #173F35;
+	border-radius: 0 0 0 38rpx;
+}
+.sheet-map-pin {
+	position: absolute;
+	z-index: 2;
+}
+.sheet-map-pin-1 {
+	left: 86rpx;
+	bottom: 52rpx;
+}
+.sheet-map-pin-2 {
+	left: 188rpx;
+	top: 130rpx;
+}
+.sheet-map-pin-3 {
+	right: 150rpx;
+	top: 104rpx;
+}
+.sheet-map-pin-4 {
+	right: 74rpx;
+	bottom: 58rpx;
+}
+.sheet-photo-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 14rpx;
+	margin-top: 34rpx;
+}
+.sheet-photo {
+	width: 100%;
+	height: 152rpx;
+	border-radius: 16rpx;
+}
+.sheet-text-blocks {
+	margin-top: 34rpx;
+	padding: 26rpx;
+	border-radius: 20rpx;
+	background: rgba(255, 248, 234, 0.72);
+}
+.sheet-text-line {
+	font-size: 26rpx;
+	line-height: 1.72;
+	color: #3E3831;
+}
+.sheet-companion {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	gap: 18rpx;
+	margin-top: 32rpx;
+}
+.sheet-companion-avatar {
+	width: 106rpx;
+	height: 106rpx;
+	flex-shrink: 0;
+}
+.sheet-companion text {
+	flex: 1;
+	padding: 18rpx 22rpx;
+	border-radius: 18rpx;
+	background: rgba(255, 252, 246, 0.92);
+	border: 1rpx solid rgba(181, 148, 94, 0.16);
+	font-size: 23rpx;
+	line-height: 1.48;
+	color: #5C574F;
+}
+.print-page-counter {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 28rpx;
+	margin-top: 16rpx;
+	color: #8C8278;
+	font-size: 25rpx;
+}
+.print-page-counter text:nth-child(2) {
+	padding: 10rpx 30rpx;
+	border-radius: 999px;
+	background: rgba(255, 252, 246, 0.94);
+	border: 1rpx solid rgba(181, 148, 94, 0.14);
+}
+.print-thumbnail-strip {
+	margin-top: 20rpx;
+	white-space: nowrap;
+}
+.thumbnail-row {
+	gap: 18rpx;
+	padding: 0 2rpx 8rpx;
+}
+.thumbnail-item {
+	width: 112rpx;
+	flex-shrink: 0;
+	text-align: center;
+}
+.thumbnail-paper {
+	position: relative;
+	height: 146rpx;
+	border-radius: 10rpx;
+	background: #FFFDF8;
+	border: 2rpx solid rgba(181, 148, 94, 0.16);
+	overflow: hidden;
+}
+.thumbnail-item-active .thumbnail-paper {
+	border-color: #173F35;
+	box-shadow: 0 10rpx 24rpx rgba(16, 47, 41, 0.16);
+}
+.thumbnail-image {
+	width: 100%;
+	height: 96rpx;
+}
+.thumbnail-no {
+	position: absolute;
+	left: 8rpx;
+	bottom: 8rpx;
+	font-size: 19rpx;
+	font-weight: 900;
+	color: #B5945E;
+}
+.thumbnail-label {
+	margin-top: 8rpx;
+	font-size: 22rpx;
+	color: #4C463E;
+}
+.print-bottom-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 20rpx;
+	margin-top: 18rpx;
+}
+.print-settings-grid,
+.export-content-card {
+	padding: 24rpx;
+}
+.section-title-row {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+}
+.section-title {
+	font-size: 29rpx;
+}
+.section-badge {
+	font-size: 21rpx;
+}
+.setting-row,
+.export-row {
+	gap: 14rpx;
+	padding: 18rpx 0;
+	border-top: 1rpx solid rgba(181, 148, 94, 0.13);
+}
+.setting-row:first-of-type,
+.export-row:first-of-type {
+	margin-top: 12rpx;
+}
+.setting-label,
+.setting-value,
+.export-title,
+.export-desc,
+.export-count {
+	font-size: 24rpx;
+	line-height: 1.35;
+}
+.setting-value,
+.export-count {
+	color: #3E3831;
+	text-align: right;
+}
+.setting-value-on {
+	color: #173F35;
+	font-weight: 800;
+}
+.export-copy {
+	flex: 1;
+	min-width: 0;
+}
+.export-title {
+	color: #173F35;
+	font-weight: 800;
+}
+.export-desc {
 	margin-top: 4rpx;
-	font-size: 28rpx;
+	color: #8C8278;
 }
 .print-actions {
+	gap: 18rpx;
 	margin-top: 24rpx;
-	padding: 18rpx;
-	border-radius: 30rpx;
-	background: rgba(255, 252, 246, 0.94);
-	border: 1rpx solid rgba(181, 148, 94, 0.16);
-	box-shadow: 0 18rpx 42rpx rgba(28, 35, 32, 0.12);
 }
 .print-actions button {
 	flex: 1;
 	margin: 0;
+}
+.print-actions .primary-button {
+	flex: 1.5;
+}
+.print-footnote {
+	margin-top: 18rpx;
+	text-align: center;
+	font-size: 22rpx;
+	line-height: 1.5;
 }
 </style>
