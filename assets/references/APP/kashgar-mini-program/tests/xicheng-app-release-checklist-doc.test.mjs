@@ -17,6 +17,7 @@ for (const required of [
   'product/city-companion-main',
   'for f in tests/*.test.mjs; do node "$f" || exit 1; done',
   'npm run build',
+  'npm run build:app:release',
   'npm run test:run',
   'xicheng-app-page-size-budget.test.mjs',
   '/app-api/xunjing/**',

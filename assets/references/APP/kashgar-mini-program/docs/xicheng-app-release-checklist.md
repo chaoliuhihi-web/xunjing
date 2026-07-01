@@ -27,6 +27,14 @@ for f in tests/*.test.mjs; do node "$f" || exit 1; done
 npm run build
 ```
 
+预发或上线真机包必须使用带网关校验的 release 构建入口：
+
+```bash
+XUNJING_APP_API_BASE_URL="$XUNJING_APP_API_BASE_URL" \
+XUNJING_TENANT_ID="$XUNJING_TENANT_ID" \
+npm run build:app:release
+```
+
 在仓库根目录运行：
 
 ```bash

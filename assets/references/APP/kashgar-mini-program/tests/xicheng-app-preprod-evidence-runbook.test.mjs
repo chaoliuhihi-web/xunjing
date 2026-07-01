@@ -30,6 +30,7 @@ for (const required of [
   'feature/xicheng-p0',
   'npm run xunjing:platform:verify --',
   'npm run xunjing:yudao:release:gate',
+  'npm run build:app:release',
   '西城首页 -> 文本识别 -> 识别结果 -> 小京讲解 -> 开始记录 -> 西城游记草稿',
   'baseUrl must match release evidence appApiBaseUrl',
   '20/20',

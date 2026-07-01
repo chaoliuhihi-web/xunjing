@@ -67,11 +67,17 @@ npm run xunjing:yudao:release:gate -- \
 预发证据采集前后都要在 `assets/references/APP/kashgar-mini-program` 运行：
 
 ```bash
-VITE_XUNJING_YUDAO_APP_BASE_URL="$XUNJING_APP_API_BASE_URL" \
-VITE_XUNJING_TENANT_ID="1" \
 npm run build
 
 for f in tests/*.test.mjs; do node "$f" || exit 1; done
+```
+
+预发或上线真机包必须使用 release 打包入口，避免把 localhost、局域网或旧线上默认域名打进 APP 包：
+
+```bash
+XUNJING_APP_API_BASE_URL="$XUNJING_APP_API_BASE_URL" \
+XUNJING_TENANT_ID="$XUNJING_TENANT_ID" \
+npm run build:app:release
 ```
 
 并在仓库根目录运行：

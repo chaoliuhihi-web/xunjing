@@ -7,6 +7,7 @@
     "serve": "npm run dev:h5",
     "build": "npm run build:app",
     "build:app": "UNI_INPUT_DIR=. UNI_OUTPUT_DIR=dist/build/app uni build -p app",
+    "build:app:release": "sh -c ': \"${XUNJING_APP_API_BASE_URL:?Set XUNJING_APP_API_BASE_URL to a non-local HTTPS Yudao APP gateway}\"; case \"$XUNJING_APP_API_BASE_URL\" in http://localhost*|http://127.0.0.1*|http://192.168.*|http://10.*|http://172.*) echo \"XUNJING_APP_API_BASE_URL must be a non-local HTTPS URL\" >&2; exit 1;; https://*) ;; *) echo \"XUNJING_APP_API_BASE_URL must start with https://\" >&2; exit 1;; esac; VITE_XUNJING_YUDAO_APP_BASE_URL=\"$XUNJING_APP_API_BASE_URL\" VITE_XUNJING_TENANT_ID=\"${XUNJING_TENANT_ID:?Set XUNJING_TENANT_ID to the release tenant id}\" UNI_INPUT_DIR=. UNI_OUTPUT_DIR=dist/build/app-release uni build -p app'",
     "dev:h5": "VITE_XUNJING_YUDAO_APP_BASE_URL=/ VITE_XUNJING_H5_PROXY_TARGET=http://localhost:48082 UNI_INPUT_DIR=. UNI_OUTPUT_DIR=dist/dev/h5 uni -p h5 --host 0.0.0.0",
     "build:h5": "UNI_INPUT_DIR=. UNI_OUTPUT_DIR=dist/build/h5 uni build -p h5",
     "dev:mp-weixin": "set UNI_INPUT_DIR=.&& set UNI_OUTPUT_DIR=unpackage/dist/dev/mp-weixin&& uni -p mp-weixin",
