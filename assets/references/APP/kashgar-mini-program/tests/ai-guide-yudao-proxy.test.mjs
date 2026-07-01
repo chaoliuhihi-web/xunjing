@@ -50,8 +50,14 @@ assert.match(
 
 assert.match(
   aiGuide,
-  /const requestXunjingResourceEvent\s*=\s*\(\{ eventType = 'VIEW', payload = \{\}, context = xichengAiContext\.value \} = \{\}\)[\s\S]*const eventConfig = getActiveXunjingEventConfig\(context\)[\s\S]*uni\.request\(\{[\s\S]*url:\s*buildYudaoAppApiUrl\(eventConfig\.apiPath\)[\s\S]*method:\s*'POST'[\s\S]*'tenant-id':\s*eventConfig\.tenantId[\s\S]*packageCode:\s*eventConfig\.packageCode[\s\S]*eventType[\s\S]*sourceChannel:\s*eventConfig\.sourceChannel[\s\S]*payloadJson:\s*JSON\.stringify\(payload\)/,
-  'AI guide should post Yudao resource events with active tenant-id, packageCode, eventType, sourceChannel, userTraceId, and payloadJson'
+  /const buildXunjingResourceEventPayload\s*=\s*\(\{ payload = \{\}, context = \{\}, eventConfig = \{\} \} = \{\}\) => \{[\s\S]*hasXichengAiContext\(context\)[\s\S]*regionCode:\s*payload\.regionCode \|\| context\.regionCode \|\| XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*payload\.packageCode \|\| context\.packageCode \|\| eventConfig\.packageCode \|\| XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*payload\.sceneCode \|\| context\.sceneCode \|\| XICHENG_REGION_CONFIG\.aiSceneCode[\s\S]*sourceChannel:\s*payload\.sourceChannel \|\| context\.sourceChannel \|\| eventConfig\.sourceChannel \|\| XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*poiCode:\s*payload\.poiCode \|\| context\.poiCode \|\| ''[\s\S]*poiName:\s*payload\.poiName \|\| context\.poiName \|\| ''[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(payload\.safetyStatus \|\| context\.safetyStatus \|\| ''\)/,
+  'AI guide should centralize Xicheng resource event payload attribution before sending VIEW/ASK/MEDIA_USE/ERROR events'
+)
+
+assert.match(
+  aiGuide,
+  /const requestXunjingResourceEvent\s*=\s*\(\{ eventType = 'VIEW', payload = \{\}, context = xichengAiContext\.value \} = \{\}\)[\s\S]*const eventConfig = getActiveXunjingEventConfig\(context\)[\s\S]*const eventPayload = buildXunjingResourceEventPayload\(\{ payload, context, eventConfig \}\)[\s\S]*uni\.request\(\{[\s\S]*url:\s*buildYudaoAppApiUrl\(eventConfig\.apiPath\)[\s\S]*method:\s*'POST'[\s\S]*'tenant-id':\s*eventConfig\.tenantId[\s\S]*packageCode:\s*eventConfig\.packageCode[\s\S]*eventType[\s\S]*sourceChannel:\s*eventConfig\.sourceChannel[\s\S]*payloadJson:\s*JSON\.stringify\(eventPayload\)/,
+  'AI guide should post Yudao resource events with active tenant-id, packageCode, eventType, sourceChannel, userTraceId, and normalized payloadJson'
 )
 
 assert.match(

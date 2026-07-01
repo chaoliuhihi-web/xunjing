@@ -1129,8 +1129,31 @@ const requestXunjingPackageDetail = (context = xichengAiContext.value) => {
 	})
 }
 
+const buildXunjingResourceEventPayload = ({ payload = {}, context = {}, eventConfig = {} } = {}) => {
+	const basePayload = {
+		packageCode: eventConfig.packageCode || payload.packageCode || '',
+		sourceChannel: eventConfig.sourceChannel || payload.sourceChannel || '',
+		...payload
+	}
+	if (!hasXichengAiContext(context)) {
+		return basePayload
+	}
+	return {
+		...basePayload,
+		regionCode: payload.regionCode || context.regionCode || XICHENG_REGION_CONFIG.regionCode,
+		packageCode: payload.packageCode || context.packageCode || eventConfig.packageCode || XICHENG_REGION_CONFIG.packageCode,
+		sceneCode: payload.sceneCode || context.sceneCode || XICHENG_REGION_CONFIG.aiSceneCode,
+		sourceChannel: payload.sourceChannel || context.sourceChannel || eventConfig.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
+		poiCode: payload.poiCode || context.poiCode || '',
+		poiName: payload.poiName || context.poiName || '',
+		companionName: payload.companionName || context.companionName || XICHENG_REGION_CONFIG.companionName,
+		safetyStatus: normalizeXichengSafetyStatus(payload.safetyStatus || context.safetyStatus || '')
+	}
+}
+
 const requestXunjingResourceEvent = ({ eventType = 'VIEW', payload = {}, context = xichengAiContext.value } = {}) => {
 	const eventConfig = getActiveXunjingEventConfig(context)
+	const eventPayload = buildXunjingResourceEventPayload({ payload, context, eventConfig })
 	return new Promise((resolve, reject) => {
 		uni.request({
 			url: buildYudaoAppApiUrl(eventConfig.apiPath),
@@ -1144,7 +1167,7 @@ const requestXunjingResourceEvent = ({ eventType = 'VIEW', payload = {}, context
 				eventType,
 				sourceChannel: eventConfig.sourceChannel,
 				userTraceId: getUserTraceId(),
-				payloadJson: JSON.stringify(payload)
+				payloadJson: JSON.stringify(eventPayload)
 			},
 			success: (res) => {
 				if (res && res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
