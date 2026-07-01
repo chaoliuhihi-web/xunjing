@@ -119,6 +119,10 @@
 					</text>
 				</view>
 			</view>
+			<xicheng-vision-agent-world-interface-strip
+				:summary="worldInterfaceSummary"
+				:signal-badges="worldInterfaceSignalBadges"
+			/>
 			<view v-if="prioritizedSceneUnderstandingCards.length > 0" class="scene-understanding-panel">
 				<text class="scene-understanding-title">看见什么，就能问什么</text>
 				<view class="scene-understanding-grid">
@@ -344,6 +348,7 @@ import {
 	normalizeXichengReviewedSources
 } from '@/request/xunjing/sources.js'
 import { isXichengDevelopmentRecognitionCacheBlocked } from '@/request/xunjing/trigger.js'
+import XichengVisionAgentWorldInterfaceStrip from '@/components/xicheng/vision-agent-world-interface-strip.vue'
 
 const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
 	regionCode: XICHENG_REGION_CONFIG.regionCode,
@@ -611,6 +616,9 @@ const normalizeResult = (result = {}) => ({
 })
 
 export default {
+	components: {
+		XichengVisionAgentWorldInterfaceStrip
+	},
 	data() {
 		return {
 			region: XICHENG_REGION_CONFIG,
@@ -827,6 +835,35 @@ export default {
 				}))
 				.slice(0, 4)
 		},
+		worldInterfaceSnapshot() {
+			const visionContext = this.result.visionAgentContext || {}
+			const snapshot = visionContext.worldInterfaceSnapshot && typeof visionContext.worldInterfaceSnapshot === 'object'
+				? visionContext.worldInterfaceSnapshot
+				: {}
+			const worldInterfaceSignals = Array.isArray(snapshot.signals)
+				? snapshot.signals
+				: Array.isArray(visionContext.worldInterfaceSignals)
+					? visionContext.worldInterfaceSignals
+					: []
+			return {
+				summary: snapshot.summary || visionContext.worldInterfaceSummary || '',
+				signals: worldInterfaceSignals
+			}
+		},
+		worldInterfaceSummary() {
+			return this.worldInterfaceSnapshot.summary || ''
+		},
+		worldInterfaceSignalBadges() {
+			const { signals } = this.worldInterfaceSnapshot
+			return signals
+				.filter(signal => signal && signal.active)
+				.map(signal => ({
+					key: signal.key || signal.label || signal.value,
+					label: signal.label || signal.value || '现场信号',
+					value: signal.value || signal.statusText || ''
+				}))
+				.slice(0, 6)
+		},
 		cameraAgentDecisionSnapshot() {
 			const visionContext = this.result.visionAgentContext || {}
 			return {
@@ -851,13 +888,15 @@ export default {
 			const visionContext = this.result.visionAgentContext || {}
 			const cameraAgentDecisionSummary = this.cameraAgentDecisionSummary
 			const cameraDecisionPrefix = cameraAgentDecisionSummary ? `拍前预判：${cameraAgentDecisionSummary}；` : ''
+			const worldInterfaceSummary = this.worldInterfaceSummary
 			const sceneFusionSummary = visionContext.sceneFusionSummary || ''
 			const signalCount = this.sceneFusionSignalBadges.length
 			const routeCue = this.recommendedRoute && (this.recommendedRoute.title || this.recommendedRoute.theme)
 				? `优先可接入${this.recommendedRoute.title || this.recommendedRoute.theme}`
 				: '优先给出讲解、拍照和下一步服务'
-			const fusedSummary = sceneFusionSummary
-				? `${sceneFusionSummary}，${routeCue}`
+			const primarySceneSummary = worldInterfaceSummary || sceneFusionSummary
+			const fusedSummary = primarySceneSummary
+				? `${primarySceneSummary}，${routeCue}`
 				: `已融合${signalCount || 1}类现场信号，${routeCue}`
 			return cameraDecisionPrefix
 				? `${cameraDecisionPrefix}${fusedSummary}`
@@ -1391,6 +1430,8 @@ export default {
 				headingText: visionContext.headingText || '',
 				serviceText: visionContext.serviceText || '',
 				knowledgeGraphText: visionContext.knowledgeGraphText || '',
+				worldInterfaceSummary: this.worldInterfaceSummary,
+				worldInterfaceSignals: this.worldInterfaceSnapshot.signals,
 				sceneDomainLabels: this.prioritizedSceneUnderstandingCards.map(card => card.domainLabel || card.domainKey).filter(Boolean).slice(0, 6),
 				serviceIntentLabels: this.prioritizedSceneServiceActions.map(action => this.serviceIntentLabel(action.serviceIntent || '') || action.title).filter(Boolean).slice(0, 6),
 				confidence: this.result.confidence || visionContext.confidence || '',
