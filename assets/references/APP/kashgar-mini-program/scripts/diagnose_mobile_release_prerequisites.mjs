@@ -157,6 +157,18 @@ const checkApiReachability = async (apiBaseUrl, tenantId, apiDns) => {
         nextAction: `Fix the deployed APP API gateway route for ${url.origin}${endpoint}; /app-api/xunjing/** must be reachable before collecting preprod evidence.`
       }
     }
+    if (response.status === 401 || response.status === 403) {
+      return {
+        ok: false,
+        blockerCode: 'api-unauthorized',
+        origin: url.origin,
+        endpoint,
+        status: response.status,
+        statusText: response.statusText,
+        message: `APP API route requires auth or lacks permission for ${url.origin}${endpoint}`,
+        nextAction: `Fix auth or permission policy for the public APP API route ${url.origin}${endpoint}; /app-api/xunjing/** must accept P0 scan and recognition traffic with tenant-id before release.`
+      }
+    }
     const ok = response.status >= 200 && response.status < 500
     return {
       ok,

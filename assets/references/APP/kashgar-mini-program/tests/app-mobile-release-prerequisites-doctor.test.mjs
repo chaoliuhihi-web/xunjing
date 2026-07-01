@@ -256,3 +256,58 @@ try {
   missingRouteServer.kill('SIGTERM')
   await once(missingRouteServer, 'exit')
 }
+
+const unauthorizedServerPath = path.join(tempDir, 'app-api-unauthorized-server.mjs')
+fs.writeFileSync(unauthorizedServerPath, [
+  "import http from 'node:http'",
+  "const server = http.createServer((request, response) => {",
+  "  if (request.url === '/app-api/xunjing/scan/resolve') {",
+  "    response.writeHead(401, { 'content-type': 'application/json' })",
+  "    response.end(JSON.stringify({ code: 401, msg: 'unauthorized' }))",
+  "    return",
+  "  }",
+  "  response.writeHead(404, { 'content-type': 'application/json' })",
+  "  response.end(JSON.stringify({ code: 404, msg: 'not found' }))",
+  "})",
+  "server.listen(0, '127.0.0.1', () => console.log(server.address().port))",
+  "process.on('SIGTERM', () => server.close(() => process.exit(0)))"
+].join('\n'))
+const unauthorizedServer = spawn(process.execPath, [unauthorizedServerPath], {
+  cwd: tempDir,
+  stdio: ['ignore', 'pipe', 'inherit']
+})
+const unauthorizedPort = await new Promise((resolve, reject) => {
+  unauthorizedServer.stdout.once('data', (data) => resolve(Number(String(data).trim())))
+  unauthorizedServer.once('error', reject)
+  unauthorizedServer.once('exit', (code) => {
+    if (code !== 0) reject(new Error(`mock unauthorized APP API server exited before listening: ${code}`))
+  })
+})
+try {
+  const unauthorizedResult = runDoctor({
+    HBUILDERX_CLI: loggedInCliPath,
+    XUNJING_RELEASE_PREREQ_SKIP_NETWORK: '',
+    XUNJING_RELEASE_PREREQ_DNS_HOST_OVERRIDE: '127.0.0.1',
+    XUNJING_RELEASE_PREREQ_API_ORIGIN_OVERRIDE: `http://127.0.0.1:${unauthorizedPort}`
+  })
+  assert.notEqual(
+    unauthorizedResult.status,
+    0,
+    `release prerequisite doctor should fail when the APP API gateway requires auth for /app-api/xunjing/scan/resolve: ${unauthorizedResult.stderr || unauthorizedResult.stdout}`
+  )
+  const unauthorizedJson = JSON.parse(unauthorizedResult.stdout)
+  assert.equal(unauthorizedJson.checks.apiReachability.ok, false)
+  assert.equal(unauthorizedJson.checks.apiReachability.status, 401)
+  assert.ok(
+    unauthorizedJson.blockers.includes('api-unauthorized'),
+    'release prerequisite doctor should reject APP API gateways that require auth before P0 public scan/recognition flows can run'
+  )
+  assert.match(
+    unauthorizedJson.checks.apiReachability.nextAction,
+    /auth|permission|public APP API|\/app-api\/xunjing/i,
+    'unauthorized APP API failure should tell operators to fix auth or route permissions'
+  )
+} finally {
+  unauthorizedServer.kill('SIGTERM')
+  await once(unauthorizedServer, 'exit')
+}
