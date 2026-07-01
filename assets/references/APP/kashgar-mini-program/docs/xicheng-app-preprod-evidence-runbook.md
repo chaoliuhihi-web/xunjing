@@ -88,6 +88,20 @@ npm run verify:native:evidence
 - `recording-start-stop`：开始和停止记录。
 - `travelogue-draft-generated`：生成游记草稿。
 
+## 手机端放行证据包
+
+`qa/xicheng-app-readiness-evidence.json` 是预发证据，`qa/xicheng-native-device-evidence.json` 是真机证据。二者必须属于同一个手机端发布候选：预发证据的 `baseUrl`、`tenantId` 必须等于真机证据的 `appApiBaseUrl`、`tenantId`，真机证据的 `commit` 必须等于当前 `git HEAD`。
+
+在 `assets/references/APP/kashgar-mini-program` 运行：
+
+```bash
+XUNJING_PREPROD_EVIDENCE_FILE="../../../../qa/xicheng-app-readiness-evidence.json" \
+XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-evidence.json" \
+npm run verify:launch:evidence
+```
+
+该命令会复用真机证据校验，并额外确认预发后端证据包含 `live-xicheng-ai-chat-sourced`、`live-xicheng-ai-chat-blocked`、白塔寺、恭王府、北京天文馆 trigger smoke。通过后才说明 APP 包、预发后端和真机证据来自同一个候选版本。
+
 ## 放行核查命令
 
 在仓库根目录使用安全环境文件执行，路径示例只表达位置，不代表真实密钥：
