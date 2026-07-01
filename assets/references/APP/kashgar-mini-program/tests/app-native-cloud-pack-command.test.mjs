@@ -42,6 +42,7 @@ const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-native-cloud-pack
 const keystorePath = path.join(tempDir, 'xicheng-release.keystore')
 const fakeCliPath = path.join(tempDir, 'hbuilderx-cli')
 const softFailureCliPath = path.join(tempDir, 'hbuilderx-soft-failure-cli')
+const loginFailureCliPath = path.join(tempDir, 'hbuilderx-login-failure-cli')
 const invocationPath = path.join(tempDir, 'hbuilderx-invocation.json')
 
 const keytoolResult = spawnSync('keytool', [
@@ -76,17 +77,33 @@ assert.equal(
 )
 fs.writeFileSync(fakeCliPath, [
   '#!/bin/sh',
-  `printf '%s\\n' "$@" > ${JSON.stringify(invocationPath)}`,
+  `{
+    printf '%s\\n' '---'
+    printf '%s\\n' "$@"
+  } >> ${JSON.stringify(invocationPath)}`,
   'exit 0'
 ].join('\n'))
 fs.chmodSync(fakeCliPath, 0o755)
 
 fs.writeFileSync(softFailureCliPath, [
   '#!/bin/sh',
+  'if [ "$1" = "project" ]; then',
+  '  exit 0',
+  'fi',
   'printf "%s\\n" "01:44:51.737 项目 /tmp/xunjing-app 不存在，请先导入"',
   'exit 0'
 ].join('\n'))
 fs.chmodSync(softFailureCliPath, 0o755)
+
+fs.writeFileSync(loginFailureCliPath, [
+  '#!/bin/sh',
+  'if [ "$1" = "project" ]; then',
+  '  exit 0',
+  'fi',
+  'printf "%s\\n" "01:59:13.144 user not login"',
+  'exit 0'
+].join('\n'))
+fs.chmodSync(loginFailureCliPath, 0o755)
 
 const baseEnv = {
   XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
@@ -113,6 +130,11 @@ const runPack = (envOverrides = {}, args = ['--dry-run']) => spawnSync(
     encoding: 'utf8'
   }
 )
+
+const readInvocationBlocks = () => fs.readFileSync(invocationPath, 'utf8')
+  .split('---\n')
+  .map((block) => block.trim().split('\n').filter(Boolean))
+  .filter((block) => block.length > 0)
 
 const dryRunResult = runPack()
 assert.equal(
@@ -159,7 +181,15 @@ assert.equal(executeJson.mode, 'execute')
 assert.ok(!executeResult.stdout.includes('store-secret'))
 assert.ok(!executeResult.stdout.includes('key-secret'))
 assert.ok(fs.existsSync(invocationPath), 'execute should call the configured HBuilderX CLI')
-const invokedArgs = fs.readFileSync(invocationPath, 'utf8').trim().split('\n')
+const invocationBlocks = readInvocationBlocks()
+assert.equal(invocationBlocks.length, 2, 'execute should import the HBuilderX project before running pack')
+const importArgs = invocationBlocks[0]
+const invokedArgs = invocationBlocks[1]
+assert.deepEqual(
+  importArgs,
+  ['project', 'open', '--path', executeJson.command.argv[executeJson.command.argv.indexOf('--project') + 1]],
+  'execute should import the exact project path that will be passed to HBuilderX pack'
+)
 assert.ok(invokedArgs.includes('pack'))
 assert.ok(invokedArgs.includes('--android.certpassword'))
 assert.ok(invokedArgs.includes('key-secret'))
@@ -179,6 +209,21 @@ assert.match(
   `${softFailureExecuteResult.stderr}\n${softFailureExecuteResult.stdout}`,
   /不存在|请先导入|project/i,
   'native cloud pack execute should explain HBuilderX soft failure output'
+)
+
+const loginFailureExecuteResult = runPack({
+  XUNJING_NATIVE_PACK_CONFIRM: 'cloud-pack',
+  HBUILDERX_CLI: loginFailureCliPath
+}, ['--execute'])
+assert.notEqual(
+  loginFailureExecuteResult.status,
+  0,
+  'native cloud pack execute should fail when HBuilderX prints a not-login soft failure even with exit 0'
+)
+assert.match(
+  `${loginFailureExecuteResult.stderr}\n${loginFailureExecuteResult.stdout}`,
+  /login|登录/i,
+  'native cloud pack execute should explain HBuilderX login soft failure output'
 )
 
 const missingEnvResult = runPack({

@@ -204,7 +204,7 @@ XUNJING_RELEASE_ENV_FILE="/secure/path/preprod.env" npm run pack:native:cloud:dr
 XUNJING_RELEASE_ENV_FILE="/secure/path/preprod.env" XUNJING_NATIVE_PACK_CONFIRM=cloud-pack npm run pack:native:cloud
 ```
 
-真实执行会调用 HBuilderX `pack` 并向 CLI 传入签名参数；输出会脱敏 `--android.certpassword`、`--android.storepassword` 和 iOS 证书密码。如果 HBuilderX 输出“项目不存在，请先导入”或 project-not-imported 类提示，即使 CLI exit code 为 0 也不能算打包成功，必须先在 HBuilderX 中导入 APP 项目或配置 CLI 工作区后重跑。云打包产物生成后，把 signed APK/AAB 或 IPA 路径写入 `XUNJING_RELEASE_ARTIFACT`，再继续生成真机证据。
+真实执行会先用 HBuilderX `project open --path` 自动导入即将传给 `pack` 的同一个项目路径，再调用 HBuilderX `pack` 并向 CLI 传入签名参数；输出会脱敏 `--android.certpassword`、`--android.storepassword` 和 iOS 证书密码。如果 HBuilderX 输出“项目不存在，请先导入”、project-not-imported 或 `user not login` 类提示，即使 CLI exit code 为 0 也不能算打包成功；项目导入问题需要确认 HBuilderX CLI 工作区，未登录问题需要先用发布账号完成 HBuilderX CLI 登录后重跑。云打包产物生成后，把 signed APK/AAB 或 IPA 路径写入 `XUNJING_RELEASE_ARTIFACT`，再继续生成真机证据。
 
 并在仓库根目录运行：
 

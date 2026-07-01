@@ -138,7 +138,8 @@ const redactArgv = (argv) => argv.map((value, index) => (
 
 const hbuilderxSoftFailurePatterns = [
   /项目[\s\S]*不存在[\s\S]*请先导入/,
-  /project[\s\S]*(not found|does not exist|not imported|import first)/i
+  /project[\s\S]*(not found|does not exist|not imported|import first)/i,
+  /(user not login|not logged in|未登录|请.*登录)/i
 ]
 
 const detectHbuilderxSoftFailure = (output = '') => {
@@ -155,6 +156,7 @@ const shellQuote = (value) => {
 
 const executable = readiness.nativeTool?.command || process.env.HBUILDERX_CLI || 'hbuilderx'
 const rawArgv = buildPackArgv()
+const projectImportArgv = ['project', 'open', '--path', cwd]
 const redactedArgv = redactArgv(rawArgv)
 const redactedCommand = [executable, ...redactedArgv].map(shellQuote).join(' ')
 
@@ -179,6 +181,41 @@ if (isDryRun) {
   process.exit(0)
 }
 
+const projectImportResult = spawnSync(executable, projectImportArgv, {
+  cwd,
+  env: process.env,
+  encoding: 'utf8'
+})
+const redactedProjectImportStdout = redactText(projectImportResult.stdout).trim()
+const redactedProjectImportStderr = redactText(projectImportResult.stderr).trim()
+
+if (projectImportResult.status !== 0) {
+  console.error(JSON.stringify({
+    ok: false,
+    artifactType: 'xicheng-native-cloud-pack-command',
+    checkedAt: new Date().toISOString(),
+    mode: 'execute',
+    releaseTargets: readiness.releaseTargets,
+    projectImport: {
+      argv: projectImportArgv,
+      exitCode: projectImportResult.status,
+      stdout: redactedProjectImportStdout,
+      stderr: redactedProjectImportStderr
+    },
+    command: {
+      executable,
+      argv: redactedArgv
+    },
+    redactedCommand,
+    message: 'HBuilderX project import failed before cloud pack.',
+    nextCommands: [
+      'Open HBuilderX and confirm the APP project can be imported manually.',
+      'Rerun XUNJING_RELEASE_ENV_FILE=/secure/path/preprod.env XUNJING_NATIVE_PACK_CONFIRM=cloud-pack npm run pack:native:cloud.'
+    ]
+  }, null, 2))
+  process.exit(1)
+}
+
 const packResult = spawnSync(executable, rawArgv, {
   cwd,
   env: process.env,
@@ -195,6 +232,12 @@ const response = {
   checkedAt: new Date().toISOString(),
   mode: 'execute',
   releaseTargets: readiness.releaseTargets,
+  projectImport: {
+    argv: projectImportArgv,
+    exitCode: projectImportResult.status,
+    stdout: redactedProjectImportStdout,
+    stderr: redactedProjectImportStderr
+  },
   command: {
     executable,
     argv: redactedArgv
@@ -204,11 +247,12 @@ const response = {
   stdout: redactedStdout,
   stderr: redactedStderr,
   softFailure: softFailurePattern
-    ? 'HBuilderX returned exit 0 but reported that the project is not imported or does not exist'
+    ? 'HBuilderX returned exit 0 but reported a blocking soft failure'
     : '',
   nextCommands: [
     'Locate the signed APK/AAB or IPA produced by HBuilderX.',
     'If HBuilderX reports the project is not imported, import the APP project in HBuilderX or configure the CLI workspace before rerunning cloud pack.',
+    'If HBuilderX reports user not login, run HBuilderX CLI user login with the release account before rerunning cloud pack.',
     'XUNJING_RELEASE_ENV_FILE=/secure/path/preprod.env XUNJING_RELEASE_ARTIFACT=/path/to/signed.apk npm run prepare:native:evidence',
     'Complete physical-device scenarios, then run npm run verify:native:evidence and npm run verify:launch:evidence.'
   ]
