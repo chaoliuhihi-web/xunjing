@@ -36,6 +36,14 @@
 			</view>
 		</view>
 
+		<view class="personal-entry-card xicheng-paper-card" @click="openFootprint">
+			<view>
+				<text class="personal-entry-title">我的收藏</text>
+				<text class="personal-entry-copy">收藏、足迹和 Citywalk 记录统一放在个人中心查看。</text>
+			</view>
+			<xicheng-icon name="next" variant="plain" :size="22" />
+		</view>
+
 		<view class="works-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">作品审核状态</text>
@@ -131,6 +139,9 @@ export default {
 	methods: {
 		openShare() {
 			uni.navigateTo({ url: '/pages/xicheng/share/share' })
+		},
+		openFootprint() {
+			uni.navigateTo({ url: '/pages/xicheng/footprint/footprint' })
 		},
 		getWorkThumb(item = {}) {
 			if (item.assetType === 'pdf') return this.region.visualAssets.passportStamp
@@ -238,6 +249,37 @@ export default {
 .status-strip {
 	margin-top: 24rpx;
 }
+
+.personal-entry-card {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 18rpx;
+	margin-top: 20rpx;
+	padding: 24rpx;
+	border-radius: 28rpx;
+	box-sizing: border-box;
+}
+
+.personal-entry-title,
+.personal-entry-copy {
+	display: block;
+}
+
+.personal-entry-title {
+	font-size: 30rpx;
+	line-height: 1.3;
+	font-weight: 800;
+	color: #102F29;
+}
+
+.personal-entry-copy {
+	margin-top: 8rpx;
+	font-size: 24rpx;
+	line-height: 1.5;
+	color: rgba(16, 47, 41, 0.62);
+}
+
 .status-card {
 	flex: 1;
 	display: grid;

@@ -8,6 +8,7 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 const home = read('pages', 'xicheng', 'home', 'home.vue')
 const recording = read('pages', 'xicheng', 'recording', 'recording.vue')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const works = read('pages', 'xicheng', 'works', 'works.vue')
 
 for (const required of [
   "{ key: 'record', title: '记录', icon: 'record' }",
@@ -33,6 +34,16 @@ assert.doesNotMatch(
   /homeSecondaryEntries|openHomeSecondaryEntry|key: 'passport'|key: 'share'|key: 'ops'|key: 'footprint'|title: '收藏'|openXichengPassport|openXichengOpsReport|openXichengFootprint|url: '\/pages\/xicheng\/ops-report\/ops-report'|亲子研学任务|运营报告/,
   'Home should hide route passport, parent-child study, ops report, and 收藏 as top-level growth entries'
 )
+
+for (const required of [
+  '我的收藏',
+  'personal-entry-card',
+  'openFootprint',
+  "url: '/pages/xicheng/footprint/footprint'",
+  '@click="openFootprint"'
+]) {
+  assert.ok(works.includes(required), `Works personal center should expose favorite/footprint entry ${required}`)
+}
 
 for (const required of [
   'openPassport',
