@@ -373,6 +373,74 @@ assert.match(
   'release candidate audit should explain preprod baseUrl release URL validation'
 )
 
+const invalidTenantPreprodPath = path.join(missingTempDir, 'invalid-tenant-preprod.json')
+fs.writeFileSync(invalidTenantPreprodPath, `${JSON.stringify(makePreprodEvidence({
+  summary: { tenantId: 'tenant-prod' }
+}), null, 2)}\n`)
+const invalidTenantPreprodResult = runAudit([
+  '--preprod-evidence',
+  invalidTenantPreprodPath,
+  '--native-evidence',
+  path.join(missingTempDir, 'missing-native.json'),
+  '--release-artifact',
+  path.join(missingTempDir, 'missing-release.apk')
+])
+assert.notEqual(
+  invalidTenantPreprodResult.status,
+  0,
+  'release candidate audit should reject preprod evidence with a non-numeric tenant before native evidence exists'
+)
+const invalidTenantPreprodAudit = parseAuditJson(invalidTenantPreprodResult)
+assert.equal(
+  invalidTenantPreprodAudit.gates.preprodEvidence.ok,
+  false,
+  'release candidate audit preprod gate should fail when summary.tenantId is not a positive integer'
+)
+assert.ok(
+  invalidTenantPreprodAudit.blockers.some((blocker) => blocker.code === 'preprod-evidence-invalid-tenant-id'),
+  'release candidate audit should name invalid preprod tenant ids as a launch blocker'
+)
+assert.match(
+  `${invalidTenantPreprodResult.stderr}\n${invalidTenantPreprodResult.stdout}`,
+  /tenantId|tenant.*positive integer|正整数/i,
+  'release candidate audit should explain preprod tenant id validation'
+)
+
+const missingBlockedPreprodPath = path.join(missingTempDir, 'missing-blocked-preprod.json')
+const missingBlockedPreprodEvidence = makePreprodEvidence()
+fs.writeFileSync(missingBlockedPreprodPath, `${JSON.stringify({
+  ...missingBlockedPreprodEvidence,
+  checks: missingBlockedPreprodEvidence.checks.filter((check) => check.name !== 'live-xicheng-ai-chat-blocked')
+}, null, 2)}\n`)
+const missingBlockedPreprodResult = runAudit([
+  '--preprod-evidence',
+  missingBlockedPreprodPath,
+  '--native-evidence',
+  path.join(missingTempDir, 'missing-native.json'),
+  '--release-artifact',
+  path.join(missingTempDir, 'missing-release.apk')
+])
+assert.notEqual(
+  missingBlockedPreprodResult.status,
+  0,
+  'release candidate audit should reject preprod evidence without the BLOCKED-source guard check before native evidence exists'
+)
+const missingBlockedPreprodAudit = parseAuditJson(missingBlockedPreprodResult)
+assert.equal(
+  missingBlockedPreprodAudit.gates.preprodEvidence.ok,
+  false,
+  'release candidate audit preprod gate should fail when required Xicheng readiness checks are missing'
+)
+assert.ok(
+  missingBlockedPreprodAudit.blockers.some((blocker) => blocker.code === 'preprod-evidence-missing-required-check'),
+  'release candidate audit should name missing required preprod checks as launch blockers'
+)
+assert.match(
+  `${missingBlockedPreprodResult.stderr}\n${missingBlockedPreprodResult.stdout}`,
+  /live-xicheng-ai-chat-blocked|BLOCKED|required check/i,
+  'release candidate audit should explain the missing BLOCKED-source guard check'
+)
+
 const keystorePath = path.join(missingTempDir, 'xicheng-release.keystore')
 const keytoolResult = spawnSync('keytool', [
   '-genkeypair',

@@ -45,7 +45,7 @@ npm run verify:yudao:preprod
 
 `XUNJING_TENANT_ID` 必须是 Yudao 租户正整数编号，不能使用 `0`、负数或环境名占位符。
 
-`qa/xicheng-app-readiness-evidence.json` 的 `checkedAt` 必须是 72 小时内的预发或生产实测时间；过期证据不能作为上线放行依据，`npm run audit:release:candidate` 会直接输出 `preprod-evidence-stale`。预发证据的 `summary.baseUrl` 必须是非本地 HTTPS 网关，否则审计会输出 `preprod-evidence-invalid-base-url`。预发证据的 `summary.xichengRegionCode` 必须是 `beijing-xicheng`，`summary.xichengPackageCode` 必须是 `XICHENG-MAP-001`，避免把其它城市或其它资源包的接口回归误当成本次西城手机端候选。
+`qa/xicheng-app-readiness-evidence.json` 的 `checkedAt` 必须是 72 小时内的预发或生产实测时间；过期证据不能作为上线放行依据，`npm run audit:release:candidate` 会直接输出 `preprod-evidence-stale`。预发证据的 `summary.baseUrl` 必须是非本地 HTTPS 网关，否则审计会输出 `preprod-evidence-invalid-base-url`。预发证据的 `summary.tenantId` 必须是 Yudao 租户正整数，否则审计会输出 `preprod-evidence-invalid-tenant-id`；预发证据必须包含 sourced AI、BLOCKED AI、trigger 和 scan resolve 必需 checks，否则审计会输出 `preprod-evidence-missing-required-check`。预发证据的 `summary.xichengRegionCode` 必须是 `beijing-xicheng`，`summary.xichengPackageCode` 必须是 `XICHENG-MAP-001`，避免把其它城市或其它资源包的接口回归误当成本次西城手机端候选。
 
 真机证据必须记录在 `qa/xicheng-native-device-evidence.json` 并通过 APP 侧校验：
 

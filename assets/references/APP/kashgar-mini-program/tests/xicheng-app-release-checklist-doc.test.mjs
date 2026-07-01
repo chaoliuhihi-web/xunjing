@@ -42,6 +42,8 @@ for (const required of [
   'summary.xichengPackageCode',
   'preprod-evidence-stale',
   'preprod-evidence-invalid-base-url',
+  'preprod-evidence-invalid-tenant-id',
+  'preprod-evidence-missing-required-check',
   'beijing-xicheng',
   '/app-api/xunjing/scan/resolve',
   'API 可达性',

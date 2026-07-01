@@ -52,6 +52,14 @@ const normalizeUrl = (value) => String(value || '').trim().replace(/\/+$/, '')
 const mobileReleaseArtifactExtensions = new Set(['.apk', '.aab', '.ipa'])
 const expectedXichengRegionCode = 'beijing-xicheng'
 const expectedXichengPackageCode = 'XICHENG-MAP-001'
+const requiredPreprodChecks = [
+  'live-xicheng-ai-chat-sourced',
+  'live-xicheng-ai-chat-blocked',
+  'live-xicheng-trigger-baitasi',
+  'live-xicheng-trigger-gongwangfu',
+  'live-xicheng-trigger-planetarium',
+  'live-xicheng-scan-resolve'
+]
 const maxEvidenceAgeHours = Number(process.env.XUNJING_EVIDENCE_MAX_AGE_HOURS || 72)
 const maxFutureSkewMs = 5 * 60 * 1000
 
@@ -270,16 +278,48 @@ if (!preprodEvidence.exists) {
     String(summary.xichengPackageCode || '').trim() === expectedXichengPackageCode
   const preprodFreshness = evidenceFreshness('APP readiness evidence checkedAt', preprodEvidence.json?.checkedAt)
   const preprodBaseUrl = releaseHttpsUrl('APP readiness evidence summary.baseUrl', summary.baseUrl)
+  const preprodTenantId = String(summary.tenantId || '').trim()
+  const preprodTenantOk = /^[1-9]\d*$/.test(preprodTenantId)
+  const preprodIncludesXichengChecks = summary.includeXichengAppCheck === true &&
+    summary.includeXichengTriggerCheck === true
+  const preprodCheckCountsOk = Number(summary.failedChecks) === 0 &&
+    Number(summary.passedChecks) >= Number(summary.totalChecks || 0)
+  const preprodChecks = Array.isArray(preprodEvidence.json?.checks) ? preprodEvidence.json.checks : []
+  const preprodCheckByName = new Map(preprodChecks.map((check) => [check?.name, check]))
+  const missingRequiredPreprodChecks = requiredPreprodChecks.filter((checkName) => {
+    const check = preprodCheckByName.get(checkName)
+    return !check || check.ok !== true
+  })
   gates.preprodEvidence = {
     ...gates.preprodEvidence,
-    ok: preprodBaseOk && preprodScopeOk && preprodFreshness.ok && preprodBaseUrl.ok,
+    ok: preprodBaseOk &&
+      preprodScopeOk &&
+      preprodFreshness.ok &&
+      preprodBaseUrl.ok &&
+      preprodTenantOk &&
+      preprodIncludesXichengChecks &&
+      preprodCheckCountsOk &&
+      missingRequiredPreprodChecks.length === 0,
     checkedAt: preprodEvidence.json?.checkedAt || '',
     freshness: preprodFreshness,
     baseUrl: preprodBaseUrl.normalized,
     baseUrlValidation: preprodBaseUrl,
-    tenantId: String(summary.tenantId || ''),
+    tenantId: preprodTenantId,
+    tenantValidation: {
+      ok: preprodTenantOk,
+      detail: preprodTenantOk ? 'pass' : 'APP readiness evidence summary.tenantId must be a positive integer tenant id'
+    },
     xichengRegionCode: String(summary.xichengRegionCode || ''),
-    xichengPackageCode: String(summary.xichengPackageCode || '')
+    xichengPackageCode: String(summary.xichengPackageCode || ''),
+    includeXichengAppCheck: summary.includeXichengAppCheck === true,
+    includeXichengTriggerCheck: summary.includeXichengTriggerCheck === true,
+    checkCounts: {
+      ok: preprodCheckCountsOk,
+      totalChecks: Number(summary.totalChecks || 0),
+      passedChecks: Number(summary.passedChecks || 0),
+      failedChecks: Number(summary.failedChecks || 0)
+    },
+    missingRequiredChecks: missingRequiredPreprodChecks
   }
   if (!preprodBaseOk) {
     addBlocker(
@@ -311,6 +351,38 @@ if (!preprodEvidence.exists) {
       'preprod-evidence-invalid-base-url',
       preprodBaseUrl.detail,
       'Regenerate qa/xicheng-app-readiness-evidence.json from a non-local HTTPS Yudao APP API gateway'
+    )
+  }
+  if (!preprodTenantOk) {
+    addBlocker(
+      blockers,
+      'preprod-evidence-invalid-tenant-id',
+      'APP readiness evidence summary.tenantId must be a positive integer tenant id',
+      'Regenerate qa/xicheng-app-readiness-evidence.json with the release tenant id from XUNJING_TENANT_ID'
+    )
+  }
+  if (!preprodIncludesXichengChecks) {
+    addBlocker(
+      blockers,
+      'preprod-evidence-xicheng-checks-not-included',
+      'APP readiness evidence must include Xicheng APP and trigger checks',
+      'Regenerate qa/xicheng-app-readiness-evidence.json with --include-xicheng-app-check and --include-xicheng-trigger-check'
+    )
+  }
+  if (!preprodCheckCountsOk) {
+    addBlocker(
+      blockers,
+      'preprod-evidence-check-counts-not-passing',
+      'APP readiness evidence must have 0 failedChecks and all checks passing',
+      'Rerun the preprod readiness check and fix every failed Xicheng APP/API check before release'
+    )
+  }
+  if (missingRequiredPreprodChecks.length > 0) {
+    addBlocker(
+      blockers,
+      'preprod-evidence-missing-required-check',
+      `APP readiness evidence missing required passing check(s): ${missingRequiredPreprodChecks.join(', ')}`,
+      'Regenerate preprod readiness evidence with sourced AI, BLOCKED AI, trigger, and scan resolve checks passing'
     )
   }
 }

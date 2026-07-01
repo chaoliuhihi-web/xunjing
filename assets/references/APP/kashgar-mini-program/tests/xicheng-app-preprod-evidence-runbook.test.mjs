@@ -21,6 +21,8 @@ for (const required of [
   'summary.xichengPackageCode',
   'preprod-evidence-stale',
   'preprod-evidence-invalid-base-url',
+  'preprod-evidence-invalid-tenant-id',
+  'preprod-evidence-missing-required-check',
   'beijing-xicheng',
   'XUNJING_APP_API_BASE_URL',
   'XUNJING_RELEASE_ENV_FILE',
