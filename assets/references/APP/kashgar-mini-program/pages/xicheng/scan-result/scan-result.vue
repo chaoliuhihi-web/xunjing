@@ -158,15 +158,43 @@
 					<text class="scene-service-copy">{{ action.copy }}</text>
 				</view>
 			</view>
-		</view>
-
-		<view v-if="cityKnowledgeGraphNodes.length > 0" class="vision-agent-knowledge-panel xicheng-paper-card">
-			<view class="section-head xicheng-section-label">
-				<text class="section-title">城市知识图谱</text>
-				<text class="section-badge">Knowledge Graph</text>
+			<view v-if="activeServiceHandoffTask" class="vision-agent-service-handoff xicheng-paper-card">
+				<view class="service-handoff-head">
+					<view class="service-handoff-head-copy">
+						<text class="service-handoff-kicker">AI识境服务承接</text>
+						<text class="service-handoff-title">{{ activeServiceHandoffTask.handoffTitle }}</text>
+					</view>
+					<view class="service-handoff-close" @click="closeServiceHandoffPanel">×</view>
+				</view>
+				<view class="service-handoff-meta">
+					<text class="service-handoff-meta-label">服务意图</text>
+					<text class="service-handoff-meta-value">{{ activeServiceHandoffTask.serviceIntentText }}</text>
+				</view>
+				<text class="service-handoff-summary">{{ activeServiceHandoffTask.handoffSummary }}</text>
+				<view class="service-handoff-step-list">
+					<view
+						v-for="step in activeServiceHandoffSteps"
+						:key="step.label"
+						class="service-handoff-step"
+					>
+						<text class="service-handoff-step-label">{{ step.label }}</text>
+						<text class="service-handoff-step-copy">{{ step.copy }}</text>
+					</view>
+				</view>
+				<view class="service-handoff-primary" @click="openServiceHandoffPrimaryAction">
+					<text>{{ serviceHandoffPrimaryAction }}</text>
+					<text class="service-handoff-primary-arrow">→</text>
+				</view>
 			</view>
-			<text class="knowledge-graph-summary">从当前镜头出发，把地标、路线、人物/主题和城市服务串成可继续追问的节点。</text>
-			<view class="knowledge-graph-node-grid">
+			</view>
+
+			<view v-if="cityKnowledgeGraphNodes.length > 0" class="vision-agent-knowledge-panel xicheng-paper-card">
+				<view class="section-head xicheng-section-label">
+					<text class="section-title">城市知识图谱</text>
+					<text class="section-badge">Knowledge Graph</text>
+				</view>
+				<text class="knowledge-graph-summary">从当前镜头出发，把地标、路线、人物/主题和城市服务串成可继续追问的节点。</text>
+				<view class="knowledge-graph-node-grid">
 				<view
 					v-for="node in cityKnowledgeGraphNodes"
 					:key="node.key"
@@ -588,7 +616,8 @@ export default {
 			region: XICHENG_REGION_CONFIG,
 			result: normalizeResult(),
 			feedbackNote: '',
-			recognitionFeedback: null
+			recognitionFeedback: null,
+			activeServiceHandoffTask: null
 		}
 	},
 	computed: {
@@ -848,6 +877,16 @@ export default {
 		},
 		prioritizedSceneServiceActions() {
 			return this.prioritizeSceneServiceActions(this.sceneServiceActions)
+		},
+		activeServiceHandoffSteps() {
+			return this.activeServiceHandoffTask && Array.isArray(this.activeServiceHandoffTask.handoffSteps)
+				? this.activeServiceHandoffTask.handoffSteps
+				: []
+		},
+		serviceHandoffPrimaryAction() {
+			return this.activeServiceHandoffTask && this.activeServiceHandoffTask.primaryAction
+				? this.activeServiceHandoffTask.primaryAction
+				: '问小京生成方案'
 		},
 		visionAgentTimelineItems() {
 			const visionContext = this.result.visionAgentContext || {}
@@ -1422,10 +1461,98 @@ export default {
 				this.startRecording()
 				return
 			}
+			this.activeServiceHandoffTask = this.createVisionAgentServiceHandoff(serviceTask)
 			uni.showToast({
 				title: `${serviceTask.statusText}`,
 				icon: 'none'
 			})
+		},
+		createVisionAgentServiceHandoff(task = {}) {
+			const taskType = String(task.taskType || 'service')
+			const serviceIntent = String(task.serviceIntent || '')
+			const poiName = task.poiName || this.result.poiName || '当前场景'
+			const intentText = task.serviceIntentLabel || this.serviceIntentLabel(serviceIntent) || task.taskTypeLabel || this.serviceTaskTypeLabel(taskType)
+			const title = task.actionTitle || task.actionCopy || '继续服务'
+			let handoffSteps = [
+				{ label: '确认场景', copy: `围绕${poiName}和当前镜头上下文判断。` },
+				{ label: '生成方案', copy: '交给小京继续整理可执行建议。' }
+			]
+			let primaryAction = '问小京生成方案'
+			let handoffSummary = '先把当前识别结果、位置和现场信号交给小京，继续生成下一步服务方案。'
+			if (taskType === 'merchant' || ['order', 'coupon', 'reservation'].includes(serviceIntent)) {
+				handoffSteps = [
+					{ label: '推荐菜/点单', copy: '按辣度、清真、人数和当地特色生成建议。' },
+					{ label: '优惠券', copy: '真实优惠需接入商家系统后确认，不在本地伪造。' },
+					{ label: '预约/排队', copy: '先生成排队和预约策略，再等待真实商家接口承接。' }
+				]
+				primaryAction = '问小京生成商家方案'
+				handoffSummary = '适合把识别到的菜单、食物或商家线索转成点单、优惠和预约建议。'
+			} else if (taskType === 'route') {
+				handoffSteps = [
+					{ label: '加入旅行地图', copy: '把当前点位放进今日路线和足迹。' },
+					{ label: '推荐下一站', copy: '结合时间、天气、距离和兴趣继续规划。' }
+				]
+				primaryAction = '问小京安排下一站'
+				handoffSummary = '把当前场景变成路线节点，继续推动下一站推荐。'
+			} else if (taskType === 'growth') {
+				handoffSteps = [
+					{ label: '完成打卡', copy: '记录当前官方点位和识别来源。' },
+					{ label: '领取徽章', copy: '把本次到访加入城市探索成长记录。' }
+				]
+				primaryAction = '问小京生成打卡文案'
+				handoffSummary = '把这次 AI识境识别转成可保存、可分享的到访成果。'
+			} else if (taskType === 'ticketing' || serviceIntent === 'ticket') {
+				handoffSteps = [
+					{ label: '票务信息', copy: '整理演出、活动、入场和购票注意事项。' },
+					{ label: '活动时间', copy: '结合当前位置和当前时间判断是否适合前往。' }
+				]
+				primaryAction = '问小京查活动方案'
+				handoffSummary = '适合把演出或活动识别结果转成票务和入场决策。'
+			} else if (taskType === 'experience' || serviceIntent === 'experience') {
+				handoffSteps = [
+					{ label: '体验预约', copy: '整理附近非遗体验、讲师、工坊和适合人群。' },
+					{ label: '附近体验', copy: '按距离、时段和兴趣推荐可继续探索的项目。' }
+				]
+				primaryAction = '问小京约体验'
+				handoffSummary = '把非遗或手作线索转成可预约、可到店咨询的体验计划。'
+			} else if (taskType === 'navigation' || serviceIntent === 'translate') {
+				handoffSteps = [
+					{ label: '文字翻译', copy: '继续解释读音、含义和本地语境。' },
+					{ label: '步行导航', copy: '把路牌或招牌线索接到下一段步行路线。' }
+				]
+				primaryAction = '问小京翻译并导航'
+				handoffSummary = '把 OCR 或路牌识别转成翻译、发音和方向建议。'
+			}
+			return {
+				...task,
+				handoffTitle: title,
+				handoffSummary,
+				serviceIntentText: intentText || '现场服务',
+				handoffSteps,
+				primaryAction
+			}
+		},
+		createServiceHandoffPrompt(task = {}) {
+			const poiName = task.poiName || this.result.poiName || '当前场景'
+			const stepText = Array.isArray(task.handoffSteps)
+				? task.handoffSteps.map(step => step.label).filter(Boolean).join('、')
+				: ''
+			return `围绕${poiName}的${task.actionTitle || task.taskTypeLabel || '服务'}，结合AI识境现场上下文，给我${stepText || '下一步'}方案；如果涉及商家、优惠、票务或预约，请明确哪些需要真实系统确认，不要编造可用券、库存或排队结果。`
+		},
+		openServiceHandoffPrimaryAction() {
+			const task = this.activeServiceHandoffTask
+			if (!task) return
+			const prompt = this.createServiceHandoffPrompt(task)
+			this.rememberVisionAgentServiceTask({
+				...task,
+				actionPrompt: prompt,
+				status: 'handoff',
+				statusText: '已交给小京继续'
+			})
+			this.askXiaojing(prompt)
+		},
+		closeServiceHandoffPanel() {
+			this.activeServiceHandoffTask = null
 		},
 		rememberVisionAgentServiceTask(action = {}) {
 			const existingTasks = uni.getStorageSync(XICHENG_REGION_CONFIG.visionAgentServiceTasksStorageKey)
@@ -2710,6 +2837,152 @@ export default {
 	font-size: 21rpx;
 	line-height: 1.45;
 	color: rgba(16, 47, 41, 0.62);
+}
+
+.vision-agent-service-handoff {
+	margin-top: 22rpx;
+	padding: 22rpx;
+	border-radius: 24rpx;
+	background: rgba(255, 253, 248, 0.94);
+	border: 1rpx solid rgba(31, 110, 90, 0.18);
+}
+
+.service-handoff-head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 18rpx;
+}
+
+.service-handoff-head-copy {
+	flex: 1;
+	min-width: 0;
+}
+
+.service-handoff-kicker,
+.service-handoff-title,
+.service-handoff-summary,
+.service-handoff-meta-label,
+.service-handoff-meta-value,
+.service-handoff-step-label,
+.service-handoff-step-copy {
+	display: block;
+	line-height: 1.42;
+}
+
+.service-handoff-kicker {
+	font-size: 21rpx;
+	font-weight: 800;
+	color: #1F6E5A;
+}
+
+.service-handoff-title {
+	margin-top: 6rpx;
+	font-size: 28rpx;
+	font-weight: 800;
+	color: #102F29;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.service-handoff-close {
+	width: 46rpx;
+	height: 46rpx;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	background: rgba(23, 63, 53, 0.08);
+	color: rgba(16, 47, 41, 0.66);
+	font-size: 28rpx;
+	font-weight: 800;
+	line-height: 1;
+}
+
+.service-handoff-meta {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+	margin-top: 16rpx;
+}
+
+.service-handoff-meta-label {
+	padding: 6rpx 12rpx;
+	border-radius: 999rpx;
+	background: rgba(31, 110, 90, 0.12);
+	font-size: 20rpx;
+	font-weight: 800;
+	color: #1F6E5A;
+}
+
+.service-handoff-meta-value {
+	min-width: 0;
+	font-size: 22rpx;
+	font-weight: 800;
+	color: #B8812B;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.service-handoff-summary {
+	margin-top: 14rpx;
+	font-size: 22rpx;
+	color: rgba(16, 47, 41, 0.66);
+}
+
+.service-handoff-step-list {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 12rpx;
+	margin-top: 18rpx;
+}
+
+.service-handoff-step {
+	min-width: 0;
+	min-height: 132rpx;
+	padding: 16rpx;
+	border-radius: 20rpx;
+	background: rgba(31, 110, 90, 0.08);
+	border: 1rpx solid rgba(31, 110, 90, 0.12);
+	box-sizing: border-box;
+}
+
+.service-handoff-step-label {
+	font-size: 22rpx;
+	font-weight: 800;
+	color: #173F35;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.service-handoff-step-copy {
+	margin-top: 8rpx;
+	font-size: 20rpx;
+	color: rgba(16, 47, 41, 0.62);
+}
+
+.service-handoff-primary {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10rpx;
+	min-height: 70rpx;
+	margin-top: 18rpx;
+	border-radius: 999rpx;
+	background: #1F6E5A;
+	font-size: 24rpx;
+	font-weight: 800;
+	color: #FFFFFF;
+}
+
+.service-handoff-primary-arrow {
+	font-size: 26rpx;
+	font-weight: 800;
+	line-height: 1;
 }
 
 .poi-detail-entry {
