@@ -123,45 +123,67 @@
 		</view>
 
 		<template v-if="!isTravelogueEditMode">
-		<view class="stats-grid">
-			<view class="stat-card xicheng-paper-card">
-				<text class="stat-value">{{ materialCount }}</text>
-				<text class="stat-label">旅行素材盒</text>
+			<view class="stats-grid">
+				<view class="stat-card xicheng-paper-card">
+					<text class="stat-value">{{ materialCount }}</text>
+					<text class="stat-label">旅行素材盒</text>
+				</view>
+				<view class="stat-card xicheng-paper-card">
+					<text class="stat-value">{{ passportProgress }}%</text>
+					<text class="stat-label">路线护照</text>
+				</view>
+				<view class="stat-card xicheng-paper-card">
+					<text class="stat-value">{{ completedTaskCount }}/{{ parentChildTasks.length }}</text>
+					<text class="stat-label">亲子研学任务</text>
+				</view>
 			</view>
-			<view class="stat-card xicheng-paper-card">
-				<text class="stat-value">{{ passportProgress }}%</text>
-				<text class="stat-label">路线护照</text>
-			</view>
-			<view class="stat-card xicheng-paper-card">
-				<text class="stat-value">{{ completedTaskCount }}/{{ parentChildTasks.length }}</text>
-				<text class="stat-label">亲子研学任务</text>
-			</view>
-		</view>
 
-		<view class="section-card xicheng-paper-card">
-			<view class="section-head">
-				<text class="section-title">记录会话</text>
-				<text class="section-badge">{{ recordingStatusText }}</text>
+			<view class="section-card xicheng-paper-card vision-agent-task-card">
+				<view class="section-head">
+					<text class="section-title">AI识境任务包</text>
+					<text class="section-badge">{{ visionAgentServiceTaskCount }} 项</text>
+				</view>
+				<text class="section-desc">拍照识别后的路线、商家、徽章和游记动作会沉淀到这里，继续生成游记、路线复盘和试运营日报。</text>
+				<view v-if="visibleVisionAgentServiceTasks.length > 0" class="vision-agent-task-list">
+					<view
+						v-for="task in visibleVisionAgentServiceTasks"
+						:key="task.id || `${task.actionKey}-${task.createdAt}`"
+						class="vision-agent-task-row"
+					>
+						<view class="vision-agent-task-main">
+							<text class="vision-agent-task-type">{{ formatVisionAgentServiceTaskType(task) }}</text>
+							<text class="vision-agent-task-title">{{ task.actionTitle || '现场服务动作' }}</text>
+						</view>
+						<text class="vision-agent-task-meta">{{ createVisionAgentServiceTaskMeta(task) }}</text>
+					</view>
+				</view>
+				<text v-else class="empty-copy">打开 AI识境拍一下，选择路线、美食、徽章或生成游记后，会在这里形成可继续处理的任务包。</text>
 			</view>
-			<text class="section-desc">主动开始后采集前台位置点，用于游记足迹、路线复盘和停留点摘要。</text>
-			<view class="report-grid">
-				<view>
-					<text class="report-value">{{ routePointCount }}</text>
-					<text class="report-label">轨迹点</text>
+
+			<view class="section-card xicheng-paper-card">
+				<view class="section-head">
+					<text class="section-title">记录会话</text>
+					<text class="section-badge">{{ recordingStatusText }}</text>
 				</view>
-				<view>
-					<text class="report-value">{{ stayPointCount }}</text>
-					<text class="report-label">停留点</text>
+				<text class="section-desc">主动开始后采集前台位置点，用于游记足迹、路线复盘和停留点摘要。</text>
+				<view class="report-grid">
+					<view>
+						<text class="report-value">{{ routePointCount }}</text>
+						<text class="report-label">轨迹点</text>
+					</view>
+					<view>
+						<text class="report-value">{{ stayPointCount }}</text>
+						<text class="report-label">停留点</text>
+					</view>
+					<view>
+						<text class="report-value">{{ filteredTrackPointCount }}</text>
+						<text class="report-label">异常点</text>
+					</view>
+					<view>
+						<text class="report-value">{{ recordingSession.startedAt ? formatArtifactTime(recordingSession.startedAt) : '--' }}</text>
+						<text class="report-label">开始日期</text>
+					</view>
 				</view>
-				<view>
-					<text class="report-value">{{ filteredTrackPointCount }}</text>
-					<text class="report-label">异常点</text>
-				</view>
-				<view>
-					<text class="report-value">{{ recordingSession.startedAt ? formatArtifactTime(recordingSession.startedAt) : '--' }}</text>
-					<text class="report-label">开始日期</text>
-				</view>
-			</view>
 			<view class="recording-actions">
 				<button class="primary-button xicheng-primary-action" :disabled="recordingSession.status === 'recording' || recordingSession.status === 'paused'" @click="startRecordingSession">开始记录</button>
 				<button class="ghost-button xicheng-secondary-action" :disabled="recordingSession.status !== 'paused'" @click="resumeRecordingSession">继续</button>
@@ -586,12 +608,23 @@ export const hasReviewableStudyTaskEvidence = (evidence = {}) => {
 	)
 }
 
+export const hasReviewableVisionAgentServiceTaskEvidence = (task = {}) => Boolean(
+	task
+	&& (
+		task.poiCode
+		|| task.poiName
+		|| task.actionTitle
+		|| task.actionCopy
+	)
+)
+
 export const hasXichengTravelogueDraftEvidence = ({
 	materials = [],
 	recordingSession = null,
 	studyTaskEvidence = [],
 	routeRecommendation = null,
-	routeCheckins = []
+	routeCheckins = [],
+	visionAgentServiceTasks = []
 } = {}) => {
 	const hasMaterialEvidence = Array.isArray(materials) && materials.some(material => {
 		if (!material) return false
@@ -608,7 +641,9 @@ export const hasXichengTravelogueDraftEvidence = ({
 	))
 	const hasRouteCheckinEvidence = Array.isArray(routeCheckins)
 		&& routeCheckins.some(checkin => hasReviewableRouteCheckinEvidence(checkin))
-	return hasMaterialEvidence || hasTrackEvidence || hasStudyEvidence || hasRouteEvidence || hasRouteCheckinEvidence
+	const hasVisionAgentServiceTaskEvidence = Array.isArray(visionAgentServiceTasks)
+		&& visionAgentServiceTasks.some(task => hasReviewableVisionAgentServiceTaskEvidence(task))
+	return hasMaterialEvidence || hasTrackEvidence || hasStudyEvidence || hasRouteEvidence || hasRouteCheckinEvidence || hasVisionAgentServiceTaskEvidence
 }
 
 export const hasXichengReviewableWorkEvidence = ({
@@ -636,14 +671,16 @@ export const createXichengTravelogueDraft = ({
 	routeRecommendation = null,
 	recordingSession = null,
 	studyTaskEvidence = [],
-	routeCheckins = []
+	routeCheckins = [],
+	visionAgentServiceTasks = []
 } = {}) => {
 	if (!hasXichengTravelogueDraftEvidence({
 		materials,
 		routeRecommendation,
 		recordingSession,
 		studyTaskEvidence,
-		routeCheckins
+		routeCheckins,
+		visionAgentServiceTasks
 	})) {
 		return `请先通过识别、开始记录、补充照片或现场备注积累真实素材，再生成西城游记草稿。小京会基于真实照片、轨迹、识别事件、停留点、研学任务证据和用户备注整理内容，不会替用户编造路线。`
 	}
@@ -694,7 +731,13 @@ export const createXichengTravelogueDraft = ({
 		? `亲子研学任务可继续围绕：${plannedStudyTasks.join('；')}，补充孩子观察或照片证据。`
 		: ''
 	const studyTaskText = studyEvidenceText || plannedStudyTaskText
-	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒。${trackText}${stayText}${photoText}${routeCheckinText}${remarkText}${studyTaskText}${aiGuideText}这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
+	const reviewableVisionAgentTasks = Array.isArray(visionAgentServiceTasks)
+		? visionAgentServiceTasks.filter(task => hasReviewableVisionAgentServiceTaskEvidence(task)).slice(0, 4)
+		: []
+	const visionAgentTaskText = reviewableVisionAgentTasks.length > 0
+		? `AI识境已收集 ${reviewableVisionAgentTasks.length} 个后续动作：${reviewableVisionAgentTasks.map(task => `${task.taskTypeLabel || '服务'}-${task.actionTitle || task.actionCopy || '现场任务'}`).join('；')}。`
+		: ''
+	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒。${trackText}${stayText}${photoText}${routeCheckinText}${remarkText}${studyTaskText}${aiGuideText}${visionAgentTaskText}这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
 }
 
 const createEmptyRecordingSession = () => ({
@@ -842,20 +885,21 @@ export default {
 			travelogueTagChips: ['白塔寺', '什刹海', '胡同漫步'],
 			travelogueMode: 'draft',
 			activeTravelogueStyle: 'citywalk',
-			travelogueStyleOptions: [
-				{ key: 'family', title: '亲子研学' },
-				{ key: 'citywalk', title: '城市漫步' },
-				{ key: 'culture', title: '文化札记' }
-			],
-			studyTaskEvidence: [],
-			studyTaskDrafts: [],
-			badgeAwards: [],
-			routeCheckins: [],
-			inspirationImports: [],
-			recognitionFeedbacks: [],
-			recordingSession: createEmptyRecordingSession()
-		}
-	},
+				travelogueStyleOptions: [
+					{ key: 'family', title: '亲子研学' },
+					{ key: 'citywalk', title: '城市漫步' },
+					{ key: 'culture', title: '文化札记' }
+				],
+				studyTaskEvidence: [],
+				studyTaskDrafts: [],
+				badgeAwards: [],
+				routeCheckins: [],
+				inspirationImports: [],
+				recognitionFeedbacks: [],
+				visionAgentServiceTasks: [],
+				recordingSession: createEmptyRecordingSession()
+			}
+		},
 	computed: {
 		isTravelogueEditMode() {
 			return this.travelogueMode === 'edit'
@@ -959,21 +1003,29 @@ export default {
 		activeBadgeAward() {
 			return this.badgeAwards.find(award => award && award.badgeCode === this.routeBadgeCode) || null
 		},
-		badgeAwardCount() {
-			return this.badgeAwards.length
-		},
-		checkinCount() {
-			return this.routeCheckins.length
-		},
-		inspirationImportCount() {
-			return this.inspirationImports.length
-		},
-		recognitionFeedbackCount() {
-			return this.recognitionFeedbacks.length
-		},
-		aiGuideMaterials() {
-			return this.materials.filter(material => material && material.type === 'ai-guide' && hasReviewableMaterialEvidence(material))
-		},
+			badgeAwardCount() {
+				return this.badgeAwards.length
+			},
+			checkinCount() {
+				return this.routeCheckins.length
+			},
+			inspirationImportCount() {
+				return this.inspirationImports.length
+			},
+			recognitionFeedbackCount() {
+				return this.recognitionFeedbacks.length
+			},
+			visionAgentServiceTaskCount() {
+				return this.visionAgentServiceTasks.length
+			},
+			visibleVisionAgentServiceTasks() {
+				return this.visionAgentServiceTasks
+					.filter(task => hasReviewableVisionAgentServiceTaskEvidence(task))
+					.slice(0, 4)
+			},
+			aiGuideMaterials() {
+				return this.materials.filter(material => material && material.type === 'ai-guide' && hasReviewableMaterialEvidence(material))
+			},
 		aiGuideMaterialCount() {
 			return this.aiGuideMaterials.length
 		},
@@ -1080,13 +1132,14 @@ export default {
 				workCount: this.draft ? 1 : 0,
 				inspirationImportCount: this.inspirationImportCount,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
-				badgeAwardCount: this.badgeAwardCount,
-				checkinCount: this.checkinCount,
-				recognitionFeedbackCount: this.recognitionFeedbackCount,
-				candidateConfirmationCount: this.candidateConfirmationCount,
-				aiGuideMaterialCount: this.aiGuideMaterialCount,
-				shareCount: this.shareArtifacts.length,
-				misTriggerCount: this.misTriggerCount,
+					badgeAwardCount: this.badgeAwardCount,
+					checkinCount: this.checkinCount,
+					recognitionFeedbackCount: this.recognitionFeedbackCount,
+					candidateConfirmationCount: this.candidateConfirmationCount,
+					aiGuideMaterialCount: this.aiGuideMaterialCount,
+					visionAgentServiceTaskCount: this.visionAgentServiceTaskCount,
+					shareCount: this.shareArtifacts.length,
+					misTriggerCount: this.misTriggerCount,
 				safetyStatusSummary: this.safetyStatusSummary,
 				safetyBlockedCount: this.safetyBlockedCount,
 				safetyUnavailableCount: this.safetyUnavailableCount,
@@ -1127,7 +1180,7 @@ export default {
 			return visualAssets.sharePosterBackground || visualAssets.heroLandmark || ''
 		},
 		hasTraveloguePreviewEvidence() {
-			return hasXichengTravelogueDraftEvidence({ materials: this.materials, routeRecommendation: this.recognizedRoute || this.importedRoute, recordingSession: this.recordingSession, studyTaskEvidence: this.studyTaskEvidence, routeCheckins: this.routeCheckins })
+			return hasXichengTravelogueDraftEvidence({ materials: this.materials, routeRecommendation: this.recognizedRoute || this.importedRoute, recordingSession: this.recordingSession, studyTaskEvidence: this.studyTaskEvidence, routeCheckins: this.routeCheckins, visionAgentServiceTasks: this.visionAgentServiceTasks })
 		},
 		summaryCards() {
 			const recognizedPoiName = this.materials.find(material => material && material.poiName)
@@ -1138,7 +1191,8 @@ export default {
 				{ key: 'poi', label: '识别地点', value: recognizedPoiName && recognizedPoiName.poiName ? recognizedPoiName.poiName : '待补充' },
 				{ key: 'route', label: '路线', value: routeTitle },
 				{ key: 'photo', label: '照片', value: `${this.photoMaterialCount} 张` },
-				{ key: 'qa', label: '问答', value: `${this.aiGuideMaterialCount} 条` }
+				{ key: 'qa', label: '问答', value: `${this.aiGuideMaterialCount} 条` },
+				{ key: 'agent', label: 'AI识境任务', value: `${this.visionAgentServiceTaskCount} 项` }
 			]
 		},
 		traveloguePreviewTitle() {
@@ -1160,14 +1214,21 @@ export default {
 					.filter(material => hasReviewableMaterialEvidence(material))
 					.map(material => material && material.poiName ? material.poiName : '')
 					.filter(Boolean)
-			)).slice(0, 4)
+				)).slice(0, 4)
 			const previewNames = stopNames.length > 0 ? stopNames : reviewedPoiNames
+			const taskTitles = this.visibleVisionAgentServiceTasks
+				.map(task => task && task.actionTitle ? task.actionTitle : '')
+				.filter(Boolean)
+				.slice(0, 3)
 			const trackSummary = this.routePointCount > 0 || this.stayPointCount > 0
 				? `已记录 ${this.routePointCount} 个轨迹点、${this.stayPointCount} 个停留点，`
 				: ''
+			const taskSummary = taskTitles.length > 0
+				? `AI识境已收集 ${taskTitles.join('、')} 等后续动作，`
+				: ''
 			return previewNames.length > 0
-				? `${trackSummary}已收集 ${previewNames.join('、')} 等真实地点素材，可按「${styleTitle}」整理成可编辑游记草稿。`
-				: `${trackSummary}已收集照片、问答、研学任务或现场备注，可按「${styleTitle}」生成西城游记草稿。`
+				? `${trackSummary}${taskSummary}已收集 ${previewNames.join('、')} 等真实地点素材，可按「${styleTitle}」整理成可编辑游记草稿。`
+				: `${trackSummary}${taskSummary}已收集照片、问答、研学任务、AI识境任务或现场备注，可按「${styleTitle}」生成西城游记草稿。`
 		},
 		traveloguePreviewTags() {
 			if (!this.hasTraveloguePreviewEvidence) return [...XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TAGS]
@@ -1263,14 +1324,35 @@ export default {
 				icon: 'none'
 			})
 		},
-		openTravelogueSecondaryEntry(entry = {}) {
-			if (!entry.url) return
-			uni.navigateTo({ url: entry.url })
-		},
-		async loadJourney(options = {}) {
-			this.travelogueMode = normalizeTravelogueMode(options.mode)
-			const storedMaterials = uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey)
-			const importedRoute = uni.getStorageSync(XICHENG_REGION_CONFIG.inspirationStorageKey)
+			openTravelogueSecondaryEntry(entry = {}) {
+				if (!entry.url) return
+				uni.navigateTo({ url: entry.url })
+			},
+			loadVisionAgentServiceTasks() {
+				const storedTasks = uni.getStorageSync(XICHENG_REGION_CONFIG.visionAgentServiceTasksStorageKey)
+				this.visionAgentServiceTasks = Array.isArray(storedTasks)
+					? storedTasks.filter(task => task && typeof task === 'object').slice(0, 50)
+					: []
+				return this.visionAgentServiceTasks
+			},
+			formatVisionAgentServiceTaskType(task = {}) {
+				if (task.taskTypeLabel) return task.taskTypeLabel
+				if (task.taskType === 'merchant') return '商家'
+				if (task.taskType === 'route') return '路线'
+				if (task.taskType === 'travelogue') return '游记'
+				if (task.taskType === 'growth') return '成长'
+				return '服务'
+			},
+			createVisionAgentServiceTaskMeta(task = {}) {
+				const poiName = task.poiName || '当前场景'
+				const statusText = task.statusText || '已收进任务包'
+				return `${poiName} · ${statusText}`
+			},
+			async loadJourney(options = {}) {
+				this.travelogueMode = normalizeTravelogueMode(options.mode)
+				this.loadVisionAgentServiceTasks()
+				const storedMaterials = uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey)
+				const importedRoute = uni.getStorageSync(XICHENG_REGION_CONFIG.inspirationStorageKey)
 			const storedReviewSubmissions = uni.getStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey)
 			const storedShareAssets = uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey)
 			const storedRecordingSession = uni.getStorageSync(XICHENG_REGION_CONFIG.recordingStorageKey)
@@ -1354,19 +1436,20 @@ export default {
 				})
 				uni.setStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey, materials)
 			}
-			this.materials = materials
-			const cachedDraft = uni.getStorageSync(XICHENG_REGION_CONFIG.journeyStorageKey)
-			this.draft = cachedDraft && cachedDraft.draft
-				? cachedDraft.draft
+				this.materials = materials
+				const cachedDraft = uni.getStorageSync(XICHENG_REGION_CONFIG.journeyStorageKey)
+				this.draft = cachedDraft && cachedDraft.draft
+					? cachedDraft.draft
 					: createXichengTravelogueDraft({
 						materials: this.materials,
-					parentChildTasks: this.parentChildTasks,
-					routeRecommendation: this.recognizedRoute,
-					recordingSession: this.recordingSession,
-					studyTaskEvidence: this.studyTaskEvidence,
-					routeCheckins: this.routeCheckins
-				})
-			this.reviewText = cachedDraft && cachedDraft.reviewText ? cachedDraft.reviewText : this.reviewText
+						parentChildTasks: this.parentChildTasks,
+						routeRecommendation: this.recognizedRoute,
+						recordingSession: this.recordingSession,
+						studyTaskEvidence: this.studyTaskEvidence,
+						routeCheckins: this.routeCheckins,
+						visionAgentServiceTasks: this.visionAgentServiceTasks
+					})
+				this.reviewText = cachedDraft && cachedDraft.reviewText ? cachedDraft.reviewText : this.reviewText
 			this.posterStatus = cachedDraft && cachedDraft.posterStatus ? cachedDraft.posterStatus : this.posterStatus
 			this.pdfStatus = cachedDraft && cachedDraft.pdfStatus ? cachedDraft.pdfStatus : this.pdfStatus
 			this.editableTravelogueTitle = cachedDraft && cachedDraft.editableTravelogueTitle
@@ -1544,18 +1627,19 @@ export default {
 				title: 'POI 已修正',
 				icon: 'none'
 			})
-		},
-		refreshDraftFromEvidence() {
-			this.draft = createXichengTravelogueDraft({
-				materials: this.materials,
-				parentChildTasks: this.parentChildTasks,
-				routeRecommendation: this.recognizedRoute,
-				recordingSession: this.recordingSession,
-				studyTaskEvidence: this.studyTaskEvidence,
-				routeCheckins: this.routeCheckins
-			})
-			this.saveDraft({ silent: true })
-		},
+			},
+			refreshDraftFromEvidence() {
+				this.draft = createXichengTravelogueDraft({
+					materials: this.materials,
+					parentChildTasks: this.parentChildTasks,
+					routeRecommendation: this.recognizedRoute,
+					recordingSession: this.recordingSession,
+					studyTaskEvidence: this.studyTaskEvidence,
+					routeCheckins: this.routeCheckins,
+					visionAgentServiceTasks: this.visionAgentServiceTasks
+				})
+				this.saveDraft({ silent: true })
+			},
 		generateTravelogueDraft() {
 			this.refreshDraftFromEvidence()
 			uni.showToast({
@@ -1937,11 +2021,13 @@ export default {
 				recordingSession: this.recordingSession,
 				routeCheckins: this.routeCheckins,
 				checkinCount: this.checkinCount,
-				inspirationImports: this.inspirationImports,
-				inspirationImportCount: this.inspirationImportCount,
-				recognitionFeedbacks: this.recognitionFeedbacks,
-				recognitionFeedbackCount: this.recognitionFeedbackCount,
-				candidateConfirmationAudits: this.candidateConfirmationAudits,
+					inspirationImports: this.inspirationImports,
+					inspirationImportCount: this.inspirationImportCount,
+					recognitionFeedbacks: this.recognitionFeedbacks,
+					recognitionFeedbackCount: this.recognitionFeedbackCount,
+					visionAgentServiceTasks: this.visionAgentServiceTasks,
+					visionAgentServiceTaskCount: this.visionAgentServiceTaskCount,
+					candidateConfirmationAudits: this.candidateConfirmationAudits,
 				candidateConfirmationCount: this.candidateConfirmationCount,
 				aiGuideMaterialCount: this.aiGuideMaterialCount,
 				studyTaskEvidence: this.studyTaskEvidence,

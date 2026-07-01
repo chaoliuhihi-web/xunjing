@@ -1053,10 +1053,12 @@ export default {
 			})
 		},
 		rememberVisionAgentServiceTask(action = {}) {
-			const existingTasks = uni.getStorageSync('xicheng_vision_agent_service_tasks')
+			const existingTasks = uni.getStorageSync(XICHENG_REGION_CONFIG.visionAgentServiceTasksStorageKey)
 			const tasks = Array.isArray(existingTasks) ? existingTasks : []
 			const task = {
 				id: `vision-agent-task-${Date.now()}`,
+				regionCode: this.result.regionCode || XICHENG_REGION_CONFIG.regionCode,
+				packageCode: this.result.packageCode || XICHENG_REGION_CONFIG.packageCode,
 				taskType: action.taskType || 'service',
 				taskTypeLabel: this.serviceTaskTypeLabel(action.taskType || 'service'),
 				actionKey: action.actionKey || '',
@@ -1065,12 +1067,13 @@ export default {
 				poiCode: this.result.poiCode || '',
 				poiName: this.result.poiName || '',
 				sceneCode: this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode,
+				sourceChannel: this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
 				visionAgentContext: this.result.visionAgentContext || {},
 				status: 'collected',
 				statusText: '已收进任务包',
 				createdAt: new Date().toISOString()
 			}
-			uni.setStorageSync('xicheng_vision_agent_service_tasks', [
+			uni.setStorageSync(XICHENG_REGION_CONFIG.visionAgentServiceTasksStorageKey, [
 				task,
 				...tasks
 			].slice(0, 50))

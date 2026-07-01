@@ -9,6 +9,7 @@ const pagesJson = read('pages.json')
 const home = read('pages', 'xicheng', 'home', 'home.vue')
 const scan = read('pages', 'xicheng', 'scan', 'scan.vue')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
+const regionConfig = read('config', 'regions', 'xicheng.js')
 
 assert.match(
   pagesJson,
@@ -89,7 +90,7 @@ for (const required of [
   'openVisionAgentAction',
   'openSceneServiceAction',
   'rememberVisionAgentServiceTask',
-  'xicheng_vision_agent_service_tasks',
+  'visionAgentServiceTasksStorageKey',
   '30秒视频',
   '深入历史',
   '儿童版',
@@ -106,9 +107,15 @@ for (const required of [
 }
 
 assert.match(
+  regionConfig,
+  /visionAgentServiceTasksStorageKey:\s*'xicheng_vision_agent_service_tasks'/,
+  'Region config should own the local Vision Agent task package key'
+)
+
+assert.match(
   scanResult,
-  /rememberVisionAgentServiceTask\(action = \{\}\)[\s\S]*uni\.setStorageSync\('xicheng_vision_agent_service_tasks'/,
-  'Service actions should be collected into a local Vision Agent task package'
+  /rememberVisionAgentServiceTask\(action = \{\}\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.visionAgentServiceTasksStorageKey/,
+  'Service actions should be collected into a configured local Vision Agent task package'
 )
 
 assert.match(

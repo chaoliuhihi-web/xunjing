@@ -39,6 +39,7 @@ const XICHENG_REGION_BASE_CONFIG = {
 	inspirationImportStorageKey: 'xicheng:inspirationImports',
 	recognitionFeedbackStorageKey: 'xicheng:recognitionFeedbacks',
 	visionAgentMemoryStorageKey: 'xicheng_vision_agent_memory_trail',
+	visionAgentServiceTasksStorageKey: 'xicheng_vision_agent_service_tasks',
 	aiGuideChatCachePrefix: 'ai_guide_messages_cache:xicheng:',
 	aiGuideConversationCachePrefix: 'ai_guide_conversation_id:xicheng:',
 	reviewStatus: {
@@ -78,14 +79,15 @@ export const XICHENG_REGION_CONFIG = Object.freeze({
 		XICHENG_REGION_BASE_CONFIG.reviewStorageKey,
 		XICHENG_REGION_BASE_CONFIG.shareAssetStorageKey,
 		XICHENG_REGION_BASE_CONFIG.shareSettingStorageKey,
-		XICHENG_REGION_BASE_CONFIG.recordingStorageKey,
-		XICHENG_REGION_BASE_CONFIG.studyTaskStorageKey,
-		XICHENG_REGION_BASE_CONFIG.badgeAwardStorageKey,
-		XICHENG_REGION_BASE_CONFIG.checkinStorageKey,
-		XICHENG_REGION_BASE_CONFIG.inspirationImportStorageKey,
-		XICHENG_REGION_BASE_CONFIG.recognitionFeedbackStorageKey,
-		XICHENG_REGION_BASE_CONFIG.visionAgentMemoryStorageKey
-	]),
+			XICHENG_REGION_BASE_CONFIG.recordingStorageKey,
+			XICHENG_REGION_BASE_CONFIG.studyTaskStorageKey,
+			XICHENG_REGION_BASE_CONFIG.badgeAwardStorageKey,
+			XICHENG_REGION_BASE_CONFIG.checkinStorageKey,
+			XICHENG_REGION_BASE_CONFIG.inspirationImportStorageKey,
+			XICHENG_REGION_BASE_CONFIG.recognitionFeedbackStorageKey,
+			XICHENG_REGION_BASE_CONFIG.visionAgentMemoryStorageKey,
+			XICHENG_REGION_BASE_CONFIG.visionAgentServiceTasksStorageKey
+		]),
 	privacyClearStorageKeyPrefixes: Object.freeze([
 		XICHENG_REGION_BASE_CONFIG.aiGuideChatCachePrefix,
 		XICHENG_REGION_BASE_CONFIG.aiGuideConversationCachePrefix
