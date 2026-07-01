@@ -162,3 +162,23 @@ assert.match(
   /non-local HTTPS/i,
   'native evidence template generator should explain local gateway rejection'
 )
+
+const invalidTenantResult = spawnSync(
+  process.execPath,
+  [scriptPath, '--artifact', artifactPath, '--output', path.join(tempDir, 'invalid-tenant.json'), '--force'],
+  {
+    cwd: root,
+    env: {
+      ...process.env,
+      XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+      XUNJING_TENANT_ID: 'tenant-prod'
+    },
+    encoding: 'utf8'
+  }
+)
+assert.notEqual(invalidTenantResult.status, 0, 'native evidence template generator should reject non-numeric tenant ids')
+assert.match(
+  `${invalidTenantResult.stderr}\n${invalidTenantResult.stdout}`,
+  /tenant.*positive integer|正整数/i,
+  'native evidence template generator should explain tenant id validation'
+)

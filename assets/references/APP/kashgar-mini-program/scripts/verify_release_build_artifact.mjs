@@ -20,6 +20,10 @@ if (!expectedTenantId) {
   fail('Set XUNJING_TENANT_ID before scanning the release artifact')
 }
 
+if (!/^[1-9]\d*$/.test(expectedTenantId)) {
+  fail('XUNJING_TENANT_ID must be a positive integer tenant id')
+}
+
 let parsedExpectedApi
 try {
   parsedExpectedApi = new URL(expectedApiBaseUrl)

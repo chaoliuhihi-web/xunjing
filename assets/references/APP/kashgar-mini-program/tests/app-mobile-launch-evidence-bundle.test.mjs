@@ -266,6 +266,21 @@ assert.match(
   'launch evidence bundle validator should explain the API gateway mismatch'
 )
 
+const invalidPreprodTenantResult = runBundleGate(
+  makePreprodEvidence({ summary: { tenantId: 'tenant-prod' } }),
+  makeNativeEvidence({ tenantId: 'tenant-prod' })
+)
+assert.notEqual(
+  invalidPreprodTenantResult.status,
+  0,
+  'launch evidence bundle validator should reject non-numeric preprod tenant ids'
+)
+assert.match(
+  `${invalidPreprodTenantResult.stderr}\n${invalidPreprodTenantResult.stdout}`,
+  /tenant.*positive integer|正整数/i,
+  'launch evidence bundle validator should explain preprod tenant id validation'
+)
+
 const staleCommitResult = runBundleGate(
   makePreprodEvidence(),
   makeNativeEvidence({ commit: 'deadbeef' })

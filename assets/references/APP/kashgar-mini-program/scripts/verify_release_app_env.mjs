@@ -14,6 +14,10 @@ if (!tenantId) {
   fail('Set XUNJING_TENANT_ID to the release tenant id')
 }
 
+if (!/^[1-9]\d*$/.test(tenantId)) {
+  fail('XUNJING_TENANT_ID must be a positive integer tenant id')
+}
+
 let parsed
 try {
   parsed = new URL(apiBaseUrl)

@@ -128,6 +128,10 @@ if (!String(evidence.tenantId || '').trim()) {
   fail('Native device evidence tenantId is required')
 }
 
+if (!/^[1-9]\d*$/.test(String(evidence.tenantId).trim())) {
+  fail('Native device evidence tenantId must be a positive integer tenant id')
+}
+
 if (!evidence.build || evidence.build.mode !== 'release' || !String(evidence.build.artifact || '').trim()) {
   fail('Native device evidence build.mode must be release and build.artifact is required')
 }

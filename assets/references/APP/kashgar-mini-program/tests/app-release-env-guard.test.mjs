@@ -60,6 +60,19 @@ assert.notEqual(
   'release env guard should require XUNJING_TENANT_ID'
 )
 
+for (const invalidTenantId of ['0', '-1', 'tenant-prod']) {
+  const result = runGuard({
+    XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+    XUNJING_TENANT_ID: invalidTenantId
+  })
+  assert.notEqual(result.status, 0, `release env guard should reject invalid tenant id ${invalidTenantId}`)
+  assert.match(
+    `${result.stderr}\n${result.stdout}`,
+    /tenant.*positive integer|正整数/i,
+    `release env guard should explain why tenant id ${invalidTenantId} is invalid`
+  )
+}
+
 assert.equal(
   runGuard({
     XUNJING_APP_API_BASE_URL: 'https://api.example.com',

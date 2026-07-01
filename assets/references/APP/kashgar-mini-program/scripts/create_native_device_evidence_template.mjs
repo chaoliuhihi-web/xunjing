@@ -96,6 +96,10 @@ if (!tenantId) {
   fail('XUNJING_TENANT_ID is required')
 }
 
+if (!/^[1-9]\d*$/.test(tenantId)) {
+  fail('XUNJING_TENANT_ID must be a positive integer tenant id')
+}
+
 const artifactPath = resolveInputFile('Release artifact', artifactArg)
 const outputPath = path.resolve(process.cwd(), outputArg)
 const force = hasFlag('--force')

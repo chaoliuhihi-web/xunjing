@@ -37,6 +37,8 @@ XUNJING_TENANT_ID="$XUNJING_TENANT_ID" \
 npm run verify:yudao:preprod
 ```
 
+`XUNJING_TENANT_ID` 必须是 Yudao 租户正整数编号，不能使用 `0`、负数或环境名占位符。
+
 `qa/xicheng-app-readiness-evidence.json` 的 `checkedAt` 必须是 72 小时内的预发或生产实测时间；过期证据不能作为上线放行依据。
 
 真机证据必须记录在 `qa/xicheng-native-device-evidence.json` 并通过 APP 侧校验：
@@ -113,6 +115,7 @@ npm run test:run
 上线前必须由生产或预发环境提供真实配置和证据：
 
 - `XUNJING_APP_API_BASE_URL` 必须是非本地 HTTPS 后端域名。
+- `XUNJING_TENANT_ID` 必须是生产或预发 Yudao 租户正整数编号。
 - 微信配置必须是生产真实值：`WX_MP_APP_ID`、`WX_MP_SECRET`、`WX_MINIAPP_APPID`、`WX_MINIAPP_SECRET`。
 - Yudao 服务 smoke 必须产出 `qa/xicheng-yudao-server-smoke-evidence.json`。
 - 如果这些配置或证据缺失，APP 不得因为本地 fixture、mock 或开发环境通过而判定可上线。

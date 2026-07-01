@@ -11,7 +11,7 @@
 - 分支必须是 `feature/xicheng-p0`，稳定主线 `product/city-companion-main` 不直接开发。
 - `XUNJING_APP_API_BASE_URL` 必须是非本地 HTTPS Yudao APP API 域名。
 - APP 构建必须使用同一个 HTTPS 域名：`VITE_XUNJING_YUDAO_APP_BASE_URL=$XUNJING_APP_API_BASE_URL`。
-- APP 构建必须显式带租户：`VITE_XUNJING_TENANT_ID`。
+- APP 构建必须显式带租户：`VITE_XUNJING_TENANT_ID`，且租户必须是 Yudao 正整数编号。
 - 微信生产配置必须由安全环境注入：`WX_MP_APP_ID`、`WX_MP_SECRET`、`WX_MINIAPP_APPID`、`WX_MINIAPP_SECRET`。
 - Yudao 服务 smoke 必须已经生成 `qa/xicheng-yudao-server-smoke-evidence.json`。
 - 所有 `/app-api/xunjing/**` 请求必须带 `tenant-id`。
@@ -64,6 +64,8 @@ npm run verify:yudao:preprod
 ```
 
 该命令会先执行 release 环境校验，拒绝 localhost、127.0.0.1、局域网和非 HTTPS 地址，然后调用仓库根目录 `npm run xunjing:platform:verify --`，输出 `qa/xicheng-app-readiness-evidence.json`。
+
+`XUNJING_TENANT_ID` 不能使用 `0`、负数或 `tenant-prod` 这类环境占位符；预发证据和真机证据中的 `tenantId` 必须保持同一个正整数编号。
 
 `qa/xicheng-app-readiness-evidence.json` 的 `checkedAt` 必须是 72 小时内的预发或生产实测时间；旧证据需要重新采集。
 

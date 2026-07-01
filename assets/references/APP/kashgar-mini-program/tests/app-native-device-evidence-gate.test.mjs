@@ -255,6 +255,17 @@ assert.match(
   'native evidence validator should explain local HTTPS gateway rejection'
 )
 
+const invalidTenantResult = runValidator({
+  ...baseEvidence,
+  tenantId: 'tenant-prod'
+})
+assert.notEqual(invalidTenantResult.status, 0, 'native evidence validator should reject non-numeric tenant ids')
+assert.match(
+  `${invalidTenantResult.stderr}\n${invalidTenantResult.stdout}`,
+  /tenant.*positive integer|正整数/i,
+  'native evidence validator should explain tenant id validation'
+)
+
 const missingDeviceResult = runValidator({
   ...baseEvidence,
   devices: []

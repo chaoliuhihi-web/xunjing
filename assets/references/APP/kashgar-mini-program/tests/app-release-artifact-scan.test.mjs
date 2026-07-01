@@ -100,6 +100,16 @@ assert.match(
   'release artifact scanner should print a machine-readable OK summary'
 )
 
+for (const invalidTenantId of ['0', '-1', 'tenant-prod']) {
+  const result = runScanner(validArtifactDir, { XUNJING_TENANT_ID: invalidTenantId })
+  assert.notEqual(result.status, 0, `release artifact scanner should reject invalid tenant id ${invalidTenantId}`)
+  assert.match(
+    `${result.stderr}\n${result.stdout}`,
+    /tenant.*positive integer|正整数/i,
+    `release artifact scanner should explain why tenant id ${invalidTenantId} is invalid`
+  )
+}
+
 const validApkArtifact = makeZipArtifact({
   'assets/index.js': 'const apiBase="https://api.example.com";const tenantId="1";'
 })

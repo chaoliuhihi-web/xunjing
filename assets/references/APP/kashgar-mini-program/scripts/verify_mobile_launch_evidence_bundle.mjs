@@ -171,6 +171,10 @@ if (!String(preprodSummary.tenantId || '').trim()) {
   fail('APP readiness evidence summary.tenantId is required')
 }
 
+if (!/^[1-9]\d*$/.test(String(preprodSummary.tenantId).trim())) {
+  fail('APP readiness evidence summary.tenantId must be a positive integer tenant id')
+}
+
 if (preprodSummary.includeXichengAppCheck !== true || preprodSummary.includeXichengTriggerCheck !== true) {
   fail('APP readiness evidence must include Xicheng APP and trigger checks')
 }
