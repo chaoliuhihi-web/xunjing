@@ -140,6 +140,8 @@ XUNJING_TENANT_ID="$XUNJING_TENANT_ID" \
 npm run build:app:release
 ```
 
+该 release 构建会自动执行 `npm run verify:release:artifact` 扫描 `dist/build/app-release`。release 构建产物不得包含 `localhost`、`127.0.0.1`、局域网地址、`XICHENG_DEVELOPMENT_TRIGGER_FIXTURE`、H5 proxy 标记或与 `XUNJING_APP_API_BASE_URL` 不一致的 HTTPS 网关。
+
 并在仓库根目录运行：
 
 ```bash
