@@ -75,6 +75,16 @@
 				</view>
 			</view>
 
+			<view v-if="visionAgentAutoTraveloguePackage" class="vision-agent-auto-package">
+				<view class="vision-agent-auto-package-head">
+					<text class="vision-agent-auto-package-title">AI识境自动素材包</text>
+					<text class="vision-agent-auto-package-count">{{ visionAgentAutoTraveloguePackage.taskCount }} 个真实任务包</text>
+				</view>
+				<text class="vision-agent-auto-package-line">{{ visionAgentAutoTraveloguePackage.storyCueText }}</text>
+				<text class="vision-agent-auto-package-line">{{ visionAgentAutoTraveloguePackage.mapCueText }}</text>
+				<text class="vision-agent-auto-package-line">{{ visionAgentAutoTraveloguePackage.shareCueText }}</text>
+			</view>
+
 			<view class="travelogue-generation-actions">
 				<button class="ghost-button xicheng-secondary-action" @click="scrollToDraftEditor">继续编辑</button>
 				<button class="primary-button xicheng-primary-action" @click="generateTravelogueDraft">生成游记</button>
@@ -618,6 +628,58 @@ export const hasReviewableVisionAgentServiceTaskEvidence = (task = {}) => Boolea
 	)
 )
 
+const XICHENG_VISION_AGENT_SCENE_DOMAIN_LABELS = Object.freeze({
+	architecture: '建筑',
+	artifact: '文物',
+	menu: '菜单',
+	food: '食物',
+	'sign-ocr': '路牌/OCR',
+	heritage: '非遗',
+	plant: '植物',
+	animal: '动物',
+	person: '人物',
+	event: '活动'
+})
+
+const createUniqueTextList = (items = [], limit = 6) => Array.from(new Set(
+	items.map(item => String(item || '').trim()).filter(Boolean)
+)).slice(0, limit)
+
+export const createVisionAgentAutoTraveloguePackage = (visionAgentServiceTasks = []) => {
+	const reviewableTasks = Array.isArray(visionAgentServiceTasks)
+		? visionAgentServiceTasks.filter(task => hasReviewableVisionAgentServiceTaskEvidence(task))
+		: []
+	if (reviewableTasks.length === 0) return null
+
+	const poiNames = createUniqueTextList(reviewableTasks.map(task => task.poiName || task.poiCode), 5)
+	const actionTitles = createUniqueTextList(reviewableTasks.map(task => task.actionTitle || task.actionCopy), 5)
+	const sceneDomainLabels = createUniqueTextList(
+		reviewableTasks.map(task => XICHENG_VISION_AGENT_SCENE_DOMAIN_LABELS[task.sceneDomain] || task.sceneDomain),
+		8
+	)
+	const serviceIntentLabels = createUniqueTextList(reviewableTasks.map(task => task.serviceIntentLabel || ''), 8)
+	const agentPromptCount = reviewableTasks.filter(task => task.taskType === 'agent' || task.actionPrompt).length
+	const serviceActionCount = reviewableTasks.filter(task => task.serviceIntent || task.taskType !== 'agent').length
+	const sceneCue = sceneDomainLabels.length > 0 ? sceneDomainLabels.join('、') : '当前场景'
+	const poiCue = poiNames.length > 0 ? poiNames.join('、') : '已识别地点'
+	const actionCue = actionTitles.length > 0 ? actionTitles.join('、') : '后续动作'
+	const serviceCue = serviceIntentLabels.length > 0 ? serviceIntentLabels.join('、') : actionCue
+
+	return {
+		packageName: 'AI识境自动素材包',
+		taskCount: reviewableTasks.length,
+		poiNames,
+		actionTitles,
+		sceneDomainLabels,
+		serviceIntentLabels,
+		agentPromptCount,
+		serviceActionCount,
+		storyCueText: `AI识境自动素材包基于 ${reviewableTasks.length} 个真实任务包，已把${poiCue}的${sceneCue}线索整理成游记故事骨架。`,
+		mapCueText: `地图路线可围绕${poiCue}继续串联，并优先引用已记录轨迹、打卡和停留证据。`,
+		shareCueText: `分享文案可突出${serviceCue}，生成朋友圈、小红书或纪念册时保留审核状态。`
+	}
+}
+
 export const hasXichengTravelogueDraftEvidence = ({
 	materials = [],
 	recordingSession = null,
@@ -734,8 +796,9 @@ export const createXichengTravelogueDraft = ({
 	const reviewableVisionAgentTasks = Array.isArray(visionAgentServiceTasks)
 		? visionAgentServiceTasks.filter(task => hasReviewableVisionAgentServiceTaskEvidence(task)).slice(0, 4)
 		: []
-	const visionAgentTaskText = reviewableVisionAgentTasks.length > 0
-		? `AI识境已收集 ${reviewableVisionAgentTasks.length} 个后续动作：${reviewableVisionAgentTasks.map(task => `${task.taskTypeLabel || '服务'}-${task.actionTitle || task.actionCopy || '现场任务'}`).join('；')}。`
+	const visionAgentAutoTraveloguePackage = createVisionAgentAutoTraveloguePackage(visionAgentServiceTasks)
+	const visionAgentTaskText = visionAgentAutoTraveloguePackage
+		? `AI识境已收集 ${reviewableVisionAgentTasks.length} 个后续动作：${reviewableVisionAgentTasks.map(task => `${task.taskTypeLabel || '服务'}-${task.actionTitle || task.actionCopy || '现场任务'}`).join('；')}。${visionAgentAutoTraveloguePackage.storyCueText}${visionAgentAutoTraveloguePackage.mapCueText}${visionAgentAutoTraveloguePackage.shareCueText}`
 		: ''
 	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒。${trackText}${stayText}${photoText}${routeCheckinText}${remarkText}${studyTaskText}${aiGuideText}${visionAgentTaskText}这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
 }
@@ -1023,6 +1086,9 @@ export default {
 					.filter(task => hasReviewableVisionAgentServiceTaskEvidence(task))
 					.slice(0, 4)
 			},
+			visionAgentAutoTraveloguePackage() {
+				return createVisionAgentAutoTraveloguePackage(this.visionAgentServiceTasks)
+			},
 			aiGuideMaterials() {
 				return this.materials.filter(material => material && material.type === 'ai-guide' && hasReviewableMaterialEvidence(material))
 			},
@@ -1138,9 +1204,12 @@ export default {
 					candidateConfirmationCount: this.candidateConfirmationCount,
 					aiGuideMaterialCount: this.aiGuideMaterialCount,
 					visionAgentServiceTaskCount: this.visionAgentServiceTaskCount,
+					visionAgentAutoTraveloguePackage: this.visionAgentAutoTraveloguePackage,
+					visionAgentSceneDomainLabels: this.visionAgentAutoTraveloguePackage?.sceneDomainLabels || [],
+					visionAgentServiceIntentLabels: this.visionAgentAutoTraveloguePackage?.serviceIntentLabels || [],
 					shareCount: this.shareArtifacts.length,
 					misTriggerCount: this.misTriggerCount,
-				safetyStatusSummary: this.safetyStatusSummary,
+					safetyStatusSummary: this.safetyStatusSummary,
 				safetyBlockedCount: this.safetyBlockedCount,
 				safetyUnavailableCount: this.safetyUnavailableCount,
 				reviewReadinessSummary: this.reviewReadinessSummary,
@@ -1226,10 +1295,14 @@ export default {
 			const taskSummary = taskTitles.length > 0
 				? `AI识境已收集 ${taskTitles.join('、')} 等后续动作，`
 				: ''
+			const autoPackage = this.visionAgentAutoTraveloguePackage
+			const autoPackageSummary = autoPackage
+				? `${autoPackage.storyCueText}${autoPackage.mapCueText}`
+				: ''
 			return previewNames.length > 0
-				? `${trackSummary}${taskSummary}已收集 ${previewNames.join('、')} 等真实地点素材，可按「${styleTitle}」整理成可编辑游记草稿。`
-				: `${trackSummary}${taskSummary}已收集照片、问答、研学任务、AI识境任务或现场备注，可按「${styleTitle}」生成西城游记草稿。`
-		},
+				? `${trackSummary}${taskSummary}${autoPackageSummary}已收集 ${previewNames.join('、')} 等真实地点素材，可按「${styleTitle}」整理成可编辑游记草稿。`
+				: `${trackSummary}${taskSummary}${autoPackageSummary}已收集照片、问答、研学任务、AI识境任务或现场备注，可按「${styleTitle}」生成西城游记草稿。`
+			},
 		traveloguePreviewTags() {
 			if (!this.hasTraveloguePreviewEvidence) return [...XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TAGS]
 			const routeStopTags = this.recognizedRouteStops.map(stop => typeof stop === 'string' ? stop : stop.poiName).filter(Boolean).slice(0, 3)
@@ -2045,8 +2118,9 @@ export default {
 					recognitionFeedbackCount: this.recognitionFeedbackCount,
 					visionAgentServiceTasks: this.visionAgentServiceTasks,
 					visionAgentServiceTaskCount: this.visionAgentServiceTaskCount,
+					visionAgentAutoTraveloguePackage: this.visionAgentAutoTraveloguePackage,
 					candidateConfirmationAudits: this.candidateConfirmationAudits,
-				candidateConfirmationCount: this.candidateConfirmationCount,
+					candidateConfirmationCount: this.candidateConfirmationCount,
 				aiGuideMaterialCount: this.aiGuideMaterialCount,
 				studyTaskEvidence: this.studyTaskEvidence,
 				badgeAwards: this.badgeAwards,
@@ -2176,6 +2250,7 @@ export default {
 				recognitionFeedbackCount: this.recognitionFeedbackCount,
 				candidateConfirmationAudits: this.candidateConfirmationAudits,
 				candidateConfirmationCount: this.candidateConfirmationCount,
+				visionAgentAutoTraveloguePackage: this.visionAgentAutoTraveloguePackage,
 				aiGuideMaterialCount: this.aiGuideMaterialCount,
 				studyTaskEvidence: this.studyTaskEvidence,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
@@ -2336,6 +2411,7 @@ export default {
 				publicMaterials,
 				publicRouteCheckins,
 				publicStudyTaskEvidence,
+				visionAgentAutoTraveloguePackage: this.visionAgentAutoTraveloguePackage,
 				publicCandidateConfirmationSummary: this.createPublicCandidateConfirmationSummary(),
 				publicRecordingSummary: this.createPublicRecordingSummary(),
 				materialCount: publicMaterials.length,
@@ -2384,6 +2460,7 @@ export default {
 				},
 				publicMaterials,
 				publicStudyTaskEvidence: this.completedStudyTaskEvidence.map(evidence => this.sanitizeStudyTaskEvidenceForPublicShare(evidence)).filter(Boolean),
+				visionAgentAutoTraveloguePackage: this.visionAgentAutoTraveloguePackage,
 				publicRouteCheckins,
 				publicCandidateConfirmationSummary: this.createPublicCandidateConfirmationSummary(),
 				publicRecordingSummary: this.createPublicRecordingSummary(),
