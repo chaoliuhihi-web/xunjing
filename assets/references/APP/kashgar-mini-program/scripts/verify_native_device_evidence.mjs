@@ -96,6 +96,8 @@ const assertArtifactMatchesReleaseTargets = ({ artifactPath, releaseTargets, lab
   }
 }
 
+const containsTemplatePlaceholder = (value) => /\bTODO\b|placeholder|template/i.test(String(value || ''))
+
 const evidencePath = process.argv[2] || process.env.XUNJING_NATIVE_DEVICE_EVIDENCE_FILE || '../../../../qa/xicheng-native-device-evidence.json'
 const resolvedEvidencePath = path.resolve(process.cwd(), evidencePath)
 
@@ -112,6 +114,10 @@ try {
 
 if (evidence?.artifactType !== 'xicheng-native-device-evidence') {
   fail('Native device evidence artifactType must be xicheng-native-device-evidence')
+}
+
+if (String(evidence.templateNotice || '').trim()) {
+  fail('Native device evidence must not include templateNotice; complete the real-device evidence template before launch')
 }
 
 assertFreshTimestamp('createdAt', evidence.createdAt)
@@ -198,6 +204,13 @@ assertArtifactMatchesReleaseTargets({
 
 const devices = Array.isArray(evidence.devices) ? evidence.devices : []
 for (const target of releaseTargets) {
+  for (const device of devices) {
+    for (const field of ['model', 'osVersion', 'appVersion', 'installer']) {
+      if (containsTemplatePlaceholder(device?.[field])) {
+        fail(`Native device evidence ${field} for ${target} must not contain TODO/template placeholders`)
+      }
+    }
+  }
   const hasDevice = devices.some((device) => (
     device &&
     String(device.platform || '').trim().toLowerCase() === target &&
@@ -226,6 +239,9 @@ for (const id of requiredScenarioIds) {
   }
   if (!String(scenario.evidenceRef || '').trim()) {
     fail(`Native device evidence scenario ${id} must include evidenceRef`)
+  }
+  if (containsTemplatePlaceholder(scenario.notes)) {
+    fail(`Native device evidence scenario ${id} notes must not contain TODO/template placeholders`)
   }
   const resolvedEvidenceRef = resolveEvidenceRefPath(String(scenario.evidenceRef).trim())
   if (!isInsideDir(resolvedEvidenceRef, qaEvidenceRoot)) {

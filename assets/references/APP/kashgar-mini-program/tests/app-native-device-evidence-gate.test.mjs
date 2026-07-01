@@ -84,7 +84,10 @@ for (const required of [
   '录屏',
   'qa/',
   'createdAt',
-  '72 小时'
+  '72 小时',
+  'templateNotice',
+  'TODO',
+  'placeholder'
 ]) {
   assert.ok(releaseChecklist.includes(required), `Release checklist should mention native evidence item ${required}`)
   assert.ok(preprodRunbook.includes(required), `Preprod runbook should mention native evidence item ${required}`)
@@ -146,6 +149,30 @@ assert.equal(
   runValidator(baseEvidence).status,
   0,
   'native evidence validator should accept complete physical-device evidence'
+)
+
+const templatePlaceholderResult = runValidator({
+  ...baseEvidence,
+  templateNotice: 'This template is not launch evidence until every required scenario is verified on a physical device and marked PASS.',
+  devices: baseEvidence.devices.map((device) => ({
+    ...device,
+    model: 'TODO physical device model'
+  })),
+  scenarios: baseEvidence.scenarios.map((scenario) => (
+    scenario.id === 'camera-photo-recognition'
+      ? { ...scenario, notes: 'TODO replace with physical-device verification notes before setting status to PASS' }
+      : scenario
+  ))
+})
+assert.notEqual(
+  templatePlaceholderResult.status,
+  0,
+  'native evidence validator should reject templates or TODO placeholders even if scenarios are marked PASS'
+)
+assert.match(
+  `${templatePlaceholderResult.stderr}\n${templatePlaceholderResult.stdout}`,
+  /template|TODO|placeholder|占位/i,
+  'native evidence validator should explain template placeholder rejection'
 )
 
 const missingBlockedScenario = {

@@ -92,6 +92,8 @@ npm run verify:native:evidence
 
 真机证据的 `releaseTargets` 只允许 `android` 或 `ios`；每个目标都必须有真实设备记录。
 
+正式真机证据不得残留 `templateNotice`、`TODO` 或 template/placeholder 占位内容；设备型号、系统版本、安装版本、安装渠道和每个场景备注都必须替换成真实手机验证信息。
+
 真机场景至少覆盖：
 
 - `install-release-build`：安装 release 包并确认版本。
