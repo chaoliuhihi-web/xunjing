@@ -100,6 +100,24 @@ const currentHead = () => {
   return result.stdout.trim()
 }
 
+const getRepoRoot = () => {
+  const result = spawnSync('git', ['rev-parse', '--show-toplevel'], {
+    cwd: process.cwd(),
+    encoding: 'utf8'
+  })
+  if (result.status !== 0) {
+    fail(`Unable to read git repository root: ${result.stderr || result.stdout}`)
+  }
+  return result.stdout.trim()
+}
+
+const resolveReleaseArtifactPath = (artifactPath) => {
+  if (path.isAbsolute(artifactPath)) {
+    return artifactPath
+  }
+  return path.resolve(getRepoRoot(), artifactPath)
+}
+
 const verifyNativeEvidenceWithExistingGate = (nativeEvidencePath) => {
   const validatorPath = path.resolve(process.cwd(), 'scripts', 'verify_native_device_evidence.mjs')
   const result = spawnSync(process.execPath, [validatorPath, nativeEvidencePath], {
@@ -109,6 +127,24 @@ const verifyNativeEvidenceWithExistingGate = (nativeEvidencePath) => {
   if (result.status !== 0) {
     fail(`Native device evidence failed: ${result.stderr || result.stdout}`)
   }
+}
+
+const verifyNativeReleaseArtifactWithExistingGate = (artifactPath, expectedApiBaseUrl, expectedTenantId) => {
+  const scannerPath = path.resolve(process.cwd(), 'scripts', 'verify_release_build_artifact.mjs')
+  const resolvedArtifactPath = resolveReleaseArtifactPath(artifactPath)
+  const result = spawnSync(process.execPath, [scannerPath, resolvedArtifactPath], {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      XUNJING_APP_API_BASE_URL: expectedApiBaseUrl,
+      XUNJING_TENANT_ID: expectedTenantId
+    },
+    encoding: 'utf8'
+  })
+  if (result.status !== 0) {
+    fail(`Native release artifact build.artifact scan failed: ${result.stderr || result.stdout}`)
+  }
+  return resolvedArtifactPath
 }
 
 const preprodEvidencePath = readArg('--preprod-evidence', process.env.XUNJING_PREPROD_EVIDENCE_FILE || defaultPreprodEvidencePath)
@@ -177,6 +213,12 @@ if (String(nativeEvidence.json.tenantId || '').trim() !== String(preprodSummary.
   fail('Native device evidence tenantId must match APP readiness evidence summary.tenantId')
 }
 
+const nativeReleaseArtifactPath = verifyNativeReleaseArtifactWithExistingGate(
+  nativeEvidence.json?.build?.artifact,
+  normalizeComparableUrl(preprodSummary.baseUrl),
+  String(preprodSummary.tenantId)
+)
+
 console.log(JSON.stringify({
   ok: true,
   branch: nativeEvidence.json.branch,
@@ -185,5 +227,6 @@ console.log(JSON.stringify({
   tenantId: String(nativeEvidence.json.tenantId),
   preprodEvidenceFile: preprodEvidence.path,
   nativeEvidenceFile: nativeEvidence.path,
+  nativeReleaseArtifact: nativeReleaseArtifactPath,
   requiredPreprodChecks
 }, null, 2))

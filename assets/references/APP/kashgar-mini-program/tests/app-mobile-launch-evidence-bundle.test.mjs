@@ -16,12 +16,38 @@ const currentCommit = spawnSync('git', ['rev-parse', 'HEAD'], {
   encoding: 'utf8'
 }).stdout.trim()
 
-const artifactTempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-launch-artifact-'))
-const artifactPath = path.join(artifactTempDir, 'xicheng-release.apk')
-const artifactBytes = Buffer.from('signed release apk placeholder for launch bundle validator tests\n', 'utf8')
-fs.writeFileSync(artifactPath, artifactBytes)
-const artifactSha256 = crypto.createHash('sha256').update(artifactBytes).digest('hex')
 const freshTimestamp = new Date().toISOString()
+
+const makeZipArtifact = (files, fileName = 'xicheng-release.apk') => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-launch-artifact-'))
+  const sourceDir = path.join(tempDir, 'source')
+  fs.mkdirSync(sourceDir)
+  for (const [relativePath, content] of Object.entries(files)) {
+    const filePath = path.join(sourceDir, relativePath)
+    fs.mkdirSync(path.dirname(filePath), { recursive: true })
+    fs.writeFileSync(filePath, content)
+  }
+  const archivePath = path.join(tempDir, fileName)
+  const result = spawnSync('zip', ['-qr', archivePath, '.'], {
+    cwd: sourceDir,
+    encoding: 'utf8'
+  })
+  assert.equal(result.status, 0, `test fixture APK/ZIP should be created: ${result.stderr || result.stdout}`)
+  return archivePath
+}
+
+const describeArtifact = (artifactPath) => {
+  const artifactBytes = fs.readFileSync(artifactPath)
+  return {
+    artifactPath,
+    artifactSha256: crypto.createHash('sha256').update(artifactBytes).digest('hex'),
+    artifactSizeBytes: artifactBytes.length
+  }
+}
+
+const cleanArtifact = describeArtifact(makeZipArtifact({
+  'assets/index.js': 'const apiBase="https://api.example.com";const tenantId="1";'
+}))
 
 const requiredScenarioIds = [
   'install-release-build',
@@ -94,9 +120,9 @@ const makeNativeEvidence = (overrides = {}) => ({
   tenantId: '1',
   build: {
     mode: 'release',
-    artifact: artifactPath,
-    artifactSha256,
-    artifactSizeBytes: artifactBytes.length
+    artifact: cleanArtifact.artifactPath,
+    artifactSha256: cleanArtifact.artifactSha256,
+    artifactSizeBytes: cleanArtifact.artifactSizeBytes
   },
   releaseTargets: ['android'],
   devices: [
@@ -163,6 +189,9 @@ for (const required of [
   'checkedAt',
   'createdAt',
   '72 小时',
+  'build.artifact',
+  'verify:release:artifact',
+  '安装包本体',
   '真机证据',
   '预发证据'
 ]) {
@@ -264,4 +293,29 @@ assert.match(
   `${staleNativeResult.stderr}\n${staleNativeResult.stdout}`,
   /createdAt|fresh|72|过期|新鲜度/i,
   'launch evidence bundle validator should explain stale native evidence rejection'
+)
+
+const artifactWithLocalGateway = describeArtifact(makeZipArtifact({
+  'assets/index.js': 'const apiBase="http://localhost:48082/app-api/xunjing";'
+}, 'xicheng-local-gateway.apk'))
+const localGatewayArtifactResult = runBundleGate(
+  makePreprodEvidence(),
+  makeNativeEvidence({
+    build: {
+      mode: 'release',
+      artifact: artifactWithLocalGateway.artifactPath,
+      artifactSha256: artifactWithLocalGateway.artifactSha256,
+      artifactSizeBytes: artifactWithLocalGateway.artifactSizeBytes
+    }
+  })
+)
+assert.notEqual(
+  localGatewayArtifactResult.status,
+  0,
+  'launch evidence bundle validator should reject native release artifacts containing local gateways'
+)
+assert.match(
+  `${localGatewayArtifactResult.stderr}\n${localGatewayArtifactResult.stdout}`,
+  /localhost|release artifact|build\.artifact|APK|ZIP|安装包/i,
+  'launch evidence bundle validator should explain native artifact scan rejection'
 )

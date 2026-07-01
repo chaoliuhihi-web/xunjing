@@ -86,7 +86,7 @@ XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-eviden
 npm run verify:native:evidence
 ```
 
-真机证据的 `build` 必须记录真实 release 包路径、`artifactSha256` 和 `artifactSizeBytes`。校验命令会读取该 release 包并比对 SHA256/大小；如果 release 包不存在、大小不一致或哈希不一致，不能放行。
+真机证据的 `build.artifact` 必须记录真实 release 包路径、`artifactSha256` 和 `artifactSizeBytes`。校验命令会读取该 release 包并比对 SHA256/大小；如果 release 包不存在、大小不一致或哈希不一致，不能放行。
 
 真机场景至少覆盖：
 
@@ -105,6 +105,8 @@ npm run verify:native:evidence
 ## 手机端放行证据包
 
 `qa/xicheng-app-readiness-evidence.json` 是预发证据，`qa/xicheng-native-device-evidence.json` 是真机证据。二者必须属于同一个手机端发布候选：预发证据的 `baseUrl`、`tenantId` 必须等于真机证据的 `appApiBaseUrl`、`tenantId`，真机证据的 `commit` 必须等于当前 `git HEAD`，预发证据 `checkedAt` 和真机证据 `createdAt` 都必须在 72 小时内。
+
+最终 `verify:launch:evidence` 会复用 `verify:release:artifact` 扫描真机证据里的安装包本体 `build.artifact`。如果签名后的 APK/ZIP 内部包含 localhost、局域网、fixture、H5 proxy 标记或真实 token，不能放行。
 
 在 `assets/references/APP/kashgar-mini-program` 运行：
 
