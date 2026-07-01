@@ -126,6 +126,7 @@ import {
 	XICHENG_ROUTE_RECOMMENDATION_FILTERS
 } from '@/config/regions/xicheng.js'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
+import { mergeXichengOfficialRouteMaterials } from '@/request/xunjing/routeMaterials.js'
 import { createXichengRouteOutputValue, decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
 
 const XICHENG_HOME_ROUTE = '/pages/xicheng/home/home'
@@ -279,10 +280,7 @@ export default {
 				}
 			})
 			uni.setStorageSync(this.region.inspirationStorageKey, routePayload)
-			uni.setStorageSync(this.region.materialsStorageKey, [
-				...routeMaterials,
-				...materials
-			].slice(0, 80))
+			uni.setStorageSync(this.region.materialsStorageKey, mergeXichengOfficialRouteMaterials(routeMaterials, materials).slice(0, 80))
 		},
 		startRoutePassport(route = {}) {
 			this.persistRoutePassport(route)

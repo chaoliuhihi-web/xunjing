@@ -123,6 +123,7 @@ import {
 	normalizeXichengRouteCode
 } from '@/config/regions/xicheng.js'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
+import { mergeXichengOfficialRouteMaterials } from '@/request/xunjing/routeMaterials.js'
 import { decodeXichengRouteValue, createXichengRouteOutputValue } from '@/request/xunjing/routeParams.js'
 
 const XICHENG_HOME_ROUTE = '/pages/xicheng/home/home'
@@ -243,10 +244,7 @@ export default {
 			const materials = Array.isArray(existingMaterials) ? existingMaterials : []
 			const routeMaterials = this.createRouteMaterials(routePayload.updatedAt)
 			uni.setStorageSync(this.region.inspirationStorageKey, routePayload)
-			uni.setStorageSync(this.region.materialsStorageKey, [
-				...routeMaterials,
-				...materials
-			].slice(0, 80))
+			uni.setStorageSync(this.region.materialsStorageKey, mergeXichengOfficialRouteMaterials(routeMaterials, materials).slice(0, 80))
 		},
 		startRoutePassport() {
 			this.persistRoutePassport()
