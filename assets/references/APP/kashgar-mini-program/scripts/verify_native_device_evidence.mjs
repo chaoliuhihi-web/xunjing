@@ -266,10 +266,11 @@ for (const target of releaseTargets) {
     String(device.platform || '').trim().toLowerCase() === target &&
     String(device.model || '').trim() &&
     String(device.osVersion || '').trim() &&
-    String(device.appVersion || '').trim()
+    String(device.appVersion || '').trim() &&
+    String(device.installer || '').trim()
   ))
   if (!hasDevice) {
-    fail(`Native device evidence must include a physical device record for ${target}`)
+    fail(`Native device evidence must include a physical device record for ${target} with model, osVersion, appVersion, and installer install channel`)
   }
 }
 

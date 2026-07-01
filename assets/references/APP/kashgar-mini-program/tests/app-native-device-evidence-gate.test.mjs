@@ -88,6 +88,8 @@ for (const required of [
   'artifactSha256',
   'artifactSizeBytes',
   'evidenceRef',
+  'installer',
+  '安装渠道',
   '截图',
   '录屏',
   'jpg',
@@ -363,6 +365,20 @@ assert.match(
   `${missingDeviceResult.stderr}\n${missingDeviceResult.stdout}`,
   /device.*android/i,
   'native evidence validator should name the missing release target device'
+)
+
+const missingInstallerResult = runValidator({
+  ...baseEvidence,
+  devices: baseEvidence.devices.map((device) => ({
+    ...device,
+    installer: ''
+  }))
+})
+assert.notEqual(missingInstallerResult.status, 0, 'native evidence validator should require the install channel for each physical device record')
+assert.match(
+  `${missingInstallerResult.stderr}\n${missingInstallerResult.stdout}`,
+  /installer|install channel|安装渠道|device.*android/i,
+  'native evidence validator should explain that the physical device install channel is required'
 )
 
 const wrongHashResult = runValidator({

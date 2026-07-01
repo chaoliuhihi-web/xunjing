@@ -185,7 +185,8 @@ const makeNativeEvidence = (overrides = {}) => ({
       platform: 'android',
       model: 'Pixel 8',
       osVersion: 'Android 15',
-      appVersion: '1.0.0'
+      appVersion: '1.0.0',
+      installer: 'HBuilderX release test channel'
     }
   ],
   scenarios: requiredScenarioIds.map((id) => ({

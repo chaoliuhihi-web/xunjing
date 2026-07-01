@@ -85,7 +85,7 @@ XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-eviden
 npm run prepare:native:evidence
 ```
 
-`npm run prepare:native:evidence` 使用 `XUNJING_RELEASE_ARTIFACT` 和 `XUNJING_RELEASE_ENV_FILE` 初始化真机证据模板，自动填入当前 commit、`createdAt`、release 包路径、`artifactSha256`、`artifactSizeBytes`、`appApiBaseUrl`、`tenantId` 和 `releaseTargets`。`XUNJING_RELEASE_ARTIFACT` 必须是手机安装包文件：Android APK/AAB 或 iOS IPA。模板中的场景状态都是 `TODO`，`evidenceRef` 默认指向 `qa/native/<scenario>.jpg`；不得把模板当成通过证据，必须完成真机验证并补齐设备信息、截图或录屏引用 `evidenceRef` 后，才能把场景状态改成 `PASS`。
+`npm run prepare:native:evidence` 使用 `XUNJING_RELEASE_ARTIFACT` 和 `XUNJING_RELEASE_ENV_FILE` 初始化真机证据模板，自动填入当前 commit、`createdAt`、release 包路径、`artifactSha256`、`artifactSizeBytes`、`appApiBaseUrl`、`tenantId` 和 `releaseTargets`。`XUNJING_RELEASE_ARTIFACT` 必须是手机安装包文件：Android APK/AAB 或 iOS IPA。模板中的设备记录必须补齐 `installer` 安装渠道，场景状态都是 `TODO`，`evidenceRef` 默认指向 `qa/native/<scenario>.jpg`；不得把模板当成通过证据，必须完成真机验证并补齐设备信息、安装渠道、截图或录屏引用 `evidenceRef` 后，才能把场景状态改成 `PASS`。
 
 `XUNJING_RELEASE_TARGETS` 或 `--platform` 只允许手机端发布目标：`android`、`ios`。H5、web、小程序等目标不能写入本轮手机端上线证据。
 
@@ -98,7 +98,7 @@ npm run verify:native:evidence
 
 真机证据的 `build.artifact` 必须记录真实手机安装包 release 路径，只接受 `.apk`、`.aab` 或 `.ipa`，并记录 `artifactSha256` 和 `artifactSizeBytes`。校验命令会读取该 release 包并比对 SHA256/大小；如果 release 包不存在、大小不一致、哈希不一致或不是手机安装包，不能放行。
 
-真机证据的 `releaseTargets` 只允许 `android` 或 `ios`；每个目标都必须有真实设备记录。
+真机证据的 `releaseTargets` 只允许 `android` 或 `ios`；每个目标都必须有真实设备记录，且设备记录必须包含 `installer` 安装渠道。
 
 正式真机证据不得残留 `templateNotice`、`TODO` 或 template/placeholder 占位内容；设备型号、系统版本、安装版本、安装渠道和每个场景备注都必须替换成真实手机验证信息。
 
