@@ -114,7 +114,7 @@
 						:key="tip.title"
 						class="long-tip-card"
 					>
-						<text class="long-tip-icon">{{ tip.icon }}</text>
+						<xicheng-icon class="long-tip-icon" :name="tip.icon" variant="plain" :size="21" />
 						<text class="long-tip-title">{{ tip.title }}</text>
 						<text class="long-tip-copy">{{ tip.copy }}</text>
 					</view>
@@ -281,10 +281,10 @@ export default {
 		},
 		travelTips() {
 			return [
-				{ icon: '行', title: '出行建议', copy: '步行为主，地铁 4 号线和 6 号线都方便。' },
-				{ icon: '时', title: '最佳时间', copy: '春秋两季最舒服，清晨与傍晚适合拍照。' },
-				{ icon: '食', title: '美食推荐', copy: '护国寺小吃、糖火烧和胡同咖啡都值得试。' },
-				{ icon: '心', title: '温馨提醒', copy: '街巷里请轻声慢行，把时间留给生活。' }
+				{ icon: 'route', title: '出行建议', copy: '步行为主，地铁 4 号线和 6 号线都方便。' },
+				{ icon: 'location', title: '最佳时间', copy: '春秋两季最舒服，清晨与傍晚适合拍照。' },
+				{ icon: 'favorite', title: '美食推荐', copy: '护国寺小吃、糖火烧和胡同咖啡都值得试。' },
+				{ icon: 'heart', title: '温馨提醒', copy: '街巷里请轻声慢行，把时间留给生活。' }
 			]
 		},
 		endingText() {

@@ -496,12 +496,10 @@
 }
 
 .long-tip-icon {
-	font-size: 36rpx;
-	line-height: 1.2;
+	margin-bottom: 8rpx;
 }
 
 .long-tip-title {
-	margin-top: 8rpx;
 	color: #173F35;
 	font-size: 24rpx;
 	line-height: 1.35;

@@ -49,6 +49,24 @@ assert.match(
   'Long travelogue preview should include reader-facing travel tips that make the output worth saving and sharing'
 )
 
+assert.match(
+  longPreview,
+  /class="long-tip-card"[\s\S]*<xicheng-icon[\s\S]*:name="tip\.icon"/,
+  'Long travelogue tips should use the shared Xicheng icon system instead of text or emoji-style glyphs'
+)
+
+assert.match(
+  longPreview,
+  /travelTips\(\)[\s\S]*icon:\s*'route'[\s\S]*icon:\s*'location'[\s\S]*icon:\s*'favorite'[\s\S]*icon:\s*'heart'/,
+  'Long travelogue tips should expose semantic icon names that stay stable across APP platforms'
+)
+
+assert.doesNotMatch(
+  longPreview,
+  /\{\{\s*tip\.icon\s*\}\}/,
+  'Long travelogue tips should not render raw tip.icon text glyphs'
+)
+
 for (const forbidden of [
   'AI补充',
   'AI 补充',
