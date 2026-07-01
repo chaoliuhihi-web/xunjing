@@ -15,6 +15,8 @@
     "verify:launch:evidence": "node scripts/verify_mobile_launch_evidence_bundle.mjs --preprod-evidence \"${XUNJING_PREPROD_EVIDENCE_FILE:-../../../../qa/xicheng-app-readiness-evidence.json}\" --native-evidence \"${XUNJING_NATIVE_DEVICE_EVIDENCE_FILE:-../../../../qa/xicheng-native-device-evidence.json}\"",
     "verify:release:artifact": "node scripts/verify_release_build_artifact.mjs \"${XUNJING_RELEASE_ARTIFACT_DIR:-dist/build/app-release}\"",
     "verify:native:package:ready": "node scripts/verify_native_package_readiness.mjs",
+    "pack:native:cloud:dry-run": "node scripts/run_native_cloud_pack.mjs --dry-run",
+    "pack:native:cloud": "node scripts/run_native_cloud_pack.mjs --execute",
     "audit:release:candidate": "node scripts/audit_mobile_release_candidate.mjs",
     "dev:h5": "VITE_XUNJING_YUDAO_APP_BASE_URL=/ VITE_XUNJING_H5_PROXY_TARGET=http://localhost:48082 UNI_INPUT_DIR=. UNI_OUTPUT_DIR=dist/dev/h5 uni -p h5 --host 0.0.0.0",
     "build:h5": "UNI_INPUT_DIR=. UNI_OUTPUT_DIR=dist/build/h5 uni build -p h5",

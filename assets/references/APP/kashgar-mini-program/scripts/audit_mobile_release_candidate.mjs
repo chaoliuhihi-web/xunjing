@@ -226,7 +226,7 @@ if (!gates.nativeReleaseArtifact.exists) {
     blockers,
     'native-release-artifact-missing',
     `Native release artifact not found: ${releaseArtifactPath || '(not configured)'}`,
-    'Create a signed Android APK/AAB or iOS IPA, then set XUNJING_RELEASE_ARTIFACT to that file before preparing native evidence'
+    'Run XUNJING_RELEASE_ENV_FILE=/secure/path/preprod.env npm run pack:native:cloud:dry-run, then XUNJING_RELEASE_ENV_FILE=/secure/path/preprod.env XUNJING_NATIVE_PACK_CONFIRM=cloud-pack npm run pack:native:cloud; set XUNJING_RELEASE_ARTIFACT to the signed APK/AAB or IPA before preparing native evidence'
   )
 }
 

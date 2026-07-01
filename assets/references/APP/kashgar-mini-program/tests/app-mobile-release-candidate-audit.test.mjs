@@ -196,6 +196,14 @@ assert.ok(
   missingAudit.nextActions.some((action) => action.includes('verify:yudao:preprod')),
   'release candidate audit should tell operators how to collect preprod evidence'
 )
+assert.ok(
+  missingAudit.nextActions.some((action) => action.includes('pack:native:cloud:dry-run')),
+  'release candidate audit should point operators to the HBuilderX cloud pack dry-run before signed packaging'
+)
+assert.ok(
+  missingAudit.nextActions.some((action) => action.includes('XUNJING_NATIVE_PACK_CONFIRM=cloud-pack')),
+  'release candidate audit should require explicit confirmation before executing HBuilderX cloud pack'
+)
 
 const keystorePath = path.join(missingTempDir, 'xicheng-release.keystore')
 fs.writeFileSync(keystorePath, 'placeholder keystore bytes for release audit readiness\n')

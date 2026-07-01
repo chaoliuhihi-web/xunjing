@@ -188,6 +188,20 @@ npm run verify:native:package:ready
 
 该命令会检查 HBuilderX CLI 是否可用、release 网关和租户是否有效、Android package name 和签名配置是否齐全，并确认 Android 权限仍只包含 `ACCESS_NETWORK_STATE`、`CAMERA`、`ACCESS_COARSE_LOCATION`、`ACCESS_FINE_LOCATION`。门禁通过不等于已经生成安装包；它只是说明当前配置可以进入 HBuilderX signed APK/AAB 原生打包，然后再用 `XUNJING_RELEASE_ARTIFACT` 生成真机 evidence 模板。
 
+先 dry-run 检查 HBuilderX 云打包命令是否正确，脚本不会执行真实打包，也不会输出签名密码：
+
+```bash
+XUNJING_RELEASE_ENV_FILE="/secure/path/preprod.env" npm run pack:native:cloud:dry-run
+```
+
+确认 `run_native_cloud_pack.mjs` 输出的 `--android.packagename`、`--android.certfile`、平台和 release 网关无误后，再显式确认执行：
+
+```bash
+XUNJING_RELEASE_ENV_FILE="/secure/path/preprod.env" XUNJING_NATIVE_PACK_CONFIRM=cloud-pack npm run pack:native:cloud
+```
+
+真实执行会调用 HBuilderX `pack` 并向 CLI 传入签名参数；输出会脱敏 `--android.certpassword`、`--android.storepassword` 和 iOS 证书密码。云打包产物生成后，把 signed APK/AAB 或 IPA 路径写入 `XUNJING_RELEASE_ARTIFACT`，再继续生成真机证据。
+
 并在仓库根目录运行：
 
 ```bash

@@ -90,6 +90,10 @@ assert.ok(
   readyJson.nextCommands.some((command) => command.includes('npm run prepare:native:evidence')),
   'native package readiness should point to native evidence initialization after packaging'
 )
+assert.ok(
+  readyJson.nextCommands.some((command) => command.includes('npm run pack:native:cloud:dry-run')),
+  'native package readiness should point to the HBuilderX cloud pack dry-run command'
+)
 
 const fakeHBuilderXApp = path.join(tempDir, 'HBuilderX.app')
 const fakeHBuilderXCli = path.join(fakeHBuilderXApp, 'Contents', 'MacOS', 'cli')
