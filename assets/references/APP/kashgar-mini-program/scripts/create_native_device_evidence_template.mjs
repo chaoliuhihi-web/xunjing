@@ -23,6 +23,24 @@ const requiredScenarioIds = [
   'recording-start-stop',
   'travelogue-draft-generated'
 ]
+const requiredScenarioAssertions = {
+  'scan-result-sources': {
+    sourcesVisible: 'TODO confirm sources list is visible on the recognition result page',
+    minSourceCount: 1
+  },
+  'xiaojing-sourced-answer': {
+    safetyStatus: 'PASSED',
+    sourcesVisible: 'TODO confirm Xiaojing answer shows reviewed sources',
+    minSourceCount: 1
+  },
+  'xiaojing-blocked-answer': {
+    safetyStatus: 'BLOCKED',
+    sourcesVisible: false,
+    sourceCount: 0,
+    blockedMessage: '无已审核来源，不能回答',
+    noLocalFabrication: true
+  }
+}
 
 const fail = (message) => {
   console.error(message)
@@ -218,6 +236,7 @@ const evidence = {
       platform: firstPlatform,
       status: 'TODO',
       evidenceRef: `qa/native/${id}.jpg`,
+      ...(requiredScenarioAssertions[id] ? { assertions: requiredScenarioAssertions[id] } : {}),
       notes
     }
   }),

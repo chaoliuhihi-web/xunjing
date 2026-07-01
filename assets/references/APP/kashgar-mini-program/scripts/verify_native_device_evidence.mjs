@@ -184,6 +184,28 @@ const assertMobileArchiveMatchesPlatform = ({ artifactPath, releaseTarget, label
 
 const containsTemplatePlaceholder = (value) => /\bTODO\b|placeholder|template/i.test(String(value || ''))
 
+const sourceCountFromAssertions = (assertions) => {
+  const explicitSourceCount = Number(assertions?.sourceCount)
+  if (Number.isFinite(explicitSourceCount)) return explicitSourceCount
+  const minSourceCount = Number(assertions?.minSourceCount)
+  if (Number.isFinite(minSourceCount)) return minSourceCount
+  return 0
+}
+
+const assertReviewedSourcesVisible = (scenario, label) => {
+  const assertions = scenario?.assertions || {}
+  if (assertions.sourcesVisible !== true || sourceCountFromAssertions(assertions) < 1) {
+    fail(`Native device evidence scenario ${label} assertions must prove reviewed sources are visible with sourceCount or minSourceCount >= 1`)
+  }
+}
+
+const assertSafetyStatus = (scenario, expectedStatus, label) => {
+  const actualStatus = String(scenario?.assertions?.safetyStatus || '').trim().toUpperCase()
+  if (actualStatus !== expectedStatus) {
+    fail(`Native device evidence scenario ${label} assertions.safetyStatus must be ${expectedStatus}`)
+  }
+}
+
 const evidencePath = process.argv[2] || process.env.XUNJING_NATIVE_DEVICE_EVIDENCE_FILE || '../../../../qa/xicheng-native-device-evidence.json'
 const resolvedEvidencePath = path.resolve(process.cwd(), evidencePath)
 
@@ -368,6 +390,27 @@ const scanEntryScenario = scenarioById.get('scan-entry-map-detail')
 const scanEntryNotes = String(scanEntryScenario?.notes || '')
 if (!scanEntryNotes.includes('/pages/map/detail') || !scanEntryNotes.includes('XICHENG-MAP-001')) {
   fail('Native device evidence scenario scan-entry-map-detail notes must include /pages/map/detail and XICHENG-MAP-001')
+}
+
+assertReviewedSourcesVisible(
+  scenarioById.get('scan-result-sources'),
+  'scan-result-sources'
+)
+
+const sourcedAnswerScenario = scenarioById.get('xiaojing-sourced-answer')
+assertSafetyStatus(sourcedAnswerScenario, 'PASSED', 'xiaojing-sourced-answer')
+assertReviewedSourcesVisible(sourcedAnswerScenario, 'xiaojing-sourced-answer')
+
+const blockedAnswerScenario = scenarioById.get('xiaojing-blocked-answer')
+const blockedAssertions = blockedAnswerScenario?.assertions || {}
+assertSafetyStatus(blockedAnswerScenario, 'BLOCKED', 'xiaojing-blocked-answer')
+if (
+  blockedAssertions.sourcesVisible !== false ||
+  Number(blockedAssertions.sourceCount) !== 0 ||
+  String(blockedAssertions.blockedMessage || '').trim() !== '无已审核来源，不能回答' ||
+  blockedAssertions.noLocalFabrication !== true
+) {
+  fail('Native device evidence scenario xiaojing-blocked-answer assertions must prove BLOCKED, sourceCount 0, sourcesVisible false, noLocalFabrication true, and blockedMessage "无已审核来源，不能回答"')
 }
 
 console.log(JSON.stringify({

@@ -30,6 +30,11 @@ const requiredScenarioIds = [
   'recording-start-stop',
   'travelogue-draft-generated'
 ]
+const requiredSourceAssertionScenarioIds = [
+  'scan-result-sources',
+  'xiaojing-sourced-answer',
+  'xiaojing-blocked-answer'
+]
 
 assert.ok(
   fs.existsSync(scriptPath),
@@ -53,6 +58,11 @@ for (const required of [
   'artifactSha256',
   'artifactSizeBytes',
   'scan-entry-map-detail',
+  'safetyStatus',
+  'sourcesVisible',
+  'sourceCount',
+  '无已审核来源，不能回答',
+  'noLocalFabrication',
   '/pages/map/detail',
   'XICHENG-MAP-001',
   'qa/native',
@@ -161,6 +171,23 @@ assert.ok(
   generated.scenarios.every((scenario) => scenario.status === 'TODO'),
   'native evidence template generator must not mark scenarios PASS before real-device verification'
 )
+for (const scenarioId of requiredSourceAssertionScenarioIds) {
+  const scenario = generated.scenarios.find((item) => item.id === scenarioId)
+  assert.ok(scenario?.assertions, `native evidence template should include structured assertions for ${scenarioId}`)
+}
+const scanResultSourcesScenario = generated.scenarios.find((scenario) => scenario.id === 'scan-result-sources')
+assert.equal(scanResultSourcesScenario.assertions.sourcesVisible, 'TODO confirm sources list is visible on the recognition result page')
+assert.equal(scanResultSourcesScenario.assertions.minSourceCount, 1)
+const sourcedAnswerScenario = generated.scenarios.find((scenario) => scenario.id === 'xiaojing-sourced-answer')
+assert.equal(sourcedAnswerScenario.assertions.safetyStatus, 'PASSED')
+assert.equal(sourcedAnswerScenario.assertions.sourcesVisible, 'TODO confirm Xiaojing answer shows reviewed sources')
+assert.equal(sourcedAnswerScenario.assertions.minSourceCount, 1)
+const blockedAnswerScenario = generated.scenarios.find((scenario) => scenario.id === 'xiaojing-blocked-answer')
+assert.equal(blockedAnswerScenario.assertions.safetyStatus, 'BLOCKED')
+assert.equal(blockedAnswerScenario.assertions.sourcesVisible, false)
+assert.equal(blockedAnswerScenario.assertions.sourceCount, 0)
+assert.equal(blockedAnswerScenario.assertions.blockedMessage, '无已审核来源，不能回答')
+assert.equal(blockedAnswerScenario.assertions.noLocalFabrication, true)
 
 const envFileOutputPath = path.join(tempDir, 'native-evidence-from-env-file.json')
 const releaseEnvFilePath = path.join(tempDir, 'native-evidence-release.env')

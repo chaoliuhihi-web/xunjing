@@ -64,6 +64,24 @@ const requiredScenarioIds = [
   'recording-start-stop',
   'travelogue-draft-generated'
 ]
+const requiredScenarioAssertions = {
+  'scan-result-sources': {
+    sourcesVisible: true,
+    minSourceCount: 1
+  },
+  'xiaojing-sourced-answer': {
+    safetyStatus: 'PASSED',
+    sourcesVisible: true,
+    minSourceCount: 1
+  },
+  'xiaojing-blocked-answer': {
+    safetyStatus: 'BLOCKED',
+    sourcesVisible: false,
+    sourceCount: 0,
+    blockedMessage: '无已审核来源，不能回答',
+    noLocalFabrication: true
+  }
+}
 
 const repoRoot = spawnSync('git', ['rev-parse', '--show-toplevel'], {
   cwd: root,
@@ -197,6 +215,7 @@ const makeNativeEvidence = (overrides = {}) => ({
     platform: 'android',
     status: 'PASS',
     evidenceRef: scenarioEvidenceRefById.get(id),
+    ...(requiredScenarioAssertions[id] ? { assertions: requiredScenarioAssertions[id] } : {}),
     notes: id === 'scan-entry-map-detail'
       ? 'Scanned QR-XICHENG-MAP-001 on physical device and landed on /pages/map/detail?packageCode=XICHENG-MAP-001'
       : `${id} verified on physical device`

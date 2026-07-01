@@ -85,7 +85,7 @@ XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-eviden
 npm run prepare:native:evidence
 ```
 
-`npm run prepare:native:evidence` 使用 `XUNJING_RELEASE_ARTIFACT` 和 `XUNJING_RELEASE_ENV_FILE` 初始化真机证据模板，自动填入当前 commit、`createdAt`、release 包路径、`artifactSha256`、`artifactSizeBytes`、`appApiBaseUrl`、`tenantId` 和 `releaseTargets`。`XUNJING_RELEASE_ARTIFACT` 必须是手机安装包文件：Android APK/AAB 或 iOS IPA。模板中的设备记录必须补齐 `installer` 安装渠道，场景状态都是 `TODO`，`evidenceRef` 默认指向 `qa/native/<scenario>.jpg`；不得把模板当成通过证据，必须完成真机验证并补齐设备信息、安装渠道、截图或录屏引用 `evidenceRef` 后，才能把场景状态改成 `PASS`。
+`npm run prepare:native:evidence` 使用 `XUNJING_RELEASE_ARTIFACT` 和 `XUNJING_RELEASE_ENV_FILE` 初始化真机证据模板，自动填入当前 commit、`createdAt`、release 包路径、`artifactSha256`、`artifactSizeBytes`、`appApiBaseUrl`、`tenantId` 和 `releaseTargets`。`XUNJING_RELEASE_ARTIFACT` 必须是手机安装包文件：Android APK/AAB 或 iOS IPA。模板中的设备记录必须补齐 `installer` 安装渠道，场景状态都是 `TODO`，`evidenceRef` 默认指向 `qa/native/<scenario>.jpg`；不得把模板当成通过证据，必须完成真机验证并补齐设备信息、安装渠道、截图或录屏引用 `evidenceRef` 后，才能把场景状态改成 `PASS`。模板会为 `scan-result-sources`、`xiaojing-sourced-answer`、`xiaojing-blocked-answer` 生成结构化 `assertions`，采集人员必须按真机画面填写或确认 `sourcesVisible`、`sourceCount`/`minSourceCount`、`safetyStatus`、`blockedMessage` 和 `noLocalFabrication`。
 
 `XUNJING_RELEASE_TARGETS` 或 `--platform` 只允许手机端发布目标：`android`、`ios`。H5、web、小程序等目标不能写入本轮手机端上线证据。
 
@@ -116,6 +116,8 @@ npm run verify:native:evidence
 - `xiaojing-blocked-answer`：无来源点位只显示“无已审核来源，不能回答”。
 - `recording-start-stop`：开始和停止记录。
 - `travelogue-draft-generated`：生成游记草稿。
+
+其中 `scan-result-sources` 必须在 `assertions` 中证明 `sourcesVisible=true` 且 `sourceCount` 或 `minSourceCount>=1`；`xiaojing-sourced-answer` 必须证明 `safetyStatus=PASSED`、`sourcesVisible=true` 且 `sourceCount` 或 `minSourceCount>=1`；`xiaojing-blocked-answer` 必须证明 `safetyStatus=BLOCKED`、`sourcesVisible=false`、`sourceCount=0`、`blockedMessage=无已审核来源，不能回答`、`noLocalFabrication=true`。
 
 每个真机场景的 `evidenceRef` 必须指向仓库 `qa/` 下真实存在且非空的截图或录屏文件，软链接的真实路径也必须留在 `qa/` 下，建议归档到 `qa/native/`；只接受 `jpg`、`jpeg`、`png`、`webp`、`mp4`、`mov` 这类截图/录屏格式，并校验文件头媒体签名。只写文件名、空文件、不存在的路径、临时目录文件、软链接指向仓库外文件、纯文本说明或把文本改成图片/视频后缀都不能放行。
 

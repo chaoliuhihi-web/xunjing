@@ -25,6 +25,24 @@ const requiredScenarioIds = [
   'recording-start-stop',
   'travelogue-draft-generated'
 ]
+const requiredScenarioAssertions = {
+  'scan-result-sources': {
+    sourcesVisible: true,
+    minSourceCount: 1
+  },
+  'xiaojing-sourced-answer': {
+    safetyStatus: 'PASSED',
+    sourcesVisible: true,
+    minSourceCount: 1
+  },
+  'xiaojing-blocked-answer': {
+    safetyStatus: 'BLOCKED',
+    sourcesVisible: false,
+    sourceCount: 0,
+    blockedMessage: '无已审核来源，不能回答',
+    noLocalFabrication: true
+  }
+}
 
 const artifactTempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-release-artifact-'))
 const createZipArtifact = (fileName, files) => {
@@ -115,6 +133,11 @@ for (const required of [
   '/pages/map/detail',
   'XICHENG-MAP-001',
   'xiaojing-blocked-answer',
+  'safetyStatus',
+  'sourcesVisible',
+  'sourceCount',
+  '无已审核来源，不能回答',
+  'noLocalFabrication',
   'travelogue-draft-generated',
   'release 包',
   'artifactSha256',
@@ -169,6 +192,7 @@ const baseEvidence = {
     platform: 'android',
     status: 'PASS',
     evidenceRef: path.relative(repoRoot, path.join(qaEvidenceDir, `${id}.jpg`)),
+    ...(requiredScenarioAssertions[id] ? { assertions: requiredScenarioAssertions[id] } : {}),
     notes: id === 'scan-entry-map-detail'
       ? 'Scanned QR-XICHENG-MAP-001 on physical device and landed on /pages/map/detail?packageCode=XICHENG-MAP-001'
       : `${id} verified on physical device`
@@ -303,6 +327,72 @@ assert.match(
   `${wrongScanEntryNotesResult.stderr}\n${wrongScanEntryNotesResult.stdout}`,
   /scan-entry-map-detail|\/pages\/map\/detail|XICHENG-MAP-001/,
   'native evidence validator should explain the scan entry target requirement'
+)
+
+const missingScanResultSourceAssertionsResult = runValidator({
+  ...baseEvidence,
+  scenarios: baseEvidence.scenarios.map((scenario) => (
+    scenario.id === 'scan-result-sources'
+      ? { ...scenario, assertions: undefined }
+      : scenario
+  ))
+})
+assert.notEqual(
+  missingScanResultSourceAssertionsResult.status,
+  0,
+  'native evidence validator should reject scan result evidence without structured source visibility assertions'
+)
+assert.match(
+  `${missingScanResultSourceAssertionsResult.stderr}\n${missingScanResultSourceAssertionsResult.stdout}`,
+  /scan-result-sources|sourcesVisible|sourceCount|来源/i,
+  'native evidence validator should explain scan result source assertion requirements'
+)
+
+const missingSourcedAnswerAssertionsResult = runValidator({
+  ...baseEvidence,
+  scenarios: baseEvidence.scenarios.map((scenario) => (
+    scenario.id === 'xiaojing-sourced-answer'
+      ? { ...scenario, assertions: { safetyStatus: 'PASSED', sourcesVisible: true, sourceCount: 0 } }
+      : scenario
+  ))
+})
+assert.notEqual(
+  missingSourcedAnswerAssertionsResult.status,
+  0,
+  'native evidence validator should reject sourced Xiaojing evidence without at least one visible reviewed source'
+)
+assert.match(
+  `${missingSourcedAnswerAssertionsResult.stderr}\n${missingSourcedAnswerAssertionsResult.stdout}`,
+  /xiaojing-sourced-answer|sourcesVisible|sourceCount|已审核来源/i,
+  'native evidence validator should explain sourced Xiaojing answer source requirements'
+)
+
+const wrongBlockedAnswerAssertionsResult = runValidator({
+  ...baseEvidence,
+  scenarios: baseEvidence.scenarios.map((scenario) => (
+    scenario.id === 'xiaojing-blocked-answer'
+      ? {
+          ...scenario,
+          assertions: {
+            safetyStatus: 'BLOCKED',
+            sourcesVisible: true,
+            sourceCount: 1,
+            blockedMessage: '这里可以自由回答',
+            noLocalFabrication: false
+          }
+        }
+      : scenario
+  ))
+})
+assert.notEqual(
+  wrongBlockedAnswerAssertionsResult.status,
+  0,
+  'native evidence validator should reject BLOCKED Xiaojing evidence that shows sources or fabricated local answers'
+)
+assert.match(
+  `${wrongBlockedAnswerAssertionsResult.stderr}\n${wrongBlockedAnswerAssertionsResult.stdout}`,
+  /xiaojing-blocked-answer|BLOCKED|无已审核来源，不能回答|noLocalFabrication|不能回答/i,
+  'native evidence validator should explain BLOCKED Xiaojing answer assertions'
 )
 
 const missingEvidenceRefFileResult = runValidator({
