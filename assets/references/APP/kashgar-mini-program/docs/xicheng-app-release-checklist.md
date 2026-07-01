@@ -64,7 +64,7 @@ XUNJING_TENANT_ID="$XUNJING_TENANT_ID" \
 npm run build:app:release
 ```
 
-`build:app:release` 会自动执行 `npm run verify:release:artifact` 对 `dist/build/app-release` 做 release 构建产物扫描，拒绝 `localhost`、`127.0.0.1`、局域网地址、`XICHENG_DEVELOPMENT_TRIGGER_FIXTURE` 和 H5 proxy 配置进入手机包。
+`build:app:release` 会自动执行 `npm run verify:release:artifact` 对 `dist/build/app-release` 做 release 构建产物扫描；同一脚本也可扫描 APK/ZIP 安装包内部文本资源。门禁拒绝 `localhost`、`127.0.0.1`、局域网地址、`XICHENG_DEVELOPMENT_TRIGGER_FIXTURE` 和 H5 proxy 配置进入手机包。
 
 在仓库根目录运行：
 

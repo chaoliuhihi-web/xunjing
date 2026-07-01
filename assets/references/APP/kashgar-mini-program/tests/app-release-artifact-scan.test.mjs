@@ -28,6 +28,7 @@ assert.ok(
 for (const required of [
   'verify:release:artifact',
   'dist/build/app-release',
+  'APK',
   'localhost',
   'XICHENG_DEVELOPMENT_TRIGGER_FIXTURE',
   'release 构建产物'
@@ -44,6 +45,24 @@ const makeArtifactDir = (files) => {
     fs.writeFileSync(filePath, content)
   }
   return tempDir
+}
+
+const makeZipArtifact = (files, fileName = 'xicheng-release.apk') => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-release-zip-scan-'))
+  const sourceDir = path.join(tempDir, 'source')
+  fs.mkdirSync(sourceDir)
+  for (const [relativePath, content] of Object.entries(files)) {
+    const filePath = path.join(sourceDir, relativePath)
+    fs.mkdirSync(path.dirname(filePath), { recursive: true })
+    fs.writeFileSync(filePath, content)
+  }
+  const archivePath = path.join(tempDir, fileName)
+  const result = spawnSync('zip', ['-qr', archivePath, '.'], {
+    cwd: sourceDir,
+    encoding: 'utf8'
+  })
+  assert.equal(result.status, 0, `test fixture zip should be created: ${result.stderr || result.stdout}`)
+  return archivePath
 }
 
 const runScanner = (artifactDir, env = {}) => spawnSync(
@@ -77,6 +96,21 @@ assert.match(
   'release artifact scanner should print a machine-readable OK summary'
 )
 
+const validApkArtifact = makeZipArtifact({
+  'assets/index.js': 'const apiBase="https://api.example.com";const tenantId="1";'
+})
+const validApkResult = runScanner(validApkArtifact)
+assert.equal(
+  validApkResult.status,
+  0,
+  `release artifact scanner should accept a clean APK/ZIP artifact: ${validApkResult.stderr || validApkResult.stdout}`
+)
+assert.match(
+  validApkResult.stdout,
+  /archiveFilesScanned/,
+  'release artifact scanner should report scanned APK/ZIP inner files'
+)
+
 for (const [label, content, expectedMessage] of [
   ['localhost gateway', 'const apiBase="http://localhost:48082/app-api/xunjing";', /localhost|local/i],
   ['lan gateway', 'const apiBase="https://192.168.1.8/app-api/xunjing";', /192\.168|local|LAN/i],
@@ -92,6 +126,28 @@ for (const [label, content, expectedMessage] of [
     `release artifact scanner should explain rejection for ${label}`
   )
 }
+
+const apkWithLocalGateway = makeZipArtifact({
+  'assets/index.js': 'const apiBase="http://localhost:48082/app-api/xunjing";'
+})
+const apkLocalGatewayResult = runScanner(apkWithLocalGateway)
+assert.notEqual(apkLocalGatewayResult.status, 0, 'release artifact scanner should reject local gateways inside APK/ZIP artifacts')
+assert.match(
+  `${apkLocalGatewayResult.stderr}\n${apkLocalGatewayResult.stdout}`,
+  /localhost|APK|ZIP|archive/i,
+  'release artifact scanner should explain local gateway rejection inside APK/ZIP artifacts'
+)
+
+const apkWithFixture = makeZipArtifact({
+  'assets/index.js': 'const fixture="XICHENG_DEVELOPMENT_TRIGGER_FIXTURE";'
+})
+const apkFixtureResult = runScanner(apkWithFixture)
+assert.notEqual(apkFixtureResult.status, 0, 'release artifact scanner should reject development fixtures inside APK/ZIP artifacts')
+assert.match(
+  `${apkFixtureResult.stderr}\n${apkFixtureResult.stdout}`,
+  /XICHENG_DEVELOPMENT_TRIGGER_FIXTURE|APK|ZIP|archive/i,
+  'release artifact scanner should explain fixture rejection inside APK/ZIP artifacts'
+)
 
 const mismatchedGatewayDir = makeArtifactDir({
   'assets/index.js': 'const apiBase="https://wrong.example.com";'

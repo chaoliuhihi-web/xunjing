@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { spawnSync } from 'node:child_process'
 
 const artifactDirArg = process.argv[2] || process.env.XUNJING_RELEASE_ARTIFACT_DIR || 'dist/build/app-release'
 const expectedApiBaseUrl = String(process.env.XUNJING_APP_API_BASE_URL || '').trim().replace(/\/+$/, '')
@@ -31,12 +32,10 @@ if (parsedExpectedApi.protocol !== 'https:') {
 }
 
 if (!fs.existsSync(resolvedArtifactDir)) {
-  fail(`Release artifact directory not found: ${resolvedArtifactDir}`)
+  fail(`Release artifact not found: ${resolvedArtifactDir}`)
 }
 
-if (!fs.statSync(resolvedArtifactDir).isDirectory()) {
-  fail(`Release artifact path must be a directory: ${resolvedArtifactDir}`)
-}
+const artifactStat = fs.statSync(resolvedArtifactDir)
 
 const textExtensions = new Set([
   '.html',
@@ -81,25 +80,79 @@ const isTextCandidate = (filePath) => {
 
 const normalizeUrl = (value) => String(value || '').trim().replace(/\/+$/, '')
 
-const textFiles = collectFiles(resolvedArtifactDir).filter(isTextCandidate)
-if (textFiles.length === 0) {
-  fail(`Release artifact has no scannable text files: ${resolvedArtifactDir}`)
-}
-
 const embeddedUrls = new Set()
 const urlPattern = /https?:\/\/[A-Za-z0-9.-]+(?::\d+)?(?:\/[^\s"'`<>)]*)?/g
+let textFilesScanned = 0
+let archiveFilesScanned = 0
 
-for (const filePath of textFiles) {
-  const content = fs.readFileSync(filePath, 'utf8')
+const scanTextContent = (sourceLabel, content) => {
   for (const { name, pattern } of forbiddenPatterns) {
     if (pattern.test(content)) {
-      fail(`Release artifact contains forbidden token ${name} in ${path.relative(resolvedArtifactDir, filePath)}`)
+      fail(`Release artifact contains forbidden token ${name} in ${sourceLabel}`)
     }
   }
 
   for (const match of content.matchAll(urlPattern)) {
     embeddedUrls.add(normalizeUrl(match[0]))
   }
+}
+
+const scanDirectoryArtifact = () => {
+  const textFiles = collectFiles(resolvedArtifactDir).filter(isTextCandidate)
+  if (textFiles.length === 0) {
+    fail(`Release artifact has no scannable text files: ${resolvedArtifactDir}`)
+  }
+
+  for (const filePath of textFiles) {
+    textFilesScanned += 1
+    scanTextContent(path.relative(resolvedArtifactDir, filePath), fs.readFileSync(filePath, 'utf8'))
+  }
+}
+
+const listArchiveEntries = (archivePath) => {
+  const result = spawnSync('unzip', ['-Z', '-1', archivePath], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    maxBuffer: 50 * 1024 * 1024
+  })
+  if (result.status !== 0) {
+    fail(`Release artifact archive cannot be listed by unzip: ${result.stderr || result.stdout}`)
+  }
+  return result.stdout.split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean)
+}
+
+const readArchiveEntry = (archivePath, entry) => {
+  const result = spawnSync('unzip', ['-p', archivePath, entry], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    maxBuffer: 50 * 1024 * 1024
+  })
+  if (result.status !== 0) {
+    fail(`Release artifact archive entry cannot be read: ${entry}`)
+  }
+  return result.stdout
+}
+
+const scanArchiveArtifact = () => {
+  const entries = listArchiveEntries(resolvedArtifactDir).filter(isTextCandidate)
+  if (entries.length === 0) {
+    fail(`Release APK/ZIP artifact has no scannable text files: ${resolvedArtifactDir}`)
+  }
+  for (const entry of entries) {
+    archiveFilesScanned += 1
+    scanTextContent(`archive:${path.basename(resolvedArtifactDir)}:${entry}`, readArchiveEntry(resolvedArtifactDir, entry))
+  }
+}
+
+if (artifactStat.isDirectory()) {
+  scanDirectoryArtifact()
+} else if (artifactStat.isFile() && ['.apk', '.zip'].includes(path.extname(resolvedArtifactDir).toLowerCase())) {
+  scanArchiveArtifact()
+} else if (artifactStat.isFile() && isTextCandidate(resolvedArtifactDir)) {
+  textFilesScanned += 1
+  scanTextContent(path.basename(resolvedArtifactDir), fs.readFileSync(resolvedArtifactDir, 'utf8'))
+} else {
+  fail(`Release artifact path must be a directory, APK, ZIP, or scannable text file: ${resolvedArtifactDir}`)
 }
 
 for (const embeddedUrl of embeddedUrls) {
@@ -114,7 +167,8 @@ for (const embeddedUrl of embeddedUrls) {
 console.log(JSON.stringify({
   ok: true,
   artifactDir: resolvedArtifactDir,
-  textFilesScanned: textFiles.length,
+  textFilesScanned,
+  archiveFilesScanned,
   embeddedUrlCount: embeddedUrls.size,
   expectedApiBaseUrl,
   expectedTenantId
