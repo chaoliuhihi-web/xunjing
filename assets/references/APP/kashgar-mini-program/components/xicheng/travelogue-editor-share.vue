@@ -15,7 +15,7 @@
 					placeholder="给今天的西城游记起个标题"
 					@input="handleTitleInput"
 				/>
-				<uni-icons type="compose" size="24" color="#746F68" />
+				<xicheng-icon name="edit" variant="plain" :size="22" />
 			</view>
 			<text class="editor-title-hint">小京已生成草稿，可继续修改</text>
 		</view>
@@ -35,12 +35,12 @@
 				>
 					<image class="editor-photo-image" :src="photo.image" mode="aspectFill" />
 					<view class="editor-photo-remove">
-						<uni-icons type="closeempty" size="16" color="#FFFFFF" />
+						<xicheng-icon name="close" variant="primary" :size="12" />
 					</view>
 					<text class="editor-photo-label">{{ photo.label }}</text>
 				</view>
 				<button class="editor-add-photo-card" @click="$emit('add-photo')">
-					<uni-icons type="plusempty" size="28" color="#8B7A61" />
+					<xicheng-icon name="plus" variant="plain" :size="26" />
 					<text>添加照片</text>
 				</button>
 			</view>
@@ -49,10 +49,10 @@
 		<view class="editor-reference-section editor-route-section">
 			<view class="editor-reference-head">
 				<view class="editor-section-label editor-route-label">
-					<uni-icons type="location-filled" size="23" color="#B5945E" />
+					<xicheng-icon name="location" variant="plain" :size="21" />
 					<text>今日路线</text>
 				</view>
-				<uni-icons type="compose" size="22" color="#746F68" />
+				<xicheng-icon name="edit" variant="plain" :size="20" />
 			</view>
 			<view class="editor-route-layout">
 				<view class="editor-route-list">
@@ -69,13 +69,13 @@
 				<view class="editor-route-map-card">
 					<view class="editor-route-map-line"></view>
 					<view class="editor-route-map-pin editor-route-map-pin-a">
-						<uni-icons type="home-filled" size="18" color="#FFF9EC" />
+						<xicheng-icon name="explore" variant="primary" active :size="13" />
 					</view>
 					<view class="editor-route-map-pin editor-route-map-pin-b">
-						<uni-icons type="flag-filled" size="18" color="#FFF9EC" />
+						<xicheng-icon name="record" variant="primary" :size="13" />
 					</view>
 					<view class="editor-route-map-pin editor-route-map-pin-c">
-						<uni-icons type="sound-filled" size="18" color="#FFF9EC" />
+						<xicheng-icon name="play" variant="primary" :size="13" />
 					</view>
 				</view>
 			</view>
@@ -84,10 +84,10 @@
 		<view class="editor-reference-section">
 			<view class="editor-reference-head">
 				<view class="editor-section-label editor-feeling-label">
-					<uni-icons type="heart-filled" size="23" color="#B5945E" />
+					<xicheng-icon name="heart" variant="plain" :size="21" />
 					<text>我的感受</text>
 				</view>
-				<uni-icons type="compose" size="22" color="#746F68" />
+				<xicheng-icon name="edit" variant="plain" :size="20" />
 			</view>
 			<text class="editor-block-copy">{{ feelingText }}</text>
 		</view>
@@ -106,10 +106,10 @@
 		<view class="editor-reference-section">
 			<view class="editor-reference-head">
 				<view class="editor-section-label editor-tag-label">
-					<uni-icons type="flag-filled" size="23" color="#B5945E" />
+					<xicheng-icon name="record" variant="plain" :size="21" />
 					<text>游记标签</text>
 				</view>
-				<uni-icons type="compose" size="22" color="#746F68" />
+				<xicheng-icon name="edit" variant="plain" :size="20" />
 			</view>
 			<view class="editor-tag-row">
 				<text
@@ -312,15 +312,35 @@ export default {
 
 .editor-photo-remove {
 	position: absolute;
-	top: 10rpx;
-	right: 10rpx;
+	top: 2rpx;
+	right: 2rpx;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 34rpx;
-	height: 34rpx;
+	width: 72rpx;
+	height: 72rpx;
 	border-radius: 999rpx;
-	background: rgba(16, 47, 41, 0.72);
+	background: transparent;
+}
+
+.editor-photo-remove::before {
+	position: absolute;
+	width: 38rpx;
+	height: 38rpx;
+	border-radius: 999rpx;
+	background: rgba(16, 47, 41, 0.74);
+	content: '';
+}
+
+.editor-photo-remove :deep(.xicheng-icon) {
+	position: relative;
+	z-index: 1;
+}
+
+.editor-photo-remove :deep(.xicheng-icon-primary) {
+	background: transparent;
+	border-color: transparent;
+	box-shadow: none;
 }
 
 .editor-photo-label {
@@ -473,6 +493,12 @@ export default {
 	border-radius: 999rpx;
 	background: #1F6E5A;
 	box-shadow: 0 10rpx 20rpx rgba(31, 110, 90, 0.24);
+}
+
+.editor-route-map-pin :deep(.xicheng-icon-primary) {
+	background: transparent;
+	border-color: transparent;
+	box-shadow: none;
 }
 
 .editor-route-map-pin-a {

@@ -35,6 +35,31 @@ for (const required of [
   assert.ok(editorShare.includes(required), `Xicheng travelogue editor share component should include ${required}`)
 }
 
+for (const required of [
+  '<xicheng-icon name="edit"',
+  '<xicheng-icon name="close"',
+  '<xicheng-icon name="plus"',
+  '<xicheng-icon name="location"',
+  '<xicheng-icon name="explore"',
+  '<xicheng-icon name="record"',
+  '<xicheng-icon name="play"',
+  '<xicheng-icon name="heart"'
+]) {
+  assert.ok(editorShare.includes(required), `Travelogue editor share should use shared icon token: ${required}`)
+}
+
+assert.doesNotMatch(
+  editorShare,
+  /<uni-icons\b/,
+  'Travelogue editor share component should not use raw uni-icons after adopting the unified icon system'
+)
+
+assert.match(
+  editorShare,
+  /\.editor-photo-remove\s*\{[\s\S]*width:\s*72rpx[\s\S]*height:\s*72rpx/,
+  'Travelogue editor photo remove control should keep a stable app touch target'
+)
+
 assert.match(
   editorShare,
   /name:\s*'XichengTravelogueEditorShare'[\s\S]*emits:\s*\['update:title', 'save', 'generate-share', 'publish', 'add-photo'\]/,
