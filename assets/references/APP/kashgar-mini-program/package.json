@@ -9,6 +9,7 @@
     "build:app": "UNI_INPUT_DIR=. UNI_OUTPUT_DIR=dist/build/app uni build -p app",
     "build:app:release": "node scripts/verify_release_app_env.mjs && VITE_XUNJING_YUDAO_APP_BASE_URL=\"$XUNJING_APP_API_BASE_URL\" VITE_XUNJING_TENANT_ID=\"$XUNJING_TENANT_ID\" UNI_INPUT_DIR=. UNI_OUTPUT_DIR=dist/build/app-release uni build -p app",
     "verify:yudao:local": "cd ../../../.. && npm run xunjing:platform:verify -- --env-file ops/xunjing-platform.env.example --base-url ${XUNJING_LOCAL_APP_API_BASE_URL:-http://127.0.0.1:48082} --tenant-id ${XUNJING_TENANT_ID:-1} --skip-admin-check --include-xicheng-app-check --include-xicheng-trigger-check --evidence-file qa/xicheng-app-readiness-local-evidence.json",
+    "verify:yudao:preprod": "node scripts/verify_release_app_env.mjs && cd ../../../.. && npm run xunjing:platform:verify -- --env-file ${XUNJING_RELEASE_ENV_FILE:?Set XUNJING_RELEASE_ENV_FILE to the preprod or production env file} --base-url \"$XUNJING_APP_API_BASE_URL\" --tenant-id \"$XUNJING_TENANT_ID\" --skip-admin-check --include-xicheng-app-check --include-xicheng-trigger-check --evidence-file qa/xicheng-app-readiness-evidence.json",
     "dev:h5": "VITE_XUNJING_YUDAO_APP_BASE_URL=/ VITE_XUNJING_H5_PROXY_TARGET=http://localhost:48082 UNI_INPUT_DIR=. UNI_OUTPUT_DIR=dist/dev/h5 uni -p h5 --host 0.0.0.0",
     "build:h5": "UNI_INPUT_DIR=. UNI_OUTPUT_DIR=dist/build/h5 uni build -p h5",
     "dev:mp-weixin": "set UNI_INPUT_DIR=.&& set UNI_OUTPUT_DIR=unpackage/dist/dev/mp-weixin&& uni -p mp-weixin",

@@ -28,6 +28,15 @@ npm run build
 npm run verify:yudao:local
 ```
 
+预发或生产 APP readiness evidence 必须从非本地 HTTPS 后端采集：
+
+```bash
+XUNJING_RELEASE_ENV_FILE="/secure/path/preprod.env" \
+XUNJING_APP_API_BASE_URL="$XUNJING_APP_API_BASE_URL" \
+XUNJING_TENANT_ID="$XUNJING_TENANT_ID" \
+npm run verify:yudao:preprod
+```
+
 预发或上线真机包必须使用带网关校验的 release 构建入口：
 
 ```bash
