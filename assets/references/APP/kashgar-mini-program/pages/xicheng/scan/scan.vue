@@ -196,7 +196,9 @@ export default {
 				activityText: decodeRouteValue(options.activityText),
 				serviceText: decodeRouteValue(options.serviceText),
 				knowledgeGraphText: decodeRouteValue(options.knowledgeGraphText),
-				userInterestTags: decodeRouteValue(options.userInterestTags)
+				userInterestTags: decodeRouteValue(options.userInterestTags),
+				memorySessionText: decodeRouteValue(options.memorySessionText),
+				memorySessionSceneCount: decodeRouteValue(options.memorySessionSceneCount)
 			}
 		},
 		formatSceneFusionTime(date = new Date()) {
@@ -225,15 +227,40 @@ export default {
 				return []
 			}
 		},
+		readVisionAgentMemorySessionPackage() {
+			try {
+				const visionAgentMemorySessionPackage = uni.getStorageSync(XICHENG_REGION_CONFIG.visionAgentMemorySessionStorageKey)
+				return visionAgentMemorySessionPackage && typeof visionAgentMemorySessionPackage === 'object' && Number(visionAgentMemorySessionPackage.sceneCount || 0) > 0
+					? visionAgentMemorySessionPackage
+					: null
+			} catch (error) {
+				return null
+			}
+		},
+		createVisionAgentMemorySessionText(visionAgentMemorySessionPackage = null) {
+			if (!visionAgentMemorySessionPackage || typeof visionAgentMemorySessionPackage !== 'object') return ''
+			return [
+				visionAgentMemorySessionPackage.continuityCueText,
+				visionAgentMemorySessionPackage.poiTrailText,
+				visionAgentMemorySessionPackage.domainContinuityText,
+				visionAgentMemorySessionPackage.serviceContinuityText
+			].filter(Boolean).join(' ').slice(0, 96)
+		},
 		buildSceneFusionContext() {
 			const visionContext = this.visionAgentContext || {}
 			const previousContext = this.parseVisionAgentSourceContext(visionContext.sourceRecognitionContext)
 			const memoryTrail = this.readVisionAgentMemoryTrail()
+			const memorySessionPackage = this.readVisionAgentMemorySessionPackage()
+			const visionAgentMemorySessionText = visionContext.memorySessionText || this.createVisionAgentMemorySessionText(memorySessionPackage)
+			const memorySessionSceneCount = Number(visionContext.memorySessionSceneCount || (memorySessionPackage && memorySessionPackage.sceneCount ? memorySessionPackage.sceneCount : 0))
 			const hasLocation = Boolean(this.currentLocation || visionContext.locationText)
 			return {
 				...visionContext,
 				previousContext,
 				memoryTrail,
+				visionAgentMemorySessionPackage: memorySessionPackage,
+				visionAgentMemorySessionText: visionAgentMemorySessionText,
+				memorySessionSceneCount,
 				locationText: visionContext.locationText || (hasLocation ? 'GPS已授权' : ''),
 				localTimeText: visionContext.localTimeText || this.formatSceneFusionTime(),
 				weatherText: visionContext.weatherText || '',
@@ -251,19 +278,22 @@ export default {
 				|| ''
 			const environmentText = [context.localTimeText, context.weatherText].filter(Boolean).join(' ')
 			const knowledgeText = context.knowledgeGraphText || context.activityText || context.serviceText || ''
+			const memorySessionSceneCount = Number(context.memorySessionSceneCount || 0)
+			const memorySessionText = context.visionAgentMemorySessionText || context.memorySessionText || ''
 			return [
 				{ key: 'camera', label: '镜头', statusText: this.recognizing ? '理解中' : '待拍摄', active: true },
 				{ key: 'gps', label: 'GPS', statusText: context.locationText || '待授权', active: Boolean(context.locationText) },
 				{ key: 'environment', label: '时间天气', statusText: environmentText || '待刷新', active: Boolean(environmentText) },
 				{ key: 'heading', label: '方向', statusText: context.headingText || (context.headingDegrees ? `${context.headingDegrees}°` : '待校准'), active: Boolean(context.headingText || context.headingDegrees) },
 				{ key: 'memory', label: 'Memory', statusText: memoryText || '待形成', active: Boolean(memoryText) },
+				{ key: 'memory-session', label: '连续识境', statusText: memorySessionSceneCount > 0 ? `${memorySessionSceneCount}次识境` : '待形成', active: memorySessionSceneCount > 0 || Boolean(memorySessionText) },
 				{ key: 'knowledge', label: '知识图谱', statusText: knowledgeText || '待连接', active: Boolean(knowledgeText) }
 			]
 		},
 		buildSceneFusionSummary(context = this.buildSceneFusionContext(), signals = this.buildSceneFusionSignals(context)) {
 			const activeCount = signals.filter(signal => signal && signal.active).length
 			const subject = context.locationText || context.visionCaption || context.previousContext.poiName || this.region.cityName
-			const nextCue = context.knowledgeGraphText || context.serviceText || context.activityText || '拍一下后自动进入场景理解'
+			const nextCue = context.visionAgentMemorySessionText || context.knowledgeGraphText || context.serviceText || context.activityText || '拍一下后自动进入场景理解'
 			return `${subject} · ${activeCount}类现场信号已接入，${nextCue}`.slice(0, 88)
 		},
 		refreshSceneFusionPanel() {
@@ -287,6 +317,9 @@ export default {
 				sourceLabel: trigger.sourceLabel || '',
 				confidence: trigger.confidence || '',
 				safetyStatus: trigger.safetyStatus || '',
+				visionAgentMemorySessionPackage: agentDecisionSnapshot.visionAgentMemorySessionPackage,
+				visionAgentMemorySessionText: agentDecisionSnapshot.visionAgentMemorySessionText,
+				memorySessionSceneCount: agentDecisionSnapshot.memorySessionSceneCount,
 				agentDecisionActionKey: agentDecisionSnapshot.selectedSceneAgentActionKey,
 				agentDecisionActionTitle: agentDecisionSnapshot.agentDecisionActionTitle,
 				agentDecisionPreviewSummary: agentDecisionSnapshot.agentDecisionPreviewSummary,
@@ -300,12 +333,15 @@ export default {
 			const knowledgeGraphText = String(context.knowledgeGraphText || '')
 			const serviceText = String(context.serviceText || context.activityText || '')
 			const memoryTrail = Array.isArray(context.memoryTrail) ? context.memoryTrail : []
+			const memorySessionPackage = context.visionAgentMemorySessionPackage || null
+			const memorySessionSceneCount = Number(context.memorySessionSceneCount || (memorySessionPackage && memorySessionPackage.sceneCount ? memorySessionPackage.sceneCount : 0))
+			const memorySessionText = context.visionAgentMemorySessionText || ''
 			const environmentText = `${localTimeText} ${weatherText}`
 			const hasGoldenHourCue = /17|18|19|日落|黄昏|傍晚|晚霞|晴/.test(environmentText)
 			const hasWeatherCue = Boolean(weatherText)
 			const hasKnowledgeCue = Boolean(knowledgeGraphText)
 			const hasServiceCue = /美食|商家|餐|活动|演出|票|badge|coupon|service/i.test(serviceText)
-			const hasMemoryCue = memoryTrail.length > 0
+			const hasMemoryCue = memoryTrail.length > 0 || memorySessionSceneCount > 0
 			const actions = [
 				{
 					key: 'photo-spot',
@@ -330,10 +366,10 @@ export default {
 				},
 				{
 					key: 'continue-memory',
-					signal: hasMemoryCue ? 'Memory' : '连续理解',
+					signal: hasMemoryCue ? '连续识境' : '连续理解',
 					title: '延续上次场景',
-					copy: hasMemoryCue ? '会记住上一处 POI，不重新开始讲解。' : '形成连续识境记忆，下一次可接着问。',
-					score: hasMemoryCue ? 38 : 18
+					copy: hasMemoryCue ? (memorySessionText || '会记住上一处 POI，不重新开始讲解。').slice(0, 40) : '形成连续识境记忆，下一次可接着问。',
+					score: hasMemoryCue ? 46 : 18
 				},
 				{
 					key: 'weather-route',
@@ -354,6 +390,7 @@ export default {
 			this.sceneAgentActionUserSelected = true
 		},
 		buildAgentDecisionSnapshot() {
+			const context = this.buildSceneFusionContext()
 			const sceneAgentActionPreviews = this.sceneAgentActionPreviews
 			const selectedAction = sceneAgentActionPreviews.find(action => action.key === this.selectedSceneAgentActionKey)
 				|| sceneAgentActionPreviews[0]
@@ -365,7 +402,10 @@ export default {
 					: '',
 				sceneAgentActionPreviews,
 				agentDecisionActionTitle: selectedAction.title || '',
-				agentDecisionActionCopy: selectedAction.copy || ''
+				agentDecisionActionCopy: selectedAction.copy || '',
+				visionAgentMemorySessionPackage: context.visionAgentMemorySessionPackage,
+				visionAgentMemorySessionText: context.visionAgentMemorySessionText,
+				memorySessionSceneCount: context.memorySessionSceneCount
 			}
 		},
 		startAutoRecognition() {

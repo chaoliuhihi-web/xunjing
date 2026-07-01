@@ -254,6 +254,25 @@ export default {
 				? cached
 				: null
 		},
+		readVisionAgentMemorySessionPackage() {
+			try {
+				const visionAgentMemorySessionPackage = uni.getStorageSync(XICHENG_REGION_CONFIG.visionAgentMemorySessionStorageKey)
+				return visionAgentMemorySessionPackage && typeof visionAgentMemorySessionPackage === 'object' && Number(visionAgentMemorySessionPackage.sceneCount || 0) > 0
+					? visionAgentMemorySessionPackage
+					: null
+			} catch (error) {
+				return null
+			}
+		},
+		createVisionAgentMemorySessionText(visionAgentMemorySessionPackage = null) {
+			if (!visionAgentMemorySessionPackage || typeof visionAgentMemorySessionPackage !== 'object') return ''
+			return [
+				visionAgentMemorySessionPackage.continuityCueText,
+				visionAgentMemorySessionPackage.poiTrailText,
+				visionAgentMemorySessionPackage.domainContinuityText,
+				visionAgentMemorySessionPackage.serviceContinuityText
+			].filter(Boolean).join(' ').slice(0, 96)
+		},
 		refreshSceneVisionEntry() {
 			const context = this.buildSceneVisionContext()
 			this.worldEntrySignals = this.buildSceneVisionSignals(context)
@@ -290,6 +309,9 @@ export default {
 		},
 		buildSceneVisionContext() {
 			const recentRecognition = this.recentRecognition || {}
+			const memorySessionPackage = this.readVisionAgentMemorySessionPackage()
+			const visionAgentMemorySessionText = this.createVisionAgentMemorySessionText(memorySessionPackage)
+			const memorySessionSceneCount = Number(memorySessionPackage && memorySessionPackage.sceneCount ? memorySessionPackage.sceneCount : 0)
 			const localTimeText = this.readSceneVisionStorageText('xicheng_scene_local_time_text') || this.formatSceneVisionLocalTime()
 			const weatherText = recentRecognition.weatherText || this.readSceneVisionStorageText('xicheng_scene_weather_text')
 			const headingText = recentRecognition.headingText || this.readSceneVisionStorageText('xicheng_scene_heading_text')
@@ -318,16 +340,22 @@ export default {
 				activityText: recentRecognition.activityText || this.readSceneVisionStorageText('xicheng_activity_text'),
 				serviceText: recentRecognition.serviceText || this.readSceneVisionStorageText('xicheng_service_text'),
 				knowledgeGraphText: recentRecognition.knowledgeGraphText || this.readSceneVisionStorageText('xicheng_knowledge_graph_text'),
-				userInterestTags
+				userInterestTags,
+				visionAgentMemorySessionPackage: memorySessionPackage,
+				visionAgentMemorySessionText: visionAgentMemorySessionText,
+				memorySessionSceneCount
 			}
 		},
 		buildSceneVisionSignals(context = this.buildSceneVisionContext()) {
 			const environmentText = [context.localTimeText, context.weatherText].filter(Boolean).join(' ')
 			const serviceText = [context.activityText, context.serviceText].filter(Boolean).join(' · ')
+			const memorySessionSceneCount = Number(context.memorySessionSceneCount || 0)
+			const memorySessionText = context.visionAgentMemorySessionText || ''
 			return [
 				{ key: 'camera', label: '镜头', statusText: '拍一下', active: true },
 				{ key: 'gps', label: 'GPS', statusText: context.locationText || '待授权', active: Boolean(context.locationText) },
 				{ key: 'environment', label: '时间天气', statusText: environmentText || '待刷新', active: Boolean(environmentText) },
+				{ key: 'memory-session', label: '连续识境', statusText: memorySessionSceneCount > 0 ? `${memorySessionSceneCount}次识境` : '待形成', active: memorySessionSceneCount > 0 || Boolean(memorySessionText) },
 				{ key: 'service', label: '城市服务', statusText: serviceText || '待匹配', active: Boolean(serviceText) },
 				{ key: 'knowledge', label: '知识图谱', statusText: context.knowledgeGraphText || '待连接', active: Boolean(context.knowledgeGraphText) }
 			]
@@ -335,7 +363,7 @@ export default {
 		buildSceneVisionSummary(context = {}, signals = []) {
 			const activeCount = signals.filter(signal => signal && signal.active).length
 			const subject = context.locationText || context.visionCaption || this.region.cityName
-			const service = context.activityText || context.serviceText || context.knowledgeGraphText || ''
+			const service = context.visionAgentMemorySessionText || context.activityText || context.serviceText || context.knowledgeGraphText || ''
 			return [
 				`${subject} · ${activeCount}类现场信号已接入`,
 				service ? `下一步会优先结合${service}` : '举起手机后直接进入场景理解'
@@ -363,7 +391,9 @@ export default {
 				['activityText', context.activityText || ''],
 				['serviceText', context.serviceText || ''],
 				['knowledgeGraphText', context.knowledgeGraphText || ''],
-				['userInterestTags', context.userInterestTags || '']
+				['userInterestTags', context.userInterestTags || ''],
+				['memorySessionText', context.visionAgentMemorySessionText || ''],
+				['memorySessionSceneCount', context.memorySessionSceneCount || '']
 			]
 			return `/pages/xicheng/scan/scan?${params.map(item => `${item[0]}=${encodeRouteValue(item[1])}`).join('&')}`
 		},
