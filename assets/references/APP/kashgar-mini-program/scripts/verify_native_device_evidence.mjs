@@ -1,5 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import crypto from 'node:crypto'
+import { spawnSync } from 'node:child_process'
 
 const requiredScenarioIds = [
   'install-release-build',
@@ -18,6 +20,23 @@ const requiredScenarioIds = [
 const fail = (message) => {
   console.error(message)
   process.exit(1)
+}
+
+const getRepoRoot = () => {
+  const result = spawnSync('git', ['rev-parse', '--show-toplevel'], {
+    cwd: process.cwd(),
+    encoding: 'utf8'
+  })
+  return result.status === 0 && result.stdout.trim()
+    ? result.stdout.trim()
+    : process.cwd()
+}
+
+const resolveArtifactPath = (artifactPath) => {
+  if (path.isAbsolute(artifactPath)) {
+    return artifactPath
+  }
+  return path.resolve(getRepoRoot(), artifactPath)
 }
 
 const evidencePath = process.argv[2] || process.env.XUNJING_NATIVE_DEVICE_EVIDENCE_FILE || '../../../../qa/xicheng-native-device-evidence.json'
@@ -77,6 +96,39 @@ if (!evidence.build || evidence.build.mode !== 'release' || !String(evidence.bui
   fail('Native device evidence build.mode must be release and build.artifact is required')
 }
 
+const artifactSha256 = String(evidence.build.artifactSha256 || '').trim().toLowerCase()
+if (!/^[0-9a-f]{64}$/i.test(artifactSha256)) {
+  fail('Native device evidence build.artifactSha256 must be a SHA256 hex digest')
+}
+
+const artifactSizeBytes = Number(evidence.build.artifactSizeBytes)
+if (!Number.isSafeInteger(artifactSizeBytes) || artifactSizeBytes <= 0) {
+  fail('Native device evidence build.artifactSizeBytes must be a positive integer')
+}
+
+const resolvedArtifactPath = resolveArtifactPath(String(evidence.build.artifact).trim())
+if (!fs.existsSync(resolvedArtifactPath)) {
+  fail(`Native device evidence release artifact not found: ${resolvedArtifactPath}`)
+}
+
+const artifactStat = fs.statSync(resolvedArtifactPath)
+if (!artifactStat.isFile()) {
+  fail(`Native device evidence release artifact must be a file: ${resolvedArtifactPath}`)
+}
+
+if (artifactStat.size !== artifactSizeBytes) {
+  fail(`Native device evidence build.artifactSizeBytes mismatch: expected ${artifactSizeBytes}, got ${artifactStat.size}`)
+}
+
+const actualArtifactSha256 = crypto
+  .createHash('sha256')
+  .update(fs.readFileSync(resolvedArtifactPath))
+  .digest('hex')
+
+if (actualArtifactSha256 !== artifactSha256) {
+  fail('Native device evidence build.artifactSha256 does not match the release artifact SHA256')
+}
+
 const releaseTargets = Array.isArray(evidence.releaseTargets) && evidence.releaseTargets.length > 0
   ? evidence.releaseTargets.map((target) => String(target || '').trim().toLowerCase()).filter(Boolean)
   : []
@@ -122,6 +174,9 @@ console.log(JSON.stringify({
   ok: true,
   evidenceFile: resolvedEvidencePath,
   releaseTargets,
+  releaseArtifact: resolvedArtifactPath,
+  artifactSizeBytes,
+  artifactSha256,
   deviceCount: devices.length,
   scenarioCount: requiredScenarioIds.length
 }, null, 2))

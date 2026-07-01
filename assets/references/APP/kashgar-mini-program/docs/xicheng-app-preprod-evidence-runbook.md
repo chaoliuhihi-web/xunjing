@@ -74,6 +74,8 @@ XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-eviden
 npm run verify:native:evidence
 ```
 
+真机证据的 `build` 必须记录真实 release 包路径、`artifactSha256` 和 `artifactSizeBytes`。校验命令会读取该 release 包并比对 SHA256/大小；如果 release 包不存在、大小不一致或哈希不一致，不能放行。
+
 真机场景至少覆盖：
 
 - `install-release-build`：安装 release 包并确认版本。

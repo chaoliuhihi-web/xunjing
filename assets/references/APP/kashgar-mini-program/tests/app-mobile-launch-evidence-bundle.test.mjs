@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import crypto from 'node:crypto'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -14,6 +15,12 @@ const currentCommit = spawnSync('git', ['rev-parse', 'HEAD'], {
   cwd: root,
   encoding: 'utf8'
 }).stdout.trim()
+
+const artifactTempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-launch-artifact-'))
+const artifactPath = path.join(artifactTempDir, 'xicheng-release.apk')
+const artifactBytes = Buffer.from('signed release apk placeholder for launch bundle validator tests\n', 'utf8')
+fs.writeFileSync(artifactPath, artifactBytes)
+const artifactSha256 = crypto.createHash('sha256').update(artifactBytes).digest('hex')
 
 const requiredScenarioIds = [
   'install-release-build',
@@ -81,7 +88,9 @@ const makeNativeEvidence = (overrides = {}) => ({
   tenantId: '1',
   build: {
     mode: 'release',
-    artifact: 'qa/native/xicheng-release.apk'
+    artifact: artifactPath,
+    artifactSha256,
+    artifactSizeBytes: artifactBytes.length
   },
   releaseTargets: ['android'],
   devices: [

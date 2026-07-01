@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import crypto from 'node:crypto'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -24,6 +25,12 @@ const requiredScenarioIds = [
   'travelogue-draft-generated'
 ]
 
+const artifactTempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-release-artifact-'))
+const artifactPath = path.join(artifactTempDir, 'xicheng-release.apk')
+const artifactBytes = Buffer.from('signed release apk placeholder for validator tests\n', 'utf8')
+fs.writeFileSync(artifactPath, artifactBytes)
+const artifactSha256 = crypto.createHash('sha256').update(artifactBytes).digest('hex')
+
 assert.ok(
   fs.existsSync(scriptPath),
   'APP should provide scripts/verify_native_device_evidence.mjs for real-device launch evidence validation'
@@ -46,7 +53,10 @@ for (const required of [
   'camera-photo-recognition',
   'gps-recognition-permission',
   'xiaojing-blocked-answer',
-  'travelogue-draft-generated'
+  'travelogue-draft-generated',
+  'release 包',
+  'artifactSha256',
+  'artifactSizeBytes'
 ]) {
   assert.ok(releaseChecklist.includes(required), `Release checklist should mention native evidence item ${required}`)
   assert.ok(preprodRunbook.includes(required), `Preprod runbook should mention native evidence item ${required}`)
@@ -61,7 +71,9 @@ const baseEvidence = {
   releaseTargets: ['android'],
   build: {
     mode: 'release',
-    artifact: 'dist/build/app-release',
+    artifact: artifactPath,
+    artifactSha256,
+    artifactSizeBytes: artifactBytes.length,
     command: 'npm run build:app:release'
   },
   devices: [
@@ -130,4 +142,32 @@ assert.match(
   `${missingDeviceResult.stderr}\n${missingDeviceResult.stdout}`,
   /device.*android/i,
   'native evidence validator should name the missing release target device'
+)
+
+const wrongHashResult = runValidator({
+  ...baseEvidence,
+  build: {
+    ...baseEvidence.build,
+    artifactSha256: '0'.repeat(64)
+  }
+})
+assert.notEqual(wrongHashResult.status, 0, 'native evidence validator should reject a release artifact hash mismatch')
+assert.match(
+  `${wrongHashResult.stderr}\n${wrongHashResult.stdout}`,
+  /artifactSha256|SHA256/i,
+  'native evidence validator should explain the release artifact hash mismatch'
+)
+
+const missingArtifactResult = runValidator({
+  ...baseEvidence,
+  build: {
+    ...baseEvidence.build,
+    artifact: path.join(artifactTempDir, 'missing-release.apk')
+  }
+})
+assert.notEqual(missingArtifactResult.status, 0, 'native evidence validator should reject evidence whose release artifact is missing')
+assert.match(
+  `${missingArtifactResult.stderr}\n${missingArtifactResult.stdout}`,
+  /artifact.*not found|release artifact/i,
+  'native evidence validator should explain the missing release artifact'
 )
