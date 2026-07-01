@@ -18,6 +18,7 @@ for (const required of [
   '非本地 HTTPS',
   'APP readiness evidence',
   'XUNJING_APP_API_BASE_URL',
+  'XUNJING_RELEASE_ENV_FILE',
   'XUNJING_PLATFORM_ENV_FILE',
   'VITE_XUNJING_YUDAO_APP_BASE_URL',
   'VITE_XUNJING_TENANT_ID',
@@ -39,6 +40,8 @@ for (const required of [
   'baseUrl must match release evidence appApiBaseUrl',
   '20/20',
   'safetyStatus=BLOCKED',
+  '/app-api/xunjing/scan/resolve',
+  'API 可达性',
   'sources',
   'tenant-id'
 ]) {
