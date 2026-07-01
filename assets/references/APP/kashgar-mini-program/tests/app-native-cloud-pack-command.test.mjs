@@ -42,7 +42,36 @@ const keystorePath = path.join(tempDir, 'xicheng-release.keystore')
 const fakeCliPath = path.join(tempDir, 'hbuilderx-cli')
 const invocationPath = path.join(tempDir, 'hbuilderx-invocation.json')
 
-fs.writeFileSync(keystorePath, 'placeholder keystore bytes for cloud pack test\n')
+const keytoolResult = spawnSync('keytool', [
+  '-genkeypair',
+  '-alias',
+  'xicheng-release',
+  '-keystore',
+  keystorePath,
+  '-storepass',
+  'store-secret',
+  '-keypass',
+  'key-secret',
+  '-storetype',
+  'PKCS12',
+  '-keyalg',
+  'RSA',
+  '-keysize',
+  '2048',
+  '-validity',
+  '3650',
+  '-dname',
+  'CN=Xicheng Release, OU=Xinghe, O=Xinghe, L=Beijing, ST=Beijing, C=CN',
+  '-noprompt'
+], {
+  cwd: tempDir,
+  encoding: 'utf8'
+})
+assert.equal(
+  keytoolResult.status,
+  0,
+  `test fixture should create a valid Android keystore with keytool: ${keytoolResult.stderr || keytoolResult.stdout}`
+)
 fs.writeFileSync(fakeCliPath, [
   '#!/bin/sh',
   `printf '%s\\n' "$@" > ${JSON.stringify(invocationPath)}`,

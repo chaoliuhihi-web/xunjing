@@ -28,6 +28,7 @@ for (const required of [
   'XUNJING_RELEASE_TARGETS',
   'signed APK/AAB',
   'HBuilderX',
+  'keytool',
   'ACCESS_NETWORK_STATE',
   'CAMERA',
   'ACCESS_COARSE_LOCATION',
@@ -39,7 +40,36 @@ for (const required of [
 
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-native-package-ready-'))
 const keystorePath = path.join(tempDir, 'xicheng-release.keystore')
-fs.writeFileSync(keystorePath, 'placeholder keystore bytes for readiness test\n')
+const keytoolResult = spawnSync('keytool', [
+  '-genkeypair',
+  '-alias',
+  'xicheng-release',
+  '-keystore',
+  keystorePath,
+  '-storepass',
+  'secret',
+  '-keypass',
+  'secret',
+  '-storetype',
+  'PKCS12',
+  '-keyalg',
+  'RSA',
+  '-keysize',
+  '2048',
+  '-validity',
+  '3650',
+  '-dname',
+  'CN=Xicheng Release, OU=Xinghe, O=Xinghe, L=Beijing, ST=Beijing, C=CN',
+  '-noprompt'
+], {
+  cwd: tempDir,
+  encoding: 'utf8'
+})
+assert.equal(
+  keytoolResult.status,
+  0,
+  `test fixture should create a valid Android keystore with keytool: ${keytoolResult.stderr || keytoolResult.stdout}`
+)
 
 const runReadiness = (envOverrides = {}, args = []) => spawnSync(
   process.execPath,
@@ -81,6 +111,7 @@ assert.equal(readyJson.app.versionName, '1.0.0')
 assert.equal(readyJson.app.versionCode, '100')
 assert.equal(readyJson.android.packageName, 'com.xinghe.xunjing')
 assert.equal(readyJson.android.keystore.exists, true)
+assert.equal(readyJson.android.keystore.verified, true)
 assert.equal(readyJson.android.permissions.length, 4)
 assert.ok(
   readyJson.nextCommands.some((command) => command.includes('npm run build:app:release')),
@@ -192,6 +223,19 @@ assert.match(
   `${missingKeystoreResult.stderr}\n${missingKeystoreResult.stdout}`,
   /XUNJING_ANDROID_KEYSTORE|not found/i,
   'native package readiness should explain missing keystore validation'
+)
+
+const placeholderKeystorePath = path.join(tempDir, 'placeholder.keystore')
+fs.writeFileSync(placeholderKeystorePath, 'placeholder keystore bytes for readiness test\n')
+const placeholderKeystoreResult = runReadiness({
+  ...baseEnv,
+  XUNJING_ANDROID_KEYSTORE: placeholderKeystorePath
+}, ['--skip-tool-check'])
+assert.notEqual(placeholderKeystoreResult.status, 0, 'native package readiness should reject placeholder Android keystore files')
+assert.match(
+  `${placeholderKeystoreResult.stderr}\n${placeholderKeystoreResult.stdout}`,
+  /valid Android keystore|keytool|XUNJING_ANDROID_KEYSTORE/i,
+  'native package readiness should explain invalid Android keystore validation'
 )
 
 const unsupportedTargetResult = runReadiness({

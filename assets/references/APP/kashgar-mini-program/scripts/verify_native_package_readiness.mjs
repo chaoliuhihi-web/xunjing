@@ -87,6 +87,39 @@ const assertRequiredSecretPresence = (label, value) => {
   return true
 }
 
+const resolveKeytoolCommand = () => String(process.env.KEYTOOL_CLI || 'keytool').trim()
+
+const verifyAndroidKeystore = ({ keystorePath, keyAlias, storePassword }) => {
+  const keytoolCommand = resolveKeytoolCommand()
+  if (!isNativeToolAvailable(keytoolCommand)) {
+    throw new Error('keytool command is required to verify XUNJING_ANDROID_KEYSTORE before signed native packaging')
+  }
+
+  const result = spawnSync(keytoolCommand, [
+    '-list',
+    '-keystore',
+    keystorePath,
+    '-storepass',
+    String(storePassword || ''),
+    '-alias',
+    keyAlias
+  ], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    maxBuffer: 10 * 1024 * 1024
+  })
+
+  if (result.status !== 0) {
+    throw new Error('XUNJING_ANDROID_KEYSTORE must be a valid Android keystore readable by keytool and contain XUNJING_ANDROID_KEY_ALIAS')
+  }
+
+  return {
+    verified: true,
+    keytool: keytoolCommand,
+    aliasVerified: true
+  }
+}
+
 const commandExists = (command) => {
   const result = spawnSync('sh', ['-lc', `command -v ${JSON.stringify(command)}`], {
     cwd: process.cwd(),
@@ -244,6 +277,13 @@ const checkAndroid = (manifest) => {
   })
   const hasKeystorePassword = collect(() => assertRequiredSecretPresence('XUNJING_ANDROID_KEYSTORE_PASSWORD', process.env.XUNJING_ANDROID_KEYSTORE_PASSWORD))
   const hasKeyPassword = collect(() => assertRequiredSecretPresence('XUNJING_ANDROID_KEY_PASSWORD', process.env.XUNJING_ANDROID_KEY_PASSWORD))
+  const keystoreVerification = keystorePath && keyAlias && hasKeystorePassword
+    ? collect(() => verifyAndroidKeystore({
+      keystorePath,
+      keyAlias,
+      storePassword: process.env.XUNJING_ANDROID_KEYSTORE_PASSWORD
+    }))
+    : undefined
 
   if (errors.length > 0) {
     throw new Error(errors.join('; '))
@@ -253,7 +293,8 @@ const checkAndroid = (manifest) => {
     packageName,
     keystore: {
       path: keystorePath,
-      exists: true
+      exists: true,
+      ...(keystoreVerification || {})
     },
     keyAlias,
     hasKeystorePassword,

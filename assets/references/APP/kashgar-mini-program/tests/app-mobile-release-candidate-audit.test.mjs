@@ -206,7 +206,36 @@ assert.ok(
 )
 
 const keystorePath = path.join(missingTempDir, 'xicheng-release.keystore')
-fs.writeFileSync(keystorePath, 'placeholder keystore bytes for release audit readiness\n')
+const keytoolResult = spawnSync('keytool', [
+  '-genkeypair',
+  '-alias',
+  'xicheng-release',
+  '-keystore',
+  keystorePath,
+  '-storepass',
+  'secret',
+  '-keypass',
+  'secret',
+  '-storetype',
+  'PKCS12',
+  '-keyalg',
+  'RSA',
+  '-keysize',
+  '2048',
+  '-validity',
+  '3650',
+  '-dname',
+  'CN=Xicheng Release, OU=Xinghe, O=Xinghe, L=Beijing, ST=Beijing, C=CN',
+  '-noprompt'
+], {
+  cwd: missingTempDir,
+  encoding: 'utf8'
+})
+assert.equal(
+  keytoolResult.status,
+  0,
+  `test fixture should create a valid Android keystore with keytool: ${keytoolResult.stderr || keytoolResult.stdout}`
+)
 const releaseEnvFilePath = path.join(missingTempDir, 'xicheng-release.env')
 fs.writeFileSync(releaseEnvFilePath, [
   'XUNJING_APP_API_BASE_URL=https://api.xingheai.net',
