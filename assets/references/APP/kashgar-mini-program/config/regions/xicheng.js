@@ -38,6 +38,7 @@ const XICHENG_REGION_BASE_CONFIG = {
 	checkinStorageKey: 'xicheng:routeCheckins',
 	inspirationImportStorageKey: 'xicheng:inspirationImports',
 	recognitionFeedbackStorageKey: 'xicheng:recognitionFeedbacks',
+	visionAgentMemoryStorageKey: 'xicheng_vision_agent_memory_trail',
 	aiGuideChatCachePrefix: 'ai_guide_messages_cache:xicheng:',
 	aiGuideConversationCachePrefix: 'ai_guide_conversation_id:xicheng:',
 	reviewStatus: {
@@ -82,7 +83,8 @@ export const XICHENG_REGION_CONFIG = Object.freeze({
 		XICHENG_REGION_BASE_CONFIG.badgeAwardStorageKey,
 		XICHENG_REGION_BASE_CONFIG.checkinStorageKey,
 		XICHENG_REGION_BASE_CONFIG.inspirationImportStorageKey,
-		XICHENG_REGION_BASE_CONFIG.recognitionFeedbackStorageKey
+		XICHENG_REGION_BASE_CONFIG.recognitionFeedbackStorageKey,
+		XICHENG_REGION_BASE_CONFIG.visionAgentMemoryStorageKey
 	]),
 	privacyClearStorageKeyPrefixes: Object.freeze([
 		XICHENG_REGION_BASE_CONFIG.aiGuideChatCachePrefix,

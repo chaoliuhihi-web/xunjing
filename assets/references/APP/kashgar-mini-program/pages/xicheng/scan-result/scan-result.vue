@@ -67,6 +67,25 @@
 			<button class="ghost-button xicheng-secondary-action" :disabled="recognitionActionBlocked" @click="askXiaojing(suggestedQuestions[1])">问问小京</button>
 		</view>
 
+		<view class="vision-agent-memory-panel xicheng-paper-card">
+			<view class="section-head xicheng-section-label">
+				<text class="section-title">连续理解</text>
+				<text class="section-badge">Memory</text>
+			</view>
+			<view class="vision-agent-memory-track">
+				<view
+					v-for="item in visionAgentTimelineItems"
+					:key="item.key"
+					class="vision-agent-memory-item"
+					:class="{ 'vision-agent-memory-item-active': item.active }"
+				>
+					<text class="vision-agent-memory-label">{{ item.label }}</text>
+					<text class="vision-agent-memory-title">{{ item.title }}</text>
+					<text class="vision-agent-memory-copy">{{ item.copy }}</text>
+				</view>
+			</view>
+		</view>
+
 		<view class="vision-agent-panel xicheng-paper-card">
 			<view class="section-head xicheng-section-label">
 				<text class="section-title">AI识境推荐动作</text>
@@ -672,6 +691,49 @@ export default {
 				{ actionKey: 'badge', title: '领取徽章', copy: '完成打卡并收集徽章', taskType: 'growth' },
 				{ actionKey: 'travelogue', title: '生成游记', copy: '把这一站写进今天故事', taskType: 'travelogue' }
 			]
+		},
+		visionAgentTimelineItems() {
+			const visionContext = this.result.visionAgentContext || {}
+			const previousContext = this.parseVisionAgentSourceContext(visionContext.sourceRecognitionContext)
+			const memoryTrail = this.readVisionAgentMemoryTrail()
+			const currentSnapshot = this.createVisionAgentMemorySnapshot('current')
+			const currentKey = `${currentSnapshot.poiCode || currentSnapshot.poiName || ''}-${currentSnapshot.source || ''}`
+			const previousSnapshot = (previousContext.poiCode || previousContext.poiName || previousContext.visionCaption)
+				? previousContext
+				: memoryTrail.find(item => {
+					const itemKey = `${item.poiCode || item.poiName || ''}-${item.source || ''}`
+					return itemKey && itemKey !== currentKey
+				}) || null
+			const nextQuestion = this.suggestedQuestions[0] || `继续问${this.result.poiName || XICHENG_REGION_CONFIG.companionName}`
+			return [
+				{
+					key: 'previous',
+					label: '上一拍',
+					title: previousSnapshot && (previousSnapshot.poiName || previousSnapshot.visionCaption)
+						? (previousSnapshot.poiName || previousSnapshot.visionCaption)
+						: '等待上一轮现场',
+					copy: previousSnapshot && (previousSnapshot.sourceLabel || previousSnapshot.source || previousSnapshot.localTimeText)
+						? `延续 ${previousSnapshot.sourceLabel || previousSnapshot.source || previousSnapshot.localTimeText}`
+						: '继续拍摄后，小京会把上下文串起来。',
+					active: Boolean(previousSnapshot)
+				},
+				{
+					key: 'current',
+					label: '当前场景',
+					title: currentSnapshot.poiName || '待确认西城文化点',
+					copy: [currentSnapshot.sourceLabel || currentSnapshot.source || '现场识别', currentSnapshot.locationText, currentSnapshot.weatherText]
+						.filter(Boolean)
+						.join(' · ') || '已融合本次镜头与官方来源。',
+					active: !this.recognitionActionBlocked
+				},
+				{
+					key: 'next',
+					label: '下一问',
+					title: nextQuestion,
+					copy: currentSnapshot.knowledgeGraphText || currentSnapshot.serviceText || '进入小京后继续追问历史、路线和服务。',
+					active: !this.recognitionActionBlocked
+				}
+			]
 		}
 	},
 	onLoad(options = {}) {
@@ -704,6 +766,7 @@ export default {
 		if (!this.unsafeRecognitionSafetyStatus && this.result.officialPoiMatched && this.result.poiCode && this.result.poiName) {
 			uni.setStorageSync(XICHENG_REGION_CONFIG.storageKey, this.result)
 		}
+		this.rememberVisionAgentSceneMemory()
 		this.loadRecognitionFeedback()
 	},
 	methods: {
@@ -744,6 +807,82 @@ export default {
 				icon: 'none'
 			})
 		},
+		parseVisionAgentSourceContext(sourceRecognitionContext = '') {
+			if (!sourceRecognitionContext) return {}
+			if (typeof sourceRecognitionContext === 'object') {
+				return {
+					...sourceRecognitionContext,
+					poiCode: sourceRecognitionContext.poiCode || '',
+					poiName: sourceRecognitionContext.poiName || sourceRecognitionContext.visionCaption || ''
+				}
+			}
+			try {
+				const parsedContext = JSON.parse(String(sourceRecognitionContext))
+				return parsedContext && typeof parsedContext === 'object'
+					? {
+						...parsedContext,
+						poiCode: parsedContext.poiCode || '',
+						poiName: parsedContext.poiName || parsedContext.visionCaption || ''
+					}
+					: {}
+			} catch (error) {
+				return {
+					visionCaption: String(sourceRecognitionContext).slice(0, 48)
+				}
+			}
+		},
+		readVisionAgentMemoryTrail() {
+			try {
+				const memoryTrail = uni.getStorageSync(XICHENG_REGION_CONFIG.visionAgentMemoryStorageKey)
+				return Array.isArray(memoryTrail)
+					? memoryTrail.filter(item => item && typeof item === 'object')
+					: []
+			} catch (error) {
+				return []
+			}
+		},
+		createVisionAgentMemorySnapshot(stage = 'current') {
+			const visionContext = this.result.visionAgentContext || {}
+			return {
+				id: `vision-agent-memory-${Date.now()}`,
+				stage,
+				regionCode: this.result.regionCode || XICHENG_REGION_CONFIG.regionCode,
+				packageCode: this.result.packageCode || XICHENG_REGION_CONFIG.packageCode,
+				sceneCode: this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode,
+				sourceChannel: this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
+				poiCode: this.result.poiCode || visionContext.poiCode || '',
+				poiName: this.result.poiName || visionContext.poiName || visionContext.visionCaption || '',
+				source: this.result.source || visionContext.source || '',
+				sourceLabel: this.result.sourceLabel || visionContext.sourceLabel || '',
+				locationText: visionContext.locationText || '',
+				localTimeText: visionContext.localTimeText || '',
+				weatherText: visionContext.weatherText || '',
+				headingText: visionContext.headingText || '',
+				serviceText: visionContext.serviceText || '',
+				knowledgeGraphText: visionContext.knowledgeGraphText || '',
+				confidence: this.result.confidence || visionContext.confidence || '',
+				safetyStatus: normalizeXichengSafetyStatus(this.result.safetyStatus || visionContext.safetyStatus),
+				sourceRecognitionContext: visionContext.sourceRecognitionContext || '',
+				sourceCount: this.sourceList.length,
+				rememberedAt: new Date().toISOString()
+			}
+		},
+		rememberVisionAgentSceneMemory() {
+			if (this.recognitionActionBlocked) return null
+			const snapshot = this.createVisionAgentMemorySnapshot('current')
+			if (!snapshot.poiCode && !snapshot.poiName) return null
+			const snapshotKey = `${snapshot.poiCode || snapshot.poiName}-${snapshot.source || ''}`
+			const memoryTrail = this.readVisionAgentMemoryTrail()
+			const nextMemoryTrail = [
+				snapshot,
+				...memoryTrail.filter(item => {
+					const itemKey = `${item.poiCode || item.poiName || ''}-${item.source || ''}`
+					return itemKey !== snapshotKey
+				})
+			].slice(0, 24)
+			uni.setStorageSync(XICHENG_REGION_CONFIG.visionAgentMemoryStorageKey, nextMemoryTrail)
+			return snapshot
+		},
 		isUnsafeCandidate(candidate = {}) {
 			const safetyStatus = normalizeXichengSafetyStatus(candidate.safetyStatus)
 			return isXichengUnsafeSafetyStatus(safetyStatus)
@@ -774,6 +913,7 @@ export default {
 				this.showUnsafeRecognitionToast('问小京')
 				return
 			}
+			this.rememberVisionAgentSceneMemory()
 			const prompt = question || this.suggestedQuestions[0] || `讲讲${this.result.poiName}`
 			const visionAgentContext = this.result.visionAgentContext || {}
 			const query = [
@@ -897,6 +1037,7 @@ export default {
 				candidateConfirmationAudit
 			})
 			uni.setStorageSync(XICHENG_REGION_CONFIG.storageKey, this.result)
+			this.rememberVisionAgentSceneMemory()
 			uni.showToast({
 				title: '已确认识别地点',
 				icon: 'none'
@@ -1137,6 +1278,7 @@ export default {
 }
 
 .result-card,
+.vision-agent-memory-panel,
 .question-card,
 .route-card,
 .candidate-card,
@@ -1724,6 +1866,72 @@ export default {
 	padding: 26rpx;
 	border-radius: 30rpx;
 	background: rgba(255, 253, 248, 0.94);
+}
+
+.vision-agent-memory-panel {
+	margin-top: 28rpx;
+	padding: 26rpx;
+	border-radius: 30rpx;
+	background:
+		linear-gradient(135deg, rgba(23, 63, 53, 0.96), rgba(31, 110, 90, 0.92));
+}
+
+.vision-agent-memory-panel .section-title,
+.vision-agent-memory-panel .section-badge {
+	color: #FFFFFF;
+}
+
+.vision-agent-memory-panel .section-badge {
+	background: rgba(255, 255, 255, 0.16);
+}
+
+.vision-agent-memory-track {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 12rpx;
+	margin-top: 22rpx;
+}
+
+.vision-agent-memory-item {
+	min-width: 0;
+	min-height: 170rpx;
+	padding: 18rpx;
+	border-radius: 22rpx;
+	border: 1rpx solid rgba(255, 255, 255, 0.18);
+	background: rgba(255, 255, 255, 0.10);
+	box-sizing: border-box;
+}
+
+.vision-agent-memory-item-active {
+	background: rgba(255, 253, 248, 0.18);
+}
+
+.vision-agent-memory-label,
+.vision-agent-memory-title,
+.vision-agent-memory-copy {
+	display: block;
+	line-height: 1.4;
+}
+
+.vision-agent-memory-label {
+	font-size: 21rpx;
+	color: rgba(255, 255, 255, 0.72);
+}
+
+.vision-agent-memory-title {
+	margin-top: 8rpx;
+	font-size: 25rpx;
+	font-weight: 800;
+	color: #FFFFFF;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.vision-agent-memory-copy {
+	margin-top: 8rpx;
+	font-size: 21rpx;
+	color: rgba(255, 255, 255, 0.74);
 }
 
 .vision-agent-action-grid,
