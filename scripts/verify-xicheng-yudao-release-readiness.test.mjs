@@ -856,7 +856,8 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(template.SPRING_PROFILES_ACTIVE).toBe('production')
     expect(template.SPRING_AI_VECTORSTORE_TYPE).toBe('qdrant')
     expect(template.DASHSCOPE_EMBEDDING_ENABLED).toBe('true')
-    expect(template.XUNJING_APP_API_BASE_URL).toBe('https://replace-with-production-api.example.com')
+    expect(template.XUNJING_TENANT_ID).toBe('1')
+    expect(template.XUNJING_APP_API_BASE_URL).toBe('https://xunjingapi.xingheai.net')
     expect(template.MYSQL_HOST).not.toMatch(/^(127\.0\.0\.1|localhost|0\.0\.0\.0)$/)
     expect(template.REDIS_HOST).not.toMatch(/^(127\.0\.0\.1|localhost|0\.0\.0\.0)$/)
     expect(template.QDRANT_HOST).not.toMatch(/^(127\.0\.0\.1|localhost|0\.0\.0\.0)$/)
@@ -869,7 +870,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(statusDoc).toContain('ops/xicheng-production.env.example')
   })
 
-  test('rejects the redacted production env template as placeholder runtime config', async () => {
+  test('rejects the redacted production env template as incomplete runtime config', async () => {
     const env = await loadEnvFile('ops/xicheng-production.env.example')
 
     const result = await verifyXichengYudaoReleaseReadiness({
@@ -881,8 +882,8 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(result.ok).toBe(false)
     expect(result.status).toBe('NOT_READY')
     expect(result.checks.find((check) => check.name === 'runtime-env')?.ok).toBe(false)
-    expect(result.checks.find((check) => check.name === 'https-app-api-domain')?.ok).toBe(false)
-    expect(result.blockers.join('\n')).toContain('XUNJING_APP_API_BASE_URL must be a real HTTPS backend domain')
+    expect(result.checks.find((check) => check.name === 'https-app-api-domain')?.ok).toBe(true)
+    expect(result.blockers.join('\n')).toContain('MYSQL_PASSWORD')
   })
 
   test('rejects local-only APP API hostnames for production release evidence', async () => {
