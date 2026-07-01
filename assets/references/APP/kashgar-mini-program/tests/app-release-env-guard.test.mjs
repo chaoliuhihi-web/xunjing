@@ -6,6 +6,8 @@ import { spawnSync } from 'node:child_process'
 const root = process.cwd()
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
 const scriptPath = path.join(root, 'scripts', 'verify_release_app_env.mjs')
+const buildRunnerPath = path.join(root, 'scripts', 'run_release_app_build.mjs')
+const buildRunner = fs.readFileSync(buildRunnerPath, 'utf8')
 const releaseScript = packageJson.scripts?.['build:app:release'] || ''
 
 assert.ok(
@@ -14,8 +16,10 @@ assert.ok(
 )
 
 assert.ok(
-  releaseScript.includes('node scripts/verify_release_app_env.mjs'),
-  'APP release build should run the dedicated release environment guard before UniApp build'
+  releaseScript.includes('node scripts/run_release_app_build.mjs') &&
+    buildRunner.includes('readReleaseAppEnv') &&
+    buildRunner.includes('uni'),
+  'APP release build should run the release environment guard through the Node build runner before UniApp build'
 )
 
 const runGuard = (env = {}) => spawnSync(

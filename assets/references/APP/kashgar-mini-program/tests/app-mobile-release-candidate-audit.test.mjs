@@ -197,6 +197,53 @@ assert.ok(
   'release candidate audit should tell operators how to collect preprod evidence'
 )
 
+const keystorePath = path.join(missingTempDir, 'xicheng-release.keystore')
+fs.writeFileSync(keystorePath, 'placeholder keystore bytes for release audit readiness\n')
+const releaseEnvFilePath = path.join(missingTempDir, 'xicheng-release.env')
+fs.writeFileSync(releaseEnvFilePath, [
+  'XUNJING_APP_API_BASE_URL=https://api.example.com',
+  'XUNJING_TENANT_ID=1',
+  'XUNJING_RELEASE_TARGETS=android',
+  'XUNJING_ANDROID_PACKAGE_NAME=com.xinghe.xunjing',
+  `XUNJING_ANDROID_KEYSTORE=${keystorePath}`,
+  'XUNJING_ANDROID_KEY_ALIAS=xicheng-release',
+  'XUNJING_ANDROID_KEYSTORE_PASSWORD=secret',
+  'XUNJING_ANDROID_KEY_PASSWORD=secret',
+  'XUNJING_SKIP_NATIVE_TOOL_CHECK=1'
+].join('\n'))
+const missingWithReleaseEnvResult = runAudit([
+  '--preprod-evidence',
+  path.join(missingTempDir, 'missing-preprod.json'),
+  '--native-evidence',
+  path.join(missingTempDir, 'missing-native.json'),
+  '--release-artifact',
+  path.join(missingTempDir, 'missing-release.apk'),
+  '--skip-remote-parity'
+], {
+  XUNJING_RELEASE_ENV_FILE: releaseEnvFilePath,
+  XUNJING_APP_API_BASE_URL: '',
+  XUNJING_TENANT_ID: '',
+  XUNJING_RELEASE_TARGETS: '',
+  XUNJING_ANDROID_PACKAGE_NAME: '',
+  XUNJING_ANDROID_KEYSTORE: '',
+  XUNJING_ANDROID_KEY_ALIAS: '',
+  XUNJING_ANDROID_KEYSTORE_PASSWORD: '',
+  XUNJING_ANDROID_KEY_PASSWORD: '',
+  XUNJING_SKIP_NATIVE_TOOL_CHECK: ''
+})
+assert.notEqual(
+  missingWithReleaseEnvResult.status,
+  0,
+  'release candidate audit should still fail when evidence and artifact are missing'
+)
+const missingWithReleaseEnvAudit = parseAuditJson(missingWithReleaseEnvResult)
+assert.equal(missingWithReleaseEnvAudit.gates.nativePackageReadiness.ok, true)
+assert.equal(missingWithReleaseEnvAudit.gates.nativePackageReadiness.detail, 'pass')
+assert.ok(
+  !missingWithReleaseEnvAudit.blockers.some((blocker) => blocker.code === 'native-package-readiness-not-passing'),
+  'release candidate audit should not report native package readiness when XUNJING_RELEASE_ENV_FILE has complete signing config'
+)
+
 const readyTempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-audit-ready-'))
 const scenarioEvidenceDir = fs.mkdtempSync(path.join(repoRoot, 'qa', 'release-candidate-audit-test-'))
 process.on('exit', () => {

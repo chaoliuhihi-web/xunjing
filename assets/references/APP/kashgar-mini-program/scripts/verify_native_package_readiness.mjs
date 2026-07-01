@@ -1,6 +1,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
+import { loadReleaseEnvFile } from './release_env_loader.mjs'
+
+loadReleaseEnvFile()
 
 const args = process.argv.slice(2)
 const skipToolCheck = args.includes('--skip-tool-check') || process.env.XUNJING_SKIP_NATIVE_TOOL_CHECK === '1'
@@ -363,7 +366,7 @@ console.log(JSON.stringify({
   android,
   ios,
   nextCommands: [
-    'XUNJING_APP_API_BASE_URL=https://... XUNJING_TENANT_ID=1 npm run build:app:release',
+    'XUNJING_RELEASE_ENV_FILE=/secure/path/preprod.env npm run build:app:release',
     'Use HBuilderX native release packaging with the checked signing config to create a signed APK/AAB or IPA.',
     'XUNJING_RELEASE_ARTIFACT=/path/to/signed.apk npm run prepare:native:evidence',
     'Complete physical-device scenarios, then run npm run verify:native:evidence and npm run verify:launch:evidence.'

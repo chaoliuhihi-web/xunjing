@@ -8,6 +8,9 @@ const config = fs.readFileSync(path.join(root, 'request', 'config.js'), 'utf8')
 const viteConfig = fs.readFileSync(path.join(root, 'vite.config.js'), 'utf8')
 const apiContract = fs.readFileSync(path.join(root, 'docs', 'online-api-first-contract.md'), 'utf8')
 const releaseEnvGuard = fs.readFileSync(path.join(root, 'scripts', 'verify_release_app_env.mjs'), 'utf8')
+const releaseAppEnv = fs.readFileSync(path.join(root, 'scripts', 'release_app_env.mjs'), 'utf8')
+const releaseBuildRunner = fs.readFileSync(path.join(root, 'scripts', 'run_release_app_build.mjs'), 'utf8')
+const preprodRunner = fs.readFileSync(path.join(root, 'scripts', 'run_preprod_yudao_verify.mjs'), 'utf8')
 const scripts = packageJson.scripts || {}
 
 assert.match(
@@ -64,17 +67,18 @@ assert.ok(
 
 assert.match(
   scripts['build:app:release'] || '',
-  /node scripts\/verify_release_app_env\.mjs/,
-  'APP release build should run the dedicated release environment guard before UniApp build'
+  /node scripts\/run_release_app_build\.mjs/,
+  'APP release build should run the Node release build runner'
 )
 
 assert.ok(
-  releaseEnvGuard.includes('Set XUNJING_APP_API_BASE_URL to a non-local HTTPS Yudao APP gateway'),
+  releaseEnvGuard.includes('readReleaseAppEnv') &&
+    releaseAppEnv.includes('Set XUNJING_APP_API_BASE_URL to a non-local HTTPS Yudao APP gateway'),
   'APP release environment guard should fail fast unless a non-local HTTPS Yudao APP gateway is provided'
 )
 
 assert.match(
-  releaseEnvGuard,
+  releaseAppEnv,
   /parsed\.protocol !== 'https:'/,
   'APP release environment guard should require HTTPS API bases'
 )
@@ -89,25 +93,25 @@ for (const forbiddenReleaseBase of [
   "hostname.startsWith('172.')",
 ]) {
   assert.ok(
-    releaseEnvGuard.includes(forbiddenReleaseBase),
+    releaseAppEnv.includes(forbiddenReleaseBase),
     `APP release environment guard should reject ${forbiddenReleaseBase}`
   )
 }
 
 assert.ok(
-  releaseEnvGuard.includes('XUNJING_APP_API_BASE_URL must be a non-local HTTPS URL'),
+  releaseAppEnv.includes('XUNJING_APP_API_BASE_URL must be a non-local HTTPS URL'),
   'APP release build should reject local and LAN API bases so field packages do not ship against development services'
 )
 
 assert.match(
-  scripts['build:app:release'] || '',
-  /VITE_XUNJING_YUDAO_APP_BASE_URL="\$XUNJING_APP_API_BASE_URL"/,
+  releaseBuildRunner,
+  /VITE_XUNJING_YUDAO_APP_BASE_URL:\s*releaseEnv\.apiBaseUrl/,
   'APP release build should pass the release gateway into the UniApp bundle'
 )
 
 assert.match(
-  scripts['build:app:release'] || '',
-  /VITE_XUNJING_TENANT_ID="\$XUNJING_TENANT_ID"/,
+  releaseBuildRunner,
+  /VITE_XUNJING_TENANT_ID:\s*releaseEnv\.tenantId/,
   'APP release build should require the release tenant id instead of silently using tenant 1'
 )
 
@@ -133,27 +137,28 @@ for (const required of [
 
 assert.match(
   scripts['verify:yudao:preprod'] || '',
-  /node scripts\/verify_release_app_env\.mjs/,
-  'APP preprod readiness script should reuse the non-local HTTPS release environment guard'
+  /node scripts\/run_preprod_yudao_verify\.mjs/,
+  'APP preprod readiness script should use the Node preprod runner'
 )
 
 assert.match(
-  scripts['verify:yudao:preprod'] || '',
-  /cd \.\.\/\.\.\/\.\.\/\.\. && npm run xunjing:platform:verify --/,
-  'APP preprod readiness script should run the root Yudao platform verifier from the APP directory'
+  preprodRunner,
+  /xunjing:platform:verify/,
+  'APP preprod readiness runner should run the root Yudao platform verifier from the APP directory'
 )
 
 for (const required of [
-  '--env-file ${XUNJING_RELEASE_ENV_FILE:?Set XUNJING_RELEASE_ENV_FILE to the preprod or production env file}',
-  '--base-url "$XUNJING_APP_API_BASE_URL"',
-  '--tenant-id "$XUNJING_TENANT_ID"',
+  '--env-file',
+  '--base-url',
+  '--tenant-id',
   '--skip-admin-check',
   '--include-xicheng-app-check',
   '--include-xicheng-trigger-check',
-  '--evidence-file qa/xicheng-app-readiness-evidence.json'
+  '--evidence-file',
+  'qa/xicheng-app-readiness-evidence.json'
 ]) {
   assert.ok(
-    (scripts['verify:yudao:preprod'] || '').includes(required),
-    `APP preprod readiness script should include ${required}`
+    preprodRunner.includes(required),
+    `APP preprod readiness runner should include ${required}`
   )
 }

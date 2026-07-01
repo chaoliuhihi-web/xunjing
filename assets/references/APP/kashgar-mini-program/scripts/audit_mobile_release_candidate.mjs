@@ -1,6 +1,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
+import { loadReleaseEnvFile } from './release_env_loader.mjs'
+
+loadReleaseEnvFile()
 
 const defaultPreprodEvidencePath = '../../../../qa/xicheng-app-readiness-evidence.json'
 const defaultNativeEvidencePath = '../../../../qa/xicheng-native-device-evidence.json'
@@ -138,7 +141,7 @@ if (!preprodEvidence.exists) {
     blockers,
     'preprod-evidence-missing',
     `APP readiness evidence not found: ${preprodEvidence.path}`,
-    'Run XUNJING_RELEASE_ENV_FILE=/secure/path/preprod.env XUNJING_APP_API_BASE_URL=https://... XUNJING_TENANT_ID=1 npm run verify:yudao:preprod'
+    'Run XUNJING_RELEASE_ENV_FILE=/secure/path/preprod.env npm run verify:yudao:preprod'
   )
 } else if (preprodEvidence.error) {
   addBlocker(
@@ -177,7 +180,7 @@ if (!nativeEvidence.exists) {
     blockers,
     'native-evidence-missing',
     `Native device evidence not found: ${nativeEvidence.path}`,
-    'Run XUNJING_RELEASE_ARTIFACT=/path/to/signed.apk XUNJING_APP_API_BASE_URL=https://... XUNJING_TENANT_ID=1 npm run prepare:native:evidence, then complete real-device scenarios and run npm run verify:native:evidence'
+    'Run XUNJING_RELEASE_ENV_FILE=/secure/path/preprod.env XUNJING_RELEASE_ARTIFACT=/path/to/signed.apk npm run prepare:native:evidence, then complete real-device scenarios and run npm run verify:native:evidence'
   )
 } else if (nativeEvidence.error) {
   addBlocker(
@@ -246,7 +249,7 @@ if (!gates.nativeReleaseArtifact.exists) {
       blockers,
       'native-package-readiness-not-passing',
       `Native package readiness gate failed: ${readinessGate.detail}`,
-      'Set XUNJING_RELEASE_TARGETS, XUNJING_APP_API_BASE_URL, XUNJING_TENANT_ID, Android/iOS signing env, then run npm run verify:native:package:ready'
+      'Set XUNJING_RELEASE_ENV_FILE with release targets, API gateway, tenant id, and Android/iOS signing env, then run npm run verify:native:package:ready'
     )
   }
 }
@@ -265,7 +268,7 @@ if (gates.nativeReleaseArtifact.exists) {
       blockers,
       'release-artifact-env-missing',
       'Release artifact scan requires XUNJING_APP_API_BASE_URL and XUNJING_TENANT_ID or matching preprod evidence',
-      'Run with XUNJING_APP_API_BASE_URL=https://... XUNJING_TENANT_ID=1'
+      'Run with XUNJING_RELEASE_ENV_FILE=/secure/path/preprod.env or explicit XUNJING_APP_API_BASE_URL and XUNJING_TENANT_ID'
     )
   } else {
     const artifactGate = runNodeGate('verify_release_build_artifact.mjs', [releaseArtifactPath], {

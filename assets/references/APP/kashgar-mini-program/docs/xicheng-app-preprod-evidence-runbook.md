@@ -57,13 +57,10 @@ npm run xunjing:platform:verify -- \
 在 `assets/references/APP/kashgar-mini-program` 使用同一个非本地 HTTPS 后端采集 APP readiness evidence：
 
 ```bash
-XUNJING_RELEASE_ENV_FILE="/secure/path/preprod.env" \
-XUNJING_APP_API_BASE_URL="$XUNJING_APP_API_BASE_URL" \
-XUNJING_TENANT_ID="$XUNJING_TENANT_ID" \
-npm run verify:yudao:preprod
+XUNJING_RELEASE_ENV_FILE="/secure/path/preprod.env" npm run verify:yudao:preprod
 ```
 
-该命令会先执行 release 环境校验，拒绝 localhost、127.0.0.1、局域网和非 HTTPS 地址，然后调用仓库根目录 `npm run xunjing:platform:verify --`，输出 `qa/xicheng-app-readiness-evidence.json`。
+该命令会先从 `XUNJING_RELEASE_ENV_FILE` 加载缺失的 release 变量，再执行 release 环境校验，拒绝 localhost、127.0.0.1、局域网和非 HTTPS 地址，然后调用仓库根目录 `npm run xunjing:platform:verify --`，输出 `qa/xicheng-app-readiness-evidence.json`。命令行显式传入的环境变量优先，安全 env 文件不得提交到仓库。
 
 `XUNJING_TENANT_ID` 不能使用 `0`、负数或 `tenant-prod` 这类环境占位符；预发证据和真机证据中的 `tenantId` 必须保持同一个正整数编号。
 
@@ -171,9 +168,7 @@ for f in tests/*.test.mjs; do node "$f" || exit 1; done
 预发或上线真机包必须使用 release 打包入口，避免把 localhost、局域网或旧 Yudao 默认域名打进 APP 包：
 
 ```bash
-XUNJING_APP_API_BASE_URL="$XUNJING_APP_API_BASE_URL" \
-XUNJING_TENANT_ID="$XUNJING_TENANT_ID" \
-npm run build:app:release
+XUNJING_RELEASE_ENV_FILE="/secure/path/preprod.env" npm run build:app:release
 ```
 
 该 release 构建会自动执行 `npm run verify:release:artifact` 扫描 `dist/build/app-release`；同一脚本也可扫描 APK/ZIP 安装包内部文本资源。release 构建产物不得包含 `localhost`、`127.0.0.1`、局域网地址、`XICHENG_DEVELOPMENT_TRIGGER_FIXTURE`、H5 proxy 标记、`sk-`、`pat_`、`AKIA`、真实 token 或与 `XUNJING_APP_API_BASE_URL` 不一致的 Yudao APP API 网关。包内必须能扫描到 `XUNJING_APP_API_BASE_URL` 指定的 Yudao APP API 网关；旧 `api2/*`、图片和静态资源仍可保留原线上域名，但不得替代 `/app-api/xunjing/**` 的 release 网关。

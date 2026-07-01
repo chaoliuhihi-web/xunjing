@@ -1,6 +1,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
+import { loadReleaseEnvFile } from './release_env_loader.mjs'
+
+loadReleaseEnvFile()
 
 const artifactDirArg = process.argv[2] || process.env.XUNJING_RELEASE_ARTIFACT_DIR || 'dist/build/app-release'
 const expectedApiBaseUrl = String(process.env.XUNJING_APP_API_BASE_URL || '').trim().replace(/\/+$/, '')

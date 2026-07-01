@@ -7,6 +7,8 @@ import { spawnSync } from 'node:child_process'
 const root = process.cwd()
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
 const scriptPath = path.join(root, 'scripts', 'verify_release_build_artifact.mjs')
+const releaseBuildRunnerPath = path.join(root, 'scripts', 'run_release_app_build.mjs')
+const releaseBuildRunner = fs.readFileSync(releaseBuildRunnerPath, 'utf8')
 const releaseChecklist = fs.readFileSync(path.join(root, 'docs', 'xicheng-app-release-checklist.md'), 'utf8')
 const preprodRunbook = fs.readFileSync(path.join(root, 'docs', 'xicheng-app-preprod-evidence-runbook.md'), 'utf8')
 
@@ -21,8 +23,10 @@ assert.ok(
 )
 
 assert.ok(
-  (packageJson.scripts?.['build:app:release'] || '').includes('node scripts/verify_release_build_artifact.mjs'),
-  'APP release build should scan dist/build/app-release after UniApp build'
+  (packageJson.scripts?.['build:app:release'] || '').includes('node scripts/run_release_app_build.mjs') &&
+    releaseBuildRunner.includes('verify_release_build_artifact.mjs') &&
+    releaseBuildRunner.includes('dist/build/app-release'),
+  'APP release build runner should scan dist/build/app-release after UniApp build'
 )
 
 for (const required of [

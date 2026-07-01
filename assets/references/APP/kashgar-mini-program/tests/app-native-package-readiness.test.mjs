@@ -113,6 +113,42 @@ assert.equal(autoDetectedToolJson.nativeTool.autoDetected, true)
 assert.equal(autoDetectedToolJson.nativeTool.checked, true)
 assert.equal(autoDetectedToolJson.nativeTool.skipped, false)
 
+const envFilePath = path.join(tempDir, 'xicheng-release.env')
+fs.writeFileSync(envFilePath, [
+  '# Secure release env file fixture. Real secrets must stay outside git.',
+  'XUNJING_APP_API_BASE_URL=https://api.example.com',
+  'XUNJING_TENANT_ID=1',
+  'XUNJING_RELEASE_TARGETS=android',
+  'XUNJING_ANDROID_PACKAGE_NAME=com.xinghe.xunjing',
+  `XUNJING_ANDROID_KEYSTORE=${keystorePath}`,
+  'XUNJING_ANDROID_KEY_ALIAS=xicheng-release',
+  'XUNJING_ANDROID_KEYSTORE_PASSWORD=secret',
+  'XUNJING_ANDROID_KEY_PASSWORD=secret',
+  'XUNJING_SKIP_NATIVE_TOOL_CHECK=1'
+].join('\n'))
+const envFileResult = runReadiness({
+  XUNJING_RELEASE_ENV_FILE: envFilePath,
+  XUNJING_APP_API_BASE_URL: '',
+  XUNJING_TENANT_ID: '',
+  XUNJING_RELEASE_TARGETS: '',
+  XUNJING_ANDROID_PACKAGE_NAME: '',
+  XUNJING_ANDROID_KEYSTORE: '',
+  XUNJING_ANDROID_KEY_ALIAS: '',
+  XUNJING_ANDROID_KEYSTORE_PASSWORD: '',
+  XUNJING_ANDROID_KEY_PASSWORD: '',
+  XUNJING_SKIP_NATIVE_TOOL_CHECK: ''
+})
+assert.equal(
+  envFileResult.status,
+  0,
+  `native package readiness should load release config from XUNJING_RELEASE_ENV_FILE: ${envFileResult.stderr || envFileResult.stdout}`
+)
+const envFileJson = JSON.parse(envFileResult.stdout)
+assert.equal(envFileJson.appApiBaseUrl, 'https://api.example.com')
+assert.equal(envFileJson.tenantId, '1')
+assert.equal(envFileJson.android.keystore.path, keystorePath)
+assert.equal(envFileJson.nativeTool.skipped, true)
+
 const missingEnvResult = runReadiness({}, ['--skip-tool-check'])
 assert.notEqual(missingEnvResult.status, 0, 'native package readiness should reject missing release env')
 assert.match(
