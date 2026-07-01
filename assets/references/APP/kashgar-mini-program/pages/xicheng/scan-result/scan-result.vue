@@ -95,6 +95,9 @@
 				<view class="vision-agent-decision-copy">
 					<text class="vision-agent-decision-kicker">Agent 决策</text>
 					<text class="vision-agent-decision-summary">{{ visionAgentDecisionSummary }}</text>
+					<text v-if="cameraAgentDecisionTitle" class="vision-agent-decision-preview">
+						拍前预判：{{ cameraAgentDecisionTitle }}
+					</text>
 				</view>
 				<view class="vision-agent-signal-badges">
 					<text
@@ -737,19 +740,41 @@ export default {
 				}))
 				.slice(0, 4)
 		},
+		cameraAgentDecisionSnapshot() {
+			const visionContext = this.result.visionAgentContext || {}
+			return {
+				agentDecisionActionKey: String(visionContext.agentDecisionActionKey || ''),
+				agentDecisionActionTitle: String(visionContext.agentDecisionActionTitle || ''),
+				agentDecisionPreviewSummary: String(visionContext.agentDecisionPreviewSummary || ''),
+				sceneAgentActionPreviews: Array.isArray(visionContext.sceneAgentActionPreviews)
+					? visionContext.sceneAgentActionPreviews
+					: []
+			}
+		},
+		cameraAgentDecisionTitle() {
+			return this.cameraAgentDecisionSnapshot.agentDecisionActionTitle
+		},
+		cameraAgentDecisionSummary() {
+			return this.cameraAgentDecisionSnapshot.agentDecisionPreviewSummary
+		},
 		visionAgentDecisionSummary() {
 			if (this.recognitionActionBlocked) {
 				return '先确认官方 POI 和审核来源，再继续讲解、路线或服务动作。'
 			}
 			const visionContext = this.result.visionAgentContext || {}
+			const cameraAgentDecisionSummary = this.cameraAgentDecisionSummary
+			const cameraDecisionPrefix = cameraAgentDecisionSummary ? `拍前预判：${cameraAgentDecisionSummary}；` : ''
 			const sceneFusionSummary = visionContext.sceneFusionSummary || ''
 			const signalCount = this.sceneFusionSignalBadges.length
 			const routeCue = this.recommendedRoute && (this.recommendedRoute.title || this.recommendedRoute.theme)
 				? `优先可接入${this.recommendedRoute.title || this.recommendedRoute.theme}`
 				: '优先给出讲解、拍照和下一步服务'
-			return sceneFusionSummary
+			const fusedSummary = sceneFusionSummary
 				? `${sceneFusionSummary}，${routeCue}`
 				: `已融合${signalCount || 1}类现场信号，${routeCue}`
+			return cameraDecisionPrefix
+				? `${cameraDecisionPrefix}${fusedSummary}`
+				: fusedSummary
 		},
 		prioritizedVisionAgentActionCards() {
 			return this.prioritizeVisionAgentActions(this.visionAgentActionCards)
@@ -921,6 +946,7 @@ export default {
 			const weatherText = String(visionContext.weatherText || '')
 			const knowledgeGraphText = String(visionContext.knowledgeGraphText || '')
 			const userInterestTags = String(visionContext.userInterestTags || '')
+			const agentDecisionActionKey = String(visionContext.agentDecisionActionKey || '')
 			const routeHint = this.recommendedRoute ? 8 : 0
 			const scoreMap = {
 				'photo-spot': localTimeText || weatherText ? 40 : 16,
@@ -929,6 +955,13 @@ export default {
 				'video-brief': weatherText || localTimeText ? 26 : 14,
 				guide: 24 + routeHint,
 				english: 8
+			}
+			if (agentDecisionActionKey === 'photo-spot') scoreMap['photo-spot'] += 70
+			if (agentDecisionActionKey === 'deep-history') scoreMap['deep-history'] += 70
+			if (agentDecisionActionKey === 'continue-memory') scoreMap.guide += 70
+			if (agentDecisionActionKey === 'weather-route') {
+				scoreMap.guide += 46
+				scoreMap['video-brief'] += 24
 			}
 			return [...actions].sort((left, right) => {
 				const rightScore = scoreMap[right.actionKey] || 0
@@ -940,6 +973,7 @@ export default {
 			const hasRecommendedRoute = Boolean(this.recommendedRoute)
 			const visionContext = this.result.visionAgentContext || {}
 			const serviceText = String(visionContext.serviceText || '')
+			const agentDecisionActionKey = String(visionContext.agentDecisionActionKey || '')
 			const hasMerchantCue = /美食|商家|餐|merchant|food/i.test(serviceText)
 			const scoreMap = {
 				'next-stop': hasRecommendedRoute ? 42 : 18,
@@ -947,6 +981,11 @@ export default {
 				'nearby-food': hasMerchantCue ? 36 : 20,
 				souvenir: hasMerchantCue ? 28 : 12,
 				badge: 22
+			}
+			if (agentDecisionActionKey === 'next-service') {
+				scoreMap['next-stop'] += 52
+				scoreMap['nearby-food'] += 42
+				scoreMap.travelogue += 36
 			}
 			return [...actions].sort((left, right) => {
 				const rightScore = scoreMap[right.actionKey] || 0
@@ -2081,7 +2120,8 @@ export default {
 }
 
 .vision-agent-decision-kicker,
-.vision-agent-decision-summary {
+.vision-agent-decision-summary,
+.vision-agent-decision-preview {
 	display: block;
 	line-height: 1.45;
 }
@@ -2096,6 +2136,13 @@ export default {
 	margin-top: 8rpx;
 	font-size: 24rpx;
 	color: rgba(16, 47, 41, 0.76);
+}
+
+.vision-agent-decision-preview {
+	margin-top: 8rpx;
+	font-size: 22rpx;
+	font-weight: 800;
+	color: rgba(31, 110, 90, 0.86);
 }
 
 .vision-agent-signal-badges {
