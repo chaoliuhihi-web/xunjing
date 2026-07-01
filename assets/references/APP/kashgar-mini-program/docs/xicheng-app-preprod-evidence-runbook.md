@@ -129,6 +129,17 @@ npm run verify:launch:evidence
 
 该命令会复用真机证据校验，并额外确认预发后端证据包含 `live-xicheng-ai-chat-sourced`、`live-xicheng-ai-chat-blocked`、白塔寺、恭王府、北京天文馆 trigger smoke，以及扫码入口解析 `live-xicheng-scan-resolve`。扫码入口证据的 `targetPath` 必须指向 `/pages/map/detail`，`packageCode` 必须为 `XICHENG-MAP-001`，`tenantId` 必须和预发汇总一致。通过后才说明 APP 包、预发后端和真机证据来自同一个候选版本。
 
+如果需要给运营或测试同事快速判断当前候选还差什么，在同一目录运行只读审计：
+
+```bash
+XUNJING_APP_API_BASE_URL="$XUNJING_APP_API_BASE_URL" \
+XUNJING_TENANT_ID="$XUNJING_TENANT_ID" \
+XUNJING_RELEASE_ARTIFACT="/absolute/path/to/signed-release.apk" \
+npm run audit:release:candidate
+```
+
+审计结果只输出 `GO` / `NO_GO`、`blockers` 和 `nextActions`。`NO_GO` 不代表 APP 主链不可用，只代表手机端上线证据还没闭环；`GO` 必须同时证明预发证据、真机证据、签名安装包扫描、双远端 commit 一致和 `verify:launch:evidence` 均通过。
+
 ## 放行核查命令
 
 在仓库根目录使用安全环境文件执行，路径示例只表达位置，不代表真实密钥：

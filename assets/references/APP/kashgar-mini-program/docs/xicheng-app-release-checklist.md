@@ -86,6 +86,19 @@ npm run build:app:release
 
 `build:app:release` 会自动执行 `npm run verify:release:artifact` 对 `dist/build/app-release` 做 release 构建产物扫描；同一脚本也可扫描 APK/AAB/IPA/ZIP 安装包内部文本资源。门禁拒绝 `localhost`、`127.0.0.1`、局域网地址、`XICHENG_DEVELOPMENT_TRIGGER_FIXTURE`、H5 proxy 配置、`sk-`、`pat_`、`AKIA` 和真实 token 进入手机包。包内必须能扫描到 `XUNJING_APP_API_BASE_URL` 指定的 Yudao APP API 网关；旧 `api2/*`、图片和静态资源仍可保留原线上域名，但不得替代 `/app-api/xunjing/**` 的 release 网关。
 
+## 发布候选审计
+
+在补齐预发证据、真机证据和签名安装包后，可以先跑只读审计命令汇总当前候选状态：
+
+```bash
+XUNJING_APP_API_BASE_URL="$XUNJING_APP_API_BASE_URL" \
+XUNJING_TENANT_ID="$XUNJING_TENANT_ID" \
+XUNJING_RELEASE_ARTIFACT="/absolute/path/to/signed-release.apk" \
+npm run audit:release:candidate
+```
+
+该命令只输出 `GO` 或 `NO_GO`、`blockers` 和 `nextActions`，不会把模板或本地结果当成上线证据。`NO_GO` 代表还缺 `qa/xicheng-app-readiness-evidence.json`、`qa/xicheng-native-device-evidence.json`、签名安装包、双远端同步或 `verify:launch:evidence` 中的某一项；`GO` 只代表预发证据、真机证据、安装包扫描和双远端一致性已经同时通过。
+
 在仓库根目录运行：
 
 ```bash

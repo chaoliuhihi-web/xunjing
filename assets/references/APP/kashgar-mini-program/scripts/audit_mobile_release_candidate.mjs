@@ -1,0 +1,315 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import { spawnSync } from 'node:child_process'
+
+const defaultPreprodEvidencePath = '../../../../qa/xicheng-app-readiness-evidence.json'
+const defaultNativeEvidencePath = '../../../../qa/xicheng-native-device-evidence.json'
+
+const args = process.argv.slice(2)
+const readArg = (name, fallback = '') => {
+  const index = args.indexOf(name)
+  if (index !== -1 && args[index + 1]) return args[index + 1]
+  return fallback
+}
+const hasFlag = (name) => args.includes(name)
+
+const run = (command, commandArgs, options = {}) => spawnSync(command, commandArgs, {
+  cwd: options.cwd || process.cwd(),
+  env: options.env || process.env,
+  encoding: 'utf8'
+})
+
+const readGit = (gitArgs, fallback = '') => {
+  const result = run('git', gitArgs)
+  return result.status === 0 ? result.stdout.trim() : fallback
+}
+
+const repoRoot = readGit(['rev-parse', '--show-toplevel'], process.cwd())
+const currentHead = readGit(['rev-parse', 'HEAD'])
+const currentBranch = readGit(['rev-parse', '--abbrev-ref', 'HEAD'], 'HEAD')
+
+const resolveInputPath = (inputPath) => {
+  if (!String(inputPath || '').trim()) return ''
+  return path.isAbsolute(inputPath) ? inputPath : path.resolve(process.cwd(), inputPath)
+}
+
+const normalizeUrl = (value) => String(value || '').trim().replace(/\/+$/, '')
+
+const readJsonIfPresent = (inputPath) => {
+  const resolvedPath = resolveInputPath(inputPath)
+  if (!resolvedPath || !fs.existsSync(resolvedPath)) {
+    return { path: resolvedPath, exists: false, json: null, error: '' }
+  }
+  try {
+    return {
+      path: resolvedPath,
+      exists: true,
+      json: JSON.parse(fs.readFileSync(resolvedPath, 'utf8')),
+      error: ''
+    }
+  } catch (error) {
+    return { path: resolvedPath, exists: true, json: null, error: error.message }
+  }
+}
+
+const summarizeCommandFailure = (result) => String(result.stderr || result.stdout || '').trim().split('\n')[0] || 'command failed'
+
+const addBlocker = (blockers, code, message, nextAction) => {
+  if (blockers.some((blocker) => blocker.code === code)) return
+  blockers.push({ code, message, nextAction })
+}
+
+const remoteParity = (remoteRef) => {
+  const result = run('git', ['rev-list', '--left-right', '--count', `HEAD...${remoteRef}`])
+  if (result.status !== 0) {
+    return { remoteRef, ok: false, detail: summarizeCommandFailure(result) }
+  }
+  const [ahead, behind] = result.stdout.trim().split(/\s+/).map((value) => Number(value))
+  return {
+    remoteRef,
+    ok: ahead === 0 && behind === 0,
+    ahead,
+    behind
+  }
+}
+
+const runNodeGate = (scriptName, gateArgs, env = process.env) => {
+  const scriptPath = path.resolve(process.cwd(), 'scripts', scriptName)
+  const result = run(process.execPath, [scriptPath, ...gateArgs], { env })
+  return {
+    ok: result.status === 0,
+    exitCode: result.status,
+    detail: result.status === 0 ? 'pass' : summarizeCommandFailure(result),
+    stdout: result.stdout,
+    stderr: result.stderr
+  }
+}
+
+const preprodEvidenceArg = readArg('--preprod-evidence', process.env.XUNJING_PREPROD_EVIDENCE_FILE || defaultPreprodEvidencePath)
+const nativeEvidenceArg = readArg('--native-evidence', process.env.XUNJING_NATIVE_DEVICE_EVIDENCE_FILE || defaultNativeEvidencePath)
+const releaseArtifactArg = readArg('--release-artifact', process.env.XUNJING_RELEASE_ARTIFACT || '')
+
+const blockers = []
+const warnings = []
+const gates = {}
+const skipRemoteParity = hasFlag('--skip-remote-parity') || process.env.XUNJING_SKIP_REMOTE_PARITY === '1'
+
+gates.git = {
+  ok: Boolean(currentHead),
+  branch: currentBranch,
+  commit: currentHead,
+  skipRemoteParity,
+  remotes: [
+    remoteParity('github/feature/xicheng-p0'),
+    remoteParity('origin/feature/xicheng-p0')
+  ]
+}
+for (const remote of gates.git.remotes) {
+  if (!skipRemoteParity && !remote.ok) {
+    addBlocker(
+      blockers,
+      `git-remote-not-in-sync-${remote.remoteRef.replace(/[^a-z0-9]+/gi, '-')}`,
+      `${remote.remoteRef} is not at the current release candidate commit`,
+      `git fetch --all --prune && git rev-list --left-right --count HEAD...${remote.remoteRef}`
+    )
+  }
+}
+
+const preprodEvidence = readJsonIfPresent(preprodEvidenceArg)
+gates.preprodEvidence = {
+  ok: false,
+  path: preprodEvidence.path,
+  exists: preprodEvidence.exists
+}
+if (!preprodEvidence.exists) {
+  addBlocker(
+    blockers,
+    'preprod-evidence-missing',
+    `APP readiness evidence not found: ${preprodEvidence.path}`,
+    'Run XUNJING_RELEASE_ENV_FILE=/secure/path/preprod.env XUNJING_APP_API_BASE_URL=https://... XUNJING_TENANT_ID=1 npm run verify:yudao:preprod'
+  )
+} else if (preprodEvidence.error) {
+  addBlocker(
+    blockers,
+    'preprod-evidence-invalid-json',
+    `APP readiness evidence JSON is invalid: ${preprodEvidence.error}`,
+    'Regenerate qa/xicheng-app-readiness-evidence.json from the preprod readiness command'
+  )
+} else {
+  const summary = preprodEvidence.json?.summary || {}
+  gates.preprodEvidence = {
+    ...gates.preprodEvidence,
+    ok: preprodEvidence.json?.artifactType === 'xunjing-platform-readiness' && preprodEvidence.json?.ok === true,
+    checkedAt: preprodEvidence.json?.checkedAt || '',
+    baseUrl: normalizeUrl(summary.baseUrl),
+    tenantId: String(summary.tenantId || '')
+  }
+  if (!gates.preprodEvidence.ok) {
+    addBlocker(
+      blockers,
+      'preprod-evidence-not-passing',
+      'APP readiness evidence is present but is not a passing xunjing-platform-readiness artifact',
+      'Regenerate preprod readiness evidence after the HTTPS Yudao APP API passes all Xicheng checks'
+    )
+  }
+}
+
+const nativeEvidence = readJsonIfPresent(nativeEvidenceArg)
+gates.nativeEvidence = {
+  ok: false,
+  path: nativeEvidence.path,
+  exists: nativeEvidence.exists
+}
+if (!nativeEvidence.exists) {
+  addBlocker(
+    blockers,
+    'native-evidence-missing',
+    `Native device evidence not found: ${nativeEvidence.path}`,
+    'Run XUNJING_RELEASE_ARTIFACT=/path/to/signed.apk XUNJING_APP_API_BASE_URL=https://... XUNJING_TENANT_ID=1 npm run prepare:native:evidence, then complete real-device scenarios and run npm run verify:native:evidence'
+  )
+} else if (nativeEvidence.error) {
+  addBlocker(
+    blockers,
+    'native-evidence-invalid-json',
+    `Native device evidence JSON is invalid: ${nativeEvidence.error}`,
+    'Regenerate or repair qa/xicheng-native-device-evidence.json'
+  )
+} else {
+  const nativeGate = runNodeGate('verify_native_device_evidence.mjs', [nativeEvidence.path])
+  gates.nativeEvidence = {
+    ...gates.nativeEvidence,
+    ok: nativeGate.ok,
+    detail: nativeGate.detail,
+    commit: nativeEvidence.json?.commit || '',
+    appApiBaseUrl: normalizeUrl(nativeEvidence.json?.appApiBaseUrl),
+    tenantId: String(nativeEvidence.json?.tenantId || ''),
+    releaseTargets: nativeEvidence.json?.releaseTargets || [],
+    artifact: nativeEvidence.json?.build?.artifact || ''
+  }
+  if (!nativeGate.ok) {
+    addBlocker(
+      blockers,
+      'native-evidence-not-passing',
+      `Native device evidence gate failed: ${nativeGate.detail}`,
+      'Complete every physical-device scenario with non-empty qa/ screenshot or recording evidence, then rerun npm run verify:native:evidence'
+    )
+  }
+}
+
+const releaseArtifactPath = resolveInputPath(
+  releaseArtifactArg ||
+    nativeEvidence.json?.build?.artifact ||
+    ''
+)
+gates.nativeReleaseArtifact = {
+  ok: Boolean(releaseArtifactPath && fs.existsSync(releaseArtifactPath)),
+  path: releaseArtifactPath,
+  exists: Boolean(releaseArtifactPath && fs.existsSync(releaseArtifactPath))
+}
+if (!gates.nativeReleaseArtifact.exists) {
+  addBlocker(
+    blockers,
+    'native-release-artifact-missing',
+    `Native release artifact not found: ${releaseArtifactPath || '(not configured)'}`,
+    'Create a signed Android APK/AAB or iOS IPA, then set XUNJING_RELEASE_ARTIFACT to that file before preparing native evidence'
+  )
+}
+
+const expectedApiBaseUrl = normalizeUrl(process.env.XUNJING_APP_API_BASE_URL || gates.preprodEvidence.baseUrl)
+const expectedTenantId = String(process.env.XUNJING_TENANT_ID || gates.preprodEvidence.tenantId || '').trim()
+gates.releaseArtifactScan = {
+  ok: false,
+  artifact: releaseArtifactPath,
+  expectedApiBaseUrl,
+  expectedTenantId
+}
+if (gates.nativeReleaseArtifact.exists) {
+  if (!expectedApiBaseUrl || !expectedTenantId) {
+    addBlocker(
+      blockers,
+      'release-artifact-env-missing',
+      'Release artifact scan requires XUNJING_APP_API_BASE_URL and XUNJING_TENANT_ID or matching preprod evidence',
+      'Run with XUNJING_APP_API_BASE_URL=https://... XUNJING_TENANT_ID=1'
+    )
+  } else {
+    const artifactGate = runNodeGate('verify_release_build_artifact.mjs', [releaseArtifactPath], {
+      ...process.env,
+      XUNJING_APP_API_BASE_URL: expectedApiBaseUrl,
+      XUNJING_TENANT_ID: expectedTenantId
+    })
+    gates.releaseArtifactScan = {
+      ...gates.releaseArtifactScan,
+      ok: artifactGate.ok,
+      detail: artifactGate.detail
+    }
+    if (!artifactGate.ok) {
+      addBlocker(
+        blockers,
+        'release-artifact-scan-failed',
+        `Release artifact scan failed: ${artifactGate.detail}`,
+        'Rebuild the signed mobile package with the same XUNJING_APP_API_BASE_URL and XUNJING_TENANT_ID used for preprod evidence'
+      )
+    }
+  }
+}
+
+gates.launchEvidence = {
+  ok: false,
+  preprodEvidence: preprodEvidence.path,
+  nativeEvidence: nativeEvidence.path
+}
+if (preprodEvidence.exists && !preprodEvidence.error && nativeEvidence.exists && !nativeEvidence.error) {
+  const launchGate = runNodeGate('verify_mobile_launch_evidence_bundle.mjs', [
+    '--preprod-evidence',
+    preprodEvidence.path,
+    '--native-evidence',
+    nativeEvidence.path
+  ])
+  gates.launchEvidence = {
+    ...gates.launchEvidence,
+    ok: launchGate.ok,
+    detail: launchGate.detail
+  }
+  if (!launchGate.ok) {
+    addBlocker(
+      blockers,
+      'launch-evidence-bundle-not-passing',
+      `Launch evidence bundle gate failed: ${launchGate.detail}`,
+      'Make preprod evidence, native evidence, commit, tenantId, base URL, and release artifact all describe the same candidate, then run npm run verify:launch:evidence'
+    )
+  }
+}
+
+const appResourceBuildPath = path.resolve(process.cwd(), 'dist/build/app-release')
+gates.appResourceBuild = {
+  ok: fs.existsSync(appResourceBuildPath),
+  path: appResourceBuildPath,
+  note: 'uni build -p app resource output; this is not a signed mobile install package'
+}
+if (!gates.appResourceBuild.ok) {
+  warnings.push({
+    code: 'app-resource-build-missing',
+    message: 'dist/build/app-release is missing; run npm run build:app:release before native packaging'
+  })
+}
+
+const nextActions = blockers.map((blocker) => blocker.nextAction)
+if (nextActions.length === 0) {
+  nextActions.push('Run the final store/channel-specific signing and distribution checklist outside this repository gate')
+}
+
+const status = blockers.length === 0 ? 'GO' : 'NO_GO'
+const report = {
+  artifactType: 'xicheng-mobile-release-candidate-audit',
+  checkedAt: new Date().toISOString(),
+  status,
+  branch: currentBranch,
+  commit: currentHead,
+  blockers,
+  warnings,
+  gates,
+  nextActions
+}
+
+console.log(JSON.stringify(report, null, 2))
+process.exit(status === 'GO' ? 0 : 1)

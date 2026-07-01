@@ -810,24 +810,9 @@ export const createXichengTravelogueDraft = ({
 	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒。${trackText}${stayText}${photoText}${routeCheckinText}${remarkText}${studyTaskText}${aiGuideText}${visionAgentTaskText}${visionAgentMemorySessionText}这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
 }
 
-const createEmptyRecordingSession = () => ({
-	sessionId: '',
-	regionCode: XICHENG_REGION_CONFIG.regionCode,
-	packageCode: XICHENG_REGION_CONFIG.packageCode,
-	status: 'idle',
-	startedAt: '',
-	pausedAt: '',
-	finishedAt: '',
-	trackPoints: [],
-	stayPoints: [],
-	filteredTrackPoints: []
-})
+const createEmptyRecordingSession = () => ({ sessionId: '', regionCode: XICHENG_REGION_CONFIG.regionCode, packageCode: XICHENG_REGION_CONFIG.packageCode, status: 'idle', startedAt: '', pausedAt: '', finishedAt: '', trackPoints: [], stayPoints: [], filteredTrackPoints: [] })
 
-const XICHENG_TRACK_POINT_QUALITY = Object.freeze({
-	maxPoiAttributionAccuracyMeters: 80,
-	abnormalJumpWindowSeconds: 5,
-	abnormalJumpDistanceMeters: 500
-})
+const XICHENG_TRACK_POINT_QUALITY = Object.freeze({ maxPoiAttributionAccuracyMeters: 80, abnormalJumpWindowSeconds: 5, abnormalJumpDistanceMeters: 500 })
 
 const normalizeTrackNumber = (value) => {
 	const numericValue = Number(value)
