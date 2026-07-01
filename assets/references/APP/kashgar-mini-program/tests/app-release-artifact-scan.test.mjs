@@ -346,6 +346,21 @@ assert.match(
   'release artifact scanner should explain credential rejection from template-literal Bearer tokens'
 )
 
+const artifactDirWithCredentialUrl = makeArtifactDir({
+  'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";const posterUrl="https://preview-user:superSecret123@media.xingheai.net/poster.png";'
+})
+const credentialUrlResult = runScanner(artifactDirWithCredentialUrl)
+assert.notEqual(
+  credentialUrlResult.status,
+  0,
+  'release artifact scanner should reject URLs with embedded username/password credentials'
+)
+assert.match(
+  `${credentialUrlResult.stderr}\n${credentialUrlResult.stdout}`,
+  /URL|credential|username|password|secret|密钥|凭证/i,
+  'release artifact scanner should explain credential rejection from userinfo URLs'
+)
+
 const apkWithLocalGateway = makeZipArtifact({
   'assets/index.js': 'const apiBase="http://localhost:48082/app-api/xunjing";'
 })

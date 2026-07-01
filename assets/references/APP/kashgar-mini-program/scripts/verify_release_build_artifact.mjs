@@ -71,6 +71,7 @@ const forbiddenPatterns = [
   { name: 'XICHENG_DEVELOPMENT_TRIGGER_FIXTURE', pattern: /XICHENG_DEVELOPMENT_TRIGGER_FIXTURE/ },
   { name: 'VITE_XUNJING_H5_PROXY_TARGET', pattern: /VITE_XUNJING_H5_PROXY_TARGET/ },
   { name: 'XUNJING_LOCAL_APP_API_BASE_URL', pattern: /XUNJING_LOCAL_APP_API_BASE_URL/ },
+  { name: 'URL embedded username/password credential', pattern: /https?:\/\/[^/\s"'`<>:@]+:[^@\s"'`<>]{8,}@/i },
   { name: 'OpenAI-style secret key', pattern: /\bsk-[A-Za-z0-9_-]{20,}\b/ },
   { name: 'GitHub/Gitee PAT token', pattern: /\b(?:pat|ghp|github_pat)_[A-Za-z0-9_]{20,}\b/ },
   { name: 'AWS access key id credential', pattern: /\bAKIA[0-9A-Z]{16}\b/ },
