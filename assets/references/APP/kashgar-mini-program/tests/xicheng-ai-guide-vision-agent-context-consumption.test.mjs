@@ -33,7 +33,9 @@ for (const required of [
   'headingText',
   'serviceText',
   'knowledgeGraphText',
-  'agentDecisionActionTitle'
+  'agentDecisionActionTitle',
+  'agentDecisionReasonSummary',
+  'agentDecisionReasonCards'
 ]) {
   assert.ok(aiGuide.includes(required), `AI guide should carry Vision Agent context token ${required}`)
 }
@@ -46,20 +48,20 @@ assert.match(
 
 assert.match(
   applyContextBlock,
-  /visionAgentContext:\s*context\.visionAgentContext[\s\S]*sourceRecognitionContext:\s*context\.sourceRecognitionContext[\s\S]*sceneFusionSummary:\s*context\.sceneFusionSummary[\s\S]*sceneFusionSignals:\s*context\.sceneFusionSignals[\s\S]*worldInterfaceSummary:\s*context\.worldInterfaceSummary[\s\S]*worldInterfaceSignals:\s*context\.worldInterfaceSignals[\s\S]*visionAgentMemorySessionText:\s*context\.visionAgentMemorySessionText[\s\S]*memorySessionSceneCount:\s*context\.memorySessionSceneCount/,
-  'Applied Xiaojing context should retain Vision Agent scene fusion, World Interface, memory session, and live-signal fields'
+  /visionAgentContext:\s*context\.visionAgentContext[\s\S]*sourceRecognitionContext:\s*context\.sourceRecognitionContext[\s\S]*sceneFusionSummary:\s*context\.sceneFusionSummary[\s\S]*sceneFusionSignals:\s*context\.sceneFusionSignals[\s\S]*worldInterfaceSummary:\s*context\.worldInterfaceSummary[\s\S]*worldInterfaceSignals:\s*context\.worldInterfaceSignals[\s\S]*visionAgentMemorySessionText:\s*context\.visionAgentMemorySessionText[\s\S]*memorySessionSceneCount:\s*context\.memorySessionSceneCount[\s\S]*agentDecisionReasonSummary:\s*context\.agentDecisionReasonSummary[\s\S]*agentDecisionReasonCards:\s*context\.agentDecisionReasonCards/,
+  'Applied Xiaojing context should retain Vision Agent scene fusion, World Interface, memory session, decision reasons, and live-signal fields'
 )
 
 assert.match(
   contextQuestionBlock,
-  /worldInterfaceSummary[\s\S]*世界交互入口[\s\S]*sceneFusionSummary[\s\S]*AI识境现场判断[\s\S]*visionAgentMemorySessionText[\s\S]*连续识境[\s\S]*localTimeText[\s\S]*weatherText[\s\S]*headingText/,
-  'Xiaojing request prompt should include World Interface, AI识境 scene decision, memory continuity, and live environment signals'
+  /worldInterfaceSummary[\s\S]*世界交互入口[\s\S]*sceneFusionSummary[\s\S]*AI识境现场判断[\s\S]*agentDecisionReasonSummary[\s\S]*Agent决策依据[\s\S]*visionAgentMemorySessionText[\s\S]*连续识境[\s\S]*localTimeText[\s\S]*weatherText[\s\S]*headingText/,
+  'Xiaojing request prompt should include World Interface, AI识境 scene decision, Agent decision reasons, memory continuity, and live environment signals'
 )
 
 assert.match(
   heroSubtitleBlock,
-  /worldInterfaceSummary[\s\S]*sceneFusionSummary[\s\S]*AI识境已接入[\s\S]*visionAgentMemorySessionText/,
-  'Xicheng Xiaojing hero subtitle should make the carried AI识境 World Interface context visible'
+  /agentDecisionReasonSummary[\s\S]*worldInterfaceSummary[\s\S]*sceneFusionSummary[\s\S]*AI识境已接入[\s\S]*visionAgentMemorySessionText/,
+  'Xicheng Xiaojing hero subtitle should make the carried AI识境 decision reasons and World Interface context visible'
 )
 
 for (const required of [
@@ -73,8 +75,8 @@ for (const required of [
 
 assert.match(
   aiGuide,
-  /const xichengVisionAgentContextChips = computed\(\(\) => \{[\s\S]*worldInterfaceSummary[\s\S]*sceneFusionSummary[\s\S]*visionAgentMemorySessionText[\s\S]*localTimeText[\s\S]*weatherText[\s\S]*headingText[\s\S]*slice\(0, 5\)/,
-  'Xicheng Xiaojing should derive compact visible chips from World Interface, scene fusion, memory, time, weather, and heading signals'
+  /const xichengVisionAgentContextChips = computed\(\(\) => \{[\s\S]*agentDecisionReasonSummary[\s\S]*worldInterfaceSummary[\s\S]*sceneFusionSummary[\s\S]*visionAgentMemorySessionText[\s\S]*localTimeText[\s\S]*weatherText[\s\S]*headingText[\s\S]*slice\(0, 6\)/,
+  'Xicheng Xiaojing should derive compact visible chips from Agent decision reasons, World Interface, scene fusion, memory, time, weather, and heading signals'
 )
 
 for (const required of [
