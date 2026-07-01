@@ -15,6 +15,7 @@ const buildRunnerPath = path.join(root, 'scripts', 'run_release_app_build.mjs')
 const preprodRunnerPath = path.join(root, 'scripts', 'run_preprod_yudao_verify.mjs')
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-release-env-'))
 const envFilePath = path.join(tempDir, 'preprod.env')
+const platformEnvFilePath = path.join(tempDir, 'platform.env')
 
 assert.ok(
   fs.existsSync(buildRunnerPath),
@@ -40,6 +41,12 @@ fs.writeFileSync(envFilePath, [
   '# APP release gateway values are loaded from a secure env file.',
   'XUNJING_APP_API_BASE_URL="https://api.xingheai.net/"',
   'XUNJING_TENANT_ID=1'
+].join('\n'))
+
+fs.writeFileSync(platformEnvFilePath, [
+  '# Full platform readiness variables are kept separate from APP release signing variables.',
+  'SPRING_PROFILES_ACTIVE=preprod',
+  'MYSQL_HOST=preprod-db.internal'
 ].join('\n'))
 
 const result = spawnSync(process.execPath, [scriptPath], {
@@ -86,6 +93,7 @@ const preprodDryRunResult = spawnSync(process.execPath, [preprodRunnerPath, '--d
   env: {
     ...process.env,
     XUNJING_RELEASE_ENV_FILE: envFilePath,
+    XUNJING_PLATFORM_ENV_FILE: platformEnvFilePath,
     XUNJING_APP_API_BASE_URL: '',
     XUNJING_TENANT_ID: ''
   },
@@ -102,7 +110,7 @@ assert.equal(preprodDryRunJson.ok, true)
 assert.equal(preprodDryRunJson.cwd, repoRoot)
 assert.ok(preprodDryRunJson.args.includes('--include-xicheng-app-check'))
 assert.ok(preprodDryRunJson.args.includes('--include-xicheng-trigger-check'))
-assert.equal(preprodDryRunJson.args[preprodDryRunJson.args.indexOf('--env-file') + 1], envFilePath)
+assert.equal(preprodDryRunJson.args[preprodDryRunJson.args.indexOf('--env-file') + 1], platformEnvFilePath)
 assert.equal(preprodDryRunJson.args[preprodDryRunJson.args.indexOf('--base-url') + 1], 'https://api.xingheai.net/')
 assert.equal(preprodDryRunJson.args[preprodDryRunJson.args.indexOf('--tenant-id') + 1], '1')
 

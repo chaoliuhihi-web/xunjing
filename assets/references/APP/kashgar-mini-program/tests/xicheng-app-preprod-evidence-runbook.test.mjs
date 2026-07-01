@@ -18,6 +18,7 @@ for (const required of [
   '非本地 HTTPS',
   'APP readiness evidence',
   'XUNJING_APP_API_BASE_URL',
+  'XUNJING_PLATFORM_ENV_FILE',
   'VITE_XUNJING_YUDAO_APP_BASE_URL',
   'VITE_XUNJING_TENANT_ID',
   'WX_MP_APP_ID',

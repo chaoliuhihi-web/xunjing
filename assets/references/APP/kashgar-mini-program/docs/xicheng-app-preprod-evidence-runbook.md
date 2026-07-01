@@ -57,10 +57,12 @@ npm run xunjing:platform:verify -- \
 在 `assets/references/APP/kashgar-mini-program` 使用同一个非本地 HTTPS 后端采集 APP readiness evidence：
 
 ```bash
-XUNJING_RELEASE_ENV_FILE="/secure/path/preprod.env" npm run verify:yudao:preprod
+XUNJING_RELEASE_ENV_FILE="/secure/path/app-release.env" \
+XUNJING_PLATFORM_ENV_FILE="/secure/path/platform-preprod.env" \
+npm run verify:yudao:preprod
 ```
 
-该命令会先从 `XUNJING_RELEASE_ENV_FILE` 加载缺失的 release 变量，再执行 release 环境校验，拒绝 localhost、127.0.0.1、局域网和非 HTTPS 地址，然后调用仓库根目录 `npm run xunjing:platform:verify --`，输出 `qa/xicheng-app-readiness-evidence.json`。命令行显式传入的环境变量优先，安全 env 文件不得提交到仓库。
+该命令会先从 `XUNJING_RELEASE_ENV_FILE` 加载缺失的 release 变量，再执行 release 环境校验，拒绝 localhost、127.0.0.1、局域网和非 HTTPS 地址，然后调用仓库根目录 `npm run xunjing:platform:verify --`，输出 `qa/xicheng-app-readiness-evidence.json`。`XUNJING_PLATFORM_ENV_FILE` 会作为根平台验证器的 `--env-file`，必须包含 `SPRING_PROFILES_ACTIVE`、数据库、Redis、OSS、Qdrant、Qwen 和内部鉴权变量；如果不设置会回退使用 `XUNJING_RELEASE_ENV_FILE`，所以只包含 APP 网关、租户或签名变量的 release env 不能替代完整平台 env。命令行显式传入的环境变量优先，安全 env 文件不得提交到仓库。
 
 `XUNJING_TENANT_ID` 不能使用 `0`、负数或 `tenant-prod` 这类环境占位符；预发证据和真机证据中的 `tenantId` 必须保持同一个正整数编号。
 
