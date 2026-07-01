@@ -41,6 +41,7 @@ for (const required of [
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-native-cloud-pack-'))
 const keystorePath = path.join(tempDir, 'xicheng-release.keystore')
 const fakeCliPath = path.join(tempDir, 'hbuilderx-cli')
+const importSoftFailureCliPath = path.join(tempDir, 'hbuilderx-import-soft-failure-cli')
 const softFailureCliPath = path.join(tempDir, 'hbuilderx-soft-failure-cli')
 const loginFailureCliPath = path.join(tempDir, 'hbuilderx-login-failure-cli')
 const invocationPath = path.join(tempDir, 'hbuilderx-invocation.json')
@@ -94,6 +95,17 @@ fs.writeFileSync(softFailureCliPath, [
   'exit 0'
 ].join('\n'))
 fs.chmodSync(softFailureCliPath, 0o755)
+
+fs.writeFileSync(importSoftFailureCliPath, [
+  '#!/bin/sh',
+  'if [ "$1" = "project" ]; then',
+  '  printf "%s\\n" "01:44:51.737 项目 /tmp/xunjing-app 不存在，请先导入"',
+  '  exit 0',
+  'fi',
+  'printf "%s\\n" "pack should not run after project import soft failure"',
+  'exit 0'
+].join('\n'))
+fs.chmodSync(importSoftFailureCliPath, 0o755)
 
 fs.writeFileSync(loginFailureCliPath, [
   '#!/bin/sh',
@@ -195,6 +207,21 @@ assert.ok(invokedArgs.includes('--android.certpassword'))
 assert.ok(invokedArgs.includes('key-secret'))
 assert.ok(invokedArgs.includes('--android.storepassword'))
 assert.ok(invokedArgs.includes('store-secret'))
+
+const importSoftFailureExecuteResult = runPack({
+  XUNJING_NATIVE_PACK_CONFIRM: 'cloud-pack',
+  HBUILDERX_CLI: importSoftFailureCliPath
+}, ['--execute'])
+assert.notEqual(
+  importSoftFailureExecuteResult.status,
+  0,
+  'native cloud pack execute should fail when HBuilderX project import prints a soft failure even with exit 0'
+)
+assert.match(
+  `${importSoftFailureExecuteResult.stderr}\n${importSoftFailureExecuteResult.stdout}`,
+  /不存在|请先导入|project|import/i,
+  'native cloud pack execute should explain HBuilderX project import soft failure output'
+)
 
 const softFailureExecuteResult = runPack({
   XUNJING_NATIVE_PACK_CONFIRM: 'cloud-pack',

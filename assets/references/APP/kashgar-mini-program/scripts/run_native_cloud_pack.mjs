@@ -188,8 +188,9 @@ const projectImportResult = spawnSync(executable, projectImportArgv, {
 })
 const redactedProjectImportStdout = redactText(projectImportResult.stdout).trim()
 const redactedProjectImportStderr = redactText(projectImportResult.stderr).trim()
+const projectImportSoftFailurePattern = detectHbuilderxSoftFailure(`${projectImportResult.stdout}\n${projectImportResult.stderr}`)
 
-if (projectImportResult.status !== 0) {
+if (projectImportResult.status !== 0 || projectImportSoftFailurePattern) {
   console.error(JSON.stringify({
     ok: false,
     artifactType: 'xicheng-native-cloud-pack-command',
@@ -207,7 +208,12 @@ if (projectImportResult.status !== 0) {
       argv: redactedArgv
     },
     redactedCommand,
-    message: 'HBuilderX project import failed before cloud pack.',
+    softFailure: projectImportSoftFailurePattern
+      ? 'HBuilderX project import returned exit 0 but reported a blocking soft failure'
+      : '',
+    message: projectImportSoftFailurePattern
+      ? 'HBuilderX project import reported a blocking soft failure before cloud pack.'
+      : 'HBuilderX project import failed before cloud pack.',
     nextCommands: [
       'Open HBuilderX and confirm the APP project can be imported manually.',
       'Rerun XUNJING_RELEASE_ENV_FILE=/secure/path/preprod.env XUNJING_NATIVE_PACK_CONFIRM=cloud-pack npm run pack:native:cloud.'
