@@ -73,6 +73,7 @@ const forbiddenPatterns = [
   { name: '198.18-19 benchmark reserved host', pattern: /\b198\.(18|19)\.\d{1,3}\.\d{1,3}\b/ },
   { name: '224-255 multicast/reserved host', pattern: /\b(22[4-9]|23\d|24\d|25[0-5])\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/ },
   { name: 'private/link-local IPv6 host', pattern: /https?:\/\/\[(?:::|::1|f[cd][0-9a-f]{0,2}:|fe[89ab][0-9a-f]:)/i },
+  { name: '.local or .localdomain host', pattern: /https?:\/\/(?:[^/\s"'`<>:@]+\.)?(?:local|localdomain)(?::\d+)?(?:[/?#]|$)/i },
   { name: 'XICHENG_DEVELOPMENT_TRIGGER_FIXTURE', pattern: /XICHENG_DEVELOPMENT_TRIGGER_FIXTURE/ },
   { name: 'VITE_XUNJING_H5_PROXY_TARGET', pattern: /VITE_XUNJING_H5_PROXY_TARGET/ },
   { name: 'XUNJING_LOCAL_APP_API_BASE_URL', pattern: /XUNJING_LOCAL_APP_API_BASE_URL/ },

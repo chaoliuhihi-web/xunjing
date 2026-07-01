@@ -188,7 +188,7 @@ for f in tests/*.test.mjs; do node "$f" || exit 1; done
 XUNJING_RELEASE_ENV_FILE="/secure/path/preprod.env" npm run build:app:release
 ```
 
-该 release 构建会自动执行 `npm run verify:release:artifact` 扫描 `dist/build/app-release`；同一脚本也可扫描 APK/ZIP 安装包内部文本资源。release 构建产物不得包含 `localhost`、`127.0.0.1`、局域网地址、IPv4/IPv6 链路本地地址、IPv4-mapped IPv6 私网/保留地址、IPv6 私网地址、CGNAT、benchmark 保留网段、组播或其它保留网段、URL 内嵌账号密码、`XICHENG_DEVELOPMENT_TRIGGER_FIXTURE`、H5 proxy 标记、`sk-`、`pat_`、`AKIA`、真实 token、与 `XUNJING_APP_API_BASE_URL` 不一致的 Yudao APP API 网关，或与 `XUNJING_TENANT_ID` 不一致的租户配置。包内必须能扫描到 `XUNJING_APP_API_BASE_URL` 指定的 Yudao APP API 网关，以及和 `XUNJING_TENANT_ID` 一致的租户配置；旧 `api2/*`、图片和静态资源仍可保留原线上域名，但不得替代 `/app-api/xunjing/**` 的 release 网关。
+该 release 构建会自动执行 `npm run verify:release:artifact` 扫描 `dist/build/app-release`；同一脚本也可扫描 APK/ZIP 安装包内部文本资源。release 构建产物不得包含 `localhost`、`127.0.0.1`、`.local`、`.localdomain`、局域网地址、IPv4/IPv6 链路本地地址、IPv4-mapped IPv6 私网/保留地址、IPv6 私网地址、CGNAT、benchmark 保留网段、组播或其它保留网段、URL 内嵌账号密码、`XICHENG_DEVELOPMENT_TRIGGER_FIXTURE`、H5 proxy 标记、`sk-`、`pat_`、`AKIA`、真实 token、与 `XUNJING_APP_API_BASE_URL` 不一致的 Yudao APP API 网关，或与 `XUNJING_TENANT_ID` 不一致的租户配置。包内必须能扫描到 `XUNJING_APP_API_BASE_URL` 指定的 Yudao APP API 网关，以及和 `XUNJING_TENANT_ID` 一致的租户配置；旧 `api2/*`、图片和静态资源仍可保留原线上域名，但不得替代 `/app-api/xunjing/**` 的 release 网关。
 
 生成 signed APK/AAB 或 iOS IPA 前，先检查手机原生打包前置条件：
 

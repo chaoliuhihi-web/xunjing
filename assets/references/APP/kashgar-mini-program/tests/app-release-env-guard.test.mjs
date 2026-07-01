@@ -58,6 +58,8 @@ for (const invalidBaseUrl of [
   'https://preprod.example.net',
   'https://xicheng.test',
   'https://xicheng.invalid',
+  'https://api.local',
+  'https://localhost.localdomain',
   'https://placeholder.xingheai.net',
   'https://u:p@api.xingheai.net',
 ]) {

@@ -38,6 +38,7 @@ for (const required of [
   'IPv4',
   'IPv6',
   'IPv4-mapped IPv6',
+  '.local',
   'URL 内嵌账号密码',
   'XICHENG_DEVELOPMENT_TRIGGER_FIXTURE',
   'sk-',
@@ -248,6 +249,26 @@ for (const [label, content, expectedMessage] of [
     'link-local IPv6 gateway',
     'const apiBase="https://api.xingheai.net";const tenantId="1";const fallback="https://[fe80::1]/app-api/xunjing";',
     /IPv6|link-local|local|LAN|fe80/i
+  ],
+  [
+    'IPv4-mapped localhost IPv6 asset URL',
+    'const apiBase="https://api.xingheai.net";const tenantId="1";const previewImage="https://[::ffff:127.0.0.1]/poster.png";',
+    /IPv4-mapped IPv6|127\.0\.0\.1|local|LAN/i
+  ],
+  [
+    'IPv4-mapped private IPv6 asset URL',
+    'const apiBase="https://api.xingheai.net";const tenantId="1";const previewImage="https://[::ffff:192.168.1.8]/poster.png";',
+    /IPv4-mapped IPv6|192\.168|private|local|LAN/i
+  ],
+  [
+    'mDNS local asset URL',
+    'const apiBase="https://api.xingheai.net";const tenantId="1";const previewImage="https://xicheng.local/poster.png";',
+    /\.local|local|LAN|mDNS/i
+  ],
+  [
+    'localhost localdomain asset URL',
+    'const apiBase="https://api.xingheai.net";const tenantId="1";const previewImage="https://localhost.localdomain/poster.png";',
+    /localhost\.localdomain|local|LAN/i
   ],
   ['development fixture', 'const bad="XICHENG_DEVELOPMENT_TRIGGER_FIXTURE";', /XICHENG_DEVELOPMENT_TRIGGER_FIXTURE/],
   ['h5 proxy target', 'const proxy="VITE_XUNJING_H5_PROXY_TARGET";', /VITE_XUNJING_H5_PROXY_TARGET/]

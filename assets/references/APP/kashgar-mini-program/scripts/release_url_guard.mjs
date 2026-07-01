@@ -18,7 +18,14 @@ const ipv4MappedIpv6Octets = (hostname) => {
 }
 
 const localOrLanHost = (hostname) => {
-  if (hostname === 'localhost' || hostname === '::' || hostname === '::1') {
+  if (
+    hostname === 'localhost' ||
+    hostname === 'local' ||
+    hostname === '::' ||
+    hostname === '::1' ||
+    hostname.endsWith('.local') ||
+    hostname.endsWith('.localdomain')
+  ) {
     return true
   }
 
