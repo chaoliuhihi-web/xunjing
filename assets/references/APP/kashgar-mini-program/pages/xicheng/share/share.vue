@@ -53,20 +53,20 @@
 				<text class="section-badge">{{ shareArtifacts.length }} 个</text>
 			</view>
 			<view class="asset-grid">
-				<view class="asset-tile" @click="createShareArtifact('poster')">
-					<xicheng-icon name="travelogue" variant="primary" :size="22" />
-					<text class="asset-title">分享海报</text>
-					<text class="asset-desc">适合朋友圈和活动群</text>
+				<view class="asset-tile" @click="createChannelShareArtifact('moments')">
+					<xicheng-icon name="photo" variant="primary" :size="22" />
+					<text class="asset-title">朋友圈素材</text>
+					<text class="asset-desc">图片文案 · 确认后发布</text>
+				</view>
+				<view class="asset-tile" @click="createChannelShareArtifact('xiaohongshu')">
+					<xicheng-icon name="edit" variant="primary" :size="22" />
+					<text class="asset-title">小红书笔记</text>
+					<text class="asset-desc">标题图集 · 标签文案</text>
 				</view>
 				<view class="asset-tile" @click="createPdfShareArtifact">
 					<xicheng-icon name="source" variant="primary" :size="22" />
 					<text class="asset-title">PDF 纪念册</text>
-					<text class="asset-desc">保留路线、来源与任务</text>
-				</view>
-				<view class="asset-tile" @click="createShareArtifact('study')">
-					<xicheng-icon name="study" variant="primary" :size="22" />
-					<text class="asset-title">亲子研学报告</text>
-					<text class="asset-desc">学习成果报告</text>
+					<text class="asset-desc">保存 PDF · 系统打印</text>
 				</view>
 			</view>
 			<view class="asset-shortcut-row">
@@ -118,6 +118,7 @@
 <script>
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
+import { getXichengShareChannelAssetLabel, getXichengShareChannelAssetType, getXichengShareChannelTemplateCode, normalizeXichengSharePublishChannel } from '@/request/xunjing/shareAssets.js'
 import XichengPublishChannelGrid from '@/components/xicheng/XichengPublishChannelGrid.vue'
 import XichengSocialSharePreview from '@/components/xicheng/XichengSocialSharePreview.vue'
 
@@ -358,11 +359,13 @@ export default {
 			const journeyDraft = this.getShareJourneyDraft()
 			const auditSummary = this.createShareAuditSummary(journeyDraft)
 			const publicPreview = this.createSharePublicPreview(journeyDraft)
+			const publishChannel = normalizeXichengSharePublishChannel(this.selectedPublishChannel, assetType)
 			const artifact = {
 				artifactId: `share-${assetType}-${Date.now()}`,
 				assetType,
-				assetLabel: assetType === 'pdf' ? 'PDF 纪念册' : assetType === 'study' ? '亲子研学报告' : '分享海报',
-				templateCode: assetType === 'pdf' ? 'xicheng-memorial-pdf-v1' : assetType === 'study' ? 'xicheng-study-report-v1' : 'xicheng-share-poster-v1',
+				assetLabel: getXichengShareChannelAssetLabel(publishChannel, assetType),
+				templateCode: getXichengShareChannelTemplateCode(publishChannel, assetType),
+				publishChannel,
 				backgroundImage: this.sharePosterBackground,
 				stampImage: this.region.visualAssets.passportStamp,
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
@@ -395,6 +398,7 @@ export default {
 			uni.showToast({ title: `${artifact.assetLabel}已生成`, icon: 'none' })
 		},
 		createPdfShareArtifact() {
+			this.selectedPublishChannel = 'pdf'
 			this.createShareArtifact('pdf')
 			this.openPdfPrintPage()
 		},
@@ -402,9 +406,10 @@ export default {
 			this.selectedPublishChannel = channel.key || 'xinghe'
 			if (this.selectedPublishChannel === 'pdf') this.openPdfPrintPage()
 		},
-		createChannelShareArtifact() {
-			const channelAssetTypeMap = { xinghe: 'poster', moments: 'poster', xiaohongshu: 'poster', pdf: 'pdf' }
-			this.createShareArtifact(channelAssetTypeMap[this.selectedPublishChannel] || 'poster')
+		createChannelShareArtifact(channelKey = '') {
+			const requestedChannel = typeof channelKey === 'string' && channelKey ? channelKey : this.selectedPublishChannel
+			this.selectedPublishChannel = requestedChannel
+			this.createShareArtifact(getXichengShareChannelAssetType(requestedChannel))
 			uni.showToast({ title: '发布素材已生成，请确认后发布', icon: 'none' })
 		},
 		copyChannelShareCopy() {
@@ -427,11 +432,13 @@ export default {
 			}
 			const auditSummary = this.createShareAuditSummary(artifact)
 			const publicPreview = this.createSharePublicPreview({ publicPreview: artifact.publicPreview, visionAgentAutoTraveloguePackage: artifact.visionAgentAutoTraveloguePackage, visionAgentRealSystemBoundary: artifact.visionAgentRealSystemBoundary })
+			const publishChannel = normalizeXichengSharePublishChannel(artifact.publishChannel, artifact.assetType)
 			return {
 				artifactId: artifact.artifactId || '',
 				assetType: artifact.assetType,
-				assetLabel: artifact.assetLabel || (artifact.assetType === 'pdf' ? 'PDF 纪念册' : artifact.assetType === 'study' ? '亲子研学报告' : '分享海报'),
-				templateCode: artifact.templateCode || (artifact.assetType === 'pdf' ? 'xicheng-memorial-pdf-v1' : artifact.assetType === 'study' ? 'xicheng-study-report-v1' : 'xicheng-share-poster-v1'),
+				assetLabel: artifact.assetLabel || getXichengShareChannelAssetLabel(publishChannel, artifact.assetType),
+				templateCode: artifact.templateCode || getXichengShareChannelTemplateCode(publishChannel, artifact.assetType),
+				publishChannel,
 				backgroundImage: artifact.backgroundImage || this.sharePosterBackground,
 				stampImage: artifact.stampImage || this.region.visualAssets.passportStamp,
 				regionCode: artifact.regionCode || XICHENG_REGION_CONFIG.regionCode,
