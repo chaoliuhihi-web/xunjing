@@ -10,7 +10,7 @@
     "build:app:release": "node scripts/run_release_app_build.mjs",
     "verify:yudao:local": "cd ../../../.. && npm run xunjing:platform:verify -- --env-file ops/xunjing-platform.env.example --base-url ${XUNJING_LOCAL_APP_API_BASE_URL:-http://127.0.0.1:48082} --tenant-id ${XUNJING_TENANT_ID:-1} --skip-admin-check --include-xicheng-app-check --include-xicheng-trigger-check --evidence-file qa/xicheng-app-readiness-local-evidence.json",
     "verify:yudao:preprod": "node scripts/run_preprod_yudao_verify.mjs",
-    "prepare:native:evidence": "node scripts/create_native_device_evidence_template.mjs --artifact \"${XUNJING_RELEASE_ARTIFACT:?Set XUNJING_RELEASE_ARTIFACT to the signed release package}\" --output \"${XUNJING_NATIVE_DEVICE_EVIDENCE_FILE:-../../../../qa/xicheng-native-device-evidence.json}\"",
+    "prepare:native:evidence": "node scripts/create_native_device_evidence_template.mjs",
     "verify:native:evidence": "node scripts/verify_native_device_evidence.mjs \"${XUNJING_NATIVE_DEVICE_EVIDENCE_FILE:-../../../../qa/xicheng-native-device-evidence.json}\"",
     "verify:launch:evidence": "node scripts/verify_mobile_launch_evidence_bundle.mjs --preprod-evidence \"${XUNJING_PREPROD_EVIDENCE_FILE:-../../../../qa/xicheng-app-readiness-evidence.json}\" --native-evidence \"${XUNJING_NATIVE_DEVICE_EVIDENCE_FILE:-../../../../qa/xicheng-native-device-evidence.json}\"",
     "verify:release:artifact": "node scripts/verify_release_build_artifact.mjs \"${XUNJING_RELEASE_ARTIFACT_DIR:-dist/build/app-release}\"",

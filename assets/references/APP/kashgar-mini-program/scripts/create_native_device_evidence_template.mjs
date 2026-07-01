@@ -2,6 +2,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { spawnSync } from 'node:child_process'
+import { loadReleaseEnvFile } from './release_env_loader.mjs'
+
+loadReleaseEnvFile()
 
 const defaultOutputPath = '../../../../qa/xicheng-native-device-evidence.json'
 const supportedReleaseTargets = new Set(['android', 'ios'])

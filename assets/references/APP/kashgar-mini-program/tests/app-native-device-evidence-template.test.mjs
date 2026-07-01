@@ -41,6 +41,11 @@ assert.ok(
   'APP package should expose npm run prepare:native:evidence'
 )
 
+assert.ok(
+  !(packageJson.scripts?.['prepare:native:evidence'] || '').includes('XUNJING_RELEASE_ARTIFACT:?'),
+  'prepare:native:evidence should let the Node template generator load XUNJING_RELEASE_ARTIFACT from XUNJING_RELEASE_ENV_FILE instead of shell-blocking first'
+)
+
 for (const required of [
   'npm run prepare:native:evidence',
   'XUNJING_RELEASE_ARTIFACT',
@@ -126,6 +131,79 @@ assert.ok(
   generated.scenarios.every((scenario) => scenario.status === 'TODO'),
   'native evidence template generator must not mark scenarios PASS before real-device verification'
 )
+
+const envFileOutputPath = path.join(tempDir, 'native-evidence-from-env-file.json')
+const releaseEnvFilePath = path.join(tempDir, 'native-evidence-release.env')
+fs.writeFileSync(releaseEnvFilePath, [
+  'XUNJING_APP_API_BASE_URL=https://api.example.com',
+  'XUNJING_TENANT_ID=1',
+  'XUNJING_RELEASE_TARGETS=android'
+].join('\n'))
+const envFileResult = spawnSync(
+  process.execPath,
+  [
+    scriptPath,
+    '--artifact',
+    artifactPath,
+    '--output',
+    envFileOutputPath
+  ],
+  {
+    cwd: root,
+    env: {
+      ...process.env,
+      XUNJING_RELEASE_ENV_FILE: releaseEnvFilePath,
+      XUNJING_APP_API_BASE_URL: '',
+      XUNJING_TENANT_ID: '',
+      XUNJING_RELEASE_TARGETS: ''
+    },
+    encoding: 'utf8'
+  }
+)
+
+assert.equal(
+  envFileResult.status,
+  0,
+  `native evidence template generator should load API, tenant and target from XUNJING_RELEASE_ENV_FILE: ${envFileResult.stderr || envFileResult.stdout}`
+)
+const envFileGenerated = JSON.parse(fs.readFileSync(envFileOutputPath, 'utf8'))
+assert.equal(envFileGenerated.appApiBaseUrl, 'https://api.example.com')
+assert.equal(envFileGenerated.tenantId, '1')
+assert.deepEqual(envFileGenerated.releaseTargets, ['android'])
+
+const npmEnvFileOutputPath = path.join(tempDir, 'native-evidence-from-npm-env-file.json')
+const npmReleaseEnvFilePath = path.join(tempDir, 'native-evidence-npm-release.env')
+fs.writeFileSync(npmReleaseEnvFilePath, [
+  'XUNJING_APP_API_BASE_URL=https://api.example.com',
+  'XUNJING_TENANT_ID=1',
+  'XUNJING_RELEASE_TARGETS=android',
+  `XUNJING_RELEASE_ARTIFACT=${artifactPath}`,
+  `XUNJING_NATIVE_DEVICE_EVIDENCE_FILE=${npmEnvFileOutputPath}`
+].join('\n'))
+const npmEnvFileResult = spawnSync('npm', ['run', 'prepare:native:evidence'], {
+  cwd: root,
+  env: {
+    ...process.env,
+    XUNJING_RELEASE_ENV_FILE: npmReleaseEnvFilePath,
+    XUNJING_APP_API_BASE_URL: '',
+    XUNJING_TENANT_ID: '',
+    XUNJING_RELEASE_TARGETS: '',
+    XUNJING_RELEASE_ARTIFACT: '',
+    XUNJING_NATIVE_DEVICE_EVIDENCE_FILE: ''
+  },
+  encoding: 'utf8'
+})
+
+assert.equal(
+  npmEnvFileResult.status,
+  0,
+  `npm run prepare:native:evidence should load artifact, output, API, tenant and target from XUNJING_RELEASE_ENV_FILE: ${npmEnvFileResult.stderr || npmEnvFileResult.stdout}`
+)
+const npmEnvFileGenerated = JSON.parse(fs.readFileSync(npmEnvFileOutputPath, 'utf8'))
+assert.equal(npmEnvFileGenerated.build.artifact, artifactPath)
+assert.equal(npmEnvFileGenerated.appApiBaseUrl, 'https://api.example.com')
+assert.equal(npmEnvFileGenerated.tenantId, '1')
+assert.deepEqual(npmEnvFileGenerated.releaseTargets, ['android'])
 
 const overwriteResult = spawnSync(
   process.execPath,

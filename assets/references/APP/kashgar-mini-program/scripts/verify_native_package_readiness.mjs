@@ -368,7 +368,7 @@ console.log(JSON.stringify({
   nextCommands: [
     'XUNJING_RELEASE_ENV_FILE=/secure/path/preprod.env npm run build:app:release',
     'Use HBuilderX native release packaging with the checked signing config to create a signed APK/AAB or IPA.',
-    'XUNJING_RELEASE_ARTIFACT=/path/to/signed.apk npm run prepare:native:evidence',
+    'XUNJING_RELEASE_ENV_FILE=/secure/path/preprod.env XUNJING_RELEASE_ARTIFACT=/path/to/signed.apk npm run prepare:native:evidence',
     'Complete physical-device scenarios, then run npm run verify:native:evidence and npm run verify:launch:evidence.'
   ]
 }, null, 2))

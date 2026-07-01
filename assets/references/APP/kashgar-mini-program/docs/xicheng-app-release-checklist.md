@@ -44,13 +44,12 @@ XUNJING_RELEASE_ENV_FILE="/secure/path/preprod.env" npm run verify:yudao:preprod
 
 ```bash
 XUNJING_RELEASE_ARTIFACT="/absolute/path/to/signed-release.apk" \
-XUNJING_APP_API_BASE_URL="$XUNJING_APP_API_BASE_URL" \
-XUNJING_TENANT_ID="$XUNJING_TENANT_ID" \
+XUNJING_RELEASE_ENV_FILE="/secure/path/preprod.env" \
 XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-evidence.json" \
 npm run prepare:native:evidence
 ```
 
-`npm run prepare:native:evidence` 只根据 `XUNJING_RELEASE_ARTIFACT` 初始化真机证据模板，自动写入当前 commit、`createdAt`、release 包路径、`artifactSha256` 和 `artifactSizeBytes`。`XUNJING_RELEASE_ARTIFACT` 必须是手机安装包文件：Android APK/AAB 或 iOS IPA。模板里的场景状态全部是 `TODO`，`evidenceRef` 默认指向 `qa/native/<scenario>.jpg`；不得把模板当成通过证据，必须在真实手机完成验证并补齐设备信息、截图或录屏引用 `evidenceRef` 后，才能把对应场景改成 `PASS`。
+`npm run prepare:native:evidence` 根据 `XUNJING_RELEASE_ARTIFACT` 和 `XUNJING_RELEASE_ENV_FILE` 初始化真机证据模板，自动写入当前 commit、`createdAt`、release 包路径、`artifactSha256`、`artifactSizeBytes`、`appApiBaseUrl`、`tenantId` 和 `releaseTargets`。`XUNJING_RELEASE_ARTIFACT` 必须是手机安装包文件：Android APK/AAB 或 iOS IPA。模板里的场景状态全部是 `TODO`，`evidenceRef` 默认指向 `qa/native/<scenario>.jpg`；不得把模板当成通过证据，必须在真实手机完成验证并补齐设备信息、截图或录屏引用 `evidenceRef` 后，才能把对应场景改成 `PASS`。
 
 `XUNJING_RELEASE_TARGETS` 或 `--platform` 只允许手机端发布目标：`android`、`ios`。不要把 H5、web 或小程序目标写入手机端上线证据。
 
