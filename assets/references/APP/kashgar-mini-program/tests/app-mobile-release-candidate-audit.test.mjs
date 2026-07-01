@@ -472,6 +472,32 @@ assert.equal(readyAudit.gates.releaseArtifactScan.ok, true)
 assert.equal(readyAudit.gates.nativePackageReadiness.skipped, true)
 assert.equal(readyAudit.gates.releasePrerequisites.skipped, true)
 
+const dirtyWorktreeResult = runAudit([
+  '--preprod-evidence',
+  preprodPath,
+  '--native-evidence',
+  nativePath,
+  '--release-artifact',
+  artifactDescription.artifact
+], {
+  XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
+  XUNJING_TENANT_ID: '1',
+  XUNJING_RELEASE_AUDIT_REMOTE_REFS: 'HEAD'
+})
+assert.notEqual(
+  dirtyWorktreeResult.status,
+  0,
+  'release candidate audit should not allow GO while the git worktree has uncommitted evidence or source changes'
+)
+const dirtyWorktreeAudit = parseAuditJson(dirtyWorktreeResult)
+assert.equal(dirtyWorktreeAudit.status, 'NO_GO')
+assert.equal(dirtyWorktreeAudit.gates.git.ok, false)
+assert.equal(dirtyWorktreeAudit.gates.git.worktreeClean, false)
+assert.ok(
+  dirtyWorktreeAudit.blockers.some((blocker) => blocker.code === 'git-worktree-dirty'),
+  'release candidate audit should name dirty git worktree as a launch blocker'
+)
+
 const mismatchedArtifactDescription = describeArtifact(makeZipArtifact({
   'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";const build="different-release-artifact";'
 }, 'xicheng-different-release.apk'))

@@ -146,7 +146,9 @@ XUNJING_RELEASE_ARTIFACT="/absolute/path/to/signed-release.apk" \
 npm run audit:release:candidate
 ```
 
-审计结果只输出 `GO` / `NO_GO`、`blockers` 和 `nextActions`。`NO_GO` 不代表 APP 主链不可用，只代表手机端上线证据还没闭环；`GO` 必须同时证明预发证据、真机证据、签名安装包扫描、双远端 commit 一致和 `verify:launch:evidence` 均通过。
+审计结果只输出 `GO` / `NO_GO`、`blockers` 和 `nextActions`。`NO_GO` 不代表 APP 主链不可用，只代表手机端上线证据还没闭环；`GO` 必须同时证明工作树干净、预发证据、真机证据、签名安装包扫描、双远端 commit 一致和 `verify:launch:evidence` 均通过。
+
+正式审计前必须确认 `git status --short` 为空。只要存在未提交源码、文档、证据文件或其它未追踪文件，`audit:release:candidate` 必须输出 `NO_GO` 和 `git-worktree-dirty` blocker，避免用不可追溯的本地改动生成手机端候选。
 
 `--skip-remote-parity` 和 `XUNJING_SKIP_REMOTE_PARITY=1` 只能用于本地测试夹具或离线排查；正式发布审计不能跳过 GitHub/Gitee 双远端一致性。只要远端一致性被跳过，`audit:release:candidate` 必须输出 `NO_GO` 和 `git-remote-parity-skipped` blocker。
 

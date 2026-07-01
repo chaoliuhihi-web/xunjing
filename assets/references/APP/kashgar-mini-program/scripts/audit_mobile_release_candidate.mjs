@@ -121,6 +121,10 @@ const gates = {}
 const skipRemoteParity = hasFlag('--skip-remote-parity') || process.env.XUNJING_SKIP_REMOTE_PARITY === '1'
 const allowTestBypass = process.env.XUNJING_RELEASE_AUDIT_ALLOW_TEST_BYPASS === '1'
 const remoteParitySkippedWithoutBypass = skipRemoteParity && !allowTestBypass
+const gitStatusPorcelain = readGit(['status', '--porcelain', '--untracked-files=all'])
+const dirtyEntries = gitStatusPorcelain ? gitStatusPorcelain.split('\n').filter(Boolean) : []
+const worktreeClean = dirtyEntries.length === 0
+const worktreeDirtyWithoutBypass = !worktreeClean && !allowTestBypass
 const remoteRefs = String(process.env.XUNJING_RELEASE_AUDIT_REMOTE_REFS || 'github/feature/xicheng-p0,origin/feature/xicheng-p0')
   .split(',')
   .map((remoteRef) => remoteRef.trim())
@@ -128,12 +132,26 @@ const remoteRefs = String(process.env.XUNJING_RELEASE_AUDIT_REMOTE_REFS || 'gith
 const remoteParityResults = remoteRefs.map((remoteRef) => remoteParity(remoteRef))
 
 gates.git = {
-  ok: Boolean(currentHead) && !remoteParitySkippedWithoutBypass && (skipRemoteParity || remoteParityResults.every((remote) => remote.ok)),
+  ok: Boolean(currentHead) &&
+    !remoteParitySkippedWithoutBypass &&
+    !worktreeDirtyWithoutBypass &&
+    (skipRemoteParity || remoteParityResults.every((remote) => remote.ok)),
   branch: currentBranch,
   commit: currentHead,
+  worktreeClean,
+  dirtyEntryCount: dirtyEntries.length,
+  dirtyEntries: dirtyEntries.slice(0, 20),
   skipRemoteParity,
   testBypass: allowTestBypass,
   remotes: remoteParityResults
+}
+if (worktreeDirtyWithoutBypass) {
+  addBlocker(
+    blockers,
+    'git-worktree-dirty',
+    'Git worktree has uncommitted changes, so the release candidate cannot be traced to the audited commit',
+    'Commit, stash, or remove uncommitted changes and generated evidence before running npm run audit:release:candidate'
+  )
 }
 if (remoteParitySkippedWithoutBypass) {
   addBlocker(

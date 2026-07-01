@@ -136,7 +136,9 @@ XUNJING_RELEASE_ENV_FILE="/secure/path/preprod.env" \
 npm run audit:release:candidate
 ```
 
-该命令只输出 `GO` 或 `NO_GO`、`blockers` 和 `nextActions`，不会把模板或本地结果当成上线证据。`NO_GO` 代表还缺 `qa/xicheng-app-readiness-evidence.json`、`qa/xicheng-native-device-evidence.json`、签名安装包、双远端同步或 `verify:launch:evidence` 中的某一项；`GO` 只代表预发证据、真机证据、安装包扫描和双远端一致性已经同时通过。
+该命令只输出 `GO` 或 `NO_GO`、`blockers` 和 `nextActions`，不会把模板或本地结果当成上线证据。`NO_GO` 代表还缺干净工作树、`qa/xicheng-app-readiness-evidence.json`、`qa/xicheng-native-device-evidence.json`、签名安装包、双远端同步或 `verify:launch:evidence` 中的某一项；`GO` 只代表工作树干净、预发证据、真机证据、安装包扫描和双远端一致性已经同时通过。
+
+正式候选审计必须先让 `git status --short` 为空。未提交源码、文档、证据文件或未追踪文件都会触发 `git-worktree-dirty`，不能得到 `GO`。
 
 不要在正式发布审计里使用 `--skip-remote-parity` 或 `XUNJING_SKIP_REMOTE_PARITY=1`。跳过 GitHub/Gitee 双远端一致性只能用于本地测试夹具；正式候选会被 `git-remote-parity-skipped` 阻断，不能得到 `GO`。
 
