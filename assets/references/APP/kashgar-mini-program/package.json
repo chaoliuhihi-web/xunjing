@@ -16,6 +16,7 @@
     "verify:launch:evidence": "node scripts/verify_mobile_launch_evidence_bundle.mjs --preprod-evidence \"${XUNJING_PREPROD_EVIDENCE_FILE:-../../../../qa/xicheng-app-readiness-evidence.json}\" --native-evidence \"${XUNJING_NATIVE_DEVICE_EVIDENCE_FILE:-../../../../qa/xicheng-native-device-evidence.json}\"",
     "verify:release:artifact": "node scripts/verify_release_build_artifact.mjs \"${XUNJING_RELEASE_ARTIFACT_DIR:-dist/build/app-release}\"",
     "verify:native:package:ready": "node scripts/verify_native_package_readiness.mjs",
+    "doctor:release:prereqs": "node scripts/diagnose_mobile_release_prerequisites.mjs",
     "pack:native:cloud:dry-run": "node scripts/run_native_cloud_pack.mjs --dry-run",
     "pack:native:cloud": "node scripts/run_native_cloud_pack.mjs --execute",
     "audit:release:candidate": "node scripts/audit_mobile_release_candidate.mjs",

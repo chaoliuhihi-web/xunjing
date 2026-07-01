@@ -16,6 +16,7 @@ for (const required of [
   'feature/xicheng-p0',
   'product/city-companion-main',
   'for f in tests/*.test.mjs; do node "$f" || exit 1; done',
+  'npm run doctor:release:prereqs',
   'npm run build',
   'npm run build:app:release',
   'npm run verify:yudao:local',

@@ -31,6 +31,7 @@ for (const required of [
   'feature/xicheng-p0',
   'npm run xunjing:platform:verify --',
   'npm run verify:yudao:local',
+  'npm run doctor:release:prereqs',
   'npm run verify:yudao:preprod',
   'npm run xunjing:yudao:release:gate',
   'npm run build:app:release',
