@@ -4,6 +4,8 @@ import path from 'node:path'
 
 const root = process.cwd()
 const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
+const visionAgentTravelogue = fs.readFileSync(path.join(root, 'request', 'xunjing', 'visionAgentTravelogue.js'), 'utf8')
+const combinedSource = `${travelogue}\n${visionAgentTravelogue}`
 
 for (const required of [
   'createVisionAgentAutoTraveloguePackage',
@@ -19,19 +21,19 @@ for (const required of [
   '分享文案'
 ]) {
   assert.ok(
-    travelogue.includes(required),
+    combinedSource.includes(required),
     `AI识境 automatic travelogue package should expose ${required}`
   )
 }
 
 assert.match(
-  travelogue,
+  visionAgentTravelogue,
   /createVisionAgentAutoTraveloguePackage\s*=\s*\(visionAgentServiceTasks = \[\]\)[\s\S]*filter\(task => hasReviewableVisionAgentServiceTaskEvidence\(task\)\)[\s\S]*sceneDomainLabels[\s\S]*serviceIntentLabels[\s\S]*agentPromptCount[\s\S]*serviceActionCount[\s\S]*storyCueText[\s\S]*mapCueText[\s\S]*shareCueText/,
   'AI识境 automatic travelogue package should be derived only from reviewable task-package entries and expose story, map, and share cues'
 )
 
 assert.match(
-  travelogue,
+  visionAgentTravelogue,
   /createVisionAgentAutoTraveloguePackage\s*=\s*\(visionAgentServiceTasks = \[\]\)[\s\S]*if \(reviewableTasks\.length === 0\) return null/,
   'AI识境 automatic travelogue package should not fabricate travelogue material when no reviewable task exists'
 )

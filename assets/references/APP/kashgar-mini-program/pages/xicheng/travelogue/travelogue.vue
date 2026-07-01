@@ -536,6 +536,10 @@ import {
 	getXichengDisplaySourceTitle,
 	normalizeXichengReviewedSources
 } from '@/request/xunjing/sources.js'
+import {
+	createVisionAgentAutoTraveloguePackage,
+	hasReviewableVisionAgentServiceTaskEvidence
+} from '@/request/xunjing/visionAgentTravelogue.js'
 
 export const XICHENG_PLANNING_ONLY_MATERIAL_TYPES = Object.freeze([
 	'official-route-poi',
@@ -616,68 +620,6 @@ export const hasReviewableStudyTaskEvidence = (evidence = {}) => {
 		String(evidence.answerText || '').trim()
 		|| evidence.photoPath
 	)
-}
-
-export const hasReviewableVisionAgentServiceTaskEvidence = (task = {}) => Boolean(
-	task
-	&& (
-		task.poiCode
-		|| task.poiName
-		|| task.actionTitle
-		|| task.actionCopy
-	)
-)
-
-const XICHENG_VISION_AGENT_SCENE_DOMAIN_LABELS = Object.freeze({
-	architecture: '建筑',
-	artifact: '文物',
-	menu: '菜单',
-	food: '食物',
-	'sign-ocr': '路牌/OCR',
-	heritage: '非遗',
-	plant: '植物',
-	animal: '动物',
-	person: '人物',
-	event: '活动'
-})
-
-const createUniqueTextList = (items = [], limit = 6) => Array.from(new Set(
-	items.map(item => String(item || '').trim()).filter(Boolean)
-)).slice(0, limit)
-
-export const createVisionAgentAutoTraveloguePackage = (visionAgentServiceTasks = []) => {
-	const reviewableTasks = Array.isArray(visionAgentServiceTasks)
-		? visionAgentServiceTasks.filter(task => hasReviewableVisionAgentServiceTaskEvidence(task))
-		: []
-	if (reviewableTasks.length === 0) return null
-
-	const poiNames = createUniqueTextList(reviewableTasks.map(task => task.poiName || task.poiCode), 5)
-	const actionTitles = createUniqueTextList(reviewableTasks.map(task => task.actionTitle || task.actionCopy), 5)
-	const sceneDomainLabels = createUniqueTextList(
-		reviewableTasks.map(task => XICHENG_VISION_AGENT_SCENE_DOMAIN_LABELS[task.sceneDomain] || task.sceneDomain),
-		8
-	)
-	const serviceIntentLabels = createUniqueTextList(reviewableTasks.map(task => task.serviceIntentLabel || ''), 8)
-	const agentPromptCount = reviewableTasks.filter(task => task.taskType === 'agent' || task.actionPrompt).length
-	const serviceActionCount = reviewableTasks.filter(task => task.serviceIntent || task.taskType !== 'agent').length
-	const sceneCue = sceneDomainLabels.length > 0 ? sceneDomainLabels.join('、') : '当前场景'
-	const poiCue = poiNames.length > 0 ? poiNames.join('、') : '已识别地点'
-	const actionCue = actionTitles.length > 0 ? actionTitles.join('、') : '后续动作'
-	const serviceCue = serviceIntentLabels.length > 0 ? serviceIntentLabels.join('、') : actionCue
-
-	return {
-		packageName: 'AI识境自动素材包',
-		taskCount: reviewableTasks.length,
-		poiNames,
-		actionTitles,
-		sceneDomainLabels,
-		serviceIntentLabels,
-		agentPromptCount,
-		serviceActionCount,
-		storyCueText: `AI识境自动素材包基于 ${reviewableTasks.length} 个真实任务包，已把${poiCue}的${sceneCue}线索整理成游记故事骨架。`,
-		mapCueText: `地图路线可围绕${poiCue}继续串联，并优先引用已记录轨迹、打卡和停留证据。`,
-		shareCueText: `分享文案可突出${serviceCue}，生成朋友圈、小红书或纪念册时保留审核状态。`
-	}
 }
 
 export const hasXichengTravelogueDraftEvidence = ({
@@ -801,8 +743,10 @@ export const createXichengTravelogueDraft = ({
 		? visionAgentServiceTasks.filter(task => hasReviewableVisionAgentServiceTaskEvidence(task)).slice(0, 4)
 		: []
 	const visionAgentAutoTraveloguePackage = createVisionAgentAutoTraveloguePackage(visionAgentServiceTasks)
+	const visionAgentPackageBoundaryText = visionAgentAutoTraveloguePackage ? visionAgentAutoTraveloguePackage.realSystemBoundaryText : ''
+	const visionAgentRealSystemBoundaryText = visionAgentPackageBoundaryText || ''
 	const visionAgentTaskText = visionAgentAutoTraveloguePackage
-		? `AI识境已收集 ${reviewableVisionAgentTasks.length} 个后续动作：${reviewableVisionAgentTasks.map(task => `${task.taskTypeLabel || '服务'}-${task.actionTitle || task.actionCopy || '现场任务'}`).join('；')}。${visionAgentAutoTraveloguePackage.storyCueText}${visionAgentAutoTraveloguePackage.mapCueText}${visionAgentAutoTraveloguePackage.shareCueText}`
+		? `AI识境已收集 ${reviewableVisionAgentTasks.length} 个后续动作：${reviewableVisionAgentTasks.map(task => `${task.taskTypeLabel || '服务'}-${task.actionTitle || task.actionCopy || '现场任务'}`).join('；')}。${visionAgentAutoTraveloguePackage.storyCueText}${visionAgentAutoTraveloguePackage.mapCueText}${visionAgentAutoTraveloguePackage.shareCueText}${visionAgentRealSystemBoundaryText}`
 		: ''
 	const visionAgentMemorySessionText = visionAgentMemorySessionPackage
 		? `AI识境连续会话包：${visionAgentMemorySessionPackage.continuityCueText || ''}${visionAgentMemorySessionPackage.poiTrailText || ''}${visionAgentMemorySessionPackage.domainContinuityText || ''}`
@@ -1082,6 +1026,11 @@ export default {
 			visionAgentAutoTraveloguePackage() {
 				return createVisionAgentAutoTraveloguePackage(this.visionAgentServiceTasks)
 			},
+			visionAgentRealSystemBoundary() {
+				return this.visionAgentAutoTraveloguePackage && this.visionAgentAutoTraveloguePackage.realSystemBoundaryText
+					? this.visionAgentAutoTraveloguePackage.realSystemBoundaryText
+					: ''
+			},
 			aiGuideMaterials() {
 				return this.materials.filter(material => material && material.type === 'ai-guide' && hasReviewableMaterialEvidence(material))
 			},
@@ -1202,6 +1151,8 @@ export default {
 					visionAgentMemorySceneCount: this.visionAgentMemorySessionPackage?.sceneCount || 0,
 					visionAgentSceneDomainLabels: this.visionAgentAutoTraveloguePackage?.sceneDomainLabels || [],
 					visionAgentServiceIntentLabels: this.visionAgentAutoTraveloguePackage?.serviceIntentLabels || [],
+					visionAgentRealSystemBoundary: this.visionAgentRealSystemBoundary,
+					visionAgentRealSystemRequiredTaskCount: this.visionAgentAutoTraveloguePackage?.realSystemRequiredTaskCount || 0,
 					shareCount: this.shareArtifacts.length,
 					misTriggerCount: this.misTriggerCount,
 					safetyStatusSummary: this.safetyStatusSummary,
@@ -2129,6 +2080,7 @@ export default {
 					visionAgentServiceTaskCount: this.visionAgentServiceTaskCount,
 					visionAgentAutoTraveloguePackage: this.visionAgentAutoTraveloguePackage,
 					visionAgentMemorySessionPackage: this.visionAgentMemorySessionPackage,
+					visionAgentRealSystemBoundary: this.visionAgentRealSystemBoundary,
 					candidateConfirmationAudits: this.candidateConfirmationAudits,
 					candidateConfirmationCount: this.candidateConfirmationCount,
 				aiGuideMaterialCount: this.aiGuideMaterialCount,
@@ -2262,6 +2214,7 @@ export default {
 				candidateConfirmationCount: this.candidateConfirmationCount,
 				visionAgentAutoTraveloguePackage: this.visionAgentAutoTraveloguePackage,
 				visionAgentMemorySessionPackage: this.visionAgentMemorySessionPackage,
+				visionAgentRealSystemBoundary: this.visionAgentRealSystemBoundary,
 				aiGuideMaterialCount: this.aiGuideMaterialCount,
 				studyTaskEvidence: this.studyTaskEvidence,
 				studyTaskEvidenceCount: this.studyTaskEvidenceCount,
