@@ -10,7 +10,8 @@ const requiredPreprodChecks = [
   'live-xicheng-ai-chat-blocked',
   'live-xicheng-trigger-baitasi',
   'live-xicheng-trigger-gongwangfu',
-  'live-xicheng-trigger-planetarium'
+  'live-xicheng-trigger-planetarium',
+  'live-xicheng-scan-resolve'
 ]
 
 const fail = (message) => {
@@ -196,6 +197,20 @@ if (sourcedCheck?.summary?.safetyStatus !== 'PASSED' || Number(sourcedCheck?.sum
 const blockedCheck = preprodCheckByName.get('live-xicheng-ai-chat-blocked')
 if (blockedCheck?.summary?.safetyStatus !== 'BLOCKED' || Number(blockedCheck?.summary?.sourceCount || 0) !== 0) {
   fail('APP readiness evidence live-xicheng-ai-chat-blocked must have safetyStatus BLOCKED and sourceCount 0')
+}
+
+const scanResolveCheck = preprodCheckByName.get('live-xicheng-scan-resolve')
+const scanResolveSummary = scanResolveCheck?.summary || {}
+if (String(scanResolveSummary.tenantId || '').trim() !== String(preprodSummary.tenantId || '').trim()) {
+  fail('APP readiness evidence live-xicheng-scan-resolve must use the same tenantId as summary.tenantId')
+}
+
+if (String(scanResolveSummary.packageCode || '').trim() !== 'XICHENG-MAP-001') {
+  fail('APP readiness evidence live-xicheng-scan-resolve must resolve packageCode XICHENG-MAP-001')
+}
+
+if (!String(scanResolveSummary.targetPath || '').includes('/pages/map/detail')) {
+  fail('APP readiness evidence live-xicheng-scan-resolve targetPath must include /pages/map/detail')
 }
 
 verifyNativeEvidenceWithExistingGate(nativeEvidence.path)

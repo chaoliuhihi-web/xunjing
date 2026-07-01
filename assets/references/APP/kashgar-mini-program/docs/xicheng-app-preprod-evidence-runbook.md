@@ -116,7 +116,7 @@ XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-eviden
 npm run verify:launch:evidence
 ```
 
-该命令会复用真机证据校验，并额外确认预发后端证据包含 `live-xicheng-ai-chat-sourced`、`live-xicheng-ai-chat-blocked`、白塔寺、恭王府、北京天文馆 trigger smoke。通过后才说明 APP 包、预发后端和真机证据来自同一个候选版本。
+该命令会复用真机证据校验，并额外确认预发后端证据包含 `live-xicheng-ai-chat-sourced`、`live-xicheng-ai-chat-blocked`、白塔寺、恭王府、北京天文馆 trigger smoke，以及扫码入口解析 `live-xicheng-scan-resolve`。扫码入口证据的 `targetPath` 必须指向 `/pages/map/detail`，`packageCode` 必须为 `XICHENG-MAP-001`，`tenantId` 必须和预发汇总一致。通过后才说明 APP 包、预发后端和真机证据来自同一个候选版本。
 
 ## 放行核查命令
 

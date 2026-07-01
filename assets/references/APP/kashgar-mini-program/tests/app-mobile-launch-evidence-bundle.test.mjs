@@ -80,31 +80,41 @@ const makePreprodEvidence = (overrides = {}) => {
       ...summaryOverrides
     },
     checks: [
-    {
-      name: 'live-xicheng-ai-chat-sourced',
-      ok: true,
-      summary: { safetyStatus: 'PASSED', sourceCount: 1 }
-    },
-    {
-      name: 'live-xicheng-ai-chat-blocked',
-      ok: true,
-      summary: { safetyStatus: 'BLOCKED', sourceCount: 0 }
-    },
-    {
-      name: 'live-xicheng-trigger-baitasi',
-      ok: true,
-      summary: { poiCode: 'xicheng-baitasi', sourceCount: 1 }
-    },
-    {
-      name: 'live-xicheng-trigger-gongwangfu',
-      ok: true,
-      summary: { poiCode: 'xicheng-gongwangfu', sourceCount: 1 }
-    },
-    {
-      name: 'live-xicheng-trigger-planetarium',
-      ok: true,
-      summary: { poiCode: 'xicheng-planetarium', sourceCount: 1 }
-    },
+      {
+        name: 'live-xicheng-ai-chat-sourced',
+        ok: true,
+        summary: { safetyStatus: 'PASSED', sourceCount: 1 }
+      },
+      {
+        name: 'live-xicheng-ai-chat-blocked',
+        ok: true,
+        summary: { safetyStatus: 'BLOCKED', sourceCount: 0 }
+      },
+      {
+        name: 'live-xicheng-trigger-baitasi',
+        ok: true,
+        summary: { poiCode: 'xicheng-baitasi', sourceCount: 1 }
+      },
+      {
+        name: 'live-xicheng-trigger-gongwangfu',
+        ok: true,
+        summary: { poiCode: 'xicheng-gongwangfu', sourceCount: 1 }
+      },
+      {
+        name: 'live-xicheng-trigger-planetarium',
+        ok: true,
+        summary: { poiCode: 'xicheng-planetarium', sourceCount: 1 }
+      },
+      {
+        name: 'live-xicheng-scan-resolve',
+        ok: true,
+        summary: {
+          tenantId: '1',
+          packageCode: 'XICHENG-MAP-001',
+          sceneCode: 'QR-XICHENG-MAP-001',
+          targetPath: '/pages/map/detail?packageCode=XICHENG-MAP-001&sceneCode=QR-XICHENG-MAP-001'
+        }
+      },
       ...extraChecks
     ],
     ...topLevelOverrides
@@ -193,7 +203,11 @@ for (const required of [
   'verify:release:artifact',
   '安装包本体',
   '真机证据',
-  '预发证据'
+  '预发证据',
+  'live-xicheng-scan-resolve',
+  '扫码入口',
+  'targetPath',
+  '/pages/map/detail'
 ]) {
   assert.ok(
     fs.readFileSync(releaseChecklistPath, 'utf8').includes(required),
@@ -263,6 +277,52 @@ assert.match(
   `${missingBlockedResult.stderr}\n${missingBlockedResult.stdout}`,
   /live-xicheng-ai-chat-blocked/,
   'launch evidence bundle validator should name the missing BLOCKED-source guard check'
+)
+
+const missingScanResolveResult = runBundleGate(
+  {
+    ...makePreprodEvidence(),
+    checks: makePreprodEvidence().checks.filter((check) => check.name !== 'live-xicheng-scan-resolve')
+  },
+  makeNativeEvidence()
+)
+assert.notEqual(
+  missingScanResolveResult.status,
+  0,
+  'launch evidence bundle validator should reject preprod evidence without the scan entry resolve check'
+)
+assert.match(
+  `${missingScanResolveResult.stderr}\n${missingScanResolveResult.stdout}`,
+  /live-xicheng-scan-resolve|扫码入口|scan/i,
+  'launch evidence bundle validator should name the missing scan entry resolve check'
+)
+
+const wrongScanTargetResult = runBundleGate(
+  {
+    ...makePreprodEvidence(),
+    checks: makePreprodEvidence().checks.map((check) => (
+      check.name === 'live-xicheng-scan-resolve'
+        ? {
+            ...check,
+            summary: {
+              ...check.summary,
+              targetPath: '/pages/xicheng/home/home'
+            }
+          }
+        : check
+    ))
+  },
+  makeNativeEvidence()
+)
+assert.notEqual(
+  wrongScanTargetResult.status,
+  0,
+  'launch evidence bundle validator should reject scan evidence that does not land on the map detail page'
+)
+assert.match(
+  `${wrongScanTargetResult.stderr}\n${wrongScanTargetResult.stdout}`,
+  /targetPath|\/pages\/map\/detail/,
+  'launch evidence bundle validator should explain the scan targetPath requirement'
 )
 
 const stalePreprodResult = runBundleGate(
