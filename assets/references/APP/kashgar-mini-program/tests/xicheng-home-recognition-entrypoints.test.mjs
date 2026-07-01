@@ -25,7 +25,7 @@ for (const required of [
 
 for (const required of [
   'home-scan-card',
-  '拍照识别 · 文字识别 · 附近触发',
+  '镜头理解 · 连续追问 · 城市服务',
   'home-ask-card',
   'textRecognitionInput',
   'textRecognitionPanelExpanded',

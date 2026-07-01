@@ -18,20 +18,20 @@ const scan = read('pages', 'xicheng', 'scan', 'scan.vue')
 
 assert.match(
   pagesJson,
-  /"path":\s*"pages\/xicheng\/scan\/scan"[\s\S]*"navigationBarTitleText":\s*"扫一扫"/,
-  'pages.json should register pages/xicheng/scan/scan as the Xicheng scan entry'
+  /"path":\s*"pages\/xicheng\/scan\/scan"[\s\S]*"navigationBarTitleText":\s*"AI识境"/,
+  'pages.json should register pages/xicheng/scan/scan as the Xicheng AI识境 entry'
 )
 
 assert.match(
   home,
-  /startScanRecognition\(\)[\s\S]*uni\.navigateTo\(\{[\s\S]*url:\s*`\/pages\/xicheng\/scan\/scan\?/,
-  'Home "扫一扫" should open the dedicated scan page instead of running hidden recognition from the home page'
+  /startScanRecognition\(\)[\s\S]*const entry = 'home-primary'[\s\S]*url:\s*this\.buildSceneVisionEntryUrl\(this\.buildSceneVisionContext\(\), entry\)/,
+  'Home AI识境 should open the dedicated scan page through the shared Vision Agent context builder'
 )
 
 assert.match(
   home,
-  /regionCode=\$\{encodeRouteValue\(this\.region\.regionCode\)\}[\s\S]*packageCode=\$\{encodeRouteValue\(this\.region\.packageCode\)\}[\s\S]*sourceChannel=\$\{encodeRouteValue\(this\.region\.sourceChannel\)\}/,
-  'Home scan entry should preserve Xicheng region, package, and source channel context'
+  /buildSceneVisionEntryUrl\(context = this\.buildSceneVisionContext\(\), entry = 'home-world-entry'\)[\s\S]*\['regionCode', context\.regionCode[\s\S]*\['packageCode', context\.packageCode[\s\S]*\['sourceChannel', context\.sourceChannel/,
+  'Home AI识境 entry should preserve Xicheng region, package, and source channel context'
 )
 
 assert.match(

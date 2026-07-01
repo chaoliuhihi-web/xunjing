@@ -22,8 +22,8 @@
 			<view class="hero-main">
 				<view class="hero-copy">
 					<text class="eyebrow">{{ region.cityName }}</text>
-					<text class="title">西城 AI 旅伴</text>
-					<text class="subtitle">星河寻境 · 知识随行</text>
+					<text class="title">西城 AI识境</text>
+					<text class="subtitle">看见什么，就能问什么</text>
 				</view>
 				<view class="companion-visual">
 					<image class="xiaojing-avatar" :src="region.companionAvatar" mode="aspectFit" />
@@ -35,14 +35,36 @@
 			</view>
 		</view>
 
+		<view class="home-world-entry xicheng-paper-card" @click="startSceneVisionAgent">
+			<view class="home-world-entry-head">
+				<view>
+					<text class="home-world-entry-kicker">世界交互入口</text>
+					<text class="home-world-entry-title">举起手机，拍一下</text>
+				</view>
+				<text class="home-world-entry-action">AI识境</text>
+			</view>
+			<text class="home-world-entry-summary">{{ worldEntrySummary }}</text>
+			<view class="home-world-signal-grid">
+				<view
+					v-for="signal in worldEntrySignals"
+					:key="signal.key"
+					class="home-world-signal"
+					:class="{ 'home-world-signal-active': signal.active }"
+				>
+					<text class="home-world-signal-label">{{ signal.label }}</text>
+					<text class="home-world-signal-status">{{ signal.statusText }}</text>
+				</view>
+			</view>
+		</view>
+
 		<view class="home-action-duo">
 			<view class="home-action-card home-scan-card" :class="{ 'home-action-disabled': recognizing }" @click="startScanRecognition">
 				<view class="home-action-icon">
 					<xicheng-icon name="scan" variant="plain" active :size="28" />
 				</view>
 				<view class="home-action-copy">
-					<text class="home-action-title">扫一扫</text>
-					<text class="home-action-desc">拍照识别 · 文字识别 · 附近触发</text>
+					<text class="home-action-title">AI识境</text>
+					<text class="home-action-desc">镜头理解 · 连续追问 · 城市服务</text>
 				</view>
 				<xicheng-icon name="next" variant="plain" active :size="22" />
 			</view>
@@ -181,7 +203,9 @@ export default {
 			textRecognitionPanelExpanded: false,
 			recognizing: false,
 			lastError: '',
-			recentRecognition: null
+			recentRecognition: null,
+			worldEntrySignals: [],
+			worldEntrySummary: '镜头待命，定位后会融合现场信号'
 		}
 	},
 	computed: {
@@ -209,9 +233,11 @@ export default {
 	},
 	onLoad() {
 		this.loadRecentRecognition()
+		this.refreshSceneVisionEntry()
 	},
 	onShow() {
 		this.loadRecentRecognition()
+		this.refreshSceneVisionEntry()
 	},
 	methods: {
 		isBlockedDevelopmentRecognitionCache(recognition = {}) {
@@ -227,6 +253,125 @@ export default {
 			this.recentRecognition = cached && typeof cached === 'object' && (cached.poiCode || cached.poiName)
 				? cached
 				: null
+		},
+		refreshSceneVisionEntry() {
+			const context = this.buildSceneVisionContext()
+			this.worldEntrySignals = this.buildSceneVisionSignals(context)
+			this.worldEntrySummary = this.buildSceneVisionSummary(context, this.worldEntrySignals)
+		},
+		readSceneVisionStorageText(key = '') {
+			try {
+				const value = uni.getStorageSync(key)
+				if (value === undefined || value === null) return ''
+				return typeof value === 'string' ? value : String(value)
+			} catch (error) {
+				return ''
+			}
+		},
+		readSceneVisionStorageNumber(key = '') {
+			const value = Number(this.readSceneVisionStorageText(key))
+			return Number.isFinite(value) ? value : ''
+		},
+		formatSceneVisionLocalTime(date = new Date()) {
+			const pad = (number) => String(number).padStart(2, '0')
+			return `${pad(date.getHours())}:${pad(date.getMinutes())}`
+		},
+		buildSceneRecognitionMemory(recognition = this.recentRecognition || {}) {
+			if (!recognition || typeof recognition !== 'object' || (!recognition.poiCode && !recognition.poiName)) return ''
+			return JSON.stringify({
+				poiCode: recognition.poiCode || '',
+				poiName: recognition.poiName || '',
+				source: recognition.source || '',
+				sourceLabel: recognition.sourceLabel || '',
+				sceneCode: recognition.sceneCode || this.region.sceneCode,
+				confidence: recognition.confidence || '',
+				safetyStatus: recognition.safetyStatus || ''
+			})
+		},
+		buildSceneVisionContext() {
+			const recentRecognition = this.recentRecognition || {}
+			const localTimeText = this.readSceneVisionStorageText('xicheng_scene_local_time_text') || this.formatSceneVisionLocalTime()
+			const weatherText = recentRecognition.weatherText || this.readSceneVisionStorageText('xicheng_scene_weather_text')
+			const headingText = recentRecognition.headingText || this.readSceneVisionStorageText('xicheng_scene_heading_text')
+			const headingDegrees = recentRecognition.headingDegrees === undefined || recentRecognition.headingDegrees === null
+				? this.readSceneVisionStorageNumber('xicheng_scene_heading_degrees')
+				: recentRecognition.headingDegrees
+			const userInterestTags = recentRecognition.userInterestTags || this.readSceneVisionStorageText('xicheng_user_interest_tags')
+			return {
+				context: 'vision-agent',
+				mode: 'camera',
+				sceneIntent: 'scene-understanding',
+				entry: 'home-world-entry',
+				regionCode: this.region.regionCode,
+				packageCode: this.region.packageCode,
+				sceneCode: this.region.sceneCode,
+				sourceChannel: this.region.sourceChannel,
+				companionName: this.region.companionName,
+				sceneSessionId: recentRecognition.sceneSessionId || this.readSceneVisionStorageText('xicheng_scene_session_id') || '',
+				sourceRecognitionContext: recentRecognition.sourceRecognitionContext || this.buildSceneRecognitionMemory(recentRecognition),
+				visionCaption: recentRecognition.visionCaption || recentRecognition.poiName || '',
+				locationText: recentRecognition.locationText || this.readSceneVisionStorageText('xicheng_location_text'),
+				localTimeText,
+				weatherText,
+				headingText,
+				headingDegrees,
+				activityText: recentRecognition.activityText || this.readSceneVisionStorageText('xicheng_activity_text'),
+				serviceText: recentRecognition.serviceText || this.readSceneVisionStorageText('xicheng_service_text'),
+				knowledgeGraphText: recentRecognition.knowledgeGraphText || this.readSceneVisionStorageText('xicheng_knowledge_graph_text'),
+				userInterestTags
+			}
+		},
+		buildSceneVisionSignals(context = this.buildSceneVisionContext()) {
+			const environmentText = [context.localTimeText, context.weatherText].filter(Boolean).join(' ')
+			const serviceText = [context.activityText, context.serviceText].filter(Boolean).join(' · ')
+			return [
+				{ key: 'camera', label: '镜头', statusText: '拍一下', active: true },
+				{ key: 'gps', label: 'GPS', statusText: context.locationText || '待授权', active: Boolean(context.locationText) },
+				{ key: 'environment', label: '时间天气', statusText: environmentText || '待刷新', active: Boolean(environmentText) },
+				{ key: 'service', label: '城市服务', statusText: serviceText || '待匹配', active: Boolean(serviceText) },
+				{ key: 'knowledge', label: '知识图谱', statusText: context.knowledgeGraphText || '待连接', active: Boolean(context.knowledgeGraphText) }
+			]
+		},
+		buildSceneVisionSummary(context = {}, signals = []) {
+			const activeCount = signals.filter(signal => signal && signal.active).length
+			const subject = context.locationText || context.visionCaption || this.region.cityName
+			const service = context.activityText || context.serviceText || context.knowledgeGraphText || ''
+			return [
+				`${subject} · ${activeCount}类现场信号已接入`,
+				service ? `下一步会优先结合${service}` : '举起手机后直接进入场景理解'
+			].join('，').slice(0, 88)
+		},
+		buildSceneVisionEntryUrl(context = this.buildSceneVisionContext(), entry = 'home-world-entry') {
+			const params = [
+				['context', 'vision-agent'],
+				['mode', 'camera'],
+				['sceneIntent', 'scene-understanding'],
+				['entry', entry],
+				['regionCode', context.regionCode || this.region.regionCode],
+				['packageCode', context.packageCode || this.region.packageCode],
+				['sceneCode', context.sceneCode || this.region.sceneCode],
+				['sourceChannel', context.sourceChannel || this.region.sourceChannel],
+				['companionName', context.companionName || this.region.companionName],
+				['sceneSessionId', context.sceneSessionId || ''],
+				['sourceRecognitionContext', context.sourceRecognitionContext || ''],
+				['visionCaption', context.visionCaption || ''],
+				['locationText', context.locationText || ''],
+				['localTimeText', context.localTimeText || ''],
+				['weatherText', context.weatherText || ''],
+				['headingText', context.headingText || ''],
+				['headingDegrees', context.headingDegrees === undefined || context.headingDegrees === null ? '' : context.headingDegrees],
+				['activityText', context.activityText || ''],
+				['serviceText', context.serviceText || ''],
+				['knowledgeGraphText', context.knowledgeGraphText || ''],
+				['userInterestTags', context.userInterestTags || '']
+			]
+			return `/pages/xicheng/scan/scan?${params.map(item => `${item[0]}=${encodeRouteValue(item[1])}`).join('&')}`
+		},
+		startSceneVisionAgent() {
+			this.refreshSceneVisionEntry()
+			uni.navigateTo({
+				url: this.buildSceneVisionEntryUrl(this.buildSceneVisionContext(), 'home-world-entry')
+			})
 		},
 		confirmImageRecognitionPurpose(actionLabel = '图片识别') {
 			return new Promise(resolve => {
@@ -265,8 +410,9 @@ export default {
 		},
 		startScanRecognition() {
 			if (this.recognizing) return
+			const entry = 'home-primary'
 			uni.navigateTo({
-				url: `/pages/xicheng/scan/scan?regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&companionName=${encodeRouteValue(this.region.companionName)}`
+				url: this.buildSceneVisionEntryUrl(this.buildSceneVisionContext(), entry)
 			})
 		},
 		async startOcrRecognition() {
@@ -1098,6 +1244,96 @@ export default {
 	padding: 24rpx 22rpx;
 	border-radius: 34rpx;
 	background: rgba(255, 253, 248, 0.94);
+}
+
+.home-world-entry {
+	margin-top: 24rpx;
+	padding: 26rpx;
+	border-radius: 32rpx;
+	background:
+		linear-gradient(135deg, rgba(16, 47, 41, 0.96), rgba(26, 80, 65, 0.94)),
+		linear-gradient(180deg, rgba(241, 199, 106, 0.18), rgba(255, 255, 255, 0));
+	color: #FFF9EC;
+	box-shadow: 0 18rpx 38rpx rgba(16, 47, 41, 0.18);
+}
+
+.home-world-entry-head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 18rpx;
+}
+
+.home-world-entry-kicker,
+.home-world-entry-title,
+.home-world-entry-summary,
+.home-world-entry-action,
+.home-world-signal-label,
+.home-world-signal-status {
+	display: block;
+}
+
+.home-world-entry-kicker {
+	font-size: 22rpx;
+	font-weight: 700;
+	color: #F1C76A;
+}
+
+.home-world-entry-title {
+	margin-top: 8rpx;
+	font-size: 36rpx;
+	font-weight: 800;
+	line-height: 1.2;
+}
+
+.home-world-entry-action {
+	flex-shrink: 0;
+	padding: 10rpx 16rpx;
+	border-radius: 999rpx;
+	background: rgba(241, 199, 106, 0.18);
+	color: #FCE8A9;
+	font-size: 22rpx;
+	font-weight: 800;
+}
+
+.home-world-entry-summary {
+	margin-top: 16rpx;
+	font-size: 24rpx;
+	line-height: 1.55;
+	color: rgba(255, 249, 236, 0.82);
+}
+
+.home-world-signal-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 12rpx;
+	margin-top: 20rpx;
+}
+
+.home-world-signal {
+	min-width: 0;
+	padding: 16rpx;
+	border-radius: 20rpx;
+	background: rgba(255, 249, 236, 0.08);
+	border: 1rpx solid rgba(255, 249, 236, 0.12);
+}
+
+.home-world-signal-active {
+	background: rgba(241, 199, 106, 0.16);
+	border-color: rgba(241, 199, 106, 0.28);
+}
+
+.home-world-signal-label {
+	font-size: 21rpx;
+	font-weight: 700;
+	color: #FCE8A9;
+}
+
+.home-world-signal-status {
+	margin-top: 6rpx;
+	font-size: 21rpx;
+	line-height: 1.35;
+	color: rgba(255, 249, 236, 0.8);
 }
 
 .home-action-duo {

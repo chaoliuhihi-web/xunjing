@@ -67,6 +67,36 @@
 			<button class="ghost-button xicheng-secondary-action" :disabled="recognitionActionBlocked" @click="askXiaojing(suggestedQuestions[1])">问问小京</button>
 		</view>
 
+		<view class="vision-agent-panel xicheng-paper-card">
+			<view class="section-head xicheng-section-label">
+				<text class="section-title">AI识境推荐动作</text>
+				<text class="section-badge">Scene Vision Agent</text>
+			</view>
+			<view class="vision-agent-action-grid">
+				<view
+					v-for="action in visionAgentActionCards"
+					:key="action.actionKey"
+					class="vision-agent-action"
+					:class="{ 'vision-agent-action-disabled': recognitionActionBlocked && action.requiresRecognition }"
+					@click="openVisionAgentAction(action)"
+				>
+					<text class="vision-agent-action-title">{{ action.title }}</text>
+					<text class="vision-agent-action-copy">{{ action.copy }}</text>
+				</view>
+			</view>
+			<view class="scene-service-grid">
+				<view
+					v-for="action in sceneServiceActions"
+					:key="action.actionKey"
+					class="scene-service-action"
+					@click="openSceneServiceAction(action)"
+				>
+					<text class="scene-service-title">{{ action.title }}</text>
+					<text class="scene-service-copy">{{ action.copy }}</text>
+				</view>
+			</view>
+		</view>
+
 		<view
 			class="poi-detail-entry xicheng-paper-card"
 			:class="{ 'poi-detail-entry-disabled': recognitionActionBlocked }"
@@ -221,7 +251,8 @@ const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
 	safetyStatus: '',
 	sources: [],
 	candidates: [],
-	candidateConfirmationAudit: null
+	candidateConfirmationAudit: null,
+	visionAgentContext: {}
 })
 
 const normalizeSuggestedQuestions = (result = {}) => {
@@ -457,11 +488,14 @@ const normalizeResult = (result = {}) => ({
 	suggestedQuestions: normalizeSuggestedQuestions(result),
 	recommendedQuestions: normalizeSuggestedQuestions(result),
 	routeRecommendation: normalizeRecommendedRoute(result),
-	recommendedRoute: normalizeRecommendedRoute(result),
-	safetyStatus: normalizeXichengSafetyStatus(result.safetyStatus),
-	sources: normalizeReviewedSources(result),
-	candidates: normalizeRecognitionCandidates(result.candidates),
-	officialPoiMatched: Boolean(result.officialPoiMatched)
+		recommendedRoute: normalizeRecommendedRoute(result),
+		safetyStatus: normalizeXichengSafetyStatus(result.safetyStatus),
+		sources: normalizeReviewedSources(result),
+		candidates: normalizeRecognitionCandidates(result.candidates),
+		officialPoiMatched: Boolean(result.officialPoiMatched),
+		visionAgentContext: result.visionAgentContext && typeof result.visionAgentContext === 'object'
+			? result.visionAgentContext
+			: {}
 })
 
 export default {
@@ -620,6 +654,24 @@ export default {
 		},
 		recognitionActionBlocked() {
 			return this.pendingCandidateConfirmation || this.missingOfficialPoiContext || this.unsafeRecognitionSafetyStatus
+		},
+		visionAgentActionCards() {
+			return [
+				{ actionKey: 'guide', title: '开始讲解', copy: '结合现场信号进入讲解。', requiresRecognition: true },
+				{ actionKey: 'video-brief', title: '30秒视频', copy: '生成适合现场的短讲解。', requiresRecognition: true },
+				{ actionKey: 'deep-history', title: '深入历史', copy: '展开人物、年代和城市知识图谱。', requiresRecognition: true },
+				{ actionKey: 'kids-story', title: '儿童版', copy: '换成孩子能听懂的故事。', requiresRecognition: true },
+				{ actionKey: 'english', title: 'English', copy: 'Switch to English guide.', requiresRecognition: true }
+			]
+		},
+		sceneServiceActions() {
+			return [
+				{ actionKey: 'next-stop', title: '去下一个景点', copy: '加入旅行地图', taskType: 'route' },
+				{ actionKey: 'nearby-food', title: '附近美食', copy: '推荐菜/点单', taskType: 'merchant' },
+				{ actionKey: 'souvenir', title: '纪念品', copy: '匹配附近文创和小店', taskType: 'merchant' },
+				{ actionKey: 'badge', title: '领取徽章', copy: '完成打卡并收集徽章', taskType: 'growth' },
+				{ actionKey: 'travelogue', title: '生成游记', copy: '把这一站写进今天故事', taskType: 'travelogue' }
+			]
 		}
 	},
 	onLoad(options = {}) {
@@ -723,6 +775,7 @@ export default {
 				return
 			}
 			const prompt = question || this.suggestedQuestions[0] || `讲讲${this.result.poiName}`
+			const visionAgentContext = this.result.visionAgentContext || {}
 			const query = [
 				`question=${encodeRouteValue(prompt)}`,
 				`regionCode=${encodeURIComponent(this.result.regionCode || XICHENG_REGION_CONFIG.regionCode)}`,
@@ -733,11 +786,71 @@ export default {
 				`poiName=${encodeRouteValue(this.result.poiName || '')}`,
 				`companionName=${encodeRouteValue(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}`,
 				`confidence=${encodeURIComponent(String(this.result.confidence || ''))}`,
-				`safetyStatus=${encodeURIComponent(this.result.safetyStatus || '')}`
+				`safetyStatus=${encodeURIComponent(this.result.safetyStatus || '')}`,
+				`visionAgentContext=${encodeRouteValue(JSON.stringify(visionAgentContext))}`,
+				`sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || '')}`
 			].join('&')
 			uni.navigateTo({
 				url: `/pages/ai-guide/ai-guide?${query}`
 			})
+		},
+		openVisionAgentAction(action = {}) {
+			if (this.recognitionActionBlocked && action.requiresRecognition) {
+				this.showMissingOfficialPoiToast(action.title || '继续')
+				return
+			}
+			const prompt = action.actionKey === 'video-brief'
+				? `用30秒视频脚本讲讲${this.result.poiName}`
+				: action.actionKey === 'deep-history'
+					? `深入讲讲${this.result.poiName}的历史和城市知识图谱`
+					: action.actionKey === 'kids-story'
+						? `用儿童版讲讲${this.result.poiName}`
+						: action.actionKey === 'english'
+							? `Explain ${this.result.poiName} in English`
+							: ''
+			this.askXiaojing(prompt)
+		},
+		openSceneServiceAction(action = {}) {
+			const serviceTask = this.rememberVisionAgentServiceTask(action)
+			if (action.actionKey === 'travelogue') {
+				this.startRecording()
+				return
+			}
+			uni.showToast({
+				title: `${serviceTask.statusText}`,
+				icon: 'none'
+			})
+		},
+		rememberVisionAgentServiceTask(action = {}) {
+			const existingTasks = uni.getStorageSync('xicheng_vision_agent_service_tasks')
+			const tasks = Array.isArray(existingTasks) ? existingTasks : []
+			const task = {
+				id: `vision-agent-task-${Date.now()}`,
+				taskType: action.taskType || 'service',
+				taskTypeLabel: this.serviceTaskTypeLabel(action.taskType || 'service'),
+				actionKey: action.actionKey || '',
+				actionTitle: action.title || '',
+				actionCopy: action.copy || '',
+				poiCode: this.result.poiCode || '',
+				poiName: this.result.poiName || '',
+				sceneCode: this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode,
+				visionAgentContext: this.result.visionAgentContext || {},
+				status: 'collected',
+				statusText: '已收进任务包',
+				createdAt: new Date().toISOString()
+			}
+			uni.setStorageSync('xicheng_vision_agent_service_tasks', [
+				task,
+				...tasks
+			].slice(0, 50))
+			return task
+		},
+		serviceTaskTypeLabel(taskType = 'service') {
+			if (taskType === 'merchant') return '商家'
+			if (taskType === 'route') return '路线'
+			if (taskType === 'travelogue') return '游记'
+			if (taskType === 'growth') return '成长'
+			return '服务'
 		},
 		openPoiDetail() {
 			if (this.pendingCandidateConfirmation) {
@@ -1604,6 +1717,57 @@ export default {
 	font-size: 34rpx;
 	font-weight: 700;
 	box-shadow: 0 16rpx 34rpx rgba(16, 47, 41, 0.12);
+}
+
+.vision-agent-panel {
+	margin-top: 28rpx;
+	padding: 26rpx;
+	border-radius: 30rpx;
+	background: rgba(255, 253, 248, 0.94);
+}
+
+.vision-agent-action-grid,
+.scene-service-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 14rpx;
+	margin-top: 20rpx;
+}
+
+.vision-agent-action,
+.scene-service-action {
+	min-width: 0;
+	padding: 18rpx;
+	border-radius: 22rpx;
+	background: rgba(23, 63, 53, 0.07);
+	border: 1rpx solid rgba(181, 148, 94, 0.18);
+}
+
+.vision-agent-action-disabled {
+	opacity: 0.54;
+}
+
+.vision-agent-action-title,
+.vision-agent-action-copy,
+.scene-service-title,
+.scene-service-copy {
+	display: block;
+}
+
+.vision-agent-action-title,
+.scene-service-title {
+	font-size: 24rpx;
+	font-weight: 800;
+	line-height: 1.3;
+	color: #102F29;
+}
+
+.vision-agent-action-copy,
+.scene-service-copy {
+	margin-top: 8rpx;
+	font-size: 21rpx;
+	line-height: 1.45;
+	color: rgba(16, 47, 41, 0.62);
 }
 
 .poi-detail-entry {

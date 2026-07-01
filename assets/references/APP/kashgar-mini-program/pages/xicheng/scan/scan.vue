@@ -3,8 +3,8 @@
 		<view class="scan-hero scan-reference-hero xicheng-paper-card">
 			<view class="scan-hero-copy">
 				<text class="scan-kicker">{{ region.cityName }}</text>
-				<text class="scan-title">扫一扫</text>
-				<text class="scan-subtitle">一个入口自动识别二维码、照片、OCR文字、地点线索和路线图</text>
+				<text class="scan-title">AI识境</text>
+				<text class="scan-subtitle">看见什么，就能问什么。镜头、GPS、时间天气和城市知识会一起理解现场。</text>
 			</view>
 			<view class="scan-companion">
 				<image class="scan-companion-avatar" :src="region.companionAvatar" mode="aspectFit" />
@@ -22,8 +22,8 @@
 				<view class="scan-frame-corner scan-frame-corner-bl"></view>
 				<view class="scan-frame-corner scan-frame-corner-br"></view>
 				<view class="scan-frame-core">
-					<text class="scan-frame-title">自动识别</text>
-					<text class="scan-frame-copy">二维码 / 牌匾 / 展牌 / 路线图 / 当前位置</text>
+					<text class="scan-frame-title">场景理解</text>
+					<text class="scan-frame-copy">建筑/文物 / 菜单/美食 / 路牌/OCR / 非遗/活动</text>
 				</view>
 			</view>
 
@@ -97,14 +97,15 @@ export default {
 			},
 			capabilities: [
 				{ title: '二维码', copy: '读取地图、图书或展牌码并匹配官方 POI' },
-				{ title: '照片', copy: '识别门头、文物、说明牌和现场照片' },
-				{ title: 'OCR文字', copy: '从图片文字或补充文本提取地点线索' },
-				{ title: '地点线索', copy: '把攻略里的地名匹配到西城官方 POI' },
-				{ title: '路线图', copy: '把路线图和地点组合转成可走路线' }
+				{ title: '建筑/文物', copy: '识别门头、文物、说明牌和现场照片' },
+				{ title: '菜单/美食', copy: '理解菜品、口味、人数和本地特色' },
+				{ title: '路牌/OCR', copy: '从图片文字或补充文本提取地点线索' },
+				{ title: '非遗/活动', copy: '把演出、体验和路线图转成服务动作' }
 			]
 		}
 	},
 	onLoad(options = {}) {
+		this.applyVisionAgentQueryContext(options)
 		this.routeContext = {
 			regionCode: decodeRouteValue(options.regionCode) || XICHENG_REGION_CONFIG.regionCode,
 			packageCode: decodeRouteValue(options.packageCode) || XICHENG_REGION_CONFIG.packageCode,
@@ -115,6 +116,37 @@ export default {
 		}
 	},
 	methods: {
+		applyVisionAgentQueryContext(options = {}) {
+			this.visionAgentContext = {
+				context: decodeRouteValue(options.context) || 'vision-agent',
+				mode: decodeRouteValue(options.mode) || 'camera',
+				sceneIntent: decodeRouteValue(options.sceneIntent) || 'scene-understanding',
+				entry: decodeRouteValue(options.entry) || 'scan',
+				sceneSessionId: decodeRouteValue(options.sceneSessionId),
+				sourceRecognitionContext: decodeRouteValue(options.sourceRecognitionContext),
+				visionCaption: decodeRouteValue(options.visionCaption),
+				locationText: decodeRouteValue(options.locationText),
+				localTimeText: decodeRouteValue(options.localTimeText),
+				weatherText: decodeRouteValue(options.weatherText),
+				headingText: decodeRouteValue(options.headingText),
+				headingDegrees: decodeRouteValue(options.headingDegrees),
+				activityText: decodeRouteValue(options.activityText),
+				serviceText: decodeRouteValue(options.serviceText),
+				knowledgeGraphText: decodeRouteValue(options.knowledgeGraphText),
+				userInterestTags: decodeRouteValue(options.userInterestTags)
+			}
+		},
+		buildVisionAgentSceneContext(source = '', trigger = {}) {
+			return {
+				...this.visionAgentContext,
+				source,
+				poiCode: trigger.poiCode || '',
+				poiName: trigger.poiName || '',
+				sourceLabel: trigger.sourceLabel || '',
+				confidence: trigger.confidence || '',
+				safetyStatus: trigger.safetyStatus || ''
+			}
+		},
 		startAutoRecognition() {
 			if (this.recognizing) return
 			this.lastError = ''
@@ -165,7 +197,7 @@ export default {
 							filePath,
 							text,
 							ocrText: text,
-							imageLabels: ['照片', 'OCR文字', '地点线索', '路线图']
+							imageLabels: ['照片', '建筑/文物', '菜单/美食', '路牌/OCR', '非遗/活动', 'OCR文字', '地点线索', '路线图']
 						})
 						this.openScanResult(trigger, 'photo')
 					} catch (error) {
@@ -232,7 +264,8 @@ export default {
 				sceneCode: trigger.sceneCode || this.routeContext.sceneCode,
 				sourceChannel: trigger.sourceChannel || this.routeContext.sourceChannel,
 				companionName: trigger.companionName || this.routeContext.companionName,
-				tenantId: this.routeContext.tenantId
+				tenantId: this.routeContext.tenantId,
+				visionAgentContext: this.buildVisionAgentSceneContext(source, trigger)
 			}
 			const unsafeSafetyStatus = isXichengUnsafeSafetyStatus(normalizeXichengSafetyStatus(result.safetyStatus))
 			if (unsafeSafetyStatus) {

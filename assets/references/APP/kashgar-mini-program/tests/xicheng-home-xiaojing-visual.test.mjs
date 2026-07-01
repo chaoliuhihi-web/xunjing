@@ -85,8 +85,8 @@ assert.match(
 
 assert.match(
   home,
-  /home-scan-card[\s\S]*扫一扫[\s\S]*拍照识别 · 文字识别 · 附近触发[\s\S]*home-ask-card[\s\S]*问问小京/,
-  'Xicheng home first-screen action hierarchy should expose one automatic scan entry and Xiaojing, not multiple recognition choices'
+  /home-scan-card[\s\S]*AI识境[\s\S]*镜头理解 · 连续追问 · 城市服务[\s\S]*home-ask-card[\s\S]*问问小京/,
+  'Xicheng home first-screen action hierarchy should expose one AI识境 entry and Xiaojing, not multiple recognition choices'
 )
 
 assert.ok(

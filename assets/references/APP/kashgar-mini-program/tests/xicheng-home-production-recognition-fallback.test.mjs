@@ -41,8 +41,8 @@ assert.doesNotMatch(
 
 assert.match(
   home,
-  /startScanRecognition\(\)\s*\{[\s\S]*if\s*\(this\.recognizing\)\s*return[\s\S]*uni\.navigateTo\(\{[\s\S]*\/pages\/xicheng\/scan\/scan\?/,
-  'Home scan recognition should ignore duplicate quick-card taps and open the dedicated single-entry scan page'
+  /startScanRecognition\(\)\s*\{[\s\S]*if\s*\(this\.recognizing\)\s*return[\s\S]*const entry = 'home-primary'[\s\S]*this\.buildSceneVisionEntryUrl\(this\.buildSceneVisionContext\(\), entry\)/,
+  'Home AI识境 recognition should ignore duplicate quick-card taps and open the dedicated single-entry scan page through the context builder'
 )
 
 assert.match(
