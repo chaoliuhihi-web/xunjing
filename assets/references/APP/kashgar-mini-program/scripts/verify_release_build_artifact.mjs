@@ -109,7 +109,9 @@ const allowedNonNetworkUrls = new Set([
 
 const embeddedUrls = new Set()
 const embeddedUrlRecords = []
+const tenantIdRecords = []
 const urlPattern = /https?:\/\/[A-Za-z0-9.-]+(?::\d+)?(?:\/[^\s"'`<>)]*)?/g
+const tenantIdPattern = /["']?(tenant-id|tenantId|tenant_id|XunjingTenantId|VITE_XUNJING_TENANT_ID)["']?\s*[:=]\s*(?:String\s*\(\s*)?["']?([1-9]\d*)["']?/gi
 let textFilesScanned = 0
 let archiveFilesScanned = 0
 
@@ -132,6 +134,14 @@ const scanTextContent = (sourceLabel, content) => {
       context: content.slice(contextStart, contextEnd),
       before: content.slice(Math.max(0, matchIndex - 48), matchIndex),
       after: content.slice(matchIndex + match[0].length, Math.min(content.length, matchIndex + match[0].length + 48))
+    })
+  }
+
+  for (const match of content.matchAll(tenantIdPattern)) {
+    tenantIdRecords.push({
+      key: match[1],
+      value: String(match[2] || '').trim(),
+      sourceLabel
     })
   }
 }
@@ -221,6 +231,15 @@ if (!embeddedUrlRecords.some((record) => isExpectedApiUrl(record.url))) {
   fail(`Release artifact must embed the configured API base from XUNJING_APP_API_BASE_URL: ${expectedApiBaseUrl}`)
 }
 
+if (tenantIdRecords.length === 0) {
+  fail(`Release artifact must embed the configured tenant id from XUNJING_TENANT_ID: ${expectedTenantId}`)
+}
+
+const mismatchedTenantRecord = tenantIdRecords.find((record) => record.value !== expectedTenantId)
+if (mismatchedTenantRecord) {
+  fail(`Release artifact contains tenant id ${mismatchedTenantRecord.value} in ${mismatchedTenantRecord.sourceLabel}; expected XUNJING_TENANT_ID is ${expectedTenantId}`)
+}
+
 console.log(JSON.stringify({
   ok: true,
   artifactDir: resolvedArtifactDir,
@@ -228,5 +247,6 @@ console.log(JSON.stringify({
   archiveFilesScanned,
   embeddedUrlCount: embeddedUrls.size,
   expectedApiBaseUrl,
-  expectedTenantId
+  expectedTenantId,
+  tenantIdRecordCount: tenantIdRecords.length
 }, null, 2))

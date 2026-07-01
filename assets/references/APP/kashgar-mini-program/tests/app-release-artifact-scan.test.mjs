@@ -32,6 +32,7 @@ assert.ok(
 for (const required of [
   'verify:release:artifact',
   'dist/build/app-release',
+  'XUNJING_TENANT_ID',
   'APK',
   'localhost',
   'XICHENG_DEVELOPMENT_TRIGGER_FIXTURE',
@@ -105,7 +106,7 @@ assert.match(
 )
 
 const legacyOnlineApiDir = makeArtifactDir({
-  'assets/index.js': 'const apiBase="https://api.xingheai.net";const UrlRequest="https://kashi.weiapp.net/";'
+  'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";const UrlRequest="https://kashi.weiapp.net/";'
 })
 const legacyOnlineApiResult = runScanner(legacyOnlineApiDir)
 assert.equal(
@@ -115,7 +116,7 @@ assert.equal(
 )
 
 const svgNamespaceDir = makeArtifactDir({
-  'assets/index.js': 'const apiBase="https://api.xingheai.net";const icon="<svg xmlns=\\"http://www.w3.org/2000/svg\\"></svg>";'
+  'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";const icon="<svg xmlns=\\"http://www.w3.org/2000/svg\\"></svg>";'
 })
 const svgNamespaceResult = runScanner(svgNamespaceDir)
 assert.equal(
@@ -137,6 +138,21 @@ assert.match(
   `${missingExpectedGatewayResult.stderr}\n${missingExpectedGatewayResult.stdout}`,
   /expected API|XUNJING_APP_API_BASE_URL|embed|网关/i,
   'release artifact scanner should explain that the configured release API gateway must be embedded in the package'
+)
+
+const mismatchedTenantDir = makeArtifactDir({
+  'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="2";'
+})
+const mismatchedTenantResult = runScanner(mismatchedTenantDir)
+assert.notEqual(
+  mismatchedTenantResult.status,
+  0,
+  'release artifact scanner should reject artifacts whose embedded tenant id does not match XUNJING_TENANT_ID'
+)
+assert.match(
+  `${mismatchedTenantResult.stderr}\n${mismatchedTenantResult.stdout}`,
+  /tenant|XUNJING_TENANT_ID/i,
+  'release artifact scanner should explain expected tenant id mismatch'
 )
 
 for (const invalidTenantId of ['0', '-1', 'tenant-prod']) {
