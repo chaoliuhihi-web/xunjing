@@ -61,6 +61,39 @@
 			</view>
 		</view>
 
+		<view v-if="memorySessionContinuation" class="scan-memory-session-panel xicheng-paper-card">
+			<view class="section-head xicheng-section-label">
+				<view>
+					<text class="section-kicker">连续识境</text>
+					<text class="section-title">AI识境连续会话包</text>
+				</view>
+				<text class="section-badge">{{ memorySessionContinuation.sceneCount }}次识境</text>
+			</view>
+			<text class="scan-memory-session-copy">{{ memorySessionContinuation.poiTrailText }}</text>
+			<text class="scan-memory-session-copy">{{ memorySessionContinuation.continuityCueText }}</text>
+			<view class="scan-memory-session-cue-grid">
+				<view class="scan-memory-session-cue">
+					<text class="scan-memory-session-cue-label">场景领域</text>
+					<text class="scan-memory-session-cue-value">{{ memorySessionContinuation.domainContinuityText }}</text>
+				</view>
+				<view class="scan-memory-session-cue">
+					<text class="scan-memory-session-cue-label">服务接力</text>
+					<text class="scan-memory-session-cue-value">{{ memorySessionContinuation.serviceContinuityText }}</text>
+				</view>
+			</view>
+			<view class="scan-memory-session-action-grid">
+				<view
+					v-for="action in memorySessionActionItems"
+					:key="action.key"
+					class="scan-memory-session-action"
+					@click="handleMemorySessionAction(action)"
+				>
+					<text class="scan-memory-session-action-title">{{ action.title }}</text>
+					<text class="scan-memory-session-action-copy">{{ action.copy }}</text>
+				</view>
+			</view>
+		</view>
+
 		<view class="scan-world-interface-hud xicheng-paper-card">
 			<view class="section-head xicheng-section-label">
 				<view>
@@ -220,6 +253,35 @@ export default {
 		},
 		sceneAgentActionPreviews() {
 			return this.createSceneAgentActionPreviews()
+		},
+		memorySessionContinuation() {
+			const context = this.buildSceneFusionContext()
+			const memorySessionPackage = context.visionAgentMemorySessionPackage
+			if (!memorySessionPackage || Number(memorySessionPackage.sceneCount || 0) <= 0) return null
+			return {
+				packageName: memorySessionPackage.packageName || 'AI识境连续会话包',
+				sceneCount: Number(memorySessionPackage.sceneCount || context.memorySessionSceneCount || 0),
+				poiTrailText: memorySessionPackage.poiTrailText || context.visionAgentMemorySessionText || '连续识境路线正在形成。',
+				continuityCueText: memorySessionPackage.continuityCueText || '小京会按上一段识境继续理解，不重新开始讲解。',
+				domainContinuityText: memorySessionPackage.domainContinuityText || '连续关注的场景领域正在形成。',
+				serviceContinuityText: memorySessionPackage.serviceContinuityText || '后续服务保持在讲解、路线和游记上接力。'
+			}
+		},
+		memorySessionActionItems() {
+			const continuation = this.memorySessionContinuation
+			if (!continuation) return []
+			return [
+				{
+					key: 'continue-memory-guide',
+					title: '继续问小京',
+					copy: '带着上一段路线、场景和服务意图继续对话。'
+				},
+				{
+					key: 'travelogue-memory-draft',
+					title: '生成今日游记',
+					copy: '把连续识境路线写成今日故事草稿。'
+				}
+			]
 		},
 		agentDecisionPreviewSummary() {
 			const snapshot = this.buildAgentDecisionSnapshot()
@@ -743,6 +805,44 @@ export default {
 				url: `/pages/xicheng/scan-result/scan-result?source=${encodeRouteValue(source)}&regionCode=${encodeRouteValue(result.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(result.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(result.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(result.sourceChannel || this.region.sourceChannel)}&poiCode=${encodeRouteValue(result.poiCode || '')}&poiName=${encodeRouteValue(result.poiName || '')}&companionName=${encodeRouteValue(result.companionName || this.region.companionName)}&safetyStatus=${encodeRouteValue(result.safetyStatus || '')}`
 			})
 		},
+		handleMemorySessionAction(action = {}) {
+			if (action.key === 'continue-memory-guide') {
+				this.continueMemorySessionWithXiaojing()
+				return
+			}
+			if (action.key === 'travelogue-memory-draft') {
+				this.openMemorySessionTravelogue()
+			}
+		},
+		createMemorySessionContinuationContext() {
+			const continuation = this.memorySessionContinuation || {}
+			const visionAgentContext = this.buildVisionAgentSceneContext('memory-session', {
+				sourceLabel: 'AI识境连续会话包',
+				poiName: continuation.poiTrailText || ''
+			})
+			return {
+				...visionAgentContext,
+				entry: 'scan-memory-session',
+				sourceRecognitionContext: visionAgentContext.sourceRecognitionContext || JSON.stringify({
+					sourceLabel: 'AI识境连续会话包',
+					poiTrailText: continuation.poiTrailText || '',
+					sceneCount: continuation.sceneCount || ''
+				})
+			}
+		},
+		continueMemorySessionWithXiaojing() {
+			const visionAgentContext = this.createMemorySessionContinuationContext()
+			const question = visionAgentContext.visionAgentMemorySessionText || '沿着刚才的连续识境继续讲，先告诉我下一步最值得做什么。'
+			uni.navigateTo({
+				url: `/pages/ai-guide/ai-guide?question=${encodeRouteValue(question)}&regionCode=${encodeRouteValue(this.routeContext.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(this.routeContext.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(this.routeContext.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeContext.sourceChannel || this.region.sourceChannel)}&companionName=${encodeRouteValue(this.routeContext.companionName || this.region.companionName)}&visionAgentContext=${encodeRouteValue(JSON.stringify(visionAgentContext))}&sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || '')}`
+			})
+		},
+		openMemorySessionTravelogue() {
+			const visionAgentContext = this.createMemorySessionContinuationContext()
+			uni.navigateTo({
+				url: `/pages/xicheng/travelogue/travelogue?regionCode=${encodeRouteValue(this.routeContext.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(this.routeContext.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(this.routeContext.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeContext.sourceChannel || this.region.sourceChannel)}&visionAgentContext=${encodeRouteValue(JSON.stringify(visionAgentContext))}&memorySessionSceneCount=${encodeRouteValue(visionAgentContext.memorySessionSceneCount || '')}`
+			})
+		},
 		handleRecognitionUnavailable(source = 'scan') {
 			const message = source === 'photo'
 				? '未获得可识别图片，请重新拍摄或补充文字线索'
@@ -852,6 +952,7 @@ export default {
 .scan-panel,
 .scan-fusion-panel,
 .scan-agent-preview-panel,
+.scan-memory-session-panel,
 .scan-world-interface-hud,
 .scan-scene-domain-panel,
 .scan-capabilities {
@@ -945,6 +1046,81 @@ export default {
 }
 
 .scan-agent-action-copy {
+	margin-top: 8rpx;
+	font-size: 21rpx;
+	color: rgba(255, 255, 255, 0.72);
+}
+
+.scan-memory-session-panel {
+	background:
+		linear-gradient(135deg, rgba(255, 253, 248, 0.98), rgba(238, 247, 241, 0.94));
+	border: 1rpx solid rgba(31, 110, 90, 0.10);
+}
+
+.scan-memory-session-copy {
+	display: block;
+	margin-top: 14rpx;
+	font-size: 24rpx;
+	line-height: 1.5;
+	color: rgba(16, 47, 41, 0.72);
+}
+
+.scan-memory-session-cue-grid,
+.scan-memory-session-action-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 12rpx;
+	margin-top: 18rpx;
+}
+
+.scan-memory-session-cue,
+.scan-memory-session-action {
+	min-width: 0;
+	padding: 18rpx;
+	border-radius: 20rpx;
+	box-sizing: border-box;
+}
+
+.scan-memory-session-cue {
+	background: rgba(255, 252, 244, 0.82);
+	border: 1rpx solid rgba(16, 47, 41, 0.08);
+}
+
+.scan-memory-session-action {
+	background: rgba(23, 63, 53, 0.92);
+}
+
+.scan-memory-session-cue-label,
+.scan-memory-session-cue-value,
+.scan-memory-session-action-title,
+.scan-memory-session-action-copy {
+	display: block;
+	line-height: 1.4;
+}
+
+.scan-memory-session-cue-label {
+	font-size: 20rpx;
+	font-weight: 800;
+	color: rgba(16, 47, 41, 0.54);
+}
+
+.scan-memory-session-cue-value {
+	margin-top: 8rpx;
+	font-size: 22rpx;
+	color: #102F29;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.scan-memory-session-action-title {
+	font-size: 25rpx;
+	font-weight: 900;
+	color: #FFFFFF;
+}
+
+.scan-memory-session-action-copy {
 	margin-top: 8rpx;
 	font-size: 21rpx;
 	color: rgba(255, 255, 255, 0.72);
