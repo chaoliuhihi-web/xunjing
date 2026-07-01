@@ -8,6 +8,11 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 const sourceHelper = read('request', 'xunjing', 'sources.js')
+const extractTravelogueMethodBlock = (methodName, nextMethodName) => {
+  const block = travelogue.match(new RegExp(`${methodName}\\([^)]*\\)[\\s\\S]*?\\n\\t\\t\\},\\n\\t\\t${nextMethodName}`))?.[0] || ''
+  assert.ok(block, `Travelogue should define ${methodName}`)
+  return block
+}
 
 assert.ok(
   regionConfig.includes("shareAssetStorageKey: 'xicheng:shareAssets'"),
@@ -112,6 +117,26 @@ assert.match(
   travelogue,
   /createShareArtifact\(assetType\)[\s\S]*safetyStatusSummary:\s*this\.safetyStatusSummary[\s\S]*safetyBlockedCount:\s*this\.safetyBlockedCount[\s\S]*safetyUnavailableCount:\s*this\.safetyUnavailableCount/,
   'Generated poster and PDF assets should carry safety audit summary for review before publishing'
+)
+
+const publicStudyEvidenceBlock = extractTravelogueMethodBlock('sanitizeStudyTaskEvidenceForPublicShare', 'sanitizeRouteCheckinForPublicShare')
+
+assert.match(
+  publicStudyEvidenceBlock,
+  /const safetyStatus = normalizeXichengSafetyStatus\(evidence\.safetyStatus\)[\s\S]*if \(isXichengUnsafeSafetyStatus\(safetyStatus\)\) return null[\s\S]*safetyStatus,/,
+  'Travelogue share artifact study evidence sanitizer should drop BLOCKED or UNAVAILABLE study evidence and preserve normalized safetyStatus'
+)
+
+assert.match(
+  travelogue,
+  /createReviewPublicPreview\(\)[\s\S]*const publicStudyTaskEvidence = this\.completedStudyTaskEvidence[\s\S]*\.map\(evidence => this\.sanitizeStudyTaskEvidenceForPublicShare\(evidence\)\)[\s\S]*\.filter\(Boolean\)/,
+  'Travelogue review public preview should remove unsafe or invalid study evidence after sanitization'
+)
+
+assert.match(
+  travelogue,
+  /createShareArtifact\(assetType\)[\s\S]*publicStudyTaskEvidence:\s*this\.completedStudyTaskEvidence\.map\(evidence => this\.sanitizeStudyTaskEvidenceForPublicShare\(evidence\)\)\.filter\(Boolean\)/,
+  'Travelogue generated share artifacts should remove unsafe or invalid study evidence after sanitization'
 )
 
 assert.match(

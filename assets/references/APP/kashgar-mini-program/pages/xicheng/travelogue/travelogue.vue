@@ -2164,12 +2164,15 @@ export default {
 			}
 		},
 		sanitizeStudyTaskEvidenceForPublicShare(evidence = {}) {
+			const safetyStatus = normalizeXichengSafetyStatus(evidence.safetyStatus)
+			if (isXichengUnsafeSafetyStatus(safetyStatus)) return null
 			return {
 				taskId: evidence.taskId || '',
 				taskText: evidence.taskText || '',
 				evidenceType: evidence.evidenceType || '',
 				answerExcerpt: String(evidence.answerText || '').slice(0, 80),
 				hasPhoto: Boolean(evidence.photoPath),
+				safetyStatus,
 				completedAt: evidence.completedAt || ''
 			}
 		},
@@ -2222,6 +2225,7 @@ export default {
 				.map(material => this.sanitizeMaterialForPublicShare(material))
 			const publicStudyTaskEvidence = this.completedStudyTaskEvidence
 				.map(evidence => this.sanitizeStudyTaskEvidenceForPublicShare(evidence))
+				.filter(Boolean)
 			return {
 				publicMaterials,
 				publicRouteCheckins,
@@ -2273,7 +2277,7 @@ export default {
 					heroLandmark: XICHENG_REGION_CONFIG.visualAssets.heroLandmark
 				},
 				publicMaterials,
-				publicStudyTaskEvidence: this.completedStudyTaskEvidence.map(evidence => this.sanitizeStudyTaskEvidenceForPublicShare(evidence)),
+				publicStudyTaskEvidence: this.completedStudyTaskEvidence.map(evidence => this.sanitizeStudyTaskEvidenceForPublicShare(evidence)).filter(Boolean),
 				publicRouteCheckins,
 				publicCandidateConfirmationSummary: this.createPublicCandidateConfirmationSummary(),
 				publicRecordingSummary: this.createPublicRecordingSummary(),
