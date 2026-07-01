@@ -1,5 +1,42 @@
+const XICHENG_SOURCE_REVIEW_STATUS_FIELDS = Object.freeze(['reviewStatus', 'auditStatus', 'sourceStatus', 'status'])
+const XICHENG_APPROVED_SOURCE_REVIEW_STATUSES = Object.freeze([
+	'已审核',
+	'审核通过',
+	'已通过',
+	'通过',
+	'已发布',
+	'公开',
+	'APPROVED',
+	'REVIEWED',
+	'PASSED',
+	'PASS',
+	'PUBLISHED',
+	'PUBLIC'
+])
+
+const normalizeSourceReviewStatus = (status = '') => String(status || '').trim()
+
+const isApprovedSourceReviewStatus = (status = '') => {
+	const normalizedStatus = normalizeSourceReviewStatus(status)
+	return XICHENG_APPROVED_SOURCE_REVIEW_STATUSES.includes(normalizedStatus)
+		|| XICHENG_APPROVED_SOURCE_REVIEW_STATUSES.includes(normalizedStatus.toUpperCase())
+}
+
+const isXichengApprovedSourceForDisplay = (source = {}) => {
+	const reviewStatuses = XICHENG_SOURCE_REVIEW_STATUS_FIELDS
+		.map(field => normalizeSourceReviewStatus(source[field]))
+		.filter(Boolean)
+	if (reviewStatuses.length === 0) {
+		return true
+	}
+	return reviewStatuses.every(isApprovedSourceReviewStatus)
+}
+
 export const normalizeXichengReviewedSource = (source = {}) => {
 	if (!source || typeof source !== 'object') {
+		return null
+	}
+	if (!isXichengApprovedSourceForDisplay(source)) {
 		return null
 	}
 	const displayTitle = source.title || source.name || source.sourceTitle || ''

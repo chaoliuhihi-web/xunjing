@@ -153,6 +153,43 @@ assert.deepEqual(
   'Reviewed source normalization should drop blank/raw-only source records so sourceCount cannot be inflated'
 )
 
+assert.deepEqual(
+  normalizeXichengReviewedSources([
+    {
+      title: '明确已审核来源',
+      reviewStatus: '已审核',
+      contentDigest: '该来源可以展示。'
+    },
+    {
+      title: '英文已审核来源',
+      auditStatus: 'APPROVED',
+      contentDigest: '该英文审核状态来源可以展示。'
+    },
+    {
+      title: '待审核来源',
+      reviewStatus: '待审核',
+      contentDigest: '该来源尚未审核，不应展示。'
+    },
+    {
+      title: '英文待审核来源',
+      auditStatus: 'PENDING',
+      contentDigest: '该来源尚未审核，不应展示。'
+    },
+    {
+      title: '拒绝来源',
+      sourceStatus: 'REJECTED',
+      contentDigest: '该来源未通过审核，不应展示。'
+    },
+    {
+      title: '草稿来源',
+      status: 'DRAFT',
+      contentDigest: '该来源还在草稿中，不应展示。'
+    }
+  ]).map(source => source.title),
+  ['明确已审核来源', '英文已审核来源'],
+  'Reviewed source normalization should fail closed by dropping explicitly pending, rejected, or draft source records'
+)
+
 assert.equal(
   getXichengDisplaySourceTitle({ title: '白塔寺 POI 级已审核来源' }),
   '白塔寺',
