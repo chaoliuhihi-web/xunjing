@@ -128,6 +128,17 @@ const assertMobileReleaseArtifact = (label, artifactPath) => {
   }
 }
 
+const assertReadableMobileArchive = (label, artifactPath) => {
+  const result = spawnSync('unzip', ['-tq', artifactPath], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    maxBuffer: 50 * 1024 * 1024
+  })
+  if (result.status !== 0) {
+    fail(`${label} must be a readable APK/AAB/IPA ZIP archive: ${result.stderr || result.stdout}`)
+  }
+}
+
 const assertArtifactMatchesReleaseTargets = ({ artifactPath, releaseTargets, label }) => {
   if (releaseTargets.length !== 1) {
     fail(`${label} supports one platform per single release artifact. Create separate native evidence files for android and ios.`)
@@ -214,6 +225,7 @@ if (!fs.existsSync(resolvedArtifactPath)) {
 }
 
 assertMobileReleaseArtifact('Native device evidence release artifact', resolvedArtifactPath)
+assertReadableMobileArchive('Native device evidence release artifact', resolvedArtifactPath)
 
 const artifactStat = fs.statSync(resolvedArtifactPath)
 if (!artifactStat.isFile()) {

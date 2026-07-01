@@ -27,14 +27,42 @@ const requiredScenarioIds = [
 ]
 
 const artifactTempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-release-artifact-'))
-const artifactPath = path.join(artifactTempDir, 'xicheng-release.apk')
-const artifactBytes = Buffer.from('signed release apk placeholder for validator tests\n', 'utf8')
-fs.writeFileSync(artifactPath, artifactBytes)
-const artifactSha256 = crypto.createHash('sha256').update(artifactBytes).digest('hex')
-const iosArtifactPath = path.join(artifactTempDir, 'xicheng-release.ipa')
-const iosArtifactBytes = Buffer.from('signed release ipa placeholder for validator tests\n', 'utf8')
-fs.writeFileSync(iosArtifactPath, iosArtifactBytes)
-const iosArtifactSha256 = crypto.createHash('sha256').update(iosArtifactBytes).digest('hex')
+const createZipArtifact = (fileName, files) => {
+  const sourceDir = fs.mkdtempSync(path.join(artifactTempDir, `${path.basename(fileName, path.extname(fileName))}-source-`))
+  for (const [relativePath, content] of Object.entries(files)) {
+    const filePath = path.join(sourceDir, relativePath)
+    fs.mkdirSync(path.dirname(filePath), { recursive: true })
+    fs.writeFileSync(filePath, content)
+  }
+  const artifactPath = path.join(artifactTempDir, fileName)
+  const zipResult = spawnSync('zip', ['-qr', artifactPath, '.'], {
+    cwd: sourceDir,
+    encoding: 'utf8'
+  })
+  assert.equal(zipResult.status, 0, `test fixture should create readable ${fileName}: ${zipResult.stderr || zipResult.stdout}`)
+  const artifactBytes = fs.readFileSync(artifactPath)
+  return {
+    artifactPath,
+    artifactBytes,
+    artifactSha256: crypto.createHash('sha256').update(artifactBytes).digest('hex')
+  }
+}
+const androidArtifact = createZipArtifact('xicheng-release.apk', {
+  'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";'
+})
+const artifactPath = androidArtifact.artifactPath
+const artifactBytes = androidArtifact.artifactBytes
+const artifactSha256 = androidArtifact.artifactSha256
+const iosArtifact = createZipArtifact('xicheng-release.ipa', {
+  'Payload/XingheXunjing.app/config.json': '{"apiBase":"https://api.xingheai.net","tenantId":"1"}'
+})
+const iosArtifactPath = iosArtifact.artifactPath
+const iosArtifactBytes = iosArtifact.artifactBytes
+const iosArtifactSha256 = iosArtifact.artifactSha256
+const renamedTextArtifactPath = path.join(artifactTempDir, 'xicheng-renamed-text.apk')
+const renamedTextArtifactBytes = Buffer.from('renamed text file is not a readable mobile archive\n', 'utf8')
+fs.writeFileSync(renamedTextArtifactPath, renamedTextArtifactBytes)
+const renamedTextArtifactSha256 = crypto.createHash('sha256').update(renamedTextArtifactBytes).digest('hex')
 const nonMobileArtifactPath = path.join(artifactTempDir, 'xicheng-release.txt')
 const nonMobileArtifactBytes = Buffer.from('not a mobile install package\n', 'utf8')
 fs.writeFileSync(nonMobileArtifactPath, nonMobileArtifactBytes)
@@ -162,6 +190,26 @@ assert.equal(
   runValidator(baseEvidence).status,
   0,
   'native evidence validator should accept complete physical-device evidence'
+)
+
+const renamedTextApkResult = runValidator({
+  ...baseEvidence,
+  build: {
+    ...baseEvidence.build,
+    artifact: renamedTextArtifactPath,
+    artifactSha256: renamedTextArtifactSha256,
+    artifactSizeBytes: renamedTextArtifactBytes.length
+  }
+})
+assert.notEqual(
+  renamedTextApkResult.status,
+  0,
+  'native evidence validator should reject text files renamed with an APK extension'
+)
+assert.match(
+  `${renamedTextApkResult.stderr}\n${renamedTextApkResult.stdout}`,
+  /APK|AAB|IPA|archive|ZIP|install package|安装包/i,
+  'native evidence validator should explain that the release artifact must be a readable mobile archive'
 )
 
 const templatePlaceholderResult = runValidator({
