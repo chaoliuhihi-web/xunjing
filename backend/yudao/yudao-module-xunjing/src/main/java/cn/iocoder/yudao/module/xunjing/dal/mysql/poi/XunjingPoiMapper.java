@@ -31,4 +31,14 @@ public interface XunjingPoiMapper extends BaseMapperX<XunjingPoiDO> {
                 .orderByAsc(XunjingPoiDO::getId));
     }
 
+    default List<XunjingPoiDO> selectPublishedListByPackageId(
+            Long packageId, String status, String reviewStatus) {
+        return selectList(new LambdaQueryWrapperX<XunjingPoiDO>()
+                .eq(XunjingPoiDO::getPackageId, packageId)
+                .eq(XunjingPoiDO::getStatus, status)
+                .eq(XunjingPoiDO::getReviewStatus, reviewStatus)
+                .orderByAsc(XunjingPoiDO::getPoiLevel)
+                .orderByAsc(XunjingPoiDO::getId));
+    }
+
 }

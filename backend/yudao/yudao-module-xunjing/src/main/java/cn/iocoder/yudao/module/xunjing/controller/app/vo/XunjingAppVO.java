@@ -117,6 +117,7 @@ public class XunjingAppVO {
     public static class AppPackageDetailRespVO {
         private Long id;
         private String packageCode;
+        private String regionCode;
         private String title;
         private String resourceType;
         private String versionNo;

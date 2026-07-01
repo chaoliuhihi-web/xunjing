@@ -556,6 +556,19 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testGetPublicPackageDetailReturnsRegionCodeFromPublishedPoi() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        AppPackageDetailRespVO detail = appService.getPublicPackageDetail("XICHENG-MAP-001");
+
+        assertEquals("XICHENG-MAP-001", detail.getPackageCode());
+        assertEquals("beijing-xicheng", detail.getRegionCode());
+    }
+
+    @Test
     public void testAnswerBlocksWhenDailyQuotaExceeded() {
         Long projectId = consoleService.createProject(projectReq());
         Long schoolId = consoleService.createSchool(schoolReq());

@@ -46,6 +46,7 @@ import cn.iocoder.yudao.module.xunjing.dal.mysql.map.XunjingMapPointMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.media.XunjingMediaAssetMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.media.XunjingMediaUsageLogMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.packagepkg.XunjingResourcePackageMapper;
+import cn.iocoder.yudao.module.xunjing.dal.mysql.poi.XunjingPoiMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.qrcode.XunjingQrCodeMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.report.XunjingPublicReportMapper;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.AiSafetyStatus;
@@ -119,6 +120,8 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     @Resource
     private XunjingGlobeModelMapper globeModelMapper;
     @Resource
+    private XunjingPoiMapper poiMapper;
+    @Resource
     private XunjingMultimodalTriggerEngine multimodalTriggerEngine;
     @Autowired(required = false)
     private AiKnowledgeSegmentService aiKnowledgeSegmentService;
@@ -148,6 +151,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         Long packageId = resourcePackage.getId();
 
         AppPackageDetailRespVO respVO = BeanUtils.toBean(resourcePackage, AppPackageDetailRespVO.class);
+        respVO.setRegionCode(resolvePackageRegionCode(packageId));
         respVO.setKnowledgeDocuments(BeanUtils.toBean(knowledgeDocumentMapper.selectPublicListByPackageId(
                 packageId, ReviewStatus.APPROVED.getStatus(), VectorStatus.INDEXED.getStatus()),
                 AppKnowledgeDocumentRespVO.class));
@@ -159,6 +163,17 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         respVO.setGlobeModels(BeanUtils.toBean(globeModelMapper.selectPublicListByPackageId(
                 packageId, PackageStatus.PUBLISHED.getStatus()), AppGlobeModelRespVO.class));
         return respVO;
+    }
+
+    private String resolvePackageRegionCode(Long packageId) {
+        List<String> regionCodes = poiMapper.selectPublishedListByPackageId(
+                        packageId, PackageStatus.PUBLISHED.getStatus(), ReviewStatus.APPROVED.getStatus())
+                .stream()
+                .map(poi -> defaultIfBlank(poi.getRegionCode(), "").trim())
+                .filter(this::hasText)
+                .distinct()
+                .toList();
+        return regionCodes.size() == 1 ? regionCodes.get(0) : null;
     }
 
     @Override
