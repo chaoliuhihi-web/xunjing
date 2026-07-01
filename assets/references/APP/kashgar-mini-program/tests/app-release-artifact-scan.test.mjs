@@ -37,6 +37,7 @@ for (const required of [
   'localhost',
   'IPv4',
   'IPv6',
+  'URL 内嵌账号密码',
   'XICHENG_DEVELOPMENT_TRIGGER_FIXTURE',
   'sk-',
   'pat_',
@@ -261,6 +262,7 @@ for (const [label, content, expectedMessage] of [
 }
 
 for (const [label, content] of [
+  ['URL embedded short username/password credential', 'const apiBase="https://api.xingheai.net";const tenantId="1";const bad="https://u:p@static.xingheai.net/poster.png";'],
   ['OpenAI-style secret key', `const key="sk-${'a'.repeat(32)}";`],
   ['GitHub/Gitee PAT token', `const pat="pat_${'A'.repeat(32)}";`],
   ['GitHub token', `const ghp="ghp_${'B'.repeat(36)}";`],

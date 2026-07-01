@@ -56,6 +56,7 @@ for (const invalidBaseUrl of [
   'https://xicheng.test',
   'https://xicheng.invalid',
   'https://placeholder.xingheai.net',
+  'https://u:p@api.xingheai.net',
 ]) {
   const result = runGuard({
     XUNJING_APP_API_BASE_URL: invalidBaseUrl,
@@ -64,7 +65,7 @@ for (const invalidBaseUrl of [
   assert.notEqual(result.status, 0, `release env guard should reject ${invalidBaseUrl}`)
   assert.match(
     `${result.stderr}\n${result.stdout}`,
-    /non-local HTTPS URL|must start with https:\/\/|reserved|placeholder|占位/i,
+    /non-local HTTPS URL|must start with https:\/\/|reserved|placeholder|credential|凭据|占位/i,
     `release env guard should explain why ${invalidBaseUrl} is invalid`
   )
 }

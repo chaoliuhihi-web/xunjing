@@ -62,6 +62,9 @@ export const normalizeReleaseHttpsUrl = (label, value) => {
   if (parsed.protocol !== 'https:' || localOrLanHost(hostname)) {
     throw new Error(`${label} must be a non-local HTTPS URL`)
   }
+  if (parsed.username || parsed.password) {
+    throw new Error(`${label} must not include embedded credentials`)
+  }
   if (reservedOrPlaceholderHost(hostname)) {
     throw new Error(`${label} must not use a reserved or placeholder hostname`)
   }
