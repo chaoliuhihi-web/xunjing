@@ -644,7 +644,11 @@ export default {
 			return '0%'
 		},
 		suggestedQuestions() {
-			return normalizeSuggestedQuestions(this.result)
+			const baseQuestions = normalizeSuggestedQuestions(this.result)
+			if (this.recognitionActionBlocked) {
+				return normalizeSuggestedQuestions(this.result)
+			}
+			return this.createVisionAgentFollowupQuestions(baseQuestions)
 		},
 		sourceList() {
 			return normalizeReviewedSources(this.result)
@@ -1272,6 +1276,50 @@ export default {
 				return `沿着城市知识图谱，从${this.result.poiName || '当前场景'}继续讲到${node.title || '这个服务节点'}，告诉我现在可以接哪些文旅服务动作。`
 			}
 			return `沿着城市知识图谱，从${this.result.poiName || '当前场景'}继续讲到${node.title || '这个节点'}，讲清楚它和当前场景的关系。`
+		},
+		createVisionAgentFollowupQuestions(baseQuestions = []) {
+			const questions = []
+			const appendQuestion = (question = '') => {
+				const safeQuestion = String(question || '').trim()
+				if (!safeQuestion || questions.includes(safeQuestion)) return
+				questions.push(safeQuestion)
+			}
+			;(Array.isArray(baseQuestions) ? baseQuestions : []).forEach(appendQuestion)
+			const sceneCard = this.prioritizedSceneUnderstandingCards
+				.find(card => card && Number(card.score || 0) > 0)
+				|| this.prioritizedSceneUnderstandingCards[0]
+			if (sceneCard) {
+				appendQuestion(`看见什么，就能问什么：${this.createSceneUnderstandingPrompt(sceneCard)}`)
+			}
+			const graphNode = this.cityKnowledgeGraphNodes
+				.find(node => node && node.type && node.type !== 'poi')
+				|| this.cityKnowledgeGraphNodes[0]
+			if (graphNode) {
+				appendQuestion(this.createKnowledgeGraphNodePrompt(graphNode))
+			}
+			const serviceAction = this.prioritizedSceneServiceActions
+				.find(action => action && (action.serviceIntent || ['merchant', 'ticketing', 'experience', 'navigation'].includes(action.taskType)))
+				|| this.prioritizedSceneServiceActions[0]
+			if (serviceAction) {
+				const serviceHandoffTask = this.createVisionAgentServiceHandoff({
+					...serviceAction,
+					actionTitle: serviceAction.title,
+					actionCopy: serviceAction.copy,
+					poiName: this.result.poiName || '当前场景'
+				})
+				appendQuestion(this.createServiceHandoffPrompt(serviceHandoffTask))
+			}
+			const previousMemory = this.readVisionAgentMemoryTrail()
+				.find(item => {
+					if (!item || typeof item !== 'object') return false
+					const currentPoiKey = this.result.poiCode || this.result.poiName
+					const memoryPoiKey = item.poiCode || item.poiName
+					return memoryPoiKey && memoryPoiKey !== currentPoiKey
+				})
+			if (previousMemory) {
+				appendQuestion(`沿着连续识境，把${previousMemory.poiName || previousMemory.visionCaption || '上一拍'}和${this.result.poiName || '当前场景'}串起来讲，告诉我接下来最值得问什么。`)
+			}
+			return questions.slice(0, 6)
 		},
 		openKnowledgeGraphNode(node = {}) {
 			if (this.recognitionActionBlocked) {
