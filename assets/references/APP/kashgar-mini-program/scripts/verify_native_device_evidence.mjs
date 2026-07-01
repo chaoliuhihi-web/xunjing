@@ -19,6 +19,14 @@ const requiredScenarioIds = [
   'travelogue-draft-generated'
 ]
 const supportedReleaseTargets = new Set(['android', 'ios'])
+const supportedEvidenceRefExtensions = new Set([
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.webp',
+  '.mp4',
+  '.mov'
+])
 
 const fail = (message) => {
   console.error(message)
@@ -262,6 +270,10 @@ for (const id of requiredScenarioIds) {
   }
   if (!fs.existsSync(resolvedEvidenceRef)) {
     fail(`Native device evidence scenario ${id} evidenceRef file not found: ${resolvedEvidenceRef} (截图/录屏)`)
+  }
+  const evidenceRefExt = path.extname(resolvedEvidenceRef).toLowerCase()
+  if (!supportedEvidenceRefExtensions.has(evidenceRefExt)) {
+    fail(`Native device evidence scenario ${id} evidenceRef must be a screenshot or recording file: jpg, jpeg, png, webp, mp4, or mov`)
   }
   const evidenceRefStat = fs.statSync(resolvedEvidenceRef)
   if (!evidenceRefStat.isFile() || evidenceRefStat.size <= 0) {

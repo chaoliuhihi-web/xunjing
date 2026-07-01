@@ -86,6 +86,9 @@ for (const required of [
   'evidenceRef',
   '截图',
   '录屏',
+  'jpg',
+  'png',
+  'mp4',
   'qa/',
   'createdAt',
   '72 小时',
@@ -281,6 +284,27 @@ assert.match(
   `${outsideQaEvidenceRefResult.stderr}\n${outsideQaEvidenceRefResult.stdout}`,
   /recording-start-stop|evidenceRef|qa\//i,
   'native evidence validator should explain that scenario evidence must be stored under qa/'
+)
+
+const textEvidenceRefFile = path.join(qaEvidenceDir, 'ocr-text-recognition.txt')
+fs.writeFileSync(textEvidenceRefFile, 'non-empty text notes are not screenshot or recording evidence\n')
+const textEvidenceRefResult = runValidator({
+  ...baseEvidence,
+  scenarios: baseEvidence.scenarios.map((scenario) => (
+    scenario.id === 'ocr-text-recognition'
+      ? { ...scenario, evidenceRef: path.relative(repoRoot, textEvidenceRefFile) }
+      : scenario
+  ))
+})
+assert.notEqual(
+  textEvidenceRefResult.status,
+  0,
+  'native evidence validator should reject non-media evidenceRef files'
+)
+assert.match(
+  `${textEvidenceRefResult.stderr}\n${textEvidenceRefResult.stdout}`,
+  /ocr-text-recognition|evidenceRef|screenshot|recording|截图|录屏|jpg|png|mp4/i,
+  'native evidence validator should explain supported screenshot or recording evidence formats'
 )
 
 const localGatewayResult = runValidator({

@@ -117,7 +117,7 @@ npm run verify:native:evidence
 - `recording-start-stop`：开始和停止记录。
 - `travelogue-draft-generated`：生成游记草稿。
 
-每个真机场景的 `evidenceRef` 必须指向仓库 `qa/` 下真实存在且非空的截图或录屏文件，建议归档到 `qa/native/`；只写文件名、空文件、不存在的路径或临时目录文件都不能放行。
+每个真机场景的 `evidenceRef` 必须指向仓库 `qa/` 下真实存在且非空的截图或录屏文件，建议归档到 `qa/native/`；只接受 `jpg`、`jpeg`、`png`、`webp`、`mp4`、`mov` 这类截图/录屏格式。只写文件名、空文件、不存在的路径、临时目录文件或纯文本说明都不能放行。
 
 ## 手机端放行证据包
 
