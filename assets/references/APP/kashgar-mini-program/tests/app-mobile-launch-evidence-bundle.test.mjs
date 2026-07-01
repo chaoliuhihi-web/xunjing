@@ -100,12 +100,36 @@ const makePreprodEvidence = (overrides = {}) => {
       {
         name: 'live-xicheng-ai-chat-sourced',
         ok: true,
-        summary: { safetyStatus: 'PASSED', sourceCount: 1 }
+        summary: {
+          endpoint: '/app-api/xunjing/ai/chat',
+          tenantId: '1',
+          packageCode: 'XICHENG-MAP-001',
+          sceneCode: 'xicheng-ai-guide',
+          regionCode: 'beijing-xicheng',
+          poiCode: 'xicheng-baitasi',
+          poiName: '妙应寺白塔',
+          contextEcho: true,
+          safetyStatus: 'PASSED',
+          sourceCount: 1,
+          logId: 120
+        }
       },
       {
         name: 'live-xicheng-ai-chat-blocked',
         ok: true,
-        summary: { safetyStatus: 'BLOCKED', sourceCount: 0 }
+        summary: {
+          endpoint: '/app-api/xunjing/ai/chat',
+          tenantId: '1',
+          packageCode: 'XICHENG-MAP-001',
+          sceneCode: 'xicheng-ai-guide',
+          regionCode: 'beijing-xicheng',
+          poiCode: 'xicheng-source-guard-negative',
+          poiName: '来源门禁测试点位',
+          contextEcho: true,
+          safetyStatus: 'BLOCKED',
+          sourceCount: 0,
+          logId: 121
+        }
       },
       {
         name: 'live-xicheng-trigger-baitasi',
@@ -227,7 +251,12 @@ for (const required of [
   'live-xicheng-scan-resolve',
   '扫码入口',
   'targetPath',
-  '/pages/map/detail'
+  '/pages/map/detail',
+  'contextEcho',
+  'logId',
+  'poiCode',
+  'poiName',
+  '/app-api/xunjing/ai/chat'
 ]) {
   assert.ok(
     fs.readFileSync(releaseChecklistPath, 'utf8').includes(required),
@@ -330,6 +359,34 @@ assert.match(
   `${missingScanResolveResult.stderr}\n${missingScanResolveResult.stdout}`,
   /live-xicheng-scan-resolve|扫码入口|scan/i,
   'launch evidence bundle validator should name the missing scan entry resolve check'
+)
+
+const missingAiContextResult = runBundleGate(
+  {
+    ...makePreprodEvidence(),
+    checks: makePreprodEvidence().checks.map((check) => (
+      check.name === 'live-xicheng-ai-chat-sourced'
+        ? {
+            ...check,
+            summary: {
+              safetyStatus: 'PASSED',
+              sourceCount: 1
+            }
+          }
+        : check
+    ))
+  },
+  makeNativeEvidence()
+)
+assert.notEqual(
+  missingAiContextResult.status,
+  0,
+  'launch evidence bundle validator should reject AI chat evidence without route context echo, POI attribution, and log id'
+)
+assert.match(
+  `${missingAiContextResult.stderr}\n${missingAiContextResult.stdout}`,
+  /contextEcho|poiCode|poiName|logId|\/app-api\/xunjing\/ai\/chat/i,
+  'launch evidence bundle validator should explain the required AI chat context evidence'
 )
 
 const wrongScanTargetResult = runBundleGate(

@@ -101,8 +101,40 @@ const makePreprodEvidence = () => ({
     failedChecks: 0
   },
   checks: [
-    { name: 'live-xicheng-ai-chat-sourced', ok: true, summary: { safetyStatus: 'PASSED', sourceCount: 1 } },
-    { name: 'live-xicheng-ai-chat-blocked', ok: true, summary: { safetyStatus: 'BLOCKED', sourceCount: 0 } },
+    {
+      name: 'live-xicheng-ai-chat-sourced',
+      ok: true,
+      summary: {
+        endpoint: '/app-api/xunjing/ai/chat',
+        tenantId: '1',
+        packageCode: 'XICHENG-MAP-001',
+        sceneCode: 'xicheng-ai-guide',
+        regionCode: 'beijing-xicheng',
+        poiCode: 'xicheng-baitasi',
+        poiName: '妙应寺白塔',
+        contextEcho: true,
+        safetyStatus: 'PASSED',
+        sourceCount: 1,
+        logId: 120
+      }
+    },
+    {
+      name: 'live-xicheng-ai-chat-blocked',
+      ok: true,
+      summary: {
+        endpoint: '/app-api/xunjing/ai/chat',
+        tenantId: '1',
+        packageCode: 'XICHENG-MAP-001',
+        sceneCode: 'xicheng-ai-guide',
+        regionCode: 'beijing-xicheng',
+        poiCode: 'xicheng-source-guard-negative',
+        poiName: '来源门禁测试点位',
+        contextEcho: true,
+        safetyStatus: 'BLOCKED',
+        sourceCount: 0,
+        logId: 121
+      }
+    },
     { name: 'live-xicheng-trigger-baitasi', ok: true, summary: { poiCode: 'xicheng-baitasi', sourceCount: 1 } },
     { name: 'live-xicheng-trigger-gongwangfu', ok: true, summary: { poiCode: 'xicheng-gongwangfu', sourceCount: 1 } },
     { name: 'live-xicheng-trigger-planetarium', ok: true, summary: { poiCode: 'xicheng-planetarium', sourceCount: 1 } },

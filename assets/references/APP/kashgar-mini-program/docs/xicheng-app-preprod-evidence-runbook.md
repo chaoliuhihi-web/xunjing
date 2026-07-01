@@ -125,7 +125,7 @@ XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-eviden
 npm run verify:launch:evidence
 ```
 
-该命令会复用真机证据校验，并额外确认预发后端证据包含 `live-xicheng-ai-chat-sourced`、`live-xicheng-ai-chat-blocked`、白塔寺、恭王府、北京天文馆 trigger smoke，以及扫码入口解析 `live-xicheng-scan-resolve`。扫码入口证据的 `targetPath` 必须指向 `/pages/map/detail`，`packageCode` 必须为 `XICHENG-MAP-001`，`tenantId` 必须和预发汇总一致。通过后才说明 APP 包、预发后端和真机证据来自同一个候选版本。
+该命令会复用真机证据校验，并额外确认预发后端证据包含 `live-xicheng-ai-chat-sourced`、`live-xicheng-ai-chat-blocked`、白塔寺、恭王府、北京天文馆 trigger smoke，以及扫码入口解析 `live-xicheng-scan-resolve`。扫码入口证据的 `targetPath` 必须指向 `/pages/map/detail`，`packageCode` 必须为 `XICHENG-MAP-001`，`tenantId` 必须和预发汇总一致。小京问答证据必须来自 `/app-api/xunjing/ai/chat`，并包含 `contextEcho`、`logId`、`poiCode`、`poiName`、`regionCode`、`packageCode`、`sceneCode` 和租户归因，证明 sourced/BLOCKED 两条链路都使用西城正式 POI 上下文而不是本地编造。通过后才说明 APP 包、预发后端和真机证据来自同一个候选版本。
 
 如果需要给运营或测试同事快速判断当前候选还差什么，在同一目录运行只读审计：
 

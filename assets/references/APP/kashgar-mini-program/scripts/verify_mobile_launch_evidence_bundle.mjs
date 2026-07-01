@@ -170,6 +170,22 @@ if (Number(preprodSummary.failedChecks) !== 0 || Number(preprodSummary.passedChe
 const preprodChecks = Array.isArray(preprodEvidence.json.checks) ? preprodEvidence.json.checks : []
 const preprodCheckByName = new Map(preprodChecks.map((check) => [check?.name, check]))
 
+const assertSummaryEquals = (summary, field, expected, label) => {
+  const actual = summary?.[field]
+  const matches = typeof expected === 'boolean'
+    ? actual === expected
+    : String(actual || '').trim() === String(expected)
+  if (!matches) {
+    fail(`APP readiness evidence ${label} summary.${field} must be ${expected}`)
+  }
+}
+
+const assertSummaryPositiveNumber = (summary, field, label) => {
+  if (Number(summary?.[field] || 0) <= 0) {
+    fail(`APP readiness evidence ${label} summary.${field} must be a positive number`)
+  }
+}
+
 for (const checkName of requiredPreprodChecks) {
   const check = preprodCheckByName.get(checkName)
   if (!check || check.ok !== true) {
@@ -178,14 +194,34 @@ for (const checkName of requiredPreprodChecks) {
 }
 
 const sourcedCheck = preprodCheckByName.get('live-xicheng-ai-chat-sourced')
-if (sourcedCheck?.summary?.safetyStatus !== 'PASSED' || Number(sourcedCheck?.summary?.sourceCount || 0) <= 0) {
-  fail('APP readiness evidence live-xicheng-ai-chat-sourced must have safetyStatus PASSED and sourceCount > 0')
-}
+const sourcedSummary = sourcedCheck?.summary || {}
+assertSummaryEquals(sourcedSummary, 'endpoint', '/app-api/xunjing/ai/chat', 'live-xicheng-ai-chat-sourced')
+assertSummaryEquals(sourcedSummary, 'tenantId', preprodSummary.tenantId, 'live-xicheng-ai-chat-sourced')
+assertSummaryEquals(sourcedSummary, 'regionCode', 'beijing-xicheng', 'live-xicheng-ai-chat-sourced')
+assertSummaryEquals(sourcedSummary, 'packageCode', 'XICHENG-MAP-001', 'live-xicheng-ai-chat-sourced')
+assertSummaryEquals(sourcedSummary, 'sceneCode', 'xicheng-ai-guide', 'live-xicheng-ai-chat-sourced')
+assertSummaryEquals(sourcedSummary, 'poiCode', 'xicheng-baitasi', 'live-xicheng-ai-chat-sourced')
+assertSummaryEquals(sourcedSummary, 'poiName', '妙应寺白塔', 'live-xicheng-ai-chat-sourced')
+assertSummaryEquals(sourcedSummary, 'contextEcho', true, 'live-xicheng-ai-chat-sourced')
+assertSummaryEquals(sourcedSummary, 'safetyStatus', 'PASSED', 'live-xicheng-ai-chat-sourced')
+assertSummaryPositiveNumber(sourcedSummary, 'sourceCount', 'live-xicheng-ai-chat-sourced')
+assertSummaryPositiveNumber(sourcedSummary, 'logId', 'live-xicheng-ai-chat-sourced')
 
 const blockedCheck = preprodCheckByName.get('live-xicheng-ai-chat-blocked')
-if (blockedCheck?.summary?.safetyStatus !== 'BLOCKED' || Number(blockedCheck?.summary?.sourceCount || 0) !== 0) {
-  fail('APP readiness evidence live-xicheng-ai-chat-blocked must have safetyStatus BLOCKED and sourceCount 0')
+const blockedSummary = blockedCheck?.summary || {}
+assertSummaryEquals(blockedSummary, 'endpoint', '/app-api/xunjing/ai/chat', 'live-xicheng-ai-chat-blocked')
+assertSummaryEquals(blockedSummary, 'tenantId', preprodSummary.tenantId, 'live-xicheng-ai-chat-blocked')
+assertSummaryEquals(blockedSummary, 'regionCode', 'beijing-xicheng', 'live-xicheng-ai-chat-blocked')
+assertSummaryEquals(blockedSummary, 'packageCode', 'XICHENG-MAP-001', 'live-xicheng-ai-chat-blocked')
+assertSummaryEquals(blockedSummary, 'sceneCode', 'xicheng-ai-guide', 'live-xicheng-ai-chat-blocked')
+assertSummaryEquals(blockedSummary, 'poiCode', 'xicheng-source-guard-negative', 'live-xicheng-ai-chat-blocked')
+assertSummaryEquals(blockedSummary, 'poiName', '来源门禁测试点位', 'live-xicheng-ai-chat-blocked')
+assertSummaryEquals(blockedSummary, 'contextEcho', true, 'live-xicheng-ai-chat-blocked')
+assertSummaryEquals(blockedSummary, 'safetyStatus', 'BLOCKED', 'live-xicheng-ai-chat-blocked')
+if (Number(blockedSummary.sourceCount || 0) !== 0) {
+  fail('APP readiness evidence live-xicheng-ai-chat-blocked summary.sourceCount must be 0')
 }
+assertSummaryPositiveNumber(blockedSummary, 'logId', 'live-xicheng-ai-chat-blocked')
 
 const scanResolveCheck = preprodCheckByName.get('live-xicheng-scan-resolve')
 const scanResolveSummary = scanResolveCheck?.summary || {}
