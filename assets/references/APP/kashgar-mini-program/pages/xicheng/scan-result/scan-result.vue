@@ -168,7 +168,9 @@
 						<text class="service-handoff-kicker">AI识境服务承接</text>
 						<text class="service-handoff-title">{{ activeServiceHandoffTask.handoffTitle }}</text>
 					</view>
-					<view class="service-handoff-close" @click="closeServiceHandoffPanel">×</view>
+					<view class="service-handoff-close" @click="closeServiceHandoffPanel">
+						<xicheng-icon name="close" variant="plain" :size="18" />
+					</view>
 				</view>
 				<view class="service-handoff-meta">
 					<text class="service-handoff-meta-label">服务意图</text>
@@ -187,7 +189,9 @@
 				</view>
 				<view class="service-handoff-primary" @click="openServiceHandoffPrimaryAction">
 					<text>{{ serviceHandoffPrimaryAction }}</text>
-					<text class="service-handoff-primary-arrow">→</text>
+					<view class="service-handoff-primary-arrow">
+						<xicheng-icon name="next" variant="primary" :size="15" />
+					</view>
 				</view>
 			</view>
 			</view>
@@ -3002,8 +3006,8 @@ export default {
 }
 
 .service-handoff-close {
-	width: 46rpx;
-	height: 46rpx;
+	width: 72rpx;
+	height: 72rpx;
 	border-radius: 50%;
 	display: flex;
 	align-items: center;

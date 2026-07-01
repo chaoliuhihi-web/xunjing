@@ -52,6 +52,7 @@ const ICON_TYPE_MAP = Object.freeze({
 	passport: 'medal',
 	record: 'flag',
 	resume: 'sound-filled',
+	close: 'closeempty',
 	locked: 'locked',
 	explore: Object.freeze({ default: 'home', active: 'home-filled' }),
 	routes: Object.freeze({ default: 'map', active: 'map-filled' }),

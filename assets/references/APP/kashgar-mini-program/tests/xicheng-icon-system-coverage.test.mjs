@@ -24,7 +24,8 @@ for (const required of [
   "study: 'medal'",
   "passport: 'medal'",
   "record: 'flag'",
-  "resume: 'sound-filled'"
+  "resume: 'sound-filled'",
+  "close: 'closeempty'"
 ]) {
   assert.ok(iconComponent.includes(required), `Xicheng icon system should include reusable ${required}`)
 }
@@ -45,6 +46,24 @@ assert.match(
   scanResult,
   /<xicheng-icon[\s\S]*name="back"[\s\S]*<xicheng-icon[\s\S]*:name="recognitionActionBlocked \? 'locked' : 'source'"/,
   'Scan result top navigation and source summary should use shared icons'
+)
+
+assert.match(
+  scanResult,
+  /service-handoff-close[\s\S]*<xicheng-icon[\s\S]*name="close"[\s\S]*service-handoff-primary-arrow[\s\S]*<xicheng-icon[\s\S]*name="next"/,
+  'Scan result service handoff close and forward actions should use shared vector icons'
+)
+
+assert.doesNotMatch(
+  scanResult,
+  /class="service-handoff-close"[^>]*>\s*×\s*<\/view>|class="service-handoff-primary-arrow"[^>]*>\s*→\s*<\/text>/,
+  'Scan result service handoff should not hand-write structural close or forward glyphs'
+)
+
+assert.match(
+  scanResult,
+  /\.service-handoff-close\s*\{[\s\S]*width:\s*72rpx[\s\S]*height:\s*72rpx/,
+  'Scan result service handoff close control should keep a stable app touch target'
 )
 
 assert.match(
