@@ -47,7 +47,7 @@ const restored = normalizeXichengCachedMessages(
     {
       id: '',
       role: 'assistant',
-      content: '无已审核来源，不能回答',
+      content: '后端不应展示的未审核回答',
       followUps: ['继续追问'],
       sources: [{ title: '不应展示' }],
       safetyStatus: 'blocked',
@@ -70,5 +70,10 @@ assert.deepEqual(ids, ['msg_duplicate', 'msg_repaired_0', 'msg_repaired_1'])
 
 const repairedBlocked = restored[2]
 assert.equal(repairedBlocked.safetyStatus, 'BLOCKED', 'cache normalizer should normalize cached safetyStatus values')
+assert.equal(
+  repairedBlocked.content,
+  '无已审核来源，不能回答',
+  'unsafe cached assistant messages should replace stale raw content with the fixed BLOCKED refusal'
+)
 assert.deepEqual(repairedBlocked.followUps, [], 'unsafe cached messages should not restore stale follow-up chips')
 assert.deepEqual(repairedBlocked.sources, [], 'unsafe cached messages should not restore stale reviewed sources')

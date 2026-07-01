@@ -1,6 +1,9 @@
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from './safety.js'
 import { normalizeXichengReviewedSources } from './sources.js'
 
+const XICHENG_BLOCKED_ANSWER = '无已审核来源，不能回答'
+const XICHENG_UNAVAILABLE_ANSWER = '小京暂时无法获取已审核来源，请稍后再试'
+
 export const normalizeXichengDisplayFollowUps = (followUps = []) => {
 	if (!Array.isArray(followUps)) return []
 	return followUps
@@ -15,6 +18,13 @@ export const normalizeXichengDisplayFollowUps = (followUps = []) => {
 		})
 		.filter(Boolean)
 		.slice(0, 3)
+}
+
+const normalizeXichengCachedMessageContent = (item = {}, safetyStatus = '') => {
+	if (item.role !== 'assistant') return item.content || ''
+	if (safetyStatus === 'BLOCKED') return XICHENG_BLOCKED_ANSWER
+	if (safetyStatus === 'UNAVAILABLE') return XICHENG_UNAVAILABLE_ANSWER
+	return item.content || ''
 }
 
 export const normalizeXichengCachedMessages = (list, { createMessageId = () => '' } = {}) => {
@@ -43,7 +53,7 @@ export const normalizeXichengCachedMessages = (list, { createMessageId = () => '
 			return {
 				id: allocateMessageId(item.id),
 				role: item.role,
-				content: item.content || '',
+				content: normalizeXichengCachedMessageContent(item, safetyStatus),
 				images: Array.isArray(item.images) ? item.images : [],
 				followUps: unsafeSafetyStatus ? [] : normalizeXichengDisplayFollowUps(item.followUps),
 				sources: unsafeSafetyStatus ? [] : normalizeXichengReviewedSources(item.sources),
