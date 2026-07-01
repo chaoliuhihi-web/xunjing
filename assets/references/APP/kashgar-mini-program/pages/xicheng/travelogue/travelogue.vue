@@ -103,7 +103,7 @@
 					@click="openTravelogueSecondaryEntry(entry)"
 				>
 					<view class="travelogue-secondary-entry-head">
-						<uni-icons :type="entry.icon" size="22" color="#1F6E5A" />
+						<xicheng-icon :name="entry.icon" variant="plain" :size="21" />
 						<text class="travelogue-secondary-entry-title">{{ entry.title }}</text>
 					</view>
 					<text class="travelogue-secondary-entry-copy">{{ entry.copy }}</text>
@@ -905,7 +905,7 @@ export default {
 					title: '记录与足迹',
 					copy: '路线记录、素材盒、现场备注',
 					meta: `${this.materialCount} 素材 · ${this.routePointCount} 轨迹点`,
-					icon: 'paperplane-filled',
+					icon: 'route',
 					url: '/pages/xicheng/footprint/footprint'
 				},
 				{
@@ -913,7 +913,7 @@ export default {
 					title: '路线护照与研学',
 					copy: '打卡徽章、亲子研学任务',
 					meta: `${this.passportProgress}% 护照 · ${this.completedTaskCount}/${this.parentChildTasks.length} 任务`,
-					icon: 'flag-filled',
+					icon: 'passport',
 					url: '/pages/xicheng/passport/passport'
 				},
 				{
@@ -921,7 +921,7 @@ export default {
 					title: '分享与审核',
 					copy: '分享海报、PDF纪念册、作品审核',
 					meta: `${this.shareArtifacts.length} 产物 · ${this.reviewText}`,
-					icon: 'paperclip',
+					icon: 'share',
 					url: '/pages/xicheng/share/share'
 				},
 				{
@@ -929,7 +929,7 @@ export default {
 					title: '运营与隐私',
 					copy: '城市运营报告、隐私与反馈',
 					meta: `${this.opsReport.recognitionCount} 识别 · ${this.opsReport.reviewBlockerCount} 待复核`,
-					icon: 'settings-filled',
+					icon: 'settings',
 					url: '/pages/xicheng/ops-report/ops-report'
 				}
 			]

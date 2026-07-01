@@ -56,6 +56,8 @@ const ICON_TYPE_MAP = Object.freeze({
 	more: 'more-filled',
 	plus: 'plusempty',
 	heart: 'heart-filled',
+	share: 'paperplane-filled',
+	settings: 'settings-filled',
 	locked: 'locked',
 	explore: Object.freeze({ default: 'home', active: 'home-filled' }),
 	routes: Object.freeze({ default: 'map', active: 'map-filled' }),

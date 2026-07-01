@@ -95,6 +95,24 @@ assert.match(
 
 assert.match(
   travelogue,
+  /class="travelogue-secondary-entry-head"[\s\S]*<xicheng-icon[\s\S]*:name="entry\.icon"/,
+  'Travelogue secondary entry cards should use shared Xicheng icons for a consistent approved visual style'
+)
+
+assert.match(
+  travelogue,
+  /travelogueSecondaryEntries\(\)[\s\S]*icon:\s*'route'[\s\S]*icon:\s*'passport'[\s\S]*icon:\s*'share'[\s\S]*icon:\s*'settings'/,
+  'Travelogue secondary entry cards should expose semantic icon names instead of raw vendor icon types'
+)
+
+assert.doesNotMatch(
+  travelogue,
+  /<uni-icons\b/,
+  'Travelogue page should not use raw uni-icons outside the shared Xicheng icon component'
+)
+
+assert.match(
+  travelogue,
   /<button class="ghost-button xicheng-secondary-action" @click="openWorksPage">我的游记<\/button>/,
   'Travelogue page should link to the personal keepsake library as 我的游记, not 我的作品'
 )
