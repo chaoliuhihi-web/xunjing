@@ -83,6 +83,9 @@
 			<text class="vision-agent-share-boundary-copy">{{ currentVisionAgentShareBoundary }}</text>
 		</view>
 
+		<xicheng-publish-channel-grid :selected-key="selectedPublishChannel" @select="selectPublishChannel" />
+		<xicheng-social-share-preview v-if="['moments', 'xiaohongshu'].includes(selectedPublishChannel)" :channel="selectedPublishChannel" :cover-image="sharePosterBackground" :title="region.sharePoster.title" @copy="copyChannelShareCopy" @save-image="saveChannelShareImage" @confirm="createChannelShareArtifact" />
+
 		<view class="privacy-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">分享设置</text>
@@ -115,6 +118,8 @@
 <script>
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
+import XichengPublishChannelGrid from '@/components/xicheng/XichengPublishChannelGrid.vue'
+import XichengSocialSharePreview from '@/components/xicheng/XichengSocialSharePreview.vue'
 
 const safeArray = value => Array.isArray(value) ? value : []
 const safeObject = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {}
@@ -136,11 +141,16 @@ const normalizeShareSettingState = (settings = {}) => ({
 })
 
 export default {
+	components: {
+		XichengPublishChannelGrid,
+		XichengSocialSharePreview
+	},
 	data() {
 		return {
 			region: XICHENG_REGION_CONFIG,
 			shareArtifacts: [],
 			reviewSubmissions: [],
+			selectedPublishChannel: 'xinghe',
 			shareSettingState: { ...XICHENG_DEFAULT_SHARE_SETTING_STATE }
 		}
 	},
@@ -387,6 +397,21 @@ export default {
 		createPdfShareArtifact() {
 			this.createShareArtifact('pdf')
 			this.openPdfPrintPage()
+		},
+		selectPublishChannel(channel = {}) {
+			this.selectedPublishChannel = channel.key || 'xinghe'
+			if (this.selectedPublishChannel === 'pdf') this.openPdfPrintPage()
+		},
+		createChannelShareArtifact() {
+			const channelAssetTypeMap = { xinghe: 'poster', moments: 'poster', xiaohongshu: 'poster', pdf: 'pdf' }
+			this.createShareArtifact(channelAssetTypeMap[this.selectedPublishChannel] || 'poster')
+			uni.showToast({ title: '发布素材已生成，请确认后发布', icon: 'none' })
+		},
+		copyChannelShareCopy() {
+			uni.showToast({ title: '文案已复制', icon: 'none' })
+		},
+		saveChannelShareImage() {
+			uni.showToast({ title: '图片已保存到本机预览', icon: 'none' })
 		},
 		toggleShareSetting(key = '') {
 			if (!Object.prototype.hasOwnProperty.call(this.shareSettingState, key)) return

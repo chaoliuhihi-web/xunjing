@@ -49,21 +49,16 @@
 				<text class="section-badge">{{ travelogueItems.length }} 篇</text>
 			</view>
 			<view v-if="travelogueItems.length > 0" class="work-list">
-				<view v-for="item in travelogueItems" :key="item.id" class="work-row" @click="openWorkItem(item)">
-					<image class="work-thumb" :src="getWorkThumb(item)" mode="aspectFill" />
-					<view class="work-copy">
-						<view class="work-title-line">
-							<text class="work-title">{{ item.title }}</text>
-							<xicheng-icon name="edit" variant="plain" :size="15" />
-						</view>
-						<text class="work-desc">{{ item.desc }}</text>
-						<view class="work-action-row">
-							<button class="mini-work-action" @click.stop="openTravelogueReaderPage">继续阅读</button>
-							<button v-if="item.assetType === 'pdf'" class="mini-work-action mini-work-action-primary" @click.stop="openPdfPrintPage">PDF打印</button>
-						</view>
-					</view>
-					<text class="work-status">{{ item.status }}</text>
-				</view>
+				<xicheng-keepsake-travelogue-card
+					v-for="item in travelogueItems"
+					:key="item.id"
+					:item="item"
+					:default-thumb="getWorkThumb(item)"
+					@open="openWorkItem"
+					@read="openTravelogueReaderPage"
+					@share="openSharePage"
+					@print="openPdfPrintPage"
+				/>
 			</view>
 			<view v-else class="works-empty-state">
 				<text class="empty-copy">暂无游记。完成一次识别或路线记录后，可以生成一篇西城长文游记。</text>
@@ -92,10 +87,14 @@
 
 <script>
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
+import XichengKeepsakeTravelogueCard from '@/components/xicheng/XichengKeepsakeTravelogueCard.vue'
 
 const safeArray = value => Array.isArray(value) ? value : []
 
 export default {
+	components: {
+		XichengKeepsakeTravelogueCard
+	},
 	data() {
 		return {
 			region: XICHENG_REGION_CONFIG,
@@ -150,6 +149,9 @@ export default {
 		},
 		openPdfPrintPage() {
 			uni.navigateTo({ url: '/pages/xicheng/pdf-print/pdf-print' })
+		},
+		openSharePage() {
+			uni.navigateTo({ url: '/pages/xicheng/share/share' })
 		},
 		openLogin() {
 			uni.navigateTo({ url: '/pagesLogin/auth/auth' })

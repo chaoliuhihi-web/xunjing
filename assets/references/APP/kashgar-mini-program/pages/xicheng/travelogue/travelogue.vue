@@ -47,33 +47,11 @@
 				</view>
 			</view>
 
-			<view class="travelogue-style-selector">
-				<button
-					v-for="style in travelogueStyleOptions"
-					:key="style.key"
-					:class="['travelogue-style-chip', activeTravelogueStyle === style.key ? 'travelogue-style-chip-active' : '']"
-					@click="activeTravelogueStyle = style.key"
-				>
-					{{ style.title }}
-				</button>
-			</view>
+			<view class="travelogue-style-selector"><button v-for="style in travelogueStyleOptions" :key="style.key" :class="['travelogue-style-chip', activeTravelogueStyle === style.key ? 'travelogue-style-chip-active' : '']" @click="applyTravelogueTemplate(style)">{{ style.title }}</button></view>
+			<xicheng-travelogue-template-gallery :selected-key="selectedTravelogueTemplate" @select="applyTravelogueTemplate" @apply="applyTravelogueTemplate" />
+			<xicheng-travelogue-template-settings :template-title="activeTravelogueStyleTitle" :settings="travelogueTemplateSettings" @change="updateTravelogueTemplateSettings" />
 
-			<xicheng-long-travelogue-preview
-				:cover-image="traveloguePreviewImage"
-				:title="traveloguePreviewTitle"
-				:subtitle="longTravelogueSubtitle"
-				:intro="longTravelogueIntro"
-				:template-title="activeTravelogueStyleTitle"
-				:route-items="editorRouteItems"
-				:chapters="longTravelogueChapters"
-				:photo-cards="editorPhotoCards"
-				:tags="traveloguePreviewTags"
-				:source-count="workSourceCount"
-				@edit="scrollToDraftEditor"
-				@export-pdf="exportMemorialPdf"
-				@publish-moments="openSharePage"
-				@publish-xhs="openSharePage"
-			/>
+			<xicheng-long-travelogue-preview :cover-image="traveloguePreviewImage" :title="traveloguePreviewTitle" :subtitle="longTravelogueSubtitle" :intro="longTravelogueIntro" :template-title="activeTravelogueStyleTitle" :route-items="editorRouteItems" :chapters="longTravelogueChapters" :photo-cards="editorPhotoCards" :tags="traveloguePreviewTags" :source-count="workSourceCount" @edit="scrollToDraftEditor" @export-pdf="exportMemorialPdf" @publish-moments="openSharePage" @publish-xhs="openSharePage" />
 
 			<view v-if="visionAgentAutoTraveloguePackage" class="vision-agent-auto-package">
 				<view class="vision-agent-auto-package-head">
@@ -532,6 +510,8 @@ import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/req
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { isXunjingUserCancelled } from '@/request/xunjing/userCancel.js'
 import XichengLongTraveloguePreview from '@/components/xicheng/XichengLongTraveloguePreview.vue'
+import XichengTravelogueTemplateGallery from '@/components/xicheng/XichengTravelogueTemplateGallery.vue'
+import XichengTravelogueTemplateSettings from '@/components/xicheng/XichengTravelogueTemplateSettings.vue'
 import XichengTravelogueEditorShare from '@/components/xicheng/travelogue-editor-share.vue'
 import {
 	getXichengDisplaySourceDescription,
@@ -551,6 +531,7 @@ export const XICHENG_PLANNING_ONLY_MATERIAL_TYPES = Object.freeze([
 const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TITLE = '等待你的西城素材'
 const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TEXT = '请先通过识别、开始记录、补充照片或现场备注积累真实素材，再预览西城游记。预览只整理已记录的地点、照片、路线轨迹和用户备注。'
 const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TAGS = Object.freeze(['待补充素材', '来源审核后生成', '私人草稿'])
+const XICHENG_DEFAULT_TEMPLATE_SETTINGS = Object.freeze({ cover: '使用白塔寺主图', layout: '杂志大图 + 长文', focus: '路线故事线', crop: '自动适配封面', tone: '像人写的自然语气', privacy: '只用已审核来源' })
 
 export const normalizeTravelogueMode = (mode = 'draft') => {
 	const normalizedMode = String(mode || 'draft').trim()
@@ -864,10 +845,7 @@ export const resolvePhotoEvidenceFileMeta = (chooseImageResult = {}) => {
 }
 
 export default {
-	components: {
-		XichengLongTraveloguePreview,
-		XichengTravelogueEditorShare
-	},
+	components: { XichengLongTraveloguePreview, XichengTravelogueTemplateGallery, XichengTravelogueTemplateSettings, XichengTravelogueEditorShare },
 	data() {
 		return {
 			region: XICHENG_REGION_CONFIG,
@@ -887,12 +865,9 @@ export default {
 			travelogueTagChips: ['白塔寺', '什刹海', '胡同漫步'],
 			travelogueMode: 'draft',
 			activeTravelogueStyle: 'citywalk',
-			travelogueStyleOptions: [
-				{ key: 'family', title: '亲子研学' },
-				{ key: 'citywalk', title: '城市漫步杂志' },
-				{ key: 'culture', title: '文化札记' },
-				{ key: 'album', title: '照片纪念册' }
-			],
+			selectedTravelogueTemplate: 'citywalk',
+			travelogueTemplateSettings: { ...XICHENG_DEFAULT_TEMPLATE_SETTINGS },
+			travelogueStyleOptions: [{ key: 'family', title: '亲子研学' }, { key: 'citywalk', title: '城市漫步杂志' }, { key: 'culture', title: '文化札记' }, { key: 'album', title: '照片纪念册' }],
 			studyTaskEvidence: [],
 			studyTaskDrafts: [],
 			badgeAwards: [],
@@ -1542,6 +1517,9 @@ export default {
 			this.editableTravelogueTitle = cachedDraft && cachedDraft.editableTravelogueTitle
 				? cachedDraft.editableTravelogueTitle
 				: this.editableTravelogueTitle
+			this.selectedTravelogueTemplate = cachedDraft && cachedDraft.selectedTravelogueTemplate ? cachedDraft.selectedTravelogueTemplate : this.selectedTravelogueTemplate
+			this.activeTravelogueStyle = cachedDraft && cachedDraft.activeTravelogueStyle ? cachedDraft.activeTravelogueStyle : this.selectedTravelogueTemplate
+			this.travelogueTemplateSettings = cachedDraft && cachedDraft.travelogueTemplateSettings ? { ...this.travelogueTemplateSettings, ...cachedDraft.travelogueTemplateSettings } : this.travelogueTemplateSettings
 			this.saveDraft({ silent: true })
 			if (this.shouldAutoStartRecording(options)) {
 				await this.startRecordingSession()
@@ -1734,6 +1712,19 @@ export default {
 				title: '游记草稿已生成',
 				icon: 'none'
 			})
+		},
+		applyTravelogueTemplate(template = {}) {
+			const templateKey = template.key || 'citywalk'
+			this.selectedTravelogueTemplate = this.activeTravelogueStyle = templateKey
+			this.travelogueTemplateSettings = { ...this.travelogueTemplateSettings, layout: template.meta || this.travelogueTemplateSettings.layout, focus: template.title || this.travelogueTemplateSettings.focus }
+			this.saveDraft({ silent: true })
+			uni.showToast({ title: `${template.title || '模板'}已选中`, icon: 'none' })
+		},
+		updateTravelogueTemplateSettings(item = {}) {
+			if (!item.key) return
+			this.travelogueTemplateSettings = { ...this.travelogueTemplateSettings, [item.key]: item.value || this.travelogueTemplateSettings[item.key] || '' }
+			this.saveDraft({ silent: true })
+			uni.showToast({ title: '模板设置已保存', icon: 'none' })
 		},
 		scrollToDraftEditor() {
 			uni.pageScrollTo({
@@ -2102,6 +2093,8 @@ export default {
 				photoMaterialCount: this.photoMaterialCount,
 				remarkMaterialCount: this.remarkMaterialCount,
 				activeTravelogueStyle: this.activeTravelogueStyle,
+				selectedTravelogueTemplate: this.selectedTravelogueTemplate,
+				travelogueTemplateSettings: this.travelogueTemplateSettings,
 				editableTravelogueTitle: this.editableTravelogueTitle,
 				recognizedRoute: this.recognizedRoute,
 				reviewSubmission: this.reviewSubmission,
