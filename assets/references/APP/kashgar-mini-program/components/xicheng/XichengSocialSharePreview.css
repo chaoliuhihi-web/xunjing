@@ -1,0 +1,282 @@
+.xicheng-social-share-preview {
+	margin-top: 24rpx;
+	padding: 28rpx;
+	border-radius: 34rpx;
+}
+
+.social-head,
+.social-guide,
+.moments-author-row,
+.share-route-summary,
+.material-head,
+.material-row,
+.showcase-row,
+.social-actions {
+	display: flex;
+	align-items: center;
+}
+
+.social-head,
+.material-head {
+	justify-content: space-between;
+	gap: 18rpx;
+}
+
+.social-kicker,
+.social-title,
+.social-status,
+.moments-name,
+.moments-time,
+.moments-copy,
+.route-summary-title,
+.material-title,
+.material-note,
+.material-label,
+.material-value,
+.showcase-kicker,
+.showcase-title,
+.showcase-desc,
+.share-note-title,
+.share-note-body {
+	display: block;
+}
+
+.social-kicker,
+.material-title,
+.showcase-kicker {
+	color: #B5945E;
+	font-size: 23rpx;
+	font-weight: 900;
+}
+
+.social-title {
+	margin-top: 8rpx;
+	color: #102F29;
+	font-size: 33rpx;
+	line-height: 1.25;
+	font-weight: 900;
+}
+
+.social-status,
+.moments-visibility,
+.route-privacy-badge {
+	padding: 9rpx 16rpx;
+	border-radius: 999rpx;
+	background: rgba(31, 110, 90, 0.1);
+	color: #1F6E5A;
+	font-size: 21rpx;
+	font-weight: 900;
+	white-space: nowrap;
+}
+
+.social-guide,
+.material-card,
+.share-route-summary,
+.showcase-card {
+	margin-top: 20rpx;
+	padding: 20rpx;
+	border-radius: 24rpx;
+	background: rgba(255, 248, 234, 0.72);
+	border: 1rpx solid rgba(181, 148, 94, 0.15);
+}
+
+.social-guide {
+	gap: 14rpx;
+	font-size: 25rpx;
+	color: #3E3831;
+}
+
+.share-moments-card,
+.share-note-card {
+	margin-top: 22rpx;
+	padding: 26rpx;
+	border-radius: 28rpx;
+	background: rgba(255, 252, 246, 0.92);
+	border: 1rpx solid rgba(181, 148, 94, 0.16);
+}
+
+.moments-author-row {
+	gap: 16rpx;
+}
+
+.moments-avatar {
+	width: 80rpx;
+	height: 80rpx;
+	border-radius: 999rpx;
+	background: #F7EEDB;
+	flex-shrink: 0;
+}
+
+.moments-author-copy,
+.route-summary-copy,
+.showcase-copy {
+	flex: 1;
+	min-width: 0;
+}
+
+.moments-name {
+	color: #102F29;
+	font-size: 30rpx;
+	font-weight: 900;
+}
+
+.moments-time,
+.material-note,
+.showcase-desc {
+	margin-top: 4rpx;
+	color: #8C8278;
+	font-size: 22rpx;
+}
+
+.moments-copy,
+.share-note-body {
+	margin-top: 20rpx;
+	color: #3E3831;
+	font-size: 27rpx;
+	line-height: 1.58;
+}
+
+.social-tag-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10rpx;
+	margin-top: 16rpx;
+}
+
+.social-tag {
+	padding: 8rpx 13rpx;
+	border-radius: 999rpx;
+	background: rgba(181, 148, 94, 0.13);
+	color: #173F35;
+	font-size: 21rpx;
+}
+
+.share-photo-collage,
+.share-note-carousel {
+	position: relative;
+	display: grid;
+	grid-template-columns: 1.2fr 0.8fr;
+	gap: 12rpx;
+	margin-top: 20rpx;
+}
+
+.moments-photo,
+.share-note-image {
+	width: 100%;
+	height: 154rpx;
+	border-radius: 18rpx;
+}
+
+.moments-photo-main,
+.share-note-image-main {
+	grid-row: span 2;
+	height: 320rpx;
+}
+
+.share-note-count {
+	position: absolute;
+	top: 14rpx;
+	right: 16rpx;
+	padding: 6rpx 12rpx;
+	border-radius: 999rpx;
+	background: rgba(16, 47, 41, 0.72);
+	color: #FFF9EC;
+	font-size: 22rpx;
+}
+
+.share-note-title {
+	margin-top: 22rpx;
+	color: #102F29;
+	font-size: 31rpx;
+	line-height: 1.35;
+	font-weight: 900;
+}
+
+.share-route-summary {
+	gap: 16rpx;
+}
+
+.route-summary-title {
+	color: #102F29;
+	font-size: 25rpx;
+	font-weight: 900;
+}
+
+.route-stop-row {
+	display: flex;
+	justify-content: space-between;
+	gap: 10rpx;
+	margin-top: 12rpx;
+	color: #746F68;
+	font-size: 21rpx;
+}
+
+.material-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 12rpx;
+	margin-top: 16rpx;
+}
+
+.material-row {
+	gap: 10rpx;
+	min-height: 58rpx;
+	padding: 10rpx;
+	border-radius: 18rpx;
+	background: rgba(255, 252, 246, 0.76);
+}
+
+.material-label {
+	flex: 1;
+	min-width: 0;
+	color: #3E3831;
+	font-size: 22rpx;
+}
+
+.material-value {
+	color: #746F68;
+	font-size: 21rpx;
+	white-space: nowrap;
+}
+
+.showcase-image {
+	width: 138rpx;
+	height: 138rpx;
+	border-radius: 18rpx;
+	flex-shrink: 0;
+}
+
+.showcase-title {
+	color: #102F29;
+	font-size: 25rpx;
+	font-weight: 900;
+	line-height: 1.35;
+}
+
+.social-actions {
+	gap: 14rpx;
+	margin-top: 22rpx;
+}
+
+.social-button {
+	flex: 1;
+	min-height: 60rpx;
+	margin: 0;
+	padding: 0 12rpx;
+	border-radius: 999rpx;
+	background: rgba(255, 252, 246, 0.9);
+	color: #173F35;
+	font-size: 22rpx;
+	line-height: 60rpx;
+	font-weight: 900;
+}
+
+.social-button-primary {
+	flex: 1.35;
+	background: #173F35;
+	color: #FFF8EA;
+}
+
+.social-button::after {
+	border: 0;
+}
