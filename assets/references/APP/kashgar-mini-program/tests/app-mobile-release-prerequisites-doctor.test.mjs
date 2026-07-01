@@ -206,3 +206,53 @@ try {
   appApiServer.kill('SIGTERM')
   await once(appApiServer, 'exit')
 }
+
+const missingRouteServerPath = path.join(tempDir, 'app-api-missing-route-server.mjs')
+fs.writeFileSync(missingRouteServerPath, [
+  "import http from 'node:http'",
+  "const server = http.createServer((request, response) => {",
+  "  response.writeHead(404, { 'content-type': 'application/json' })",
+  "  response.end(JSON.stringify({ code: 404, msg: 'not found' }))",
+  "})",
+  "server.listen(0, '127.0.0.1', () => console.log(server.address().port))",
+  "process.on('SIGTERM', () => server.close(() => process.exit(0)))"
+].join('\n'))
+const missingRouteServer = spawn(process.execPath, [missingRouteServerPath], {
+  cwd: tempDir,
+  stdio: ['ignore', 'pipe', 'inherit']
+})
+const missingRoutePort = await new Promise((resolve, reject) => {
+  missingRouteServer.stdout.once('data', (data) => resolve(Number(String(data).trim())))
+  missingRouteServer.once('error', reject)
+  missingRouteServer.once('exit', (code) => {
+    if (code !== 0) reject(new Error(`mock missing-route APP API server exited before listening: ${code}`))
+  })
+})
+try {
+  const missingRouteResult = runDoctor({
+    HBUILDERX_CLI: loggedInCliPath,
+    XUNJING_RELEASE_PREREQ_SKIP_NETWORK: '',
+    XUNJING_RELEASE_PREREQ_DNS_HOST_OVERRIDE: '127.0.0.1',
+    XUNJING_RELEASE_PREREQ_API_ORIGIN_OVERRIDE: `http://127.0.0.1:${missingRoutePort}`
+  })
+  assert.notEqual(
+    missingRouteResult.status,
+    0,
+    `release prerequisite doctor should fail when the APP API gateway returns 404 for /app-api/xunjing/scan/resolve: ${missingRouteResult.stderr || missingRouteResult.stdout}`
+  )
+  const missingRouteJson = JSON.parse(missingRouteResult.stdout)
+  assert.equal(missingRouteJson.checks.apiReachability.ok, false)
+  assert.equal(missingRouteJson.checks.apiReachability.status, 404)
+  assert.ok(
+    missingRouteJson.blockers.includes('api-route-missing'),
+    'release prerequisite doctor should distinguish a missing /app-api/xunjing/** route from generic network reachability'
+  )
+  assert.match(
+    missingRouteJson.checks.apiReachability.nextAction,
+    /\/app-api\/xunjing\/scan\/resolve|route|gateway/i,
+    'missing route failure should tell operators to fix the deployed xunjing APP API route'
+  )
+} finally {
+  missingRouteServer.kill('SIGTERM')
+  await once(missingRouteServer, 'exit')
+}

@@ -145,6 +145,18 @@ const checkApiReachability = async (apiBaseUrl, tenantId, apiDns) => {
       Number(process.env.XUNJING_RELEASE_PREREQ_HTTP_TIMEOUT_MS || 10000),
       `APP API reachability request timed out for ${url.origin}${endpoint}`
     )
+    if (response.status === 404) {
+      return {
+        ok: false,
+        blockerCode: 'api-route-missing',
+        origin: url.origin,
+        endpoint,
+        status: response.status,
+        statusText: response.statusText,
+        message: `APP API route is missing for ${url.origin}${endpoint}`,
+        nextAction: `Fix the deployed APP API gateway route for ${url.origin}${endpoint}; /app-api/xunjing/** must be reachable before collecting preprod evidence.`
+      }
+    }
     const ok = response.status >= 200 && response.status < 500
     return {
       ok,
@@ -252,7 +264,7 @@ const checks = {
 
 const blockers = Object.entries(checks)
   .filter(([, check]) => !check.ok && !check.skipped)
-  .map(([name]) => ({
+  .map(([name, check]) => check.blockerCode || ({
     releaseEnv: 'release-env-invalid',
     apiDns: 'api-dns-unavailable',
     apiReachability: 'api-unreachable',
