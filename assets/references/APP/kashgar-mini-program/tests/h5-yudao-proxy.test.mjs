@@ -19,6 +19,12 @@ assert.match(
   'H5 dev should proxy Xunjing APP APIs to the local Yudao server so P0 recognition uses reviewed backend results instead of development fixtures'
 )
 
+assert.match(
+  scripts['dev:h5'],
+  /uni -p h5 --host 0\.0\.0\.0/,
+  'H5 dev should listen on 0.0.0.0 so a phone on the same network can open the P0 APP preview'
+)
+
 assert.doesNotMatch(
   scripts['build:app'],
   /VITE_XUNJING_YUDAO_APP_BASE_URL=\//,
