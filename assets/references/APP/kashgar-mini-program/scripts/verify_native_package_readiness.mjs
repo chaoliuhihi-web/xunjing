@@ -118,16 +118,78 @@ const commandExists = (command) => {
   return result.status === 0 && Boolean(result.stdout.trim())
 }
 
+const isExecutableFile = (filePath) => {
+  try {
+    fs.accessSync(filePath, fs.constants.X_OK)
+    return fs.statSync(filePath).isFile()
+  } catch {
+    return false
+  }
+}
+
+const isNativeToolAvailable = (command) => (
+  path.isAbsolute(command)
+    ? isExecutableFile(command)
+    : commandExists(command)
+)
+
+const hbuilderxCliCandidates = () => {
+  const candidates = []
+  const appPath = String(process.env.XUNJING_HBUILDERX_APP_PATH || '').trim()
+  if (appPath) {
+    candidates.push(path.join(appPath, 'Contents', 'MacOS', 'cli'))
+  }
+  candidates.push(
+    '/Applications/HBuilderX.app/Contents/MacOS/cli',
+    '/Applications/HBuilderX-Alpha.app/Contents/MacOS/cli',
+    '/Applications/HBuilderX.app/Contents/MacOS/HBuilderX',
+    '/Applications/HBuilderX-Alpha.app/Contents/MacOS/HBuilderX'
+  )
+  return candidates
+}
+
+const resolveNativeToolCommand = () => {
+  const explicitCommand = String(process.env.HBUILDERX_CLI || '').trim()
+  if (explicitCommand) {
+    return {
+      command: explicitCommand,
+      autoDetected: false
+    }
+  }
+
+  if (commandExists('hbuilderx')) {
+    return {
+      command: 'hbuilderx',
+      autoDetected: true
+    }
+  }
+
+  const detectedCommand = hbuilderxCliCandidates().find((candidate) => isExecutableFile(candidate))
+  if (detectedCommand) {
+    return {
+      command: detectedCommand,
+      autoDetected: true
+    }
+  }
+
+  return {
+    command: 'hbuilderx',
+    autoDetected: false
+  }
+}
+
 const checkNativeTool = () => {
-  const command = String(process.env.HBUILDERX_CLI || 'hbuilderx').trim()
+  const nativeTool = resolveNativeToolCommand()
+  const command = nativeTool.command
   if (!command) {
     throw new Error('HBUILDERX_CLI or hbuilderx command is required for signed native packaging')
   }
-  if (!skipToolCheck && !commandExists(command)) {
+  if (!skipToolCheck && !isNativeToolAvailable(command)) {
     throw new Error(`HBuilderX CLI command not found: ${command}. Install HBuilderX CLI or set HBUILDERX_CLI.`)
   }
   return {
     command,
+    autoDetected: nativeTool.autoDetected,
     checked: !skipToolCheck,
     skipped: skipToolCheck
   }

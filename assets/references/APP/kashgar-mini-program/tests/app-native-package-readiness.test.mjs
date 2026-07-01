@@ -91,6 +91,28 @@ assert.ok(
   'native package readiness should point to native evidence initialization after packaging'
 )
 
+const fakeHBuilderXApp = path.join(tempDir, 'HBuilderX.app')
+const fakeHBuilderXCli = path.join(fakeHBuilderXApp, 'Contents', 'MacOS', 'cli')
+fs.mkdirSync(path.dirname(fakeHBuilderXCli), { recursive: true })
+fs.writeFileSync(fakeHBuilderXCli, '#!/bin/sh\nexit 0\n')
+fs.chmodSync(fakeHBuilderXCli, 0o755)
+
+const autoDetectedToolResult = runReadiness({
+  ...baseEnv,
+  HBUILDERX_CLI: '',
+  XUNJING_HBUILDERX_APP_PATH: fakeHBuilderXApp
+})
+assert.equal(
+  autoDetectedToolResult.status,
+  0,
+  `native package readiness should auto-detect HBuilderX.app CLI when hbuilderx is not on PATH: ${autoDetectedToolResult.stderr || autoDetectedToolResult.stdout}`
+)
+const autoDetectedToolJson = JSON.parse(autoDetectedToolResult.stdout)
+assert.equal(autoDetectedToolJson.nativeTool.command, fakeHBuilderXCli)
+assert.equal(autoDetectedToolJson.nativeTool.autoDetected, true)
+assert.equal(autoDetectedToolJson.nativeTool.checked, true)
+assert.equal(autoDetectedToolJson.nativeTool.skipped, false)
+
 const missingEnvResult = runReadiness({}, ['--skip-tool-check'])
 assert.notEqual(missingEnvResult.status, 0, 'native package readiness should reject missing release env')
 assert.match(
