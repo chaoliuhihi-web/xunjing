@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { spawnSync } from 'node:child_process'
+import { normalizeReleaseHttpsUrl } from './release_url_guard.mjs'
 
 const requiredScenarioIds = [
   'install-release-build',
@@ -123,27 +124,10 @@ if (!/^[0-9a-f]{7,40}$/i.test(String(evidence.commit || ''))) {
   fail('Native device evidence commit must be a git SHA')
 }
 
-let parsedApiBaseUrl
 try {
-  parsedApiBaseUrl = new URL(String(evidence.appApiBaseUrl || ''))
-} catch {
-  fail('Native device evidence appApiBaseUrl must be a non-local HTTPS URL')
-}
-
-const hostname = parsedApiBaseUrl.hostname.replace(/^\[|\]$/g, '').toLowerCase()
-const localOrLanHost = (
-  hostname === 'localhost' ||
-  hostname === '127.0.0.1' ||
-  hostname === '0.0.0.0' ||
-  hostname === '::1' ||
-  hostname.startsWith('10.') ||
-  hostname.startsWith('172.') ||
-  hostname.startsWith('192.168.') ||
-  hostname.startsWith('169.254.')
-)
-
-if (parsedApiBaseUrl.protocol !== 'https:' || localOrLanHost) {
-  fail('Native device evidence appApiBaseUrl must be a non-local HTTPS URL')
+  normalizeReleaseHttpsUrl('Native device evidence appApiBaseUrl', evidence.appApiBaseUrl)
+} catch (error) {
+  fail(error.message)
 }
 
 if (!String(evidence.tenantId || '').trim()) {

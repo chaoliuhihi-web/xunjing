@@ -2,11 +2,12 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { loadReleaseEnvFile } from './release_env_loader.mjs'
+import { normalizeReleaseHttpsUrl } from './release_url_guard.mjs'
 
 loadReleaseEnvFile()
 
 const artifactDirArg = process.argv[2] || process.env.XUNJING_RELEASE_ARTIFACT_DIR || 'dist/build/app-release'
-const expectedApiBaseUrl = String(process.env.XUNJING_APP_API_BASE_URL || '').trim().replace(/\/+$/, '')
+const expectedApiBaseUrlInput = String(process.env.XUNJING_APP_API_BASE_URL || '').trim()
 const expectedTenantId = String(process.env.XUNJING_TENANT_ID || '').trim()
 const resolvedArtifactDir = path.resolve(process.cwd(), artifactDirArg)
 
@@ -15,7 +16,7 @@ const fail = (message) => {
   process.exit(1)
 }
 
-if (!expectedApiBaseUrl) {
+if (!expectedApiBaseUrlInput) {
   fail('Set XUNJING_APP_API_BASE_URL before scanning the release artifact')
 }
 
@@ -27,15 +28,11 @@ if (!/^[1-9]\d*$/.test(expectedTenantId)) {
   fail('XUNJING_TENANT_ID must be a positive integer tenant id')
 }
 
-let parsedExpectedApi
+let expectedApiBaseUrl
 try {
-  parsedExpectedApi = new URL(expectedApiBaseUrl)
-} catch {
-  fail('XUNJING_APP_API_BASE_URL must be a valid HTTPS URL')
-}
-
-if (parsedExpectedApi.protocol !== 'https:') {
-  fail('XUNJING_APP_API_BASE_URL must be a valid HTTPS URL')
+  expectedApiBaseUrl = normalizeReleaseHttpsUrl('XUNJING_APP_API_BASE_URL', expectedApiBaseUrlInput)
+} catch (error) {
+  fail(error.message)
 }
 
 if (!fs.existsSync(resolvedArtifactDir)) {

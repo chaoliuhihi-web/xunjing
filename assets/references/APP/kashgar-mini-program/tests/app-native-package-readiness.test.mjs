@@ -55,7 +55,7 @@ const runReadiness = (envOverrides = {}, args = []) => spawnSync(
 )
 
 const baseEnv = {
-  XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+  XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
   XUNJING_TENANT_ID: '1',
   XUNJING_RELEASE_TARGETS: 'android',
   XUNJING_ANDROID_PACKAGE_NAME: 'com.xinghe.xunjing',
@@ -120,7 +120,7 @@ assert.equal(autoDetectedToolJson.nativeTool.skipped, false)
 const envFilePath = path.join(tempDir, 'xicheng-release.env')
 fs.writeFileSync(envFilePath, [
   '# Secure release env file fixture. Real secrets must stay outside git.',
-  'XUNJING_APP_API_BASE_URL=https://api.example.com',
+  'XUNJING_APP_API_BASE_URL=https://api.xingheai.net',
   'XUNJING_TENANT_ID=1',
   'XUNJING_RELEASE_TARGETS=android',
   'XUNJING_ANDROID_PACKAGE_NAME=com.xinghe.xunjing',
@@ -148,7 +148,7 @@ assert.equal(
   `native package readiness should load release config from XUNJING_RELEASE_ENV_FILE: ${envFileResult.stderr || envFileResult.stdout}`
 )
 const envFileJson = JSON.parse(envFileResult.stdout)
-assert.equal(envFileJson.appApiBaseUrl, 'https://api.example.com')
+assert.equal(envFileJson.appApiBaseUrl, 'https://api.xingheai.net')
 assert.equal(envFileJson.tenantId, '1')
 assert.equal(envFileJson.android.keystore.path, keystorePath)
 assert.equal(envFileJson.nativeTool.skipped, true)

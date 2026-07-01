@@ -80,7 +80,7 @@ const runScanner = (artifactDir, env = {}) => spawnSync(
     cwd: root,
     env: {
       ...process.env,
-      XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+      XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
       XUNJING_TENANT_ID: '1',
       ...env
     },
@@ -90,7 +90,7 @@ const runScanner = (artifactDir, env = {}) => spawnSync(
 
 const validArtifactDir = makeArtifactDir({
   'index.html': '<!doctype html><script src="./assets/index.js"></script>',
-  'assets/index.js': 'const apiBase="https://api.example.com";const docs="https://github.com/uuidjs/uuid#getrandomvalues-not-supported";const tenantId="1";'
+  'assets/index.js': 'const apiBase="https://api.xingheai.net";const docs="https://github.com/uuidjs/uuid#getrandomvalues-not-supported";const tenantId="1";'
 })
 const validResult = runScanner(validArtifactDir)
 assert.equal(
@@ -105,7 +105,7 @@ assert.match(
 )
 
 const legacyOnlineApiDir = makeArtifactDir({
-  'assets/index.js': 'const apiBase="https://api.example.com";const UrlRequest="https://kashi.weiapp.net/";'
+  'assets/index.js': 'const apiBase="https://api.xingheai.net";const UrlRequest="https://kashi.weiapp.net/";'
 })
 const legacyOnlineApiResult = runScanner(legacyOnlineApiDir)
 assert.equal(
@@ -115,7 +115,7 @@ assert.equal(
 )
 
 const svgNamespaceDir = makeArtifactDir({
-  'assets/index.js': 'const apiBase="https://api.example.com";const icon="<svg xmlns=\\"http://www.w3.org/2000/svg\\"></svg>";'
+  'assets/index.js': 'const apiBase="https://api.xingheai.net";const icon="<svg xmlns=\\"http://www.w3.org/2000/svg\\"></svg>";'
 })
 const svgNamespaceResult = runScanner(svgNamespaceDir)
 assert.equal(
@@ -150,7 +150,7 @@ for (const invalidTenantId of ['0', '-1', 'tenant-prod']) {
 }
 
 const validApkArtifact = makeZipArtifact({
-  'assets/index.js': 'const apiBase="https://api.example.com";const tenantId="1";'
+  'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";'
 })
 const validApkResult = runScanner(validApkArtifact)
 assert.equal(
@@ -166,7 +166,7 @@ assert.match(
 
 for (const mobileArchiveName of ['xicheng-release.aab', 'xicheng-release.ipa']) {
   const validMobileArchive = makeZipArtifact({
-    'assets/index.js': 'const apiBase="https://api.example.com";const tenantId="1";'
+    'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";'
   }, mobileArchiveName)
   const result = runScanner(validMobileArchive)
   assert.equal(
@@ -249,7 +249,7 @@ assert.match(
 )
 
 const mismatchedGatewayDir = makeArtifactDir({
-  'assets/index.js': 'const apiBase="https://wrong.example.com";'
+  'assets/index.js': 'const apiBase="https://wrong.xingheai.net";'
 })
 const mismatchedGatewayResult = runScanner(mismatchedGatewayDir)
 assert.notEqual(

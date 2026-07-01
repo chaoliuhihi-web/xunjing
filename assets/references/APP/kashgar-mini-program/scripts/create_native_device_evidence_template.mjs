@@ -3,6 +3,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { loadReleaseEnvFile } from './release_env_loader.mjs'
+import { normalizeReleaseHttpsUrl } from './release_url_guard.mjs'
 
 loadReleaseEnvFile()
 
@@ -51,30 +52,11 @@ const runGit = (gitArgs) => {
 }
 
 const assertNonLocalHttpsUrl = (label, value) => {
-  let parsed
   try {
-    parsed = new URL(String(value || '').trim())
-  } catch {
-    fail(`${label} must be a non-local HTTPS URL`)
+    return normalizeReleaseHttpsUrl(label, value)
+  } catch (error) {
+    fail(error.message)
   }
-
-  const hostname = parsed.hostname.replace(/^\[|\]$/g, '').toLowerCase()
-  const localOrLanHost = (
-    hostname === 'localhost' ||
-    hostname === '127.0.0.1' ||
-    hostname === '0.0.0.0' ||
-    hostname === '::1' ||
-    hostname.startsWith('10.') ||
-    hostname.startsWith('172.') ||
-    hostname.startsWith('192.168.') ||
-    hostname.startsWith('169.254.')
-  )
-
-  if (parsed.protocol !== 'https:' || localOrLanHost) {
-    fail(`${label} must be a non-local HTTPS URL`)
-  }
-
-  return parsed.toString().replace(/\/+$/, '')
 }
 
 const resolveInputFile = (label, inputPath) => {

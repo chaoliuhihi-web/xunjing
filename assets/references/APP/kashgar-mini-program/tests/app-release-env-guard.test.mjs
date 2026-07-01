@@ -45,6 +45,11 @@ for (const invalidBaseUrl of [
   'https://192.168.110.190',
   'https://10.0.0.8',
   'https://172.16.0.8',
+  'https://api.example.com',
+  'https://preprod.example.net',
+  'https://xicheng.test',
+  'https://xicheng.invalid',
+  'https://placeholder.xingheai.net',
 ]) {
   const result = runGuard({
     XUNJING_APP_API_BASE_URL: invalidBaseUrl,
@@ -53,20 +58,20 @@ for (const invalidBaseUrl of [
   assert.notEqual(result.status, 0, `release env guard should reject ${invalidBaseUrl}`)
   assert.match(
     `${result.stderr}\n${result.stdout}`,
-    /non-local HTTPS URL|must start with https:\/\//,
+    /non-local HTTPS URL|must start with https:\/\/|reserved|placeholder|占位/i,
     `release env guard should explain why ${invalidBaseUrl} is invalid`
   )
 }
 
 assert.notEqual(
-  runGuard({ XUNJING_APP_API_BASE_URL: 'https://api.example.com' }).status,
+  runGuard({ XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net' }).status,
   0,
   'release env guard should require XUNJING_TENANT_ID'
 )
 
 for (const invalidTenantId of ['0', '-1', 'tenant-prod']) {
   const result = runGuard({
-    XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+    XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
     XUNJING_TENANT_ID: invalidTenantId
   })
   assert.notEqual(result.status, 0, `release env guard should reject invalid tenant id ${invalidTenantId}`)
@@ -79,7 +84,7 @@ for (const invalidTenantId of ['0', '-1', 'tenant-prod']) {
 
 assert.equal(
   runGuard({
-    XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+    XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
     XUNJING_TENANT_ID: '1'
   }).status,
   0,

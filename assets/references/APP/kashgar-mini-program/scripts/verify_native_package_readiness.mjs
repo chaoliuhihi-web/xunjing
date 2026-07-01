@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { loadReleaseEnvFile } from './release_env_loader.mjs'
+import { normalizeReleaseHttpsUrl } from './release_url_guard.mjs'
 
 loadReleaseEnvFile()
 
@@ -27,33 +28,6 @@ const readManifest = () => {
   } catch (error) {
     throw new Error(`manifest.json is not valid JSON after comment stripping: ${error.message}`)
   }
-}
-
-const normalizeUrl = (label, value) => {
-  let parsed
-  try {
-    parsed = new URL(String(value || '').trim())
-  } catch {
-    throw new Error(`${label} must be a non-local HTTPS URL`)
-  }
-
-  const hostname = parsed.hostname.replace(/^\[|\]$/g, '').toLowerCase()
-  const localOrLanHost = (
-    hostname === 'localhost' ||
-    hostname === '127.0.0.1' ||
-    hostname === '0.0.0.0' ||
-    hostname === '::1' ||
-    hostname.startsWith('10.') ||
-    hostname.startsWith('172.') ||
-    hostname.startsWith('192.168.') ||
-    hostname.startsWith('169.254.')
-  )
-
-  if (parsed.protocol !== 'https:' || localOrLanHost) {
-    throw new Error(`${label} must be a non-local HTTPS URL`)
-  }
-
-  return parsed.toString().replace(/\/+$/, '')
 }
 
 const requirePositiveInteger = (label, value) => {
@@ -338,7 +312,7 @@ const capture = (fn) => {
 
 const manifest = capture(readManifest)
 const app = manifest ? capture(() => checkManifest(manifest)) : undefined
-const appApiBaseUrl = capture(() => normalizeUrl('XUNJING_APP_API_BASE_URL', process.env.XUNJING_APP_API_BASE_URL))
+const appApiBaseUrl = capture(() => normalizeReleaseHttpsUrl('XUNJING_APP_API_BASE_URL', process.env.XUNJING_APP_API_BASE_URL))
 const tenantId = capture(() => requirePositiveInteger('XUNJING_TENANT_ID', process.env.XUNJING_TENANT_ID))
 const releaseTargets = capture(parseReleaseTargets) || []
 const nativeTool = capture(checkNativeTool)

@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
+import { normalizeReleaseHttpsUrl } from './release_url_guard.mjs'
 
 const defaultPreprodEvidencePath = '../../../../qa/xicheng-app-readiness-evidence.json'
 const defaultNativeEvidencePath = '../../../../qa/xicheng-native-device-evidence.json'
@@ -66,27 +67,10 @@ const readJsonFile = (label, inputPath) => {
 }
 
 const assertNonLocalHttpsUrl = (label, value) => {
-  let parsed
   try {
-    parsed = new URL(String(value || '').trim())
-  } catch {
-    fail(`${label} must be a non-local HTTPS URL`)
-  }
-
-  const hostname = parsed.hostname.replace(/^\[|\]$/g, '').toLowerCase()
-  const localOrLanHost = (
-    hostname === 'localhost' ||
-    hostname === '127.0.0.1' ||
-    hostname === '0.0.0.0' ||
-    hostname === '::1' ||
-    hostname.startsWith('10.') ||
-    hostname.startsWith('172.') ||
-    hostname.startsWith('192.168.') ||
-    hostname.startsWith('169.254.')
-  )
-
-  if (parsed.protocol !== 'https:' || localOrLanHost) {
-    fail(`${label} must be a non-local HTTPS URL`)
+    return normalizeReleaseHttpsUrl(label, value)
+  } catch (error) {
+    fail(error.message)
   }
 }
 

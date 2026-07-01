@@ -38,7 +38,7 @@ assert.ok(
 
 fs.writeFileSync(envFilePath, [
   '# APP release gateway values are loaded from a secure env file.',
-  'XUNJING_APP_API_BASE_URL="https://api.example.com/"',
+  'XUNJING_APP_API_BASE_URL="https://api.xingheai.net/"',
   'XUNJING_TENANT_ID=1'
 ].join('\n'))
 
@@ -77,7 +77,7 @@ assert.equal(
 )
 const dryRunJson = JSON.parse(dryRunResult.stdout)
 assert.equal(dryRunJson.ok, true)
-assert.equal(dryRunJson.env.VITE_XUNJING_YUDAO_APP_BASE_URL, 'https://api.example.com/')
+assert.equal(dryRunJson.env.VITE_XUNJING_YUDAO_APP_BASE_URL, 'https://api.xingheai.net/')
 assert.equal(dryRunJson.env.VITE_XUNJING_TENANT_ID, '1')
 assert.equal(dryRunJson.env.UNI_OUTPUT_DIR, 'dist/build/app-release')
 
@@ -103,7 +103,7 @@ assert.equal(preprodDryRunJson.cwd, repoRoot)
 assert.ok(preprodDryRunJson.args.includes('--include-xicheng-app-check'))
 assert.ok(preprodDryRunJson.args.includes('--include-xicheng-trigger-check'))
 assert.equal(preprodDryRunJson.args[preprodDryRunJson.args.indexOf('--env-file') + 1], envFilePath)
-assert.equal(preprodDryRunJson.args[preprodDryRunJson.args.indexOf('--base-url') + 1], 'https://api.example.com/')
+assert.equal(preprodDryRunJson.args[preprodDryRunJson.args.indexOf('--base-url') + 1], 'https://api.xingheai.net/')
 assert.equal(preprodDryRunJson.args[preprodDryRunJson.args.indexOf('--tenant-id') + 1], '1')
 
 const localEnvFilePath = path.join(tempDir, 'local.env')

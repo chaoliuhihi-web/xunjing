@@ -95,7 +95,7 @@ const baseEvidence = {
   createdAt: freshTimestamp,
   branch: 'feature/xicheng-p0',
   commit: 'dd3b7083',
-  appApiBaseUrl: 'https://preprod.example.com',
+  appApiBaseUrl: 'https://preprod.xingheai.net',
   tenantId: '1',
   releaseTargets: ['android'],
   build: {

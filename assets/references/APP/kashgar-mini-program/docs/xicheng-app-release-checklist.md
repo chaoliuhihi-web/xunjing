@@ -107,7 +107,7 @@ XUNJING_RELEASE_ENV_FILE="/secure/path/preprod.env" XUNJING_NATIVE_PACK_CONFIRM=
 Android env 文件至少包含：
 
 ```bash
-XUNJING_APP_API_BASE_URL=https://api.example.com
+XUNJING_APP_API_BASE_URL=https://api.xingheai.net
 XUNJING_TENANT_ID=1
 XUNJING_RELEASE_TARGETS=android
 XUNJING_ANDROID_PACKAGE_NAME=com.xinghe.xunjing

@@ -46,7 +46,7 @@ const describeArtifact = (artifactPath) => {
 }
 
 const cleanArtifact = describeArtifact(makeZipArtifact({
-  'assets/index.js': 'const apiBase="https://api.example.com";const tenantId="1";'
+  'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";'
 }))
 
 const requiredScenarioIds = [
@@ -87,7 +87,7 @@ const makePreprodEvidence = (overrides = {}) => {
     ok: true,
     checkedAt: freshTimestamp,
     summary: {
-      baseUrl: 'https://api.example.com',
+      baseUrl: 'https://api.xingheai.net',
       tenantId: '1',
       includeXichengAppCheck: true,
       includeXichengTriggerCheck: true,
@@ -143,7 +143,7 @@ const makeNativeEvidence = (overrides = {}) => ({
   createdAt: freshTimestamp,
   branch: 'feature/xicheng-p0',
   commit: currentCommit,
-  appApiBaseUrl: 'https://api.example.com',
+  appApiBaseUrl: 'https://api.xingheai.net',
   tenantId: '1',
   build: {
     mode: 'release',
@@ -252,8 +252,8 @@ assert.match(
 )
 
 const mismatchedGatewayResult = runBundleGate(
-  makePreprodEvidence({ summary: { baseUrl: 'https://preprod.example.com' } }),
-  makeNativeEvidence({ appApiBaseUrl: 'https://api.example.com' })
+  makePreprodEvidence({ summary: { baseUrl: 'https://preprod.xingheai.net' } }),
+  makeNativeEvidence({ appApiBaseUrl: 'https://api.xingheai.net' })
 )
 assert.notEqual(
   mismatchedGatewayResult.status,

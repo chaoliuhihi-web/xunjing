@@ -89,7 +89,7 @@ const result = spawnSync(
     cwd: root,
     env: {
       ...process.env,
-      XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+      XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
       XUNJING_TENANT_ID: '1'
     },
     encoding: 'utf8'
@@ -106,7 +106,7 @@ const generated = JSON.parse(fs.readFileSync(outputPath, 'utf8'))
 assert.equal(generated.artifactType, 'xicheng-native-device-evidence')
 assert.equal(generated.branch, 'feature/xicheng-p0')
 assert.equal(generated.commit, currentCommit)
-assert.equal(generated.appApiBaseUrl, 'https://api.example.com')
+assert.equal(generated.appApiBaseUrl, 'https://api.xingheai.net')
 assert.equal(generated.tenantId, '1')
 assert.deepEqual(generated.releaseTargets, ['android'])
 assert.equal(generated.build.mode, 'release')
@@ -135,7 +135,7 @@ assert.ok(
 const envFileOutputPath = path.join(tempDir, 'native-evidence-from-env-file.json')
 const releaseEnvFilePath = path.join(tempDir, 'native-evidence-release.env')
 fs.writeFileSync(releaseEnvFilePath, [
-  'XUNJING_APP_API_BASE_URL=https://api.example.com',
+  'XUNJING_APP_API_BASE_URL=https://api.xingheai.net',
   'XUNJING_TENANT_ID=1',
   'XUNJING_RELEASE_TARGETS=android'
 ].join('\n'))
@@ -167,14 +167,14 @@ assert.equal(
   `native evidence template generator should load API, tenant and target from XUNJING_RELEASE_ENV_FILE: ${envFileResult.stderr || envFileResult.stdout}`
 )
 const envFileGenerated = JSON.parse(fs.readFileSync(envFileOutputPath, 'utf8'))
-assert.equal(envFileGenerated.appApiBaseUrl, 'https://api.example.com')
+assert.equal(envFileGenerated.appApiBaseUrl, 'https://api.xingheai.net')
 assert.equal(envFileGenerated.tenantId, '1')
 assert.deepEqual(envFileGenerated.releaseTargets, ['android'])
 
 const npmEnvFileOutputPath = path.join(tempDir, 'native-evidence-from-npm-env-file.json')
 const npmReleaseEnvFilePath = path.join(tempDir, 'native-evidence-npm-release.env')
 fs.writeFileSync(npmReleaseEnvFilePath, [
-  'XUNJING_APP_API_BASE_URL=https://api.example.com',
+  'XUNJING_APP_API_BASE_URL=https://api.xingheai.net',
   'XUNJING_TENANT_ID=1',
   'XUNJING_RELEASE_TARGETS=android',
   `XUNJING_RELEASE_ARTIFACT=${artifactPath}`,
@@ -201,7 +201,7 @@ assert.equal(
 )
 const npmEnvFileGenerated = JSON.parse(fs.readFileSync(npmEnvFileOutputPath, 'utf8'))
 assert.equal(npmEnvFileGenerated.build.artifact, artifactPath)
-assert.equal(npmEnvFileGenerated.appApiBaseUrl, 'https://api.example.com')
+assert.equal(npmEnvFileGenerated.appApiBaseUrl, 'https://api.xingheai.net')
 assert.equal(npmEnvFileGenerated.tenantId, '1')
 assert.deepEqual(npmEnvFileGenerated.releaseTargets, ['android'])
 
@@ -212,7 +212,7 @@ const overwriteResult = spawnSync(
     cwd: root,
     env: {
       ...process.env,
-      XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+      XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
       XUNJING_TENANT_ID: '1'
     },
     encoding: 'utf8'
@@ -252,7 +252,7 @@ const invalidTenantResult = spawnSync(
     cwd: root,
     env: {
       ...process.env,
-      XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+      XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
       XUNJING_TENANT_ID: 'tenant-prod'
     },
     encoding: 'utf8'
@@ -272,7 +272,7 @@ const invalidArtifactTypeResult = spawnSync(
     cwd: root,
     env: {
       ...process.env,
-      XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+      XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
       XUNJING_TENANT_ID: '1'
     },
     encoding: 'utf8'
@@ -301,7 +301,7 @@ const invalidPlatformResult = spawnSync(
     cwd: root,
     env: {
       ...process.env,
-      XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+      XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
       XUNJING_TENANT_ID: '1'
     },
     encoding: 'utf8'
@@ -330,7 +330,7 @@ const iosTargetWithApkResult = spawnSync(
     cwd: root,
     env: {
       ...process.env,
-      XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+      XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
       XUNJING_TENANT_ID: '1'
     },
     encoding: 'utf8'
@@ -359,7 +359,7 @@ const androidTargetWithIpaResult = spawnSync(
     cwd: root,
     env: {
       ...process.env,
-      XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+      XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
       XUNJING_TENANT_ID: '1'
     },
     encoding: 'utf8'
@@ -388,7 +388,7 @@ const mixedTargetsResult = spawnSync(
     cwd: root,
     env: {
       ...process.env,
-      XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+      XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
       XUNJING_TENANT_ID: '1'
     },
     encoding: 'utf8'

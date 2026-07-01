@@ -92,7 +92,7 @@ const makePreprodEvidence = () => ({
   ok: true,
   checkedAt: freshTimestamp,
   summary: {
-    baseUrl: 'https://api.example.com',
+    baseUrl: 'https://api.xingheai.net',
     tenantId: '1',
     includeXichengAppCheck: true,
     includeXichengTriggerCheck: true,
@@ -123,7 +123,7 @@ const makeNativeEvidence = ({ artifact, artifactSha256, artifactSizeBytes, evide
   createdAt: freshTimestamp,
   branch: 'feature/xicheng-p0',
   commit: currentCommit,
-  appApiBaseUrl: 'https://api.example.com',
+  appApiBaseUrl: 'https://api.xingheai.net',
   tenantId: '1',
   releaseTargets: ['android'],
   build: {
@@ -209,7 +209,7 @@ const keystorePath = path.join(missingTempDir, 'xicheng-release.keystore')
 fs.writeFileSync(keystorePath, 'placeholder keystore bytes for release audit readiness\n')
 const releaseEnvFilePath = path.join(missingTempDir, 'xicheng-release.env')
 fs.writeFileSync(releaseEnvFilePath, [
-  'XUNJING_APP_API_BASE_URL=https://api.example.com',
+  'XUNJING_APP_API_BASE_URL=https://api.xingheai.net',
   'XUNJING_TENANT_ID=1',
   'XUNJING_RELEASE_TARGETS=android',
   'XUNJING_ANDROID_PACKAGE_NAME=com.xinghe.xunjing',
@@ -261,7 +261,7 @@ for (const id of requiredScenarioIds) {
   fs.writeFileSync(path.join(scenarioEvidenceDir, `${id}.jpg`), `${id} physical-device proof\n`)
 }
 const artifactDescription = describeArtifact(makeZipArtifact({
-  'assets/index.js': 'const apiBase="https://api.example.com";const tenantId="1";'
+  'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";'
 }))
 const preprodPath = path.join(readyTempDir, 'preprod.json')
 const nativePath = path.join(readyTempDir, 'native.json')
@@ -280,7 +280,7 @@ const readyResult = runAudit([
   artifactDescription.artifact,
   '--skip-remote-parity'
 ], {
-  XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+  XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
   XUNJING_TENANT_ID: '1'
 })
 assert.equal(readyResult.status, 0, `release candidate audit should pass with complete matching evidence: ${readyResult.stderr || readyResult.stdout}`)

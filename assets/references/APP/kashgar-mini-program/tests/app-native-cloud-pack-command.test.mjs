@@ -51,7 +51,7 @@ fs.writeFileSync(fakeCliPath, [
 fs.chmodSync(fakeCliPath, 0o755)
 
 const baseEnv = {
-  XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+  XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
   XUNJING_TENANT_ID: '1',
   XUNJING_RELEASE_TARGETS: 'android',
   XUNJING_ANDROID_PACKAGE_NAME: 'com.xinghe.xunjing',

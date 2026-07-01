@@ -9,6 +9,7 @@ const viteConfig = fs.readFileSync(path.join(root, 'vite.config.js'), 'utf8')
 const apiContract = fs.readFileSync(path.join(root, 'docs', 'online-api-first-contract.md'), 'utf8')
 const releaseEnvGuard = fs.readFileSync(path.join(root, 'scripts', 'verify_release_app_env.mjs'), 'utf8')
 const releaseAppEnv = fs.readFileSync(path.join(root, 'scripts', 'release_app_env.mjs'), 'utf8')
+const releaseUrlGuard = fs.readFileSync(path.join(root, 'scripts', 'release_url_guard.mjs'), 'utf8')
 const releaseBuildRunner = fs.readFileSync(path.join(root, 'scripts', 'run_release_app_build.mjs'), 'utf8')
 const preprodRunner = fs.readFileSync(path.join(root, 'scripts', 'run_preprod_yudao_verify.mjs'), 'utf8')
 const scripts = packageJson.scripts || {}
@@ -78,7 +79,7 @@ assert.ok(
 )
 
 assert.match(
-  releaseAppEnv,
+  releaseUrlGuard,
   /parsed\.protocol !== 'https:'/,
   'APP release environment guard should require HTTPS API bases'
 )
@@ -93,15 +94,28 @@ for (const forbiddenReleaseBase of [
   "hostname.startsWith('172.')",
 ]) {
   assert.ok(
-    releaseAppEnv.includes(forbiddenReleaseBase),
+    releaseUrlGuard.includes(forbiddenReleaseBase),
     `APP release environment guard should reject ${forbiddenReleaseBase}`
   )
 }
 
 assert.ok(
-  releaseAppEnv.includes('XUNJING_APP_API_BASE_URL must be a non-local HTTPS URL'),
+  releaseUrlGuard.includes('must be a non-local HTTPS URL'),
   'APP release build should reject local and LAN API bases so field packages do not ship against development services'
 )
+
+for (const reservedReleaseBase of [
+  "hostname === 'example.com'",
+  "hostname.endsWith('.example.com')",
+  "hostname.endsWith('.test')",
+  "hostname.endsWith('.invalid')",
+  "hostname.includes('placeholder')"
+]) {
+  assert.ok(
+    releaseUrlGuard.includes(reservedReleaseBase),
+    `APP release environment guard should reject reserved or placeholder base ${reservedReleaseBase}`
+  )
+}
 
 assert.match(
   releaseBuildRunner,

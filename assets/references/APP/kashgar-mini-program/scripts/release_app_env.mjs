@@ -1,4 +1,5 @@
 import { loadReleaseEnvFile } from './release_env_loader.mjs'
+import { normalizeReleaseHttpsUrl } from './release_url_guard.mjs'
 
 export const readReleaseAppEnv = (env = process.env) => {
   loadReleaseEnvFile(env)
@@ -18,31 +19,10 @@ export const readReleaseAppEnv = (env = process.env) => {
     throw new Error('XUNJING_TENANT_ID must be a positive integer tenant id')
   }
 
-  let parsed
   try {
-    parsed = new URL(apiBaseUrl)
-  } catch {
-    throw new Error('XUNJING_APP_API_BASE_URL must start with https://')
-  }
-
-  if (parsed.protocol !== 'https:') {
-    throw new Error('XUNJING_APP_API_BASE_URL must start with https://')
-  }
-
-  const hostname = parsed.hostname.replace(/^\[|\]$/g, '').toLowerCase()
-  const isLocalOrLanHost = (
-    hostname === 'localhost' ||
-    hostname === '127.0.0.1' ||
-    hostname === '0.0.0.0' ||
-    hostname === '::1' ||
-    hostname.startsWith('10.') ||
-    hostname.startsWith('192.168.') ||
-    hostname.startsWith('172.') ||
-    hostname.startsWith('169.254.')
-  )
-
-  if (isLocalOrLanHost) {
-    throw new Error('XUNJING_APP_API_BASE_URL must be a non-local HTTPS URL')
+    normalizeReleaseHttpsUrl('XUNJING_APP_API_BASE_URL', apiBaseUrl)
+  } catch (error) {
+    throw new Error(error.message)
   }
 
   return {
