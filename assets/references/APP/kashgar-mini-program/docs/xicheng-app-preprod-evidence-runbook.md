@@ -70,6 +70,16 @@ npm run verify:yudao:preprod
 预发或上线前，必须在真实手机上安装 release 包，记录 `qa/xicheng-native-device-evidence.json`，并在 `assets/references/APP/kashgar-mini-program` 运行：
 
 ```bash
+XUNJING_RELEASE_ARTIFACT="/absolute/path/to/signed-release.apk" \
+XUNJING_APP_API_BASE_URL="$XUNJING_APP_API_BASE_URL" \
+XUNJING_TENANT_ID="$XUNJING_TENANT_ID" \
+XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-evidence.json" \
+npm run prepare:native:evidence
+```
+
+`npm run prepare:native:evidence` 只用 `XUNJING_RELEASE_ARTIFACT` 初始化真机证据模板，自动填入当前 commit、release 包路径、`artifactSha256` 和 `artifactSizeBytes`。模板中的场景状态都是 `TODO`，不得把模板当成通过证据；必须完成真机验证并补齐设备信息、截图或录屏引用后，才能把场景状态改成 `PASS`。
+
+```bash
 XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-evidence.json" \
 npm run verify:native:evidence
 ```

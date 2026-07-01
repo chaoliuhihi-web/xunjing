@@ -40,6 +40,16 @@ npm run verify:yudao:preprod
 真机证据必须记录在 `qa/xicheng-native-device-evidence.json` 并通过 APP 侧校验：
 
 ```bash
+XUNJING_RELEASE_ARTIFACT="/absolute/path/to/signed-release.apk" \
+XUNJING_APP_API_BASE_URL="$XUNJING_APP_API_BASE_URL" \
+XUNJING_TENANT_ID="$XUNJING_TENANT_ID" \
+XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-evidence.json" \
+npm run prepare:native:evidence
+```
+
+`npm run prepare:native:evidence` 只根据 `XUNJING_RELEASE_ARTIFACT` 初始化真机证据模板，自动写入当前 commit、release 包路径、`artifactSha256` 和 `artifactSizeBytes`。模板里的场景状态全部是 `TODO`，不得把模板当成通过证据；必须在真实手机完成验证并补齐设备信息、截图或录屏引用后，才能把对应场景改成 `PASS`。
+
+```bash
 XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-evidence.json" \
 npm run verify:native:evidence
 ```
