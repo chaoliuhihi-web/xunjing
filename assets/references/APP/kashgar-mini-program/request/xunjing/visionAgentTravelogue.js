@@ -1,3 +1,5 @@
+import { decodeXichengRouteValue } from './routeParams.js'
+
 export const hasReviewableVisionAgentServiceTaskEvidence = (task = {}) => Boolean(
 	task
 	&& (
@@ -24,6 +26,57 @@ const XICHENG_VISION_AGENT_SCENE_DOMAIN_LABELS = Object.freeze({
 const createUniqueTextList = (items = [], limit = 6) => Array.from(new Set(
 	items.map(item => String(item || '').trim()).filter(Boolean)
 )).slice(0, limit)
+
+export const parseTravelogueVisionAgentContext = (value = '') => {
+	if (value && typeof value === 'object') return value
+	const decodedValue = decodeXichengRouteValue(value)
+	if (!decodedValue) return {}
+	try {
+		const parsedContext = JSON.parse(decodedValue)
+		return parsedContext && typeof parsedContext === 'object' ? parsedContext : {}
+	} catch (error) {
+		return {}
+	}
+}
+
+const parseTravelogueSourceRecognitionContext = (value = '') => {
+	if (value && typeof value === 'object') return value
+	if (!value || typeof value !== 'string') return {}
+	try {
+		const parsedContext = JSON.parse(value)
+		return parsedContext && typeof parsedContext === 'object' ? parsedContext : {}
+	} catch (error) {
+		return {}
+	}
+}
+
+export const createVisionAgentMemorySessionPackageFromRouteContext = (context = {}, fallbackSceneCount = '') => {
+	if (!context || typeof context !== 'object') return null
+	const embeddedPackage = context.visionAgentMemorySessionPackage
+	if (embeddedPackage && typeof embeddedPackage === 'object') {
+		const sceneCount = Number(embeddedPackage.sceneCount || context.memorySessionSceneCount || fallbackSceneCount || 0)
+		if (sceneCount > 0) return { ...embeddedPackage, sceneCount, source: 'route-vision-agent-context' }
+	}
+	const sourceRecognitionContext = parseTravelogueSourceRecognitionContext(context.sourceRecognitionContext)
+	const sceneCount = Number(context.memorySessionSceneCount || fallbackSceneCount || sourceRecognitionContext.sceneCount || 0)
+	const poiTrailText = context.visionAgentMemorySessionText
+		|| context.memorySessionText
+		|| sourceRecognitionContext.poiTrailText
+		|| context.poiName
+		|| sourceRecognitionContext.poiName
+		|| ''
+	if (sceneCount <= 0 || !poiTrailText) return null
+	return {
+		packageName: 'AI识境连续会话包',
+		source: 'route-vision-agent-context',
+		sceneCount,
+		poiTrailText,
+		continuityCueText: context.continuityCueText || sourceRecognitionContext.continuityCueText || '小京会按上一段识境继续理解，不重新开始讲解。',
+		domainContinuityText: context.domainContinuityText || sourceRecognitionContext.domainContinuityText || '',
+		serviceContinuityText: context.serviceContinuityText || sourceRecognitionContext.serviceContinuityText || '',
+		capturedAt: context.capturedAt || sourceRecognitionContext.capturedAt || ''
+	}
+}
 
 export const createVisionAgentRealSystemBoundary = (reviewableTasks = []) => {
 	const realSystemRequiredTasks = reviewableTasks.filter(task => {

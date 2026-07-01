@@ -522,8 +522,10 @@ import {
 	normalizeXichengReviewedSources
 } from '@/request/xunjing/sources.js'
 import {
+	createVisionAgentMemorySessionPackageFromRouteContext,
 	createVisionAgentAutoTraveloguePackage,
-	hasReviewableVisionAgentServiceTaskEvidence
+	hasReviewableVisionAgentServiceTaskEvidence,
+	parseTravelogueVisionAgentContext
 } from '@/request/xunjing/visionAgentTravelogue.js'
 
 export const XICHENG_PLANNING_ONLY_MATERIAL_TYPES = Object.freeze([
@@ -880,6 +882,7 @@ export default {
 			recognitionFeedbacks: [],
 			visionAgentServiceTasks: [],
 			visionAgentMemorySessionPackage: null,
+			visionAgentRouteContext: {}, visionAgentRouteContextSource: '',
 			recordingSession: createEmptyRecordingSession()
 			}
 		},
@@ -1132,6 +1135,7 @@ export default {
 					visionAgentAutoTraveloguePackage: this.visionAgentAutoTraveloguePackage,
 					visionAgentMemorySessionPackage: this.visionAgentMemorySessionPackage,
 					visionAgentMemorySceneCount: this.visionAgentMemorySessionPackage?.sceneCount || 0,
+					visionAgentRouteContext: this.visionAgentRouteContext, visionAgentRouteContextSource: this.visionAgentRouteContextSource,
 					visionAgentSceneDomainLabels: this.visionAgentAutoTraveloguePackage?.sceneDomainLabels || [],
 					visionAgentServiceIntentLabels: this.visionAgentAutoTraveloguePackage?.serviceIntentLabels || [],
 					visionAgentRealSystemBoundary: this.visionAgentRealSystemBoundary,
@@ -1416,6 +1420,13 @@ export default {
 				this.travelogueMode = normalizeTravelogueMode(options.mode)
 				this.loadVisionAgentServiceTasks()
 				this.loadVisionAgentMemorySessionPackage()
+				const visionAgentRouteContext = parseTravelogueVisionAgentContext(options.visionAgentContext)
+				this.visionAgentRouteContext = visionAgentRouteContext
+				this.visionAgentRouteContextSource = visionAgentRouteContext.entry || ''
+				const routeMemorySessionPackage = createVisionAgentMemorySessionPackageFromRouteContext(visionAgentRouteContext, decodeJourneyRouteValue(options.memorySessionSceneCount))
+				if (routeMemorySessionPackage) {
+					this.visionAgentMemorySessionPackage = routeMemorySessionPackage
+				}
 				const storedMaterials = uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey)
 				const importedRoute = uni.getStorageSync(XICHENG_REGION_CONFIG.inspirationStorageKey)
 			const storedReviewSubmissions = uni.getStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey)
