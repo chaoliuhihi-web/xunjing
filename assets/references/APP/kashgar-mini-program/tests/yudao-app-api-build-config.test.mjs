@@ -59,6 +59,19 @@ assert.ok(
   'APP release build should reject local and LAN API bases so field packages do not ship against development services'
 )
 
+for (const forbiddenReleaseBase of [
+  'https://localhost*',
+  'https://127.0.0.1*',
+  'https://192.168.*',
+  'https://10.*',
+  'https://172.*',
+]) {
+  assert.ok(
+    (scripts['build:app:release'] || '').includes(forbiddenReleaseBase),
+    `APP release build should reject ${forbiddenReleaseBase} as a local or LAN HTTPS gateway`
+  )
+}
+
 assert.match(
   scripts['build:app:release'] || '',
   /VITE_XUNJING_YUDAO_APP_BASE_URL="\$XUNJING_APP_API_BASE_URL"/,
