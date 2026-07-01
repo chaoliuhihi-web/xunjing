@@ -62,9 +62,9 @@
 		</view>
 
 		<view class="print-page-counter">
-			<text @click="selectPreviewPage(Math.max(currentPageIndex - 1, 0))">‹</text>
-			<text>页码预览 第 {{ currentPageIndex + 1 }} / {{ previewPages.length }} 页</text>
-			<text @click="selectPreviewPage(Math.min(currentPageIndex + 1, previewPages.length - 1))">›</text>
+			<button class="print-page-counter-button print-page-counter-prev" :disabled="currentPageIndex === 0" aria-label="上一页" @click="selectPreviewPage(currentPageIndex - 1)"><xicheng-icon name="back" variant="plain" :size="22" :disabled="currentPageIndex === 0" /></button>
+			<text class="print-page-counter-label">页码预览 第 {{ currentPageIndex + 1 }} / {{ previewPages.length }} 页</text>
+			<button class="print-page-counter-button print-page-counter-next" :disabled="currentPageIndex === previewPages.length - 1" aria-label="下一页" @click="selectPreviewPage(currentPageIndex + 1)"><xicheng-icon name="next" variant="plain" :size="22" :disabled="currentPageIndex === previewPages.length - 1" /></button>
 		</view>
 
 		<scroll-view class="print-thumbnail-strip" scroll-x :show-scrollbar="false">
@@ -617,19 +617,24 @@ export default {
 	color: #5C574F;
 }
 .print-page-counter {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: 28rpx;
-	margin-top: 16rpx;
-	color: #8C8278;
+	display: flex; align-items: center; justify-content: center;
+	gap: 18rpx; margin-top: 16rpx; color: #8C8278;
 	font-size: 25rpx;
 }
-.print-page-counter text:nth-child(2) {
-	padding: 10rpx 30rpx;
-	border-radius: 999px;
+.print-page-counter-button {
+	width: 76rpx; height: 76rpx;
+	display: flex;
+	align-items: center; justify-content: center;
+	border-radius: 999rpx;
+	padding: 0; margin: 0;
 	background: rgba(255, 252, 246, 0.94);
-	border: 1rpx solid rgba(181, 148, 94, 0.14);
+	border: 1rpx solid rgba(181, 148, 94, 0.16);
+	box-shadow: 0 10rpx 22rpx rgba(36, 31, 24, 0.08);
+}
+.print-page-counter-button[disabled] { opacity: 0.46; box-shadow: none; }
+.print-page-counter-label {
+	padding: 10rpx 30rpx; border-radius: 999px;
+	background: rgba(255, 252, 246, 0.94); border: 1rpx solid rgba(181, 148, 94, 0.14);
 }
 .print-thumbnail-strip {
 	margin-top: 20rpx;
