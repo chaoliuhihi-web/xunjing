@@ -71,6 +71,14 @@
 			</view>
 		</view>
 
+		<view v-if="currentVisionAgentShareBoundary" class="vision-agent-share-boundary xicheng-paper-card">
+			<view class="section-head">
+				<text class="section-title">AI识境服务边界</text>
+				<text class="section-badge">真实系统待确认</text>
+			</view>
+			<text class="vision-agent-share-boundary-copy">{{ currentVisionAgentShareBoundary }}</text>
+		</view>
+
 		<view class="privacy-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">分享设置</text>
@@ -170,6 +178,14 @@ export default {
 				{ index: '2', title: '提交审核', active: this.reviewSubmissions.length > 0 },
 				{ index: '3', title: '审核后公开', active: false }
 			]
+		},
+		currentVisionAgentShareBoundary() {
+			const generatedBoundary = this.shareArtifacts
+				.map(artifact => artifact && (artifact.visionAgentRealSystemBoundary || safeObject(artifact.publicPreview).publicVisionAgentRealSystemBoundary))
+				.find(Boolean)
+			if (generatedBoundary) return generatedBoundary
+			const journeyDraft = this.getShareJourneyDraft()
+			return journeyDraft.visionAgentRealSystemBoundary || safeObject(journeyDraft.visionAgentAutoTraveloguePackage).realSystemBoundaryText || ''
 		}
 	},
 	onShow() {
@@ -285,15 +301,32 @@ export default {
 				exactTrackHidden: true
 			}
 		},
+		sanitizePublicVisionAgentPackage(packagePayload = {}) {
+			return {
+				packageName: packagePayload.packageName || 'AI识境自动素材包',
+				taskCount: toSafeCount(packagePayload.taskCount),
+				sceneDomainLabels: safeArray(packagePayload.sceneDomainLabels).map(label => String(label || '').trim()).filter(Boolean).slice(0, 8),
+				serviceIntentLabels: safeArray(packagePayload.serviceIntentLabels).map(label => String(label || '').trim()).filter(Boolean).slice(0, 8),
+				realSystemRequiredTaskCount: toSafeCount(packagePayload.realSystemRequiredTaskCount),
+				realSystemRequiredActionTitles: safeArray(packagePayload.realSystemRequiredActionTitles).map(title => String(title || '').trim()).filter(Boolean).slice(0, 5),
+				storyCueText: String(packagePayload.storyCueText || '').slice(0, 160),
+				mapCueText: String(packagePayload.mapCueText || '').slice(0, 160),
+				shareCueText: String(packagePayload.shareCueText || '').slice(0, 160),
+				realSystemBoundaryText: String(packagePayload.realSystemBoundaryText || '').slice(0, 160)
+			}
+		},
 		createSharePublicPreview(journeyDraft = {}) {
 			const publicPreview = safeObject(journeyDraft.publicPreview)
 			const publicMaterials = safeArray(publicPreview.publicMaterials).map(item => this.sanitizePublicMaterialPreview(item)).filter(Boolean).slice(0, 20)
 			const publicStudyTaskEvidence = safeArray(publicPreview.publicStudyTaskEvidence).map(item => this.sanitizePublicStudyEvidencePreview(item)).filter(Boolean).slice(0, 20)
 			const publicRouteCheckins = safeArray(publicPreview.publicRouteCheckins).map(item => this.sanitizePublicRouteCheckinPreview(item)).filter(Boolean).slice(0, 20)
+			const publicVisionAgentAutoTraveloguePackage = this.sanitizePublicVisionAgentPackage(publicPreview.publicVisionAgentAutoTraveloguePackage || journeyDraft.visionAgentAutoTraveloguePackage)
 			return {
 				publicMaterials,
 				publicStudyTaskEvidence,
 				publicRouteCheckins,
+				publicVisionAgentAutoTraveloguePackage,
+				publicVisionAgentRealSystemBoundary: publicVisionAgentAutoTraveloguePackage.realSystemBoundaryText || journeyDraft.visionAgentRealSystemBoundary || '',
 				publicCandidateConfirmationSummary: this.sanitizePublicCandidateConfirmationSummary(publicPreview.publicCandidateConfirmationSummary),
 				publicRecordingSummary: this.sanitizePublicRecordingSummary(publicPreview.publicRecordingSummary),
 				materialCount: publicMaterials.length,
@@ -310,6 +343,7 @@ export default {
 			const createdAt = new Date().toISOString()
 			const journeyDraft = this.getShareJourneyDraft()
 			const auditSummary = this.createShareAuditSummary(journeyDraft)
+			const publicPreview = this.createSharePublicPreview(journeyDraft)
 			const artifact = {
 				artifactId: `share-${assetType}-${Date.now()}`,
 				assetType,
@@ -323,7 +357,9 @@ export default {
 				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
 				companionName: XICHENG_REGION_CONFIG.companionName,
 				draftExcerpt: String(journeyDraft.draft || '').slice(0, 80),
-				publicPreview: this.createSharePublicPreview(journeyDraft),
+				publicPreview,
+				visionAgentAutoTraveloguePackage: publicPreview.publicVisionAgentAutoTraveloguePackage,
+				visionAgentRealSystemBoundary: publicPreview.publicVisionAgentRealSystemBoundary,
 				reviewEvidencePolicy: {
 					rawEvidenceUse: 'local-ops-review-only',
 					publicPreviewUse: 'share-review-preview-only',
@@ -357,6 +393,7 @@ export default {
 				return null
 			}
 			const auditSummary = this.createShareAuditSummary(artifact)
+			const publicPreview = this.createSharePublicPreview({ publicPreview: artifact.publicPreview, visionAgentAutoTraveloguePackage: artifact.visionAgentAutoTraveloguePackage, visionAgentRealSystemBoundary: artifact.visionAgentRealSystemBoundary })
 			return {
 				artifactId: artifact.artifactId || '',
 				assetType: artifact.assetType,
@@ -370,7 +407,9 @@ export default {
 				sourceChannel: artifact.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
 				companionName: artifact.companionName || XICHENG_REGION_CONFIG.companionName,
 				draftExcerpt: String(artifact.draftExcerpt || '').slice(0, 80),
-				publicPreview: this.createSharePublicPreview({ publicPreview: artifact.publicPreview }),
+				publicPreview,
+				visionAgentAutoTraveloguePackage: publicPreview.publicVisionAgentAutoTraveloguePackage,
+				visionAgentRealSystemBoundary: publicPreview.publicVisionAgentRealSystemBoundary,
 				reviewEvidencePolicy: {
 					rawEvidenceUse: 'local-ops-review-only',
 					publicPreviewUse: 'share-review-preview-only',
@@ -472,6 +511,7 @@ export default {
 }
 .poster-card,
 .asset-card,
+.vision-agent-share-boundary,
 .privacy-card {
 	margin-top: 24rpx;
 	padding: 28rpx;
@@ -662,6 +702,19 @@ export default {
 .asset-title {
 	font-size: 26rpx;
 	line-height: 1.3;
+}
+
+.vision-agent-share-boundary {
+	border: 1rpx solid rgba(31, 110, 90, 0.18);
+	background: rgba(23, 63, 53, 0.06);
+}
+
+.vision-agent-share-boundary-copy {
+	display: block;
+	margin-top: 14rpx;
+	font-size: 24rpx;
+	line-height: 1.55;
+	color: #173F35;
 }
 
 .share-setting-list {

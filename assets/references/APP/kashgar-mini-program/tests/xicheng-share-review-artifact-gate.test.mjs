@@ -46,7 +46,7 @@ assert.match(
 
 assert.match(
   share,
-  /sanitizeShareArtifactForReview\(artifact = \{\}\)\s*\{[\s\S]*if \(!artifact \|\| !\['poster', 'pdf', 'study'\]\.includes\(artifact\.assetType\)\) return null[\s\S]*artifact\.auditRequired !== true[\s\S]*artifact\.publishStatus !== 'private'[\s\S]*artifact\.reviewStatus !== XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publicPreview:\s*this\.createSharePublicPreview\(\{ publicPreview: artifact\.publicPreview \}\)[\s\S]*reviewEvidencePolicy:\s*\{[\s\S]*rawEvidenceUse:\s*'local-ops-review-only'[\s\S]*publicPreviewUse:\s*'share-review-preview-only'[\s\S]*exactLocationPolicy:\s*'raw-review-only'[\s\S]*photoPathPolicy:\s*'raw-review-only'[\s\S]*auditRequired:\s*true[\s\S]*publishStatus:\s*'private'[\s\S]*publishStatus:\s*'private'[\s\S]*visibilityLabel:\s*'待审核 · 未公开'/,
+  /sanitizeShareArtifactForReview\(artifact = \{\}\)\s*\{[\s\S]*if \(!artifact \|\| !\['poster', 'pdf', 'study'\]\.includes\(artifact\.assetType\)\) return null[\s\S]*artifact\.auditRequired !== true[\s\S]*artifact\.publishStatus !== 'private'[\s\S]*artifact\.reviewStatus !== XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*const publicPreview = this\.createSharePublicPreview\(\{ publicPreview: artifact\.publicPreview, visionAgentAutoTraveloguePackage: artifact\.visionAgentAutoTraveloguePackage, visionAgentRealSystemBoundary: artifact\.visionAgentRealSystemBoundary \}\)[\s\S]*publicPreview,[\s\S]*reviewEvidencePolicy:\s*\{[\s\S]*rawEvidenceUse:\s*'local-ops-review-only'[\s\S]*publicPreviewUse:\s*'share-review-preview-only'[\s\S]*exactLocationPolicy:\s*'raw-review-only'[\s\S]*photoPathPolicy:\s*'raw-review-only'[\s\S]*auditRequired:\s*true[\s\S]*publishStatus:\s*'private'[\s\S]*publishStatus:\s*'private'[\s\S]*visibilityLabel:\s*'待审核 · 未公开'/,
   'Share review gate should rebuild cached artifacts as private audit-only objects with sanitized public preview'
 )
 
@@ -70,7 +70,7 @@ assert.match(
 
 assert.match(
   share,
-  /createShareArtifact\(assetType\)[\s\S]*const journeyDraft = this\.getShareJourneyDraft\(\)[\s\S]*const auditSummary = this\.createShareAuditSummary\(journeyDraft\)[\s\S]*publicPreview:\s*this\.createSharePublicPreview\(journeyDraft\)[\s\S]*reviewEvidencePolicy:\s*\{[\s\S]*rawEvidenceUse:\s*'local-ops-review-only'[\s\S]*exactLocationPolicy:\s*'raw-review-only'[\s\S]*auditRequired:\s*true[\s\S]*publishStatus:\s*'private'[\s\S]*\.\.\.auditSummary/,
+  /createShareArtifact\(assetType\)[\s\S]*const journeyDraft = this\.getShareJourneyDraft\(\)[\s\S]*const auditSummary = this\.createShareAuditSummary\(journeyDraft\)[\s\S]*const publicPreview = this\.createSharePublicPreview\(journeyDraft\)[\s\S]*publicPreview,[\s\S]*reviewEvidencePolicy:\s*\{[\s\S]*rawEvidenceUse:\s*'local-ops-review-only'[\s\S]*exactLocationPolicy:\s*'raw-review-only'[\s\S]*auditRequired:\s*true[\s\S]*publishStatus:\s*'private'[\s\S]*\.\.\.auditSummary/,
   'Share page generated artifacts should carry sanitized public preview and review-only evidence policy from the current journey draft'
 )
 
