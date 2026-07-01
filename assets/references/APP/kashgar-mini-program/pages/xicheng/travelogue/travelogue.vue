@@ -1345,10 +1345,11 @@ export default {
 			},
 			createVisionAgentServiceTaskMeta(task = {}) {
 				const poiName = task.poiName || '当前场景'
+				const serviceIntentLabel = task.serviceIntentLabel ? ` · ${task.serviceIntentLabel}` : ''
 				const sceneDomain = task.sceneDomain ? ` · ${this.createVisionAgentSceneDomainLabel(task.sceneDomain)}` : ''
 				const actionPrompt = task.actionPrompt ? ` · ${String(task.actionPrompt).slice(0, 24)}` : ''
 				const statusText = task.statusText || '已收进任务包'
-				return `${poiName}${sceneDomain}${actionPrompt} · ${statusText}`
+				return `${poiName}${serviceIntentLabel}${sceneDomain}${actionPrompt} · ${statusText}`
 			},
 			createVisionAgentSceneDomainLabel(sceneDomain = '') {
 				const labels = {

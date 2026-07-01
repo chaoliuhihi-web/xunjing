@@ -823,8 +823,12 @@ export default {
 		prioritizedVisionAgentActionCards() {
 			return this.prioritizeVisionAgentActions(this.visionAgentActionCards)
 		},
+		domainSceneServiceActions() {
+			return this.createDomainSceneServiceActions(this.prioritizedSceneUnderstandingCards)
+		},
 		sceneServiceActions() {
 			return [
+				...this.domainSceneServiceActions,
 				{ actionKey: 'next-stop', title: '去下一个景点', copy: '加入旅行地图', taskType: 'route' },
 				{ actionKey: 'nearby-food', title: '附近美食', copy: '推荐菜/点单', taskType: 'merchant' },
 				{ actionKey: 'souvenir', title: '纪念品', copy: '匹配附近文创和小店', taskType: 'merchant' },
@@ -1032,10 +1036,49 @@ export default {
 				scoreMap.travelogue += 36
 			}
 			return [...actions].sort((left, right) => {
-				const rightScore = scoreMap[right.actionKey] || 0
-				const leftScore = scoreMap[left.actionKey] || 0
-				return rightScore - leftScore
+				const scoreAction = (action = {}) => {
+					const serviceIntent = String(action.serviceIntent || '')
+					const sceneDomain = String(action.sceneDomain || '')
+					let score = scoreMap[action.actionKey] || 0
+					if (sceneDomain) score += 44
+					if (serviceIntent === 'ticket') score += 46
+					if (serviceIntent === 'experience') score += 44
+					if (serviceIntent === 'order') score += 48
+					if (serviceIntent === 'coupon') score += 38
+					if (serviceIntent === 'reservation') score += 40
+					if (serviceIntent === 'translate') score += 42
+					return score
+				}
+				return scoreAction(right) - scoreAction(left)
 			})
+		},
+		createDomainSceneServiceActions(cards = []) {
+			const domainKeys = cards
+				.filter(card => card && Number(card.score || 0) > 0)
+				.map(card => card.domainKey)
+				.filter(Boolean)
+			const actions = []
+			const appendAction = (action = {}) => {
+				if (!action.actionKey || actions.some(item => item.actionKey === action.actionKey)) return
+				actions.push(action)
+			}
+			if (domainKeys.includes('menu')) {
+				appendAction({ actionKey: 'menu-order', title: '点推荐菜', copy: '按辣度、清真和人数生成点单建议', taskType: 'merchant', sceneDomain: 'menu', serviceIntent: 'order' })
+				appendAction({ actionKey: 'menu-coupon', title: '领优惠', copy: '匹配附近餐厅优惠券和套餐', taskType: 'merchant', sceneDomain: 'menu', serviceIntent: 'coupon' })
+			}
+			if (domainKeys.includes('food')) {
+				appendAction({ actionKey: 'food-reservation', title: '预约/排队', copy: '找附近同款美食并规划排队或预约', taskType: 'merchant', sceneDomain: 'food', serviceIntent: 'reservation' })
+			}
+			if (domainKeys.includes('event')) {
+				appendAction({ actionKey: 'event-ticket', title: '查票务', copy: '查看演出时间、票务和入场提醒', taskType: 'ticketing', sceneDomain: 'event', serviceIntent: 'ticket' })
+			}
+			if (domainKeys.includes('heritage')) {
+				appendAction({ actionKey: 'heritage-experience', title: '约体验', copy: '预约附近非遗体验、讲师或工坊', taskType: 'experience', sceneDomain: 'heritage', serviceIntent: 'experience' })
+			}
+			if (domainKeys.includes('sign-ocr')) {
+				appendAction({ actionKey: 'sign-translate', title: '翻译导航', copy: '翻译文字、读音并接到步行导航', taskType: 'navigation', sceneDomain: 'sign-ocr', serviceIntent: 'translate' })
+			}
+			return actions.slice(0, 6)
 		},
 		inferSceneUnderstandingDomainScore(card = {}) {
 			const visionContext = this.result.visionAgentContext || {}
@@ -1333,6 +1376,8 @@ export default {
 				actionCopy: action.copy || '',
 				actionPrompt: action.actionPrompt || '',
 				sceneDomain: action.sceneDomain || '',
+				serviceIntent: action.serviceIntent || '',
+				serviceIntentLabel: this.serviceIntentLabel(action.serviceIntent || ''),
 				agentDecisionActionKey: action.agentDecisionActionKey || '',
 				poiCode: this.result.poiCode || '',
 				poiName: this.result.poiName || '',
@@ -1355,7 +1400,19 @@ export default {
 			if (taskType === 'travelogue') return '游记'
 			if (taskType === 'growth') return '成长'
 			if (taskType === 'agent') return 'Agent'
+			if (taskType === 'ticketing') return '票务'
+			if (taskType === 'experience') return '体验'
+			if (taskType === 'navigation') return '导航'
 			return '服务'
+		},
+		serviceIntentLabel(serviceIntent = '') {
+			if (serviceIntent === 'order') return '点餐'
+			if (serviceIntent === 'coupon') return '优惠'
+			if (serviceIntent === 'reservation') return '预约'
+			if (serviceIntent === 'ticket') return '票务'
+			if (serviceIntent === 'experience') return '体验'
+			if (serviceIntent === 'translate') return '翻译导航'
+			return ''
 		},
 		openPoiDetail() {
 			if (this.pendingCandidateConfirmation) {
