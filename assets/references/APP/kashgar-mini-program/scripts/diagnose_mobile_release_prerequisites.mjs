@@ -115,10 +115,12 @@ const checkApiDns = async (apiBaseUrl) => {
 }
 
 const checkApiReachability = async (apiBaseUrl, tenantId, apiDns) => {
+  const tenantIdHeader = String(tenantId || '').trim()
   if (process.env.XUNJING_RELEASE_PREREQ_SKIP_NETWORK === '1') {
     return {
       ok: true,
       skipped: true,
+      tenantIdHeader,
       detail: 'network checks skipped by XUNJING_RELEASE_PREREQ_SKIP_NETWORK=1'
     }
   }
@@ -126,6 +128,7 @@ const checkApiReachability = async (apiBaseUrl, tenantId, apiDns) => {
     return {
       ok: true,
       skipped: true,
+      tenantIdHeader,
       detail: 'skipped because API DNS check failed',
       nextAction: apiDns.nextAction
     }
@@ -151,6 +154,7 @@ const checkApiReachability = async (apiBaseUrl, tenantId, apiDns) => {
         blockerCode: 'api-route-missing',
         origin: url.origin,
         endpoint,
+        tenantIdHeader,
         status: response.status,
         statusText: response.statusText,
         message: `APP API route is missing for ${url.origin}${endpoint}`,
@@ -163,6 +167,7 @@ const checkApiReachability = async (apiBaseUrl, tenantId, apiDns) => {
         blockerCode: 'api-unauthorized',
         origin: url.origin,
         endpoint,
+        tenantIdHeader,
         status: response.status,
         statusText: response.statusText,
         message: `APP API route requires auth or lacks permission for ${url.origin}${endpoint}`,
@@ -174,6 +179,7 @@ const checkApiReachability = async (apiBaseUrl, tenantId, apiDns) => {
       ok,
       origin: url.origin,
       endpoint,
+      tenantIdHeader,
       status: response.status,
       statusText: response.statusText,
       nextAction: ok
@@ -185,6 +191,7 @@ const checkApiReachability = async (apiBaseUrl, tenantId, apiDns) => {
       ok: false,
       origin: url.origin,
       endpoint,
+      tenantIdHeader,
       message: error.message,
       nextAction: `Fix HTTPS/network access to ${url.origin}${endpoint}, then rerun npm run doctor:release:prereqs.`
     }

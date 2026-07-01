@@ -202,6 +202,11 @@ try {
   assert.equal(reachableJson.checks.apiReachability.ok, true)
   assert.equal(reachableJson.checks.apiReachability.endpoint, '/app-api/xunjing/scan/resolve')
   assert.equal(reachableJson.checks.apiReachability.status, 405)
+  assert.equal(
+    reachableJson.checks.apiReachability.tenantIdHeader,
+    '1',
+    'release prerequisite doctor should record the tenant-id header used for the APP API reachability probe'
+  )
 } finally {
   appApiServer.kill('SIGTERM')
   await once(appApiServer, 'exit')
