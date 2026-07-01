@@ -54,6 +54,15 @@ const getRepoRoot = () => {
 }
 
 const repoRoot = getRepoRoot()
+const getCurrentHead = () => {
+  const result = spawnSync('git', ['rev-parse', 'HEAD'], {
+    cwd: repoRoot,
+    encoding: 'utf8'
+  })
+  return result.status === 0 ? result.stdout.trim() : ''
+}
+
+const currentHead = getCurrentHead()
 const qaEvidenceRoot = path.join(repoRoot, 'qa')
 
 const isInsideDir = (childPath, parentPath) => {
@@ -128,6 +137,10 @@ if (evidence.branch !== 'feature/xicheng-p0') {
 
 if (!/^[0-9a-f]{7,40}$/i.test(String(evidence.commit || ''))) {
   fail('Native device evidence commit must be a git SHA')
+}
+
+if (currentHead && String(evidence.commit || '').trim() !== currentHead) {
+  fail(`Native device evidence commit must match current HEAD ${currentHead}`)
 }
 
 try {

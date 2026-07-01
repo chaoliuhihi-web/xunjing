@@ -44,6 +44,10 @@ const repoRoot = spawnSync('git', ['rev-parse', '--show-toplevel'], {
   cwd: root,
   encoding: 'utf8'
 }).stdout.trim()
+const currentCommit = spawnSync('git', ['rev-parse', 'HEAD'], {
+  cwd: root,
+  encoding: 'utf8'
+}).stdout.trim()
 const qaEvidenceDir = fs.mkdtempSync(path.join(repoRoot, 'qa', 'native-evidence-test-'))
 const outsideQaEvidenceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-native-scenario-evidence-'))
 process.on('exit', () => {
@@ -97,7 +101,7 @@ const baseEvidence = {
   artifactType: 'xicheng-native-device-evidence',
   createdAt: freshTimestamp,
   branch: 'feature/xicheng-p0',
-  commit: 'dd3b7083',
+  commit: currentCommit,
   appApiBaseUrl: 'https://preprod.xingheai.net',
   tenantId: '1',
   releaseTargets: ['android'],
@@ -324,6 +328,17 @@ assert.match(
   `${wrongHashResult.stderr}\n${wrongHashResult.stdout}`,
   /artifactSha256|SHA256/i,
   'native evidence validator should explain the release artifact hash mismatch'
+)
+
+const staleCommitResult = runValidator({
+  ...baseEvidence,
+  commit: 'dd3b7083'
+})
+assert.notEqual(staleCommitResult.status, 0, 'native evidence validator should reject evidence captured from a stale commit')
+assert.match(
+  `${staleCommitResult.stderr}\n${staleCommitResult.stdout}`,
+  /commit|HEAD|current/i,
+  'native evidence validator should explain that evidence commit must match current HEAD'
 )
 
 const missingArtifactResult = runValidator({
