@@ -66,6 +66,21 @@
 			<text v-else class="empty-copy">暂无足够素材形成热点排行。</text>
 		</view>
 
+		<view class="ranking-card vision-agent-service-lane xicheng-paper-card">
+			<view class="section-head">
+				<text class="section-title">AI识境服务意图</text>
+				<text class="section-badge">{{ visionAgentServiceTaskCount }} 项</text>
+			</view>
+			<view v-if="serviceIntentSummaryCards.length > 0" class="service-intent-grid">
+				<view v-for="card in serviceIntentSummaryCards" :key="card.intent" class="service-intent-card">
+					<text class="service-intent-value">{{ card.count }}</text>
+					<text class="service-intent-label">{{ card.label }}</text>
+					<text class="service-intent-copy">{{ card.poiLabel }}</text>
+				</view>
+			</view>
+			<text v-else class="empty-copy">AI识境服务动作累积后，会在这里看到点餐、优惠、预约和票务体验需求。</text>
+		</view>
+
 		<view class="ranking-card ops-safety-lane xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">审核安全</text>
@@ -104,7 +119,8 @@ export default {
 			materials: [],
 			shareArtifacts: [],
 			routeCheckins: [],
-			reviewSubmissions: []
+			reviewSubmissions: [],
+			visionAgentServiceTasks: []
 		}
 	},
 	computed: {
@@ -114,8 +130,19 @@ export default {
 				{ label: '识别量', value: this.materials.length, icon: 'photo', trend: '本机汇总' },
 				{ label: '热门 POI', value: topPoiName, icon: 'location', trend: topPoiName === '待形成' ? '待接入更多数据' : '访问量最高' },
 				{ label: '路线完成率', value: `${this.routeCompletionRate}%`, icon: 'route', trend: '基于本地打卡' },
-				{ label: '分享作品', value: this.shareArtifacts.length, icon: 'travelogue', trend: '待审核后公开' }
+				{ label: '分享作品', value: this.shareArtifacts.length, icon: 'travelogue', trend: '待审核后公开' },
+				{ label: 'AI识境服务', value: this.visionAgentServiceTaskCount, icon: 'scan', trend: '识别后动作' },
+				{ label: '商家意向', value: this.merchantServiceTaskCount, icon: 'source', trend: '点餐/优惠/预约' }
 			]
+		},
+		visionAgentServiceTaskCount() {
+			return this.visionAgentServiceTasks.length
+		},
+		merchantServiceTasks() {
+			return this.visionAgentServiceTasks.filter(task => task && task.taskType === 'merchant')
+		},
+		merchantServiceTaskCount() {
+			return this.merchantServiceTasks.length
 		},
 		hotPois() {
 			return this.createHotPoiRanking()
@@ -134,7 +161,9 @@ export default {
 				{ label: '扫码', value: this.materials.length },
 				{ label: '问答', value: this.materials.filter(item => item.type === 'ai-guide').length },
 				{ label: '路线', value: this.routeCheckins.length },
-				{ label: '游记', value: this.shareArtifacts.length }
+				{ label: '游记', value: this.shareArtifacts.length },
+				{ label: 'AI识境', value: this.visionAgentServiceTaskCount },
+				{ label: '商家', value: this.merchantServiceTaskCount }
 			]
 			const maxValue = Math.max(...values.map(item => item.value), 1)
 			return values.map(item => ({
@@ -154,7 +183,35 @@ export default {
 				{ label: '安全拦截', value: unsafeSafetyCount, icon: 'locked' }
 			]
 		},
+		serviceIntentSummaryCards() {
+			const serviceIntentCounts = this.visionAgentServiceTasks.reduce((summary, task) => {
+				if (!task || typeof task !== 'object') return summary
+				const serviceIntent = task.serviceIntent || task.taskType || 'service'
+				const current = summary[serviceIntent] || {
+					intent: serviceIntent,
+					label: task.serviceIntentLabel || this.formatVisionAgentServiceIntentLabel(serviceIntent),
+					count: 0,
+					poiNames: []
+				}
+				current.count += 1
+				if (task.poiName && !current.poiNames.includes(task.poiName)) {
+					current.poiNames.push(task.poiName)
+				}
+				summary[serviceIntent] = current
+				return summary
+			}, {})
+			return Object.values(serviceIntentCounts)
+				.sort((left, right) => right.count - left.count)
+				.slice(0, 4)
+				.map(card => ({
+					...card,
+					poiLabel: card.poiNames.length > 0 ? card.poiNames.slice(0, 2).join('、') : '待形成 POI'
+				}))
+		},
 		insightCopy() {
+			if (this.merchantServiceTaskCount > 0) {
+				return `AI识境已捕捉 ${this.merchantServiceTaskCount} 条商家服务意图，可优先复盘点餐、优惠和预约需求。`
+			}
 			if (this.materials.length + this.routeCheckins.length + this.shareArtifacts.length === 0) {
 				return '数据累积后，小京会基于识别、路线和审核汇总给出运营建议。'
 			}
@@ -170,6 +227,22 @@ export default {
 			this.shareArtifacts = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey))
 			this.routeCheckins = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.checkinStorageKey))
 			this.reviewSubmissions = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey))
+			const storedTasks = uni.getStorageSync(XICHENG_REGION_CONFIG.visionAgentServiceTasksStorageKey)
+			this.visionAgentServiceTasks = safeArray(storedTasks)
+				.filter(task => task && typeof task === 'object')
+				.slice(0, 50)
+		},
+		formatVisionAgentServiceIntentLabel(serviceIntent = '') {
+			if (serviceIntent === 'order') return '点餐'
+			if (serviceIntent === 'coupon') return '优惠'
+			if (serviceIntent === 'reservation') return '预约'
+			if (serviceIntent === 'ticket') return '票务'
+			if (serviceIntent === 'experience') return '体验'
+			if (serviceIntent === 'merchant') return '商家'
+			if (serviceIntent === 'route') return '路线'
+			if (serviceIntent === 'growth') return '成长'
+			if (serviceIntent === 'agent') return 'Agent'
+			return '服务'
 		},
 		createHotPoiRanking() {
 			const counter = new Map()
@@ -370,8 +443,8 @@ export default {
 
 .trend-chart {
 	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 22rpx;
+	grid-template-columns: repeat(6, minmax(0, 1fr));
+	gap: 12rpx;
 	align-items: end;
 	height: 260rpx;
 	margin-top: 22rpx;
@@ -478,6 +551,62 @@ export default {
 	font-weight: 800;
 	color: #9A7132;
 	white-space: nowrap;
+}
+
+.vision-agent-service-lane {
+	background:
+		linear-gradient(135deg, rgba(23, 63, 53, 0.96), rgba(35, 77, 66, 0.92)),
+		linear-gradient(180deg, rgba(181, 148, 94, 0.18), rgba(255, 255, 255, 0));
+	color: #FFF9EC;
+}
+
+.vision-agent-service-lane .section-title,
+.vision-agent-service-lane .section-badge {
+	color: #FFF9EC;
+}
+
+.service-intent-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 14rpx;
+	margin-top: 22rpx;
+}
+
+.service-intent-card {
+	min-width: 0;
+	min-height: 142rpx;
+	padding: 20rpx;
+	border-radius: 22rpx;
+	background: rgba(255, 249, 236, 0.10);
+	border: 1rpx solid rgba(255, 249, 236, 0.14);
+	box-sizing: border-box;
+}
+
+.service-intent-value,
+.service-intent-label,
+.service-intent-copy {
+	display: block;
+}
+
+.service-intent-value {
+	font-size: 38rpx;
+	line-height: 1.1;
+	font-weight: 800;
+	color: #FCE8A9;
+}
+
+.service-intent-label {
+	margin-top: 8rpx;
+	font-size: 24rpx;
+	font-weight: 800;
+	color: #FFF9EC;
+}
+
+.service-intent-copy {
+	margin-top: 8rpx;
+	font-size: 21rpx;
+	line-height: 1.35;
+	color: rgba(255, 249, 236, 0.72);
 }
 
 .ops-safety-lane {
