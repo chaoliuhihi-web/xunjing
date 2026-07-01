@@ -52,7 +52,19 @@ const readJsonIfPresent = (inputPath) => {
   }
 }
 
-const summarizeCommandFailure = (result) => String(result.stderr || result.stdout || '').trim().split('\n')[0] || 'command failed'
+const summarizeCommandFailure = (result) => {
+  const output = String(result.stderr || result.stdout || '').trim()
+  if (!output) return 'command failed'
+  try {
+    const parsed = JSON.parse(output)
+    if (Array.isArray(parsed.blockers) && parsed.blockers.length > 0) {
+      return parsed.blockers.join('; ')
+    }
+  } catch {
+    // Fall through to the first line for non-JSON command output.
+  }
+  return output.split('\n')[0] || 'command failed'
+}
 
 const addBlocker = (blockers, code, message, nextAction) => {
   if (blockers.some((blocker) => blocker.code === code)) return
@@ -213,6 +225,30 @@ if (!gates.nativeReleaseArtifact.exists) {
     `Native release artifact not found: ${releaseArtifactPath || '(not configured)'}`,
     'Create a signed Android APK/AAB or iOS IPA, then set XUNJING_RELEASE_ARTIFACT to that file before preparing native evidence'
   )
+}
+
+gates.nativePackageReadiness = {
+  ok: false,
+  skipped: gates.nativeReleaseArtifact.exists,
+  detail: gates.nativeReleaseArtifact.exists
+    ? 'skipped because a native release artifact is already configured'
+    : ''
+}
+if (!gates.nativeReleaseArtifact.exists) {
+  const readinessGate = runNodeGate('verify_native_package_readiness.mjs', [])
+  gates.nativePackageReadiness = {
+    ...gates.nativePackageReadiness,
+    ok: readinessGate.ok,
+    detail: readinessGate.detail
+  }
+  if (!readinessGate.ok) {
+    addBlocker(
+      blockers,
+      'native-package-readiness-not-passing',
+      `Native package readiness gate failed: ${readinessGate.detail}`,
+      'Set XUNJING_RELEASE_TARGETS, XUNJING_APP_API_BASE_URL, XUNJING_TENANT_ID, Android/iOS signing env, then run npm run verify:native:package:ready'
+    )
+  }
 }
 
 const expectedApiBaseUrl = normalizeUrl(process.env.XUNJING_APP_API_BASE_URL || gates.preprodEvidence.baseUrl)

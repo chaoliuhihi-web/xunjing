@@ -86,6 +86,22 @@ npm run build:app:release
 
 `build:app:release` 会自动执行 `npm run verify:release:artifact` 对 `dist/build/app-release` 做 release 构建产物扫描；同一脚本也可扫描 APK/AAB/IPA/ZIP 安装包内部文本资源。门禁拒绝 `localhost`、`127.0.0.1`、局域网地址、`XICHENG_DEVELOPMENT_TRIGGER_FIXTURE`、H5 proxy 配置、`sk-`、`pat_`、`AKIA` 和真实 token 进入手机包。包内必须能扫描到 `XUNJING_APP_API_BASE_URL` 指定的 Yudao APP API 网关；旧 `api2/*`、图片和静态资源仍可保留原线上域名，但不得替代 `/app-api/xunjing/**` 的 release 网关。
 
+生成 signed APK/AAB 或 iOS IPA 前，先跑手机原生打包就绪门禁：
+
+```bash
+XUNJING_RELEASE_TARGETS="android" \
+XUNJING_APP_API_BASE_URL="$XUNJING_APP_API_BASE_URL" \
+XUNJING_TENANT_ID="$XUNJING_TENANT_ID" \
+XUNJING_ANDROID_PACKAGE_NAME="com.xinghe.xunjing" \
+XUNJING_ANDROID_KEYSTORE="/secure/path/xicheng-release.keystore" \
+XUNJING_ANDROID_KEY_ALIAS="xicheng-release" \
+XUNJING_ANDROID_KEYSTORE_PASSWORD="$XUNJING_ANDROID_KEYSTORE_PASSWORD" \
+XUNJING_ANDROID_KEY_PASSWORD="$XUNJING_ANDROID_KEY_PASSWORD" \
+npm run verify:native:package:ready
+```
+
+该命令检查 HBuilderX CLI、APP 名称、appid、versionName、versionCode、Android package name、签名 keystore、key alias、密码是否已注入，以及 Android 权限是否仍限定在 `ACCESS_NETWORK_STATE`、`CAMERA`、`ACCESS_COARSE_LOCATION`、`ACCESS_FINE_LOCATION`。它不会生成安装包，也不会输出密钥内容；通过后再用 HBuilderX 原生发布流程生成 `signed APK/AAB`，再进入 `npm run prepare:native:evidence`。
+
 ## 发布候选审计
 
 在补齐预发证据、真机证据和签名安装包后，可以先跑只读审计命令汇总当前候选状态：

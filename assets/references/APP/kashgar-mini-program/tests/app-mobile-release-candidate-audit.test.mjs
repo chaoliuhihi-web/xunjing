@@ -189,6 +189,10 @@ assert.ok(
   'release candidate audit should name the missing native release artifact blocker'
 )
 assert.ok(
+  missingAudit.blockers.some((blocker) => blocker.code === 'native-package-readiness-not-passing'),
+  'release candidate audit should surface native package readiness blockers before a signed package exists'
+)
+assert.ok(
   missingAudit.nextActions.some((action) => action.includes('verify:yudao:preprod')),
   'release candidate audit should tell operators how to collect preprod evidence'
 )
@@ -231,3 +235,4 @@ assert.equal(readyAudit.blockers.length, 0)
 assert.equal(readyAudit.gates.launchEvidence.ok, true)
 assert.equal(readyAudit.gates.nativeEvidence.ok, true)
 assert.equal(readyAudit.gates.releaseArtifactScan.ok, true)
+assert.equal(readyAudit.gates.nativePackageReadiness.skipped, true)
