@@ -94,6 +94,8 @@ for (const forbiddenReleaseBase of [
   'https://192.168.110.190',
   'https://10.0.0.8',
   'https://172.16.0.8',
+  'https://[::ffff:127.0.0.1]',
+  'https://[::ffff:10.0.0.8]',
 ]) {
   assert.throws(
     () => normalizeReleaseHttpsUrl('test release URL', forbiddenReleaseBase),

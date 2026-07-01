@@ -6,12 +6,23 @@ const ipv4Octets = (hostname) => {
   return octets.every((octet) => Number.isInteger(octet) && octet >= 0 && octet <= 255) ? octets : null
 }
 
+const ipv4MappedIpv6Octets = (hostname) => {
+  const match = hostname.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i)
+  if (!match) {
+    return null
+  }
+
+  const high = Number.parseInt(match[1], 16)
+  const low = Number.parseInt(match[2], 16)
+  return [high >> 8, high & 255, low >> 8, low & 255]
+}
+
 const localOrLanHost = (hostname) => {
   if (hostname === 'localhost' || hostname === '::' || hostname === '::1') {
     return true
   }
 
-  const octets = ipv4Octets(hostname)
+  const octets = ipv4Octets(hostname) || ipv4MappedIpv6Octets(hostname)
   if (octets) {
     const [first, second, third] = octets
     return (

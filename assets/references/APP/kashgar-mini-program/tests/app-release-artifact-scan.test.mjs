@@ -37,6 +37,7 @@ for (const required of [
   'localhost',
   'IPv4',
   'IPv6',
+  'IPv4-mapped IPv6',
   'URL 内嵌账号密码',
   'XICHENG_DEVELOPMENT_TRIGGER_FIXTURE',
   'sk-',
