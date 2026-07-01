@@ -85,6 +85,8 @@ npm run prepare:native:evidence
 
 `XUNJING_RELEASE_TARGETS` 或 `--platform` 只允许手机端发布目标：`android`、`ios`。H5、web、小程序等目标不能写入本轮手机端上线证据。
 
+每个 `qa/xicheng-native-device-evidence.json` 只描述一个手机平台的一个 release 包：Android 证据必须使用 `.apk` 或 `.aab`，iOS 证据必须使用 `.ipa`。如果同一版本同时发 Android 和 iOS，需要分别生成和校验两份真机证据文件。
+
 ```bash
 XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-evidence.json" \
 npm run verify:native:evidence

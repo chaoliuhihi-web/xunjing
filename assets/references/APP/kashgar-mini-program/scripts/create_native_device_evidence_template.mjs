@@ -95,6 +95,20 @@ const assertMobileReleaseArtifact = (label, artifactPath) => {
   }
 }
 
+const assertArtifactMatchesReleaseTargets = ({ artifactPath, releaseTargets, label }) => {
+  if (releaseTargets.length !== 1) {
+    fail(`${label} supports one platform per single release artifact. Create separate native evidence files for android and ios.`)
+  }
+  const target = releaseTargets[0]
+  const ext = path.extname(artifactPath).toLowerCase()
+  if (target === 'android' && !['.apk', '.aab'].includes(ext)) {
+    fail(`${label} for android must use an APK or AAB release artifact`)
+  }
+  if (target === 'ios' && ext !== '.ipa') {
+    fail(`${label} for ios must use an IPA release artifact`)
+  }
+}
+
 const artifactArg = readArg('--artifact', process.env.XUNJING_RELEASE_ARTIFACT)
 const outputArg = readArg('--output', process.env.XUNJING_NATIVE_DEVICE_EVIDENCE_FILE || defaultOutputPath)
 const appApiBaseUrl = assertNonLocalHttpsUrl('XUNJING_APP_API_BASE_URL', process.env.XUNJING_APP_API_BASE_URL)
@@ -131,6 +145,12 @@ const unsupportedReleaseTargets = releaseTargets.filter((target) => !supportedRe
 if (unsupportedReleaseTargets.length > 0) {
   fail(`XUNJING_RELEASE_TARGETS releaseTargets must be mobile platforms: android or ios; unsupported platform(s): ${unsupportedReleaseTargets.join(', ')}`)
 }
+
+assertArtifactMatchesReleaseTargets({
+  artifactPath,
+  releaseTargets,
+  label: 'XUNJING_RELEASE_TARGETS'
+})
 
 const artifactBytes = fs.readFileSync(artifactPath)
 const artifactSha256 = crypto.createHash('sha256').update(artifactBytes).digest('hex')

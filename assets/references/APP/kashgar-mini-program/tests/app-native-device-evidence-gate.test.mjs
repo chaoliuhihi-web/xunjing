@@ -31,6 +31,10 @@ const artifactPath = path.join(artifactTempDir, 'xicheng-release.apk')
 const artifactBytes = Buffer.from('signed release apk placeholder for validator tests\n', 'utf8')
 fs.writeFileSync(artifactPath, artifactBytes)
 const artifactSha256 = crypto.createHash('sha256').update(artifactBytes).digest('hex')
+const iosArtifactPath = path.join(artifactTempDir, 'xicheng-release.ipa')
+const iosArtifactBytes = Buffer.from('signed release ipa placeholder for validator tests\n', 'utf8')
+fs.writeFileSync(iosArtifactPath, iosArtifactBytes)
+const iosArtifactSha256 = crypto.createHash('sha256').update(iosArtifactBytes).digest('hex')
 const nonMobileArtifactPath = path.join(artifactTempDir, 'xicheng-release.txt')
 const nonMobileArtifactBytes = Buffer.from('not a mobile install package\n', 'utf8')
 fs.writeFileSync(nonMobileArtifactPath, nonMobileArtifactBytes)
@@ -346,6 +350,65 @@ assert.match(
   `${invalidReleaseTargetResult.stderr}\n${invalidReleaseTargetResult.stdout}`,
   /releaseTargets|platform|android|ios|手机/i,
   'native evidence validator should explain supported mobile release targets'
+)
+
+const iosTargetWithApkResult = runValidator({
+  ...baseEvidence,
+  releaseTargets: ['ios'],
+  devices: [
+    {
+      platform: 'ios',
+      model: 'iPhone 15',
+      osVersion: 'iOS 18',
+      appVersion: '1.0.0'
+    }
+  ],
+  scenarios: baseEvidence.scenarios.map((scenario) => ({
+    ...scenario,
+    platform: 'ios'
+  }))
+})
+assert.notEqual(iosTargetWithApkResult.status, 0, 'native evidence validator should reject iOS targets with APK artifacts')
+assert.match(
+  `${iosTargetWithApkResult.stderr}\n${iosTargetWithApkResult.stdout}`,
+  /ios|IPA|artifact|安装包/i,
+  'native evidence validator should explain iOS artifact matching'
+)
+
+const androidTargetWithIpaResult = runValidator({
+  ...baseEvidence,
+  build: {
+    ...baseEvidence.build,
+    artifact: iosArtifactPath,
+    artifactSha256: iosArtifactSha256,
+    artifactSizeBytes: iosArtifactBytes.length
+  }
+})
+assert.notEqual(androidTargetWithIpaResult.status, 0, 'native evidence validator should reject Android targets with IPA artifacts')
+assert.match(
+  `${androidTargetWithIpaResult.stderr}\n${androidTargetWithIpaResult.stdout}`,
+  /android|APK|AAB|artifact|安装包/i,
+  'native evidence validator should explain Android artifact matching'
+)
+
+const mixedTargetsResult = runValidator({
+  ...baseEvidence,
+  releaseTargets: ['android', 'ios'],
+  devices: [
+    ...baseEvidence.devices,
+    {
+      platform: 'ios',
+      model: 'iPhone 15',
+      osVersion: 'iOS 18',
+      appVersion: '1.0.0'
+    }
+  ]
+})
+assert.notEqual(mixedTargetsResult.status, 0, 'native evidence validator should reject mixed platform targets for one artifact')
+assert.match(
+  `${mixedTargetsResult.stderr}\n${mixedTargetsResult.stdout}`,
+  /single release artifact|one platform|android|ios|安装包/i,
+  'native evidence validator should explain why mixed targets need separate evidence files'
 )
 
 const staleEvidenceResult = runValidator({

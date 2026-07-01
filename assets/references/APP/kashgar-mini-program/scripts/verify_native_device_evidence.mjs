@@ -81,6 +81,20 @@ const assertMobileReleaseArtifact = (label, artifactPath) => {
   }
 }
 
+const assertArtifactMatchesReleaseTargets = ({ artifactPath, releaseTargets, label }) => {
+  if (releaseTargets.length !== 1) {
+    fail(`${label} supports one platform per single release artifact. Create separate native evidence files for android and ios.`)
+  }
+  const target = releaseTargets[0]
+  const ext = path.extname(artifactPath).toLowerCase()
+  if (target === 'android' && !['.apk', '.aab'].includes(ext)) {
+    fail(`${label} for android must use an APK or AAB release artifact`)
+  }
+  if (target === 'ios' && ext !== '.ipa') {
+    fail(`${label} for ios must use an IPA release artifact`)
+  }
+}
+
 const evidencePath = process.argv[2] || process.env.XUNJING_NATIVE_DEVICE_EVIDENCE_FILE || '../../../../qa/xicheng-native-device-evidence.json'
 const resolvedEvidencePath = path.resolve(process.cwd(), evidencePath)
 
@@ -191,6 +205,12 @@ const unsupportedReleaseTargets = releaseTargets.filter((target) => !supportedRe
 if (unsupportedReleaseTargets.length > 0) {
   fail(`Native device evidence releaseTargets must be mobile platforms: android or ios; unsupported platform(s): ${unsupportedReleaseTargets.join(', ')}`)
 }
+
+assertArtifactMatchesReleaseTargets({
+  artifactPath: resolvedArtifactPath,
+  releaseTargets,
+  label: 'Native device evidence releaseTargets'
+})
 
 const devices = Array.isArray(evidence.devices) ? evidence.devices : []
 for (const target of releaseTargets) {

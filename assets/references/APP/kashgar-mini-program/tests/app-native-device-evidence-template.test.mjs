@@ -63,6 +63,8 @@ const artifactPath = path.join(tempDir, 'xicheng-release.apk')
 const artifactBytes = Buffer.from('release candidate apk bytes for native template test\n', 'utf8')
 fs.writeFileSync(artifactPath, artifactBytes)
 const artifactSha256 = crypto.createHash('sha256').update(artifactBytes).digest('hex')
+const iosArtifactPath = path.join(tempDir, 'xicheng-release.ipa')
+fs.writeFileSync(iosArtifactPath, 'release candidate ipa bytes for native template test\n')
 const outputPath = path.join(tempDir, 'native-evidence.json')
 const nonMobileArtifactPath = path.join(tempDir, 'xicheng-release.txt')
 fs.writeFileSync(nonMobileArtifactPath, 'not a mobile install package\n')
@@ -232,4 +234,91 @@ assert.match(
   `${invalidPlatformResult.stderr}\n${invalidPlatformResult.stdout}`,
   /releaseTargets|platform|android|ios|手机/i,
   'native evidence template generator should explain supported mobile release targets'
+)
+
+const iosTargetWithApkResult = spawnSync(
+  process.execPath,
+  [
+    scriptPath,
+    '--artifact',
+    artifactPath,
+    '--output',
+    path.join(tempDir, 'ios-target-apk.json'),
+    '--platform',
+    'ios',
+    '--force'
+  ],
+  {
+    cwd: root,
+    env: {
+      ...process.env,
+      XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+      XUNJING_TENANT_ID: '1'
+    },
+    encoding: 'utf8'
+  }
+)
+assert.notEqual(iosTargetWithApkResult.status, 0, 'native evidence template generator should reject iOS targets with APK artifacts')
+assert.match(
+  `${iosTargetWithApkResult.stderr}\n${iosTargetWithApkResult.stdout}`,
+  /ios|IPA|artifact|安装包/i,
+  'native evidence template generator should explain iOS artifact matching'
+)
+
+const androidTargetWithIpaResult = spawnSync(
+  process.execPath,
+  [
+    scriptPath,
+    '--artifact',
+    iosArtifactPath,
+    '--output',
+    path.join(tempDir, 'android-target-ipa.json'),
+    '--platform',
+    'android',
+    '--force'
+  ],
+  {
+    cwd: root,
+    env: {
+      ...process.env,
+      XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+      XUNJING_TENANT_ID: '1'
+    },
+    encoding: 'utf8'
+  }
+)
+assert.notEqual(androidTargetWithIpaResult.status, 0, 'native evidence template generator should reject Android targets with IPA artifacts')
+assert.match(
+  `${androidTargetWithIpaResult.stderr}\n${androidTargetWithIpaResult.stdout}`,
+  /android|APK|AAB|artifact|安装包/i,
+  'native evidence template generator should explain Android artifact matching'
+)
+
+const mixedTargetsResult = spawnSync(
+  process.execPath,
+  [
+    scriptPath,
+    '--artifact',
+    artifactPath,
+    '--output',
+    path.join(tempDir, 'mixed-targets.json'),
+    '--platform',
+    'android,ios',
+    '--force'
+  ],
+  {
+    cwd: root,
+    env: {
+      ...process.env,
+      XUNJING_APP_API_BASE_URL: 'https://api.example.com',
+      XUNJING_TENANT_ID: '1'
+    },
+    encoding: 'utf8'
+  }
+)
+assert.notEqual(mixedTargetsResult.status, 0, 'native evidence template generator should reject mixed platform targets for a single artifact')
+assert.match(
+  `${mixedTargetsResult.stderr}\n${mixedTargetsResult.stdout}`,
+  /single release artifact|one platform|android|ios|安装包/i,
+  'native evidence template generator should explain why mixed targets need separate evidence files'
 )
