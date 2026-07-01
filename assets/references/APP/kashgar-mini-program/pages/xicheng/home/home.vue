@@ -369,6 +369,25 @@ export default {
 				service ? `下一步会优先结合${service}` : '举起手机后直接进入场景理解'
 			].join('，').slice(0, 88)
 		},
+		buildVisionAgentSceneContext(source = '', trigger = {}) {
+			const context = this.buildSceneVisionContext()
+			const sceneFusionSignals = this.buildSceneVisionSignals(context)
+			return {
+				...context,
+				sceneFusionSummary: this.buildSceneVisionSummary(context, sceneFusionSignals),
+				sceneFusionSignals,
+				source,
+				poiCode: trigger.poiCode || '',
+				poiName: trigger.poiName || '',
+				sourceLabel: trigger.sourceLabel || '',
+				confidence: trigger.confidence || '',
+				safetyStatus: trigger.safetyStatus || '',
+				visionCaption: trigger.visionCaption || trigger.poiName || context.visionCaption || '',
+				visionAgentMemorySessionPackage: context.visionAgentMemorySessionPackage,
+				visionAgentMemorySessionText: context.visionAgentMemorySessionText,
+				memorySessionSceneCount: context.memorySessionSceneCount
+			}
+		},
 		buildSceneVisionEntryUrl(context = this.buildSceneVisionContext(), entry = 'home-world-entry') {
 			const params = [
 				['context', 'vision-agent'],
@@ -603,7 +622,8 @@ export default {
 				packageCode: this.region.packageCode,
 				sceneCode: trigger.sceneCode || this.region.sceneCode,
 				sourceChannel: trigger.sourceChannel || this.region.sourceChannel,
-				companionName: this.region.companionName
+				companionName: this.region.companionName,
+				visionAgentContext: this.buildVisionAgentSceneContext(source, trigger)
 			}
 			const unsafeSafetyStatus = isXichengUnsafeSafetyStatus(normalizeXichengSafetyStatus(result.safetyStatus))
 			if (unsafeSafetyStatus) {
@@ -664,6 +684,9 @@ export default {
 				return
 			}
 			const prompt = this.recentRecognition.poiName ? `讲讲${this.recentRecognition.poiName}` : '讲讲这个西城文化点'
+			const visionAgentContext = this.recentRecognition.visionAgentContext && typeof this.recentRecognition.visionAgentContext === 'object'
+				? this.recentRecognition.visionAgentContext
+				: this.buildVisionAgentSceneContext(this.recentRecognition.source || 'recent', this.recentRecognition)
 			const query = [
 				`question=${encodeRouteValue(prompt)}`,
 				`regionCode=${encodeRouteValue(this.recentRecognition.regionCode || this.region.regionCode)}`,
@@ -674,7 +697,9 @@ export default {
 				`poiName=${encodeRouteValue(this.recentRecognition.poiName || '')}`,
 				`companionName=${encodeRouteValue(this.recentRecognition.companionName || this.region.companionName)}`,
 				`confidence=${encodeRouteValue(String(this.recentRecognition.confidence || ''))}`,
-				`safetyStatus=${encodeRouteValue(this.recentRecognition.safetyStatus || '')}`
+				`safetyStatus=${encodeRouteValue(this.recentRecognition.safetyStatus || '')}`,
+				`visionAgentContext=${encodeRouteValue(JSON.stringify(visionAgentContext))}`,
+				`sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || '')}`
 			].join('&')
 			uni.navigateTo({
 				url: `/pages/ai-guide/ai-guide?${query}`
