@@ -1167,10 +1167,15 @@ export default {
 				this.showMissingOfficialPoiToast(action.title || '继续')
 				return
 			}
-			const prompt = action.actionKey === 'video-brief'
-				? `用30秒视频脚本讲讲${this.result.poiName}`
-				: action.actionKey === 'photo-spot'
-					? `先给我${this.result.poiName}的拍照建议，结合现在的时间、天气、方位和现场细节`
+			const prompt = this.createVisionAgentActionPrompt(action)
+			this.rememberVisionAgentExecutionTask(action, prompt)
+			this.askXiaojing(prompt)
+		},
+		createVisionAgentActionPrompt(action = {}) {
+			return action.actionKey === 'photo-spot'
+				? `先给我${this.result.poiName}的拍照建议，结合现在的时间、天气、方位和现场细节`
+				: action.actionKey === 'video-brief'
+					? `用30秒视频脚本讲讲${this.result.poiName}`
 					: action.actionKey === 'deep-history'
 						? `深入讲讲${this.result.poiName}的历史和城市知识图谱`
 						: action.actionKey === 'kids-story'
@@ -1178,7 +1183,16 @@ export default {
 							: action.actionKey === 'english'
 								? `Explain ${this.result.poiName} in English`
 								: ''
-			this.askXiaojing(prompt)
+		},
+		rememberVisionAgentExecutionTask(action = {}, prompt = '') {
+			return this.rememberVisionAgentServiceTask({
+				...action,
+				taskType: 'agent',
+				actionPrompt: prompt,
+				agentDecisionActionKey: this.cameraAgentDecisionSnapshot.agentDecisionActionKey,
+				status: 'handoff',
+				statusText: '已进入小京执行'
+			})
 		},
 		openSceneServiceAction(action = {}) {
 			const serviceTask = this.rememberVisionAgentServiceTask(action)
@@ -1203,13 +1217,15 @@ export default {
 				actionKey: action.actionKey || '',
 				actionTitle: action.title || '',
 				actionCopy: action.copy || '',
+				actionPrompt: action.actionPrompt || '',
+				agentDecisionActionKey: action.agentDecisionActionKey || '',
 				poiCode: this.result.poiCode || '',
 				poiName: this.result.poiName || '',
 				sceneCode: this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode,
 				sourceChannel: this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
 				visionAgentContext: this.result.visionAgentContext || {},
-				status: 'collected',
-				statusText: '已收进任务包',
+				status: action.status || 'collected',
+				statusText: action.statusText || '已收进任务包',
 				createdAt: new Date().toISOString()
 			}
 			uni.setStorageSync(XICHENG_REGION_CONFIG.visionAgentServiceTasksStorageKey, [
@@ -1223,6 +1239,7 @@ export default {
 			if (taskType === 'route') return '路线'
 			if (taskType === 'travelogue') return '游记'
 			if (taskType === 'growth') return '成长'
+			if (taskType === 'agent') return 'Agent'
 			return '服务'
 		},
 		openPoiDetail() {

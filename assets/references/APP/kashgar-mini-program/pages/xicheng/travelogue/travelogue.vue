@@ -1345,8 +1345,9 @@ export default {
 			},
 			createVisionAgentServiceTaskMeta(task = {}) {
 				const poiName = task.poiName || '当前场景'
+				const actionPrompt = task.actionPrompt ? ` · ${String(task.actionPrompt).slice(0, 24)}` : ''
 				const statusText = task.statusText || '已收进任务包'
-				return `${poiName} · ${statusText}`
+				return `${poiName}${actionPrompt} · ${statusText}`
 			},
 			async loadJourney(options = {}) {
 				this.travelogueMode = normalizeTravelogueMode(options.mode)
