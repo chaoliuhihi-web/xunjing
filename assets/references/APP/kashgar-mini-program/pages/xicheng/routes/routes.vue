@@ -41,6 +41,14 @@
 			/>
 		</view>
 
+		<xicheng-map-import-guide
+			:map-import-sources="mapImportSources"
+			:matched-import-pois="matchedImportPois"
+			:selected-map-poi-summary="selectedMapPoiSummary"
+			@import-guide="openInspirationImport"
+			@generate-route="generateSelectedMapRoute"
+		/>
+
 		<view id="xicheng-route-recommendation-bottom" class="route-recommendation-panel">
 			<view class="route-recommendation-head">
 				<view>
@@ -107,6 +115,7 @@ import {
 	XICHENG_ROUTE_RECOMMENDATION_FILTERS
 } from '@/config/regions/xicheng.js'
 import XichengCulturalMap from '@/components/xicheng/XichengCulturalMap.vue'
+import XichengMapImportGuide from '@/components/xicheng/XichengMapImportGuide.vue'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { mergeXichengOfficialRouteMaterials } from '@/request/xunjing/routeMaterials.js'
 import { createXichengRouteOutputValue, decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
@@ -152,7 +161,8 @@ const normalizeRouteContext = (options = {}) => ({
 
 export default {
 	components: {
-		XichengCulturalMap
+		XichengCulturalMap,
+		XichengMapImportGuide
 	},
 	data() {
 		return {
@@ -201,6 +211,27 @@ export default {
 		mapPreviewStops() {
 			const stops = Array.isArray(this.mapPreviewRoute.stops) ? this.mapPreviewRoute.stops : []
 			return stops.slice(0, 5)
+		},
+		mapImportSources() {
+			return [
+				{ title: '小红书', desc: '笔记地点' },
+				{ title: '公众号', desc: '长文攻略' },
+				{ title: '马蜂窝', desc: '行程清单' },
+				{ title: '图片/文字', desc: '截图粘贴' }
+			]
+		},
+		matchedImportPois() {
+			const selectedPoi = this.selectedMapPoi || this.mapPreviewStops[0] || this.mapPois[0] || {}
+			const selectedCode = selectedPoi.poiCode || ''
+			const routeStops = this.mapPreviewStops.filter(poi => poi && poi.poiCode !== selectedCode)
+			return [selectedPoi, ...routeStops].filter(poi => poi && (poi.poiCode || poi.poiName)).slice(0, 4)
+		},
+		selectedMapPoiSummary() {
+			const selectedMapPoi = this.selectedMapPoi || this.matchedImportPois[0] || {}
+			return {
+				poiName: selectedMapPoi.poiName || '白塔寺',
+				summary: selectedMapPoi.summary || '点击地图 POI 后，可直接用官方地点资料生成一条可走 Citywalk 路线。'
+			}
 		}
 	},
 	onLoad(options = {}) {
@@ -346,6 +377,40 @@ export default {
 			uni.showToast({
 				icon: 'none',
 				title: '已加入路线'
+			})
+		},
+		generateSelectedMapRoute() {
+			const selectedPoi = this.selectedMapPoi || this.matchedImportPois[0] || this.mapPois[0] || {}
+			const selectedPoiCode = selectedPoi.poiCode || ''
+			const generatedStops = [
+				selectedPoi,
+				...this.mapPreviewStops.filter(stop => stop && stop.poiCode !== selectedPoiCode)
+			].filter(stop => stop && (stop.poiCode || stop.poiName)).slice(0, 4)
+			const generatedRoute = {
+				...this.mapPreviewRoute,
+				routeCode: this.mapPreviewRoute.routeCode || 'baitasi-imperial-shichahai',
+				title: `${selectedPoi.poiName || '西城文化点'}周边 Citywalk`,
+				theme: '导入攻略路线',
+				durationText: this.mapPreviewRoute.durationText || '约 2.5 小时',
+				distanceText: this.mapPreviewRoute.distanceText || '步行约 3.2 公里',
+				stops: generatedStops,
+				routeSource: 'map-import',
+				sourceLabel: '一键导入攻略生成',
+				importSourceLabels: this.mapImportSources.map(source => source.title),
+				matchedPoiCount: generatedStops.length
+			}
+			this.persistRoutePassport(generatedRoute)
+			const savedRoute = uni.getStorageSync(this.region.inspirationStorageKey) || {}
+			uni.setStorageSync(this.region.inspirationStorageKey, {
+				...savedRoute,
+				routeSource: 'map-import',
+				sourceLabel: '一键导入攻略生成',
+				importSourceLabels: generatedRoute.importSourceLabels,
+				matchedPoiCount: generatedRoute.matchedPoiCount,
+				stops: generatedRoute.stops
+			})
+			uni.navigateTo({
+				url: `/pages/xicheng/route-detail/route-detail?routeCode=${encodeRouteValue(generatedRoute.routeCode || '')}&regionCode=${encodeRouteValue(this.routeContext.regionCode)}&packageCode=${encodeRouteValue(this.routeContext.packageCode)}&sceneCode=${encodeRouteValue(this.routeContext.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeContext.sourceChannel)}&companionName=${encodeRouteValue(this.routeContext.companionName)}`
 			})
 		},
 		startRoutePassport(route = {}) {
