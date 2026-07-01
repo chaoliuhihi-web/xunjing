@@ -2,11 +2,14 @@ const localOrLanHost = (hostname) => (
   hostname === 'localhost' ||
   hostname === '127.0.0.1' ||
   hostname === '0.0.0.0' ||
+  hostname === '::' ||
   hostname === '::1' ||
   hostname.startsWith('10.') ||
   hostname.startsWith('172.') ||
   hostname.startsWith('192.168.') ||
-  hostname.startsWith('169.254.')
+  hostname.startsWith('169.254.') ||
+  /^f[cd][0-9a-f]{0,2}:/i.test(hostname) ||
+  /^fe[89ab][0-9a-f]:/i.test(hostname)
 )
 
 const reservedOrPlaceholderHost = (hostname) => (
@@ -41,4 +44,3 @@ export const normalizeReleaseHttpsUrl = (label, value) => {
 
   return parsed.toString().replace(/\/+$/, '')
 }
-

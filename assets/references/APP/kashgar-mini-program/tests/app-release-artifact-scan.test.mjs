@@ -35,6 +35,7 @@ for (const required of [
   'XUNJING_TENANT_ID',
   'APK',
   'localhost',
+  'IPv6',
   'XICHENG_DEVELOPMENT_TRIGGER_FIXTURE',
   'sk-',
   'pat_',
@@ -215,6 +216,16 @@ for (const mobileArchiveName of ['xicheng-release.aab', 'xicheng-release.ipa']) 
 for (const [label, content, expectedMessage] of [
   ['localhost gateway', 'const apiBase="http://localhost:48082/app-api/xunjing";', /localhost|local/i],
   ['lan gateway', 'const apiBase="https://192.168.1.8/app-api/xunjing";', /192\.168|local|LAN/i],
+  [
+    'private IPv6 gateway',
+    'const apiBase="https://api.xingheai.net";const tenantId="1";const fallback="https://[fd00::1]/app-api/xunjing";',
+    /IPv6|private|local|LAN|fd00/i
+  ],
+  [
+    'link-local IPv6 gateway',
+    'const apiBase="https://api.xingheai.net";const tenantId="1";const fallback="https://[fe80::1]/app-api/xunjing";',
+    /IPv6|link-local|local|LAN|fe80/i
+  ],
   ['development fixture', 'const bad="XICHENG_DEVELOPMENT_TRIGGER_FIXTURE";', /XICHENG_DEVELOPMENT_TRIGGER_FIXTURE/],
   ['h5 proxy target', 'const proxy="VITE_XUNJING_H5_PROXY_TARGET";', /VITE_XUNJING_H5_PROXY_TARGET/]
 ]) {
