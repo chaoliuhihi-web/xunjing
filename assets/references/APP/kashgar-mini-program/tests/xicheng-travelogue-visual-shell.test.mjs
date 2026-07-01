@@ -77,6 +77,18 @@ assert.match(
 
 assert.match(
   travelogue,
+  /class="travelogue-editor-back"[\s\S]*<xicheng-icon name="back"[\s\S]*class="travelogue-editor-more"[\s\S]*<xicheng-icon name="more"/,
+  'Travelogue edit topbar should use the shared Xicheng icon component for back and more actions'
+)
+
+assert.doesNotMatch(
+  travelogue,
+  /class="travelogue-editor-back"[\s\S]{0,160}<uni-icons|class="travelogue-editor-more"[\s\S]{0,160}<uni-icons/,
+  'Travelogue edit topbar should not use raw uni-icons for standard chrome actions'
+)
+
+assert.match(
+  travelogue,
   /<view v-if="isTravelogueEditMode" class="travelogue-secondary-directory[\s\S]*v-for="entry in travelogueSecondaryEntries"[\s\S]*@click="openTravelogueSecondaryEntry\(entry\)"/,
   'Travelogue edit mode should collapse secondary workflows into a compact directory instead of rendering one long page'
 )

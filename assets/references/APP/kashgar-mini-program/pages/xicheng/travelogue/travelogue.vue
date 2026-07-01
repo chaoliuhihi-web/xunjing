@@ -2,11 +2,11 @@
 	<view class="xicheng-travelogue xicheng-designed-page xicheng-bottom-safe xicheng-travelogue-shell">
 		<view v-if="isTravelogueEditMode" class="travelogue-editor-topbar">
 			<view class="travelogue-editor-back" @click="goBack">
-				<uni-icons type="left" size="24" color="#102F29" />
+				<xicheng-icon name="back" variant="plain" :size="22" />
 			</view>
 			<text class="travelogue-editor-title">编辑游记</text>
 			<view class="travelogue-editor-more" @click="openTravelogueActions">
-				<uni-icons type="more-filled" size="24" color="#102F29" />
+				<xicheng-icon name="more" variant="plain" :size="22" />
 			</view>
 		</view>
 

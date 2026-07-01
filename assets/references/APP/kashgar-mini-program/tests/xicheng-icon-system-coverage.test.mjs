@@ -25,7 +25,8 @@ for (const required of [
   "passport: 'medal'",
   "record: 'flag'",
   "resume: 'sound-filled'",
-  "close: 'closeempty'"
+  "close: 'closeempty'",
+  "more: 'more-filled'"
 ]) {
   assert.ok(iconComponent.includes(required), `Xicheng icon system should include reusable ${required}`)
 }
