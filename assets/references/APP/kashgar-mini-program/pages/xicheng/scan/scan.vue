@@ -37,6 +37,30 @@
 			</view>
 		</view>
 
+		<view class="scan-agent-preview-panel xicheng-paper-card">
+			<view class="section-head xicheng-section-label">
+				<view>
+					<text class="section-kicker">Agent 预判</text>
+					<text class="section-title">AI识境预判动作</text>
+				</view>
+				<text class="section-badge">Decision</text>
+			</view>
+			<text class="scan-agent-preview-summary">{{ agentDecisionPreviewSummary }}</text>
+			<view class="scan-agent-action-grid">
+				<view
+					class="scan-agent-action"
+					v-for="action in sceneAgentActionPreviews"
+					:key="action.key"
+					:class="{ 'scan-agent-action-active': selectedSceneAgentActionKey === action.key }"
+					@click="selectSceneAgentAction(action)"
+				>
+					<text class="scan-agent-action-label">{{ action.signal }}</text>
+					<text class="scan-agent-action-title">{{ action.title }}</text>
+					<text class="scan-agent-action-copy">{{ action.copy }}</text>
+				</view>
+			</view>
+		</view>
+
 		<view class="scan-panel xicheng-paper-card">
 			<view class="scan-frame">
 				<view class="scan-frame-corner scan-frame-corner-tl"></view>
@@ -111,6 +135,8 @@ export default {
 			currentLocation: null,
 			sceneFusionSignals: [],
 			sceneFusionSummary: '镜头待命，正在接入现场信号',
+			selectedSceneAgentActionKey: '',
+			sceneAgentActionUserSelected: false,
 			routeContext: {
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
 				packageCode: XICHENG_REGION_CONFIG.packageCode,
@@ -126,6 +152,18 @@ export default {
 				{ title: '路牌/OCR', copy: '从图片文字或补充文本提取地点线索' },
 				{ title: '非遗/活动', copy: '把演出、体验和路线图转成服务动作' }
 			]
+		}
+	},
+	computed: {
+		sceneAgentActionPreviews() {
+			return this.createSceneAgentActionPreviews()
+		},
+		agentDecisionPreviewSummary() {
+			const snapshot = this.buildAgentDecisionSnapshot()
+			if (snapshot.agentDecisionActionTitle) {
+				return `Agent建议先${snapshot.agentDecisionActionTitle}，${snapshot.agentDecisionActionCopy}`.slice(0, 88)
+			}
+			return '小京会根据镜头、GPS、时间天气、记忆和城市知识图谱自动判断下一步。'
 		}
 	},
 	onLoad(options = {}) {
@@ -232,8 +270,13 @@ export default {
 			const context = this.buildSceneFusionContext()
 			this.sceneFusionSignals = this.buildSceneFusionSignals(context)
 			this.sceneFusionSummary = this.buildSceneFusionSummary(context, this.sceneFusionSignals)
+			const previews = this.createSceneAgentActionPreviews()
+			if (!this.sceneAgentActionUserSelected && previews[0]) {
+				this.selectedSceneAgentActionKey = previews[0].key
+			}
 		},
 		buildVisionAgentSceneContext(source = '', trigger = {}) {
+			const agentDecisionSnapshot = this.buildAgentDecisionSnapshot()
 			return {
 				...this.visionAgentContext,
 				sceneFusionSummary: this.sceneFusionSummary,
@@ -243,7 +286,86 @@ export default {
 				poiName: trigger.poiName || '',
 				sourceLabel: trigger.sourceLabel || '',
 				confidence: trigger.confidence || '',
-				safetyStatus: trigger.safetyStatus || ''
+				safetyStatus: trigger.safetyStatus || '',
+				agentDecisionActionKey: agentDecisionSnapshot.selectedSceneAgentActionKey,
+				agentDecisionActionTitle: agentDecisionSnapshot.agentDecisionActionTitle,
+				agentDecisionPreviewSummary: agentDecisionSnapshot.agentDecisionPreviewSummary,
+				sceneAgentActionPreviews: agentDecisionSnapshot.sceneAgentActionPreviews
+			}
+		},
+		createSceneAgentActionPreviews() {
+			const context = this.buildSceneFusionContext()
+			const localTimeText = String(context.localTimeText || '')
+			const weatherText = String(context.weatherText || '')
+			const knowledgeGraphText = String(context.knowledgeGraphText || '')
+			const serviceText = String(context.serviceText || context.activityText || '')
+			const memoryTrail = Array.isArray(context.memoryTrail) ? context.memoryTrail : []
+			const environmentText = `${localTimeText} ${weatherText}`
+			const hasGoldenHourCue = /17|18|19|日落|黄昏|傍晚|晚霞|晴/.test(environmentText)
+			const hasWeatherCue = Boolean(weatherText)
+			const hasKnowledgeCue = Boolean(knowledgeGraphText)
+			const hasServiceCue = /美食|商家|餐|活动|演出|票|badge|coupon|service/i.test(serviceText)
+			const hasMemoryCue = memoryTrail.length > 0
+			const actions = [
+				{
+					key: 'photo-spot',
+					signal: hasGoldenHourCue ? '光线优先' : '镜头优先',
+					title: '拍最佳角度',
+					copy: hasGoldenHourCue ? '先判断夕阳、门楼和人流，再讲历史。' : '先用镜头确认建筑、文物或展牌细节。',
+					score: hasGoldenHourCue ? 48 : 24
+				},
+				{
+					key: 'deep-history',
+					signal: hasKnowledgeCue ? '知识图谱' : '讲解',
+					title: '深入讲解',
+					copy: hasKnowledgeCue ? `沿着${knowledgeGraphText}继续讲。` : '匹配官方 POI 后展开故事和建筑看点。',
+					score: hasKnowledgeCue ? 42 : 26
+				},
+				{
+					key: 'next-service',
+					signal: hasServiceCue ? '城市服务' : '路线服务',
+					title: '接后续服务',
+					copy: hasServiceCue ? `识别后优先接入${serviceText}。` : '识别后推荐下一站、打卡或游记动作。',
+					score: hasServiceCue ? 40 : 22
+				},
+				{
+					key: 'continue-memory',
+					signal: hasMemoryCue ? 'Memory' : '连续理解',
+					title: '延续上次场景',
+					copy: hasMemoryCue ? '会记住上一处 POI，不重新开始讲解。' : '形成连续识境记忆，下一次可接着问。',
+					score: hasMemoryCue ? 38 : 18
+				},
+				{
+					key: 'weather-route',
+					signal: hasWeatherCue ? '时间天气' : '环境',
+					title: '调整路线节奏',
+					copy: hasWeatherCue ? '结合天气判断室内、夜景或避暑路线。' : '拍摄后按当前环境给出下一步。',
+					score: hasWeatherCue ? 34 : 16
+				}
+			]
+			return actions
+				.sort((left, right) => right.score - left.score)
+				.slice(0, 3)
+				.map(({ score, ...action }) => action)
+		},
+		selectSceneAgentAction(action = {}) {
+			if (!action.key) return
+			this.selectedSceneAgentActionKey = action.key
+			this.sceneAgentActionUserSelected = true
+		},
+		buildAgentDecisionSnapshot() {
+			const sceneAgentActionPreviews = this.sceneAgentActionPreviews
+			const selectedAction = sceneAgentActionPreviews.find(action => action.key === this.selectedSceneAgentActionKey)
+				|| sceneAgentActionPreviews[0]
+				|| {}
+			return {
+				selectedSceneAgentActionKey: selectedAction.key || '',
+				agentDecisionPreviewSummary: selectedAction.title
+					? `Agent建议先${selectedAction.title}，${selectedAction.copy}`.slice(0, 88)
+					: '',
+				sceneAgentActionPreviews,
+				agentDecisionActionTitle: selectedAction.title || '',
+				agentDecisionActionCopy: selectedAction.copy || ''
 			}
 		},
 		startAutoRecognition() {
@@ -487,6 +609,7 @@ export default {
 
 .scan-panel,
 .scan-fusion-panel,
+.scan-agent-preview-panel,
 .scan-capabilities {
 	margin-top: 24rpx;
 	padding: 28rpx;
@@ -503,6 +626,84 @@ export default {
 	font-size: 25rpx;
 	line-height: 1.55;
 	color: rgba(16, 47, 41, 0.74);
+}
+
+.scan-agent-preview-panel {
+	background:
+		linear-gradient(135deg, rgba(23, 63, 53, 0.96), rgba(31, 110, 90, 0.92));
+	color: #FFFFFF;
+}
+
+.scan-agent-preview-panel .section-kicker,
+.scan-agent-preview-panel .section-title,
+.scan-agent-preview-panel .section-badge {
+	color: #FFFFFF;
+}
+
+.scan-agent-preview-panel .section-badge {
+	background: rgba(255, 255, 255, 0.14);
+}
+
+.scan-agent-preview-summary {
+	display: block;
+	margin-top: 18rpx;
+	font-size: 24rpx;
+	line-height: 1.55;
+	color: rgba(255, 255, 255, 0.78);
+}
+
+.scan-agent-action-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 12rpx;
+	margin-top: 22rpx;
+}
+
+.scan-agent-action {
+	min-width: 0;
+	min-height: 166rpx;
+	padding: 18rpx;
+	border-radius: 22rpx;
+	border: 1rpx solid rgba(255, 255, 255, 0.14);
+	background: rgba(255, 255, 255, 0.09);
+	box-sizing: border-box;
+}
+
+.scan-agent-action-active {
+	border-color: rgba(241, 199, 106, 0.82);
+	background: rgba(241, 199, 106, 0.16);
+}
+
+.scan-agent-action-label,
+.scan-agent-action-title,
+.scan-agent-action-copy {
+	display: block;
+	line-height: 1.4;
+}
+
+.scan-agent-action-label {
+	font-size: 20rpx;
+	font-weight: 800;
+	color: rgba(255, 255, 255, 0.66);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.scan-agent-action-title {
+	margin-top: 8rpx;
+	font-size: 25rpx;
+	font-weight: 800;
+	color: #FFFFFF;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.scan-agent-action-copy {
+	margin-top: 8rpx;
+	font-size: 21rpx;
+	color: rgba(255, 255, 255, 0.72);
 }
 
 .scan-fusion-grid {
