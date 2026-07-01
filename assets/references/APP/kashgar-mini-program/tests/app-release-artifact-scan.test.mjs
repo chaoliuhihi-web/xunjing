@@ -269,6 +269,22 @@ assert.match(
   'release artifact scanner should explain credential rejection from dot-env files'
 )
 
+const artifactDirWithUnquotedProviderSecret = makeArtifactDir({
+  'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";',
+  '.env.production': `QWEN_API_KEY=qwen_${'g'.repeat(32)}`
+})
+const unquotedProviderSecretResult = runScanner(artifactDirWithUnquotedProviderSecret)
+assert.notEqual(
+  unquotedProviderSecretResult.status,
+  0,
+  'release artifact scanner should reject unquoted AI provider secrets from dot-env files'
+)
+assert.match(
+  `${unquotedProviderSecretResult.stderr}\n${unquotedProviderSecretResult.stdout}`,
+  /\.env\.production|secret|token|credential|密钥|令牌/i,
+  'release artifact scanner should explain credential rejection from unquoted dot-env provider secrets'
+)
+
 const apkWithLocalGateway = makeZipArtifact({
   'assets/index.js': 'const apiBase="http://localhost:48082/app-api/xunjing";'
 })

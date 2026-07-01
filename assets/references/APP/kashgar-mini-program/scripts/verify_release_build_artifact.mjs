@@ -76,7 +76,7 @@ const forbiddenPatterns = [
   { name: 'AWS access key id credential', pattern: /\bAKIA[0-9A-Z]{16}\b/ },
   {
     name: 'AI provider API token marker',
-    pattern: /\b(?:COZE|QWEN|DASHSCOPE|OPENAI)[A-Z0-9_]*(?:KEY|TOKEN)\b\s*[:=]\s*["'][^"']{12,}["']/i
+    pattern: /\b(?:COZE|QWEN|DASHSCOPE|OPENAI)[A-Z0-9_]*(?:KEY|TOKEN)\b\s*[:=]\s*(?:"[^"\r\n]{12,}"|'[^'\r\n]{12,}'|[A-Za-z0-9_./+=:-]{12,})/i
   }
 ]
 
