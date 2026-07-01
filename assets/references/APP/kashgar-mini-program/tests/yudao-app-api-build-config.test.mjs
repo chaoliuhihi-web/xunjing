@@ -6,6 +6,7 @@ const root = process.cwd()
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
 const config = fs.readFileSync(path.join(root, 'request', 'config.js'), 'utf8')
 const apiContract = fs.readFileSync(path.join(root, 'docs', 'online-api-first-contract.md'), 'utf8')
+const releaseEnvGuard = fs.readFileSync(path.join(root, 'scripts', 'verify_release_app_env.mjs'), 'utf8')
 const scripts = packageJson.scripts || {}
 
 assert.match(
@@ -50,27 +51,40 @@ assert.ok(
 
 assert.match(
   scripts['build:app:release'] || '',
-  /XUNJING_APP_API_BASE_URL:\?Set XUNJING_APP_API_BASE_URL/,
-  'APP release build should fail fast unless a non-local HTTPS Yudao APP gateway is provided'
+  /node scripts\/verify_release_app_env\.mjs/,
+  'APP release build should run the dedicated release environment guard before UniApp build'
 )
 
 assert.ok(
-  (scripts['build:app:release'] || '').includes('case "$XUNJING_APP_API_BASE_URL" in http://localhost*|http://127.0.0.1*|http://192.168.*|http://10.*|http://172.*)'),
-  'APP release build should reject local and LAN API bases so field packages do not ship against development services'
+  releaseEnvGuard.includes('Set XUNJING_APP_API_BASE_URL to a non-local HTTPS Yudao APP gateway'),
+  'APP release environment guard should fail fast unless a non-local HTTPS Yudao APP gateway is provided'
+)
+
+assert.match(
+  releaseEnvGuard,
+  /parsed\.protocol !== 'https:'/,
+  'APP release environment guard should require HTTPS API bases'
 )
 
 for (const forbiddenReleaseBase of [
-  'https://localhost*',
-  'https://127.0.0.1*',
-  'https://192.168.*',
-  'https://10.*',
-  'https://172.*',
+  "hostname === 'localhost'",
+  "hostname === '127.0.0.1'",
+  "hostname === '0.0.0.0'",
+  "hostname === '::1'",
+  "hostname.startsWith('192.168.')",
+  "hostname.startsWith('10.')",
+  "hostname.startsWith('172.')",
 ]) {
   assert.ok(
-    (scripts['build:app:release'] || '').includes(forbiddenReleaseBase),
-    `APP release build should reject ${forbiddenReleaseBase} as a local or LAN HTTPS gateway`
+    releaseEnvGuard.includes(forbiddenReleaseBase),
+    `APP release environment guard should reject ${forbiddenReleaseBase}`
   )
 }
+
+assert.ok(
+  releaseEnvGuard.includes('XUNJING_APP_API_BASE_URL must be a non-local HTTPS URL'),
+  'APP release build should reject local and LAN API bases so field packages do not ship against development services'
+)
 
 assert.match(
   scripts['build:app:release'] || '',
@@ -80,7 +94,7 @@ assert.match(
 
 assert.match(
   scripts['build:app:release'] || '',
-  /VITE_XUNJING_TENANT_ID="\$\{XUNJING_TENANT_ID:\?Set XUNJING_TENANT_ID/,
+  /VITE_XUNJING_TENANT_ID="\$XUNJING_TENANT_ID"/,
   'APP release build should require the release tenant id instead of silently using tenant 1'
 )
 
