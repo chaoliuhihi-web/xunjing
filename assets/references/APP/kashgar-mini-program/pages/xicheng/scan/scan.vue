@@ -91,7 +91,7 @@
 				<view class="scan-frame-corner scan-frame-corner-br"></view>
 				<view class="scan-frame-core">
 					<text class="scan-frame-title">场景理解</text>
-					<text class="scan-frame-copy">建筑/文物 / 菜单/美食 / 路牌/OCR / 非遗/活动</text>
+					<text class="scan-frame-copy">建筑/文物 / 菜单/食物 / 路牌/OCR / 非遗/活动 / 植物/动物 / 人物</text>
 				</view>
 			</view>
 
@@ -124,6 +124,27 @@
 				<view v-for="item in capabilities" :key="item.title" class="capability-item">
 					<text class="capability-title">{{ item.title }}</text>
 					<text class="capability-copy">{{ item.copy }}</text>
+				</view>
+			</view>
+		</view>
+
+		<view class="scan-scene-domain-panel xicheng-paper-card">
+			<view class="section-head xicheng-section-label">
+				<view>
+					<text class="section-kicker">可问场景</text>
+					<text class="section-title">看见什么，就能问什么</text>
+				</view>
+				<text class="section-badge">10类理解</text>
+			</view>
+			<view class="scene-domain-grid">
+				<view
+					v-for="domain in sceneDomainCapabilities"
+					:key="domain.domainKey"
+					class="scene-domain-item"
+				>
+					<text class="scene-domain-label">{{ domain.label }}</text>
+					<text class="scene-domain-title">{{ domain.title }}</text>
+					<text class="scene-domain-copy">{{ domain.copy }}</text>
 				</view>
 			</view>
 		</view>
@@ -175,10 +196,28 @@ export default {
 				{ title: '菜单/美食', copy: '理解菜品、口味、人数和本地特色' },
 				{ title: '路牌/OCR', copy: '从图片文字或补充文本提取地点线索' },
 				{ title: '非遗/活动', copy: '把演出、体验和路线图转成服务动作' }
+			],
+			sceneDomainCapabilities: [
+				{ domainKey: 'architecture', label: '建筑', title: '建筑/空间', copy: '年代、结构、修复和拍照角度。' },
+				{ domainKey: 'artifact', label: '文物', title: '文物/展陈', copy: '用途、工艺、年代和同时代事件。' },
+				{ domainKey: 'menu', label: '菜单', title: '菜单理解', copy: '辣度、清真、推荐菜和人数建议。' },
+				{ domainKey: 'food', label: '食物', title: '食物讲解', copy: '来源、吃法、搭配和附近推荐。' },
+				{ domainKey: 'sign-ocr', label: '路牌/OCR', title: '文字与导航', copy: '翻译、发音、意义和怎么走。' },
+				{ domainKey: 'heritage', label: '非遗', title: '非遗体验', copy: '器物、技艺、演奏和附近体验。' },
+				{ domainKey: 'plant', label: '植物', title: '植物观察', copy: '树龄、分布、季节和生态知识。' },
+				{ domainKey: 'animal', label: '动物', title: '动物保护', copy: '习性、栖息地、保护和安全距离。' },
+				{ domainKey: 'person', label: '人物', title: '人物故事', copy: '雕像、人物贡献和时代关系。' },
+				{ domainKey: 'event', label: '活动', title: '活动/演出', copy: '节目、时间、票务和下一步服务。' }
 			]
 		}
 	},
 	computed: {
+		sceneDomainImageLabels() {
+			const domainLabels = this.sceneDomainCapabilities
+				.flatMap(domain => [domain.label, domain.title])
+				.filter(Boolean)
+			return [...domainLabels, '照片', 'OCR文字', '地点线索', '路线图']
+		},
 		sceneAgentActionPreviews() {
 			return this.createSceneAgentActionPreviews()
 		},
@@ -556,7 +595,7 @@ export default {
 							filePath,
 							text,
 							ocrText: text,
-							imageLabels: ['照片', '建筑/文物', '菜单/美食', '路牌/OCR', '非遗/活动', 'OCR文字', '地点线索', '路线图']
+							imageLabels: this.sceneDomainImageLabels
 						})
 						this.openScanResult(trigger, 'photo')
 					} catch (error) {
@@ -748,6 +787,7 @@ export default {
 .scan-fusion-panel,
 .scan-agent-preview-panel,
 .scan-world-interface-hud,
+.scan-scene-domain-panel,
 .scan-capabilities {
 	margin-top: 24rpx;
 	padding: 28rpx;
@@ -1110,6 +1150,64 @@ export default {
 	font-size: 22rpx;
 	line-height: 1.45;
 	color: rgba(16, 47, 41, 0.62);
+}
+
+.scan-scene-domain-panel {
+	background:
+		linear-gradient(135deg, rgba(255, 253, 248, 0.96), rgba(238, 247, 241, 0.92));
+}
+
+.scene-domain-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 14rpx;
+	margin-top: 24rpx;
+}
+
+.scene-domain-item {
+	min-width: 0;
+	min-height: 136rpx;
+	padding: 18rpx;
+	border-radius: 20rpx;
+	background: rgba(255, 252, 244, 0.78);
+	border: 1rpx solid rgba(31, 110, 90, 0.10);
+	box-sizing: border-box;
+}
+
+.scene-domain-label,
+.scene-domain-title,
+.scene-domain-copy {
+	display: block;
+	line-height: 1.35;
+}
+
+.scene-domain-label {
+	font-size: 20rpx;
+	font-weight: 800;
+	color: #B8812B;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.scene-domain-title {
+	margin-top: 8rpx;
+	font-size: 24rpx;
+	font-weight: 800;
+	color: #102F29;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.scene-domain-copy {
+	margin-top: 8rpx;
+	font-size: 21rpx;
+	color: rgba(16, 47, 41, 0.62);
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
 }
 
 .error-line {
