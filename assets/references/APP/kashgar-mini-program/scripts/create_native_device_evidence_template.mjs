@@ -11,6 +11,7 @@ const requiredScenarioIds = [
   'ocr-text-recognition',
   'gps-recognition-permission',
   'text-recognition-baitasi',
+  'scan-entry-map-detail',
   'scan-result-sources',
   'xiaojing-sourced-answer',
   'xiaojing-blocked-answer',
@@ -141,13 +142,19 @@ const evidence = {
     appVersion: 'TODO installed app version',
     installer: 'TODO installer or distribution channel'
   })),
-  scenarios: requiredScenarioIds.map((id) => ({
-    id,
-    platform: firstPlatform,
-    status: 'TODO',
-    evidenceRef: 'TODO screenshot-or-recording-path',
-    notes: 'TODO replace with physical-device verification notes before setting status to PASS'
-  })),
+  scenarios: requiredScenarioIds.map((id) => {
+    const notes = id === 'scan-entry-map-detail'
+      ? 'TODO scan QR-XICHENG-MAP-001 on a physical device, confirm landing on /pages/map/detail?packageCode=XICHENG-MAP-001, and attach screenshot or recording before setting PASS'
+      : 'TODO replace with physical-device verification notes before setting status to PASS'
+
+    return {
+      id,
+      platform: firstPlatform,
+      status: 'TODO',
+      evidenceRef: 'TODO screenshot-or-recording-path',
+      notes
+    }
+  }),
   templateNotice: 'This template is not launch evidence until every required scenario is verified on a physical device and marked PASS.'
 }
 

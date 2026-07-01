@@ -10,6 +10,7 @@ const requiredScenarioIds = [
   'ocr-text-recognition',
   'gps-recognition-permission',
   'text-recognition-baitasi',
+  'scan-entry-map-detail',
   'scan-result-sources',
   'xiaojing-sourced-answer',
   'xiaojing-blocked-answer',
@@ -188,6 +189,12 @@ for (const id of requiredScenarioIds) {
   if (!String(scenario.evidenceRef || '').trim()) {
     fail(`Native device evidence scenario ${id} must include evidenceRef`)
   }
+}
+
+const scanEntryScenario = scenarioById.get('scan-entry-map-detail')
+const scanEntryNotes = String(scanEntryScenario?.notes || '')
+if (!scanEntryNotes.includes('/pages/map/detail') || !scanEntryNotes.includes('XICHENG-MAP-001')) {
+  fail('Native device evidence scenario scan-entry-map-detail notes must include /pages/map/detail and XICHENG-MAP-001')
 }
 
 console.log(JSON.stringify({

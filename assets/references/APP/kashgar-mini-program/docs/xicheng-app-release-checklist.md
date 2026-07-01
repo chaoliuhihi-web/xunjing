@@ -56,7 +56,7 @@ XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-eviden
 npm run verify:native:evidence
 ```
 
-真机证据至少覆盖 `camera-photo-recognition`、`ocr-text-recognition`、`gps-recognition-permission`、`xiaojing-sourced-answer`、`xiaojing-blocked-answer`、`recording-start-stop` 和 `travelogue-draft-generated`。
+真机证据至少覆盖 `camera-photo-recognition`、`ocr-text-recognition`、`gps-recognition-permission`、`scan-entry-map-detail`、`xiaojing-sourced-answer`、`xiaojing-blocked-answer`、`recording-start-stop` 和 `travelogue-draft-generated`。`scan-entry-map-detail` 必须在真实手机扫码后落到 `/pages/map/detail`，并在备注中记录 `XICHENG-MAP-001`。
 
 真机证据的 `build.artifact` 必须指向真实 release 包，并记录 `artifactSha256` 和 `artifactSizeBytes`。`npm run verify:native:evidence` 会读取该 release 包文件，校验 SHA256 和大小，避免证据里只写路径但没有对应安装包。
 

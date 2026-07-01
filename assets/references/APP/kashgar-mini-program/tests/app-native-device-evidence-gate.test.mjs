@@ -18,6 +18,7 @@ const requiredScenarioIds = [
   'ocr-text-recognition',
   'gps-recognition-permission',
   'text-recognition-baitasi',
+  'scan-entry-map-detail',
   'scan-result-sources',
   'xiaojing-sourced-answer',
   'xiaojing-blocked-answer',
@@ -53,6 +54,9 @@ for (const required of [
   '真机',
   'camera-photo-recognition',
   'gps-recognition-permission',
+  'scan-entry-map-detail',
+  '/pages/map/detail',
+  'XICHENG-MAP-001',
   'xiaojing-blocked-answer',
   'travelogue-draft-generated',
   'release 包',
@@ -94,7 +98,9 @@ const baseEvidence = {
     platform: 'android',
     status: 'PASS',
     evidenceRef: `qa/native/${id}.jpg`,
-    notes: `${id} verified on physical device`
+    notes: id === 'scan-entry-map-detail'
+      ? 'Scanned QR-XICHENG-MAP-001 on physical device and landed on /pages/map/detail?packageCode=XICHENG-MAP-001'
+      : `${id} verified on physical device`
   }))
 }
 
@@ -124,6 +130,37 @@ assert.match(
   `${missingBlockedResult.stderr}\n${missingBlockedResult.stdout}`,
   /xiaojing-blocked-answer/,
   'native evidence validator should name the missing BLOCKED answer proof'
+)
+
+const missingScanEntryScenario = {
+  ...baseEvidence,
+  scenarios: baseEvidence.scenarios.filter((scenario) => scenario.id !== 'scan-entry-map-detail')
+}
+const missingScanEntryResult = runValidator(missingScanEntryScenario)
+assert.notEqual(missingScanEntryResult.status, 0, 'native evidence validator should reject missing scan entry proof')
+assert.match(
+  `${missingScanEntryResult.stderr}\n${missingScanEntryResult.stdout}`,
+  /scan-entry-map-detail/,
+  'native evidence validator should name the missing scan entry proof'
+)
+
+const wrongScanEntryNotesResult = runValidator({
+  ...baseEvidence,
+  scenarios: baseEvidence.scenarios.map((scenario) => (
+    scenario.id === 'scan-entry-map-detail'
+      ? { ...scenario, notes: 'Scanned entry but did not record the map detail target' }
+      : scenario
+  ))
+})
+assert.notEqual(
+  wrongScanEntryNotesResult.status,
+  0,
+  'native evidence validator should reject scan entry proof without the expected map detail target'
+)
+assert.match(
+  `${wrongScanEntryNotesResult.stderr}\n${wrongScanEntryNotesResult.stdout}`,
+  /scan-entry-map-detail|\/pages\/map\/detail|XICHENG-MAP-001/,
+  'native evidence validator should explain the scan entry target requirement'
 )
 
 const localGatewayResult = runValidator({

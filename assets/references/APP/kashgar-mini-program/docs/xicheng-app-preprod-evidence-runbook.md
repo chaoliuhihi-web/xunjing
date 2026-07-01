@@ -96,6 +96,7 @@ npm run verify:native:evidence
 - `ocr-text-recognition`：OCR 或图片文字识别进入识别结果页。
 - `gps-recognition-permission`：用户触发后授权定位并完成 GPS 识别失败/成功处理。
 - `text-recognition-baitasi`：文本识别白塔寺。
+- `scan-entry-map-detail`：真实手机扫码 `QR-XICHENG-MAP-001` 后落到 `/pages/map/detail`，备注记录 `XICHENG-MAP-001`。
 - `scan-result-sources`：识别结果页展示已审核来源。
 - `xiaojing-sourced-answer`：小京展示有来源回答。
 - `xiaojing-blocked-answer`：无来源点位只显示“无已审核来源，不能回答”。

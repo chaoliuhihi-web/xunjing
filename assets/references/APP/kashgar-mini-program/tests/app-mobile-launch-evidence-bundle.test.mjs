@@ -56,6 +56,7 @@ const requiredScenarioIds = [
   'ocr-text-recognition',
   'gps-recognition-permission',
   'text-recognition-baitasi',
+  'scan-entry-map-detail',
   'scan-result-sources',
   'xiaojing-sourced-answer',
   'xiaojing-blocked-answer',
@@ -147,7 +148,10 @@ const makeNativeEvidence = (overrides = {}) => ({
     id,
     platform: 'android',
     status: 'PASS',
-    evidenceRef: `qa/native/${id}.jpg`
+    evidenceRef: `qa/native/${id}.jpg`,
+    notes: id === 'scan-entry-map-detail'
+      ? 'Scanned QR-XICHENG-MAP-001 on physical device and landed on /pages/map/detail?packageCode=XICHENG-MAP-001'
+      : `${id} verified on physical device`
   })),
   ...overrides
 })
