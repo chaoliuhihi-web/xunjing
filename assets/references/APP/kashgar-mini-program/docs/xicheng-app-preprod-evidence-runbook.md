@@ -72,7 +72,7 @@ npm run verify:yudao:preprod
 
 `XUNJING_TENANT_ID` 不能使用 `0`、负数或 `tenant-prod` 这类环境占位符；预发证据和真机证据中的 `tenantId` 必须保持同一个正整数编号。
 
-`qa/xicheng-app-readiness-evidence.json` 的 `checkedAt` 必须是 72 小时内的预发或生产实测时间；旧证据需要重新采集。
+`qa/xicheng-app-readiness-evidence.json` 的 `checkedAt` 必须是 72 小时内的预发或生产实测时间；旧证据需要重新采集。预发证据的 `summary.xichengRegionCode` 必须是 `beijing-xicheng`，`summary.xichengPackageCode` 必须是 `XICHENG-MAP-001`，不能用其它城市、其它资源包或本地临时回归结果替代西城手机端候选证据。
 
 ## 真机证据校验
 
@@ -121,7 +121,7 @@ npm run verify:native:evidence
 
 ## 手机端放行证据包
 
-`qa/xicheng-app-readiness-evidence.json` 是预发证据，`qa/xicheng-native-device-evidence.json` 是真机证据。二者必须属于同一个手机端发布候选：预发证据的 `baseUrl`、`tenantId` 必须等于真机证据的 `appApiBaseUrl`、`tenantId`，真机证据的 `commit` 必须等于当前 `git HEAD`，预发证据 `checkedAt` 和真机证据 `createdAt` 都必须在 72 小时内。
+`qa/xicheng-app-readiness-evidence.json` 是预发证据，`qa/xicheng-native-device-evidence.json` 是真机证据。二者必须属于同一个手机端发布候选：预发证据的 `baseUrl`、`tenantId` 必须等于真机证据的 `appApiBaseUrl`、`tenantId`，预发证据汇总必须包含 `summary.xichengRegionCode=beijing-xicheng` 和 `summary.xichengPackageCode=XICHENG-MAP-001`，真机证据的 `commit` 必须等于当前 `git HEAD`，预发证据 `checkedAt` 和真机证据 `createdAt` 都必须在 72 小时内。
 
 最终 `verify:launch:evidence` 会复用 `verify:release:artifact` 扫描真机证据里的安装包本体 `build.artifact`。如果签名后的 APK/ZIP 内部包含 localhost、局域网、fixture、H5 proxy 标记或真实 token，不能放行。
 

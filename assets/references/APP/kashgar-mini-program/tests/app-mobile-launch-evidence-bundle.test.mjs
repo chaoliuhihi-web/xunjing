@@ -94,6 +94,8 @@ const makePreprodEvidence = (overrides = {}) => {
     summary: {
       baseUrl: 'https://api.xingheai.net',
       tenantId: '1',
+      xichengRegionCode: 'beijing-xicheng',
+      xichengPackageCode: 'XICHENG-MAP-001',
       includeXichengAppCheck: true,
       includeXichengTriggerCheck: true,
       totalChecks: 20,
@@ -314,6 +316,21 @@ assert.match(
   `${invalidPreprodTenantResult.stderr}\n${invalidPreprodTenantResult.stdout}`,
   /tenant.*positive integer|正整数/i,
   'launch evidence bundle validator should explain preprod tenant id validation'
+)
+
+const wrongPreprodScopeResult = runBundleGate(
+  makePreprodEvidence({ summary: { xichengRegionCode: 'beijing-dongcheng' } }),
+  makeNativeEvidence()
+)
+assert.notEqual(
+  wrongPreprodScopeResult.status,
+  0,
+  'launch evidence bundle validator should reject preprod evidence collected for a different city region'
+)
+assert.match(
+  `${wrongPreprodScopeResult.stderr}\n${wrongPreprodScopeResult.stdout}`,
+  /xichengRegionCode.*beijing-xicheng|西城/i,
+  'launch evidence bundle validator should explain the Xicheng region scope mismatch'
 )
 
 const staleCommitResult = runBundleGate(

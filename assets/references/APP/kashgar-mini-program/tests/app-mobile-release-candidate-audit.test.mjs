@@ -97,19 +97,24 @@ const describeArtifact = (artifactPath) => {
   }
 }
 
-const makePreprodEvidence = () => ({
-  artifactType: 'xunjing-platform-readiness',
-  ok: true,
-  checkedAt: freshTimestamp,
-  summary: {
-    baseUrl: 'https://api.xingheai.net',
-    tenantId: '1',
-    includeXichengAppCheck: true,
-    includeXichengTriggerCheck: true,
-    totalChecks: 20,
-    passedChecks: 20,
-    failedChecks: 0
-  },
+const makePreprodEvidence = (overrides = {}) => {
+  const { summary: summaryOverrides = {}, ...topLevelOverrides } = overrides
+  return {
+    artifactType: 'xunjing-platform-readiness',
+    ok: true,
+    checkedAt: freshTimestamp,
+    summary: {
+      baseUrl: 'https://api.xingheai.net',
+      tenantId: '1',
+      xichengRegionCode: 'beijing-xicheng',
+      xichengPackageCode: 'XICHENG-MAP-001',
+      includeXichengAppCheck: true,
+      includeXichengTriggerCheck: true,
+      totalChecks: 20,
+      passedChecks: 20,
+      failedChecks: 0,
+      ...summaryOverrides
+    },
   checks: [
     {
       name: 'live-xicheng-ai-chat-sourced',
@@ -157,8 +162,10 @@ const makePreprodEvidence = () => ({
         targetPath: '/pages/map/detail?packageCode=XICHENG-MAP-001&sceneCode=QR-XICHENG-MAP-001'
       }
     }
-  ]
-})
+    ],
+    ...topLevelOverrides
+  }
+}
 
 const makeNativeEvidence = ({ artifact, artifactSha256, artifactSizeBytes, evidenceDir }) => ({
   artifactType: 'xicheng-native-device-evidence',
@@ -270,6 +277,34 @@ assert.ok(
 assert.ok(
   missingAudit.nextActions.some((action) => action.includes('XUNJING_NATIVE_PACK_CONFIRM=cloud-pack')),
   'release candidate audit should require explicit confirmation before executing HBuilderX cloud pack'
+)
+
+const wrongPreprodScopePath = path.join(missingTempDir, 'wrong-preprod-scope.json')
+fs.writeFileSync(wrongPreprodScopePath, `${JSON.stringify(makePreprodEvidence({
+  summary: { xichengPackageCode: 'KASHGAR-MAP-001' }
+}), null, 2)}\n`)
+const wrongPreprodScopeResult = runAudit([
+  '--preprod-evidence',
+  wrongPreprodScopePath,
+  '--native-evidence',
+  path.join(missingTempDir, 'missing-native.json'),
+  '--release-artifact',
+  path.join(missingTempDir, 'missing-release.apk')
+])
+assert.notEqual(
+  wrongPreprodScopeResult.status,
+  0,
+  'release candidate audit should reject preprod evidence collected for a different Xicheng package'
+)
+const wrongPreprodScopeAudit = parseAuditJson(wrongPreprodScopeResult)
+assert.equal(
+  wrongPreprodScopeAudit.gates.preprodEvidence.ok,
+  false,
+  'release candidate audit preprod gate should fail when the evidence package scope is not XICHENG-MAP-001'
+)
+assert.ok(
+  wrongPreprodScopeAudit.blockers.some((blocker) => blocker.code === 'preprod-evidence-xicheng-scope-mismatch'),
+  'release candidate audit should name the Xicheng region/package scope mismatch'
 )
 
 const keystorePath = path.join(missingTempDir, 'xicheng-release.keystore')

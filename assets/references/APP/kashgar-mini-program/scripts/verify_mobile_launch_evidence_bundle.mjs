@@ -14,6 +14,8 @@ const requiredPreprodChecks = [
   'live-xicheng-trigger-planetarium',
   'live-xicheng-scan-resolve'
 ]
+const expectedXichengRegionCode = 'beijing-xicheng'
+const expectedXichengPackageCode = 'XICHENG-MAP-001'
 
 const fail = (message) => {
   console.error(message)
@@ -163,6 +165,14 @@ if (preprodSummary.includeXichengAppCheck !== true || preprodSummary.includeXich
   fail('APP readiness evidence must include Xicheng APP and trigger checks')
 }
 
+if (String(preprodSummary.xichengRegionCode || '').trim() !== expectedXichengRegionCode) {
+  fail(`APP readiness evidence summary.xichengRegionCode must be ${expectedXichengRegionCode}`)
+}
+
+if (String(preprodSummary.xichengPackageCode || '').trim() !== expectedXichengPackageCode) {
+  fail(`APP readiness evidence summary.xichengPackageCode must be ${expectedXichengPackageCode}`)
+}
+
 if (Number(preprodSummary.failedChecks) !== 0 || Number(preprodSummary.passedChecks) < Number(preprodSummary.totalChecks || 0)) {
   fail('APP readiness evidence must have 0 failedChecks and all checks passing')
 }
@@ -197,8 +207,8 @@ const sourcedCheck = preprodCheckByName.get('live-xicheng-ai-chat-sourced')
 const sourcedSummary = sourcedCheck?.summary || {}
 assertSummaryEquals(sourcedSummary, 'endpoint', '/app-api/xunjing/ai/chat', 'live-xicheng-ai-chat-sourced')
 assertSummaryEquals(sourcedSummary, 'tenantId', preprodSummary.tenantId, 'live-xicheng-ai-chat-sourced')
-assertSummaryEquals(sourcedSummary, 'regionCode', 'beijing-xicheng', 'live-xicheng-ai-chat-sourced')
-assertSummaryEquals(sourcedSummary, 'packageCode', 'XICHENG-MAP-001', 'live-xicheng-ai-chat-sourced')
+assertSummaryEquals(sourcedSummary, 'regionCode', expectedXichengRegionCode, 'live-xicheng-ai-chat-sourced')
+assertSummaryEquals(sourcedSummary, 'packageCode', expectedXichengPackageCode, 'live-xicheng-ai-chat-sourced')
 assertSummaryEquals(sourcedSummary, 'sceneCode', 'xicheng-ai-guide', 'live-xicheng-ai-chat-sourced')
 assertSummaryEquals(sourcedSummary, 'poiCode', 'xicheng-baitasi', 'live-xicheng-ai-chat-sourced')
 assertSummaryEquals(sourcedSummary, 'poiName', '妙应寺白塔', 'live-xicheng-ai-chat-sourced')
@@ -211,8 +221,8 @@ const blockedCheck = preprodCheckByName.get('live-xicheng-ai-chat-blocked')
 const blockedSummary = blockedCheck?.summary || {}
 assertSummaryEquals(blockedSummary, 'endpoint', '/app-api/xunjing/ai/chat', 'live-xicheng-ai-chat-blocked')
 assertSummaryEquals(blockedSummary, 'tenantId', preprodSummary.tenantId, 'live-xicheng-ai-chat-blocked')
-assertSummaryEquals(blockedSummary, 'regionCode', 'beijing-xicheng', 'live-xicheng-ai-chat-blocked')
-assertSummaryEquals(blockedSummary, 'packageCode', 'XICHENG-MAP-001', 'live-xicheng-ai-chat-blocked')
+assertSummaryEquals(blockedSummary, 'regionCode', expectedXichengRegionCode, 'live-xicheng-ai-chat-blocked')
+assertSummaryEquals(blockedSummary, 'packageCode', expectedXichengPackageCode, 'live-xicheng-ai-chat-blocked')
 assertSummaryEquals(blockedSummary, 'sceneCode', 'xicheng-ai-guide', 'live-xicheng-ai-chat-blocked')
 assertSummaryEquals(blockedSummary, 'poiCode', 'xicheng-source-guard-negative', 'live-xicheng-ai-chat-blocked')
 assertSummaryEquals(blockedSummary, 'poiName', '来源门禁测试点位', 'live-xicheng-ai-chat-blocked')
@@ -229,8 +239,8 @@ if (String(scanResolveSummary.tenantId || '').trim() !== String(preprodSummary.t
   fail('APP readiness evidence live-xicheng-scan-resolve must use the same tenantId as summary.tenantId')
 }
 
-if (String(scanResolveSummary.packageCode || '').trim() !== 'XICHENG-MAP-001') {
-  fail('APP readiness evidence live-xicheng-scan-resolve must resolve packageCode XICHENG-MAP-001')
+if (String(scanResolveSummary.packageCode || '').trim() !== expectedXichengPackageCode) {
+  fail(`APP readiness evidence live-xicheng-scan-resolve must resolve packageCode ${expectedXichengPackageCode}`)
 }
 
 if (!String(scanResolveSummary.targetPath || '').includes('/pages/map/detail')) {

@@ -17,6 +17,9 @@ const checklist = fs.readFileSync(checklistPath, 'utf8')
 for (const required of [
   '非本地 HTTPS',
   'APP readiness evidence',
+  'summary.xichengRegionCode',
+  'summary.xichengPackageCode',
+  'beijing-xicheng',
   'XUNJING_APP_API_BASE_URL',
   'XUNJING_RELEASE_ENV_FILE',
   'XUNJING_PLATFORM_ENV_FILE',

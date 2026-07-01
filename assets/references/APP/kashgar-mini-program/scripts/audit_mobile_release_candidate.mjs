@@ -49,6 +49,8 @@ const normalizePathForComparison = (inputPath) => {
 
 const normalizeUrl = (value) => String(value || '').trim().replace(/\/+$/, '')
 const mobileReleaseArtifactExtensions = new Set(['.apk', '.aab', '.ipa'])
+const expectedXichengRegionCode = 'beijing-xicheng'
+const expectedXichengPackageCode = 'XICHENG-MAP-001'
 
 const describeNativeReleaseArtifactPath = (artifactPath) => {
   if (!artifactPath || !fs.existsSync(artifactPath)) {
@@ -236,19 +238,32 @@ if (!preprodEvidence.exists) {
   )
 } else {
   const summary = preprodEvidence.json?.summary || {}
+  const preprodBaseOk = preprodEvidence.json?.artifactType === 'xunjing-platform-readiness' && preprodEvidence.json?.ok === true
+  const preprodScopeOk = String(summary.xichengRegionCode || '').trim() === expectedXichengRegionCode &&
+    String(summary.xichengPackageCode || '').trim() === expectedXichengPackageCode
   gates.preprodEvidence = {
     ...gates.preprodEvidence,
-    ok: preprodEvidence.json?.artifactType === 'xunjing-platform-readiness' && preprodEvidence.json?.ok === true,
+    ok: preprodBaseOk && preprodScopeOk,
     checkedAt: preprodEvidence.json?.checkedAt || '',
     baseUrl: normalizeUrl(summary.baseUrl),
-    tenantId: String(summary.tenantId || '')
+    tenantId: String(summary.tenantId || ''),
+    xichengRegionCode: String(summary.xichengRegionCode || ''),
+    xichengPackageCode: String(summary.xichengPackageCode || '')
   }
-  if (!gates.preprodEvidence.ok) {
+  if (!preprodBaseOk) {
     addBlocker(
       blockers,
       'preprod-evidence-not-passing',
       'APP readiness evidence is present but is not a passing xunjing-platform-readiness artifact',
       'Regenerate preprod readiness evidence after the HTTPS Yudao APP API passes all Xicheng checks'
+    )
+  }
+  if (!preprodScopeOk) {
+    addBlocker(
+      blockers,
+      'preprod-evidence-xicheng-scope-mismatch',
+      `APP readiness evidence must be scoped to ${expectedXichengRegionCode} / ${expectedXichengPackageCode}`,
+      'Regenerate qa/xicheng-app-readiness-evidence.json with --include-xicheng-app-check and --include-xicheng-trigger-check against the Xicheng package'
     )
   }
 }

@@ -45,7 +45,7 @@ npm run verify:yudao:preprod
 
 `XUNJING_TENANT_ID` 必须是 Yudao 租户正整数编号，不能使用 `0`、负数或环境名占位符。
 
-`qa/xicheng-app-readiness-evidence.json` 的 `checkedAt` 必须是 72 小时内的预发或生产实测时间；过期证据不能作为上线放行依据。
+`qa/xicheng-app-readiness-evidence.json` 的 `checkedAt` 必须是 72 小时内的预发或生产实测时间；过期证据不能作为上线放行依据。预发证据的 `summary.xichengRegionCode` 必须是 `beijing-xicheng`，`summary.xichengPackageCode` 必须是 `XICHENG-MAP-001`，避免把其它城市或其它资源包的接口回归误当成本次西城手机端候选。
 
 真机证据必须记录在 `qa/xicheng-native-device-evidence.json` 并通过 APP 侧校验：
 
@@ -73,7 +73,7 @@ npm run verify:native:evidence
 
 真机证据的 `releaseTargets` 只允许 `android` 或 `ios`；每个目标都必须有真实设备记录，且设备记录必须包含 `installer` 安装渠道。
 
-预发证据和真机证据必须属于同一个手机端发布候选。`qa/xicheng-app-readiness-evidence.json` 里的 `baseUrl`、`tenantId` 必须和 `qa/xicheng-native-device-evidence.json` 里的 `appApiBaseUrl`、`tenantId` 一致，真机证据里的 `commit` 必须等于当前 `git HEAD`；预发证据 `checkedAt` 和真机证据 `createdAt` 都必须在 72 小时内；预发证据必须包含扫码入口解析 `live-xicheng-scan-resolve`，且 `targetPath` 指向 `/pages/map/detail`、`packageCode` 为 `XICHENG-MAP-001`、`tenantId` 和预发汇总一致；预发证据里的 `live-xicheng-ai-chat-sourced` 与 `live-xicheng-ai-chat-blocked` 必须来自 `/app-api/xunjing/ai/chat`，并包含 `contextEcho`、`logId`、`poiCode`、`poiName`、`regionCode`、`packageCode`、`sceneCode` 和租户归因，证明小京回答使用西城正式 POI 上下文而不是本地编造；最终 `verify:launch:evidence` 会复用 `verify:release:artifact` 扫描真机证据里的安装包本体 `build.artifact`，拒绝 localhost、局域网、fixture 或真实 token 进入最终手机包：
+预发证据和真机证据必须属于同一个手机端发布候选。`qa/xicheng-app-readiness-evidence.json` 里的 `baseUrl`、`tenantId` 必须和 `qa/xicheng-native-device-evidence.json` 里的 `appApiBaseUrl`、`tenantId` 一致，预发证据汇总必须包含 `summary.xichengRegionCode=beijing-xicheng` 和 `summary.xichengPackageCode=XICHENG-MAP-001`，真机证据里的 `commit` 必须等于当前 `git HEAD`；预发证据 `checkedAt` 和真机证据 `createdAt` 都必须在 72 小时内；预发证据必须包含扫码入口解析 `live-xicheng-scan-resolve`，且 `targetPath` 指向 `/pages/map/detail`、`packageCode` 为 `XICHENG-MAP-001`、`tenantId` 和预发汇总一致；预发证据里的 `live-xicheng-ai-chat-sourced` 与 `live-xicheng-ai-chat-blocked` 必须来自 `/app-api/xunjing/ai/chat`，并包含 `contextEcho`、`logId`、`poiCode`、`poiName`、`regionCode`、`packageCode`、`sceneCode` 和租户归因，证明小京回答使用西城正式 POI 上下文而不是本地编造；最终 `verify:launch:evidence` 会复用 `verify:release:artifact` 扫描真机证据里的安装包本体 `build.artifact`，拒绝 localhost、局域网、fixture 或真实 token 进入最终手机包：
 
 ```bash
 XUNJING_PREPROD_EVIDENCE_FILE="../../../../qa/xicheng-app-readiness-evidence.json" \
