@@ -49,7 +49,7 @@
 				<text class="section-badge">{{ travelogueItems.length }} 篇</text>
 			</view>
 			<view v-if="travelogueItems.length > 0" class="work-list">
-				<view v-for="item in travelogueItems" :key="item.id" class="work-row" @click="openTravelogue">
+				<view v-for="item in travelogueItems" :key="item.id" class="work-row" @click="openWorkItem(item)">
 					<image class="work-thumb" :src="getWorkThumb(item)" mode="aspectFill" />
 					<view class="work-copy">
 						<view class="work-title-line">
@@ -57,6 +57,10 @@
 							<xicheng-icon name="edit" variant="plain" :size="15" />
 						</view>
 						<text class="work-desc">{{ item.desc }}</text>
+						<view class="work-action-row">
+							<button class="mini-work-action" @click.stop="openTravelogueReaderPage">继续阅读</button>
+							<button v-if="item.assetType === 'pdf'" class="mini-work-action mini-work-action-primary" @click.stop="openPdfPrintPage">PDF打印</button>
+						</view>
 					</view>
 					<text class="work-status">{{ item.status }}</text>
 				</view>
@@ -133,6 +137,19 @@ export default {
 	methods: {
 		openTravelogue() {
 			uni.navigateTo({ url: '/pages/xicheng/travelogue/travelogue?mode=edit' })
+		},
+		openWorkItem(item = {}) {
+			if (item.assetType === 'pdf') {
+				this.openPdfPrintPage()
+				return
+			}
+			this.openTravelogueReaderPage()
+		},
+		openTravelogueReaderPage() {
+			uni.navigateTo({ url: '/pages/xicheng/travelogue-reader/travelogue-reader' })
+		},
+		openPdfPrintPage() {
+			uni.navigateTo({ url: '/pages/xicheng/pdf-print/pdf-print' })
 		},
 		openLogin() {
 			uni.navigateTo({ url: '/pagesLogin/auth/auth' })
@@ -375,6 +392,30 @@ export default {
 	display: block;
 	font-size: 28rpx;
 }
+.work-action-row {
+	display: flex;
+	gap: 12rpx;
+	margin-top: 14rpx;
+}
+.mini-work-action {
+	min-height: 52rpx;
+	margin: 0;
+	padding: 0 18rpx;
+	border: 1rpx solid rgba(181, 148, 94, 0.22);
+	border-radius: 999rpx;
+	background: rgba(255, 252, 246, 0.9);
+	color: #173F35;
+	font-size: 22rpx;
+	line-height: 52rpx;
+	font-weight: 800;
+}
+.mini-work-action-primary {
+	background: #173F35;
+	color: #FFF8EA;
+}
+.mini-work-action::after {
+	border: 0;
+}
 .work-status {
 	font-size: 24rpx;
 	font-weight: 700;
@@ -405,6 +446,9 @@ export default {
 
 .works-card button {
 	margin-top: 24rpx;
+}
+.works-card .work-action-row button {
+	margin-top: 0;
 }
 
 .privacy-card {

@@ -166,6 +166,28 @@
 			}
 		},
 		{
+			"path": "pages/xicheng/travelogue-reader/travelogue-reader",
+			"style": {
+				"navigationBarTitleText": "精美游记",
+				"navigationStyle": "custom",
+				"mp-weixin": {
+					"navigationStyle": "custom",
+					"homeButton": false
+				}
+			}
+		},
+		{
+			"path": "pages/xicheng/pdf-print/pdf-print",
+			"style": {
+				"navigationBarTitleText": "PDF打印预览",
+				"navigationStyle": "custom",
+				"mp-weixin": {
+					"navigationStyle": "custom",
+					"homeButton": false
+				}
+			}
+		},
+		{
 			"path": "pages/xicheng/inspiration/inspiration",
 			"style": {
 				"navigationBarTitleText": "导入灵感",

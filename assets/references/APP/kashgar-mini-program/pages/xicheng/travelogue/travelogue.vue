@@ -87,6 +87,7 @@
 
 			<view class="travelogue-generation-actions">
 				<button class="ghost-button xicheng-secondary-action" @click="scrollToDraftEditor">继续编辑</button>
+				<button class="ghost-button xicheng-secondary-action" @click="openTravelogueReaderPage">精美预览</button>
 				<button class="primary-button xicheng-primary-action" @click="generateTravelogueDraft">生成游记</button>
 			</view>
 			<text class="travelogue-human-notice">预览内容来自你的照片、路线、备注和已核对资料，可继续改成自己的语气。</text>
@@ -2174,6 +2175,7 @@ export default {
 				title: 'PDF纪念册已生成',
 				icon: 'none'
 			})
+			this.openPdfPrintPage()
 		},
 		submitReview() {
 			if (!this.hasReviewableJourneyEvidence()) {
@@ -2197,6 +2199,12 @@ export default {
 		},
 		openSharePage() {
 			uni.navigateTo({ url: '/pages/xicheng/share/share' })
+		},
+		openTravelogueReaderPage() {
+			uni.navigateTo({ url: '/pages/xicheng/travelogue-reader/travelogue-reader' })
+		},
+		openPdfPrintPage() {
+			uni.navigateTo({ url: '/pages/xicheng/pdf-print/pdf-print' })
 		},
 		openWorksPage() {
 			uni.navigateTo({ url: '/pages/xicheng/works/works' })

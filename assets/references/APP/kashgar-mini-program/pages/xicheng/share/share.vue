@@ -58,7 +58,7 @@
 					<text class="asset-title">分享海报</text>
 					<text class="asset-desc">适合朋友圈和活动群</text>
 				</view>
-				<view class="asset-tile" @click="createShareArtifact('pdf')">
+				<view class="asset-tile" @click="createPdfShareArtifact">
 					<xicheng-icon name="source" variant="primary" :size="22" />
 					<text class="asset-title">PDF 纪念册</text>
 					<text class="asset-desc">保留路线、来源与任务</text>
@@ -68,6 +68,10 @@
 					<text class="asset-title">亲子研学报告</text>
 					<text class="asset-desc">学习成果报告</text>
 				</view>
+			</view>
+			<view class="asset-shortcut-row">
+				<button class="ghost-button xicheng-secondary-action" @click="openTravelogueReaderPage">预览精美游记</button>
+				<button class="ghost-button xicheng-secondary-action" @click="openPdfPrintPage">PDF 打印预览</button>
 			</view>
 		</view>
 
@@ -380,6 +384,10 @@ export default {
 			uni.setStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey, this.shareArtifacts)
 			uni.showToast({ title: `${artifact.assetLabel}已生成`, icon: 'none' })
 		},
+		createPdfShareArtifact() {
+			this.createShareArtifact('pdf')
+			this.openPdfPrintPage()
+		},
 		toggleShareSetting(key = '') {
 			if (!Object.prototype.hasOwnProperty.call(this.shareSettingState, key)) return
 			this.shareSettingState[key] = !this.shareSettingState[key]
@@ -463,6 +471,12 @@ export default {
 		},
 		openWorks() {
 			uni.navigateTo({ url: '/pages/xicheng/works/works' })
+		},
+		openTravelogueReaderPage() {
+			uni.navigateTo({ url: '/pages/xicheng/travelogue-reader/travelogue-reader' })
+		},
+		openPdfPrintPage() {
+			uni.navigateTo({ url: '/pages/xicheng/pdf-print/pdf-print' })
 		},
 		goBack() {
 			const pages = getCurrentPages()
@@ -698,6 +712,15 @@ export default {
 	border-radius: 28rpx;
 	background: rgba(23, 63, 53, 0.08);
 	border: 1rpx solid rgba(181, 148, 94, 0.16);
+}
+.asset-shortcut-row {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16rpx;
+	margin-top: 20rpx;
+}
+.asset-shortcut-row button {
+	margin: 0;
 }
 .asset-title {
 	font-size: 26rpx;
