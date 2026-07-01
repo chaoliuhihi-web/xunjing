@@ -37,6 +37,8 @@ XUNJING_TENANT_ID="$XUNJING_TENANT_ID" \
 npm run verify:yudao:preprod
 ```
 
+`qa/xicheng-app-readiness-evidence.json` 的 `checkedAt` 必须是 72 小时内的预发或生产实测时间；过期证据不能作为上线放行依据。
+
 真机证据必须记录在 `qa/xicheng-native-device-evidence.json` 并通过 APP 侧校验：
 
 ```bash
@@ -47,7 +49,7 @@ XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-eviden
 npm run prepare:native:evidence
 ```
 
-`npm run prepare:native:evidence` 只根据 `XUNJING_RELEASE_ARTIFACT` 初始化真机证据模板，自动写入当前 commit、release 包路径、`artifactSha256` 和 `artifactSizeBytes`。模板里的场景状态全部是 `TODO`，不得把模板当成通过证据；必须在真实手机完成验证并补齐设备信息、截图或录屏引用后，才能把对应场景改成 `PASS`。
+`npm run prepare:native:evidence` 只根据 `XUNJING_RELEASE_ARTIFACT` 初始化真机证据模板，自动写入当前 commit、`createdAt`、release 包路径、`artifactSha256` 和 `artifactSizeBytes`。模板里的场景状态全部是 `TODO`，不得把模板当成通过证据；必须在真实手机完成验证并补齐设备信息、截图或录屏引用后，才能把对应场景改成 `PASS`。
 
 ```bash
 XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-evidence.json" \
@@ -58,7 +60,7 @@ npm run verify:native:evidence
 
 真机证据的 `build` 必须指向真实 release 包，并记录 `artifactSha256` 和 `artifactSizeBytes`。`npm run verify:native:evidence` 会读取该 release 包文件，校验 SHA256 和大小，避免证据里只写路径但没有对应安装包。
 
-预发证据和真机证据必须属于同一个手机端发布候选。`qa/xicheng-app-readiness-evidence.json` 里的 `baseUrl`、`tenantId` 必须和 `qa/xicheng-native-device-evidence.json` 里的 `appApiBaseUrl`、`tenantId` 一致，真机证据里的 `commit` 必须等于当前 `git HEAD`：
+预发证据和真机证据必须属于同一个手机端发布候选。`qa/xicheng-app-readiness-evidence.json` 里的 `baseUrl`、`tenantId` 必须和 `qa/xicheng-native-device-evidence.json` 里的 `appApiBaseUrl`、`tenantId` 一致，真机证据里的 `commit` 必须等于当前 `git HEAD`；预发证据 `checkedAt` 和真机证据 `createdAt` 都必须在 72 小时内：
 
 ```bash
 XUNJING_PREPROD_EVIDENCE_FILE="../../../../qa/xicheng-app-readiness-evidence.json" \

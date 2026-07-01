@@ -18,6 +18,9 @@ const fail = (message) => {
   process.exit(1)
 }
 
+const maxEvidenceAgeHours = Number(process.env.XUNJING_EVIDENCE_MAX_AGE_HOURS || 72)
+const maxFutureSkewMs = 5 * 60 * 1000
+
 const args = process.argv.slice(2)
 const readArg = (name, fallback) => {
   const index = args.indexOf(name)
@@ -30,6 +33,21 @@ const readArg = (name, fallback) => {
 const normalizeComparableUrl = (value) => String(value || '').trim().replace(/\/+$/, '')
 
 const resolveInputPath = (inputPath) => path.resolve(process.cwd(), inputPath)
+
+const assertFreshTimestamp = (label, value) => {
+  const parsedTime = Date.parse(String(value || ''))
+  if (!Number.isFinite(parsedTime)) {
+    fail(`${label} must be a valid ISO timestamp`)
+  }
+  const now = Date.now()
+  if (parsedTime - now > maxFutureSkewMs) {
+    fail(`${label} must not be in the future`)
+  }
+  const ageHours = (now - parsedTime) / 1000 / 60 / 60
+  if (ageHours > maxEvidenceAgeHours) {
+    fail(`${label} is stale; evidence must be fresh within ${maxEvidenceAgeHours} hours`)
+  }
+}
 
 const readJsonFile = (label, inputPath) => {
   const resolved = resolveInputPath(inputPath)
@@ -106,6 +124,8 @@ if (preprodEvidence.json?.artifactType !== 'xunjing-platform-readiness') {
 if (preprodEvidence.json.ok !== true) {
   fail('APP readiness evidence ok must be true')
 }
+
+assertFreshTimestamp('APP readiness evidence checkedAt', preprodEvidence.json.checkedAt)
 
 const preprodSummary = preprodEvidence.json.summary || {}
 assertNonLocalHttpsUrl('APP readiness evidence summary.baseUrl', preprodSummary.baseUrl)

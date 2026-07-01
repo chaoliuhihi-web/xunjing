@@ -65,6 +65,8 @@ npm run verify:yudao:preprod
 
 该命令会先执行 release 环境校验，拒绝 localhost、127.0.0.1、局域网和非 HTTPS 地址，然后调用仓库根目录 `npm run xunjing:platform:verify --`，输出 `qa/xicheng-app-readiness-evidence.json`。
 
+`qa/xicheng-app-readiness-evidence.json` 的 `checkedAt` 必须是 72 小时内的预发或生产实测时间；旧证据需要重新采集。
+
 ## 真机证据校验
 
 预发或上线前，必须在真实手机上安装 release 包，记录 `qa/xicheng-native-device-evidence.json`，并在 `assets/references/APP/kashgar-mini-program` 运行：
@@ -77,7 +79,7 @@ XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-eviden
 npm run prepare:native:evidence
 ```
 
-`npm run prepare:native:evidence` 只用 `XUNJING_RELEASE_ARTIFACT` 初始化真机证据模板，自动填入当前 commit、release 包路径、`artifactSha256` 和 `artifactSizeBytes`。模板中的场景状态都是 `TODO`，不得把模板当成通过证据；必须完成真机验证并补齐设备信息、截图或录屏引用后，才能把场景状态改成 `PASS`。
+`npm run prepare:native:evidence` 只用 `XUNJING_RELEASE_ARTIFACT` 初始化真机证据模板，自动填入当前 commit、`createdAt`、release 包路径、`artifactSha256` 和 `artifactSizeBytes`。模板中的场景状态都是 `TODO`，不得把模板当成通过证据；必须完成真机验证并补齐设备信息、截图或录屏引用后，才能把场景状态改成 `PASS`。
 
 ```bash
 XUNJING_NATIVE_DEVICE_EVIDENCE_FILE="../../../../qa/xicheng-native-device-evidence.json" \
@@ -102,7 +104,7 @@ npm run verify:native:evidence
 
 ## 手机端放行证据包
 
-`qa/xicheng-app-readiness-evidence.json` 是预发证据，`qa/xicheng-native-device-evidence.json` 是真机证据。二者必须属于同一个手机端发布候选：预发证据的 `baseUrl`、`tenantId` 必须等于真机证据的 `appApiBaseUrl`、`tenantId`，真机证据的 `commit` 必须等于当前 `git HEAD`。
+`qa/xicheng-app-readiness-evidence.json` 是预发证据，`qa/xicheng-native-device-evidence.json` 是真机证据。二者必须属于同一个手机端发布候选：预发证据的 `baseUrl`、`tenantId` 必须等于真机证据的 `appApiBaseUrl`、`tenantId`，真机证据的 `commit` 必须等于当前 `git HEAD`，预发证据 `checkedAt` 和真机证据 `createdAt` 都必须在 72 小时内。
 
 在 `assets/references/APP/kashgar-mini-program` 运行：
 

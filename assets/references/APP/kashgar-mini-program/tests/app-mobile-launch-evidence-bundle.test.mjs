@@ -21,6 +21,7 @@ const artifactPath = path.join(artifactTempDir, 'xicheng-release.apk')
 const artifactBytes = Buffer.from('signed release apk placeholder for launch bundle validator tests\n', 'utf8')
 fs.writeFileSync(artifactPath, artifactBytes)
 const artifactSha256 = crypto.createHash('sha256').update(artifactBytes).digest('hex')
+const freshTimestamp = new Date().toISOString()
 
 const requiredScenarioIds = [
   'install-release-build',
@@ -36,21 +37,23 @@ const requiredScenarioIds = [
   'travelogue-draft-generated'
 ]
 
-const makePreprodEvidence = (overrides = {}) => ({
-  artifactType: 'xunjing-platform-readiness',
-  ok: true,
-  checkedAt: '2026-07-01T10:00:00.000Z',
-  summary: {
-    baseUrl: 'https://api.example.com',
-    tenantId: '1',
-    includeXichengAppCheck: true,
-    includeXichengTriggerCheck: true,
-    totalChecks: 20,
-    passedChecks: 20,
-    failedChecks: 0,
-    ...overrides.summary
-  },
-  checks: [
+const makePreprodEvidence = (overrides = {}) => {
+  const { summary: summaryOverrides = {}, checks: extraChecks = [], ...topLevelOverrides } = overrides
+  return {
+    artifactType: 'xunjing-platform-readiness',
+    ok: true,
+    checkedAt: freshTimestamp,
+    summary: {
+      baseUrl: 'https://api.example.com',
+      tenantId: '1',
+      includeXichengAppCheck: true,
+      includeXichengTriggerCheck: true,
+      totalChecks: 20,
+      passedChecks: 20,
+      failedChecks: 0,
+      ...summaryOverrides
+    },
+    checks: [
     {
       name: 'live-xicheng-ai-chat-sourced',
       ok: true,
@@ -76,12 +79,15 @@ const makePreprodEvidence = (overrides = {}) => ({
       ok: true,
       summary: { poiCode: 'xicheng-planetarium', sourceCount: 1 }
     },
-    ...(overrides.checks || [])
-  ]
-})
+      ...extraChecks
+    ],
+    ...topLevelOverrides
+  }
+}
 
 const makeNativeEvidence = (overrides = {}) => ({
   artifactType: 'xicheng-native-device-evidence',
+  createdAt: freshTimestamp,
   branch: 'feature/xicheng-p0',
   commit: currentCommit,
   appApiBaseUrl: 'https://api.example.com',
@@ -154,6 +160,9 @@ for (const required of [
   'baseUrl',
   'tenantId',
   'commit',
+  'checkedAt',
+  'createdAt',
+  '72 小时',
   '真机证据',
   '预发证据'
 ]) {
@@ -225,4 +234,34 @@ assert.match(
   `${missingBlockedResult.stderr}\n${missingBlockedResult.stdout}`,
   /live-xicheng-ai-chat-blocked/,
   'launch evidence bundle validator should name the missing BLOCKED-source guard check'
+)
+
+const stalePreprodResult = runBundleGate(
+  makePreprodEvidence({ checkedAt: '2000-01-01T00:00:00.000Z' }),
+  makeNativeEvidence()
+)
+assert.notEqual(
+  stalePreprodResult.status,
+  0,
+  'launch evidence bundle validator should reject stale preprod readiness evidence'
+)
+assert.match(
+  `${stalePreprodResult.stderr}\n${stalePreprodResult.stdout}`,
+  /checkedAt|fresh|72|过期|新鲜度/i,
+  'launch evidence bundle validator should explain stale preprod evidence rejection'
+)
+
+const staleNativeResult = runBundleGate(
+  makePreprodEvidence(),
+  makeNativeEvidence({ createdAt: '2000-01-01T00:00:00.000Z' })
+)
+assert.notEqual(
+  staleNativeResult.status,
+  0,
+  'launch evidence bundle validator should reject stale native device evidence'
+)
+assert.match(
+  `${staleNativeResult.stderr}\n${staleNativeResult.stdout}`,
+  /createdAt|fresh|72|过期|新鲜度/i,
+  'launch evidence bundle validator should explain stale native evidence rejection'
 )

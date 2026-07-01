@@ -30,6 +30,7 @@ const artifactPath = path.join(artifactTempDir, 'xicheng-release.apk')
 const artifactBytes = Buffer.from('signed release apk placeholder for validator tests\n', 'utf8')
 fs.writeFileSync(artifactPath, artifactBytes)
 const artifactSha256 = crypto.createHash('sha256').update(artifactBytes).digest('hex')
+const freshTimestamp = new Date().toISOString()
 
 assert.ok(
   fs.existsSync(scriptPath),
@@ -56,7 +57,9 @@ for (const required of [
   'travelogue-draft-generated',
   'release 包',
   'artifactSha256',
-  'artifactSizeBytes'
+  'artifactSizeBytes',
+  'createdAt',
+  '72 小时'
 ]) {
   assert.ok(releaseChecklist.includes(required), `Release checklist should mention native evidence item ${required}`)
   assert.ok(preprodRunbook.includes(required), `Preprod runbook should mention native evidence item ${required}`)
@@ -64,6 +67,7 @@ for (const required of [
 
 const baseEvidence = {
   artifactType: 'xicheng-native-device-evidence',
+  createdAt: freshTimestamp,
   branch: 'feature/xicheng-p0',
   commit: 'dd3b7083',
   appApiBaseUrl: 'https://preprod.example.com',
@@ -170,4 +174,15 @@ assert.match(
   `${missingArtifactResult.stderr}\n${missingArtifactResult.stdout}`,
   /artifact.*not found|release artifact/i,
   'native evidence validator should explain the missing release artifact'
+)
+
+const staleEvidenceResult = runValidator({
+  ...baseEvidence,
+  createdAt: '2000-01-01T00:00:00.000Z'
+})
+assert.notEqual(staleEvidenceResult.status, 0, 'native evidence validator should reject stale physical-device evidence')
+assert.match(
+  `${staleEvidenceResult.stderr}\n${staleEvidenceResult.stdout}`,
+  /createdAt|fresh|72|过期|新鲜度/i,
+  'native evidence validator should explain stale evidence rejection'
 )

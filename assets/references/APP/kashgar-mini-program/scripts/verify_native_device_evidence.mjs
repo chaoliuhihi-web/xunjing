@@ -22,6 +22,24 @@ const fail = (message) => {
   process.exit(1)
 }
 
+const maxEvidenceAgeHours = Number(process.env.XUNJING_EVIDENCE_MAX_AGE_HOURS || 72)
+const maxFutureSkewMs = 5 * 60 * 1000
+
+const assertFreshTimestamp = (label, value) => {
+  const parsedTime = Date.parse(String(value || ''))
+  if (!Number.isFinite(parsedTime)) {
+    fail(`Native device evidence ${label} must be a valid ISO timestamp`)
+  }
+  const now = Date.now()
+  if (parsedTime - now > maxFutureSkewMs) {
+    fail(`Native device evidence ${label} must not be in the future`)
+  }
+  const ageHours = (now - parsedTime) / 1000 / 60 / 60
+  if (ageHours > maxEvidenceAgeHours) {
+    fail(`Native device evidence ${label} is stale; evidence must be fresh within ${maxEvidenceAgeHours} hours`)
+  }
+}
+
 const getRepoRoot = () => {
   const result = spawnSync('git', ['rev-parse', '--show-toplevel'], {
     cwd: process.cwd(),
@@ -56,6 +74,8 @@ try {
 if (evidence?.artifactType !== 'xicheng-native-device-evidence') {
   fail('Native device evidence artifactType must be xicheng-native-device-evidence')
 }
+
+assertFreshTimestamp('createdAt', evidence.createdAt)
 
 if (evidence.branch !== 'feature/xicheng-p0') {
   fail('Native device evidence branch must be feature/xicheng-p0')
