@@ -17,8 +17,8 @@ for (const required of [
   'class="travelogue-style-selector"',
   'travelogueStyleOptions',
   'activeTravelogueStyle',
-  'class="travelogue-preview-card"',
-  ':src="traveloguePreviewImage"',
+  'xicheng-long-travelogue-preview',
+  ':cover-image="traveloguePreviewImage"',
   '在白塔下遇见西城',
   '继续编辑',
   'generateTravelogueDraft',
@@ -42,8 +42,8 @@ for (const required of [
   '分享与审核',
   '运营与隐私',
   '编辑游记',
-  '小京已生成草稿，可继续修改',
-  '发布前提交审核'
+  '小京已整理',
+  '发布前确认公开范围'
 ]) {
   assert.ok(travelogue.includes(required), `Xicheng travelogue visual shell should include ${required}`)
 }
@@ -98,14 +98,16 @@ assert.match(
 
 assert.match(
   travelogue,
-  /travelogueStyleOptions:\s*\[[\s\S]*亲子研学[\s\S]*城市漫步[\s\S]*文化札记/,
-  'Travelogue generation should expose the three P0 style choices from the design reference'
+  /travelogueStyleOptions:\s*\[[\s\S]*城市漫步杂志[\s\S]*胡同手账[\s\S]*照片纪念册[\s\S]*古建札记/,
+  'Travelogue generation should expose the approved long-form travelogue template choices'
 )
 
-assert.match(
-  travelogueCss,
-  /\.travelogue-preview-image\s*\{[\s\S]*width:\s*220rpx[\s\S]*height:\s*260rpx[\s\S]*object-fit:\s*cover/,
-  'Travelogue preview image should use stable mobile dimensions without layout shift'
+assert.ok(
+  travelogue.includes('<xicheng-long-travelogue-preview') &&
+    travelogue.includes(':route-items="editorRouteItems"') &&
+    travelogue.includes(':photo-cards="editorPhotoCards"') &&
+    travelogue.includes(':tags="traveloguePreviewTags"'),
+  'Travelogue preview should use the approved long-form preview component with stable route, photo and tag inputs'
 )
 
 assert.doesNotMatch(

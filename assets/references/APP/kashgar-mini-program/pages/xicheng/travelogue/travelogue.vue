@@ -549,7 +549,7 @@ export const XICHENG_PLANNING_ONLY_MATERIAL_TYPES = Object.freeze([
 ])
 const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TITLE = '等待你的西城素材'
 const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TEXT = '请先通过识别、开始记录、补充照片或现场备注积累真实素材，再预览西城游记。预览只整理已记录的地点、照片、路线轨迹和用户备注。'
-const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TAGS = Object.freeze(['待补充素材', '私人草稿'])
+const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TAGS = Object.freeze(['待补充素材', '来源审核后生成', '私人草稿'])
 
 export const normalizeTravelogueMode = (mode = 'draft') => {
 	const normalizedMode = String(mode || 'draft').trim()
