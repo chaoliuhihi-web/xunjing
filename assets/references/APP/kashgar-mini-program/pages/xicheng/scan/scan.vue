@@ -61,6 +61,28 @@
 			</view>
 		</view>
 
+		<view class="scan-world-interface-hud xicheng-paper-card">
+			<view class="section-head xicheng-section-label">
+				<view>
+					<text class="section-kicker">世界交互入口</text>
+					<text class="section-title">现实世界成为AI的交互界面</text>
+				</view>
+				<text class="section-badge">World Interface</text>
+			</view>
+			<view class="scan-world-interface-grid">
+				<view
+					v-for="signal in worldInterfaceSignals"
+					:key="signal.key"
+					class="scan-world-interface-signal"
+					:class="{ 'scan-world-interface-signal-active': signal.active }"
+				>
+					<text class="scan-world-interface-label">{{ signal.label }}</text>
+					<text class="scan-world-interface-value">{{ signal.value }}</text>
+				</view>
+			</view>
+			<text class="scan-world-interface-summary">{{ worldInterfaceSummary }}</text>
+		</view>
+
 		<view class="scan-panel xicheng-paper-card">
 			<view class="scan-frame">
 				<view class="scan-frame-corner scan-frame-corner-tl"></view>
@@ -135,6 +157,8 @@ export default {
 			currentLocation: null,
 			sceneFusionSignals: [],
 			sceneFusionSummary: '镜头待命，正在接入现场信号',
+			worldInterfaceSignals: [],
+			worldInterfaceSummary: '现实世界成为AI的交互界面，等待现场信号',
 			selectedSceneAgentActionKey: '',
 			sceneAgentActionUserSelected: false,
 			routeContext: {
@@ -296,8 +320,77 @@ export default {
 			const nextCue = context.visionAgentMemorySessionText || context.knowledgeGraphText || context.serviceText || context.activityText || '拍一下后自动进入场景理解'
 			return `${subject} · ${activeCount}类现场信号已接入，${nextCue}`.slice(0, 88)
 		},
+		createWorldInterfaceSignals(context = this.buildSceneFusionContext()) {
+			const userInterestTags = String(context.userInterestTags || '').split(/[、,\s]+/).filter(Boolean)
+			const memoryTrail = Array.isArray(context.memoryTrail) ? context.memoryTrail : []
+			const knowledgeGraphText = String(context.knowledgeGraphText || context.activityText || context.serviceText || '')
+			const localTimeText = String(context.localTimeText || '')
+			const weatherText = String(context.weatherText || '')
+			const headingText = String(context.headingText || '')
+			const headingDegrees = String(context.headingDegrees || '')
+			const locationText = String(context.locationText || '')
+			const historyText = context.visionAgentMemorySessionText
+				|| (memoryTrail[0] && (memoryTrail[0].poiName || memoryTrail[0].sourceLabel))
+				|| ''
+			const environmentText = [localTimeText, weatherText].filter(Boolean).join(' ')
+			const directionText = [locationText, headingText || (headingDegrees ? `${headingDegrees}°` : '')].filter(Boolean).join(' · ')
+			return [
+				{
+					key: 'camera',
+					label: '镜头入口',
+					value: this.recognizing ? '正在理解现场' : '拍一下即提问',
+					active: true
+				},
+				{
+					key: 'location-direction',
+					label: '位置方向',
+					value: directionText || 'GPS和方向待接入',
+					active: Boolean(directionText)
+				},
+				{
+					key: 'profile',
+					label: '用户画像',
+					value: userInterestTags.length ? userInterestTags.slice(0, 3).join(' / ') : '兴趣待学习',
+					active: userInterestTags.length > 0
+				},
+				{
+					key: 'history',
+					label: '历史记录',
+					value: historyText || '首次识境',
+					active: Boolean(historyText)
+				},
+				{
+					key: 'city-knowledge',
+					label: '城市知识库',
+					value: knowledgeGraphText || '等待POI匹配',
+					active: Boolean(knowledgeGraphText)
+				},
+				{
+					key: 'live-environment',
+					label: '实时环境',
+					value: environmentText || '时间天气待刷新',
+					active: Boolean(environmentText)
+				}
+			]
+		},
+		createWorldInterfaceSummary(context = this.buildSceneFusionContext(), signals = this.createWorldInterfaceSignals(context)) {
+			const activeLabels = signals.filter(signal => signal && signal.active).map(signal => signal.label)
+			const subject = context.locationText || context.previousContext.poiName || context.visionCaption || this.region.cityName
+			const fusedText = activeLabels.length ? activeLabels.join('、') : '镜头、GPS、知识库'
+			return `${subject} · ${fusedText}正在融合，拍一下后直接触发讲解、路线、服务和连续对话。`.slice(0, 92)
+		},
+		buildWorldInterfaceSnapshot(context = this.buildSceneFusionContext()) {
+			const signals = this.createWorldInterfaceSignals(context)
+			return {
+				signals,
+				summary: this.createWorldInterfaceSummary(context, signals)
+			}
+		},
 		refreshSceneFusionPanel() {
 			const context = this.buildSceneFusionContext()
+			const worldInterfaceSnapshot = this.buildWorldInterfaceSnapshot(context)
+			this.worldInterfaceSignals = worldInterfaceSnapshot.signals
+			this.worldInterfaceSummary = worldInterfaceSnapshot.summary
 			this.sceneFusionSignals = this.buildSceneFusionSignals(context)
 			this.sceneFusionSummary = this.buildSceneFusionSummary(context, this.sceneFusionSignals)
 			const previews = this.createSceneAgentActionPreviews()
@@ -307,10 +400,14 @@ export default {
 		},
 		buildVisionAgentSceneContext(source = '', trigger = {}) {
 			const agentDecisionSnapshot = this.buildAgentDecisionSnapshot()
+			const worldInterfaceSnapshot = this.buildWorldInterfaceSnapshot()
 			return {
 				...this.visionAgentContext,
 				sceneFusionSummary: this.sceneFusionSummary,
 				sceneFusionSignals: this.sceneFusionSignals,
+				worldInterfaceSnapshot,
+				worldInterfaceSummary: worldInterfaceSnapshot.summary,
+				worldInterfaceSignals: worldInterfaceSnapshot.signals,
 				source,
 				poiCode: trigger.poiCode || '',
 				poiName: trigger.poiName || '',
@@ -650,6 +747,7 @@ export default {
 .scan-panel,
 .scan-fusion-panel,
 .scan-agent-preview-panel,
+.scan-world-interface-hud,
 .scan-capabilities {
 	margin-top: 24rpx;
 	padding: 28rpx;
@@ -744,6 +842,66 @@ export default {
 	margin-top: 8rpx;
 	font-size: 21rpx;
 	color: rgba(255, 255, 255, 0.72);
+}
+
+.scan-world-interface-hud {
+	background:
+		linear-gradient(135deg, rgba(255, 252, 244, 0.98), rgba(239, 247, 240, 0.94));
+}
+
+.scan-world-interface-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 12rpx;
+	margin-top: 22rpx;
+}
+
+.scan-world-interface-signal {
+	min-width: 0;
+	min-height: 132rpx;
+	padding: 16rpx;
+	border-radius: 20rpx;
+	border: 1rpx solid rgba(16, 47, 41, 0.08);
+	background: rgba(255, 255, 255, 0.58);
+	box-sizing: border-box;
+}
+
+.scan-world-interface-signal-active {
+	border-color: rgba(184, 129, 43, 0.28);
+	background: rgba(255, 247, 226, 0.86);
+}
+
+.scan-world-interface-label,
+.scan-world-interface-value,
+.scan-world-interface-summary {
+	display: block;
+	line-height: 1.4;
+}
+
+.scan-world-interface-label {
+	font-size: 20rpx;
+	font-weight: 800;
+	color: rgba(16, 47, 41, 0.56);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.scan-world-interface-value {
+	margin-top: 10rpx;
+	font-size: 23rpx;
+	font-weight: 800;
+	color: #102F29;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.scan-world-interface-summary {
+	margin-top: 18rpx;
+	font-size: 24rpx;
+	color: rgba(16, 47, 41, 0.68);
 }
 
 .scan-fusion-grid {
