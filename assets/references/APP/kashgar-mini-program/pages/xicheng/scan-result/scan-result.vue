@@ -131,6 +131,27 @@
 			</view>
 		</view>
 
+		<view v-if="cityKnowledgeGraphNodes.length > 0" class="vision-agent-knowledge-panel xicheng-paper-card">
+			<view class="section-head xicheng-section-label">
+				<text class="section-title">城市知识图谱</text>
+				<text class="section-badge">Knowledge Graph</text>
+			</view>
+			<text class="knowledge-graph-summary">从当前镜头出发，把地标、路线、人物/主题和城市服务串成可继续追问的节点。</text>
+			<view class="knowledge-graph-node-grid">
+				<view
+					v-for="node in cityKnowledgeGraphNodes"
+					:key="node.key"
+					class="knowledge-graph-node"
+					:class="`knowledge-graph-node-${node.type}`"
+					@click="openKnowledgeGraphNode(node)"
+				>
+					<text class="knowledge-graph-node-label">{{ knowledgeGraphNodeTypeLabel(node.type) }}</text>
+					<text class="knowledge-graph-node-title">{{ node.title }}</text>
+					<text class="knowledge-graph-node-copy">{{ node.copy }}</text>
+				</view>
+			</view>
+		</view>
+
 		<view
 			class="poi-detail-entry xicheng-paper-card"
 			:class="{ 'poi-detail-entry-disabled': recognitionActionBlocked }"
@@ -677,6 +698,9 @@ export default {
 				.map(name => name.trim())
 				.filter(Boolean)
 		},
+		cityKnowledgeGraphNodes() {
+			return this.createCityKnowledgeGraphNodes()
+		},
 		pendingCandidateConfirmation() {
 			return Boolean(this.result.requiresUserConfirm && this.candidateList.length > 0)
 		},
@@ -929,6 +953,82 @@ export default {
 				const leftScore = scoreMap[left.actionKey] || 0
 				return rightScore - leftScore
 			})
+		},
+		createCityKnowledgeGraphNodes() {
+			if (this.recognitionActionBlocked) return []
+			const officialPoi = findXichengOfficialPoiForResult(this.result) || {}
+			const visionContext = this.result.visionAgentContext || {}
+			const knowledgeGraphText = String(visionContext.knowledgeGraphText || this.result.theme || '').trim()
+			const serviceText = String(visionContext.serviceText || '').trim()
+			const nodes = []
+			const appendNode = (node = {}) => {
+				if (!node.title) return
+				const nodeKey = node.key || `${node.type || 'topic'}-${node.title}`
+				if (nodes.some(item => item.key === nodeKey)) return
+				nodes.push({
+					key: nodeKey,
+					type: node.type || 'topic',
+					title: node.title,
+					copy: node.copy || '点击继续追问小京'
+				})
+			}
+			appendNode({
+				key: `poi-${this.result.poiCode || officialPoi.poiCode || this.result.poiName}`,
+				type: 'poi',
+				title: this.result.poiName || officialPoi.poiName || '当前场景',
+				copy: officialPoi.summary || this.result.reason || '从当前识别点展开历史、建筑和人物关系。'
+			})
+			knowledgeGraphText
+				.split(/[,，、;；|/→>]+/)
+				.map(item => item.trim())
+				.filter(Boolean)
+				.slice(0, 3)
+				.forEach((topic, index) => appendNode({
+					key: `topic-${index}-${topic}`,
+					type: 'topic',
+					title: topic,
+					copy: `围绕${this.result.poiName || '当前场景'}继续展开。`
+				}))
+			if (this.recommendedRoute && (this.recommendedRoute.title || this.routeSteps.length > 0)) {
+				appendNode({
+					key: `route-${this.recommendedRoute.routeCode || this.recommendedRoute.title}`,
+					type: 'route',
+					title: this.recommendedRoute.title || '推荐路线',
+					copy: this.recommendedRoute.summary || this.recommendedRoute.theme || '把当前点接入下一站路线。'
+				})
+			}
+			if (serviceText) {
+				appendNode({
+					key: `service-${serviceText}`,
+					type: 'service',
+					title: serviceText,
+					copy: '把城市服务、商家、活动或打卡任务接到当前场景。'
+				})
+			}
+			return nodes.slice(0, 6)
+		},
+		knowledgeGraphNodeTypeLabel(type = 'topic') {
+			if (type === 'poi') return '地标'
+			if (type === 'route') return '路线'
+			if (type === 'service') return '服务'
+			return '知识'
+		},
+		createKnowledgeGraphNodePrompt(node = {}) {
+			if (node.type === 'route') {
+				return `沿着城市知识图谱，从${this.result.poiName || '当前场景'}继续讲到${node.title || '这条路线'}这条路线，说明下一站为什么这样推荐。`
+			}
+			if (node.type === 'service') {
+				return `沿着城市知识图谱，从${this.result.poiName || '当前场景'}继续讲到${node.title || '这个服务节点'}，告诉我现在可以接哪些文旅服务动作。`
+			}
+			return `沿着城市知识图谱，从${this.result.poiName || '当前场景'}继续讲到${node.title || '这个节点'}，讲清楚它和当前场景的关系。`
+		},
+		openKnowledgeGraphNode(node = {}) {
+			if (this.recognitionActionBlocked) {
+				this.showMissingOfficialPoiToast(node.title || '继续')
+				return
+			}
+			const prompt = this.createKnowledgeGraphNodePrompt(node)
+			this.askXiaojing(prompt)
 		},
 		createVisionAgentMemorySnapshot(stage = 'current') {
 			const visionContext = this.result.visionAgentContext || {}
@@ -2085,6 +2185,75 @@ export default {
 	margin-top: 8rpx;
 	font-size: 21rpx;
 	color: rgba(255, 255, 255, 0.74);
+}
+
+.vision-agent-knowledge-panel {
+	margin-top: 28rpx;
+	padding: 26rpx;
+	border-radius: 30rpx;
+	background: rgba(255, 253, 248, 0.94);
+}
+
+.knowledge-graph-summary {
+	display: block;
+	margin-top: 12rpx;
+	font-size: 24rpx;
+	line-height: 1.45;
+	color: rgba(16, 47, 41, 0.72);
+}
+
+.knowledge-graph-node-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 14rpx;
+	margin-top: 20rpx;
+}
+
+.knowledge-graph-node {
+	min-width: 0;
+	min-height: 164rpx;
+	padding: 18rpx;
+	border-radius: 22rpx;
+	border: 1rpx solid rgba(31, 110, 90, 0.12);
+	background: rgba(246, 250, 246, 0.80);
+	box-sizing: border-box;
+}
+
+.knowledge-graph-node-route {
+	background: rgba(31, 110, 90, 0.10);
+}
+
+.knowledge-graph-node-service {
+	background: rgba(181, 148, 94, 0.12);
+}
+
+.knowledge-graph-node-label,
+.knowledge-graph-node-title,
+.knowledge-graph-node-copy {
+	display: block;
+	line-height: 1.4;
+}
+
+.knowledge-graph-node-label {
+	font-size: 21rpx;
+	font-weight: 800;
+	color: #1F6E5A;
+}
+
+.knowledge-graph-node-title {
+	margin-top: 8rpx;
+	font-size: 27rpx;
+	font-weight: 800;
+	color: #173F35;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.knowledge-graph-node-copy {
+	margin-top: 8rpx;
+	font-size: 22rpx;
+	color: rgba(16, 47, 41, 0.66);
 }
 
 .vision-agent-action-grid,
