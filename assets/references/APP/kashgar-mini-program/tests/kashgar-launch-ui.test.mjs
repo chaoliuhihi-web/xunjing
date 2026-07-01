@@ -43,7 +43,7 @@ assert.match(
   'Kashgar travel notes should use the reference two-column grid'
 )
 
-for (const requiredText of ['跟着游记', 'AI旅伴', '我的']) {
+for (const requiredText of ['跟着游记', 'AI识境', '我的']) {
   assert.ok(
     tabBar.includes(`>${requiredText}<`),
     `Tab bar should include the reference label ${requiredText}`
@@ -52,8 +52,8 @@ for (const requiredText of ['跟着游记', 'AI旅伴', '我的']) {
 
 assert.match(
   tabBar,
-  /<text class="center-text">AI旅伴<\/text>/,
-  'Center AI tab should show the reference label below the character'
+  /<text class="center-text">AI识境<\/text>/,
+  'Center AI tab should show the AI识境 primary entry label below the character'
 )
 
 const centerOffsetMatch = tabBar.match(/\.center-btn-wrapper\s*\{[\s\S]*?margin-top:\s*(-?\d+)px/)

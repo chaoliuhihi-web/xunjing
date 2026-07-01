@@ -7,12 +7,12 @@
 				<text :class="['tab-text', selected === 0 ? 'active-text' : '']">跟着游记</text>
 			</navigator>
 
-			<!-- AI旅伴 -->
-			<navigator class="center-btn-wrapper" url="/pages/ai-guide/ai-guide" open-type="reLaunch" hover-class="none">
+			<!-- AI识境 -->
+			<navigator class="center-btn-wrapper" url="/pages/xicheng/scan/scan" open-type="reLaunch" hover-class="none">
 				<view class="center-btn">
 					<image src="/static/tabbar/ai_companion_avatar.png" mode="aspectFill" class="center-avatar"></image>
 				</view>
-				<text class="center-text">AI旅伴</text>
+				<text class="center-text">AI识境</text>
 			</navigator>
 
 			<!-- 我的 -->

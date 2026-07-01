@@ -194,6 +194,7 @@ export default {
 			region: XICHENG_REGION_CONFIG,
 			xichengHomeNavItems: [
 				{ key: 'explore', title: '探索', icon: 'explore' },
+				{ key: 'vision', title: 'AI识境', icon: 'scan' },
 				{ key: 'routes', title: '地图', icon: 'routes' },
 				{ key: 'record', title: '记录', icon: 'record' },
 				{ key: 'mine', title: '我的', icon: 'mine' }
@@ -718,6 +719,9 @@ export default {
 						scrollTop: 0,
 						duration: 220
 					})
+					break
+				case 'vision':
+					this.startSceneVisionAgent()
 					break
 				case 'routes':
 					this.openXichengRoutes()

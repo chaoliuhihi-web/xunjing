@@ -35,6 +35,12 @@ export default {
         selectedIconPath: 'static/tabbar/xiake1.png'
       },
       {
+        pagePath: 'pages/xicheng/scan/scan',
+        text: 'AI识境',
+        iconPath: 'static/tabbar/ai_companion_avatar.png',
+        selectedIconPath: 'static/tabbar/ai_companion_avatar.png'
+      },
+      {
         pagePath: 'subPackages/feature/theater/theater',
         text: '游记剧场',
         iconPath: 'static/tabbar/tab.png',

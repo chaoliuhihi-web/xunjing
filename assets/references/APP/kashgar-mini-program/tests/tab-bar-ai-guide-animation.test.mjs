@@ -20,8 +20,8 @@ assert.match(
 
 assert.match(
   component,
-  /<text class="center-text">AI旅伴<\/text>/,
-  'center tab label should match the reference APP copy'
+  /<text class="center-text">AI识境<\/text>/,
+  'center tab label should match the Vision Agent primary entry copy'
 )
 
 assert.doesNotMatch(

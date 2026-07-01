@@ -14,8 +14,8 @@ assert.match(
 
 assert.match(
   tabBar,
-  /<navigator class="center-btn-wrapper" url="\/pages\/ai-guide\/ai-guide" open-type="reLaunch"/,
-  'center AI guide tab should use native navigator'
+  /<navigator class="center-btn-wrapper" url="\/pages\/xicheng\/scan\/scan" open-type="reLaunch"/,
+  'center AI识境 tab should use native navigator'
 )
 
 assert.match(
