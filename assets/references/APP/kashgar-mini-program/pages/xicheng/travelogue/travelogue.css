@@ -480,7 +480,8 @@
 	margin-top: 28rpx;
 }
 
-.travelogue-ai-notice {
+.travelogue-ai-notice,
+.travelogue-human-notice {
 	display: block;
 	margin-top: 20rpx;
 	font-size: 22rpx;

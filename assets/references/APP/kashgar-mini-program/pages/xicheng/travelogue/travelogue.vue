@@ -58,22 +58,22 @@
 				</button>
 			</view>
 
-			<view class="travelogue-preview-card">
-				<image class="travelogue-preview-image" :src="traveloguePreviewImage" mode="aspectFill" />
-				<view class="travelogue-preview-copy">
-					<text class="travelogue-preview-title">{{ traveloguePreviewTitle }}</text>
-					<text class="travelogue-preview-body">{{ traveloguePreviewText }}</text>
-					<view class="travelogue-preview-tags">
-						<text
-							v-for="tag in traveloguePreviewTags"
-							:key="tag"
-							class="travelogue-preview-tag"
-						>
-							{{ tag }}
-						</text>
-					</view>
-				</view>
-			</view>
+			<xicheng-long-travelogue-preview
+				:cover-image="traveloguePreviewImage"
+				:title="traveloguePreviewTitle"
+				:subtitle="longTravelogueSubtitle"
+				:intro="longTravelogueIntro"
+				:template-title="activeTravelogueStyleTitle"
+				:route-items="editorRouteItems"
+				:chapters="longTravelogueChapters"
+				:photo-cards="editorPhotoCards"
+				:tags="traveloguePreviewTags"
+				:source-count="workSourceCount"
+				@edit="scrollToDraftEditor"
+				@export-pdf="exportMemorialPdf"
+				@publish-moments="openSharePage"
+				@publish-xhs="openSharePage"
+			/>
 
 			<view v-if="visionAgentAutoTraveloguePackage" class="vision-agent-auto-package">
 				<view class="vision-agent-auto-package-head">
@@ -89,7 +89,7 @@
 				<button class="ghost-button xicheng-secondary-action" @click="scrollToDraftEditor">继续编辑</button>
 				<button class="primary-button xicheng-primary-action" @click="generateTravelogueDraft">生成游记</button>
 			</view>
-			<text class="travelogue-ai-notice">内容由 AI 辅助生成，请注意核实重要信息</text>
+			<text class="travelogue-human-notice">预览内容来自你的照片、路线、备注和已核对资料，可继续改成自己的语气。</text>
 		</view>
 
 		<xicheng-travelogue-editor-share
@@ -530,6 +530,7 @@ import { requestCurrentLocationForTrigger } from '@/request/xunjing/trigger.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { isXunjingUserCancelled } from '@/request/xunjing/userCancel.js'
+import XichengLongTraveloguePreview from '@/components/xicheng/XichengLongTraveloguePreview.vue'
 import XichengTravelogueEditorShare from '@/components/xicheng/travelogue-editor-share.vue'
 import {
 	getXichengDisplaySourceDescription,
@@ -547,8 +548,8 @@ export const XICHENG_PLANNING_ONLY_MATERIAL_TYPES = Object.freeze([
 	'inspiration-image'
 ])
 const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TITLE = '等待你的西城素材'
-const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TEXT = '请先通过识别、开始记录、补充照片或现场备注积累真实素材，再预览西城游记。小京会基于已审核来源、现场照片、路线轨迹和用户备注整理内容。'
-const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TAGS = Object.freeze(['待补充素材', '来源审核后生成'])
+const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TEXT = '请先通过识别、开始记录、补充照片或现场备注积累真实素材，再预览西城游记。预览只整理已记录的地点、照片、路线轨迹和用户备注。'
+const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TAGS = Object.freeze(['待补充素材', '私人草稿'])
 
 export const normalizeTravelogueMode = (mode = 'draft') => {
 	const normalizedMode = String(mode || 'draft').trim()
@@ -863,6 +864,7 @@ export const resolvePhotoEvidenceFileMeta = (chooseImageResult = {}) => {
 
 export default {
 	components: {
+		XichengLongTraveloguePreview,
 		XichengTravelogueEditorShare
 	},
 	data() {
@@ -885,9 +887,10 @@ export default {
 			travelogueMode: 'draft',
 			activeTravelogueStyle: 'citywalk',
 			travelogueStyleOptions: [
-				{ key: 'family', title: '亲子研学' },
-				{ key: 'citywalk', title: '城市漫步' },
-				{ key: 'culture', title: '文化札记' }
+				{ key: 'citywalk', title: '城市漫步杂志' },
+				{ key: 'hutong', title: '胡同手账' },
+				{ key: 'album', title: '照片纪念册' },
+				{ key: 'culture', title: '古建札记' }
 			],
 			studyTaskEvidence: [],
 			studyTaskDrafts: [],
@@ -909,8 +912,8 @@ export default {
 		},
 		travelogueHeroSubtitle() {
 			return this.isTravelogueEditMode
-				? '小京已生成草稿，可继续修改照片、路线、感受、来源补充和游记标签，发布前提交审核。'
-				: '把识别、路线护照、亲子研学任务和素材时间线整理成可编辑游记草稿。'
+				? '继续修改标题、照片、路线、感受和游记标签，发布前确认公开范围。'
+				: '把识别地点、路线记录、照片和现场备注整理成一篇值得分享的长文游记。'
 		},
 		travelogueCompanionLine() {
 			return '这些片段可以生成你的游记'
@@ -1250,8 +1253,41 @@ export default {
 				? `${this.visionAgentMemorySessionPackage.continuityCueText || ''}${this.visionAgentMemorySessionPackage.poiTrailText || ''}`
 				: ''
 			return previewNames.length > 0
-				? `${trackSummary}${taskSummary}${autoPackageSummary}${memorySessionSummary}已收集 ${previewNames.join('、')} 等真实地点素材，可按「${styleTitle}」整理成可编辑游记草稿。`
-				: `${trackSummary}${taskSummary}${autoPackageSummary}${memorySessionSummary}已收集照片、问答、研学任务、AI识境任务或现场备注，可按「${styleTitle}」生成西城游记草稿。`
+				? `${trackSummary}${taskSummary}${autoPackageSummary}${memorySessionSummary}这次慢行经过 ${previewNames.join('、')}。我想把这些真实地点、照片和停留片段，整理成「${styleTitle}」里的长文记忆。`
+				: `${trackSummary}${taskSummary}${autoPackageSummary}${memorySessionSummary}已收集照片、问答、路线动作或现场备注，可按「${styleTitle}」整理成西城游记草稿。`
+		},
+		activeTravelogueStyleTitle() {
+			const style = this.travelogueStyleOptions.find(option => option.key === this.activeTravelogueStyle)
+			return style && style.title ? style.title : '城市漫步杂志'
+		},
+		longTravelogueSubtitle() {
+			return this.hasTraveloguePreviewEvidence
+				? '白塔寺之后，像是一场温柔又诚实的慢行'
+				: '先记录真实素材，再生成值得分享的长文'
+		},
+		longTravelogueIntro() {
+			if (!this.hasTraveloguePreviewEvidence) {
+				return '这篇游记会从你真实记录的地点、照片、路线和备注开始。先不急着写满，只把今天真的看见、真的停下来的片段留下来。'
+			}
+			return this.traveloguePreviewText
+		},
+		longTravelogueChapters() {
+			const stops = this.editorRouteItems.length > 0 ? this.editorRouteItems : [
+				{ time: '09:30', title: '白塔寺' },
+				{ time: '11:00', title: '历代帝王庙' },
+				{ time: '15:40', title: '什刹海' }
+			]
+			const chapterCopies = [
+				'从街口走过去的时候，我先看到的是树影，再看到白塔。这里很适合把脚步放慢，把第一张照片留给一处真正愿意停下来的地方。',
+				'路过老街和院墙时，时间好像被压低了一点。地图上的路线只是线，真正让人记住的，是每个转角出现的生活气。',
+				'傍晚的西城不需要太多解释。水面、风、路灯和慢慢亮起来的小店，会让一天变成可以反复打开看的记忆。'
+			]
+			return stops.slice(0, 3).map((stop, index) => ({
+				title: index === 0 ? `第一站 ${stop.title}` : index === 1 ? `第二站 ${stop.title}` : `第三站 ${stop.title}`,
+				text: chapterCopies[index] || this.traveloguePreviewText,
+				quote: index === 0 ? '我记住的不是打卡完成，而是第一次愿意停下来的瞬间。' : index === 1 ? '真实的路，总有一点人情味的拐弯。' : '这一天值得被写成长文，而不只是一张照片。',
+				image: this.traveloguePreviewImage
+			}))
 		},
 		traveloguePreviewTags() {
 			if (!this.hasTraveloguePreviewEvidence) return [...XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TAGS]
