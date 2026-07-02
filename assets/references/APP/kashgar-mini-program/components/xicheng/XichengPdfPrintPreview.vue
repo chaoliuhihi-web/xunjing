@@ -58,6 +58,30 @@
 				</view>
 			</view>
 		</scroll-view>
+
+		<view v-if="showAllPagesPreview" class="print-all-pages-overview xicheng-paper-card">
+			<view class="all-pages-head">
+				<view>
+					<text class="all-pages-kicker">全页总览</text>
+					<text class="all-pages-title">打印前逐页检查</text>
+				</view>
+				<text class="all-pages-count">{{ previewPages.length }} 页</text>
+			</view>
+			<view class="all-pages-grid">
+				<view
+					v-for="page in previewPages"
+					:key="`all-page-${page.pageNo}`"
+					class="all-page-item"
+					:class="{ 'all-page-item-active': page.pageNo - 1 === currentPageIndex }"
+				>
+					<view class="all-page-mini-sheet" @click="$emit('select-page', page.pageNo - 1)">
+						<image v-if="page.image" class="all-page-mini-image" :src="page.image" mode="aspectFill" />
+						<text class="all-page-mini-no">P{{ page.pageNo }}</text>
+					</view>
+					<text class="all-page-label">{{ page.label }}</text>
+				</view>
+			</view>
+		</view>
 	</view>
 </template>
 
@@ -88,6 +112,10 @@ export default {
 		companionAvatar: {
 			type: String,
 			default: ''
+		},
+		showAllPagesPreview: {
+			type: Boolean,
+			default: false
 		}
 	},
 	emits: ['select-page']
@@ -364,4 +392,20 @@ export default {
 	font-size: 22rpx;
 	color: #4C463E;
 }
+.print-all-pages-overview { margin-top: 22rpx; padding: 24rpx; border-radius: 26rpx; }
+.all-pages-head { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; }
+.all-pages-kicker,
+.all-pages-title,
+.all-pages-count,
+.all-page-label { display: block; }
+.all-pages-kicker { color: #B5945E; font-size: 22rpx; font-weight: 800; }
+.all-pages-title { margin-top: 6rpx; color: #102F29; font-size: 30rpx; font-weight: 900; }
+.all-pages-count { padding: 9rpx 18rpx; border-radius: 999rpx; background: rgba(23, 63, 53, 0.08); color: #173F35; font-size: 22rpx; font-weight: 800; }
+.all-pages-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18rpx; margin-top: 22rpx; }
+.all-page-item { min-width: 0; text-align: center; }
+.all-page-mini-sheet { position: relative; height: 150rpx; border-radius: 10rpx; background: #FFFDF8; border: 2rpx solid rgba(181, 148, 94, 0.18); overflow: hidden; }
+.all-page-item-active .all-page-mini-sheet { border-color: #173F35; box-shadow: 0 10rpx 22rpx rgba(16, 47, 41, 0.14); }
+.all-page-mini-image { width: 100%; height: 96rpx; }
+.all-page-mini-no { position: absolute; left: 9rpx; bottom: 8rpx; color: #B5945E; font-size: 19rpx; font-weight: 900; }
+.all-page-label { margin-top: 8rpx; color: #4C463E; font-size: 22rpx; }
 </style>

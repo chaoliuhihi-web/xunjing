@@ -30,6 +30,7 @@
 			:preview-pages="previewPages"
 			:current-page-index="currentPageIndex"
 			:current-preview-page="currentPreviewPage"
+			:show-all-pages-preview="showAllPagesPreview"
 			:route-stops="routeStops"
 			:selected-photos="selectedPhotos"
 			:companion-avatar="region.companionAvatar"
@@ -88,7 +89,7 @@
 
 		<view class="print-actions">
 			<button class="ghost-button xicheng-secondary-action" @click="savePdf">保存 PDF</button>
-			<button class="ghost-button xicheng-secondary-action" @click="previewAllPages">预览全部</button>
+			<button class="ghost-button xicheng-secondary-action" @click="previewAllPages">预览全部页面</button>
 			<button class="primary-button xicheng-primary-action" @click="systemPrintPdf">打印 / 分享 PDF</button>
 		</view>
 
@@ -116,6 +117,7 @@ export default {
 			region: XICHENG_REGION_CONFIG,
 			journeyDraft: {},
 			shareArtifacts: [],
+			showAllPagesPreview: false,
 			currentPageIndex: 0
 		}
 	},
@@ -254,7 +256,7 @@ export default {
 			this.currentPageIndex = Math.min(Math.max(Math.round(nextIndex), 0), this.previewPages.length - 1)
 		},
 		previewAllPages() {
-			uni.showToast({ title: '预览全部页面', icon: 'none' })
+			this.showAllPagesPreview = !this.showAllPagesPreview
 		},
 		confirmPdfExportAction(actionLabel = '') {
 			return new Promise((resolve) => {

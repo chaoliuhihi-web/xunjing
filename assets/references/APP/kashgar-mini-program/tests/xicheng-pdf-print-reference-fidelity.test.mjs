@@ -5,6 +5,10 @@ import path from 'node:path'
 const root = process.cwd()
 const pdfPrint = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'pdf-print', 'pdf-print.vue'), 'utf8')
 const previewComponentPath = path.join(root, 'components', 'xicheng', 'XichengPdfPrintPreview.vue')
+const getMethodBlock = (source, methodName) => {
+  const match = source.match(new RegExp(`${methodName}\\(\\)\\s*\\{([\\s\\S]*?)\\n\\t\\t\\},`))
+  return match ? match[1] : ''
+}
 
 assert.ok(
   fs.existsSync(previewComponentPath),
@@ -24,6 +28,8 @@ for (const token of [
   'print-page-stage',
   'print-page-counter',
   'print-thumbnail-strip',
+  'print-all-pages-overview',
+  '全页总览',
   'print-settings-grid',
   'export-content-card',
   '保存 PDF',
@@ -60,8 +66,8 @@ assert.match(
 
 assert.match(
   pdfPrint,
-  /<xicheng-pdf-print-preview[\s\S]*:preview-pages="previewPages"[\s\S]*:current-page-index="currentPageIndex"[\s\S]*:current-preview-page="currentPreviewPage"[\s\S]*@select-page="selectPreviewPage"/,
-  'PDF print page should pass preview data and page selection into the split preview component'
+  /<xicheng-pdf-print-preview[\s\S]*:preview-pages="previewPages"[\s\S]*:current-page-index="currentPageIndex"[\s\S]*:current-preview-page="currentPreviewPage"[\s\S]*:show-all-pages-preview="showAllPagesPreview"[\s\S]*@select-page="selectPreviewPage"/,
+  'PDF print page should pass preview data, all-page overview state and page selection into the split preview component'
 )
 
 assert.match(
@@ -86,6 +92,24 @@ assert.match(
   pdfPrint,
   /printPreflightItems\(\)[\s\S]*隐私保护[\s\S]*精确轨迹默认隐藏[\s\S]*来源检查[\s\S]*只导出已审核来源[\s\S]*用户确认[\s\S]*系统打印\/分享前会再次确认/,
   'PDF print page should summarize privacy, source and user-confirmation readiness before export actions'
+)
+
+assert.match(
+  pdfPrint,
+  /previewAllPages\(\)[\s\S]*this\.showAllPagesPreview = !this\.showAllPagesPreview/,
+  'Preview-all action should toggle a real all-page overview instead of showing only a toast'
+)
+
+assert.doesNotMatch(
+  getMethodBlock(pdfPrint, 'previewAllPages'),
+  /uni\.showToast/,
+  'Preview-all action should not remain a toast-only placeholder'
+)
+
+assert.match(
+  previewComponent,
+  /v-if="showAllPagesPreview"[\s\S]*class="print-all-pages-overview[\s\S]*v-for="page in previewPages"[\s\S]*class="all-page-mini-sheet"[\s\S]*@click="\$emit\('select-page', page\.pageNo - 1\)"/,
+  'Split PDF preview component should render a tappable all-page overview for print checking'
 )
 
 assert.match(
