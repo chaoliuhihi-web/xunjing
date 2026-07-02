@@ -421,6 +421,66 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerUsesSceneSignalsForIntentAndContextMatch() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneDomainIntentKey", "menu");
+        sceneSignals.put("sceneDomainIntentLabel", "菜单");
+        sceneSignals.put("sceneFusionSummary", "用户正在恭王府附近拍菜单，想知道推荐菜、辣度和是否清真");
+        sceneSignals.put("worldInterfaceSummary", "相机融合当前位置、时间和城市知识库后判断为餐饮服务场景");
+        sceneSignals.put("agentDecisionReasonSummary", "先推荐附近适合游客第一次点的菜");
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneSignals(sceneSignals);
+        reqVO.setLocation(location("39.937050", "116.386770", 20));
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("food", respVO.getIntent());
+        assertEquals("confirm_food_recommendation", respVO.getAction());
+        assertTrue(respVO.getTargetPath().contains("/pages/food/recommend"));
+        assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
+        assertTrue(respVO.getConfidence() < 0.85D);
+        assertTrue(respVO.getRequiresUserConfirm());
+        assertTrue(respVO.getCandidates().get(0).getMatchedSignals().contains("gps_radius"));
+        assertTrue(respVO.getCandidates().get(0).getMatchedSignals().contains("scene_context_alias"));
+        assertTrue(respVO.getReason().contains("场景理解"));
+    }
+
+    @Test
+    public void testResolveMultimodalTriggerDoesNotTreatPhotoAdviceSceneSignalAsRecordIntent() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneDomainIntentKey", "architecture");
+        sceneSignals.put("sceneDomainIntentLabel", "建筑");
+        sceneSignals.put("sceneFusionSummary", "恭王府当前接近日落，建议先拍照再听历史讲解");
+        sceneSignals.put("agentDecisionActionTitle", "先拍照");
+        sceneSignals.put("agentDecisionReasonSummary", "夕阳适合拍门楼");
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneSignals(sceneSignals);
+        reqVO.setLocation(location("39.937050", "116.386770", 20));
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("guide", respVO.getIntent());
+        assertEquals("confirm_ai_guide", respVO.getAction());
+        assertTrue(respVO.getTargetPath().contains("/pages/ai-guide/detail"));
+        assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
+        assertTrue(respVO.getCandidates().get(0).getMatchedSignals().contains("scene_context_alias"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerPrefersPreciseStreetPoiOverNearbyDistrictAlias() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
