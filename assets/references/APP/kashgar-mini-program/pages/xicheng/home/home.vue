@@ -731,8 +731,24 @@ export default {
 			}
 		},
 		openXichengTravelogue(mode = 'record') {
+			const visionAgentContext = this.buildVisionAgentSceneContext('home-travelogue', this.recentRecognition || {})
+			const query = [
+				`mode=${encodeRouteValue(mode)}`,
+				`autoStart=${encodeRouteValue(mode === 'record' ? '1' : '')}`,
+				`regionCode=${encodeRouteValue(this.region.regionCode)}`,
+				`packageCode=${encodeRouteValue(this.region.packageCode)}`,
+				`sceneCode=${encodeRouteValue(this.region.sceneCode)}`,
+				`sourceChannel=${encodeRouteValue(this.region.sourceChannel)}`,
+				`companionName=${encodeRouteValue(this.region.companionName)}`,
+				`poiCode=${encodeRouteValue(visionAgentContext.poiCode || '')}`,
+				`poiName=${encodeRouteValue(visionAgentContext.poiName || '')}`,
+				`safetyStatus=${encodeRouteValue(visionAgentContext.safetyStatus || '')}`,
+				`visionAgentContext=${encodeRouteValue(JSON.stringify(visionAgentContext))}`,
+				`sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || '')}`,
+				`memorySessionSceneCount=${encodeRouteValue(visionAgentContext.memorySessionSceneCount || '')}`
+			].join('&')
 			uni.navigateTo({
-				url: `/pages/xicheng/travelogue/travelogue?mode=${encodeRouteValue(mode)}&autoStart=${encodeRouteValue(mode === 'record' ? '1' : '')}&regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&companionName=${encodeRouteValue(this.region.companionName)}`
+				url: `/pages/xicheng/travelogue/travelogue?${query}`
 			})
 		},
 		openXichengRecording() {
