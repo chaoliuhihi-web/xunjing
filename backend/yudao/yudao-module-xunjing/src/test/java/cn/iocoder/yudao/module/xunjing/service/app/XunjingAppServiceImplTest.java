@@ -897,6 +897,53 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testAnswerHydratesVisionAgentMemoryFromPreviousAskEvent() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        consoleService.addKnowledgeDocument(xichengBaitasiKnowledgeReq(packageId));
+        consoleService.addKnowledgeDocument(xichengUnrelatedKnowledgeReq(packageId));
+
+        RagChatReqVO firstReq = xichengRagReq();
+        firstReq.setUserTraceId("trace-xicheng-memory-001");
+        firstReq.setVisionAgentSceneFusionSummary("用户举起手机看到妙应寺白塔，夕阳照到门楼。");
+        firstReq.setVisionAgentWorldInterfaceSummary("相机融合定位和城市知识库，判断当前位置在白塔寺片区。");
+        firstReq.setVisionAgentPrimarySceneDomainKey("architecture");
+        firstReq.setVisionAgentPrimarySceneDomainLabel("建筑");
+        firstReq.setVisionAgentSceneUnderstandingSummary("现场主体是妙应寺白塔。");
+        firstReq.setVisionAgentDecisionReasonSummary("马上日落，光线适合先拍照。");
+        firstReq.setVisionAgentMemorySessionSceneCount(1);
+        RagChatRespVO firstAnswer = appService.answer(firstReq);
+        assertEquals("PASSED", firstAnswer.getSafetyStatus());
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-memory-001");
+        followUpReq.setQuestion("它为什么值得看？");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO followUpAnswer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", followUpAnswer.getSafetyStatus());
+        assertFalse(followUpAnswer.getSources().isEmpty());
+        assertEquals("妙应寺白塔权威讲解稿", followUpAnswer.getSources().get(0).getTitle());
+        assertTrue(followUpAnswer.getAnswer().contains("妙应寺白塔"));
+
+        List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId, "trace-xicheng-memory-001"));
+        assertEquals(2, events.size());
+        XunjingInteractionEventDO latestEvent = events.stream()
+                .max((left, right) -> left.getId().compareTo(right.getId()))
+                .orElseThrow();
+        JsonNode payload = JsonUtils.parseTree(latestEvent.getPayloadJson());
+        JsonNode visionAgentContext = payload.get("visionAgentContext");
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("妙应寺白塔"));
+        assertEquals(1, visionAgentContext.get("memorySessionSceneCount").asInt());
+    }
+
+    @Test
     public void testAnswerBlocksWhenNoReviewedSourcesForXichengPoi() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());

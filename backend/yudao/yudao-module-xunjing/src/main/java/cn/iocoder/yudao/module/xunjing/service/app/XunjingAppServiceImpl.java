@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import cn.iocoder.yudao.module.ai.dal.dataobject.model.AiModelDO;
 import cn.iocoder.yudao.module.ai.enums.model.AiModelTypeEnum;
 import cn.iocoder.yudao.module.ai.enums.model.AiPlatformEnum;
@@ -208,6 +209,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         XunjingResourcePackageDO resourcePackage = validatePublicPackage(reqVO.getPackageCode());
         validateExpectedResourceType(resourcePackage, expectedResourceType);
         XunjingQrCodeDO qrCode = resolveAnswerQrCode(reqVO, resourcePackage);
+        hydrateVisionAgentMemoryFromPreviousAsk(resourcePackage, reqVO);
         recordAskEvent(resourcePackage, reqVO);
 
         RagChatRespVO quotaBlocked = buildQuotaBlockedIfNeeded(resourcePackage, qrCode, reqVO);
@@ -610,6 +612,79 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         payload.put("routeId", defaultIfBlank(reqVO.getRouteId(), ""));
         payload.put("visionAgentContext", buildVisionAgentChatContextPayload(reqVO));
         return JsonUtils.toJsonString(payload);
+    }
+
+    private void hydrateVisionAgentMemoryFromPreviousAsk(XunjingResourcePackageDO resourcePackage, RagChatReqVO reqVO) {
+        if (hasText(reqVO.getVisionAgentMemorySessionText()) || !hasText(reqVO.getUserTraceId())) {
+            return;
+        }
+        XunjingInteractionEventDO previousEvent =
+                interactionEventMapper.selectLatestByPackageIdAndUserTraceIdAndEventType(
+                        resourcePackage.getId(), reqVO.getUserTraceId(), EventType.ASK.getType());
+        if (previousEvent == null || !hasText(previousEvent.getPayloadJson())) {
+            return;
+        }
+        try {
+            JsonNode root = JsonUtils.parseTree(previousEvent.getPayloadJson());
+            JsonNode visionAgentContext = root == null ? null : root.get("visionAgentContext");
+            String memoryText = buildPreviousVisionAgentMemoryText(visionAgentContext);
+            if (!hasText(memoryText)) {
+                return;
+            }
+            reqVO.setVisionAgentMemorySessionText(memoryText);
+            if (reqVO.getVisionAgentMemorySessionSceneCount() == null
+                    || reqVO.getVisionAgentMemorySessionSceneCount() <= 0) {
+                int previousSceneCount = visionAgentContext.path("memorySessionSceneCount").asInt(0);
+                reqVO.setVisionAgentMemorySessionSceneCount(previousSceneCount > 0 ? previousSceneCount : 1);
+            }
+            if (!Boolean.TRUE.equals(reqVO.getVisionAgentContextAvailable())) {
+                reqVO.setVisionAgentContextAvailable(true);
+            }
+        } catch (RuntimeException ex) {
+            log.warn("[hydrateVisionAgentMemoryFromPreviousAsk][eventId({}) parse failed]",
+                    previousEvent.getId(), ex);
+        }
+    }
+
+    private String buildPreviousVisionAgentMemoryText(JsonNode visionAgentContext) {
+        if (visionAgentContext == null || visionAgentContext.isNull() || visionAgentContext.isMissingNode()) {
+            return "";
+        }
+        List<String> parts = new ArrayList<>();
+        putPreviousVisionMemoryPart(parts, "上次识境", visionAgentContext, "sceneFusionSummary");
+        putPreviousVisionMemoryPart(parts, "上次世界入口", visionAgentContext, "worldInterfaceSummary");
+        String domain = previousVisionAgentDomainText(visionAgentContext);
+        if (hasText(domain)) {
+            parts.add("场景域=" + domain);
+        }
+        putPreviousVisionMemoryPart(parts, "场景理解", visionAgentContext, "sceneUnderstandingSummary");
+        putPreviousVisionMemoryPart(parts, "Agent理由", visionAgentContext, "decisionReasonSummary");
+        putPreviousVisionMemoryPart(parts, "服务承接", visionAgentContext, "serviceHandoffSummary");
+        return String.join("；", parts);
+    }
+
+    private void putPreviousVisionMemoryPart(List<String> parts, String label, JsonNode context, String key) {
+        String text = visionAgentContextText(context, key);
+        if (hasText(text)) {
+            parts.add(label + "=" + text);
+        }
+    }
+
+    private String previousVisionAgentDomainText(JsonNode context) {
+        String key = visionAgentContextText(context, "primarySceneDomainKey");
+        String label = visionAgentContextText(context, "primarySceneDomainLabel");
+        if (hasText(key) && hasText(label)) {
+            return key + "/" + label;
+        }
+        return hasText(key) ? key : label;
+    }
+
+    private String visionAgentContextText(JsonNode context, String key) {
+        if (context == null || context.get(key) == null || context.get(key).isNull()) {
+            return "";
+        }
+        String text = context.get(key).asText("").trim();
+        return hasText(text) ? truncateForEvent(text, CHAT_CONTEXT_TEXT_MAX_LENGTH) : "";
     }
 
     private void recordTriggerResolveEventIfPossible(MultimodalTriggerReqVO reqVO, MultimodalTriggerRespVO respVO) {

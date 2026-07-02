@@ -27,4 +27,18 @@ public interface XunjingInteractionEventMapper extends BaseMapperX<XunjingIntera
                 .eq(XunjingInteractionEventDO::getEventType, eventType));
     }
 
+    default XunjingInteractionEventDO selectLatestByPackageIdAndUserTraceIdAndEventType(
+            Long packageId, String userTraceId, String eventType) {
+        if (packageId == null || userTraceId == null || userTraceId.isBlank()
+                || eventType == null || eventType.isBlank()) {
+            return null;
+        }
+        return selectOne(new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                .eq(XunjingInteractionEventDO::getUserTraceId, userTraceId)
+                .eq(XunjingInteractionEventDO::getEventType, eventType)
+                .orderByDesc(XunjingInteractionEventDO::getId)
+                .last("LIMIT 1"));
+    }
+
 }
