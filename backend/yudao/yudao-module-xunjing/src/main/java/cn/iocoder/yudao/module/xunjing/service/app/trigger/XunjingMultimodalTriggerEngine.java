@@ -72,7 +72,12 @@ public class XunjingMultimodalTriggerEngine {
             "craftProcessSummary",
             "performanceMethodSummary",
             "soundAssetHint",
-            "nearbyExperienceSummary"
+            "nearbyExperienceSummary",
+            "plantSpeciesName",
+            "plantAgeEstimateText",
+            "plantAdaptationSummary",
+            "bestViewingSeasonText",
+            "regionalDistributionSummary"
     );
 
     private static final List<PoiProfile> XICHENG_POIS = List.of(

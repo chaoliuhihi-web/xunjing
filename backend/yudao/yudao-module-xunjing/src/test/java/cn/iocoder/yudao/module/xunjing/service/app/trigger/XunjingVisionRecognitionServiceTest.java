@@ -269,6 +269,45 @@ public class XunjingVisionRecognitionServiceTest {
     }
 
     @Test
+    public void testEnrichMergesPlantSceneSignalsFromVisionProvider() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/vision/v1/chat/completions", exchange -> {
+            String response = """
+                    {"choices":[{"message":{"content":"{\\"labels\\":[\\"populus\\"],\\"ocrText\\":\\"胡杨\\",\\"caption\\":\\"画面里是一棵胡杨。\\",\\"sceneSignals\\":{\\"sceneDomainIntentKey\\":\\"plant\\",\\"sceneDomainIntentLabel\\":\\"植物\\",\\"plantSpeciesName\\":\\"胡杨\\",\\"plantAgeEstimateText\\":\\"约百年树龄\\",\\"plantAdaptationSummary\\":\\"根系深、叶片可减少蒸腾，适合干旱环境\\",\\"bestViewingSeasonText\\":\\"秋季金黄时最好看\\",\\"regionalDistributionSummary\\":\\"新疆塔里木河流域分布较多\\"}}"}}]}
+                    """;
+            byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, responseBytes.length);
+            exchange.getResponseBody().write(responseBytes);
+            exchange.close();
+        });
+        server.start();
+        try {
+            XunjingVisionRecognitionService configuredService = new XunjingVisionRecognitionService();
+            setField(configuredService, "visionApiUrl",
+                    "http://127.0.0.1:" + server.getAddress().getPort() + "/vision/v1");
+            setField(configuredService, "visionApiKey", "test-key");
+
+            MultimodalTriggerReqVO reqVO = new MultimodalTriggerReqVO();
+            reqVO.setPhotoMeta(photoMeta("image/jpeg", "photo-base64"));
+
+            MultimodalTriggerReqVO enrichedReqVO = configuredService.enrich(reqVO);
+
+            assertEquals("胡杨", enrichedReqVO.getOcrText());
+            assertEquals("plant", enrichedReqVO.getSceneSignals().get("sceneDomainIntentKey"));
+            assertEquals("植物", enrichedReqVO.getSceneSignals().get("sceneDomainIntentLabel"));
+            assertEquals("胡杨", enrichedReqVO.getSceneSignals().get("plantSpeciesName"));
+            assertEquals("约百年树龄", enrichedReqVO.getSceneSignals().get("plantAgeEstimateText"));
+            assertEquals("根系深、叶片可减少蒸腾，适合干旱环境",
+                    enrichedReqVO.getSceneSignals().get("plantAdaptationSummary"));
+            assertEquals("秋季金黄时最好看", enrichedReqVO.getSceneSignals().get("bestViewingSeasonText"));
+            assertEquals("新疆塔里木河流域分布较多",
+                    enrichedReqVO.getSceneSignals().get("regionalDistributionSummary"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     public void testEnrichMergesSignTranslationSceneSignalsFromVisionProvider() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/vision/v1/chat/completions", exchange -> {

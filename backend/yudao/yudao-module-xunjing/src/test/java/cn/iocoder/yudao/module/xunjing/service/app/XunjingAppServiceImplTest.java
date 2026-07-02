@@ -661,6 +661,41 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerUsesPlantSignalsForIntentAndContextMatch() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户举起手机拍到一棵胡杨。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合植物识别和城市知识库后等待场景引擎判断。");
+        sceneSignals.put("sceneDomainIntentKey", "plant");
+        sceneSignals.put("sceneDomainIntentLabel", "植物");
+        sceneSignals.put("agentDecisionReasonSummary", "适合讲树龄、耐旱原因、最佳观赏季和分布。");
+        sceneSignals.put("plantSpeciesName", "胡杨");
+        sceneSignals.put("plantAgeEstimateText", "约百年树龄");
+        sceneSignals.put("plantAdaptationSummary", "根系深、叶片可减少蒸腾，适合干旱环境。");
+        sceneSignals.put("bestViewingSeasonText", "秋季金黄时最好看。");
+        sceneSignals.put("regionalDistributionSummary", "恭王府附近园林讲解可延展到新疆塔里木河流域分布。");
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setText("");
+        reqVO.setOcrText("");
+        reqVO.setImageLabels(List.of());
+        reqVO.setLocation(null);
+        reqVO.setSceneSignals(sceneSignals);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("interpret", respVO.getIntent());
+        assertEquals("confirm_scene_interpretation", respVO.getAction());
+        assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
+        assertTrue(respVO.getCandidates().get(0).getMatchedSignals().contains("scene_context_alias"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerUsesPhotoAdviceIntent() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -2261,6 +2296,65 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testAnswerUsesPlantSignalsFromPreviousTriggerForSourceSearch() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        consoleService.addKnowledgeDocument(xichengUnrelatedKnowledgeReq(packageId));
+        consoleService.addKnowledgeDocument(xichengPlantKnowledgeReq(packageId));
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户举起手机拍到一棵胡杨。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合植物识别和城市知识库后等待连续问答。");
+        sceneSignals.put("sceneDomainIntentKey", "plant");
+        sceneSignals.put("sceneDomainIntentLabel", "植物");
+        sceneSignals.put("agentDecisionReasonSummary", "适合讲树龄、耐旱原因、最佳观赏季和分布。");
+        sceneSignals.put("plantSpeciesName", "胡杨");
+        sceneSignals.put("plantAgeEstimateText", "约百年树龄");
+        sceneSignals.put("plantAdaptationSummary", "根系深、叶片可减少蒸腾，适合干旱环境。");
+        sceneSignals.put("bestViewingSeasonText", "秋季金黄时最好看。");
+        sceneSignals.put("regionalDistributionSummary", "新疆塔里木河流域分布较多。");
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-plant-search-001");
+        triggerReq.setText("先记住这棵树");
+        triggerReq.setOcrText("");
+        triggerReq.setImageLabels(List.of());
+        triggerReq.setLocation(null);
+        triggerReq.setSceneSignals(sceneSignals);
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("ask", triggerResp.getIntent());
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-plant-search-001");
+        followUpReq.setQuestion("这个树怎么讲？");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO followUpAnswer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", followUpAnswer.getSafetyStatus());
+        assertFalse(followUpAnswer.getSources().isEmpty());
+        assertEquals("西城胡杨植物识境讲解稿", followUpAnswer.getSources().get(0).getTitle());
+        assertTrue(followUpAnswer.getAnswer().contains("胡杨")
+                || followUpAnswer.getAnswer().contains("塔里木")
+                || followUpAnswer.getAnswer().contains("秋季金黄"));
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId, "trace-xicheng-plant-search-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("胡杨"));
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("约百年树龄"));
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("秋季金黄"));
+    }
+
+    @Test
     public void testAnswerHydratesPhotoAdviceHandoffFromTrigger() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -2966,6 +3060,19 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
         reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/heritage-instrument");
         reqVO.setContentDigest("热瓦普是民族弹拨乐器，可讲木质琴身和皮面共鸣箱制作，右手拨弦、左手按弦演奏，并推荐非遗乐器体验。");
+        reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
+        reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
+        reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());
+        return reqVO;
+    }
+
+    private KnowledgeDocumentCreateReqVO xichengPlantKnowledgeReq(Long packageId) {
+        KnowledgeDocumentCreateReqVO reqVO = new KnowledgeDocumentCreateReqVO();
+        reqVO.setPackageId(packageId);
+        reqVO.setTitle("西城胡杨植物识境讲解稿");
+        reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
+        reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/plant-populus");
+        reqVO.setContentDigest("胡杨可讲约百年树龄、深根和减少蒸腾的耐旱机制，秋季金黄时最好看，新疆塔里木河流域分布较多。");
         reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
         reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
         reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());
