@@ -633,6 +633,31 @@ public class XunjingConsoleServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testReviewUploadedKnowledgeDocumentDefaultsIndexedWhenApproved() throws Exception {
+        Long projectId = consoleService.createProject(projectReq());
+        Long schoolId = consoleService.createSchool(schoolReq());
+        Long packageId = consoleService.createResourcePackage(packageReq(projectId, schoolId));
+        byte[] content = "恭王府福字碑、花园格局和清代王府故事，可用于 AI 识境问答。".getBytes(StandardCharsets.UTF_8);
+        when(fileApi.createFile(eq(content), eq("gongwangfu-guide.txt"),
+                eq("xunjing/tourism-knowledge/1/" + packageId), eq("text/plain")))
+                .thenReturn("https://oss.example.com/xunjing/tourism-knowledge/gongwangfu-guide.txt");
+        Long documentId = consoleService.uploadKnowledgeDocument(knowledgeUploadReq(packageId, content));
+
+        KnowledgeDocumentReviewReqVO reviewReqVO = new KnowledgeDocumentReviewReqVO();
+        reviewReqVO.setId(documentId);
+        reviewReqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
+        reviewReqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
+        consoleService.reviewKnowledgeDocument(reviewReqVO);
+
+        XunjingKnowledgeDocumentDO document = knowledgeDocumentMapper.selectById(documentId);
+        assertEquals(XunjingEnums.ReviewStatus.APPROVED.getStatus(), document.getReviewStatus());
+        assertEquals(XunjingEnums.VectorStatus.INDEXED.getStatus(), document.getVectorStatus());
+        PackageDetailRespVO publicDetail = consoleService.getPublicPackageDetailByCode("KASHGAR-MAP-001");
+        assertEquals(1, publicDetail.getKnowledgeDocuments().size());
+        assertEquals(documentId, publicDetail.getKnowledgeDocuments().get(0).getId());
+    }
+
+    @Test
     public void testUploadMediaAssetStoresFileAndCreatesPendingImageMaterial() throws Exception {
         Long projectId = consoleService.createProject(projectReq());
         Long schoolId = consoleService.createSchool(schoolReq());

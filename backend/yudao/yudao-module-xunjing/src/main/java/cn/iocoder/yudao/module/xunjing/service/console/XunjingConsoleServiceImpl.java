@@ -297,8 +297,9 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
         if (reqVO.getReviewStatus() != null) {
             document.setReviewStatus(reqVO.getReviewStatus());
         }
-        if (reqVO.getVectorStatus() != null) {
-            document.setVectorStatus(reqVO.getVectorStatus());
+        String vectorStatus = defaultKnowledgeVectorStatusForReview(reqVO, document);
+        if (vectorStatus != null) {
+            document.setVectorStatus(vectorStatus);
         }
         knowledgeDocumentMapper.updateById(document);
     }
@@ -1256,6 +1257,19 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
                 || lowerName.endsWith(".csv")
                 || lowerName.endsWith(".json")
                 || lowerName.endsWith(".html");
+    }
+
+    private String defaultKnowledgeVectorStatusForReview(
+            KnowledgeDocumentReviewReqVO reqVO, XunjingKnowledgeDocumentDO document) {
+        if (reqVO.getVectorStatus() != null) {
+            return reqVO.getVectorStatus();
+        }
+        String currentStatus = defaultIfBlank(document.getVectorStatus(), "");
+        if (ReviewStatus.APPROVED.getStatus().equals(reqVO.getReviewStatus())
+                && (currentStatus.isBlank() || VectorStatus.PENDING.getStatus().equals(currentStatus))) {
+            return VectorStatus.INDEXED.getStatus();
+        }
+        return null;
     }
 
     private String mediaTypeByContentType(String contentType) {

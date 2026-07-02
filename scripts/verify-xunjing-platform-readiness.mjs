@@ -714,6 +714,7 @@ async function checkXunjingUploadBackend(rootDir) {
     'uploadDirectory("xunjing/tourism-knowledge", reqVO.getPackageId())',
     'uploadDirectory("xunjing/tourism-media", reqVO.getPackageId())',
     'buildKnowledgeUploadDigest(file, content)',
+    'defaultKnowledgeVectorStatusForReview(reqVO, document)',
     'ReviewStatus.PENDING.getStatus()',
     'VectorStatus.PENDING.getStatus()',
     'CopyrightStatus.PENDING.getStatus()'
@@ -722,6 +723,7 @@ async function checkXunjingUploadBackend(rootDir) {
   }
   for (const snippet of [
     'testUploadKnowledgeDocumentStoresFileAndCreatesPendingTourismDocument',
+    'testReviewUploadedKnowledgeDocumentDefaultsIndexedWhenApproved',
     'testUploadMediaAssetStoresFileAndCreatesPendingImageMaterial',
     'fileApi.createFile'
   ]) {
