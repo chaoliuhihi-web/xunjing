@@ -10,6 +10,7 @@ const culturalMap = read('components', 'xicheng', 'XichengCulturalMap.vue')
 const routes = read('pages', 'xicheng', 'routes', 'routes.vue')
 const poi = read('pages', 'xicheng', 'poi', 'poi.vue')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
+const scanResultSummaryHero = read('components', 'xicheng', 'XichengScanResultSummaryHero.vue')
 const recording = read('pages', 'xicheng', 'recording', 'recording.vue')
 const recordingPanel = read('components', 'xicheng', 'XichengRouteRecordingPanel.vue')
 const recordingShell = `${recording}\n${recordingPanel}`
@@ -62,8 +63,14 @@ assert.match(
 
 assert.match(
   scanResult,
-  /<xicheng-icon[\s\S]*name="back"[\s\S]*<xicheng-icon[\s\S]*:name="recognitionActionBlocked \? 'locked' : 'source'"/,
-  'Scan result top navigation and source summary should use shared icons'
+  /<xicheng-icon[\s\S]*name="back"[\s\S]*<xicheng-icon[\s\S]*name="edit"/,
+  'Scan result top navigation should use shared back and edit icons'
+)
+
+assert.match(
+  scanResultSummaryHero,
+  /<xicheng-icon[\s\S]*name="check"[\s\S]*<xicheng-icon[\s\S]*:name="recognitionActionBlocked \? 'locked' : 'source'"/,
+  'Scan result summary hero should use shared check and source status icons'
 )
 
 assert.match(

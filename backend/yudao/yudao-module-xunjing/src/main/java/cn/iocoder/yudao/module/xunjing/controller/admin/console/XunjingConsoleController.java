@@ -26,11 +26,13 @@ import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsol
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.KnowledgeDocumentCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.KnowledgeDocumentReviewReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.KnowledgeDocumentRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.KnowledgeDocumentUploadReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MapPointCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MapPointRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MediaAssetCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MediaAssetReviewReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MediaAssetRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MediaAssetUploadReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MediaUsageCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MediaUsageRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.GlobeModelRespVO;
@@ -117,6 +119,14 @@ public class XunjingConsoleController {
         return success(consoleService.addKnowledgeDocument(reqVO));
     }
 
+    @PostMapping(value = "/knowledge-documents/upload",
+            consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "上传文旅知识库文档")
+    @PreAuthorize("@ss.hasPermission('xunjing:knowledge:create')")
+    public CommonResult<Long> uploadKnowledgeDocument(@Valid KnowledgeDocumentUploadReqVO reqVO) {
+        return success(consoleService.uploadKnowledgeDocument(reqVO));
+    }
+
     @GetMapping("/knowledge-documents/page")
     @Operation(summary = "分页查询知识库文档")
     @PreAuthorize("@ss.hasPermission('xunjing:knowledge:query')")
@@ -137,6 +147,14 @@ public class XunjingConsoleController {
     @PreAuthorize("@ss.hasPermission('xunjing:media:create')")
     public CommonResult<Long> addMediaAsset(@Valid @RequestBody MediaAssetCreateReqVO reqVO) {
         return success(consoleService.addMediaAsset(reqVO));
+    }
+
+    @PostMapping(value = "/media-assets/upload",
+            consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "上传文旅图片素材")
+    @PreAuthorize("@ss.hasPermission('xunjing:media:create')")
+    public CommonResult<Long> uploadMediaAsset(@Valid MediaAssetUploadReqVO reqVO) {
+        return success(consoleService.uploadMediaAsset(reqVO));
     }
 
     @GetMapping("/media-assets/page")

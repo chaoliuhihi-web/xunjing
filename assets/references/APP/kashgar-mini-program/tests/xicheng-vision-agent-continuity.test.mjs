@@ -4,9 +4,16 @@ import path from 'node:path'
 
 const root = process.cwd()
 const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
+const exists = (...segments) => fs.existsSync(path.join(root, ...segments))
 
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
+assert.ok(
+  exists('components', 'xicheng', 'XichengScanResultMemoryPanel.vue'),
+  'Scan result should extract the Vision Agent memory panel into XichengScanResultMemoryPanel.vue'
+)
+const memoryPanel = read('components', 'xicheng', 'XichengScanResultMemoryPanel.vue')
 const regionConfig = read('config', 'regions', 'xicheng.js')
+const scanResultSurface = `${scanResult}\n${memoryPanel}`
 
 const getBlock = (source, pattern, label) => {
   const block = source.match(pattern)?.[0] || ''
@@ -22,8 +29,26 @@ for (const required of [
   '下一问',
   'visionAgentTimelineItems'
 ]) {
-  assert.ok(scanResult.includes(required), `Scan result should make Vision Agent continuity visible: ${required}`)
+  assert.ok(scanResultSurface.includes(required), `Scan result should make Vision Agent continuity visible: ${required}`)
 }
+
+assert.match(
+  scanResult,
+  /<xicheng-scan-result-memory-panel[\s\S]*:timeline-items="visionAgentTimelineItems"[\s\S]*:memory-session-package="visionAgentMemorySessionPackage"/,
+  'Scan result should render the extracted memory panel with timeline items and memory session package'
+)
+
+assert.doesNotMatch(
+  scanResult,
+  /<view class="vision-agent-memory-panel xicheng-paper-card">/,
+  'Scan result page shell should not inline the Vision Agent memory panel after extraction'
+)
+
+assert.match(
+  memoryPanel,
+  /props:[\s\S]*timelineItems:[\s\S]*type: Array[\s\S]*memorySessionPackage:[\s\S]*type: Object/,
+  'Vision Agent memory panel should be a data-driven display component'
+)
 
 assert.match(
   scanResult,
@@ -78,3 +103,6 @@ assert.match(
   /privacyClearStorageKeys:[\s\S]*XICHENG_REGION_BASE_CONFIG\.visionAgentMemoryStorageKey/,
   'Privacy clear list should remove local Vision Agent memory trail data'
 )
+
+assert.ok(scanResult.split(/\r?\n/).length < 2960, 'Scan result page should shrink after extracting the memory panel')
+assert.ok(memoryPanel.split(/\r?\n/).length < 220, 'Memory panel component should stay compact for APP packaging')

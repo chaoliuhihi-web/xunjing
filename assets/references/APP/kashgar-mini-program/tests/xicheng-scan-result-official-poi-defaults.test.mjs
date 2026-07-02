@@ -4,6 +4,7 @@ import path from 'node:path'
 
 const root = process.cwd()
 const scanResult = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
+const summaryHero = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengScanResultSummaryHero.vue'), 'utf8')
 const officialPoiSources = fs.readFileSync(path.join(root, 'request', 'xunjing', 'officialPoi.js'), 'utf8')
 const regionConfig = fs.readFileSync(path.join(root, 'config', 'regions', 'xicheng.js'), 'utf8')
 
@@ -62,7 +63,7 @@ assert.match(
 )
 
 assert.match(
-  scanResult,
+  summaryHero,
   /class="confidence-line"[\s\S]*<text>\{\{ confidenceMetaLabel \}\}<\/text>[\s\S]*<text class="confidence-value">\{\{ confidenceDisplay \}\}<\/text>/,
   'Recognition result confidence line should render the dynamic confidence or official-matching label'
 )
@@ -81,16 +82,24 @@ assert.match(
 
 for (const required of [
   'class="scan-result-topbar"',
+  '<xicheng-scan-result-summary-hero',
+  ':result-visual-image="resultVisualImage"',
+  ':recognition-signal-items="recognitionSignalItems"',
+  ':result-companion-title="resultCompanionTitle"'
+]) {
+  assert.ok(scanResult.includes(required), `Recognition result page shell should include ${required}`)
+}
+
+for (const required of [
   'class="result-hero-layout"',
   'class="result-poi-image"',
   ':src="resultVisualImage"',
   'class="result-source-signal"',
-  'recognitionSignalItems',
   'class="result-companion-card"',
-  ':src="region.companionAvatar"',
+  ':src="companionAvatar"',
   'resultCompanionTitle'
 ]) {
-  assert.ok(scanResult.includes(required), `Recognition result visual shell should include ${required}`)
+  assert.ok(summaryHero.includes(required), `Recognition result visual shell component should include ${required}`)
 }
 
 assert.match(
@@ -106,8 +115,8 @@ assert.match(
 )
 
 assert.match(
-  scanResult,
-  /\.result-poi-image\s*\{[\s\S]*width:\s*250rpx[\s\S]*height:\s*360rpx[\s\S]*object-fit:\s*cover/,
+  summaryHero,
+  /\.result-poi-image\s*\{[\s\S]*width:\s*290rpx[\s\S]*height:\s*430rpx[\s\S]*object-fit:\s*cover/,
   'Recognition result POI image should use stable dimensions so the first card matches the visual reference without layout shift'
 )
 

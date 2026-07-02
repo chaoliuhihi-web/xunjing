@@ -7,8 +7,10 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const home = read('pages', 'xicheng', 'home', 'home.vue')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
+const scanResultSummaryHero = read('components', 'xicheng', 'XichengScanResultSummaryHero.vue')
+const scanResultShell = `${scanResult}\n${scanResultSummaryHero}`
 const homeStyle = home.match(/<style scoped>[\s\S]*<\/style>/)?.[0] || ''
-const resultStyle = scanResult.match(/<style scoped>[\s\S]*<\/style>/)?.[0] || ''
+const resultStyle = `${scanResult.match(/<style scoped>[\s\S]*<\/style>/)?.[0] || ''}\n${scanResultSummaryHero.match(/<style scoped>[\s\S]*<\/style>/)?.[0] || ''}`
 
 assert.match(
   home,
@@ -54,13 +56,13 @@ for (const required of [
   'result-reference-actions'
 ]) {
   assert.ok(
-    scanResult.includes(required),
+    scanResultShell.includes(required),
     `Recognition result should follow the approved reference shell token ${required}`
   )
 }
 
 assert.doesNotMatch(
-  scanResult,
+  scanResultShell,
   /class="meta-grid"/,
   'Recognition result first card should not use the old stat-tile meta grid that diverges from the reference'
 )

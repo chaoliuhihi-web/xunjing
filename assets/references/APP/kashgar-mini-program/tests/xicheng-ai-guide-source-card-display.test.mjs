@@ -4,18 +4,25 @@ import path from 'node:path'
 
 const root = process.cwd()
 const aiGuide = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
+const messageEvidence = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengAiGuideMessageEvidence.vue'), 'utf8')
 const sourceHelper = fs.readFileSync(path.join(root, 'request', 'xunjing', 'sources.js'), 'utf8')
 
 assert.match(
-  aiGuide,
+  messageEvidence,
   /<text v-if="getDisplaySourceDescription\(source\)" class="message-source-desc">\s*\{\{ getDisplaySourceDescription\(source\) \}\}\s*<\/text>/,
   'Xiaojing source cards should render a curated user-facing source description instead of raw backend seed notes'
 )
 
 assert.match(
-  aiGuide,
-  /getDisplaySourceDescription\s*=\s*getXichengDisplaySourceDescription/,
+  messageEvidence,
+  /getDisplaySourceDescription\(source = \{\}\) \{[\s\S]*return getXichengDisplaySourceDescription\(source\)/,
   'Xiaojing source cards should delegate source description cleanup to the shared source display helper'
+)
+
+assert.match(
+  aiGuide,
+  /<XichengAiGuideMessageEvidence[\s\S]*:sources="msg\.sources"/,
+  'Xiaojing chat should render source cards through the isolated evidence component'
 )
 
 assert.match(

@@ -72,6 +72,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -475,6 +476,48 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertFalse(respVO.getSources().isEmpty());
         assertEquals("恭王府", respVO.getSources().get(0).getTitle());
         assertTrue(respVO.getSources().get(0).getSourceUrl().contains("bjxch.gov.cn"));
+    }
+
+    @Test
+    public void testResolveMultimodalTriggerBuildsCoreAgentActionPackForRecognizedPoi() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-multimodal-trigger");
+        reqVO.setOcrText("恭王府博物馆入口");
+        reqVO.setImageLabels(List.of("palace", "courtyard"));
+        reqVO.setLocation(location("39.937050", "116.386770", 20));
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
+        assertTrue(respVO.getAgentActions().stream()
+                .anyMatch(action -> "start_ai_guide".equals(action.getActionKey())
+                        && "开始 AI 讲解".equals(action.getTitle())));
+        assertTrue(respVO.getAgentActions().stream()
+                .anyMatch(action -> "recommend_next_stop".equals(action.getActionKey())
+                        && "推荐下一站".equals(action.getTitle())
+                        && Boolean.FALSE.equals(action.getRequiresRealSystem())));
+        assertTrue(respVO.getAgentActions().stream()
+                .anyMatch(action -> "nearby_food".equals(action.getActionKey())
+                        && "附近美食".equals(action.getTitle())
+                        && Boolean.TRUE.equals(action.getRequiresRealSystem())));
+        assertTrue(respVO.getAgentActions().stream()
+                .anyMatch(action -> "complete_check_in".equals(action.getActionKey())
+                        && "完成打卡".equals(action.getTitle())));
+        assertTrue(respVO.getAgentActions().stream()
+                .anyMatch(action -> "claim_badge".equals(action.getActionKey())
+                        && "领取徽章".equals(action.getTitle())));
+        assertTrue(respVO.getAgentActions().stream()
+                .anyMatch(action -> "add_to_travel_map".equals(action.getActionKey())
+                        && "加入旅行地图".equals(action.getTitle())));
+        assertTrue(respVO.getAgentActions().stream()
+                .anyMatch(action -> "generate_travelogue".equals(action.getActionKey())
+                        && "生成游记".equals(action.getTitle())));
     }
 
     @Test
@@ -1045,6 +1088,39 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerBuildsFallbackSceneUnderstandingWithoutClientSignals() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-multimodal-trigger");
+        reqVO.setOcrText("恭王府博物馆入口");
+        reqVO.setImageLabels(List.of("palace", "courtyard"));
+        reqVO.setLocation(location("39.937050", "116.386770", 20));
+        reqVO.setSceneSignals(null);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
+        assertNotNull(respVO.getSceneUnderstanding());
+        assertTrue(respVO.getSceneUnderstanding().getSceneFusionSummary().contains("恭王府"),
+                respVO.getSceneUnderstanding().getSceneFusionSummary());
+        assertTrue(respVO.getSceneUnderstanding().getSceneFusionSummary().contains("OCR文字"),
+                respVO.getSceneUnderstanding().getSceneFusionSummary());
+        assertTrue(respVO.getSceneUnderstanding().getWorldInterfaceSummary().contains("城市知识库"));
+        assertEquals("guide", respVO.getSceneUnderstanding().getPrimarySceneDomainKey());
+        assertEquals("AI讲解", respVO.getSceneUnderstanding().getPrimarySceneDomainLabel());
+        assertEquals("开始 AI 讲解", respVO.getSceneUnderstanding().getAgentDecisionActionTitle());
+        assertTrue(respVO.getSceneUnderstanding().getAgentDecisionReasonSummary().contains("定位"));
+        assertTrue(respVO.getSceneUnderstanding().getServiceHandoffSummary().contains("start_ai_guide"));
+        assertTrue(respVO.getSceneUnderstanding().getEvidenceSignals().contains("gps_radius"));
+        assertTrue(respVO.getSceneUnderstanding().getEvidenceSignals().contains("ocr_alias"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerRecordsServiceHandoffContractForMerchantScene() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -1162,6 +1238,56 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerNoMatchKeepsVisionEvidenceInSceneUnderstanding() throws Exception {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        setField(visionRecognitionService, "visionApiUrl", "");
+        setField(visionRecognitionService, "visionApiKey", "");
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-multimodal-trigger");
+        reqVO.setUserTraceId("trace-xicheng-no-match-vision-evidence-001");
+        reqVO.setOcrText("");
+        reqVO.setImageLabels(List.of());
+        PhotoMetaReqVO photoMeta = new PhotoMetaReqVO();
+        photoMeta.setImageId("photo-provider-missing-001");
+        photoMeta.setImageMimeType("image/jpeg");
+        photoMeta.setImageBase64("photo-base64");
+        reqVO.setPhotoMeta(photoMeta);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("ask", respVO.getIntent());
+        assertEquals("ask_ai_companion", respVO.getAction());
+        assertNotNull(respVO.getSceneUnderstanding());
+        assertEquals("provider_not_configured", respVO.getSceneUnderstanding().getVisionRecognitionStatus());
+        assertEquals("qwen-vl-max", respVO.getSceneUnderstanding().getVisionRecognitionModel());
+        assertEquals(0, respVO.getSceneUnderstanding().getVisionRecognitionLabelCount());
+        assertTrue(respVO.getSceneUnderstanding().getServiceHandoffSummary().contains("ask_ai_companion"));
+
+        List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType,
+                                XunjingEnums.EventType.TRIGGER_RESOLVE.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId,
+                                "trace-xicheng-no-match-vision-evidence-001"));
+        assertEquals(1, events.size());
+        JsonNode payload = JsonUtils.parseTree(events.get(0).getPayloadJson());
+        JsonNode sceneSignals = payload.get("sceneSignals");
+        assertEquals("provider_not_configured", sceneSignals.get("visionRecognitionStatus").asText());
+        JsonNode sceneUnderstanding = payload.get("sceneUnderstanding");
+        assertEquals("provider_not_configured",
+                sceneUnderstanding.get("visionRecognitionStatus").asText());
+        assertEquals("qwen-vl-max", sceneUnderstanding.get("visionRecognitionModel").asText());
+        assertEquals(0, sceneUnderstanding.get("visionRecognitionLabelCount").asInt());
+        assertFalse(events.get(0).getPayloadJson().contains("imageBase64"));
+        assertFalse(events.get(0).getPayloadJson().contains("photo-base64"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerRecordsSceneSignalsWithoutRawRecognitionContext() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -1214,6 +1340,76 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertFalse(persistedSignals.has("latitude"));
         assertFalse(persistedSignals.has("longitude"));
         assertFalse(persistedSignals.toString().contains("/tmp/raw.jpg"));
+    }
+
+    @Test
+    public void testResolveMultimodalTriggerExposesSceneUnderstandingContract() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "晴天 18:40，夕阳照到恭王府门楼，建议先拍照再讲历史。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合 GPS、OCR、时间、天气和城市知识库后判断当前世界。");
+        sceneSignals.put("localTimeText", "18:40");
+        sceneSignals.put("weatherText", "晴");
+        sceneSignals.put("headingText", "向西");
+        sceneSignals.put("sceneDomainIntentKey", "architecture");
+        sceneSignals.put("sceneDomainIntentLabel", "建筑");
+        sceneSignals.put("agentDecisionActionTitle", "先拍照");
+        sceneSignals.put("agentDecisionReasonSummary", "马上日落，门楼光线适合先拍照。");
+        sceneSignals.put("memorySessionSceneCount", 4);
+        sceneSignals.put("visionRecognitionStatus", "success");
+        sceneSignals.put("visionRecognitionModel", "qwen-vl-max");
+        sceneSignals.put("visionRecognitionLabelCount", 2);
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-multimodal-trigger");
+        reqVO.setUserTraceId("trace-xicheng-scene-understanding-001");
+        reqVO.setOcrText("恭王府博物馆入口");
+        reqVO.setImageLabels(List.of("palace", "courtyard"));
+        reqVO.setLocation(location("39.937050", "116.386770", 20));
+        reqVO.setSceneSignals(sceneSignals);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertNotNull(respVO.getSceneUnderstanding());
+        assertEquals("晴天 18:40，夕阳照到恭王府门楼，建议先拍照再讲历史。",
+                respVO.getSceneUnderstanding().getSceneFusionSummary());
+        assertEquals("相机融合 GPS、OCR、时间、天气和城市知识库后判断当前世界。",
+                respVO.getSceneUnderstanding().getWorldInterfaceSummary());
+        assertEquals("architecture", respVO.getSceneUnderstanding().getPrimarySceneDomainKey());
+        assertEquals("建筑", respVO.getSceneUnderstanding().getPrimarySceneDomainLabel());
+        assertEquals("18:40", respVO.getSceneUnderstanding().getLocalTimeText());
+        assertEquals("晴", respVO.getSceneUnderstanding().getWeatherText());
+        assertEquals("向西", respVO.getSceneUnderstanding().getHeadingText());
+        assertEquals(4, respVO.getSceneUnderstanding().getMemorySessionSceneCount());
+        assertEquals("success", respVO.getSceneUnderstanding().getVisionRecognitionStatus());
+        assertEquals("先拍照", respVO.getSceneUnderstanding().getAgentDecisionActionTitle());
+        assertTrue(respVO.getSceneUnderstanding().getAgentDecisionReasonSummary().contains("马上日落"));
+        assertTrue(respVO.getSceneUnderstanding().getEvidenceSignals().contains("gps_radius"));
+        assertTrue(respVO.getSceneUnderstanding().getEvidenceSignals().contains("ocr_alias"));
+        assertTrue(respVO.getSceneUnderstanding().getEvidenceSignals().contains("image_label"));
+        assertTrue(respVO.getSceneUnderstanding().getServiceHandoffSummary().contains(respVO.getAction()));
+
+        List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.TRIGGER_RESOLVE.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId,
+                                "trace-xicheng-scene-understanding-001"));
+        assertEquals(1, events.size());
+        JsonNode payload = JsonUtils.parseTree(events.get(0).getPayloadJson());
+        JsonNode sceneUnderstanding = payload.get("sceneUnderstanding");
+        assertEquals("晴天 18:40，夕阳照到恭王府门楼，建议先拍照再讲历史。",
+                sceneUnderstanding.get("sceneFusionSummary").asText());
+        assertEquals("architecture", sceneUnderstanding.get("primarySceneDomainKey").asText());
+        assertEquals(4, sceneUnderstanding.get("memorySessionSceneCount").asInt());
+        assertTrue(sceneUnderstanding.get("evidenceSignals").toString().contains("gps_radius"));
+        assertTrue(sceneUnderstanding.get("serviceHandoffSummary").asText().contains(respVO.getAction()));
+        assertFalse(sceneUnderstanding.toString().contains("imageBase64"));
     }
 
     @Test
@@ -1608,6 +1804,87 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         JsonNode sceneSignals = payload.get("sceneSignals");
         assertTrue(sceneSignals.get("sceneFusionSummary").asText().contains("恭王府"));
         assertEquals(2, sceneSignals.get("memorySessionSceneCount").asInt());
+    }
+
+    @Test
+    public void testResolveMultimodalTriggerHydratesExecutedAgentActionIntoContinuousContext() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-agent-action-trigger-001");
+        triggerReq.setOcrText("恭王府博物馆入口");
+        triggerReq.setImageLabels(List.of("palace", "courtyard"));
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("xicheng-gongwangfu", triggerResp.getPoiCode());
+
+        AppInteractionEventReqVO actionReq = new AppInteractionEventReqVO();
+        actionReq.setPackageCode("XICHENG-MAP-001");
+        actionReq.setSceneCode("xicheng-agent-action");
+        actionReq.setEventType(XunjingEnums.EventType.AGENT_ACTION.getType());
+        actionReq.setSourceChannel("xicheng-app");
+        actionReq.setUserTraceId("trace-xicheng-agent-action-trigger-001");
+        actionReq.setPayloadJson("""
+                {
+                  "actionKey":"generate_travelogue",
+                  "title":"生成游记",
+                  "intent":"record",
+                  "sourceTriggerTraceId":"trace-xicheng-agent-action-trigger-001",
+                  "executionStatus":"clicked",
+                  "poiCode":"xicheng-gongwangfu",
+                  "poiName":"恭王府",
+                  "requiresUserConfirm":true,
+                  "requiresRealSystem":false,
+                  "reason":"用户已经点击生成游记，需要继续整理刚才识境素材。"
+                }
+                """);
+        appService.recordEvent(actionReq);
+
+        MultimodalTriggerReqVO followUpReq = multimodalReq();
+        followUpReq.setPackageCode("XICHENG-MAP-001");
+        followUpReq.setSceneCode("xicheng-multimodal-trigger");
+        followUpReq.setUserTraceId("trace-xicheng-agent-action-trigger-001");
+        followUpReq.setText("继续刚才的动作");
+        followUpReq.setOcrText("");
+        followUpReq.setImageLabels(List.of());
+        followUpReq.setLocation(null);
+
+        MultimodalTriggerRespVO followUpResp = appService.resolveMultimodalTrigger(followUpReq);
+
+        assertEquals("record", followUpResp.getIntent());
+        assertEquals("confirm_travel_note", followUpResp.getAction());
+        assertEquals("xicheng-gongwangfu", followUpResp.getPoiCode());
+        assertEquals("恭王府", followUpResp.getPoiName());
+        assertTrue(followUpResp.getRequiresUserConfirm());
+        assertTrue(followUpResp.getCandidates().get(0).getMatchedSignals().contains("context_poi"));
+        assertTrue(followUpResp.getCandidates().get(0).getMatchedSignals().contains("scene_context_alias"));
+
+        List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.TRIGGER_RESOLVE.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId,
+                                "trace-xicheng-agent-action-trigger-001"));
+        assertEquals(2, events.size());
+        XunjingInteractionEventDO latestEvent = events.stream()
+                .max((left, right) -> left.getId().compareTo(right.getId()))
+                .orElseThrow();
+        JsonNode payload = JsonUtils.parseTree(latestEvent.getPayloadJson());
+        JsonNode sceneSignals = payload.get("sceneSignals");
+        assertEquals("record", sceneSignals.get("sceneDomainIntentKey").asText());
+        assertEquals("旅行记录", sceneSignals.get("sceneDomainIntentLabel").asText());
+        assertEquals("生成游记", sceneSignals.get("agentDecisionActionTitle").asText());
+        assertTrue(sceneSignals.get("sceneFusionSummary").asText().contains("已执行Agent动作=生成游记"));
+        assertTrue(sceneSignals.get("agentDecisionReasonSummary").asText().contains("用户已经点击生成游记"));
+        assertEquals(2, sceneSignals.get("memorySessionSceneCount").asInt());
+        JsonNode sceneUnderstanding = payload.get("sceneUnderstanding");
+        assertEquals("record", sceneUnderstanding.get("primarySceneDomainKey").asText());
+        assertTrue(sceneUnderstanding.get("sceneFusionSummary").asText().contains("已执行Agent动作=生成游记"));
     }
 
     @Test
@@ -2043,6 +2320,358 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertEquals("guide", visionAgentContext.get("serviceHandoffIntent").asText());
         assertEquals("无需用户确认", visionAgentContext.get("serviceHandoffStepText").asText());
         assertTrue(visionAgentContext.get("serviceHandoffSummary").asText().contains("start_ai_guide"));
+    }
+
+    @Test
+    public void testAnswerHydratesExecutedAgentActionFromPreviousAgentActionEvent() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+        consoleService.addKnowledgeDocument(xichengGongwangfuKnowledgeReq(packageId));
+        ChatModel chatModel = mock(ChatModel.class);
+        when(aiModelService.getRequiredDefaultModel(AiModelTypeEnum.CHAT.getType())).thenReturn(defaultChatModel());
+        when(aiModelService.getChatModel(6601L)).thenReturn(chatModel);
+        when(chatModel.call(any(Prompt.class))).thenReturn(chatResponse("模型生成：已开始整理刚才的游记素材。"));
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户正在恭王府准备生成游记。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合定位和城市知识库后判断为恭王府。");
+        sceneSignals.put("sceneDomainIntentKey", "architecture");
+        sceneSignals.put("sceneDomainIntentLabel", "建筑");
+        sceneSignals.put("travelogueMaterialSummary", "恭王府门楼、夕阳和参观路线可作为游记素材。");
+        sceneSignals.put("agentDecisionReasonSummary", "适合把刚才识境内容接力成游记。");
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-agent-action-chat-001");
+        triggerReq.setOcrText("恭王府博物馆入口");
+        triggerReq.setImageLabels(List.of("palace", "courtyard"));
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        triggerReq.setSceneSignals(sceneSignals);
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("xicheng-gongwangfu", triggerResp.getPoiCode());
+
+        AppInteractionEventReqVO actionReq = new AppInteractionEventReqVO();
+        actionReq.setPackageCode("XICHENG-MAP-001");
+        actionReq.setSceneCode("xicheng-agent-action");
+        actionReq.setEventType(XunjingEnums.EventType.AGENT_ACTION.getType());
+        actionReq.setSourceChannel("xicheng-app");
+        actionReq.setUserTraceId("trace-xicheng-agent-action-chat-001");
+        actionReq.setPayloadJson("""
+                {
+                  "actionKey":"generate_travelogue",
+                  "title":"生成游记",
+                  "intent":"record",
+                  "targetPath":"/pages/travel-note/edit?regionCode=beijing-xicheng&poiCode=xicheng-gongwangfu&packageCode=XICHENG-MAP-001",
+                  "sourceTriggerTraceId":"trace-xicheng-agent-action-chat-001",
+                  "executionStatus":"clicked",
+                  "poiCode":"xicheng-gongwangfu",
+                  "poiName":"恭王府",
+                  "requiresUserConfirm":true,
+                  "requiresRealSystem":false,
+                  "reason":"用户点击生成游记，继续整理刚才识境素材。"
+                }
+                """);
+        appService.recordEvent(actionReq);
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-agent-action-chat-001");
+        followUpReq.setQuestion("继续把刚才点击的动作做下去。");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO followUpAnswer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", followUpAnswer.getSafetyStatus());
+        assertEquals("beijing-xicheng", followUpAnswer.getRegionCode());
+        assertEquals("xicheng-gongwangfu", followUpAnswer.getPoiCode());
+        assertEquals("恭王府", followUpAnswer.getPoiName());
+        ArgumentCaptor<Prompt> promptCaptor = ArgumentCaptor.forClass(Prompt.class);
+        verify(chatModel).call(promptCaptor.capture());
+        String prompt = promptCaptor.getValue().getContents();
+        assertTrue(prompt.contains("服务动作=generate_travelogue"));
+        assertTrue(prompt.contains("服务任务=AGENT_ACTION"));
+        assertTrue(prompt.contains("服务意图=record/旅行记录"));
+        assertTrue(prompt.contains("服务步骤=用户已执行"));
+        assertTrue(prompt.contains("服务承接=已执行Agent动作=生成游记"));
+        assertTrue(prompt.contains("执行状态=clicked"));
+        assertTrue(prompt.contains("用户点击生成游记"));
+        assertTrue(prompt.contains("真实系统确认=false"));
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId,
+                                "trace-xicheng-agent-action-chat-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertEquals("generate_travelogue", visionAgentContext.get("serviceHandoffActionKey").asText());
+        assertEquals("AGENT_ACTION", visionAgentContext.get("serviceHandoffTaskType").asText());
+        assertEquals("record", visionAgentContext.get("serviceHandoffIntent").asText());
+        assertEquals("旅行记录", visionAgentContext.get("serviceHandoffIntentText").asText());
+        assertEquals("用户已执行", visionAgentContext.get("serviceHandoffStepText").asText());
+        assertFalse(visionAgentContext.get("serviceHandoffRequiresRealSystem").asBoolean());
+        assertEquals("生成游记", visionAgentContext.get("decisionActionTitle").asText());
+        assertTrue(visionAgentContext.get("serviceHandoffSummary").asText().contains("generate_travelogue"));
+        assertTrue(visionAgentContext.get("serviceHandoffSummary").asText().contains("clicked"));
+        assertTrue(visionAgentContext.get("serviceHandoffSummary").asText().contains("用户点击生成游记"));
+    }
+
+    @Test
+    public void testAnswerDoesNotLetOlderAgentActionOverrideNewerTriggerContext() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+        consoleService.addKnowledgeDocument(xichengGongwangfuKnowledgeReq(packageId));
+
+        AppInteractionEventReqVO oldActionReq = new AppInteractionEventReqVO();
+        oldActionReq.setPackageCode("XICHENG-MAP-001");
+        oldActionReq.setSceneCode("xicheng-agent-action");
+        oldActionReq.setEventType(XunjingEnums.EventType.AGENT_ACTION.getType());
+        oldActionReq.setSourceChannel("xicheng-app");
+        oldActionReq.setUserTraceId("trace-xicheng-chat-latest-trigger-001");
+        oldActionReq.setPayloadJson("""
+                {
+                  "actionKey":"generate_travelogue",
+                  "title":"生成游记",
+                  "intent":"record",
+                  "executionStatus":"clicked",
+                  "poiCode":"xicheng-gongwangfu",
+                  "poiName":"恭王府",
+                  "requiresUserConfirm":true,
+                  "requiresRealSystem":false,
+                  "reason":"这是较早的一次游记动作，不应覆盖后续识境。"
+                }
+                """);
+        appService.recordEvent(oldActionReq);
+
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-chat-latest-trigger-001");
+        triggerReq.setOcrText("恭王府博物馆入口");
+        triggerReq.setImageLabels(List.of("palace", "courtyard"));
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("start_ai_guide", triggerResp.getAction());
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-chat-latest-trigger-001");
+        followUpReq.setQuestion("继续讲这个入口。");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO followUpAnswer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", followUpAnswer.getSafetyStatus());
+        assertEquals("xicheng-gongwangfu", followUpAnswer.getPoiCode());
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId,
+                                "trace-xicheng-chat-latest-trigger-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertEquals("start_ai_guide", visionAgentContext.get("serviceHandoffActionKey").asText());
+        assertEquals("guide", visionAgentContext.get("serviceHandoffIntent").asText());
+        assertEquals("开始 AI 讲解", visionAgentContext.get("decisionActionTitle").asText());
+        assertFalse(visionAgentContext.get("serviceHandoffSummary").asText().contains("generate_travelogue"));
+        assertFalse(visionAgentContext.get("serviceHandoffSummary").asText().contains("较早的一次游记动作"));
+    }
+
+    @Test
+    public void testAnswerKeepsExplicitPoiContextAheadOfPreviousTriggerAndAgentAction() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+        insertXichengBaitasiPoi(packageId);
+        consoleService.addKnowledgeDocument(xichengGongwangfuKnowledgeReq(packageId));
+        consoleService.addKnowledgeDocument(xichengBaitasiKnowledgeReq(packageId));
+
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-chat-explicit-poi-001");
+        triggerReq.setOcrText("恭王府博物馆入口");
+        triggerReq.setImageLabels(List.of("palace", "courtyard"));
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("xicheng-gongwangfu", triggerResp.getPoiCode());
+
+        AppInteractionEventReqVO actionReq = new AppInteractionEventReqVO();
+        actionReq.setPackageCode("XICHENG-MAP-001");
+        actionReq.setSceneCode("xicheng-agent-action");
+        actionReq.setEventType(XunjingEnums.EventType.AGENT_ACTION.getType());
+        actionReq.setSourceChannel("xicheng-app");
+        actionReq.setUserTraceId("trace-xicheng-chat-explicit-poi-001");
+        actionReq.setPayloadJson("""
+                {
+                  "actionKey":"generate_travelogue",
+                  "title":"生成游记",
+                  "intent":"record",
+                  "executionStatus":"clicked",
+                  "poiCode":"xicheng-gongwangfu",
+                  "poiName":"恭王府",
+                  "requiresUserConfirm":true,
+                  "requiresRealSystem":false,
+                  "reason":"用户上一轮点击了恭王府游记动作。"
+                }
+                """);
+        appService.recordEvent(actionReq);
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-chat-explicit-poi-001");
+        followUpReq.setQuestion("妙应寺白塔有什么看点？");
+        followUpReq.setRegionCode("beijing-xicheng");
+        followUpReq.setPoiCode("xicheng-baitasi");
+        followUpReq.setPoiName("妙应寺白塔");
+        RagChatRespVO followUpAnswer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", followUpAnswer.getSafetyStatus());
+        assertEquals("xicheng-baitasi", followUpAnswer.getPoiCode());
+        assertEquals("妙应寺白塔", followUpAnswer.getPoiName());
+        assertEquals("妙应寺白塔权威讲解稿", followUpAnswer.getSources().get(0).getTitle());
+        assertTrue(followUpAnswer.getAnswer().contains("妙应寺白塔"));
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId,
+                                "trace-xicheng-chat-explicit-poi-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        assertEquals("xicheng-baitasi", askPayload.get("poiCode").asText());
+        assertEquals("妙应寺白塔", askPayload.get("poiName").asText());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertFalse(visionAgentContext.has("memorySessionText"));
+        assertFalse(visionAgentContext.has("serviceHandoffActionKey"));
+        assertFalse(visionAgentContext.toString().contains("恭王府"));
+        assertFalse(visionAgentContext.toString().contains("generate_travelogue"));
+    }
+
+    @Test
+    public void testAnswerHydratesSceneUnderstandingFromPreviousTriggerEvent() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+        consoleService.addKnowledgeDocument(xichengGongwangfuKnowledgeReq(packageId));
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "晴天 18:40，夕阳照到恭王府门楼，建议先拍照再讲历史。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合 GPS、OCR、时间、天气和城市知识库后判断当前世界。");
+        sceneSignals.put("sceneDomainIntentKey", "architecture");
+        sceneSignals.put("sceneDomainIntentLabel", "建筑");
+        sceneSignals.put("agentDecisionActionTitle", "先拍照");
+        sceneSignals.put("agentDecisionReasonSummary", "马上日落，门楼光线适合先拍照。");
+        sceneSignals.put("localTimeText", "18:40");
+        sceneSignals.put("weatherText", "晴");
+        sceneSignals.put("headingText", "向西");
+        sceneSignals.put("memorySessionSceneCount", 4);
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-scene-understanding-chat-001");
+        triggerReq.setOcrText("恭王府博物馆入口");
+        triggerReq.setImageLabels(List.of("palace", "courtyard"));
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        triggerReq.setSceneSignals(sceneSignals);
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("photo", triggerResp.getIntent());
+
+        List<XunjingInteractionEventDO> triggerEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType,
+                                XunjingEnums.EventType.TRIGGER_RESOLVE.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId,
+                                "trace-xicheng-scene-understanding-chat-001"));
+        assertEquals(1, triggerEvents.size());
+        JsonNode triggerPayload = JsonUtils.parseTree(triggerEvents.get(0).getPayloadJson());
+        JsonNode sceneUnderstanding = triggerPayload.get("sceneUnderstanding");
+        assertEquals("晴天 18:40，夕阳照到恭王府门楼，建议先拍照再讲历史。",
+                sceneUnderstanding.get("sceneFusionSummary").asText());
+
+        Map<String, Object> canonicalPayload = new LinkedHashMap<>();
+        canonicalPayload.put("regionCode", triggerPayload.get("regionCode").asText());
+        canonicalPayload.put("poiCode", triggerPayload.get("poiCode").asText());
+        canonicalPayload.put("poiName", triggerPayload.get("poiName").asText());
+        canonicalPayload.put("action", triggerPayload.get("action").asText());
+        canonicalPayload.put("intent", triggerPayload.get("intent").asText());
+        canonicalPayload.put("triggerType", triggerPayload.get("triggerType").asText());
+        canonicalPayload.put("requiresUserConfirm", triggerPayload.get("requiresUserConfirm").asBoolean());
+        canonicalPayload.put("reason", triggerPayload.get("reason").asText());
+        canonicalPayload.put("sceneSignals", Map.of());
+        Map<String, Object> canonicalSceneUnderstanding = new LinkedHashMap<>();
+        canonicalSceneUnderstanding.put("sceneFusionSummary",
+                sceneUnderstanding.get("sceneFusionSummary").asText());
+        canonicalSceneUnderstanding.put("worldInterfaceSummary",
+                sceneUnderstanding.get("worldInterfaceSummary").asText());
+        canonicalSceneUnderstanding.put("primarySceneDomainKey",
+                sceneUnderstanding.get("primarySceneDomainKey").asText());
+        canonicalSceneUnderstanding.put("primarySceneDomainLabel",
+                sceneUnderstanding.get("primarySceneDomainLabel").asText());
+        canonicalSceneUnderstanding.put("agentDecisionActionTitle",
+                sceneUnderstanding.get("agentDecisionActionTitle").asText());
+        canonicalSceneUnderstanding.put("agentDecisionReasonSummary",
+                sceneUnderstanding.get("agentDecisionReasonSummary").asText());
+        canonicalSceneUnderstanding.put("localTimeText", sceneUnderstanding.get("localTimeText").asText());
+        canonicalSceneUnderstanding.put("weatherText", sceneUnderstanding.get("weatherText").asText());
+        canonicalSceneUnderstanding.put("headingText", sceneUnderstanding.get("headingText").asText());
+        canonicalSceneUnderstanding.put("memorySessionSceneCount",
+                sceneUnderstanding.get("memorySessionSceneCount").asInt());
+        canonicalSceneUnderstanding.put("serviceHandoffSummary",
+                sceneUnderstanding.get("serviceHandoffSummary").asText());
+        canonicalPayload.put("sceneUnderstanding", canonicalSceneUnderstanding);
+        new JdbcTemplate(dataSource).update("""
+                UPDATE "xunjing_interaction_event"
+                SET "payload_json" = ?
+                WHERE "id" = ?
+                """, JsonUtils.toJsonString(canonicalPayload), triggerEvents.get(0).getId());
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-scene-understanding-chat-001");
+        followUpReq.setQuestion("现在适合先做什么？");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO followUpAnswer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", followUpAnswer.getSafetyStatus());
+        assertEquals("xicheng-gongwangfu", followUpAnswer.getPoiCode());
+        assertEquals("恭王府权威讲解稿", followUpAnswer.getSources().get(0).getTitle());
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId,
+                                "trace-xicheng-scene-understanding-chat-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertEquals("晴天 18:40，夕阳照到恭王府门楼，建议先拍照再讲历史。",
+                visionAgentContext.get("sceneFusionSummary").asText());
+        assertEquals("相机融合 GPS、OCR、时间、天气和城市知识库后判断当前世界。",
+                visionAgentContext.get("worldInterfaceSummary").asText());
+        assertEquals("architecture", visionAgentContext.get("primarySceneDomainKey").asText());
+        assertEquals("建筑", visionAgentContext.get("primarySceneDomainLabel").asText());
+        assertEquals("先拍照", visionAgentContext.get("decisionActionTitle").asText());
+        assertTrue(visionAgentContext.get("decisionReasonSummary").asText().contains("马上日落"));
+        assertEquals("18:40", visionAgentContext.get("localTimeText").asText());
+        assertEquals("晴", visionAgentContext.get("weatherText").asText());
+        assertEquals("向西", visionAgentContext.get("headingText").asText());
+        assertEquals(4, visionAgentContext.get("memorySessionSceneCount").asInt());
+        assertEquals(sceneUnderstanding.get("serviceHandoffSummary").asText(),
+                visionAgentContext.get("serviceHandoffSummary").asText());
     }
 
     @Test

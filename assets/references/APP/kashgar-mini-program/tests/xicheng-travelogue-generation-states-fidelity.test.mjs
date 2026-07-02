@@ -8,11 +8,15 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 const longPreview = read('components', 'xicheng', 'XichengLongTraveloguePreview.vue')
 const statePanelPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueGenerationStatePanel.vue')
+const generationHeroPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueGenerationHero.vue')
 const stateMixin = read('components', 'xicheng', 'travelogueGenerationState.js')
 
 assert.ok(fs.existsSync(statePanelPath), 'Travelogue generation should split insufficient/failed states into XichengTravelogueGenerationStatePanel.vue')
+assert.ok(fs.existsSync(generationHeroPath), 'Travelogue generation hero should own the generation state panel wiring after page extraction')
 
 const statePanel = fs.readFileSync(statePanelPath, 'utf8')
+const generationHero = fs.readFileSync(generationHeroPath, 'utf8')
+const generationSurface = `${travelogue}\n${generationHero}`
 
 for (const token of [
   '素材不足',
@@ -48,21 +52,28 @@ assert.doesNotMatch(
 )
 
 for (const token of [
+  "import XichengTravelogueGenerationHero from '@/components/xicheng/XichengTravelogueGenerationHero.vue'",
   "import XichengTravelogueGenerationStatePanel from '@/components/xicheng/XichengTravelogueGenerationStatePanel.vue'",
+  'XichengTravelogueGenerationHero',
   "import { createXichengTravelogueGenerationStateMixin } from '@/components/xicheng/travelogueGenerationState.js'",
   'XichengTravelogueGenerationStatePanel',
   'mixins: [createXichengTravelogueGenerationStateMixin()]',
+  '<xicheng-travelogue-generation-hero',
   '<xicheng-travelogue-generation-state-panel',
-  ':status="travelogueGenerationState"',
+  ':generation-state="travelogueGenerationState"',
+  ':status="generationState"',
   ':has-evidence="hasTraveloguePreviewEvidence"',
-  ':material-hints="travelogueMaterialHints"',
-  ':failure-reason="travelogueGenerationFailureReason"',
+  ':has-evidence="hasEvidence"',
+  ':material-hints="materialHints"',
+  ':failure-reason="failureReason"',
   '@explore="openRoutesPage"',
+  '@explore="$emit(\'explore\')"',
   '@add-photo="addPhotoMaterial"',
-  '@retry="generateTravelogueDraft"',
-  '@manual-edit="scrollToDraftEditor"'
+  '@add-photo="$emit(\'add-photo\')"',
+  '@retry="$emit(\'generate\')"',
+  '@manual-edit="$emit(\'edit\')"'
 ]) {
-  assert.ok(travelogue.includes(token), `travelogue.vue should wire generation state panel via ${token}`)
+  assert.ok(generationSurface.includes(token), `travelogue generation surface should wire generation state panel via ${token}`)
 }
 
 for (const token of [

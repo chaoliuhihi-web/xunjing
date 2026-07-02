@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.xunjing.controller.admin.console.vo;
 
 import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -91,6 +92,14 @@ public class XunjingConsoleVO {
     }
 
     @Data
+    public static class KnowledgeDocumentUploadReqVO {
+        private Long packageId;
+        private String title;
+        private String authorityLevel;
+        private MultipartFile file;
+    }
+
+    @Data
     public static class KnowledgeDocumentReviewReqVO {
         private Long id;
         private String authorityLevel;
@@ -113,6 +122,20 @@ public class XunjingConsoleVO {
         private Boolean canPublic;
         private Boolean canAiUse;
         private Boolean canPromotionUse;
+    }
+
+    @Data
+    public static class MediaAssetUploadReqVO {
+        private Long packageId;
+        private String title;
+        private String mediaType;
+        private String sourceProvider;
+        private String sourceUrl;
+        private String imageTags;
+        private Boolean canPublic;
+        private Boolean canAiUse;
+        private Boolean canPromotionUse;
+        private MultipartFile file;
     }
 
     @Data
@@ -495,6 +518,15 @@ public class XunjingConsoleVO {
     }
 
     @Data
+    public static class AgentActionTimeWindowRespVO {
+        private String windowKey;
+        private String windowLabel;
+        private Long triggerResolveCount;
+        private Long agentActionCount;
+        private BigDecimal conversionRate;
+    }
+
+    @Data
     public static class DashboardSummaryRespVO {
         private Long projectId;
         private Long packageCount;
@@ -510,6 +542,7 @@ public class XunjingConsoleVO {
         private BigDecimal agentActionConversionRate;
         private List<AgentActionMetricRespVO> topAgentActions;
         private List<AgentActionPoiFunnelRespVO> agentActionPoiFunnels;
+        private List<AgentActionTimeWindowRespVO> agentActionTimeWindows;
         private Long mediaUsageCount;
         private Long aiGenerationCount;
         private Long pendingImportItemCount;

@@ -4,8 +4,10 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.infra.api.file.FileApi;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AgentActionMetricRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AgentActionPoiFunnelRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AgentActionTimeWindowRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AiEvalCaseCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AiEvalCaseRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AiEvalRunCaseRespVO;
@@ -32,11 +34,13 @@ import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsol
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.KnowledgeDocumentCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.KnowledgeDocumentRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.KnowledgeDocumentReviewReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.KnowledgeDocumentUploadReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MapPointCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MapPointRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MediaAssetCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MediaAssetRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MediaAssetReviewReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MediaAssetUploadReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MediaUsageCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MediaUsageRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.GlobeModelRespVO;
@@ -111,11 +115,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -169,6 +177,8 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
     private XunjingPublicReportMapper publicReportMapper;
     @Autowired(required = false)
     private XunjingAppService appService;
+    @Autowired(required = false)
+    private FileApi fileApi;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -248,6 +258,28 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long uploadKnowledgeDocument(KnowledgeDocumentUploadReqVO reqVO) {
+        validatePackageExists(reqVO.getPackageId());
+        MultipartFile file = requireUploadFile(reqVO.getFile());
+        byte[] content = readFileBytes(file);
+        String fileName = safeFileName(file.getOriginalFilename(), "knowledge-document.txt");
+        String directory = uploadDirectory("xunjing/tourism-knowledge", reqVO.getPackageId());
+        String fileUrl = requireFileApi().createFile(content, fileName, directory, file.getContentType());
+
+        KnowledgeDocumentCreateReqVO createReqVO = new KnowledgeDocumentCreateReqVO();
+        createReqVO.setPackageId(reqVO.getPackageId());
+        createReqVO.setTitle(defaultIfBlank(reqVO.getTitle(), defaultTitleFromFileName(fileName)));
+        createReqVO.setSourceType(SourceType.IMPORT.getType());
+        createReqVO.setSourceUrl(fileUrl);
+        createReqVO.setContentDigest(buildKnowledgeUploadDigest(file, content));
+        createReqVO.setAuthorityLevel(defaultIfBlank(reqVO.getAuthorityLevel(), "REFERENCE"));
+        createReqVO.setReviewStatus(ReviewStatus.PENDING.getStatus());
+        createReqVO.setVectorStatus(VectorStatus.PENDING.getStatus());
+        return addKnowledgeDocument(createReqVO);
+    }
+
+    @Override
     public PageResult<KnowledgeDocumentRespVO> getKnowledgeDocumentPage(ConsolePageReqVO reqVO) {
         return BeanUtils.toBean(knowledgeDocumentMapper.selectPage(reqVO), KnowledgeDocumentRespVO.class);
     }
@@ -265,8 +297,9 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
         if (reqVO.getReviewStatus() != null) {
             document.setReviewStatus(reqVO.getReviewStatus());
         }
-        if (reqVO.getVectorStatus() != null) {
-            document.setVectorStatus(reqVO.getVectorStatus());
+        String vectorStatus = defaultKnowledgeVectorStatusForReview(reqVO, document);
+        if (vectorStatus != null) {
+            document.setVectorStatus(vectorStatus);
         }
         knowledgeDocumentMapper.updateById(document);
     }
@@ -283,6 +316,33 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
         mediaAsset.setCanPromotionUse(Boolean.TRUE.equals(reqVO.getCanPromotionUse()));
         mediaAssetMapper.insert(mediaAsset);
         return mediaAsset.getId();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long uploadMediaAsset(MediaAssetUploadReqVO reqVO) {
+        validatePackageExists(reqVO.getPackageId());
+        MultipartFile file = requireUploadFile(reqVO.getFile());
+        byte[] content = readFileBytes(file);
+        String fileName = safeFileName(file.getOriginalFilename(), "media-asset");
+        String directory = uploadDirectory("xunjing/tourism-media", reqVO.getPackageId());
+        String fileUrl = requireFileApi().createFile(content, fileName, directory, file.getContentType());
+
+        MediaAssetCreateReqVO createReqVO = new MediaAssetCreateReqVO();
+        createReqVO.setPackageId(reqVO.getPackageId());
+        createReqVO.setTitle(defaultIfBlank(reqVO.getTitle(), defaultTitleFromFileName(fileName)));
+        createReqVO.setMediaType(defaultIfBlank(reqVO.getMediaType(), mediaTypeByContentType(file.getContentType())));
+        createReqVO.setFileUrl(fileUrl);
+        createReqVO.setObjectKey(directory + "/" + fileName);
+        createReqVO.setSourceProvider(defaultIfBlank(reqVO.getSourceProvider(), "项目方授权资料"));
+        createReqVO.setSourceUrl(defaultIfBlank(reqVO.getSourceUrl(), fileUrl));
+        createReqVO.setCopyrightStatus(CopyrightStatus.PENDING.getStatus());
+        createReqVO.setReviewStatus(ReviewStatus.PENDING.getStatus());
+        createReqVO.setImageTags(reqVO.getImageTags());
+        createReqVO.setCanPublic(reqVO.getCanPublic());
+        createReqVO.setCanAiUse(reqVO.getCanAiUse());
+        createReqVO.setCanPromotionUse(reqVO.getCanPromotionUse());
+        return addMediaAsset(createReqVO);
     }
 
     @Override
@@ -830,6 +890,7 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
         respVO.setAgentActionConversionRate(readiness.getAgentActionConversionRate());
         respVO.setTopAgentActions(buildTopAgentActionMetrics(packageIds, readiness.getAgentActionCount()));
         respVO.setAgentActionPoiFunnels(buildAgentActionPoiFunnels(packageIds));
+        respVO.setAgentActionTimeWindows(buildAgentActionTimeWindows(packageIds));
         respVO.setMediaUsageCount(readiness.getMediaUsageCount());
         respVO.setAiGenerationCount(readiness.getAiGenerationCount());
         respVO.setPendingImportItemCount(readiness.getPendingImportItemCount());
@@ -936,6 +997,38 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
         }
         return BigDecimal.valueOf(agentActionCount == null ? 0L : agentActionCount)
                 .divide(BigDecimal.valueOf(triggerResolveCount), 4, RoundingMode.HALF_UP);
+    }
+
+    private List<AgentActionTimeWindowRespVO> buildAgentActionTimeWindows(List<Long> packageIds) {
+        LocalDate today = LocalDate.now();
+        List<XunjingInteractionEventDO> triggerEvents = interactionEventMapper.selectListByPackageIdsAndEventType(
+                packageIds, EventType.TRIGGER_RESOLVE.getType());
+        List<XunjingInteractionEventDO> agentActionEvents = interactionEventMapper.selectListByPackageIdsAndEventType(
+                packageIds, EventType.AGENT_ACTION.getType());
+        return List.of(
+                agentActionWindow("today", "今天", today.atStartOfDay(), triggerEvents, agentActionEvents),
+                agentActionWindow("last7d", "近7天", today.minusDays(6).atStartOfDay(),
+                        triggerEvents, agentActionEvents),
+                agentActionWindow("last30d", "近30天", today.minusDays(29).atStartOfDay(),
+                        triggerEvents, agentActionEvents));
+    }
+
+    private AgentActionTimeWindowRespVO agentActionWindow(
+            String windowKey, String windowLabel, LocalDateTime startAt,
+            List<XunjingInteractionEventDO> triggerEvents, List<XunjingInteractionEventDO> agentActionEvents) {
+        long triggerResolveCount = triggerEvents.stream().filter(event -> eventInWindow(event, startAt)).count();
+        long agentActionCount = agentActionEvents.stream().filter(event -> eventInWindow(event, startAt)).count();
+        AgentActionTimeWindowRespVO respVO = new AgentActionTimeWindowRespVO();
+        respVO.setWindowKey(windowKey);
+        respVO.setWindowLabel(windowLabel);
+        respVO.setTriggerResolveCount(triggerResolveCount);
+        respVO.setAgentActionCount(agentActionCount);
+        respVO.setConversionRate(calculateAgentActionConversionRate(agentActionCount, triggerResolveCount));
+        return respVO;
+    }
+
+    private boolean eventInWindow(XunjingInteractionEventDO event, LocalDateTime startAt) {
+        return event != null && event.getCreateTime() != null && !event.getCreateTime().isBefore(startAt);
     }
 
     private List<AgentActionMetricRespVO> buildTopAgentActionMetrics(
@@ -1097,6 +1190,94 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
         } catch (URISyntaxException ex) {
             return null;
         }
+    }
+
+    private FileApi requireFileApi() {
+        if (fileApi == null) {
+            throw new IllegalStateException("Yudao FileApi is required for xunjing tourism uploads");
+        }
+        return fileApi;
+    }
+
+    private MultipartFile requireUploadFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("xunjing tourism upload file is required");
+        }
+        return file;
+    }
+
+    private byte[] readFileBytes(MultipartFile file) {
+        try {
+            return file.getBytes();
+        } catch (IOException ex) {
+            throw new IllegalStateException("xunjing tourism upload file read failed", ex);
+        }
+    }
+
+    private String uploadDirectory(String root, Long packageId) {
+        return root + "/" + TenantContextHolder.getRequiredTenantId() + "/" + packageId;
+    }
+
+    private String safeFileName(String originalFilename, String defaultName) {
+        String value = defaultIfBlank(originalFilename, defaultName).trim();
+        int separator = Math.max(value.lastIndexOf('/'), value.lastIndexOf('\\'));
+        if (separator >= 0) {
+            value = value.substring(separator + 1);
+        }
+        value = value.replaceAll("[\\r\\n]", "").replaceAll("\\s+", "-");
+        value = value.replaceAll("[^\\p{IsAlphabetic}\\p{IsDigit}._-]", "-");
+        return value.isBlank() ? defaultName : value;
+    }
+
+    private String defaultTitleFromFileName(String fileName) {
+        int dotIndex = fileName.lastIndexOf('.');
+        return dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
+    }
+
+    private String buildKnowledgeUploadDigest(MultipartFile file, byte[] content) {
+        String fileName = safeFileName(file.getOriginalFilename(), "knowledge-document.txt");
+        if (isTextUpload(fileName, file.getContentType())) {
+            String text = new String(content, StandardCharsets.UTF_8).replaceAll("\\s+", " ").trim();
+            if (!text.isBlank()) {
+                return text.length() > 1200 ? text.substring(0, 1200) : text;
+            }
+        }
+        return "上传文件：" + fileName
+                + "；MIME：" + defaultIfBlank(file.getContentType(), "unknown")
+                + "；大小：" + content.length
+                + " 字节；待解析分段后进入向量索引。";
+    }
+
+    private boolean isTextUpload(String fileName, String contentType) {
+        String type = defaultIfBlank(contentType, "").toLowerCase();
+        String lowerName = defaultIfBlank(fileName, "").toLowerCase();
+        return type.startsWith("text/")
+                || lowerName.endsWith(".txt")
+                || lowerName.endsWith(".md")
+                || lowerName.endsWith(".csv")
+                || lowerName.endsWith(".json")
+                || lowerName.endsWith(".html");
+    }
+
+    private String defaultKnowledgeVectorStatusForReview(
+            KnowledgeDocumentReviewReqVO reqVO, XunjingKnowledgeDocumentDO document) {
+        if (reqVO.getVectorStatus() != null) {
+            return reqVO.getVectorStatus();
+        }
+        String currentStatus = defaultIfBlank(document.getVectorStatus(), "");
+        if (ReviewStatus.APPROVED.getStatus().equals(reqVO.getReviewStatus())
+                && (currentStatus.isBlank() || VectorStatus.PENDING.getStatus().equals(currentStatus))) {
+            return VectorStatus.INDEXED.getStatus();
+        }
+        return null;
+    }
+
+    private String mediaTypeByContentType(String contentType) {
+        String type = defaultIfBlank(contentType, "").toLowerCase();
+        if (type.startsWith("video/")) {
+            return MediaType.VIDEO.getType();
+        }
+        return MediaType.IMAGE.getType();
     }
 
     private String defaultIfBlank(String value, String defaultValue) {

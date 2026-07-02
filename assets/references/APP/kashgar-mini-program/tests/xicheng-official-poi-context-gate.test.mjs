@@ -6,6 +6,7 @@ const root = process.cwd()
 const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
 
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
+const summaryHero = read('components', 'xicheng', 'XichengScanResultSummaryHero.vue')
 const home = read('pages', 'xicheng', 'home', 'home.vue')
 
 for (const required of [
@@ -40,13 +41,19 @@ assert.match(
 
 assert.match(
   scanResult,
-  /<view class="result-reference-actions">[\s\S]*<button class="[^"]*\bprimary-button\b[^"]*" :disabled="recognitionActionBlocked" @click="askXiaojing\(\)">开始 AI 讲解<\/button>/,
+  /<xicheng-scan-result-summary-hero[\s\S]*:recognition-action-blocked="recognitionActionBlocked"/,
+  'Recognition result page should pass missing-official-POI blocking state into the summary hero actions'
+)
+
+assert.match(
+  summaryHero,
+  /<button[\s\S]*class="[^"]*\bprimary-button\b[^"]*"[\s\S]*:disabled="recognitionActionBlocked"[\s\S]*@click="\$emit\('start-guide'\)"[\s\S]*开始 AI 讲解[\s\S]*<\/button>/,
   'Primary Xiaojing explanation action should be disabled when the official POI context is missing'
 )
 
 assert.match(
-  scanResult,
-  /<view class="result-reference-actions">[\s\S]*<button class="[^"]*\bghost-button\b[^"]*" :disabled="recognitionActionBlocked" @click="askXiaojing\(suggestedQuestions\[1\]\)">问问小京<\/button>/,
+  summaryHero,
+  /<button[\s\S]*class="[^"]*\bghost-button\b[^"]*"[\s\S]*:disabled="recognitionActionBlocked"[\s\S]*@click="\$emit\('ask-xiaojing'\)"[\s\S]*问问小京[\s\S]*<\/button>/,
   'Secondary Xiaojing question action should be disabled when the official POI context is missing'
 )
 
