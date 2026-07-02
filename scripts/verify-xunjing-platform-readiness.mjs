@@ -490,15 +490,25 @@ async function checkXichengAppEventBackend(rootDir) {
   )
   for (const snippet of [
     'resolveAppEventQrCode(reqVO, hasText(reqVO.getPackageCode()))',
-    'buildAppEventPayload'
+    'buildAppEventPayload',
+    'EventType.AGENT_ACTION',
+    'buildAgentActionEventPayload',
+    'sanitizeAgentActionClientPayload',
+    'payload.put("agentAction", buildAgentActionEventPayload(clientPayloadObject))'
   ]) {
     assertContains(appService, snippet, 'XunjingAppServiceImpl.java')
   }
   assertContains(enums, 'ERROR_FEEDBACK("ERROR_FEEDBACK")', 'XunjingEnums.java')
+  assertContains(enums, 'AGENT_ACTION("AGENT_ACTION")', 'XunjingEnums.java')
   assertContains(appTest, 'testRecordAppErrorFeedbackEventKeepsXichengContext', 'XunjingAppServiceImplTest.java')
+  assertContains(
+    appTest,
+    'testRecordAgentActionEventStoresStructuredTelemetryWithoutRawImagePayload',
+    'XunjingAppServiceImplTest.java'
+  )
   return pass(
     'xicheng-app-event-backend',
-    'Xicheng APP events accept package-bound error feedback and keep ordinary scene context'
+    'Xicheng APP events accept package-bound feedback and structured Agent action telemetry'
   )
 }
 

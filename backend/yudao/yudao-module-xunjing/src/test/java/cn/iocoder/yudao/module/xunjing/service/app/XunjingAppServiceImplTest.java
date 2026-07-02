@@ -291,6 +291,56 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testRecordAgentActionEventStoresStructuredTelemetryWithoutRawImagePayload() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+
+        AppInteractionEventReqVO reqVO = new AppInteractionEventReqVO();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-agent-action");
+        reqVO.setEventType(XunjingEnums.EventType.AGENT_ACTION.getType());
+        reqVO.setSourceChannel("xicheng-app");
+        reqVO.setUserTraceId("trace-xicheng-agent-action-001");
+        reqVO.setPayloadJson("""
+                {
+                  "actionKey":"generate_travelogue",
+                  "title":"生成游记",
+                  "intent":"record",
+                  "targetPath":"/pages/travel-note/edit?regionCode=beijing-xicheng&poiCode=xicheng-gongwangfu&packageCode=XICHENG-MAP-001&confirm=1",
+                  "sourceTriggerTraceId":"trace-xicheng-travel-record-actions-001",
+                  "requiresRealSystem":false,
+                  "executionStatus":"started",
+                  "poiCode":"xicheng-gongwangfu",
+                  "poiName":"恭王府",
+                  "imageBase64":"blocked"
+                }
+                """);
+
+        Long eventId = appService.recordEvent(reqVO);
+
+        XunjingInteractionEventDO event = interactionEventMapper.selectById(eventId);
+        assertEquals(packageId, event.getPackageId());
+        assertEquals(schoolId, event.getSchoolId());
+        assertEquals(XunjingEnums.EventType.AGENT_ACTION.getType(), event.getEventType());
+        assertEquals("xicheng-app", event.getSourceChannel());
+        assertEquals("trace-xicheng-agent-action-001", event.getUserTraceId());
+        JsonNode payload = JsonUtils.parseTree(event.getPayloadJson());
+        JsonNode agentAction = payload.get("agentAction");
+        assertEquals("generate_travelogue", agentAction.get("actionKey").asText());
+        assertEquals("生成游记", agentAction.get("title").asText());
+        assertEquals("record", agentAction.get("intent").asText());
+        assertEquals("started", agentAction.get("executionStatus").asText());
+        assertEquals("trace-xicheng-travel-record-actions-001", agentAction.get("sourceTriggerTraceId").asText());
+        assertFalse(agentAction.get("requiresRealSystem").asBoolean());
+        assertEquals("xicheng-gongwangfu", agentAction.get("poiCode").asText());
+        assertEquals("恭王府", agentAction.get("poiName").asText());
+        assertTrue(agentAction.get("targetPath").asText().contains("packageCode=XICHENG-MAP-001"));
+        assertFalse(event.getPayloadJson().contains("imageBase64"));
+        assertFalse(event.getPayloadJson().contains("blocked"));
+    }
+
+    @Test
     public void testRecordAppEventDefaultsBlankTypeAndRejectsInvalidType() {
         Long projectId = consoleService.createProject(projectReq());
         Long schoolId = consoleService.createSchool(schoolReq());

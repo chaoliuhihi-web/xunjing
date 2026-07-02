@@ -1932,14 +1932,65 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     private String buildAppEventPayload(
             XunjingResourcePackageDO resourcePackage, XunjingQrCodeDO qrCode, AppInteractionEventReqVO reqVO) {
         String clientPayload = defaultIfBlank(reqVO.getPayloadJson(), "{}").trim();
+        String eventType = normalizeAppEventType(reqVO.getEventType());
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("packageCode", resourcePackage.getPackageCode());
         payload.put("sceneCode", defaultIfBlank(reqVO.getSceneCode(), ""));
         payload.put("qrCodeId", qrCode == null ? null : qrCode.getId());
         Map<String, Object> clientPayloadObject = JsonUtils.parseObjectQuietly(
                 clientPayload, new TypeReference<Map<String, Object>>() {});
-        payload.put("clientPayload", clientPayloadObject == null ? clientPayload : clientPayloadObject);
+        if (EventType.AGENT_ACTION.getType().equals(eventType)) {
+            payload.put("clientPayload", sanitizeAgentActionClientPayload(clientPayloadObject));
+            payload.put("agentAction", buildAgentActionEventPayload(clientPayloadObject));
+        } else {
+            payload.put("clientPayload", clientPayloadObject == null ? clientPayload : clientPayloadObject);
+        }
         return JsonUtils.toJsonString(payload);
+    }
+
+    private Map<String, Object> sanitizeAgentActionClientPayload(Map<String, Object> clientPayload) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        putAgentActionText(payload, clientPayload, "actionKey", 80);
+        putAgentActionText(payload, clientPayload, "title", 80);
+        putAgentActionText(payload, clientPayload, "intent", 50);
+        putAgentActionText(payload, clientPayload, "targetPath", 200);
+        putAgentActionText(payload, clientPayload, "sourceTriggerTraceId", 100);
+        putAgentActionText(payload, clientPayload, "executionStatus", 40);
+        putAgentActionText(payload, clientPayload, "poiCode", 80);
+        putAgentActionText(payload, clientPayload, "poiName", 80);
+        putAgentActionBoolean(payload, clientPayload, "requiresUserConfirm");
+        putAgentActionBoolean(payload, clientPayload, "requiresRealSystem");
+        return payload;
+    }
+
+    private Map<String, Object> buildAgentActionEventPayload(Map<String, Object> clientPayload) {
+        Map<String, Object> payload = sanitizeAgentActionClientPayload(clientPayload);
+        putAgentActionText(payload, clientPayload, "reason", TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+        return payload;
+    }
+
+    private void putAgentActionText(Map<String, Object> payload, Map<String, Object> source, String key, int maxLength) {
+        if (source == null) {
+            return;
+        }
+        String value = stringValue(source.get(key));
+        if (hasText(value)) {
+            payload.put(key, truncateForEvent(value.trim(), maxLength));
+        }
+    }
+
+    private void putAgentActionBoolean(Map<String, Object> payload, Map<String, Object> source, String key) {
+        if (source == null) {
+            return;
+        }
+        Object value = source.get(key);
+        if (value instanceof Boolean booleanValue) {
+            payload.put(key, booleanValue);
+            return;
+        }
+        if (value instanceof String text && hasText(text)) {
+            payload.put(key, Boolean.parseBoolean(text.trim()));
+        }
     }
 
     private void recordAppMediaUsage(
