@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import com.fasterxml.jackson.databind.JsonNode;
 import cn.iocoder.yudao.module.ai.dal.dataobject.model.AiModelDO;
 import cn.iocoder.yudao.module.ai.enums.model.AiModelTypeEnum;
 import cn.iocoder.yudao.module.ai.enums.model.AiPlatformEnum;
@@ -60,7 +61,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -511,6 +514,61 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertTrue(event.getPayloadJson().contains("\"ocrText\":\"恭王府博物馆入口\""));
         assertTrue(event.getPayloadJson().contains("\"imageLabelCount\":2"));
         assertFalse(event.getPayloadJson().contains("imageBase64"));
+    }
+
+    @Test
+    public void testResolveMultimodalTriggerRecordsSceneSignalsWithoutRawRecognitionContext() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "晴天 18:40 先拍门楼再讲历史");
+        sceneSignals.put("worldInterfaceSummary", "相机融合定位、时间和城市知识库");
+        sceneSignals.put("localTimeText", "18:40");
+        sceneSignals.put("weatherText", "晴");
+        sceneSignals.put("headingText", "西");
+        sceneSignals.put("headingDegrees", 270);
+        sceneSignals.put("sceneDomainIntentKey", "architecture");
+        sceneSignals.put("sceneDomainIntentLabel", "建筑");
+        sceneSignals.put("sceneDomainIntentTitle", "建筑识境");
+        sceneSignals.put("sceneDomainIntentCopy", "讲解建筑结构和拍照角度");
+        sceneSignals.put("agentDecisionActionTitle", "先拍照");
+        sceneSignals.put("agentDecisionReasonSummary", "日落前适合拍摄");
+        sceneSignals.put("memorySessionSceneCount", 3);
+        sceneSignals.put("sourceRecognitionContext", Map.of("raw", "blocked"));
+        sceneSignals.put("photoPath", "/tmp/raw.jpg");
+        sceneSignals.put("imagePath", "/tmp/raw-image.jpg");
+        sceneSignals.put("latitude", "39.937050");
+        sceneSignals.put("longitude", "116.386770");
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-multimodal-trigger");
+        reqVO.setOcrText("恭王府博物馆入口");
+        reqVO.setSceneSignals(sceneSignals);
+
+        appService.resolveMultimodalTrigger(reqVO);
+
+        List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.TRIGGER_RESOLVE.getType()));
+        assertEquals(1, events.size());
+        JsonNode payload = JsonUtils.parseTree(events.get(0).getPayloadJson());
+        JsonNode persistedSignals = payload.get("sceneSignals");
+        assertEquals("architecture", persistedSignals.get("sceneDomainIntentKey").asText());
+        assertEquals("18:40", persistedSignals.get("localTimeText").asText());
+        assertEquals("晴", persistedSignals.get("weatherText").asText());
+        assertEquals(270, persistedSignals.get("headingDegrees").asInt());
+        assertEquals(3, persistedSignals.get("memorySessionSceneCount").asInt());
+        assertFalse(persistedSignals.has("sourceRecognitionContext"));
+        assertFalse(persistedSignals.has("photoPath"));
+        assertFalse(persistedSignals.has("imagePath"));
+        assertFalse(persistedSignals.has("latitude"));
+        assertFalse(persistedSignals.has("longitude"));
+        assertFalse(persistedSignals.toString().contains("/tmp/raw.jpg"));
     }
 
     @Test

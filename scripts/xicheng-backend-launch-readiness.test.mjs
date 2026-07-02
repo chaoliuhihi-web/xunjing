@@ -31,6 +31,9 @@ describe('xicheng backend launch readiness', () => {
     const appService = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java'
     )
+    const appVo = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'
+    )
     const enums = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/enums/XunjingEnums.java'
     )
@@ -66,13 +69,18 @@ describe('xicheng backend launch readiness', () => {
     expect(triggerEngine).toContain('selectPublishedListByRegionCode')
     expect(appService).toContain('recordTriggerResolveEventIfPossible')
     expect(appService).toContain('buildTriggerResolveEventPayload')
+    expect(appService).toContain('TRIGGER_SCENE_SIGNAL_TEXT_KEYS')
+    expect(appService).toContain('buildTriggerSceneSignalsPayload(reqVO.getSceneSignals())')
+    expect(appService).not.toContain('payload.put("sceneSignals", reqVO.getSceneSignals())')
     expect(appService).toContain('EventType.TRIGGER_RESOLVE')
     expect(appService).toContain('resolveAppEventQrCode(reqVO, hasText(reqVO.getPackageCode()))')
     expect(appService).not.toContain('payload.put("imageBase64"')
+    expect(appVo).toContain('private Map<String, Object> sceneSignals;')
     expect(enums).toContain('TRIGGER_RESOLVE("TRIGGER_RESOLVE")')
     expect(enums).toContain('ERROR_FEEDBACK("ERROR_FEEDBACK")')
     expect(appTest).toContain('testResolveMultimodalTriggerUsesPublishedPoiFromDatabase')
     expect(appTest).toContain('testResolveMultimodalTriggerRecordsRecognitionEventWhenPackageProvided')
+    expect(appTest).toContain('testResolveMultimodalTriggerRecordsSceneSignalsWithoutRawRecognitionContext')
     expect(appTest).toContain('testRecordAppErrorFeedbackEventKeepsXichengContext')
     expect(appTest).toContain('testAnswerBlocksWhenReviewedSourcesDoNotMatchXichengPoiContext')
 

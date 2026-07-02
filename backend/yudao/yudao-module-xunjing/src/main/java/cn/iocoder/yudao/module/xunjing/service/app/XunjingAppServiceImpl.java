@@ -96,6 +96,20 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     private static final String QUOTA_SCOPE_PACKAGE = "PACKAGE";
     private static final String QUOTA_SCOPE_QRCODE = "QRCODE";
     private static final String QUOTA_SCOPE_USER = "USER";
+    private static final int TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH = 200;
+    private static final List<String> TRIGGER_SCENE_SIGNAL_TEXT_KEYS = List.of(
+            "sceneFusionSummary",
+            "worldInterfaceSummary",
+            "localTimeText",
+            "weatherText",
+            "headingText",
+            "sceneDomainIntentKey",
+            "sceneDomainIntentLabel",
+            "sceneDomainIntentTitle",
+            "sceneDomainIntentCopy",
+            "agentDecisionActionTitle",
+            "agentDecisionReasonSummary"
+    );
 
     @Resource
     private XunjingResourcePackageMapper resourcePackageMapper;
@@ -629,11 +643,66 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         payload.put("ocrText", truncateForEvent(reqVO.getOcrText(), 200));
         payload.put("imageLabelCount", reqVO.getImageLabels() == null ? 0 : reqVO.getImageLabels().size());
         payload.put("recentPoiCount", reqVO.getRecentPoiCodes() == null ? 0 : reqVO.getRecentPoiCodes().size());
+        payload.put("sceneSignals", buildTriggerSceneSignalsPayload(reqVO.getSceneSignals()));
         payload.put("location", buildTriggerLocationPayload(reqVO.getLocation()));
         payload.put("photoMeta", buildTriggerPhotoMetaPayload(reqVO.getPhotoMeta()));
         payload.put("candidateCount", respVO.getCandidates() == null ? 0 : respVO.getCandidates().size());
         payload.put("sourceCount", respVO.getSources() == null ? 0 : respVO.getSources().size());
         return JsonUtils.toJsonString(payload);
+    }
+
+    private Map<String, Object> buildTriggerSceneSignalsPayload(Map<String, Object> sceneSignals) {
+        if (sceneSignals == null || sceneSignals.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        for (String key : TRIGGER_SCENE_SIGNAL_TEXT_KEYS) {
+            putTriggerSceneSignalText(payload, sceneSignals, key);
+        }
+        putTriggerSceneSignalNumber(payload, sceneSignals, "headingDegrees", true);
+        putTriggerSceneSignalNumber(payload, sceneSignals, "memorySessionSceneCount", false);
+        return payload;
+    }
+
+    private void putTriggerSceneSignalText(Map<String, Object> payload, Map<String, Object> sceneSignals, String key) {
+        Object value = sceneSignals.get(key);
+        if (value == null) {
+            return;
+        }
+        String text = String.valueOf(value).trim();
+        if (hasText(text)) {
+            payload.put(key, truncateForEvent(text, TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH));
+        }
+    }
+
+    private void putTriggerSceneSignalNumber(
+            Map<String, Object> payload, Map<String, Object> sceneSignals, String key, boolean normalizeHeading) {
+        Double value = triggerSceneSignalNumber(sceneSignals.get(key));
+        if (value == null || !Double.isFinite(value)) {
+            return;
+        }
+        long rounded = Math.round(value);
+        if (normalizeHeading) {
+            payload.put(key, (int) (((rounded % 360) + 360) % 360));
+            return;
+        }
+        if (rounded >= 0) {
+            payload.put(key, rounded);
+        }
+    }
+
+    private Double triggerSceneSignalNumber(Object value) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (value instanceof String text && hasText(text)) {
+            try {
+                return Double.valueOf(text.trim());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private Map<String, Object> buildTriggerLocationPayload(LocationPointReqVO location) {

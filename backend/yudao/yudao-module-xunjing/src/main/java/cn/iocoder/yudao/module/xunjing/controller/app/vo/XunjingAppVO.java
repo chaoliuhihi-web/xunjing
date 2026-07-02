@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 public class XunjingAppVO {
 
@@ -60,6 +61,7 @@ public class XunjingAppVO {
         private PhotoMetaReqVO photoMeta;
         private List<String> imageLabels;
         private List<String> recentPoiCodes;
+        private Map<String, Object> sceneSignals;
     }
 
     @Data
