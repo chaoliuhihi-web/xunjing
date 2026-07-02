@@ -55,7 +55,12 @@
 				</view>
 			</view>
 
-			<view class="xicheng-map-route-path"></view>
+			<view
+				v-for="segment in routeSegments"
+				:key="segment.key"
+				class="xicheng-map-route-path xicheng-map-route-segment"
+				:style="getRouteSegmentStyle(segment)"
+			></view>
 			<view
 				v-for="(stop, index) in routeStopMarkers"
 				:key="`route-stop-${stop.poiCode || stop.poiName}-${index}`"
@@ -228,14 +233,24 @@ export default {
 			const stops = Array.isArray(this.routeStops) ? this.routeStops : []
 			return stops.map((stop, index) => this.decoratePoi(stop, index))
 		},
+		routeSegments() {
+			const markers = this.routeStopMarkers
+			return markers.slice(0, -1).map((start, index) => {
+				const end = markers[index + 1]
+				const deltaLeft = Number(end.left) - Number(start.left)
+				const deltaTop = Number(end.top) - Number(start.top)
+				return {
+					key: `route-segment-${start.poiCode || index}-${end.poiCode || index + 1}`,
+					left: Number(start.left),
+					top: Number(start.top),
+					width: Math.hypot(deltaLeft, deltaTop),
+					angle: Math.atan2(deltaTop, deltaLeft) * 180 / Math.PI
+				}
+			})
+		},
 		selectedPoi() {
 			if (!this.selectedPoiCode) return null
 			return this.positionedPois.find(poi => poi.poiCode === this.selectedPoiCode) || null
-		}
-	},
-	mounted() {
-		if (!this.selectedPoiCode && this.positionedPois[0]) {
-			this.selectedPoiCode = this.positionedPois[0].poiCode
 		}
 	},
 	methods: {
@@ -255,6 +270,9 @@ export default {
 		},
 		getPoiPositionStyle(poi = {}) {
 			return `left:${poi.left}%;top:${poi.top}%;`
+		},
+		getRouteSegmentStyle(segment = {}) {
+			return `left:${segment.left}%;top:${segment.top}%;width:${segment.width}%;transform:rotate(${segment.angle}deg);`
 		},
 		getCategoryColor(categoryKey = '') {
 			const category = DEFAULT_MAP_CATEGORIES.find(item => item.key === categoryKey)
@@ -598,17 +616,25 @@ export default {
 .xicheng-map-route-path {
 	position: absolute;
 	z-index: 2;
-	left: 19%;
-	top: 62%;
-	width: 50%;
-	height: 14rpx;
+	height: 12rpx;
 	border-radius: 999rpx;
 	background: #173F35;
-	transform: rotate(-10deg);
-	box-shadow:
-		76rpx -90rpx 0 -2rpx #173F35,
-		156rpx -166rpx 0 -2rpx #173F35,
-		224rpx -222rpx 0 -2rpx #173F35;
+	transform-origin: left center;
+	box-shadow: 0 6rpx 16rpx rgba(16, 47, 41, 0.22);
+	pointer-events: none;
+}
+
+.xicheng-map-route-segment::after {
+	content: '';
+	position: absolute;
+	right: -6rpx;
+	top: 50%;
+	width: 12rpx;
+	height: 12rpx;
+	border-radius: 999rpx;
+	background: #173F35;
+	transform: translateY(-50%);
+	box-shadow: 0 0 0 5rpx rgba(255, 252, 246, 0.82);
 }
 
 .xicheng-map-route-stop,

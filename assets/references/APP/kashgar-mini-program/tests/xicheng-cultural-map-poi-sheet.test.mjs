@@ -32,6 +32,7 @@ for (const required of [
   '大栅栏',
   'xicheng-map-poi-pin',
   'xicheng-map-route-path',
+  'xicheng-map-route-segment',
   'xicheng-map-control',
   'xicheng-map-bottom-sheet',
   '导航去这里',
@@ -61,8 +62,44 @@ assert.match(
 
 assert.match(
   culturalMap,
+  /v-for="segment in routeSegments"[\s\S]*class="xicheng-map-route-path xicheng-map-route-segment"[\s\S]*:style="getRouteSegmentStyle\(segment\)"/,
+  'Cultural map route path should be rendered from dynamic route-stop segments instead of a fixed decorative line'
+)
+
+assert.match(
+  culturalMap,
+  /routeSegments\(\)[\s\S]*this\.routeStopMarkers[\s\S]*slice\(0,\s*-1\)[\s\S]*Math\.hypot[\s\S]*Math\.atan2/,
+  'Cultural map should calculate each route segment from adjacent positioned POI coordinates'
+)
+
+assert.match(
+  culturalMap,
+  /getRouteSegmentStyle\(segment = \{\}\)[\s\S]*left:\$\{segment\.left\}%[\s\S]*top:\$\{segment\.top\}%[\s\S]*width:\$\{segment\.width\}%[\s\S]*rotate\(\$\{segment\.angle\}deg\)/,
+  'Cultural map should style dynamic route segments with percentage position, length, and rotation'
+)
+
+assert.doesNotMatch(
+  culturalMap,
+  /box-shadow:\s*[\s\S]*76rpx\s+-90rpx\s+0\s+-2rpx\s+#173F35/,
+  'Cultural map should not use the old fixed box-shadow route path because it cannot follow selected or imported POIs'
+)
+
+assert.match(
+  culturalMap,
   /selectedPoi[\s\S]*class="xicheng-map-bottom-sheet"[\s\S]*selectedPoi\.poiName[\s\S]*selectedPoi\.summary/,
   'Cultural map should show a bottom sheet with the selected POI name and introduction'
+)
+
+assert.match(
+  culturalMap,
+  /data\(\)[\s\S]*selectedPoiCode:\s*''/,
+  'Cultural map should start with no selected POI so the map canvas stays fully tappable'
+)
+
+assert.doesNotMatch(
+  culturalMap,
+  /mounted\(\)[\s\S]*selectedPoiCode[\s\S]*positionedPois\[0\]/,
+  'Cultural map should not auto-open the first POI sheet on mount because it blocks lower POI pins'
 )
 
 assert.match(
