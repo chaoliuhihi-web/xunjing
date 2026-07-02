@@ -52,28 +52,13 @@
 			:source-empty-copy="sourceEmptyCopy"
 		/>
 
-		<view class="feedback-card xicheng-paper-card">
-			<view class="section-head xicheng-section-label">
-				<text class="section-title">识别反馈</text>
-				<text class="section-badge">{{ recognitionFeedback ? recognitionFeedback.feedbackLabel : '待反馈' }}</text>
-			</view>
-			<textarea
-				v-model="feedbackNote"
-				class="feedback-input"
-				placeholder="可补充正确地点、展牌文字或现场线索"
-				auto-height
-			/>
-			<view class="feedback-actions">
-				<button class="ghost-button xicheng-secondary-action" @click="submitRecognitionFeedback('correct')">识别准确</button>
-				<button class="ghost-button danger-button xicheng-secondary-action" @click="submitRecognitionFeedback('wrong')">识别有误</button>
-			</view>
-			<text v-if="recognitionFeedback" class="source-empty">
-				已记录为{{ recognitionFeedback.reviewStatus }}反馈，运营可用于 POI 纠错。
-			</text>
-			<view v-if="recognitionFeedback" class="feedback-actions">
-				<button class="ghost-button danger-button xicheng-secondary-action" @click="withdrawRecognitionFeedback">撤回反馈</button>
-			</view>
-		</view>
+		<xicheng-scan-result-feedback-card
+			:feedback-note="feedbackNote"
+			:recognition-feedback="recognitionFeedback"
+			@update:feedback-note="feedbackNote = $event"
+			@submit-feedback="submitRecognitionFeedback"
+			@withdraw-feedback="withdrawRecognitionFeedback"
+		/>
 		<xicheng-scan-result-memory-panel
 			:timeline-items="visionAgentTimelineItems"
 			:memory-session-package="visionAgentMemorySessionPackage"
@@ -150,6 +135,7 @@ import XichengScanResultVisionAgentPanel from '@/components/xicheng/XichengScanR
 import XichengScanResultSummaryHero from '@/components/xicheng/XichengScanResultSummaryHero.vue'
 import XichengScanResultSourcesCard from '@/components/xicheng/XichengScanResultSourcesCard.vue'
 import XichengScanResultRouteCard from '@/components/xicheng/XichengScanResultRouteCard.vue'
+import XichengScanResultFeedbackCard from '@/components/xicheng/XichengScanResultFeedbackCard.vue'
 
 const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
 	regionCode: XICHENG_REGION_CONFIG.regionCode,
@@ -420,7 +406,7 @@ const normalizeResult = (result = {}) => ({
 })
 
 export default {
-	components: { XichengScanResultMemoryPanel, XichengScanResultCandidateCard, XichengScanResultQuestionsCard, XichengScanResultVisionAgentPanel, XichengScanResultSummaryHero, XichengScanResultSourcesCard, XichengScanResultRouteCard },
+	components: { XichengScanResultMemoryPanel, XichengScanResultCandidateCard, XichengScanResultQuestionsCard, XichengScanResultVisionAgentPanel, XichengScanResultSummaryHero, XichengScanResultSourcesCard, XichengScanResultRouteCard, XichengScanResultFeedbackCard },
 	data() {
 		return {
 			region: XICHENG_REGION_CONFIG,
@@ -1768,11 +1754,6 @@ export default {
 	justify-content: center;
 }
 
-.feedback-card {
-	padding: 32rpx;
-	border-radius: 34rpx;
-}
-
 .label,
 .reason,
 .meta-label {
@@ -1804,106 +1785,6 @@ export default {
 	font-size: 32rpx;
 	font-weight: 700;
 	color: #173F35;
-}
-
-.source-card {
-	margin-top: 28rpx;
-}
-
-.feedback-card {
-	margin-top: 28rpx;
-}
-
-.section-title {
-	display: block;
-	font-size: 30rpx;
-	font-weight: 700;
-	color: #102F29;
-}
-
-.section-head {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 16rpx;
-}
-
-.section-head.xicheng-section-label {
-	justify-content: flex-start;
-}
-
-.section-head.xicheng-section-label .section-badge {
-	margin-left: auto;
-}
-
-.section-badge {
-	flex-shrink: 0;
-	padding: 8rpx 14rpx;
-	border-radius: 999rpx;
-	background: rgba(181, 148, 94, 0.16);
-	font-size: 22rpx;
-	color: #173F35;
-}
-
-.source-empty {
-	display: block;
-	line-height: 1.55;
-}
-
-.source-empty {
-	margin-top: 8rpx;
-	font-size: 24rpx;
-	color: #746F68;
-}
-
-.feedback-input {
-	width: 100%;
-	min-height: 112rpx;
-	margin-top: 20rpx;
-	padding: 20rpx;
-	box-sizing: border-box;
-	border: 1rpx solid rgba(181, 148, 94, 0.24);
-	border-radius: 24rpx;
-	background: rgba(255, 252, 246, 0.72);
-	font-size: 26rpx;
-	color: #173F35;
-}
-
-.feedback-actions {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 16rpx;
-	margin-top: 18rpx;
-}
-
-.danger-button {
-	color: #B42318;
-	background: #FFF5F5;
-}
-
-.bottom-actions {
-	display: flex;
-	gap: 20rpx;
-	margin-top: 32rpx;
-}
-
-.primary-button,
-.ghost-button {
-	flex: 1;
-	height: 84rpx;
-	line-height: 84rpx;
-	border-radius: 28rpx;
-	font-size: 28rpx;
-}
-
-.primary-button {
-	background: #1F6E5A;
-	color: #FFFFFF;
-}
-
-.ghost-button {
-	background: #E8ECE7;
-	color: #1F6E5A;
 }
 
 .poi-detail-entry {

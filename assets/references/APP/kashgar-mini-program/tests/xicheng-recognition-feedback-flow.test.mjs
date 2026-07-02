@@ -7,7 +7,9 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
+const scanResultFeedbackCard = read('components', 'xicheng', 'XichengScanResultFeedbackCard.vue')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const feedbackSurface = `${scanResult}\n${scanResultFeedbackCard}`
 
 assert.ok(
   regionConfig.includes("recognitionFeedbackStorageKey: 'xicheng:recognitionFeedbacks'"),
@@ -15,19 +17,27 @@ assert.ok(
 )
 
 for (const required of [
-  '识别反馈',
-  '识别准确',
-  '识别有误',
   'feedbackNote',
   'recognitionFeedback',
+  '<xicheng-scan-result-feedback-card',
+  '@submit-feedback="submitRecognitionFeedback"',
+  '@withdraw-feedback="withdrawRecognitionFeedback"',
   'submitRecognitionFeedback',
   'withdrawRecognitionFeedback',
   'createRecognitionFeedback',
   'persistRecognitionFeedback',
-  'recognitionFeedbackStorageKey',
-  '撤回反馈'
+  'recognitionFeedbackStorageKey'
 ]) {
   assert.ok(scanResult.includes(required), `Recognition result page should include ${required}`)
+}
+
+for (const required of [
+  '识别反馈',
+  '识别准确',
+  '识别有误',
+  '撤回反馈'
+]) {
+  assert.ok(feedbackSurface.includes(required), `Recognition result feedback surface should include ${required}`)
 }
 
 assert.match(
@@ -49,9 +59,9 @@ assert.match(
 )
 
 assert.match(
-  scanResult,
-  /v-if="recognitionFeedback"[\s\S]*@click="withdrawRecognitionFeedback"[\s\S]*撤回反馈/,
-  'Recognition feedback card should expose a withdraw action for accidental correction feedback'
+  scanResultFeedbackCard,
+  /v-if="recognitionFeedback"[\s\S]*@click="\$emit\('withdraw-feedback'\)"[\s\S]*撤回反馈/,
+  'Recognition feedback card should emit a withdraw action for accidental correction feedback'
 )
 
 assert.match(
