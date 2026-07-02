@@ -16,8 +16,7 @@ for (const token of [
   '西城记忆',
   'openWorksManager',
   'profile-account-art',
-  'works-library-hero',
-  '值得反复打开的西城记忆',
+  'profile-library-overview',
   '已保存的精美游记、PDF 纪念册和发布素材',
   'library-filter-row',
   'selectedLibraryFilter',
@@ -56,6 +55,18 @@ assert.match(
   worksStyle,
   /\.profile-card\s*\{[\s\S]*grid-template-columns:\s*150rpx minmax\(0,\s*1fr\)/,
   'Works profile card should use a larger account portrait treatment instead of the current compact utility row'
+)
+
+assert.match(
+  works,
+  /class="profile-card xicheng-paper-card"[\s\S]*class="profile-library-overview"[\s\S]*v-for="stat in libraryStats"/,
+  'Works page should merge keepsake stats into the login card so the first screen reaches the travelogue list sooner'
+)
+
+assert.match(
+  worksStyle,
+  /\.profile-library-overview\s*\{[\s\S]*grid-column:\s*1 \/ -1[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/,
+  'Works profile stats should be a compact full-width strip inside the account card'
 )
 
 for (const token of [
@@ -98,6 +109,6 @@ assert.ok(keepsakeCard.split(/\r?\n/).length < 260, 'Keepsake card should remain
 
 assert.doesNotMatch(
   `${works}\n${keepsakeCard}`,
-  /审核状态总览|作品审核状态|生成分享海报|亲子研学任务|路线护照|徽章|积分|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
+  /works-library-hero|值得反复打开的西城记忆|审核状态总览|作品审核状态|生成分享海报|亲子研学任务|路线护照|徽章|积分|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
   'Works keepsake library should not reintroduce removed modules or client secrets'
 )

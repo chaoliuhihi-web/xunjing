@@ -37,15 +37,8 @@
 					<text class="profile-sync-note">登录后同步游记、草稿和发布素材</text>
 				</view>
 			</view>
-		</view>
-
-		<view class="works-library-hero xicheng-paper-card">
-			<view class="works-library-copy">
-				<text class="works-library-kicker">我的游记</text>
-				<text class="works-library-title">值得反复打开的西城记忆</text>
-				<text class="works-library-desc">已保存的精美游记、PDF 纪念册和发布素材</text>
-			</view>
-			<view class="library-overview">
+			<view class="profile-library-overview">
+				<text class="profile-library-note">已保存的精美游记、PDF 纪念册和发布素材</text>
 				<view v-for="stat in libraryStats" :key="stat.label" class="library-stat">
 					<xicheng-icon :name="stat.icon" variant="primary" :size="19" />
 					<text class="library-stat-label">{{ stat.label }}</text>
@@ -396,16 +389,15 @@ export default {
 	display: grid;
 	grid-template-columns: 150rpx minmax(0, 1fr);
 	align-items: center;
-	gap: 24rpx;
+	gap: 16rpx 20rpx;
 	margin-top: 20rpx;
-	padding: 28rpx;
+	padding: 24rpx;
 	border-radius: 34rpx;
 	box-sizing: border-box;
 	overflow: hidden;
 }
 
 .profile-card::after,
-.works-library-hero::after,
 .works-tip-card::after {
 	content: '';
 	position: absolute;
@@ -452,9 +444,7 @@ export default {
 .profile-name,
 .profile-status,
 .profile-desc,
-.works-library-kicker,
-.works-library-title,
-.works-library-desc,
+.profile-library-note,
 .library-stat-value,
 .library-stat-label,
 .account-shortcut-title,
@@ -540,70 +530,44 @@ export default {
 	color: rgba(16, 47, 41, 0.48);
 }
 
-.works-library-hero {
-	position: relative;
-	margin-top: 20rpx;
-	padding: 30rpx;
-	border-radius: 34rpx;
-	overflow: hidden;
-}
-
-.works-library-copy {
-	position: relative;
-	z-index: 1;
-}
-
-.works-library-kicker {
-	color: #B5945E;
-	font-size: 23rpx;
-	font-weight: 900;
-}
-
-.works-library-title {
-	margin-top: 10rpx;
-	color: #102F29;
-	font-size: 38rpx;
-	line-height: 1.25;
-	font-weight: 900;
-}
-
-.works-library-desc {
-	margin-top: 10rpx;
-	color: #5F554A;
-	font-size: 25rpx;
-	line-height: 1.45;
-}
-
-.library-overview {
+.profile-library-overview {
 	display: grid;
+	grid-column: 1 / -1;
 	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 14rpx;
-	margin-top: 20rpx;
+	gap: 8rpx;
+	margin-top: 0;
 	position: relative;
 	z-index: 1;
+}
+
+.profile-library-note {
+	grid-column: 1 / -1;
+	color: rgba(16, 47, 41, 0.50);
+	font-size: 19rpx;
+	line-height: 1.2;
 }
 
 .library-stat {
-	min-height: 122rpx;
-	padding: 16rpx 8rpx;
+	min-height: 78rpx;
+	padding: 8rpx 4rpx;
 	border: 1rpx solid rgba(181, 148, 94, 0.16);
-	border-radius: 22rpx;
+	border-radius: 18rpx;
 	background: rgba(255, 252, 246, 0.78);
 	text-align: center;
 	box-sizing: border-box;
 }
 
 .library-stat-value {
-	margin-top: 7rpx;
-	font-size: 34rpx;
+	margin-top: 3rpx;
+	font-size: 27rpx;
 	line-height: 1;
 	font-weight: 900;
 	color: #173F35;
 }
 
 .library-stat-label {
-	margin-top: 8rpx;
-	font-size: 20rpx;
+	margin-top: 4rpx;
+	font-size: 18rpx;
 	line-height: 1.2;
 	color: rgba(16, 47, 41, 0.62);
 }
@@ -612,8 +576,8 @@ export default {
 	display: grid;
 	grid-template-columns: repeat(4, minmax(0, 1fr));
 	gap: 0;
-	margin-top: 20rpx;
-	padding: 16rpx 0;
+	margin-top: 16rpx;
+	padding: 10rpx 0;
 	border-radius: 28rpx;
 	box-sizing: border-box;
 }
@@ -660,30 +624,30 @@ export default {
 }
 
 .works-card {
-	margin-top: 24rpx;
-	padding: 30rpx;
+	margin-top: 18rpx;
+	padding: 26rpx;
 	border-radius: 34rpx;
 }
 
 .library-filter-row {
 	display: grid;
 	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 10rpx;
-	margin-top: 22rpx;
-	padding: 8rpx;
+	gap: 8rpx;
+	margin-top: 16rpx;
+	padding: 6rpx;
 	border-radius: 999rpx;
 	background: rgba(181, 148, 94, 0.08);
 }
 
 .library-filter-chip {
-	min-height: 62rpx;
+	min-height: 50rpx;
 	margin: 0;
-	padding: 0 12rpx;
+	padding: 0 8rpx;
 	border-radius: 999rpx;
 	background: transparent;
 	color: #3E3831;
-	font-size: 23rpx;
-	line-height: 62rpx;
+	font-size: 21rpx;
+	line-height: 50rpx;
 	font-weight: 900;
 }
 
@@ -707,7 +671,7 @@ export default {
 .work-list {
 	display: grid;
 	gap: 18rpx;
-	margin-top: 24rpx;
+	margin-top: 18rpx;
 }
 .work-row {
 	align-items: flex-start;
