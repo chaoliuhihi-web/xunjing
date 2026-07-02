@@ -161,13 +161,21 @@ const toSafeCount = value => {
 const XICHENG_DEFAULT_SHARE_SETTING_STATE = Object.freeze({
 	hideExactLocation: true,
 	approvedOnly: true,
-	includeXiaojingSummary: true
+	includeXiaojingSummary: true,
+	publicBody: true,
+	publicPlaces: true,
+	publicPhotos: true,
+	publicQaRecord: false
 })
 
 const normalizeShareSettingState = (settings = {}) => ({
 	hideExactLocation: settings.hideExactLocation !== false,
 	approvedOnly: settings.approvedOnly !== false,
-	includeXiaojingSummary: settings.includeXiaojingSummary !== false
+	includeXiaojingSummary: settings.includeXiaojingSummary !== false,
+	publicBody: settings.publicBody !== false,
+	publicPlaces: settings.publicPlaces !== false,
+	publicPhotos: settings.publicPhotos !== false,
+	publicQaRecord: settings.publicQaRecord === true
 })
 
 export default {

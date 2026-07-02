@@ -31,14 +31,14 @@ for (const required of [
 
 assert.match(
   share,
-  /const XICHENG_DEFAULT_SHARE_SETTING_STATE = Object\.freeze\(\{[\s\S]*hideExactLocation:\s*true[\s\S]*approvedOnly:\s*true[\s\S]*includeXiaojingSummary:\s*true[\s\S]*\}\)/,
-  'Share page should centralize safe default privacy settings'
+  /const XICHENG_DEFAULT_SHARE_SETTING_STATE = Object\.freeze\(\{[\s\S]*hideExactLocation:\s*true[\s\S]*approvedOnly:\s*true[\s\S]*includeXiaojingSummary:\s*true[\s\S]*publicBody:\s*true[\s\S]*publicPlaces:\s*true[\s\S]*publicPhotos:\s*true[\s\S]*publicQaRecord:\s*false[\s\S]*\}\)/,
+  'Share page should centralize safe default privacy and public-scope settings'
 )
 
 assert.match(
   share,
-  /const normalizeShareSettingState\s*=\s*\(settings = \{\}\) => \(\{[\s\S]*hideExactLocation:\s*settings\.hideExactLocation !== false[\s\S]*approvedOnly:\s*settings\.approvedOnly !== false[\s\S]*includeXiaojingSummary:\s*settings\.includeXiaojingSummary !== false[\s\S]*\}\)/,
-  'Share setting normalizer should fail closed by keeping all privacy toggles enabled unless explicitly false'
+  /const normalizeShareSettingState\s*=\s*\(settings = \{\}\) => \(\{[\s\S]*hideExactLocation:\s*settings\.hideExactLocation !== false[\s\S]*approvedOnly:\s*settings\.approvedOnly !== false[\s\S]*includeXiaojingSummary:\s*settings\.includeXiaojingSummary !== false[\s\S]*publicBody:\s*settings\.publicBody !== false[\s\S]*publicPlaces:\s*settings\.publicPlaces !== false[\s\S]*publicPhotos:\s*settings\.publicPhotos !== false[\s\S]*publicQaRecord:\s*settings\.publicQaRecord === true[\s\S]*\}\)/,
+  'Share setting normalizer should fail closed while preserving public-scope choices from my page'
 )
 
 assert.match(

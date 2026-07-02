@@ -106,16 +106,7 @@
 			</view>
 		</view>
 
-		<view class="privacy-card xicheng-paper-card">
-			<view>
-				<text class="privacy-title">隐私授权</text>
-				<text class="privacy-copy">精确轨迹默认隐藏；发布前可单独设置正文、地点、照片和问答记录的公开范围。</text>
-			</view>
-			<view class="privacy-action" @click="openPrivacyScopeSettings('privacy')">
-				<text>管理</text>
-				<xicheng-icon name="next" variant="plain" :size="18" />
-			</view>
-		</view>
+		<xicheng-public-scope-settings data-scope-label="隐私授权" :items="publicScopeItems" @toggle="togglePublicScopeSetting" />
 
 		<view class="works-tip-card xicheng-paper-card">
 			<image class="works-tip-avatar" :src="region.companionAvatar" mode="aspectFit" />
@@ -136,20 +127,42 @@
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import XichengKeepsakeTravelogueCard from '@/components/xicheng/XichengKeepsakeTravelogueCard.vue'
 import XichengMainTabNav from '@/components/xicheng/XichengMainTabNav.vue'
+import XichengPublicScopeSettings from '@/components/xicheng/XichengPublicScopeSettings.vue'
 
 const safeArray = value => Array.isArray(value) ? value : []
+const safeObject = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {}
+const XICHENG_DEFAULT_PUBLIC_SCOPE_STATE = Object.freeze({
+	hideExactLocation: true,
+	approvedOnly: true,
+	includeXiaojingSummary: true,
+	publicBody: true,
+	publicPlaces: true,
+	publicPhotos: true,
+	publicQaRecord: false
+})
+const normalizeWorksPublicScopeState = (settings = {}) => ({
+	hideExactLocation: settings.hideExactLocation !== false,
+	approvedOnly: settings.approvedOnly !== false,
+	includeXiaojingSummary: settings.includeXiaojingSummary !== false,
+	publicBody: settings.publicBody !== false,
+	publicPlaces: settings.publicPlaces !== false,
+	publicPhotos: settings.publicPhotos !== false,
+	publicQaRecord: settings.publicQaRecord === true
+})
 
 export default {
 	components: {
 		XichengKeepsakeTravelogueCard,
-		XichengMainTabNav
+		XichengMainTabNav,
+		XichengPublicScopeSettings
 	},
 	data() {
 		return {
 			region: XICHENG_REGION_CONFIG,
 			shareArtifacts: [],
 			cachedDraft: null,
-			selectedLibraryFilter: 'all'
+			selectedLibraryFilter: 'all',
+			publicScopeState: { ...XICHENG_DEFAULT_PUBLIC_SCOPE_STATE }
 		}
 	},
 	computed: {
@@ -229,11 +242,21 @@ export default {
 		},
 		publishedCount() {
 			return this.shareArtifacts.filter(item => item.assetType && item.assetType !== 'pdf').length
+		},
+		publicScopeItems() {
+			return [
+				{ key: 'publicBody', icon: 'edit', title: '正文公开', desc: '公开页展示成品游记正文', enabled: this.publicScopeState.publicBody },
+				{ key: 'publicPlaces', icon: 'location', title: '地点公开', desc: '只展示 POI 范围，不公开精确坐标', enabled: this.publicScopeState.publicPlaces },
+				{ key: 'publicPhotos', icon: 'photo', title: '照片公开', desc: '只公开选入游记的照片', enabled: this.publicScopeState.publicPhotos },
+				{ key: 'publicQaRecord', icon: 'qa', title: '问答记录', desc: '默认不公开小京问答原文', enabled: this.publicScopeState.publicQaRecord },
+				{ key: 'hideExactLocation', icon: 'locked', title: '精确轨迹默认隐藏', desc: '不会公开精确坐标', enabled: this.publicScopeState.hideExactLocation }
+			]
 		}
 	},
 	onShow() {
 		this.shareArtifacts = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey))
 		this.cachedDraft = uni.getStorageSync(XICHENG_REGION_CONFIG.journeyStorageKey) || null
+		this.restorePublicScopeSettings()
 	},
 	methods: {
 		openTravelogue() {
@@ -259,19 +282,30 @@ export default {
 			uni.navigateTo({ url: '/pagesLogin/auth/auth' })
 		},
 		openPrivacyScopeSettings(scope = 'privacy') {
-			uni.showToast({
-				title: scope === 'material' ? '素材授权默认仅本机可见' : '公开范围发布前可设置',
-				icon: 'none'
-			})
+			uni.pageScrollTo({ selector: '.public-scope-card', duration: 180, fail: () => {} })
 		},
 		openWorksManager() {
-			uni.showToast({
-				title: '可管理游记、PDF 和本机存档',
-				icon: 'none'
-			})
+			this.selectedLibraryFilter = 'all'
+			uni.pageScrollTo({ selector: '.works-card', duration: 180, fail: () => {} })
 		},
 		openTravelogueMaterials() {
 			uni.navigateTo({ url: '/pages/xicheng/footprint/footprint?mode=travelogueMaterial' })
+		},
+		restorePublicScopeSettings() {
+			const storedShareSettings = safeObject(uni.getStorageSync(XICHENG_REGION_CONFIG.shareSettingStorageKey))
+			this.publicScopeState = normalizeWorksPublicScopeState(storedShareSettings)
+		},
+		persistPublicScopeSettings() {
+			const storedShareSettings = safeObject(uni.getStorageSync(XICHENG_REGION_CONFIG.shareSettingStorageKey))
+			uni.setStorageSync(XICHENG_REGION_CONFIG.shareSettingStorageKey, {
+				...storedShareSettings,
+				...this.publicScopeState
+			})
+		},
+		togglePublicScopeSetting(key = '') {
+			if (!Object.prototype.hasOwnProperty.call(this.publicScopeState, key)) return
+			this.publicScopeState[key] = !this.publicScopeState[key]
+			this.persistPublicScopeSettings()
 		},
 		selectLibraryFilter(key = 'all') {
 			this.selectedLibraryFilter = key
