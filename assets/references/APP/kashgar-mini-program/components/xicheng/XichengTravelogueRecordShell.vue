@@ -98,6 +98,15 @@
 				</button>
 			</view>
 		</view>
+		<xicheng-travelogue-action-grid
+			:has-reviewable-evidence="hasReviewableEvidence"
+			@generate-poster="$emit('generate-poster')"
+			@export-pdf="$emit('export-pdf')"
+			@submit-review="$emit('submit-review')"
+			@open-share="$emit('open-share')"
+			@open-works="$emit('open-works')"
+			@open-ops-report="$emit('open-ops-report')"
+		/>
 		<view class="travelogue-approved-card xicheng-paper-card">
 			<view class="travelogue-approved-section-head">
 				<text class="travelogue-approved-section-title">最近记录</text>
@@ -123,8 +132,11 @@
 </template>
 
 <script>
+import XichengTravelogueActionGrid from '@/components/xicheng/XichengTravelogueActionGrid.vue'
+
 export default {
 	name: 'XichengTravelogueRecordShell',
+	components: { XichengTravelogueActionGrid },
 	props: {
 		region: { type: Object, default: () => ({}) },
 		previewImage: { type: String, default: '' },
@@ -135,10 +147,11 @@ export default {
 		photoCount: { type: Number, default: 0 },
 		qaCount: { type: Number, default: 0 },
 		hasEvidence: { type: Boolean, default: false },
+		hasReviewableEvidence: { type: Boolean, default: false },
 		styleOptions: { type: Array, default: () => [] },
 		activeStyle: { type: String, default: 'citywalk' }
 	},
-	emits: ['open-works', 'generate', 'add-photo', 'scroll-draft', 'open-reader', 'apply-template'],
+	emits: ['open-works', 'generate', 'add-photo', 'scroll-draft', 'open-reader', 'apply-template', 'generate-poster', 'export-pdf', 'submit-review', 'open-share', 'open-ops-report'],
 	computed: {
 		visibleStyleOptions() {
 			return this.styleOptions.slice(0, 3)

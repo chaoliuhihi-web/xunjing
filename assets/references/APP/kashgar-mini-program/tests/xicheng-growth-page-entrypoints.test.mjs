@@ -10,6 +10,9 @@ const recording = read('pages', 'xicheng', 'recording', 'recording.vue')
 const recordingPanel = read('components', 'xicheng', 'XichengRouteRecordingPanel.vue')
 const recordingShell = `${recording}\n${recordingPanel}`
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const travelogueRecordShell = read('components', 'xicheng', 'XichengTravelogueRecordShell.vue')
+const travelogueActionGrid = read('components', 'xicheng', 'XichengTravelogueActionGrid.vue')
+const travelogueShell = `${travelogue}\n${travelogueRecordShell}\n${travelogueActionGrid}`
 const works = read('pages', 'xicheng', 'works', 'works.vue')
 
 for (const required of [
@@ -74,11 +77,14 @@ for (const required of [
   "url: '/pages/xicheng/share/share'",
   "url: '/pages/xicheng/works/works'",
   "url: '/pages/xicheng/ops-report/ops-report'",
-  '@click="openSharePage"',
-  '@click="openWorksPage"',
-  '@click="openOpsReportPage"'
+  '@open-share="openSharePage"',
+  '@open-works="openWorksPage"',
+  '@open-ops-report="openOpsReportPage"',
+  "label: '分享纪念'",
+  "label: '我的游记'",
+  "label: '运营报告'"
 ]) {
-  assert.ok(travelogue.includes(required), `Travelogue should link split secondary growth page ${required}`)
+  assert.ok(travelogueShell.includes(required), `Travelogue should link split secondary growth page ${required}`)
 }
 
 assert.match(

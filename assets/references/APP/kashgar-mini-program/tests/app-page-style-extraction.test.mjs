@@ -23,6 +23,9 @@ const longTraveloguePreviewCss = exists('components', 'xicheng', 'XichengLongTra
   ? read('components', 'xicheng', 'XichengLongTraveloguePreview.css')
   : ''
 const longTraveloguePreviewShell = `${longTraveloguePreview}\n${longTraveloguePreviewCss}`
+const travelogueActionGrid = exists('components', 'xicheng', 'XichengTravelogueActionGrid.vue')
+  ? read('components', 'xicheng', 'XichengTravelogueActionGrid.vue')
+  : ''
 
 for (const [relativePath, content] of [
   ['pages/index/index.vue', indexPage],
@@ -50,18 +53,23 @@ assert.match(
 const travelogueCss = exists('pages', 'xicheng', 'travelogue', 'travelogue.css')
   ? read('pages', 'xicheng', 'travelogue', 'travelogue.css')
   : ''
+const travelogueStyleSurface = `${travelogueCss}\n${travelogueActionGrid}`
 
 for (const selector of [
   '.xicheng-travelogue',
   '.travelogue-generation-hero',
-  '.travelogue-style-selector',
-  '.xicheng-travelogue-actions'
+  '.travelogue-style-selector'
 ]) {
   assert.ok(
     travelogueCss.includes(selector),
     `Extracted Xicheng travelogue CSS should preserve ${selector} styling`
   )
 }
+
+assert.ok(
+  travelogueStyleSurface.includes('.xicheng-travelogue-actions'),
+  'Xicheng travelogue style surface should preserve .xicheng-travelogue-actions styling after component split'
+)
 
 for (const selector of [
   '.xicheng-long-travelogue',

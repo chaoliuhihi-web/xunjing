@@ -6,12 +6,14 @@ const root = process.cwd()
 const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
 const secondaryEntries = fs.readFileSync(path.join(root, 'components', 'xicheng', 'travelogueSecondaryEntries.js'), 'utf8')
 const secondaryDirectoryPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueSecondaryDirectory.vue')
+const recordShellPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueRecordShell.vue')
 assert.ok(
   fs.existsSync(secondaryDirectoryPath),
   'Travelogue secondary directory should be split into XichengTravelogueSecondaryDirectory.vue instead of growing travelogue.vue'
 )
 const secondaryDirectory = fs.readFileSync(secondaryDirectoryPath, 'utf8')
-const travelogueSource = `${travelogue}\n${secondaryEntries}\n${secondaryDirectory}`
+const recordShell = fs.readFileSync(recordShellPath, 'utf8')
+const travelogueSource = `${travelogue}\n${secondaryEntries}\n${secondaryDirectory}\n${recordShell}`
 const travelogueCss = fs.existsSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.css'))
   ? fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.css'), 'utf8')
   : travelogue
@@ -133,9 +135,9 @@ assert.doesNotMatch(
 )
 
 assert.match(
-  travelogue,
-  /<button class="ghost-button xicheng-secondary-action" @click="openWorksPage">我的游记<\/button>/,
-  'Travelogue page should link to the personal keepsake library as 我的游记, not 我的作品'
+  travelogueSource,
+  /<xicheng-travelogue-record-shell[\s\S]*@open-works="openWorksPage"[\s\S]*<xicheng-travelogue-action-grid[\s\S]*@open-works="\$emit\('open-works'\)"/,
+  'Travelogue page should link to the personal keepsake library through the split action grid in the default record shell'
 )
 
 assert.doesNotMatch(

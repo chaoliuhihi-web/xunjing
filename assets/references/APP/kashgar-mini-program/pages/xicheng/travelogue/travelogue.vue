@@ -20,14 +20,20 @@
 			:photo-count="photoMaterialCount"
 			:qa-count="aiGuideMaterialCount"
 			:has-evidence="hasTraveloguePreviewEvidence"
+			:has-reviewable-evidence="hasReviewableJourneyEvidence()"
 			:style-options="travelogueStyleOptions"
 			:active-style="activeTravelogueStyle"
-			@open-works="openWorksPage"
 			@generate="generateTravelogueDraft"
 			@add-photo="addPhotoMaterial"
 			@scroll-draft="scrollToDraftEditor"
 			@open-reader="openTravelogueReaderPage"
 			@apply-template="applyTravelogueTemplate"
+			@generate-poster="generatePoster"
+			@export-pdf="exportMemorialPdf"
+			@submit-review="submitReview"
+			@open-share="openSharePage"
+			@open-works="openWorksPage"
+			@open-ops-report="openOpsReportPage"
 		/>
 		<view v-if="!isTravelogueEditMode && showLegacyTravelogueHero" :class="['hero', 'xicheng-paper-card', 'xicheng-travelogue-hero']">
 			<view class="travelogue-hero-main">
@@ -371,19 +377,11 @@
 			@publish="publishTravelogue"
 			@add-photo="addPhotoMaterial"
 		/>
-	<view class="action-grid xicheng-travelogue-actions">
-		<button class="ghost-button xicheng-secondary-action" :class="{ 'work-action-needs-evidence': !hasReviewableJourneyEvidence() }" @click="generatePoster">分享海报</button>
-		<button class="ghost-button xicheng-secondary-action" :class="{ 'work-action-needs-evidence': !hasReviewableJourneyEvidence() }" @click="exportMemorialPdf">PDF纪念册</button>
-		<button class="ghost-button xicheng-secondary-action" :class="{ 'work-action-needs-evidence': !hasReviewableJourneyEvidence() }" @click="submitReview">作品审核</button>
-		<button class="ghost-button xicheng-secondary-action" @click="openSharePage">分享纪念</button>
-		<button class="ghost-button xicheng-secondary-action" @click="openWorksPage">我的游记</button>
-		<button class="ghost-button xicheng-secondary-action" @click="openOpsReportPage">运营报告</button>
-	</view>
-		<view class="section-card xicheng-paper-card">
-			<view class="section-head">
-				<text class="section-title">隐私与本地数据</text>
-				<text class="section-badge">试运营</text>
-			</view>
+			<view class="section-card xicheng-paper-card">
+				<view class="section-head">
+					<text class="section-title">隐私与本地数据</text>
+					<text class="section-badge">试运营</text>
+				</view>
 			<text class="section-desc">西城试运营素材、轨迹、反馈、审核包和分享产物先保存在本机，可随时清除。</text>
 			<view class="evidence-actions">
 				<button class="ghost-button xicheng-secondary-action" @click="openPrivacyPolicy">隐私政策</button>
