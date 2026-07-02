@@ -423,6 +423,16 @@ export default {
 			this.generateTravelogue()
 		},
 		generateTravelogue() {
+			if (!this.recordingSession.sessionId) {
+				this.ensureRecordingSession()
+			}
+			const finishedAt = new Date().toISOString()
+			this.recordingSession = {
+				...this.recordingSession,
+				status: 'finished',
+				finishedAt,
+				updatedAt: finishedAt
+			}
 			this.saveRecordingSession()
 			uni.navigateTo({
 				url: `/pages/xicheng/travelogue/travelogue?mode=record&routeCode=${encodeRouteValue(this.activeRoute.routeCode || '')}&regionCode=${encodeRouteValue(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeOptions.sourceChannel || this.region.sourceChannel)}&companionName=${encodeRouteValue(this.routeOptions.companionName || this.region.companionName)}`

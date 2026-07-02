@@ -15,6 +15,11 @@ assert.ok(
 
 const recording = read('pages', 'xicheng', 'recording', 'recording.vue')
 const panel = read(...componentPath)
+const getStyleBlock = (source, selector) => {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return source.match(new RegExp(`${escapedSelector}\\s*\\{([\\s\\S]*?)\\n\\}`))?.[1] || ''
+}
+const liveActionsStyle = getStyleBlock(panel, '.recording-live-actions')
 
 assert.match(
   recording,
@@ -71,6 +76,12 @@ assert.match(
   panel,
   /\.recording-paused-actions\s*\{[\s\S]*position:\s*sticky[\s\S]*bottom:\s*168rpx[\s\S]*z-index:\s*12/,
   'Paused recording actions should stay above the four-tab bottom nav in the target mobile viewport'
+)
+
+assert.match(
+  liveActionsStyle,
+  /position:\s*sticky[\s\S]*bottom:\s*168rpx[\s\S]*z-index:\s*12/,
+  'Live recording actions should stay above the four-tab bottom nav so Generate Travelogue remains tappable'
 )
 
 assert.match(

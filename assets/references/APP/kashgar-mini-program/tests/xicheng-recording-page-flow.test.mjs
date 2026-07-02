@@ -126,6 +126,12 @@ assert.match(
 
 assert.match(
   recording,
+  /generateTravelogue\(\)[\s\S]*const finishedAt = new Date\(\)\.toISOString\(\)[\s\S]*status:\s*'finished'[\s\S]*finishedAt,[\s\S]*updatedAt:\s*finishedAt[\s\S]*this\.saveRecordingSession\(\)[\s\S]*\/pages\/xicheng\/travelogue\/travelogue\?mode=record/,
+  'Finishing recording should persist a finished session state before entering travelogue generation'
+)
+
+assert.match(
+  recording,
   /currentStudyTask\(\)[\s\S]*完成路线后生成西城游记。/,
   'Recording page fallback task copy should keep the flow focused on travelogue generation'
 )

@@ -975,7 +975,7 @@ export default {
 
 .recording-live-actions {
 	position: sticky;
-	bottom: 20rpx;
+	bottom: 168rpx;
 	z-index: 12;
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
