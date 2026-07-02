@@ -5,6 +5,7 @@ import path from 'node:path'
 const root = process.cwd()
 const scanResult = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
 const sourcesCardPath = path.join(root, 'components', 'xicheng', 'XichengScanResultSourcesCard.vue')
+const summaryHeroPath = path.join(root, 'components', 'xicheng', 'XichengScanResultSummaryHero.vue')
 const sourceHelper = fs.readFileSync(path.join(root, 'request', 'xunjing', 'sources.js'), 'utf8')
 
 assert.ok(
@@ -13,6 +14,7 @@ assert.ok(
 )
 
 const sourcesCard = fs.readFileSync(sourcesCardPath, 'utf8')
+const summaryHero = fs.readFileSync(summaryHeroPath, 'utf8')
 const sourceTitleHelper = sourcesCard.match(/getDisplaySourceTitle\(source = \{\}\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
 const sourceDescriptionHelper = sourcesCard.match(/getDisplaySourceDescription\(source = \{\}\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
 const sourceSummaryLabel = scanResult.match(/sourceSummaryLabel\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
@@ -39,13 +41,13 @@ assert.match(
 )
 
 assert.match(
-  scanResult,
+  summaryHero,
   /<view class="result-source-summary"[\s\S]*<text class="result-source-summary-label">\{\{ sourceSummaryLabel \}\}<\/text>[\s\S]*<text class="result-source-summary-copy">\{\{ sourceSummaryCopy \}\}<\/text>[\s\S]*<\/view>/,
   'Recognition result summary card should surface reviewed-source status before lower detail sections'
 )
 
 assert.match(
-  scanResult,
+  summaryHero,
   /:class="\{ 'result-source-summary-blocked': recognitionActionBlocked \}"/,
   'Recognition result source summary should visually distinguish blocked or untrusted result states'
 )
@@ -63,7 +65,7 @@ assert.match(
 )
 
 assert.match(
-  scanResult,
+  summaryHero,
   /<text class="result-companion-title">\{\{ resultCompanionTitle \}\}<\/text>/,
   'Recognition result companion title should be dynamic instead of claiming every result is matched'
 )

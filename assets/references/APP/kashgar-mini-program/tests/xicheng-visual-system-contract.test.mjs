@@ -11,6 +11,8 @@ const appVue = fs.readFileSync(path.join(appRoot, 'App.vue'), 'utf8')
 const home = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'home', 'home.vue'), 'utf8')
 const inspiration = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'inspiration', 'inspiration.vue'), 'utf8')
 const scanResult = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
+const scanResultSummaryHero = fs.readFileSync(path.join(appRoot, 'components', 'xicheng', 'XichengScanResultSummaryHero.vue'), 'utf8')
+const scanResultShell = `${scanResult}\n${scanResultSummaryHero}`
 const routeDetail = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'route-detail', 'route-detail.vue'), 'utf8')
 const routeDetailPanel = fs.readFileSync(path.join(appRoot, 'components', 'xicheng', 'XichengRouteDetailPanel.vue'), 'utf8')
 const routeDetailShell = `${routeDetail}\n${routeDetailPanel}`
@@ -72,7 +74,7 @@ assert.match(
 for (const [fileName, source] of [
   ['home.vue', home],
   ['inspiration.vue', inspiration],
-  ['scan-result.vue', scanResult],
+  ['scan-result.vue', scanResultShell],
   ['route-detail.vue', routeDetailShell],
   ['travelogue.vue', travelogue]
 ]) {

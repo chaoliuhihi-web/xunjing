@@ -4,13 +4,15 @@ import path from 'node:path'
 
 const root = process.cwd()
 const scanResult = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
+const summaryHero = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengScanResultSummaryHero.vue'), 'utf8')
 
 const template = scanResult.match(/<template>[\s\S]*?<\/template>/)?.[0] || ''
 
 assert.ok(template, 'Recognition result page should have a template')
 
-const resultCardIndex = template.indexOf('class="result-card xicheng-paper-card xicheng-reference-result-card"')
-const primaryActionsIndex = template.indexOf('class="result-reference-actions"')
+const summaryHeroIndex = template.indexOf('<xicheng-scan-result-summary-hero')
+const resultCardIndex = summaryHero.indexOf('class="result-card xicheng-paper-card xicheng-reference-result-card"')
+const primaryActionsIndex = summaryHero.indexOf('class="result-reference-actions"')
 const candidateCardIndex = template.indexOf('class="candidate-card xicheng-paper-card"')
 const routeCardIndex = template.indexOf('class="route-card xicheng-paper-card"')
 const questionCardIndex = template.indexOf('<xicheng-scan-result-questions-card')
@@ -21,8 +23,13 @@ const agentPanelIndex = template.indexOf('class="vision-agent-panel xicheng-pape
 const knowledgePanelIndex = template.indexOf('class="vision-agent-knowledge-panel xicheng-paper-card"')
 const poiDetailEntryIndex = template.indexOf('class="poi-detail-entry xicheng-paper-card"')
 
+assert.ok(summaryHeroIndex >= 0, 'Recognition result should render the split summary hero component')
 assert.ok(resultCardIndex >= 0, 'Recognition result should render the result summary card')
 assert.ok(primaryActionsIndex >= 0, 'Recognition result should render primary Xiaojing and recording actions')
+assert.ok(
+  resultCardIndex < primaryActionsIndex,
+  'Primary actions should stay immediately after the result card inside the summary hero component'
+)
 
 for (const [label, index] of [
   ['candidate confirmation', candidateCardIndex],
@@ -33,8 +40,8 @@ for (const [label, index] of [
 ]) {
   assert.ok(index >= 0, `Recognition result should render ${label} section`)
   assert.ok(
-    resultCardIndex < primaryActionsIndex && primaryActionsIndex < index,
-    `Primary actions should stay immediately after the result card before ${label} so the P0 path is visible before operations content`
+    summaryHeroIndex < index,
+    `Summary hero with primary actions should stay before ${label} so the P0 path is visible before operations content`
   )
 }
 
@@ -58,6 +65,12 @@ for (const [label, index] of [
 
 assert.match(
   template,
-  /<view class="result-reference-actions">[\s\S]*@click="askXiaojing\(\)">开始 AI 讲解[\s\S]*@click="askXiaojing\(suggestedQuestions\[1\]\)">问问小京/,
+  /<xicheng-scan-result-summary-hero[\s\S]*@start-guide="askXiaojing\(\)"[\s\S]*@ask-xiaojing="askXiaojing\(suggestedQuestions\[1\]\)"/,
+  'Recognition result page should keep Xiaojing route handoff in the page shell'
+)
+
+assert.match(
+  summaryHero,
+  /class="result-reference-actions"[\s\S]*开始 AI 讲解[\s\S]*问问小京/,
   'Primary actions should match the approved reference with AI explanation and Xiaojing Q&A CTAs'
 )

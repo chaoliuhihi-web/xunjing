@@ -17,6 +17,7 @@ const triggerRequest = read('request', 'xunjing', 'trigger.js')
 const chatRequest = read('request', 'xunjing', 'chat.js')
 const home = read('pages', 'xicheng', 'home', 'home.vue')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
+const scanResultSummaryHero = read('components', 'xicheng', 'XichengScanResultSummaryHero.vue')
 const aiGuide = read('pages', 'ai-guide', 'ai-guide.vue')
 const pagesJson = read('pages.json')
 const combined = [
@@ -134,7 +135,13 @@ for (const required of [
 
 assert.match(
   scanResult,
-  /<view class="result-reference-actions">[\s\S]*<button class="[^"]*\bprimary-button\b[^"]*" :disabled="recognitionActionBlocked" @click="askXiaojing\(\)">开始 AI 讲解<\/button>/,
+  /<xicheng-scan-result-summary-hero[\s\S]*@start-guide="askXiaojing\(\)"[\s\S]*@ask-xiaojing="askXiaojing\(suggestedQuestions\[1\]\)"/,
+  'Recognition result page should preserve the Xiaojing route context while delegating primary CTA visuals'
+)
+
+assert.match(
+  scanResultSummaryHero,
+  /<view class="result-reference-actions">[\s\S]*<button[\s\S]*class="[^"]*\bprimary-button\b[^"]*"[\s\S]*开始 AI 讲解[\s\S]*<\/button>/,
   'Recognition result primary CTA should use the approved visual label while preserving the Xiaojing route context'
 )
 
