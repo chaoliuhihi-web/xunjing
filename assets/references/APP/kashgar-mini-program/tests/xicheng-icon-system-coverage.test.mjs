@@ -6,6 +6,7 @@ const root = process.cwd()
 const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
 
 const iconComponent = read('components', 'xicheng-icon', 'xicheng-icon.vue')
+const culturalMap = read('components', 'xicheng', 'XichengCulturalMap.vue')
 const routes = read('pages', 'xicheng', 'routes', 'routes.vue')
 const poi = read('pages', 'xicheng', 'poi', 'poi.vue')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
@@ -39,6 +40,18 @@ assert.match(
   routes,
   /<xicheng-icon[\s\S]*name="refresh"/,
   'Route list rerank action should use the shared refresh icon instead of a raw glyph'
+)
+
+assert.match(
+  culturalMap,
+  /<button class="xicheng-map-control" @click="\$emit\('zoom-in'\)">[\s\S]*<xicheng-icon name="plus"/,
+  'Cultural map zoom control should use the shared plus icon from the approved map UI instead of a forward arrow'
+)
+
+assert.doesNotMatch(
+  culturalMap,
+  /@click="\$emit\('zoom-in'\)">[\s\S]*<xicheng-icon name="next"/,
+  'Cultural map zoom control should not reuse the next-arrow icon for the plus-shaped map zoom action'
 )
 
 assert.match(

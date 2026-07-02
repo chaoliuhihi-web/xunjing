@@ -70,7 +70,7 @@
 					<text>图层</text>
 				</button>
 				<button class="xicheng-map-control" @click="$emit('zoom-in')">
-					<xicheng-icon name="next" variant="plain" :size="20" />
+					<xicheng-icon name="plus" variant="plain" :size="21" />
 					<text>放大</text>
 				</button>
 			</view>
