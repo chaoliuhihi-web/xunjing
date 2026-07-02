@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AgentActionMetricRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AgentActionPoiFunnelRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AgentActionTimeWindowRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.CrawlerSourceCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.CrawlerSourceRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.CrawlerRunReqVO;
@@ -46,7 +47,9 @@ import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsol
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.ResourcePackageRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.ResourcePackageUpdateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.SchoolCreateReqVO;
+import cn.iocoder.yudao.module.xunjing.dal.dataobject.event.XunjingInteractionEventDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.report.XunjingPublicReportDO;
+import cn.iocoder.yudao.module.xunjing.dal.mysql.event.XunjingInteractionEventMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.report.XunjingPublicReportMapper;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums;
 import cn.iocoder.yudao.module.xunjing.service.app.XunjingAppServiceImpl;
@@ -59,6 +62,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -76,6 +81,8 @@ public class XunjingConsoleServiceImplTest extends BaseDbUnitTest {
     private XunjingConsoleService consoleService;
     @Resource
     private XunjingPublicReportMapper publicReportMapper;
+    @Resource
+    private XunjingInteractionEventMapper interactionEventMapper;
 
     @BeforeEach
     public void setUp() {
@@ -332,6 +339,55 @@ public class XunjingConsoleServiceImplTest extends BaseDbUnitTest {
         assertEquals(1, baitasi.getTriggerResolveCount());
         assertEquals(1, baitasi.getAgentActionCount());
         assertEquals(new BigDecimal("1.0000"), baitasi.getConversionRate());
+    }
+
+    @Test
+    public void testDashboardBuildsAgentActionTimeWindowFunnels() {
+        Long projectId = consoleService.createProject(projectReq());
+        Long schoolId = consoleService.createSchool(schoolReq());
+        Long packageId = consoleService.createResourcePackage(packageReq(projectId, schoolId));
+        LocalDateTime today = LocalDate.now().atTime(10, 0);
+        LocalDateTime yesterday = today.minusDays(1);
+        LocalDateTime tenDaysAgo = today.minusDays(10);
+        LocalDateTime fortyDaysAgo = today.minusDays(40);
+
+        insertTimedInteraction(packageId, schoolId, XunjingEnums.EventType.TRIGGER_RESOLVE.getType(),
+                "{\"poiCode\":\"xicheng-gongwangfu\",\"poiName\":\"恭王府\"}",
+                "trace-window-trigger-today", today);
+        insertTimedInteraction(packageId, schoolId, XunjingEnums.EventType.AGENT_ACTION.getType(),
+                "{\"agentAction\":{\"actionKey\":\"generate_travelogue\",\"poiCode\":\"xicheng-gongwangfu\"}}",
+                "trace-window-action-today", today);
+        insertTimedInteraction(packageId, schoolId, XunjingEnums.EventType.TRIGGER_RESOLVE.getType(),
+                "{\"poiCode\":\"xicheng-baitasi\",\"poiName\":\"妙应寺白塔\"}",
+                "trace-window-trigger-yesterday", yesterday);
+        insertTimedInteraction(packageId, schoolId, XunjingEnums.EventType.AGENT_ACTION.getType(),
+                "{\"agentAction\":{\"actionKey\":\"nearby_food\",\"poiCode\":\"xicheng-baitasi\"}}",
+                "trace-window-action-yesterday", yesterday);
+        insertTimedInteraction(packageId, schoolId, XunjingEnums.EventType.TRIGGER_RESOLVE.getType(),
+                "{\"poiCode\":\"xicheng-planetarium\",\"poiName\":\"北京天文馆\"}",
+                "trace-window-trigger-ten-days", tenDaysAgo);
+        insertTimedInteraction(packageId, schoolId, XunjingEnums.EventType.AGENT_ACTION.getType(),
+                "{\"agentAction\":{\"actionKey\":\"complete_check_in\",\"poiCode\":\"xicheng-old\"}}",
+                "trace-window-action-forty-days", fortyDaysAgo);
+
+        DashboardSummaryRespVO dashboard = consoleService.getDashboard(projectId);
+
+        assertEquals(3, dashboard.getAgentActionTimeWindows().size());
+        AgentActionTimeWindowRespVO todayWindow = dashboard.getAgentActionTimeWindows().get(0);
+        assertEquals("today", todayWindow.getWindowKey());
+        assertEquals(1, todayWindow.getTriggerResolveCount());
+        assertEquals(1, todayWindow.getAgentActionCount());
+        assertEquals(new BigDecimal("1.0000"), todayWindow.getConversionRate());
+        AgentActionTimeWindowRespVO last7d = dashboard.getAgentActionTimeWindows().get(1);
+        assertEquals("last7d", last7d.getWindowKey());
+        assertEquals(2, last7d.getTriggerResolveCount());
+        assertEquals(2, last7d.getAgentActionCount());
+        assertEquals(new BigDecimal("1.0000"), last7d.getConversionRate());
+        AgentActionTimeWindowRespVO last30d = dashboard.getAgentActionTimeWindows().get(2);
+        assertEquals("last30d", last30d.getWindowKey());
+        assertEquals(3, last30d.getTriggerResolveCount());
+        assertEquals(2, last30d.getAgentActionCount());
+        assertEquals(new BigDecimal("0.6667"), last30d.getConversionRate());
     }
 
     @Test
@@ -731,6 +787,22 @@ public class XunjingConsoleServiceImplTest extends BaseDbUnitTest {
                 {"agentAction":{"actionKey":"%s","title":"%s","intent":"%s","poiCode":"%s","poiName":"%s"}}
                 """.formatted(actionKey, title, intent, poiCode, poiName));
         return reqVO;
+    }
+
+    private void insertTimedInteraction(
+            Long packageId, Long schoolId, String eventType, String payloadJson,
+            String userTraceId, LocalDateTime createTime) {
+        XunjingInteractionEventDO event = new XunjingInteractionEventDO();
+        event.setPackageId(packageId);
+        event.setSchoolId(schoolId);
+        event.setEventType(eventType);
+        event.setSourceChannel("mini-program");
+        event.setUserTraceId(userTraceId);
+        event.setPayloadJson(payloadJson);
+        event.setTenantId(TENANT_ID);
+        event.setCreateTime(createTime);
+        event.setUpdateTime(createTime);
+        interactionEventMapper.insert(event);
     }
 
     private QrCodeCreateReqVO qrCodeReq(Long packageId) {

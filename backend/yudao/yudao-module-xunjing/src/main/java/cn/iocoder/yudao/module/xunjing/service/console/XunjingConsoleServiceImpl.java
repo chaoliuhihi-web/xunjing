@@ -6,6 +6,7 @@ import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AgentActionMetricRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AgentActionPoiFunnelRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AgentActionTimeWindowRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AiEvalCaseCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AiEvalCaseRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AiEvalRunCaseRespVO;
@@ -116,6 +117,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -830,6 +832,7 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
         respVO.setAgentActionConversionRate(readiness.getAgentActionConversionRate());
         respVO.setTopAgentActions(buildTopAgentActionMetrics(packageIds, readiness.getAgentActionCount()));
         respVO.setAgentActionPoiFunnels(buildAgentActionPoiFunnels(packageIds));
+        respVO.setAgentActionTimeWindows(buildAgentActionTimeWindows(packageIds));
         respVO.setMediaUsageCount(readiness.getMediaUsageCount());
         respVO.setAiGenerationCount(readiness.getAiGenerationCount());
         respVO.setPendingImportItemCount(readiness.getPendingImportItemCount());
@@ -936,6 +939,38 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
         }
         return BigDecimal.valueOf(agentActionCount == null ? 0L : agentActionCount)
                 .divide(BigDecimal.valueOf(triggerResolveCount), 4, RoundingMode.HALF_UP);
+    }
+
+    private List<AgentActionTimeWindowRespVO> buildAgentActionTimeWindows(List<Long> packageIds) {
+        LocalDate today = LocalDate.now();
+        List<XunjingInteractionEventDO> triggerEvents = interactionEventMapper.selectListByPackageIdsAndEventType(
+                packageIds, EventType.TRIGGER_RESOLVE.getType());
+        List<XunjingInteractionEventDO> agentActionEvents = interactionEventMapper.selectListByPackageIdsAndEventType(
+                packageIds, EventType.AGENT_ACTION.getType());
+        return List.of(
+                agentActionWindow("today", "今天", today.atStartOfDay(), triggerEvents, agentActionEvents),
+                agentActionWindow("last7d", "近7天", today.minusDays(6).atStartOfDay(),
+                        triggerEvents, agentActionEvents),
+                agentActionWindow("last30d", "近30天", today.minusDays(29).atStartOfDay(),
+                        triggerEvents, agentActionEvents));
+    }
+
+    private AgentActionTimeWindowRespVO agentActionWindow(
+            String windowKey, String windowLabel, LocalDateTime startAt,
+            List<XunjingInteractionEventDO> triggerEvents, List<XunjingInteractionEventDO> agentActionEvents) {
+        long triggerResolveCount = triggerEvents.stream().filter(event -> eventInWindow(event, startAt)).count();
+        long agentActionCount = agentActionEvents.stream().filter(event -> eventInWindow(event, startAt)).count();
+        AgentActionTimeWindowRespVO respVO = new AgentActionTimeWindowRespVO();
+        respVO.setWindowKey(windowKey);
+        respVO.setWindowLabel(windowLabel);
+        respVO.setTriggerResolveCount(triggerResolveCount);
+        respVO.setAgentActionCount(agentActionCount);
+        respVO.setConversionRate(calculateAgentActionConversionRate(agentActionCount, triggerResolveCount));
+        return respVO;
+    }
+
+    private boolean eventInWindow(XunjingInteractionEventDO event, LocalDateTime startAt) {
+        return event != null && event.getCreateTime() != null && !event.getCreateTime().isBefore(startAt);
     }
 
     private List<AgentActionMetricRespVO> buildTopAgentActionMetrics(

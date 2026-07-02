@@ -495,6 +495,15 @@ public class XunjingConsoleVO {
     }
 
     @Data
+    public static class AgentActionTimeWindowRespVO {
+        private String windowKey;
+        private String windowLabel;
+        private Long triggerResolveCount;
+        private Long agentActionCount;
+        private BigDecimal conversionRate;
+    }
+
+    @Data
     public static class DashboardSummaryRespVO {
         private Long projectId;
         private Long packageCount;
@@ -510,6 +519,7 @@ public class XunjingConsoleVO {
         private BigDecimal agentActionConversionRate;
         private List<AgentActionMetricRespVO> topAgentActions;
         private List<AgentActionPoiFunnelRespVO> agentActionPoiFunnels;
+        private List<AgentActionTimeWindowRespVO> agentActionTimeWindows;
         private Long mediaUsageCount;
         private Long aiGenerationCount;
         private Long pendingImportItemCount;
