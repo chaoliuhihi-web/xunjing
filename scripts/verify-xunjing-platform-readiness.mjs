@@ -518,6 +518,9 @@ async function checkXichengAppEventBackend(rootDir) {
     'private Long totalAgentActionCount;',
     'class AgentActionMetricRespVO',
     'private List<AgentActionMetricRespVO> topAgentActions;',
+    'class AgentActionPoiFunnelRespVO',
+    'private List<AgentActionPoiFunnelRespVO> agentActionPoiFunnels;',
+    'private BigDecimal conversionRate;',
     'private Long executionCount;',
     'private BigDecimal shareRate;'
   ]) {
@@ -526,6 +529,9 @@ async function checkXichengAppEventBackend(rootDir) {
   for (const snippet of [
     'calculateAgentActionConversionRate',
     'buildTopAgentActionMetrics',
+    'buildAgentActionPoiFunnels',
+    'recordPoiFunnelTriggerResolve',
+    'recordPoiFunnelAgentAction',
     'selectListByPackageIdsAndEventType',
     'agentActionText',
     'EventType.TRIGGER_RESOLVE.getType()',
@@ -552,6 +558,11 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(
     consoleTest,
     'testDashboardRanksAgentActionExecutionsByActionIntentAndPoi',
+    'XunjingConsoleServiceImplTest.java'
+  )
+  assertContains(
+    consoleTest,
+    'testDashboardBuildsPoiAgentActionFunnelFromTriggerAndActionEvents',
     'XunjingConsoleServiceImplTest.java'
   )
   return pass(

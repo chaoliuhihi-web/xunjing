@@ -486,6 +486,15 @@ public class XunjingConsoleVO {
     }
 
     @Data
+    public static class AgentActionPoiFunnelRespVO {
+        private String poiCode;
+        private String poiName;
+        private Long triggerResolveCount;
+        private Long agentActionCount;
+        private BigDecimal conversionRate;
+    }
+
+    @Data
     public static class DashboardSummaryRespVO {
         private Long projectId;
         private Long packageCount;
@@ -500,6 +509,7 @@ public class XunjingConsoleVO {
         private Long totalAgentActionCount;
         private BigDecimal agentActionConversionRate;
         private List<AgentActionMetricRespVO> topAgentActions;
+        private List<AgentActionPoiFunnelRespVO> agentActionPoiFunnels;
         private Long mediaUsageCount;
         private Long aiGenerationCount;
         private Long pendingImportItemCount;
