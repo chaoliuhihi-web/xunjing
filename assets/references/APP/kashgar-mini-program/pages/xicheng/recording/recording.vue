@@ -28,6 +28,10 @@
 			@passport="openPassport"
 			@footprint="openFootprint"
 		/>
+		<xicheng-main-tab-nav
+			active-key="record"
+			:route-context="mainTabRouteContext"
+		/>
 	</view>
 </template>
 
@@ -38,6 +42,7 @@ import {
 	normalizeXichengRouteCode
 } from '@/config/regions/xicheng.js'
 import XichengRouteRecordingPanel from '@/components/xicheng/XichengRouteRecordingPanel.vue'
+import XichengMainTabNav from '@/components/xicheng/XichengMainTabNav.vue'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { decodeXichengRouteValue, createXichengRouteOutputValue } from '@/request/xunjing/routeParams.js'
 
@@ -79,7 +84,8 @@ const createEmptyRecordingSession = () => ({
 
 export default {
 	components: {
-		XichengRouteRecordingPanel
+		XichengRouteRecordingPanel,
+		XichengMainTabNav
 	},
 	data() {
 		return {
@@ -138,6 +144,15 @@ export default {
 		},
 		companionAvatar() {
 			return this.region.companionAvatar || ''
+		},
+		mainTabRouteContext() {
+			return {
+				regionCode: this.routeOptions.regionCode || this.region.regionCode,
+				packageCode: this.routeOptions.packageCode || this.region.packageCode,
+				sceneCode: this.routeOptions.sceneCode || this.region.sceneCode,
+				sourceChannel: this.routeOptions.sourceChannel || this.region.sourceChannel,
+				companionName: this.routeOptions.companionName || this.region.companionName
+			}
 		}
 	},
 	onLoad(options = {}) {

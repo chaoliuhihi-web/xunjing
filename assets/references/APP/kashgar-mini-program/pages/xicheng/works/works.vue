@@ -131,18 +131,25 @@
 				<text class="works-tip-copy">我的页面只放账号、游记和隐私设置，运营玩法会独立放在专门页面。</text>
 			</view>
 		</view>
+
+		<xicheng-main-tab-nav
+			active-key="mine"
+			:route-context="region"
+		/>
 	</view>
 </template>
 
 <script>
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import XichengKeepsakeTravelogueCard from '@/components/xicheng/XichengKeepsakeTravelogueCard.vue'
+import XichengMainTabNav from '@/components/xicheng/XichengMainTabNav.vue'
 
 const safeArray = value => Array.isArray(value) ? value : []
 
 export default {
 	components: {
-		XichengKeepsakeTravelogueCard
+		XichengKeepsakeTravelogueCard,
+		XichengMainTabNav
 	},
 	data() {
 		return {
