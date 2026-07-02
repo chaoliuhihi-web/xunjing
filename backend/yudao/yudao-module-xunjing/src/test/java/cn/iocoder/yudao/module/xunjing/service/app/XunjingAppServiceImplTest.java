@@ -460,6 +460,37 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerUsesOperationSignalsForContextMatch() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneDomainIntentKey", "activity");
+        sceneSignals.put("sceneDomainIntentLabel", "活动");
+        sceneSignals.put("sceneFusionSummary", "用户举起手机等待识境建议。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合城市知识库后等待运营系统接力。");
+        sceneSignals.put("nearbyActivitySummary", "恭王府夜场演出 19:30 开始，适合查看预约和票务。");
+        sceneSignals.put("routeRecommendationSummary", "建议从当前位置步行到恭王府入口集合点。");
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setText("");
+        reqVO.setOcrText("");
+        reqVO.setImageLabels(List.of());
+        reqVO.setLocation(null);
+        reqVO.setSceneSignals(sceneSignals);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("activity", respVO.getIntent());
+        assertEquals("confirm_activity_handoff", respVO.getAction());
+        assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
+        assertTrue(respVO.getCandidates().get(0).getMatchedSignals().contains("scene_context_alias"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerUsesPhotoAdviceIntent() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -1708,6 +1739,63 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testAnswerUsesOperationSignalsFromPreviousTriggerForSourceSearch() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        consoleService.addKnowledgeDocument(xichengUnrelatedKnowledgeReq(packageId));
+        consoleService.addKnowledgeDocument(xichengNightLectureKnowledgeReq(packageId));
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户举起手机等待下一步建议。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合城市知识库后等待运营系统接力。");
+        sceneSignals.put("sceneDomainIntentKey", "activity");
+        sceneSignals.put("sceneDomainIntentLabel", "活动");
+        sceneSignals.put("agentDecisionReasonSummary", "适合根据文旅运营信号决定下一步服务。");
+        sceneSignals.put("nearbyActivitySummary", "白塔夜游讲堂 19:30 西城图书馆集合。");
+        sceneSignals.put("merchantServiceSummary", "周边纪念章兑换点需要以真实商家系统确认为准。");
+        sceneSignals.put("routeRecommendationSummary", "建议先前往西城图书馆室内集合点。");
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-operation-search-001");
+        triggerReq.setText("先记住这个运营信号");
+        triggerReq.setOcrText("");
+        triggerReq.setImageLabels(List.of());
+        triggerReq.setLocation(null);
+        triggerReq.setSceneSignals(sceneSignals);
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("ask", triggerResp.getIntent());
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-operation-search-001");
+        followUpReq.setQuestion("接下来怎么处理？");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO followUpAnswer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", followUpAnswer.getSafetyStatus());
+        assertFalse(followUpAnswer.getSources().isEmpty());
+        assertEquals("白塔夜游讲堂运营讲解稿", followUpAnswer.getSources().get(0).getTitle());
+        assertTrue(followUpAnswer.getAnswer().contains("白塔夜游讲堂")
+                || followUpAnswer.getAnswer().contains("19:30")
+                || followUpAnswer.getAnswer().contains("西城图书馆"));
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId, "trace-xicheng-operation-search-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("白塔夜游讲堂"));
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("纪念章兑换点"));
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("西城图书馆"));
+    }
+
+    @Test
     public void testAnswerHydratesPhotoAdviceHandoffFromTrigger() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -2335,6 +2423,19 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
         reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/night-rain-route");
         reqVO.setContentDigest("21:10 小雨时建议优先切换到西城室内路线，选择博物馆、展厅和夜间可达空间。");
+        reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
+        reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
+        reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());
+        return reqVO;
+    }
+
+    private KnowledgeDocumentCreateReqVO xichengNightLectureKnowledgeReq(Long packageId) {
+        KnowledgeDocumentCreateReqVO reqVO = new KnowledgeDocumentCreateReqVO();
+        reqVO.setPackageId(packageId);
+        reqVO.setTitle("白塔夜游讲堂运营讲解稿");
+        reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
+        reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/night-lecture");
+        reqVO.setContentDigest("白塔夜游讲堂 19:30 在西城图书馆集合，可接续运营讲解、预约提醒和室内集合路线。");
         reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
         reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
         reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());

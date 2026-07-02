@@ -118,6 +118,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             "visitorGroup",
             "interestTags",
             "preferredLanguageText",
+            "nearbyActivitySummary",
+            "merchantServiceSummary",
+            "routeRecommendationSummary",
             "visionRecognitionStatus",
             "visionRecognitionModel"
     );
@@ -974,6 +977,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         putPreviousJsonMemoryPart(parts, "同行人", sceneSignals, "visitorGroup");
         putPreviousJsonMemoryPart(parts, "兴趣偏好", sceneSignals, "interestTags");
         putPreviousJsonMemoryPart(parts, "偏好语言", sceneSignals, "preferredLanguageText");
+        putPreviousJsonMemoryPart(parts, "附近活动", sceneSignals, "nearbyActivitySummary");
+        putPreviousJsonMemoryPart(parts, "商家服务", sceneSignals, "merchantServiceSummary");
+        putPreviousJsonMemoryPart(parts, "路线建议", sceneSignals, "routeRecommendationSummary");
         putPreviousJsonMemoryPart(parts, "OCR", root, "ocrText");
         return String.join("；", parts);
     }
