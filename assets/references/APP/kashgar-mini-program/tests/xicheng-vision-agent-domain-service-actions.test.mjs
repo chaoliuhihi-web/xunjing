@@ -5,6 +5,7 @@ import path from 'node:path'
 const root = process.cwd()
 const scanResult = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
 const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
+const sceneUnderstandingHelper = fs.readFileSync(path.join(root, 'request', 'xunjing', 'visionAgentSceneUnderstanding.js'), 'utf8')
 
 for (const required of [
   'domainSceneServiceActions',
@@ -24,7 +25,10 @@ for (const required of [
   '约体验',
   '翻译导航'
 ]) {
-  assert.ok(scanResult.includes(required), `Vision Agent domain service actions should include ${required}`)
+  assert.ok(
+    scanResult.includes(required) || sceneUnderstandingHelper.includes(required),
+    `Vision Agent domain service actions should include ${required}`
+  )
 }
 
 assert.match(
@@ -34,21 +38,21 @@ assert.match(
 )
 
 assert.match(
-  scanResult,
-  /domainSceneServiceActions\(\)[\s\S]*return this\.createDomainSceneServiceActions\(this\.prioritizedSceneUnderstandingCards\)/,
-  'Domain service actions should be derived from the ranked scene-understanding domains'
+	scanResult,
+	/domainSceneServiceActions\(\)[\s\S]*this\.visionAgentSceneUnderstandingPackage\.serviceActions[\s\S]*return this\.createDomainSceneServiceActions\(this\.prioritizedSceneUnderstandingCards\)/,
+	'Domain service actions should prefer the shared scene-understanding package and keep the local wrapper fallback'
 )
 
 assert.match(
-  scanResult,
-  /createDomainSceneServiceActions\(cards = \[\]\)[\s\S]*menu[\s\S]*order[\s\S]*coupon[\s\S]*food[\s\S]*merchant[\s\S]*event[\s\S]*ticket[\s\S]*heritage[\s\S]*experience[\s\S]*sign-ocr[\s\S]*translate/,
-  'Domain service action factory should map menu, food, event, heritage, and OCR domains to concrete city-service intents'
+	sceneUnderstandingHelper,
+	/createXichengVisionAgentDomainServiceActions\s*=\s*\(cards = \[\]\)[\s\S]*menu[\s\S]*order[\s\S]*coupon[\s\S]*food[\s\S]*merchant[\s\S]*event[\s\S]*ticket[\s\S]*heritage[\s\S]*experience[\s\S]*sign-ocr[\s\S]*translate/,
+	'Shared domain service action factory should map menu, food, event, heritage, and OCR domains to concrete city-service intents'
 )
 
 assert.match(
-  scanResult,
-  /createDomainSceneServiceActions\(cards = \[\]\)[\s\S]*filter\(card => card && Number\(card\.score \|\| 0\) > 0\)/,
-  'Domain service actions should only appear when a scene-understanding domain is actually matched'
+	sceneUnderstandingHelper,
+	/createXichengVisionAgentDomainServiceActions\s*=\s*\(cards = \[\]\)[\s\S]*filter\(card => card && Number\(card\.score \|\| 0\) > 0\)/,
+	'Shared domain service actions should only appear when a scene-understanding domain is actually matched'
 )
 
 assert.match(

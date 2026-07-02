@@ -545,6 +545,10 @@ const xichengAiContext = ref({
 	headingText: '',
 	serviceText: '',
 	knowledgeGraphText: '',
+	sceneUnderstandingPackage: {},
+	primarySceneDomainKey: '',
+	primarySceneDomainLabel: '',
+	sceneUnderstandingSummary: '',
 	agentDecisionActionTitle: '',
 	agentDecisionReasonSummary: '',
 	agentDecisionReasonCards: [],
@@ -583,7 +587,7 @@ const getXichengWelcomeContent = () => {
 	if (safetyStatus === 'UNAVAILABLE') {
 		return XICHENG_UNAVAILABLE_ANSWER
 	}
-	const visionAgentCue = context.agentDecisionReasonSummary || context.worldInterfaceSummary || context.sceneFusionSummary || context.visionAgentMemorySessionText
+	const visionAgentCue = context.agentDecisionReasonSummary || context.sceneUnderstandingSummary || context.worldInterfaceSummary || context.sceneFusionSummary || context.visionAgentMemorySessionText
 	if (visionAgentCue) {
 		return `我已接上AI识境：${visionAgentCue} 可以继续帮你讲解、推荐路线或生成游记草稿。`.slice(0, 110)
 	}
@@ -861,6 +865,10 @@ const normalizeXichengAiContext = (options = {}) => ({
 	headingText: parseXichengVisionAgentContext(options.visionAgentContext).headingText || '',
 	serviceText: parseXichengVisionAgentContext(options.visionAgentContext).serviceText || '',
 	knowledgeGraphText: parseXichengVisionAgentContext(options.visionAgentContext).knowledgeGraphText || '',
+	sceneUnderstandingPackage: parseXichengVisionAgentContext(options.visionAgentContext).sceneUnderstandingPackage || {},
+	primarySceneDomainKey: parseXichengVisionAgentContext(options.visionAgentContext).primarySceneDomainKey || (parseXichengVisionAgentContext(options.visionAgentContext).sceneUnderstandingPackage && parseXichengVisionAgentContext(options.visionAgentContext).sceneUnderstandingPackage.primaryDomainKey) || '',
+	primarySceneDomainLabel: parseXichengVisionAgentContext(options.visionAgentContext).primarySceneDomainLabel || (parseXichengVisionAgentContext(options.visionAgentContext).sceneUnderstandingPackage && parseXichengVisionAgentContext(options.visionAgentContext).sceneUnderstandingPackage.primaryDomainLabel) || '',
+	sceneUnderstandingSummary: parseXichengVisionAgentContext(options.visionAgentContext).sceneUnderstandingSummary || (parseXichengVisionAgentContext(options.visionAgentContext).sceneUnderstandingPackage && parseXichengVisionAgentContext(options.visionAgentContext).sceneUnderstandingPackage.sceneUnderstandingSummary) || '',
 	agentDecisionActionTitle: parseXichengVisionAgentContext(options.visionAgentContext).agentDecisionActionTitle || '',
 	agentDecisionReasonSummary: parseXichengVisionAgentContext(options.visionAgentContext).agentDecisionReasonSummary || '',
 	agentDecisionReasonCards: Array.isArray(parseXichengVisionAgentContext(options.visionAgentContext).agentDecisionReasonCards)
@@ -979,6 +987,10 @@ const applyXichengAiContext = (options = {}) => {
 			headingText: '',
 			serviceText: '',
 			knowledgeGraphText: '',
+			sceneUnderstandingPackage: {},
+			primarySceneDomainKey: '',
+			primarySceneDomainLabel: '',
+			sceneUnderstandingSummary: '',
 			agentDecisionActionTitle: '',
 			agentDecisionReasonSummary: '',
 			agentDecisionReasonCards: [],
@@ -1016,6 +1028,10 @@ const applyXichengAiContext = (options = {}) => {
 		headingText: context.headingText,
 		serviceText: context.serviceText,
 		knowledgeGraphText: context.knowledgeGraphText,
+		sceneUnderstandingPackage: context.sceneUnderstandingPackage,
+		primarySceneDomainKey: context.primarySceneDomainKey,
+		primarySceneDomainLabel: context.primarySceneDomainLabel,
+		sceneUnderstandingSummary: context.sceneUnderstandingSummary,
 		agentDecisionActionTitle: context.agentDecisionActionTitle,
 		agentDecisionReasonSummary: context.agentDecisionReasonSummary,
 		agentDecisionReasonCards: context.agentDecisionReasonCards,
@@ -1074,10 +1090,11 @@ const xichengHeroSubtitle = computed(() => {
 		return `正在讲解${context.poiName || '西城文化点'}，播放内容基于已审核来源。`
 	}
 	const agentDecisionReasonSummary = context.agentDecisionReasonSummary || ''
+	const sceneUnderstandingSummary = context.sceneUnderstandingSummary || ''
 	const worldInterfaceSummary = context.worldInterfaceSummary || ''
 	const sceneFusionSummary = context.sceneFusionSummary || ''
-	if (agentDecisionReasonSummary || worldInterfaceSummary || sceneFusionSummary || context.visionAgentMemorySessionText) {
-		return `AI识境已接入${agentDecisionReasonSummary || worldInterfaceSummary || sceneFusionSummary || context.visionAgentMemorySessionText}，可以接着问。`.slice(0, 88)
+	if (agentDecisionReasonSummary || sceneUnderstandingSummary || worldInterfaceSummary || sceneFusionSummary || context.visionAgentMemorySessionText) {
+		return `AI识境已接入${agentDecisionReasonSummary || sceneUnderstandingSummary || worldInterfaceSummary || sceneFusionSummary || context.visionAgentMemorySessionText}，可以接着问。`.slice(0, 88)
 	}
 	const poiName = context.poiName || '西城文化点'
 	return `围绕${poiName}继续追问，答案优先使用已审核来源。`
@@ -1095,6 +1112,7 @@ const xichengVisionAgentContextChips = computed(() => {
 			value: text.slice(0, 32)
 		})
 	}
+	appendChip('domain', '场景', context.primarySceneDomainLabel)
 	appendChip('reason', '依据', context.agentDecisionReasonSummary)
 	appendChip('world', '识境', context.worldInterfaceSummary)
 	appendChip('scene', '现场', context.sceneFusionSummary)
@@ -1232,13 +1250,14 @@ const buildXichengContextQuestion = (question = '', context = xichengAiContext.v
 	const poiText = context.poiName ? `识别地点：${context.poiName}。` : ''
 	const confidenceText = context.confidence ? `识别置信度：${context.confidence}。` : ''
 	const worldInterfaceSummary = context.worldInterfaceSummary ? `世界交互入口：${context.worldInterfaceSummary}。` : ''
+	const sceneUnderstandingSummary = context.sceneUnderstandingSummary ? `Agent识别场景：${context.sceneUnderstandingSummary}。` : ''
 	const sceneFusionSummary = context.sceneFusionSummary ? `AI识境现场判断：${context.sceneFusionSummary}。` : ''
 	const agentDecisionReasonSummary = context.agentDecisionReasonSummary ? `Agent决策依据：${context.agentDecisionReasonSummary}。` : ''
 	const memorySessionText = context.visionAgentMemorySessionText ? `连续识境：${context.visionAgentMemorySessionText}。` : ''
 	const liveSignalText = [context.localTimeText, context.weatherText, context.headingText].filter(Boolean).join(' ')
 	const liveSignals = liveSignalText ? `现场信号：${liveSignalText}。` : ''
 	const serviceHandoffText = buildXichengServiceHandoffPromptPrefix(context)
-	return `你是${context.companionName || XICHENG_REGION_CONFIG.companionName}，服务北京西城试运营路线。${poiText}${confidenceText}${worldInterfaceSummary}${sceneFusionSummary}${agentDecisionReasonSummary}${memorySessionText}${liveSignals}${serviceHandoffText}用户问题：${question}`
+	return `你是${context.companionName || XICHENG_REGION_CONFIG.companionName}，服务北京西城试运营路线。${poiText}${confidenceText}${sceneUnderstandingSummary}${worldInterfaceSummary}${sceneFusionSummary}${agentDecisionReasonSummary}${memorySessionText}${liveSignals}${serviceHandoffText}用户问题：${question}`
 }
 
 const buildYudaoAppApiUrl = (path) => {

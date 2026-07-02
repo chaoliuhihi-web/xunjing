@@ -185,21 +185,22 @@ for (const required of [
 }
 
 for (const required of [
-  'sceneCode: this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode',
-  'sourceChannel: this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel',
-  'visionAgentContext: this.result.visionAgentContext || {}'
+	'sceneCode: this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode',
+	'sourceChannel: this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel',
+	'const visionAgentContext = this.enrichedVisionAgentContext',
+	'visionAgentContext,'
 ]) {
-  assert.ok(startRecordingBlock.includes(required), `Recognition material should persist ${required}`)
+	assert.ok(startRecordingBlock.includes(required), `Recognition material should persist ${required}`)
 }
 
 for (const required of [
-  'poiCode=${encodeRouteValue(this.result.poiCode || \'\')}',
-  'poiName=${encodeRouteValue(this.result.poiName || \'\')}',
-  'companionName=${encodeRouteValue(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}',
-  'visionAgentContext=${encodeRouteValue(JSON.stringify(this.result.visionAgentContext || {}))}',
-  "sourceRecognitionContext=${encodeRouteValue((this.result.visionAgentContext || {}).sourceRecognitionContext || '')}"
+	'poiCode=${encodeRouteValue(this.result.poiCode || \'\')}',
+	'poiName=${encodeRouteValue(this.result.poiName || \'\')}',
+	'companionName=${encodeRouteValue(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}',
+	'visionAgentContext=${encodeRouteValue(JSON.stringify(visionAgentContext))}',
+	"sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || '')}"
 ]) {
-  assert.ok(startRecordingBlock.includes(required), `Start recording route should avoid double encoding ${required}`)
+	assert.ok(startRecordingBlock.includes(required), `Start recording route should avoid double encoding ${required}`)
 }
 
 for (const required of [
