@@ -771,9 +771,25 @@ assert.ok(
   prereqFailureAudit.blockers.some((blocker) => blocker.code === 'release-prerequisite-hbuilderx-login-missing'),
   'release candidate audit should surface HBuilderX login prereq blocker'
 )
+const hbuilderxLoginBlocker = prereqFailureAudit.blockers.find((blocker) => blocker.code === 'release-prerequisite-hbuilderx-login-missing')
+assert.match(
+  hbuilderxLoginBlocker.nextAction,
+  /DCLOUD_USERNAME/,
+  'release candidate audit should surface the concrete HBuilderX release account login action'
+)
+assert.match(
+  hbuilderxLoginBlocker.nextAction,
+  /DCLOUD_PASSWORD/,
+  'release candidate audit should surface the concrete HBuilderX release password login action'
+)
+assert.match(
+  hbuilderxLoginBlocker.nextAction,
+  /user login --username "\$DCLOUD_USERNAME" --password "\$DCLOUD_PASSWORD"/,
+  'release candidate audit should include the exact HBuilderX CLI login command shape'
+)
 assert.ok(
-  prereqFailureAudit.nextActions.some((action) => action.includes('doctor:release:prereqs')),
-  'release candidate audit should point operators to the prereq doctor command'
+  prereqFailureAudit.nextActions.some((action) => action.includes('DCLOUD_USERNAME') && action.includes('DCLOUD_PASSWORD')),
+  'release candidate audit should include the concrete HBuilderX login action in nextActions'
 )
 assert.equal(
   prereqFailureAudit.nextActions.length,
