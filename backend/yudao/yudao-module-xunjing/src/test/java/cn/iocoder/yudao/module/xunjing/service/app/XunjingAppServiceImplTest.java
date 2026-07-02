@@ -751,6 +751,44 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerUsesAgentDecisionForRecordIntent() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户已经到达恭王府入口，可以完成打卡并加入今天的旅行地图。");
+        sceneSignals.put("sceneDomainIntentKey", "architecture");
+        sceneSignals.put("sceneDomainIntentLabel", "建筑");
+        sceneSignals.put("agentDecisionActionTitle", "领取徽章");
+        sceneSignals.put("agentDecisionReasonSummary", "已经识别到当前位置，适合完成打卡、收集徽章并生成游记素材。");
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-multimodal-trigger");
+        reqVO.setOcrText("恭王府博物馆入口");
+        reqVO.setLocation(location("39.937050", "116.386770", 20));
+        reqVO.setSceneSignals(sceneSignals);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("record", respVO.getIntent());
+        assertEquals("confirm_travel_note", respVO.getAction());
+        assertTrue(respVO.getTargetPath().startsWith("/pages/travel-note/edit"));
+        assertTrue(respVO.getReason().contains("Agent决策"));
+
+        List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.TRIGGER_RESOLVE.getType()));
+        assertEquals(1, events.size());
+        JsonNode persistedSignals = JsonUtils.parseTree(events.get(0).getPayloadJson()).get("sceneSignals");
+        assertEquals("领取徽章", persistedSignals.get("agentDecisionActionTitle").asText());
+        assertTrue(persistedSignals.get("agentDecisionReasonSummary").asText().contains("生成游记素材"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerHydratesContinuousContextFromPreviousTriggerEvent() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());

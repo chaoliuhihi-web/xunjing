@@ -408,6 +408,9 @@ public class XunjingMultimodalTriggerEngine {
         if ("route".equals(intent) && hasText(detectRealtimeRouteIntent(sceneSignals))) {
             parts.add("实时环境");
         }
+        if (intent.equals(detectAgentDecisionIntent(sceneSignals))) {
+            parts.add("Agent决策");
+        }
         String evidence = parts.isEmpty() ? "上下文" : String.join("+", parts);
         return autoTrigger ? evidence + "已达到自动触发阈值。" : evidence + "匹配到候选点，需用户确认。";
     }
@@ -477,7 +480,30 @@ public class XunjingMultimodalTriggerEngine {
         if (containsAny(text, List.of("travelogue", "record", "checkin", "badge", "游记", "记录", "打卡", "徽章"))) {
             return "record";
         }
+        String agentIntent = detectAgentDecisionIntent(sceneSignals);
+        if (hasText(agentIntent)) {
+            return agentIntent;
+        }
         return detectRealtimeRouteIntent(sceneSignals);
+    }
+
+    private String detectAgentDecisionIntent(Map<String, Object> sceneSignals) {
+        if (sceneSignals == null || sceneSignals.isEmpty()) {
+            return "";
+        }
+        String text = normalize(String.join(" ",
+                sceneSignalValue(sceneSignals, "agentDecisionActionTitle"),
+                sceneSignalValue(sceneSignals, "agentDecisionReasonSummary")));
+        if (containsAny(text, List.of("推荐菜", "附近美食", "餐厅", "点餐", "优惠券", "排队", "预约", "清真"))) {
+            return "food";
+        }
+        if (containsAny(text, List.of("下一站", "推荐路线", "路线推荐", "室内路线", "导航", "行程"))) {
+            return "route";
+        }
+        if (containsAny(text, List.of("生成游记", "旅行记录", "加入旅行地图", "完成打卡", "领取徽章", "收集徽章"))) {
+            return "record";
+        }
+        return "";
     }
 
     private String detectRealtimeRouteIntent(Map<String, Object> sceneSignals) {

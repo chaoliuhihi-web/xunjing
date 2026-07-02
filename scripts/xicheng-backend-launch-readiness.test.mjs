@@ -72,6 +72,7 @@ describe('xicheng backend launch readiness', () => {
     expect(triggerEngine).toContain('selectPublishedListByRegionCode')
     expect(triggerEngine).toContain('buildSceneSignalContextText')
     expect(triggerEngine).toContain('detectSceneSignalIntent')
+    expect(triggerEngine).toContain('detectAgentDecisionIntent(sceneSignals)')
     expect(triggerEngine).toContain('detectRealtimeRouteIntent(sceneSignals)')
     expect(triggerEngine).toContain('isOutdoorDiscomfortWeather')
     expect(triggerEngine).toContain('isNightLocalTime')
