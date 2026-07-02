@@ -7,6 +7,7 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const inspiration = read('pages', 'xicheng', 'inspiration', 'inspiration.vue')
+const inspirationImportHelper = read('request', 'xunjing', 'inspirationImport.js')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 const sliceBetween = (content, start, end) => {
   const startIndex = content.indexOf(start)
@@ -19,6 +20,11 @@ const importRecordFactory = sliceBetween(
   inspiration,
   'createInspirationImportRecord(route, includeImageOnly = false)',
   'persistInspirationImportRecord(importRecord)'
+)
+const saveRouteBlock = sliceBetween(
+  inspiration,
+  'saveInspirationRoute({ silent = false, includeImageOnly = false } = {})',
+  'createInspirationTextExcerpt(text = \'\')'
 )
 
 assert.ok(
@@ -48,7 +54,7 @@ for (const required of [
   'reviewStatus',
   'publishStatus'
 ]) {
-  assert.ok(inspiration.includes(required), `Inspiration page should support import record evidence ${required}`)
+  assert.ok(`${inspiration}\n${inspirationImportHelper}`.includes(required), `Inspiration import flow should support import record evidence ${required}`)
 }
 
 assert.match(
@@ -59,8 +65,14 @@ assert.match(
 
 assert.match(
   importRecordFactory,
-  /importId:\s*`inspiration-\$\{Date\.now\(\)\}`[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*rawTextExcerpt:\s*includeImageOnly \? '' : this\.createInspirationTextExcerpt\(this\.rawText\)[\s\S]*rawTextLength:\s*includeImageOnly \? 0 : String\(this\.rawText \|\| ''\)\.length[\s\S]*extractedPlaceNames:\s*includeImageOnly \? \[\] : this\.matchedPois\.map\(poi => poi\.poiName\)[\s\S]*matchedPoiCodes:\s*includeImageOnly \? \[\] : this\.matchedPois\.map\(poi => poi\.poiCode\)[\s\S]*confirmedPois:\s*includeImageOnly \? \[\] : route\.stops[\s\S]*imageIncluded:\s*!!this\.imagePath[\s\S]*routeTitle:\s*includeImageOnly \? '攻略图片待提取' : route\.title[\s\S]*sourcePolicy:\s*'不保存第三方平台原文'[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
-  'Inspiration import record should include attribution context, extraction, matching, confirmation, privacy, and review evidence without inventing route evidence for image-only uploads'
+  /const importPackage = \{[\s\S]*\.\.\.this\.importPackage[\s\S]*route,[\s\S]*includeImageOnly[\s\S]*\}[\s\S]*return createXichengInspirationImportRecord\(importPackage\)/,
+  'Inspiration page should delegate import record construction to the functional copy-homework helper'
+)
+
+assert.match(
+  inspirationImportHelper,
+  /createXichengInspirationImportRecord\s*=\s*\(importPackage = \{\}\) => \(\{[\s\S]*importId:\s*importPackage\.importId[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*rawTextExcerpt:\s*importPackage\.includeImageOnly \? '' : importPackage\.rawTextExcerpt[\s\S]*rawTextLength:\s*importPackage\.includeImageOnly \? 0 : importPackage\.rawTextLength[\s\S]*extractedPlaceNames:\s*importPackage\.includeImageOnly \? \[\] : safeArray\(importPackage\.matchedPois\)\.map\(poi => poi\.poiName\)[\s\S]*matchedPoiCodes:\s*importPackage\.includeImageOnly \? \[\] : safeArray\(importPackage\.matchedPois\)\.map\(poi => poi\.poiCode\)[\s\S]*confirmedPois:\s*importPackage\.includeImageOnly \? \[\] : safeArray\(importPackage\.route && importPackage\.route\.stops\)[\s\S]*imageIncluded:\s*Boolean\(importPackage\.imagePath\)[\s\S]*routeTitle:\s*importPackage\.includeImageOnly \? '攻略图片待提取' : importPackage\.route\.title[\s\S]*sourcePolicy:\s*'不保存第三方平台原文；不抓取第三方链接原文'[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  'Inspiration import record helper should include attribution context, extraction, matching, confirmation, privacy, and review evidence without inventing route evidence for image-only uploads'
 )
 
 assert.match(
@@ -76,9 +88,15 @@ assert.match(
 )
 
 assert.doesNotMatch(
-  inspiration,
+  saveRouteBlock,
   /rawText:\s*this\.rawText/,
   'Inspiration route should not persist the full raw imported text as public route data'
+)
+
+assert.match(
+  inspirationImportHelper,
+  /rawText:\s*''[\s\S]*rawTextExcerpt:\s*guideInput\.rawTextExcerpt[\s\S]*rawTextLength:\s*guideInput\.rawTextLength/,
+  'Inspiration import package should keep only a short excerpt and length, not the full third-party text'
 )
 
 for (const required of [

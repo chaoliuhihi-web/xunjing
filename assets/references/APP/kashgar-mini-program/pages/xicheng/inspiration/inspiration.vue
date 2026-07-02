@@ -82,58 +82,24 @@
 
 <script>
 import {
-	XICHENG_OFFICIAL_POIS,
 	XICHENG_REGION_CONFIG
 } from '@/config/regions/xicheng.js'
-import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { createXichengRouteOutputValue } from '@/request/xunjing/routeParams.js'
 import { isXunjingUserCancelled } from '@/request/xunjing/userCancel.js'
+import { mergeXichengOfficialRouteMaterials } from '@/request/xunjing/routeMaterials.js'
+import {
+	buildXichengWalkRoute as buildXichengWalkRouteFromImportPackage,
+	createXichengInspirationImportPackage,
+	createXichengInspirationRouteMaterials,
+	createXichengInspirationImportRecord,
+	extractXichengPoiMatches as extractXichengPoiMatchesFromImportPackage
+} from '@/request/xunjing/inspirationImport.js'
 
 const encodeRouteValue = (value = '') => createXichengRouteOutputValue(value, { platform: process.env.UNI_PLATFORM })
 
-export const extractXichengPoiMatches = (text = '') => {
-	const normalized = String(text || '').toLowerCase()
-	return XICHENG_OFFICIAL_POIS
-		.map(poi => {
-			const matchIndex = poi.aliases.reduce((aliasIndex, alias) => {
-				const index = normalized.indexOf(String(alias).toLowerCase())
-				if (index < 0) return aliasIndex
-				return Math.min(aliasIndex, index)
-			}, Number.MAX_SAFE_INTEGER)
-			return {
-				poi,
-				matchIndex
-			}
-		})
-		.filter(item => item.matchIndex !== Number.MAX_SAFE_INTEGER)
-		.sort((left, right) => left.matchIndex - right.matchIndex)
-		.map(item => item.poi)
-}
+export const extractXichengPoiMatches = (text = '') => extractXichengPoiMatchesFromImportPackage(text)
 
-export const buildXichengWalkRoute = (pois = []) => {
-	if (pois.length === 0) {
-		return {
-			title: '待匹配官方 POI',
-			stops: [],
-			durationText: '待匹配',
-			summary: '先匹配西城官方 POI 后再生成可走路线，避免把未确认地点加入路线护照。'
-		}
-	}
-	const stops = pois
-	const title = stops.length > 0
-		? stops.map(stop => stop.poiName).join(' - ')
-		: '西城 Citywalk'
-	const durationMinutes = stops.reduce((total, stop) => {
-		const minutes = Number(String(stop.durationText || '').replace(/\D/g, '')) || 35
-		return total + minutes
-	}, 0)
-	return {
-		title,
-		stops,
-		durationText: `约 ${Math.max(durationMinutes, 60)} 分钟`,
-		summary: `按官方 POI 串联 ${stops.length} 个文化点，适合加入路线护照并沉淀为 Citywalk 素材。`
-	}
-}
+export const buildXichengWalkRoute = (pois = [], options = {}) => buildXichengWalkRouteFromImportPackage(pois, options)
 
 export default {
 	data() {
@@ -144,6 +110,9 @@ export default {
 			rawText,
 			imagePath: '',
 			inspirationImports: [],
+			importPackage: createXichengInspirationImportPackage({ rawText, target: '' }),
+			sourcePlatforms: [],
+			unmatchedPlaceNames: [],
 			matchedPois,
 			route: buildXichengWalkRoute(matchedPois),
 			target: ''
@@ -163,8 +132,20 @@ export default {
 			this.runExtraction()
 		},
 		runExtraction() {
-			this.matchedPois = extractXichengPoiMatches(this.rawText)
-			this.route = buildXichengWalkRoute(this.matchedPois)
+			this.refreshInspirationImportPackage()
+		},
+		refreshInspirationImportPackage({ includeImageOnly = false } = {}) {
+			this.importPackage = createXichengInspirationImportPackage({
+				rawText: this.rawText,
+				imagePath: this.imagePath,
+				target: this.target,
+				includeImageOnly
+			})
+			this.matchedPois = this.importPackage.matchedPois
+			this.sourcePlatforms = this.importPackage.sourcePlatforms
+			this.unmatchedPlaceNames = this.importPackage.unmatchedPlaceNames
+			this.route = this.importPackage.route
+			return this.importPackage
 		},
 		confirmInspirationImagePurpose(actionLabel = '上传攻略图片') {
 			return new Promise((resolve) => {
@@ -215,75 +196,38 @@ export default {
 			})
 		},
 		saveInspirationRoute({ silent = false, includeImageOnly = false } = {}) {
-			if (!includeImageOnly) {
-				this.matchedPois = extractXichengPoiMatches(this.rawText)
-				if (this.matchedPois.length === 0) {
-					this.showInspirationRouteUnavailable()
-					return false
-				}
-				this.route = buildXichengWalkRoute(this.matchedPois)
+			this.refreshInspirationImportPackage({ includeImageOnly })
+			const importPackage = this.importPackage
+			if (!includeImageOnly && importPackage.matchedPois.length === 0) {
+				this.showInspirationRouteUnavailable()
+				return false
 			}
 			const route = {
-				...this.route,
+				...importPackage.route,
 				rawTextExcerpt: this.createInspirationTextExcerpt(this.rawText),
 				imagePath: this.imagePath,
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
 				packageCode: XICHENG_REGION_CONFIG.packageCode,
 				sceneCode: XICHENG_REGION_CONFIG.sceneCode,
 				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
-				sourceLabel: '灵感导入路线',
+				sourceLabel: '一键抄作业导入',
+				sourcePlatforms: importPackage.sourcePlatforms,
+				unmatchedPlaceNames: importPackage.unmatchedPlaceNames,
 				updatedAt: new Date().toISOString()
 			}
+			importPackage.route = route
 			const importRecord = this.createInspirationImportRecord(route, includeImageOnly)
 			this.persistInspirationImportRecord(importRecord)
 			const existingMaterials = uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey)
 			const materials = Array.isArray(existingMaterials) ? existingMaterials : []
-			const routeMaterials = includeImageOnly
-				? []
-				: route.stops.map(stop => {
-					const sources = createXichengOfficialPoiSources(stop)
-					return {
-						type: 'inspiration-poi',
-						regionCode: XICHENG_REGION_CONFIG.regionCode,
-						packageCode: XICHENG_REGION_CONFIG.packageCode,
-						sceneCode: XICHENG_REGION_CONFIG.sceneCode,
-						sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
-						poiCode: stop.poiCode,
-						poiName: stop.poiName,
-						sourceLabel: '灵感导入路线',
-						sources,
-						sourceCount: sources.length,
-						safetyStatus: 'PASSED',
-						reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
-						publishStatus: 'private',
-						capturedAt: route.updatedAt
-					}
-				})
-			const imageMaterial = this.imagePath
-				? [{
-					type: 'inspiration-image',
-					regionCode: XICHENG_REGION_CONFIG.regionCode,
-					packageCode: XICHENG_REGION_CONFIG.packageCode,
-					sceneCode: XICHENG_REGION_CONFIG.sceneCode,
-					sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
-					poiCode: '',
-					poiName: '攻略图片',
-					imagePath: this.imagePath,
-					sourceLabel: '上传攻略图片',
-					sources: [],
-					reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
-					publishStatus: 'private',
-					capturedAt: route.updatedAt
-				}]
-				: []
+			const generatedMaterials = createXichengInspirationRouteMaterials(importPackage)
 			if (!includeImageOnly) {
 				uni.setStorageSync(XICHENG_REGION_CONFIG.inspirationStorageKey, route)
 			}
-			uni.setStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey, [
-				...imageMaterial,
-				...routeMaterials,
-				...materials
-			].slice(0, 80))
+			uni.setStorageSync(
+				XICHENG_REGION_CONFIG.materialsStorageKey,
+				mergeXichengOfficialRouteMaterials(generatedMaterials, materials).slice(0, 80)
+			)
 			if (!silent) {
 				uni.showToast({
 					title: this.isMapTarget ? '已生成到文旅地图' : '已加入路线护照',
@@ -301,26 +245,12 @@ export default {
 			return String(text || '').replace(/\s+/g, ' ').trim().slice(0, 80)
 		},
 		createInspirationImportRecord(route, includeImageOnly = false) {
-			const importedAt = new Date().toISOString()
-			return {
-				importId: `inspiration-${Date.now()}`,
-				regionCode: XICHENG_REGION_CONFIG.regionCode,
-				packageCode: XICHENG_REGION_CONFIG.packageCode,
-				sceneCode: XICHENG_REGION_CONFIG.sceneCode,
-				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
-				rawTextExcerpt: includeImageOnly ? '' : this.createInspirationTextExcerpt(this.rawText),
-				rawTextLength: includeImageOnly ? 0 : String(this.rawText || '').length,
-				extractedPlaceNames: includeImageOnly ? [] : this.matchedPois.map(poi => poi.poiName),
-				matchedPoiCodes: includeImageOnly ? [] : this.matchedPois.map(poi => poi.poiCode),
-				confirmedPois: includeImageOnly ? [] : route.stops,
-				imageIncluded: !!this.imagePath,
-				includeImageOnly,
-				routeTitle: includeImageOnly ? '攻略图片待提取' : route.title,
-				sourcePolicy: '不保存第三方平台原文',
-				reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
-				publishStatus: 'private',
-				importedAt
+			const importPackage = {
+				...this.importPackage,
+				route,
+				includeImageOnly
 			}
+			return createXichengInspirationImportRecord(importPackage)
 		},
 		persistInspirationImportRecord(importRecord) {
 			const existingImports = uni.getStorageSync(XICHENG_REGION_CONFIG.inspirationImportStorageKey)
