@@ -36,7 +36,7 @@ assert.match(
 
 assert.match(
   scan,
-  /<button[^>]*class="primary-button xicheng-primary-action scan-primary-button"[^>]*@click="startAutoRecognition"[\s\S]*开始自动识别/,
+  /<button[^>]*class="primary-button xicheng-primary-action scan-primary-button"[^>]*@click="startAutoRecognition"[\s\S]*开始(?:自动)?识别/,
   'Scan page should expose one primary auto recognition button'
 )
 

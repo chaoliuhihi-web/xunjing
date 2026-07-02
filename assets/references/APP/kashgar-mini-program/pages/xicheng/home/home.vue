@@ -1,5 +1,5 @@
 <template>
-	<view class="xicheng-home xicheng-designed-page xicheng-bottom-safe">
+	<view class="xicheng-home xicheng-home-first-screen-density xicheng-designed-page xicheng-bottom-safe">
 		<view class="home-location-row">
 			<view class="home-location-main">
 				<view class="home-location-pin"></view>
@@ -170,6 +170,7 @@
 
 <script>
 import {
+	XICHENG_OFFICIAL_POIS,
 	XICHENG_RECOMMENDED_ROUTES,
 	XICHENG_REGION_CONFIG
 } from '@/config/regions/xicheng.js'
@@ -260,7 +261,40 @@ export default {
 			}
 			this.recentRecognition = cached && typeof cached === 'object' && (cached.poiCode || cached.poiName)
 				? cached
-				: null
+				: this.createDefaultRecentRecognitionPreview()
+		},
+		createDefaultRecentRecognitionPreview() {
+			const officialPoi = XICHENG_OFFICIAL_POIS.find(poi => poi.poiCode === 'xicheng-baitasi') || {}
+			const sourceCard = {
+				title: '西城文旅官方资料库',
+				name: '西城文旅官方资料库',
+				type: 'OFFICIAL_KNOWLEDGE_BASE',
+				summary: '白塔寺官方 POI 资料、路线讲解与公开文旅说明',
+				reviewStatus: 'APPROVED'
+			}
+			return {
+				previewOnly: true,
+				source: 'home-default-official-poi',
+				sourceLabel: 'POI 详情',
+				regionCode: this.region.regionCode,
+				packageCode: this.region.packageCode,
+				sceneCode: this.region.sceneCode,
+				sourceChannel: this.region.sourceChannel,
+				companionName: this.region.companionName,
+				poiCode: officialPoi.poiCode || 'xicheng-baitasi',
+				poiName: officialPoi.poiName || '白塔寺',
+				theme: officialPoi.theme || '寺庙建筑',
+				confidence: 1,
+				safetyStatus: 'PASSED',
+				sourceCount: 6,
+				sources: [sourceCard],
+				suggestedQuestions: [
+					'白塔寺最值得看的建筑细节是什么？',
+					'从白塔寺出发怎么走一条西城 Citywalk？',
+					'把白塔寺写进我的游记草稿'
+				],
+				visionCaption: officialPoi.summary || '白塔寺官方 POI 预览'
+			}
 		},
 		readVisionAgentMemorySessionPackage() {
 			try {
@@ -1743,6 +1777,105 @@ export default {
 	line-height: 1.35;
 	color: currentColor;
 	opacity: 0.76;
+}
+
+.xicheng-home-first-screen-density .xicheng-reference-hero {
+	min-height: 640rpx;
+	padding-top: 30rpx;
+}
+
+.xicheng-home-first-screen-density {
+	padding-top: 20rpx;
+}
+
+.xicheng-home-first-screen-density .home-location-row {
+	margin-bottom: 14rpx;
+}
+
+.xicheng-home-first-screen-density .xicheng-reference-hero .hero-copy {
+	padding-top: 28rpx;
+}
+
+.xicheng-home-first-screen-density .xicheng-reference-hero .title {
+	margin-top: 18rpx;
+	font-size: 62rpx;
+}
+
+.xicheng-home-first-screen-density .xicheng-reference-hero .subtitle {
+	margin-top: 18rpx;
+	font-size: 28rpx;
+}
+
+.xicheng-home-first-screen-density .xicheng-reference-hero .companion-visual {
+	right: -10rpx;
+	bottom: 10rpx;
+	width: 370rpx;
+}
+
+.xicheng-home-first-screen-density .xicheng-reference-hero .xiaojing-avatar {
+	width: 370rpx;
+	height: 440rpx;
+}
+
+.xicheng-home-first-screen-density .xicheng-reference-hero .hero-ask-card {
+	left: -214rpx;
+	bottom: 126rpx;
+	width: 288rpx;
+	min-height: 104rpx;
+}
+
+.xicheng-home-first-screen-density .home-action-duo {
+	gap: 14rpx;
+	margin-top: 14rpx;
+}
+
+.xicheng-home-first-screen-density .home-action-card,
+.xicheng-home-first-screen-density .home-action-duo .recent-panel {
+	min-height: 136rpx;
+}
+
+.xicheng-home-first-screen-density .home-action-card {
+	padding: 18rpx 20rpx;
+}
+
+.xicheng-home-first-screen-density .home-action-duo .recent-panel {
+	padding: 16rpx;
+}
+
+.xicheng-home-first-screen-density .home-action-duo .recent-compact-image {
+	width: 92rpx;
+	height: 112rpx;
+}
+
+.xicheng-home-first-screen-density .home-action-duo .recent-compact-action {
+	min-height: 46rpx;
+	margin-top: 10rpx;
+}
+
+.xicheng-home-first-screen-density .home-light-entry-grid {
+	gap: 14rpx;
+	margin-top: 14rpx;
+}
+
+.xicheng-home-first-screen-density .home-light-entry {
+	min-height: 138rpx;
+	padding: 18rpx 20rpx;
+}
+
+.xicheng-home-first-screen-density .home-light-entry-title {
+	margin-top: 14rpx;
+}
+
+.xicheng-home-first-screen-density .home-light-entry-copy {
+	margin-top: 8rpx;
+}
+
+.xicheng-home-first-screen-density .home-travelogue-actions {
+	margin-top: 10rpx;
+}
+
+.xicheng-home-first-screen-density .home-route-recommendation-section {
+	margin-top: 12rpx;
 }
 
 </style>

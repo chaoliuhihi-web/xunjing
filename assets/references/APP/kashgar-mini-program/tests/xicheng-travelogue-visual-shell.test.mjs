@@ -4,6 +4,8 @@ import path from 'node:path'
 
 const root = process.cwd()
 const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
+const secondaryEntries = fs.readFileSync(path.join(root, 'components', 'xicheng', 'travelogueSecondaryEntries.js'), 'utf8')
+const travelogueSource = `${travelogue}\n${secondaryEntries}`
 const travelogueCss = fs.existsSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.css'))
   ? fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.css'), 'utf8')
   : travelogue
@@ -39,7 +41,7 @@ for (const required of [
   '<text class="travelogue-editor-title">编辑游记</text>',
   'travelogueHeroTitle',
   'travelogueHeroSubtitle',
-  '<view v-if="!isTravelogueEditMode" :class="[\'hero\'',
+  '<view v-if="!isTravelogueEditMode && showLegacyTravelogueHero" :class="[\'hero\'',
   'v-if="isTravelogueEditMode"',
   'travelogue-editor-reference-stack',
   'travelogue-secondary-directory',
@@ -54,7 +56,7 @@ for (const required of [
   '预览内容来自你的照片、路线、备注和已核对资料',
   '发布前确认公开范围'
 ]) {
-  assert.ok(travelogue.includes(required), `Xicheng travelogue visual shell should include ${required}`)
+  assert.ok(travelogueSource.includes(required), `Xicheng travelogue visual shell should include ${required}`)
 }
 
 assert.match(
@@ -101,8 +103,14 @@ assert.match(
 
 assert.match(
   travelogue,
-  /travelogueSecondaryEntries\(\)[\s\S]*icon:\s*'route'[\s\S]*icon:\s*'passport'[\s\S]*icon:\s*'share'[\s\S]*icon:\s*'settings'/,
-  'Travelogue secondary entry cards should expose semantic icon names instead of raw vendor icon types'
+  /travelogueSecondaryEntries\(\)[\s\S]*createXichengTravelogueSecondaryEntries/,
+  'Travelogue page should source secondary entry cards from the shared config helper'
+)
+
+assert.match(
+  secondaryEntries,
+  /icon:\s*'route'[\s\S]*icon:\s*'passport'[\s\S]*icon:\s*'share'[\s\S]*icon:\s*'settings'/,
+  'Travelogue secondary entry config should expose semantic icon names instead of raw vendor icon types'
 )
 
 assert.doesNotMatch(
@@ -125,7 +133,7 @@ assert.doesNotMatch(
 
 assert.match(
   travelogue,
-  /<template v-if="!isTravelogueEditMode">[\s\S]*class="stats-grid"[\s\S]*记录会话[\s\S]*旅行素材盒[\s\S]*亲子研学任务[\s\S]*城市运营报告[\s\S]*<\/template>/,
+  /<template v-if="!isTravelogueEditMode && showTravelogueOpsDetails">[\s\S]*class="stats-grid"[\s\S]*记录会话[\s\S]*旅行素材盒[\s\S]*亲子研学任务[\s\S]*城市运营报告[\s\S]*<\/template>/,
   'Long travelogue operations should stay outside edit mode and move behind secondary entries'
 )
 

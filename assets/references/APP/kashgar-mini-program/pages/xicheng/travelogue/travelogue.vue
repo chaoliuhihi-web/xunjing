@@ -9,8 +9,27 @@
 				<xicheng-icon name="more" variant="plain" :size="22" />
 			</view>
 		</view>
-
-		<view v-if="!isTravelogueEditMode" :class="['hero', 'xicheng-paper-card', 'xicheng-travelogue-hero']">
+		<xicheng-travelogue-record-shell
+			v-if="!isTravelogueEditMode"
+			:region="region"
+			:preview-image="traveloguePreviewImage"
+			:preview-title="traveloguePreviewTitle"
+			:preview-text="traveloguePreviewText"
+			:material-count="materialCount"
+			:route-count="recognizedRoute || importedRoute ? 1 : 0"
+			:photo-count="photoMaterialCount"
+			:qa-count="aiGuideMaterialCount"
+			:has-evidence="hasTraveloguePreviewEvidence"
+			:style-options="travelogueStyleOptions"
+			:active-style="activeTravelogueStyle"
+			@open-works="openWorksPage"
+			@generate="generateTravelogueDraft"
+			@add-photo="addPhotoMaterial"
+			@scroll-draft="scrollToDraftEditor"
+			@open-reader="openTravelogueReaderPage"
+			@apply-template="applyTravelogueTemplate"
+		/>
+		<view v-if="!isTravelogueEditMode && showLegacyTravelogueHero" :class="['hero', 'xicheng-paper-card', 'xicheng-travelogue-hero']">
 			<view class="travelogue-hero-main">
 				<view class="travelogue-hero-copy">
 					<text class="eyebrow">{{ region.cityName }} P0</text>
@@ -26,8 +45,7 @@
 				</view>
 			</view>
 		</view>
-
-		<view v-if="!isTravelogueEditMode" class="travelogue-generation-hero xicheng-paper-card">
+		<view v-if="!isTravelogueEditMode && showAdvancedTravelogueGeneration" class="travelogue-generation-hero xicheng-paper-card">
 			<view class="travelogue-generation-head">
 				<image class="travelogue-generation-avatar" :src="region.companionAvatar" mode="aspectFit" />
 				<view class="travelogue-generation-bubble xicheng-companion-bubble">
@@ -35,7 +53,6 @@
 					<text class="travelogue-generation-copy">我已帮你整理今天的西城片段</text>
 				</view>
 			</view>
-
 			<view class="travelogue-summary-grid">
 				<view
 					v-for="card in summaryCards"
@@ -46,14 +63,11 @@
 					<text class="summary-value">{{ card.value }}</text>
 				</view>
 			</view>
-
 			<view class="travelogue-style-selector"><button v-for="style in travelogueStyleOptions" :key="style.key" :class="['travelogue-style-chip', activeTravelogueStyle === style.key ? 'travelogue-style-chip-active' : '']" @click="applyTravelogueTemplate(style)">{{ style.title }}</button></view>
 			<xicheng-travelogue-template-gallery :selected-key="selectedTravelogueTemplate" @select="applyTravelogueTemplate" @apply="applyTravelogueTemplate" />
 			<xicheng-travelogue-template-settings :template-title="activeTravelogueStyleTitle" :settings="travelogueTemplateSettings" @change="updateTravelogueTemplateSettings" />
 			<xicheng-travelogue-generation-state-panel v-if="travelogueGenerationState !== 'ready'" :status="travelogueGenerationState" :material-hints="travelogueMaterialHints" :failure-reason="travelogueGenerationFailureReason" @explore="openRoutesPage" @add-photo="addPhotoMaterial" @retry="generateTravelogueDraft" @manual-edit="scrollToDraftEditor" />
-
 			<xicheng-long-travelogue-preview :has-evidence="hasTraveloguePreviewEvidence" :cover-image="traveloguePreviewImage" :title="traveloguePreviewTitle" :subtitle="longTravelogueSubtitle" :intro="longTravelogueIntro" :template-title="activeTravelogueStyleTitle" :route-items="editorRouteItems" :chapters="longTravelogueChapters" :photo-cards="editorPhotoCards" :tags="traveloguePreviewTags" :source-count="workSourceCount" @edit="scrollToDraftEditor" @export-pdf="exportMemorialPdf" @publish-moments="openSharePage" @publish-xhs="openSharePage" />
-
 			<view v-if="visionAgentAutoTraveloguePackage" class="vision-agent-auto-package">
 				<view class="vision-agent-auto-package-head">
 					<text class="vision-agent-auto-package-title">AI识境自动素材包</text>
@@ -63,7 +77,6 @@
 				<text class="vision-agent-auto-package-line">{{ visionAgentAutoTraveloguePackage.mapCueText }}</text>
 				<text class="vision-agent-auto-package-line">{{ visionAgentAutoTraveloguePackage.shareCueText }}</text>
 			</view>
-
 			<view class="travelogue-generation-actions">
 				<button class="ghost-button xicheng-secondary-action" @click="scrollToDraftEditor">继续编辑</button>
 				<button class="ghost-button xicheng-secondary-action" @click="openTravelogueReaderPage">精美预览</button>
@@ -71,7 +84,6 @@
 			</view>
 			<text class="travelogue-human-notice">预览内容来自你的照片、路线、备注和已核对资料，可继续改成自己的语气。</text>
 		</view>
-
 		<xicheng-travelogue-editor-share
 			v-if="isTravelogueEditMode"
 			class="travelogue-editor-reference-stack"
@@ -88,7 +100,6 @@
 			@publish="publishTravelogue"
 			@add-photo="addPhotoMaterial"
 		/>
-
 		<view v-if="isTravelogueEditMode" class="travelogue-secondary-directory xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">二级功能</text>
@@ -111,8 +122,7 @@
 				</view>
 			</view>
 		</view>
-
-		<template v-if="!isTravelogueEditMode">
+		<template v-if="!isTravelogueEditMode && showTravelogueOpsDetails">
 			<view class="stats-grid">
 				<view class="stat-card xicheng-paper-card">
 					<text class="stat-value">{{ materialCount }}</text>
@@ -127,7 +137,6 @@
 					<text class="stat-label">亲子研学任务</text>
 				</view>
 			</view>
-
 			<view class="section-card xicheng-paper-card vision-agent-task-card">
 				<view class="section-head">
 					<text class="section-title">AI识境任务包</text>
@@ -149,7 +158,6 @@
 				</view>
 				<text v-else class="empty-copy">打开 AI识境拍一下，选择路线、美食、徽章或生成游记后，会在这里形成可继续处理的任务包。</text>
 			</view>
-
 			<view class="section-card xicheng-paper-card">
 				<view class="section-head">
 					<text class="section-title">记录会话</text>
@@ -184,7 +192,6 @@
 				<button class="ghost-button danger-button" :disabled="recordingSession.status === 'idle' && routePointCount === 0 && stayPointCount === 0" @click="deleteRecordingSession">删除记录</button>
 			</view>
 		</view>
-
 		<view v-if="importedRoute" class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">灵感导入路线</text>
@@ -202,7 +209,6 @@
 				</text>
 			</view>
 		</view>
-
 		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">灵感导入记录</text>
@@ -224,7 +230,6 @@
 			</view>
 			<text v-else class="empty-copy">从“一键导入灵感”生成路线后，会沉淀为可审核的导入记录。</text>
 		</view>
-
 		<view v-if="recognizedRoute" class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">识别推荐路线</text>
@@ -244,7 +249,6 @@
 				</text>
 			</view>
 		</view>
-
 		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">路线护照</text>
@@ -261,7 +265,6 @@
 			</view>
 			<button v-else class="ghost-button xicheng-secondary-action badge-claim-button" :disabled="!badgeUnlocked" @click="claimRouteBadge">领取徽章</button>
 		</view>
-
 		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">路线打卡</text>
@@ -282,7 +285,6 @@
 			</view>
 			<text v-else class="empty-copy">从识别结果页点击“开始记录”后，会生成可审核的路线打卡事件。</text>
 		</view>
-
 		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">旅行素材盒</text>
@@ -312,7 +314,6 @@
 			</view>
 			<text v-else class="empty-copy">从识别结果页点击“开始记录”后，POI、来源和识别置信度会进入这里。</text>
 		</view>
-
 		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">现场备注</text>
@@ -330,7 +331,6 @@
 				<button class="ghost-button xicheng-secondary-action" @click="addPhotoMaterial">补充照片</button>
 			</view>
 		</view>
-
 		<view class="section-card xicheng-paper-card">
 			<text class="section-title">亲子研学任务</text>
 			<view
@@ -358,7 +358,6 @@
 				<text class="task-status">{{ getStudyTaskStatus(index) }}</text>
 			</view>
 		</view>
-
 		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">游记草稿</text>
@@ -373,7 +372,6 @@
 			/>
 			<button class="primary-button xicheng-primary-action" @click="saveDraft">保存草稿</button>
 		</view>
-
 		<xicheng-travelogue-editor-share
 			v-if="!isTravelogueEditMode"
 			class="travelogue-secondary-editor"
@@ -390,7 +388,6 @@
 			@publish="publishTravelogue"
 			@add-photo="addPhotoMaterial"
 		/>
-
 	<view class="action-grid xicheng-travelogue-actions">
 		<button class="ghost-button xicheng-secondary-action" :class="{ 'work-action-needs-evidence': !hasReviewableJourneyEvidence() }" @click="generatePoster">分享海报</button>
 		<button class="ghost-button xicheng-secondary-action" :class="{ 'work-action-needs-evidence': !hasReviewableJourneyEvidence() }" @click="exportMemorialPdf">PDF纪念册</button>
@@ -399,7 +396,6 @@
 		<button class="ghost-button xicheng-secondary-action" @click="openWorksPage">我的游记</button>
 		<button class="ghost-button xicheng-secondary-action" @click="openOpsReportPage">运营报告</button>
 	</view>
-
 		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">隐私与本地数据</text>
@@ -414,7 +410,6 @@
 				<button class="ghost-button danger-button" @click="clearXichengLocalData">清除西城本地数据</button>
 			</view>
 		</view>
-
 		<view v-if="shareArtifacts.length > 0" class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">分享产物包</text>
@@ -433,7 +428,6 @@
 				</view>
 			</view>
 		</view>
-
 		<view v-if="reviewSubmission" class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">审核提交记录</text>
@@ -462,7 +456,6 @@
 				<button class="mini-button danger-mini-button" @click="withdrawReviewSubmission">撤回审核</button>
 			</view>
 		</view>
-
 		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">城市运营报告</text>
@@ -497,7 +490,6 @@
 		</template>
 	</view>
 </template>
-
 <script>
 import {
 	XICHENG_OFFICIAL_POIS,
@@ -515,7 +507,9 @@ import XichengTravelogueTemplateGallery from '@/components/xicheng/XichengTravel
 import XichengTravelogueTemplateSettings from '@/components/xicheng/XichengTravelogueTemplateSettings.vue'
 import XichengTravelogueGenerationStatePanel from '@/components/xicheng/XichengTravelogueGenerationStatePanel.vue'
 import XichengTravelogueEditorShare from '@/components/xicheng/travelogue-editor-share.vue'
+import XichengTravelogueRecordShell from '@/components/xicheng/XichengTravelogueRecordShell.vue'
 import { createXichengTravelogueGenerationStateMixin } from '@/components/xicheng/travelogueGenerationState.js'
+import { createXichengTravelogueSecondaryEntries } from '@/components/xicheng/travelogueSecondaryEntries.js'
 import {
 	getXichengDisplaySourceDescription,
 	getXichengDisplaySourceTitle,
@@ -527,7 +521,6 @@ import {
 	hasReviewableVisionAgentServiceTaskEvidence,
 	parseTravelogueVisionAgentContext
 } from '@/request/xunjing/visionAgentTravelogue.js'
-
 export const XICHENG_PLANNING_ONLY_MATERIAL_TYPES = Object.freeze([
 	'official-route-poi',
 	'inspiration-poi',
@@ -537,12 +530,10 @@ const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TITLE = '等待你的西城素材'
 const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TEXT = '请先通过识别、开始记录、补充照片或现场备注积累真实素材，再预览西城游记。预览只整理已记录的地点、照片、路线轨迹和用户备注。'
 const XICHENG_TRAVELOGUE_PREVIEW_EMPTY_TAGS = Object.freeze(['待补充素材', '来源审核后生成', '私人草稿'])
 const XICHENG_DEFAULT_TEMPLATE_SETTINGS = Object.freeze({ cover: '使用白塔寺主图', layout: '杂志大图 + 长文', focus: '路线故事线', crop: '自动适配封面', tone: '像人写的自然语气', privacy: '只用已审核来源' })
-
 export const normalizeTravelogueMode = (mode = 'draft') => {
 	const normalizedMode = String(mode || 'draft').trim()
 	return ['draft', 'edit', 'record'].includes(normalizedMode) ? normalizedMode : 'draft'
 }
-
 export const createXichengTraveloguePreviewExcerpt = (text = '', limit = 88) => {
 	const normalizedText = String(text || '').replace(/\s+/g, ' ').trim()
 	if (!normalizedText || normalizedText.length <= limit) return normalizedText
@@ -552,12 +543,10 @@ export const createXichengTraveloguePreviewExcerpt = (text = '', limit = 88) => 
 	const excerpt = (cutIndex >= 0 ? boundedText.slice(0, cutIndex + 1) : boundedText).replace(/[，、；：:,\s]+$/g, '').trim()
 	return `${excerpt}…`
 }
-
 export const isUnsafeSourceBlockedMaterial = (material = {}) => {
 	const safetyStatus = normalizeXichengSafetyStatus(material.safetyStatus)
 	return isXichengUnsafeSafetyStatus(safetyStatus)
 }
-
 export const hasReviewableMaterialEvidence = (material = {}) => {
 	if (!material || isUnsafeSourceBlockedMaterial(material)) return false
 	return Boolean(
@@ -570,7 +559,6 @@ export const hasReviewableMaterialEvidence = (material = {}) => {
 		|| ['photo', 'remark', 'manual-entry'].includes(material.type)
 	)
 }
-
 export const hasReviewableWorkMaterialEvidence = (material = {}) => {
 	if (!material) return false
 	if (XICHENG_PLANNING_ONLY_MATERIAL_TYPES.includes(material.type)) {
@@ -578,28 +566,23 @@ export const hasReviewableWorkMaterialEvidence = (material = {}) => {
 	}
 	return hasReviewableMaterialEvidence(material)
 }
-
 export const getReviewableMaterialSources = (material = {}) => {
 	if (!hasReviewableMaterialEvidence(material)) return []
 	return normalizeXichengReviewedSources(material.sources)
 }
-
 export const getReviewableWorkMaterialSources = (material = {}) => {
 	if (!hasReviewableWorkMaterialEvidence(material)) return []
 	return normalizeXichengReviewedSources(material.sources)
 }
-
 export function hasReviewableRouteCheckinEvidence(checkin = {}) {
 	const safetyStatus = normalizeXichengSafetyStatus(checkin.safetyStatus)
 	if (isXichengUnsafeSafetyStatus(safetyStatus)) return false
 	return Boolean(checkin.poiCode || checkin.poiName || checkin.routeTitle)
 }
-
 export const getReviewableRouteCheckinSources = (checkin = {}) => {
 	if (!hasReviewableRouteCheckinEvidence(checkin)) return []
 	return normalizeXichengReviewedSources(checkin.sources)
 }
-
 export const hasReviewableStudyTaskEvidence = (evidence = {}) => {
 	if (!evidence || !evidence.completedAt) return false
 	const safetyStatus = normalizeXichengSafetyStatus(evidence.safetyStatus)
@@ -609,7 +592,6 @@ export const hasReviewableStudyTaskEvidence = (evidence = {}) => {
 		|| evidence.photoPath
 	)
 }
-
 export const hasXichengTravelogueDraftEvidence = ({
 	materials = [],
 	recordingSession = null,
@@ -639,7 +621,6 @@ export const hasXichengTravelogueDraftEvidence = ({
 	const hasVisionAgentMemorySessionEvidence = Boolean(visionAgentMemorySessionPackage && Number(visionAgentMemorySessionPackage.sceneCount || 0) > 0)
 	return hasMaterialEvidence || hasTrackEvidence || hasStudyEvidence || hasRouteEvidence || hasRouteCheckinEvidence || hasVisionAgentServiceTaskEvidence || hasVisionAgentMemorySessionEvidence
 }
-
 export const hasXichengReviewableWorkEvidence = ({
 	materials = [],
 	recordingSession = null,
@@ -658,7 +639,6 @@ export const hasXichengReviewableWorkEvidence = ({
 		&& routeCheckins.some(checkin => hasReviewableRouteCheckinEvidence(checkin))
 	return hasMaterialEvidence || hasTrackEvidence || hasStudyEvidence || hasRouteCheckinEvidence
 }
-
 export const createXichengTravelogueDraft = ({
 	materials = [],
 	parentChildTasks = XICHENG_REGION_CONFIG.parentChildTasks,
@@ -741,16 +721,12 @@ export const createXichengTravelogueDraft = ({
 		: ''
 	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒。${trackText}${stayText}${photoText}${routeCheckinText}${remarkText}${studyTaskText}${aiGuideText}${visionAgentTaskText}${visionAgentMemorySessionText}这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
 }
-
 const createEmptyRecordingSession = () => ({ sessionId: '', regionCode: XICHENG_REGION_CONFIG.regionCode, packageCode: XICHENG_REGION_CONFIG.packageCode, status: 'idle', startedAt: '', pausedAt: '', finishedAt: '', trackPoints: [], stayPoints: [], filteredTrackPoints: [] })
-
 const XICHENG_TRACK_POINT_QUALITY = Object.freeze({ maxPoiAttributionAccuracyMeters: 80, abnormalJumpWindowSeconds: 5, abnormalJumpDistanceMeters: 500 })
-
 const normalizeTrackNumber = (value) => {
 	const numericValue = Number(value)
 	return Number.isFinite(numericValue) ? numericValue : null
 }
-
 const calculateTrackPointDistanceMeters = (left = {}, right = {}) => {
 	const leftLatitude = normalizeTrackNumber(left.latitude)
 	const leftLongitude = normalizeTrackNumber(left.longitude)
@@ -768,14 +744,11 @@ const calculateTrackPointDistanceMeters = (left = {}, right = {}) => {
 	const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 	return Math.round(earthRadiusMeters * c)
 }
-
 const decodeJourneyRouteValue = decodeXichengRouteValue
-
 const resolveRouteByCode = (routeCode = '') => {
 	const normalizedRouteCode = normalizeXichengRouteCode(routeCode)
 	return XICHENG_RECOMMENDED_ROUTES.find(route => route.routeCode === normalizedRouteCode) || null
 }
-
 const createOfficialRouteMaterials = ({
 	route = null,
 	regionCode = XICHENG_REGION_CONFIG.regionCode,
@@ -807,12 +780,10 @@ const createOfficialRouteMaterials = ({
 		}
 	})
 }
-
 const normalizePhotoCoordinate = (value) => {
 	const numericValue = Number(value)
 	return Number.isFinite(numericValue) ? numericValue : null
 }
-
 export const normalizePhotoExifLocationForMaterial = (fileMeta = {}) => {
 	const exifLocation = fileMeta.exifLocation || fileMeta.location || {}
 	const exifLatitude = exifLocation.latitude !== undefined
@@ -832,7 +803,6 @@ export const normalizePhotoExifLocationForMaterial = (fileMeta = {}) => {
 		exifSource: fileMeta.exifLocation ? 'chooseImage-exifLocation' : 'chooseImage-tempFile'
 	}
 }
-
 export const resolvePhotoEvidenceFileMeta = (chooseImageResult = {}) => {
 	const tempFile = Array.isArray(chooseImageResult.tempFiles) && chooseImageResult.tempFiles[0]
 		? chooseImageResult.tempFiles[0]
@@ -848,9 +818,8 @@ export const resolvePhotoEvidenceFileMeta = (chooseImageResult = {}) => {
 		exifLocation: normalizePhotoExifLocationForMaterial(tempFile)
 	}
 }
-
 export default {
-	components: { XichengLongTraveloguePreview, XichengTravelogueTemplateGallery, XichengTravelogueTemplateSettings, XichengTravelogueGenerationStatePanel, XichengTravelogueEditorShare },
+	components: { XichengLongTraveloguePreview, XichengTravelogueTemplateGallery, XichengTravelogueTemplateSettings, XichengTravelogueGenerationStatePanel, XichengTravelogueEditorShare, XichengTravelogueRecordShell },
 	mixins: [createXichengTravelogueGenerationStateMixin()],
 	data() {
 		return {
@@ -870,6 +839,9 @@ export default {
 			editableTravelogueTitle: '在白塔下遇见西城',
 			travelogueTagChips: ['白塔寺', '什刹海', '胡同漫步'],
 			travelogueMode: 'draft',
+			showLegacyTravelogueHero: false,
+			showAdvancedTravelogueGeneration: false,
+			showTravelogueOpsDetails: false,
 			activeTravelogueStyle: 'citywalk',
 			selectedTravelogueTemplate: 'citywalk',
 			travelogueTemplateSettings: { ...XICHENG_DEFAULT_TEMPLATE_SETTINGS },
@@ -902,40 +874,17 @@ export default {
 			return '这些片段可以生成你的游记'
 		},
 		travelogueSecondaryEntries() {
-			return [
-				{
-					key: 'footprint',
-					title: '记录与足迹',
-					copy: '路线记录、素材盒、现场备注',
-					meta: `${this.materialCount} 素材 · ${this.routePointCount} 轨迹点`,
-					icon: 'route',
-					url: '/pages/xicheng/footprint/footprint'
-				},
-				{
-					key: 'passport',
-					title: '路线护照与研学',
-					copy: '打卡徽章、亲子研学任务',
-					meta: `${this.passportProgress}% 护照 · ${this.completedTaskCount}/${this.parentChildTasks.length} 任务`,
-					icon: 'passport',
-					url: '/pages/xicheng/passport/passport'
-				},
-				{
-					key: 'share',
-					title: '分享与审核',
-					copy: '分享海报、PDF纪念册、作品审核',
-					meta: `${this.shareArtifacts.length} 产物 · ${this.reviewText}`,
-					icon: 'share',
-					url: '/pages/xicheng/share/share'
-				},
-				{
-					key: 'ops',
-					title: '运营与隐私',
-					copy: '城市运营报告、隐私与反馈',
-					meta: `${this.opsReport.recognitionCount} 识别 · ${this.opsReport.reviewBlockerCount} 待复核`,
-					icon: 'settings',
-					url: '/pages/xicheng/ops-report/ops-report'
-				}
-			]
+			return createXichengTravelogueSecondaryEntries({
+				materialCount: this.materialCount,
+				routePointCount: this.routePointCount,
+				passportProgress: this.passportProgress,
+				completedTaskCount: this.completedTaskCount,
+				parentChildTaskCount: this.parentChildTasks.length,
+				shareArtifactCount: this.shareArtifacts.length,
+				reviewText: this.reviewText,
+				recognitionCount: this.opsReport.recognitionCount,
+				reviewBlockerCount: this.opsReport.reviewBlockerCount
+			})
 		},
 		materialCount() {
 			return this.materials.length
@@ -2993,5 +2942,4 @@ export default {
 	}
 }
 </script>
-
 <style scoped src="./travelogue.css"></style>
