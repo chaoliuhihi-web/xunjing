@@ -123,11 +123,15 @@ describe('xunjing app API contract', () => {
     expect(appService).toContain('EventType.AGENT_ACTION')
     expect(appService).toContain('buildAgentActionEventPayload')
     expect(appService).toContain('sanitizeAgentActionClientPayload')
-    expect(appService).toContain('payload.put("agentAction", buildAgentActionEventPayload(clientPayloadObject))')
+    expect(appService).toContain('Map<String, Object> agentAction = buildAgentActionEventPayload(clientPayloadObject)')
+    expect(appService).toContain('payload.put("agentAction", agentAction)')
+    expect(appService).toContain('payload.put("travelRecordMaterial", travelRecordMaterial)')
+    expect(appService).toContain('buildAgentActionTravelRecordMaterialPayload(')
     expect(appService).toContain('"sourceTriggerTraceId"')
     expect(appService).toContain('"executionStatus"')
     expect(appService).not.toContain('payload.put("imageBase64"')
     expect(appTest).toContain('testRecordAgentActionEventStoresStructuredTelemetryWithoutRawImagePayload')
+    expect(appTest).toContain('travelRecordMaterial.get("generateTravelogue").asBoolean()')
   })
 
   test('xicheng AI chat contract carries POI context and blocks no-source answers', async () => {

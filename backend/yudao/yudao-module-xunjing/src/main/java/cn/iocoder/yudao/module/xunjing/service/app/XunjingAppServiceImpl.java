@@ -1760,11 +1760,12 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             return List.of();
         }
         return respVO.getAgentActions().stream()
-                .map(this::buildTriggerAgentActionPayload)
+                .map(action -> buildTriggerAgentActionPayload(action, respVO))
                 .toList();
     }
 
-    private Map<String, Object> buildTriggerAgentActionPayload(MultimodalAgentActionRespVO action) {
+    private Map<String, Object> buildTriggerAgentActionPayload(
+            MultimodalAgentActionRespVO action, MultimodalTriggerRespVO respVO) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("actionKey", truncateForEvent(action.getActionKey(), 80));
         payload.put("title", truncateForEvent(action.getTitle(), 80));
@@ -1773,6 +1774,10 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         payload.put("requiresUserConfirm", Boolean.TRUE.equals(action.getRequiresUserConfirm()));
         payload.put("requiresRealSystem", Boolean.TRUE.equals(action.getRequiresRealSystem()));
         payload.put("reason", truncateForEvent(action.getReason(), TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH));
+        payload.put("packageCode", truncateForEvent(respVO.getPackageCode(), 80));
+        payload.put("regionCode", truncateForEvent(respVO.getRegionCode(), 80));
+        payload.put("poiCode", truncateForEvent(respVO.getPoiCode(), 80));
+        payload.put("poiName", truncateForEvent(respVO.getPoiName(), 80));
         return payload;
     }
 
@@ -2285,8 +2290,14 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         Map<String, Object> clientPayloadObject = JsonUtils.parseObjectQuietly(
                 clientPayload, new TypeReference<Map<String, Object>>() {});
         if (EventType.AGENT_ACTION.getType().equals(eventType)) {
+            Map<String, Object> agentAction = buildAgentActionEventPayload(clientPayloadObject);
             payload.put("clientPayload", sanitizeAgentActionClientPayload(clientPayloadObject));
-            payload.put("agentAction", buildAgentActionEventPayload(clientPayloadObject));
+            payload.put("agentAction", agentAction);
+            Map<String, Object> travelRecordMaterial = buildAgentActionTravelRecordMaterialPayload(
+                    resourcePackage, reqVO, agentAction);
+            if (!travelRecordMaterial.isEmpty()) {
+                payload.put("travelRecordMaterial", travelRecordMaterial);
+            }
         } else {
             payload.put("clientPayload", clientPayloadObject == null ? clientPayload : clientPayloadObject);
         }
@@ -2301,6 +2312,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         putAgentActionText(payload, clientPayload, "targetPath", 200);
         putAgentActionText(payload, clientPayload, "sourceTriggerTraceId", 100);
         putAgentActionText(payload, clientPayload, "executionStatus", 40);
+        putAgentActionText(payload, clientPayload, "regionCode", 80);
         putAgentActionText(payload, clientPayload, "poiCode", 80);
         putAgentActionText(payload, clientPayload, "poiName", 80);
         putAgentActionBoolean(payload, clientPayload, "requiresUserConfirm");
@@ -2312,6 +2324,60 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         Map<String, Object> payload = sanitizeAgentActionClientPayload(clientPayload);
         putAgentActionText(payload, clientPayload, "reason", TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
         return payload;
+    }
+
+    private Map<String, Object> buildAgentActionTravelRecordMaterialPayload(
+            XunjingResourcePackageDO resourcePackage, AppInteractionEventReqVO reqVO, Map<String, Object> agentAction) {
+        String actionKey = stringValue(agentAction.get("actionKey"));
+        String intent = stringValue(agentAction.get("intent"));
+        if (!isTravelRecordAgentAction(actionKey, intent)) {
+            return Map.of();
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        String targetPath = stringValue(agentAction.get("targetPath"));
+        payload.put("artifactType", "travel_record");
+        payload.put("packageCode", resourcePackage.getPackageCode());
+        payload.put("sceneCode", defaultIfBlank(reqVO.getSceneCode(), ""));
+        payload.put("regionCode", defaultIfBlank(stringValue(agentAction.get("regionCode")),
+                queryParam(targetPath, "regionCode")));
+        payload.put("poiCode", defaultIfBlank(stringValue(agentAction.get("poiCode")),
+                queryParam(targetPath, "poiCode")));
+        putTravelRecordMaterialText(payload, "poiName", agentAction, "poiName", 80);
+        putTravelRecordMaterialText(payload, "actionKey", agentAction, "actionKey", 80);
+        putTravelRecordMaterialText(payload, "title", agentAction, "title", 80);
+        putTravelRecordMaterialText(payload, "executionStatus", agentAction, "executionStatus", 40);
+        putTravelRecordMaterialText(payload, "sourceTriggerTraceId", agentAction, "sourceTriggerTraceId", 100);
+        putTravelRecordMaterialText(payload, "reason", agentAction, "reason", TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+        payload.put("completeCheckIn", "complete_check_in".equals(actionKey));
+        payload.put("claimBadge", "claim_badge".equals(actionKey));
+        payload.put("addToTravelMap", "add_to_travel_map".equals(actionKey));
+        payload.put("generateTravelogue", "generate_travelogue".equals(actionKey));
+        payload.put("requiresRealSystem", Boolean.TRUE.equals(agentAction.get("requiresRealSystem")));
+        return payload;
+    }
+
+    private boolean isTravelRecordAgentAction(String actionKey, String intent) {
+        return "record".equals(intent)
+                || "complete_check_in".equals(actionKey)
+                || "claim_badge".equals(actionKey)
+                || "add_to_travel_map".equals(actionKey)
+                || "generate_travelogue".equals(actionKey);
+    }
+
+    private void putTravelRecordMaterialText(
+            Map<String, Object> payload, String targetKey, Map<String, Object> source, String sourceKey, int maxLength) {
+        String value = stringValue(source.get(sourceKey));
+        if (hasText(value)) {
+            payload.put(targetKey, truncateForEvent(value.trim(), maxLength));
+        }
+    }
+
+    private String queryParam(String targetPath, String key) {
+        if (!hasText(targetPath) || !hasText(key)) {
+            return "";
+        }
+        Matcher matcher = Pattern.compile("(?:[?&])" + Pattern.quote(key) + "=([^&#]*)").matcher(targetPath);
+        return matcher.find() ? matcher.group(1) : "";
     }
 
     private void putAgentActionText(Map<String, Object> payload, Map<String, Object> source, String key, int maxLength) {
