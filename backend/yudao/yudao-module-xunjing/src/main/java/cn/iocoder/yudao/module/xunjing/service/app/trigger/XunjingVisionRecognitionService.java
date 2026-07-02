@@ -36,7 +36,9 @@ public class XunjingVisionRecognitionService {
             "sceneDomainIntentTitle",
             "sceneDomainIntentCopy",
             "agentDecisionActionTitle",
-            "agentDecisionReasonSummary"
+            "agentDecisionReasonSummary",
+            "knowledgeGraphKeywords",
+            "relatedTopicKeywords"
     );
     private static final List<SceneDomainRule> VISION_SCENE_DOMAIN_RULES = List.of(
             new SceneDomainRule("architecture", "建筑", "建筑识境", "讲解年代、结构、故事和拍照角度",
@@ -143,7 +145,9 @@ public class XunjingVisionRecognitionService {
                                                 + "\"caption\":\"一句中文描述\",\"sceneSignals\":{\"sceneFusionSummary\":\"场景摘要\","
                                                 + "\"worldInterfaceSummary\":\"视觉如何参与判断\","
                                                 + "\"sceneDomainIntentKey\":\"architecture\","
-                                                + "\"sceneDomainIntentLabel\":\"建筑\"}}。"
+                                                + "\"sceneDomainIntentLabel\":\"建筑\","
+                                                + "\"knowledgeGraphKeywords\":\"相关人物、朝代、地点\","
+                                                + "\"relatedTopicKeywords\":\"关联话题\"}}。"
                                                 + "sceneDomainIntentKey 可选 architecture, artifact, menu, food, sign, "
                                                 + "intangible_heritage, plant, animal, person, activity。"
                                                 + "可用 labels 包括 white_pagoda, pagoda, temple, temple_gate, "

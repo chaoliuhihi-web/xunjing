@@ -112,6 +112,8 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             "sceneDomainIntentCopy",
             "agentDecisionActionTitle",
             "agentDecisionReasonSummary",
+            "knowledgeGraphKeywords",
+            "relatedTopicKeywords",
             "visionRecognitionStatus",
             "visionRecognitionModel"
     );
@@ -959,6 +961,8 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             parts.add("场景域=" + domain);
         }
         putPreviousJsonMemoryPart(parts, "Agent理由", sceneSignals, "agentDecisionReasonSummary");
+        putPreviousJsonMemoryPart(parts, "知识图谱线索", sceneSignals, "knowledgeGraphKeywords");
+        putPreviousJsonMemoryPart(parts, "关联话题", sceneSignals, "relatedTopicKeywords");
         putPreviousJsonMemoryPart(parts, "OCR", root, "ocrText");
         return String.join("；", parts);
     }

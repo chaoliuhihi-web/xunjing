@@ -42,7 +42,9 @@ public class XunjingMultimodalTriggerEngine {
             "sceneDomainIntentTitle",
             "sceneDomainIntentCopy",
             "agentDecisionActionTitle",
-            "agentDecisionReasonSummary"
+            "agentDecisionReasonSummary",
+            "knowledgeGraphKeywords",
+            "relatedTopicKeywords"
     );
 
     private static final List<PoiProfile> XICHENG_POIS = List.of(
