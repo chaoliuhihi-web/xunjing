@@ -107,6 +107,7 @@ const requiredProductionEnvTemplateKeys = [
   'SPRING_AI_MODEL_EMBEDDING',
   'XUNJING_TENANT_ID',
   'XUNJING_APP_API_BASE_URL',
+  'XUNJING_ADMIN_BASE_URL',
   'MYSQL_HOST',
   'MYSQL_PORT',
   'MYSQL_DATABASE',
@@ -900,6 +901,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(template.DASHSCOPE_EMBEDDING_ENABLED).toBe('true')
     expect(template.XUNJING_TENANT_ID).toBe('1')
     expect(template.XUNJING_APP_API_BASE_URL).toBe('https://xunjingapi.xingheai.net')
+    expect(template.XUNJING_ADMIN_BASE_URL).toBe('https://xunjingadmin.xingheai.net')
     expect(template.MYSQL_HOST).not.toMatch(/^(127\.0\.0\.1|localhost|0\.0\.0\.0)$/)
     expect(template.REDIS_HOST).not.toMatch(/^(127\.0\.0\.1|localhost|0\.0\.0\.0)$/)
     expect(template.QDRANT_HOST).not.toMatch(/^(127\.0\.0\.1|localhost|0\.0\.0\.0)$/)
