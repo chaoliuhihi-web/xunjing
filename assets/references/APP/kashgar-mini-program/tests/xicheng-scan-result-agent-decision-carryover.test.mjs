@@ -4,6 +4,8 @@ import path from 'node:path'
 
 const root = process.cwd()
 const scanResult = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
+const visionAgentPanel = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengScanResultVisionAgentPanel.vue'), 'utf8')
+const scanResultDecisionSurface = `${scanResult}\n${visionAgentPanel}`
 
 for (const required of [
   'cameraAgentDecisionSnapshot',
@@ -16,7 +18,7 @@ for (const required of [
   'agentDecisionPreviewSummary',
   'sceneAgentActionPreviews'
 ]) {
-  assert.ok(scanResult.includes(required), `Scan result should carry over camera Agent decision context: ${required}`)
+  assert.ok(scanResultDecisionSurface.includes(required), `Scan result should carry over camera Agent decision context: ${required}`)
 }
 
 assert.match(

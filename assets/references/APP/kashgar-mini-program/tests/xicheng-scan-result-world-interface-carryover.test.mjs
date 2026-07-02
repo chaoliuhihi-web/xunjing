@@ -4,8 +4,9 @@ import path from 'node:path'
 
 const root = process.cwd()
 const scanResult = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
+const scanResultVisionAgentPanel = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengScanResultVisionAgentPanel.vue'), 'utf8')
 const worldInterfaceStrip = fs.readFileSync(path.join(root, 'components', 'xicheng', 'vision-agent-world-interface-strip.vue'), 'utf8')
-const combinedSource = `${scanResult}\n${worldInterfaceStrip}`
+const combinedSource = `${scanResult}\n${scanResultVisionAgentPanel}\n${worldInterfaceStrip}`
 
 for (const required of [
   'XichengVisionAgentWorldInterfaceStrip',
@@ -22,9 +23,9 @@ for (const required of [
 }
 
 assert.match(
-  scanResult,
+  scanResultVisionAgentPanel,
   /<xicheng-vision-agent-world-interface-strip[\s\S]*:summary="worldInterfaceSummary"[\s\S]*:signal-badges="worldInterfaceSignalBadges"/,
-  'Result page should delegate the visible World Interface strip to a focused component'
+  'Split result panel should delegate the visible World Interface strip to a focused component'
 )
 
 assert.match(

@@ -5,6 +5,7 @@ import path from 'node:path'
 const root = process.cwd()
 const scanResult = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
 const summaryHero = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengScanResultSummaryHero.vue'), 'utf8')
+const visionAgentPanel = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengScanResultVisionAgentPanel.vue'), 'utf8')
 
 const template = scanResult.match(/<template>[\s\S]*?<\/template>/)?.[0] || ''
 
@@ -19,8 +20,7 @@ const questionCardIndex = template.indexOf('<xicheng-scan-result-questions-card'
 const sourceCardIndex = template.indexOf('<xicheng-scan-result-sources-card')
 const feedbackCardIndex = template.indexOf('class="feedback-card xicheng-paper-card"')
 const memoryPanelIndex = template.indexOf('<xicheng-scan-result-memory-panel')
-const agentPanelIndex = template.indexOf('class="vision-agent-panel xicheng-paper-card"')
-const knowledgePanelIndex = template.indexOf('class="vision-agent-knowledge-panel xicheng-paper-card"')
+const agentPanelIndex = template.indexOf('<xicheng-scan-result-vision-agent-panel')
 const poiDetailEntryIndex = template.indexOf('class="poi-detail-entry xicheng-paper-card"')
 
 assert.ok(summaryHeroIndex >= 0, 'Recognition result should render the split summary hero component')
@@ -53,7 +53,6 @@ assert.ok(
 for (const [label, index] of [
   ['Memory continuity panel', memoryPanelIndex],
   ['AI scene vision panel', agentPanelIndex],
-  ['city knowledge graph', knowledgePanelIndex],
   ['POI detail entry', poiDetailEntryIndex]
 ]) {
   assert.ok(index >= 0, `Recognition result should keep the ${label} section available`)
@@ -62,6 +61,16 @@ for (const [label, index] of [
     `Reviewed sources should stay before the ${label} section so the P0 evidence path is visible before AI识境 enrichment`
   )
 }
+
+assert.ok(
+  visionAgentPanel.includes('class="vision-agent-panel xicheng-paper-card"'),
+  'Split AI scene vision component should keep the AI scene vision panel section available'
+)
+
+assert.ok(
+  visionAgentPanel.includes('class="vision-agent-knowledge-panel xicheng-paper-card"'),
+  'Split AI scene vision component should keep the city knowledge graph section available'
+)
 
 assert.match(
   template,

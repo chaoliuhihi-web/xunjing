@@ -4,6 +4,8 @@ import path from 'node:path'
 
 const root = process.cwd()
 const scanResult = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
+const scanResultVisionAgentPanel = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengScanResultVisionAgentPanel.vue'), 'utf8')
+const scanResultKnowledgeSurface = `${scanResult}\n${scanResultVisionAgentPanel}`
 
 for (const required of [
   'vision-agent-knowledge-panel',
@@ -16,7 +18,7 @@ for (const required of [
   'knowledge-graph-node-route',
   'knowledge-graph-node-service'
 ]) {
-  assert.ok(scanResult.includes(required), `Scan result should expose a city knowledge graph behavior: ${required}`)
+  assert.ok(scanResultKnowledgeSurface.includes(required), `Scan result should expose a city knowledge graph behavior: ${required}`)
 }
 
 assert.match(

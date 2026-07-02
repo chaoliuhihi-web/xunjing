@@ -5,8 +5,9 @@ import path from 'node:path'
 const root = process.cwd()
 const scan = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan', 'scan.vue'), 'utf8')
 const scanResult = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
+const scanResultVisionAgentPanel = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengScanResultVisionAgentPanel.vue'), 'utf8')
 const worldInterfaceStrip = fs.readFileSync(path.join(root, 'components', 'xicheng', 'vision-agent-world-interface-strip.vue'), 'utf8')
-const combinedResultSource = `${scanResult}\n${worldInterfaceStrip}`
+const combinedResultSource = `${scanResult}\n${scanResultVisionAgentPanel}\n${worldInterfaceStrip}`
 
 for (const required of [
   'createAgentDecisionReasonCards',
@@ -36,9 +37,9 @@ assert.match(
 )
 
 assert.match(
-  scanResult,
+  scanResultVisionAgentPanel,
   /<xicheng-vision-agent-world-interface-strip[\s\S]*:reason-cards="agentDecisionReasonCardItems"/,
-  'Result page should render decision reasons in the focused World Interface strip instead of hiding them in text'
+  'Split result panel should render decision reasons in the focused World Interface strip instead of hiding them in text'
 )
 
 assert.match(

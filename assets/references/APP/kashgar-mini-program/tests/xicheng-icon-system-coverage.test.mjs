@@ -11,6 +11,7 @@ const routes = read('pages', 'xicheng', 'routes', 'routes.vue')
 const poi = read('pages', 'xicheng', 'poi', 'poi.vue')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
 const scanResultSummaryHero = read('components', 'xicheng', 'XichengScanResultSummaryHero.vue')
+const scanResultVisionAgentPanel = read('components', 'xicheng', 'XichengScanResultVisionAgentPanel.vue')
 const recording = read('pages', 'xicheng', 'recording', 'recording.vue')
 const recordingPanel = read('components', 'xicheng', 'XichengRouteRecordingPanel.vue')
 const recordingShell = `${recording}\n${recordingPanel}`
@@ -74,19 +75,19 @@ assert.match(
 )
 
 assert.match(
-  scanResult,
+  scanResultVisionAgentPanel,
   /service-handoff-close[\s\S]*<xicheng-icon[\s\S]*name="close"[\s\S]*service-handoff-primary-arrow[\s\S]*<xicheng-icon[\s\S]*name="next"/,
   'Scan result service handoff close and forward actions should use shared vector icons'
 )
 
 assert.doesNotMatch(
-  scanResult,
+  scanResultVisionAgentPanel,
   /class="service-handoff-close"[^>]*>\s*×\s*<\/view>|class="service-handoff-primary-arrow"[^>]*>\s*→\s*<\/text>/,
   'Scan result service handoff should not hand-write structural close or forward glyphs'
 )
 
 assert.match(
-  scanResult,
+  scanResultVisionAgentPanel,
   /\.service-handoff-close\s*\{[\s\S]*width:\s*72rpx[\s\S]*height:\s*72rpx/,
   'Scan result service handoff close control should keep a stable app touch target'
 )

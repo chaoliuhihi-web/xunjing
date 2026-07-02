@@ -4,6 +4,8 @@ import path from 'node:path'
 
 const root = process.cwd()
 const scanResult = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
+const scanResultVisionAgentPanel = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengScanResultVisionAgentPanel.vue'), 'utf8')
+const scanResultSceneUnderstandingSurface = `${scanResult}\n${scanResultVisionAgentPanel}`
 const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
 const sceneUnderstandingHelper = fs.readFileSync(path.join(root, 'request', 'xunjing', 'visionAgentSceneUnderstanding.js'), 'utf8')
 
@@ -28,14 +30,14 @@ for (const required of [
   '活动'
 ]) {
   assert.ok(
-    scanResult.includes(required) || sceneUnderstandingHelper.includes(required),
+    scanResultSceneUnderstandingSurface.includes(required) || sceneUnderstandingHelper.includes(required),
     `Vision Agent scene-domain understanding should include ${required}`
   )
 }
 
 assert.match(
-  scanResult,
-  /<view v-if="prioritizedSceneUnderstandingCards\.length > 0" class="scene-understanding-panel[\s\S]*v-for="card in prioritizedSceneUnderstandingCards"[\s\S]*@click="openSceneUnderstandingCard\(card\)"/,
+  scanResultVisionAgentPanel,
+  /<view v-if="prioritizedSceneUnderstandingCards\.length > 0" class="scene-understanding-panel[\s\S]*v-for="card in prioritizedSceneUnderstandingCards"[\s\S]*@click="\$emit\('open-scene-understanding-card', card\)"/,
   'Result page should render scene-domain cards that can be handed to the Agent'
 )
 

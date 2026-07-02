@@ -4,6 +4,8 @@ import path from 'node:path'
 
 const root = process.cwd()
 const scanResult = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
+const scanResultVisionAgentPanel = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengScanResultVisionAgentPanel.vue'), 'utf8')
+const scanResultDecisionSurface = `${scanResult}\n${scanResultVisionAgentPanel}`
 
 for (const required of [
   'vision-agent-decision-strip',
@@ -17,7 +19,7 @@ for (const required of [
   'photo-spot',
   '拍照建议'
 ]) {
-  assert.ok(scanResult.includes(required), `Scan result should expose scene-aware Vision Agent decision behavior: ${required}`)
+  assert.ok(scanResultDecisionSurface.includes(required), `Scan result should expose scene-aware Vision Agent decision behavior: ${required}`)
 }
 
 assert.match(

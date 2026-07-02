@@ -4,6 +4,8 @@ import path from 'node:path'
 
 const root = process.cwd()
 const scanResult = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
+const scanResultVisionAgentPanel = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengScanResultVisionAgentPanel.vue'), 'utf8')
+const scanResultServiceHandoffSurface = `${scanResult}\n${scanResultVisionAgentPanel}`
 
 for (const required of [
   'AI识境服务承接',
@@ -18,7 +20,7 @@ for (const required of [
   '服务意图',
   '下一步'
 ]) {
-  assert.ok(scanResult.includes(required), `Scan result should expose service handoff panel behavior: ${required}`)
+  assert.ok(scanResultServiceHandoffSurface.includes(required), `Scan result should expose service handoff panel behavior: ${required}`)
 }
 
 assert.match(
@@ -28,8 +30,8 @@ assert.match(
 )
 
 assert.match(
-  scanResult,
-  /<view v-if="activeServiceHandoffTask" class="vision-agent-service-handoff xicheng-paper-card">[\s\S]*AI识境服务承接[\s\S]*服务意图[\s\S]*activeServiceHandoffSteps[\s\S]*openServiceHandoffPrimaryAction/,
+  scanResultVisionAgentPanel,
+  /<view v-if="activeServiceHandoffTask" class="vision-agent-service-handoff xicheng-paper-card">[\s\S]*AI识境服务承接[\s\S]*服务意图[\s\S]*activeServiceHandoffSteps[\s\S]*open-service-handoff-primary-action/,
   'Scan result should render an actionable service handoff panel after a service action is selected'
 )
 
