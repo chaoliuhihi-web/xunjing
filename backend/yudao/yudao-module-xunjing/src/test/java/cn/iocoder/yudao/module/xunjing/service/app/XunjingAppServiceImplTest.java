@@ -789,6 +789,47 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerUsesActivitySceneForTicketHandoff() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户拍到恭王府夜间演出现场，想知道节目时间和票务入口。");
+        sceneSignals.put("sceneDomainIntentKey", "activity");
+        sceneSignals.put("sceneDomainIntentLabel", "活动");
+        sceneSignals.put("sceneDomainIntentTitle", "活动识境");
+        sceneSignals.put("agentDecisionActionTitle", "查看票务");
+        sceneSignals.put("agentDecisionReasonSummary", "演出现场涉及节目开始时间、买票和预约，必须等待真实票务系统确认。");
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-multimodal-trigger");
+        reqVO.setOcrText("恭王府博物馆入口");
+        reqVO.setLocation(location("39.937050", "116.386770", 20));
+        reqVO.setSceneSignals(sceneSignals);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("activity", respVO.getIntent());
+        assertEquals("confirm_activity_handoff", respVO.getAction());
+        assertTrue(respVO.getTargetPath().startsWith("/pages/activity/recommend"));
+        assertTrue(respVO.getReason().contains("Agent决策"));
+
+        List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.TRIGGER_RESOLVE.getType()));
+        assertEquals(1, events.size());
+        JsonNode payload = JsonUtils.parseTree(events.get(0).getPayloadJson());
+        assertEquals("activity", payload.get("intent").asText());
+        JsonNode persistedSignals = payload.get("sceneSignals");
+        assertEquals("activity", persistedSignals.get("sceneDomainIntentKey").asText());
+        assertEquals("查看票务", persistedSignals.get("agentDecisionActionTitle").asText());
+    }
+
+    @Test
     public void testResolveMultimodalTriggerHydratesContinuousContextFromPreviousTriggerEvent() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -1426,6 +1467,61 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
         JsonNode visionAgentContext = askPayload.get("visionAgentContext");
         assertEquals("food", visionAgentContext.get("serviceHandoffIntent").asText());
+        assertTrue(visionAgentContext.get("serviceHandoffRequiresRealSystem").asBoolean());
+    }
+
+    @Test
+    public void testAnswerMarksActivityTicketTriggerHandoffAsRealSystemRequired() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+        consoleService.addKnowledgeDocument(xichengGongwangfuKnowledgeReq(packageId));
+        ChatModel chatModel = mock(ChatModel.class);
+        when(aiModelService.getRequiredDefaultModel(AiModelTypeEnum.CHAT.getType())).thenReturn(defaultChatModel());
+        when(aiModelService.getChatModel(6601L)).thenReturn(chatModel);
+        when(chatModel.call(any(Prompt.class))).thenReturn(chatResponse("模型生成：活动票务要以真实系统确认为准。"));
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneDomainIntentKey", "activity");
+        sceneSignals.put("sceneDomainIntentLabel", "活动");
+        sceneSignals.put("sceneFusionSummary", "用户正在恭王府附近拍演出现场，想知道节目时间和哪里买票。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合当前位置、时间和城市知识库后判断为活动票务场景。");
+        sceneSignals.put("agentDecisionActionTitle", "查看票务");
+        sceneSignals.put("agentDecisionReasonSummary", "涉及演出时间、票务和预约时必须等待真实系统确认。");
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-activity-handoff-001");
+        triggerReq.setSceneSignals(sceneSignals);
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("activity", triggerResp.getIntent());
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-activity-handoff-001");
+        followUpReq.setQuestion("这场演出什么时候开始，哪里买票？");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO answer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", answer.getSafetyStatus());
+        ArgumentCaptor<Prompt> promptCaptor = ArgumentCaptor.forClass(Prompt.class);
+        verify(chatModel).call(promptCaptor.capture());
+        String prompt = promptCaptor.getValue().getContents();
+        assertTrue(prompt.contains("服务意图=activity/活动票务"));
+        assertTrue(prompt.contains("真实系统确认=true"));
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId, "trace-xicheng-activity-handoff-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertEquals("activity", visionAgentContext.get("serviceHandoffIntent").asText());
         assertTrue(visionAgentContext.get("serviceHandoffRequiresRealSystem").asBoolean());
     }
 

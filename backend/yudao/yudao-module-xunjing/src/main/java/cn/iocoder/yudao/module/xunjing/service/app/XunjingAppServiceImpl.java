@@ -1030,6 +1030,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         if ("start_travel_note".equals(action) || "confirm_travel_note".equals(action)) {
             return "生成旅行记录";
         }
+        if ("open_activity_handoff".equals(action) || "confirm_activity_handoff".equals(action)) {
+            return "活动票务";
+        }
         if ("start_ai_guide".equals(action) || "confirm_ai_guide".equals(action)) {
             return "开始 AI 讲解";
         }
@@ -1045,13 +1048,19 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         if ("record".equals(intent)) {
             return "生成旅行记录";
         }
+        if ("activity".equals(intent)) {
+            return "活动票务";
+        }
         return hasText(action) ? action : intent;
     }
 
     private boolean triggerRequiresRealSystem(String action, String intent) {
         return "food".equals(intent)
+                || "activity".equals(intent)
                 || "open_food_recommendation".equals(action)
-                || "confirm_food_recommendation".equals(action);
+                || "confirm_food_recommendation".equals(action)
+                || "open_activity_handoff".equals(action)
+                || "confirm_activity_handoff".equals(action);
     }
 
     private String triggerIntentText(String intent) {
@@ -1063,6 +1072,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         }
         if ("record".equals(intent)) {
             return "旅行记录";
+        }
+        if ("activity".equals(intent)) {
+            return "活动票务";
         }
         if ("guide".equals(intent)) {
             return "AI 讲解";

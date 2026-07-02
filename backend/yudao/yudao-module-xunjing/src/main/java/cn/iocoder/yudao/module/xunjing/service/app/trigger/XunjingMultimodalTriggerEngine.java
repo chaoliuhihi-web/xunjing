@@ -339,6 +339,7 @@ public class XunjingMultimodalTriggerEngine {
             case "route" -> autoTrigger ? "open_route_recommendation" : "confirm_route_recommendation";
             case "food" -> autoTrigger ? "open_food_recommendation" : "confirm_food_recommendation";
             case "record" -> autoTrigger ? "start_travel_note" : "confirm_travel_note";
+            case "activity" -> autoTrigger ? "open_activity_handoff" : "confirm_activity_handoff";
             default -> autoTrigger ? "start_ai_guide" : "confirm_ai_guide";
         };
     }
@@ -349,6 +350,7 @@ public class XunjingMultimodalTriggerEngine {
             case "route" -> "/pages/routes/recommend" + query;
             case "food" -> "/pages/food/recommend" + query;
             case "record" -> "/pages/travel-note/edit" + query;
+            case "activity" -> "/pages/activity/recommend" + query;
             default -> "/pages/ai-guide/detail" + query;
         };
     }
@@ -480,6 +482,10 @@ public class XunjingMultimodalTriggerEngine {
         if (containsAny(text, List.of("travelogue", "record", "checkin", "badge", "游记", "记录", "打卡", "徽章"))) {
             return "record";
         }
+        if (containsAny(text, List.of("activity", "performance", "show", "festival", "event", "活动", "演出",
+                "节目", "节庆", "表演", "票务", "买票", "预约"))) {
+            return "activity";
+        }
         String agentIntent = detectAgentDecisionIntent(sceneSignals);
         if (hasText(agentIntent)) {
             return agentIntent;
@@ -494,6 +500,9 @@ public class XunjingMultimodalTriggerEngine {
         String text = normalize(String.join(" ",
                 sceneSignalValue(sceneSignals, "agentDecisionActionTitle"),
                 sceneSignalValue(sceneSignals, "agentDecisionReasonSummary")));
+        if (containsAny(text, List.of("活动", "演出", "节目", "票务", "买票", "查看票务", "购票"))) {
+            return "activity";
+        }
         if (containsAny(text, List.of("推荐菜", "附近美食", "餐厅", "点餐", "优惠券", "排队", "预约", "清真"))) {
             return "food";
         }
