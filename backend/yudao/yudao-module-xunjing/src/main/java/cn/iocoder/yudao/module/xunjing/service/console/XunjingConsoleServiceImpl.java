@@ -108,6 +108,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
@@ -765,6 +767,10 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
         Long globeModelCount = globeModelMapper.selectCountByPackageIds(packageIds);
         Long qrCodeCount = qrCodeMapper.selectCountByPackageIds(packageIds);
         Long interactionCount = interactionEventMapper.selectCountByPackageIds(packageIds);
+        Long triggerResolveCount = interactionEventMapper.selectCountByPackageIdsAndEventType(
+                packageIds, EventType.TRIGGER_RESOLVE.getType());
+        Long agentActionCount = interactionEventMapper.selectCountByPackageIdsAndEventType(
+                packageIds, EventType.AGENT_ACTION.getType());
         Long mediaUsageCount = mediaUsageLogMapper.selectCountByPackageIds(packageIds);
         Long aiEvalCaseCount = aiEvalCaseMapper.selectCountByEvalSetIds(evalSetIds);
         Long quotaRuleCount = aiQuotaRuleMapper.selectCountByProjectId(projectId);
@@ -780,6 +786,9 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
         respVO.setGlobeModelCount(globeModelCount);
         respVO.setQrCodeCount(qrCodeCount);
         respVO.setInteractionCount(interactionCount);
+        respVO.setTriggerResolveCount(triggerResolveCount);
+        respVO.setAgentActionCount(agentActionCount);
+        respVO.setAgentActionConversionRate(calculateAgentActionConversionRate(agentActionCount, triggerResolveCount));
         respVO.setMediaUsageCount(mediaUsageCount);
         respVO.setAiEvalCaseCount(aiEvalCaseCount);
         respVO.setQuotaRuleCount(quotaRuleCount);
@@ -810,6 +819,9 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
                 packageIds, EventType.SCAN.getType()));
         respVO.setTotalAskCount(interactionEventMapper.selectCountByPackageIdsAndEventType(
                 packageIds, EventType.ASK.getType()));
+        respVO.setTotalTriggerResolveCount(readiness.getTriggerResolveCount());
+        respVO.setTotalAgentActionCount(readiness.getAgentActionCount());
+        respVO.setAgentActionConversionRate(readiness.getAgentActionConversionRate());
         respVO.setMediaUsageCount(readiness.getMediaUsageCount());
         respVO.setAiGenerationCount(readiness.getAiGenerationCount());
         respVO.setPendingImportItemCount(readiness.getPendingImportItemCount());
@@ -898,6 +910,9 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
                 "\"globeModelCount\":" + readiness.getGlobeModelCount() + "," +
                 "\"qrCodeCount\":" + readiness.getQrCodeCount() + "," +
                 "\"interactionCount\":" + readiness.getInteractionCount() + "," +
+                "\"triggerResolveCount\":" + readiness.getTriggerResolveCount() + "," +
+                "\"agentActionCount\":" + readiness.getAgentActionCount() + "," +
+                "\"agentActionConversionRate\":" + readiness.getAgentActionConversionRate() + "," +
                 "\"mediaUsageCount\":" + readiness.getMediaUsageCount() + "," +
                 "\"aiEvalCaseCount\":" + readiness.getAiEvalCaseCount() + "," +
                 "\"quotaRuleCount\":" + readiness.getQuotaRuleCount() + "," +
@@ -905,6 +920,14 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
                 "\"pendingImportItemCount\":" + readiness.getPendingImportItemCount() + "," +
                 "\"p0Ready\":" + readiness.getP0Ready() +
                 "}";
+    }
+
+    private BigDecimal calculateAgentActionConversionRate(Long agentActionCount, Long triggerResolveCount) {
+        if (triggerResolveCount == null || triggerResolveCount <= 0L) {
+            return BigDecimal.ZERO.setScale(4, RoundingMode.HALF_UP);
+        }
+        return BigDecimal.valueOf(agentActionCount == null ? 0L : agentActionCount)
+                .divide(BigDecimal.valueOf(triggerResolveCount), 4, RoundingMode.HALF_UP);
     }
 
     private String parseHost(String sourceUrl) {

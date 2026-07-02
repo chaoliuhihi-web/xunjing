@@ -231,6 +231,37 @@ public class XunjingConsoleServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testReadinessDashboardAndReportExposeAgentActionConversionMetrics() {
+        Long projectId = consoleService.createProject(projectReq());
+        Long schoolId = consoleService.createSchool(schoolReq());
+        Long packageId = consoleService.createResourcePackage(packageReq(projectId, schoolId));
+
+        consoleService.recordInteraction(eventReq(packageId, schoolId,
+                XunjingEnums.EventType.TRIGGER_RESOLVE.getType(), "trace-trigger-001"));
+        consoleService.recordInteraction(eventReq(packageId, schoolId,
+                XunjingEnums.EventType.TRIGGER_RESOLVE.getType(), "trace-trigger-002"));
+        consoleService.recordInteraction(eventReq(packageId, schoolId,
+                XunjingEnums.EventType.AGENT_ACTION.getType(), "trace-agent-action-001"));
+
+        ReadinessRespVO readiness = consoleService.getReadiness(projectId);
+        assertEquals(3, readiness.getInteractionCount());
+        assertEquals(2, readiness.getTriggerResolveCount());
+        assertEquals(1, readiness.getAgentActionCount());
+        assertEquals(new BigDecimal("0.5000"), readiness.getAgentActionConversionRate());
+
+        DashboardSummaryRespVO dashboard = consoleService.getDashboard(projectId);
+        assertEquals(2, dashboard.getTotalTriggerResolveCount());
+        assertEquals(1, dashboard.getTotalAgentActionCount());
+        assertEquals(new BigDecimal("0.5000"), dashboard.getAgentActionConversionRate());
+
+        Long reportId = consoleService.generatePublicReport(reportReq(projectId, schoolId));
+        XunjingPublicReportDO report = publicReportMapper.selectById(reportId);
+        assertTrue(report.getMetricsJson().contains("\"triggerResolveCount\":2"));
+        assertTrue(report.getMetricsJson().contains("\"agentActionCount\":1"));
+        assertTrue(report.getMetricsJson().contains("\"agentActionConversionRate\":0.5000"));
+    }
+
+    @Test
     public void testReviewImportItemPublishesApprovedKnowledgeDocument() {
         Long projectId = consoleService.createProject(projectReq());
         Long schoolId = consoleService.createSchool(schoolReq());
@@ -593,12 +624,17 @@ public class XunjingConsoleServiceImplTest extends BaseDbUnitTest {
     }
 
     private InteractionEventCreateReqVO eventReq(Long packageId, Long schoolId) {
+        return eventReq(packageId, schoolId, XunjingEnums.EventType.SCAN.getType(), "trace-001");
+    }
+
+    private InteractionEventCreateReqVO eventReq(
+            Long packageId, Long schoolId, String eventType, String userTraceId) {
         InteractionEventCreateReqVO reqVO = new InteractionEventCreateReqVO();
         reqVO.setPackageId(packageId);
         reqVO.setSchoolId(schoolId);
-        reqVO.setEventType(XunjingEnums.EventType.SCAN.getType());
+        reqVO.setEventType(eventType);
         reqVO.setSourceChannel("mini-program");
-        reqVO.setUserTraceId("trace-001");
+        reqVO.setUserTraceId(userTraceId);
         reqVO.setPayloadJson("{\"scene\":\"map-entry\"}");
         return reqVO;
     }

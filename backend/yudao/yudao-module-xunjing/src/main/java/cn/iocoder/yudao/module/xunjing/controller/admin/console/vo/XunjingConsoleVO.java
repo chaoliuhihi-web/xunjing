@@ -463,6 +463,9 @@ public class XunjingConsoleVO {
         private Long globeModelCount;
         private Long qrCodeCount;
         private Long interactionCount;
+        private Long triggerResolveCount;
+        private Long agentActionCount;
+        private BigDecimal agentActionConversionRate;
         private Long mediaUsageCount;
         private Long aiEvalCaseCount;
         private Long quotaRuleCount;
@@ -482,6 +485,9 @@ public class XunjingConsoleVO {
         private Long qrCodeCount;
         private Long totalScanCount;
         private Long totalAskCount;
+        private Long totalTriggerResolveCount;
+        private Long totalAgentActionCount;
+        private BigDecimal agentActionConversionRate;
         private Long mediaUsageCount;
         private Long aiGenerationCount;
         private Long pendingImportItemCount;

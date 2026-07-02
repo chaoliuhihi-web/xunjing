@@ -43,6 +43,15 @@ describe('xicheng backend launch readiness', () => {
     const appTest = await readText(
       'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImplTest.java'
     )
+    const consoleVo = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/admin/console/vo/XunjingConsoleVO.java'
+    )
+    const consoleService = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/console/XunjingConsoleServiceImpl.java'
+    )
+    const consoleTest = await readText(
+      'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/console/XunjingConsoleServiceImplTest.java'
+    )
     const visionTest = await readText(
       'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/trigger/XunjingVisionRecognitionServiceTest.java'
     )
@@ -68,8 +77,10 @@ describe('xicheng backend launch readiness', () => {
     expect(verifier).toContain('EventType.TRIGGER_RESOLVE')
     expect(verifier).toContain('ERROR_FEEDBACK("ERROR_FEEDBACK")')
     expect(verifier).toContain('AGENT_ACTION("AGENT_ACTION")')
+    expect(verifier).toContain('agentActionConversionRate')
     expect(verifier).toContain('testRecordAppErrorFeedbackEventKeepsXichengContext')
     expect(verifier).toContain('testRecordAgentActionEventStoresStructuredTelemetryWithoutRawImagePayload')
+    expect(verifier).toContain('testReadinessDashboardAndReportExposeAgentActionConversionMetrics')
     expect(verifier).toContain('testResolveMultimodalTriggerRecordsRecognitionEventWhenPackageProvided')
     expect(moduleSql).toContain('CREATE TABLE IF NOT EXISTS `xunjing_poi`')
     expect(triggerEngine).toContain('XunjingPoiMapper')
@@ -442,6 +453,17 @@ describe('xicheng backend launch readiness', () => {
     expect(appTest).toContain('testAnswerUsesPersonSignalsFromPreviousTriggerForSourceSearch')
     expect(appTest).toContain('testAnswerUsesActivitySignalsFromPreviousTriggerForSourceSearch')
     expect(appTest).toContain('testAnswerUsesTravelRecordSignalsFromPreviousTriggerForSourceSearch')
+    expect(consoleVo).toContain('private Long triggerResolveCount;')
+    expect(consoleVo).toContain('private Long agentActionCount;')
+    expect(consoleVo).toContain('private BigDecimal agentActionConversionRate;')
+    expect(consoleVo).toContain('private Long totalTriggerResolveCount;')
+    expect(consoleVo).toContain('private Long totalAgentActionCount;')
+    expect(consoleService).toContain('calculateAgentActionConversionRate')
+    expect(consoleService).toContain('EventType.TRIGGER_RESOLVE.getType()')
+    expect(consoleService).toContain('EventType.AGENT_ACTION.getType()')
+    expect(consoleService).toContain('\\"agentActionConversionRate\\":')
+    expect(consoleTest).toContain('testReadinessDashboardAndReportExposeAgentActionConversionMetrics')
+    expect(consoleTest).toContain('new BigDecimal("0.5000")')
     expect(visionTest).toContain('testEnrichMergesFoodSceneSignalsFromVisionProvider')
     expect(visionTest).toContain('testEnrichMergesHeritageSceneSignalsFromVisionProvider')
     expect(visionTest).toContain('testEnrichMergesInterpretationSceneSignalsFromVisionProvider')
