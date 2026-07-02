@@ -17,6 +17,10 @@ const createSceneCombinedText = ({ result = {}, visionAgentContext = {} } = {}) 
 	visionAgentContext.visionCaption,
 	result.visionCaption,
 	result.poiName,
+	visionAgentContext.sceneDomainIntentKey,
+	visionAgentContext.sceneDomainIntentLabel,
+	visionAgentContext.sceneDomainIntentTitle,
+	visionAgentContext.sceneDomainIntentCopy,
 	visionAgentContext.ocrText,
 	result.ocrText,
 	result.text,
@@ -37,12 +41,14 @@ const scoreXichengVisionAgentDomain = (card = {}, context = {}) => {
 	const result = context.result || {}
 	const visionAgentContext = context.visionAgentContext || {}
 	const source = normalizeSceneText(result.source || visionAgentContext.source)
+	const sceneDomainIntentKey = normalizeSceneText(visionAgentContext.sceneDomainIntentKey)
 	const hasOcrText = Boolean(visionAgentContext.ocrText || result.ocrText || result.text)
+	const intentBoost = sceneDomainIntentKey && card.domainKey === sceneDomainIntentKey ? 96 : 0
 	const ocrBoost = hasOcrText && ['scan', 'ocr', 'text'].includes(source) ? 18 : 0
 	const menuBoost = card.domainKey === 'menu' && hasOcrText && /菜单|菜品|点餐|推荐菜|清真|辣度/.test(combinedText) ? 28 : 0
 	const signBoost = card.domainKey === 'sign-ocr' && hasOcrText && /路牌|牌匾|招牌|维吾尔|英文|导航|方向/.test(combinedText) ? 30 : 0
 	const serviceBoost = ['menu', 'food', 'heritage', 'event'].includes(card.domainKey) && (visionAgentContext.serviceText || visionAgentContext.activityText) ? 14 : 0
-	return matchedScore + ocrBoost + menuBoost + signBoost + serviceBoost
+	return intentBoost + matchedScore + ocrBoost + menuBoost + signBoost + serviceBoost
 }
 
 export const createXichengVisionAgentSceneUnderstandingCards = () => XICHENG_VISION_AGENT_SCENE_DOMAINS.map(card => ({

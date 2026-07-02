@@ -97,6 +97,31 @@ assert.match(
   'Sign OCR prompt should ask for translation, pronunciation, and navigation'
 )
 
+const selectedHeritagePackage = inferXichengVisionAgentSceneUnderstandingPackage({
+  result: {
+    poiName: '西城文化空间',
+    source: 'photo',
+    sourceLabel: '拍照识别'
+  },
+  visionAgentContext: {
+    sceneDomainIntentKey: 'heritage',
+    sceneDomainIntentLabel: '非遗',
+    sceneDomainIntentTitle: '非遗体验',
+    sceneDomainIntentCopy: '器物、技艺、演奏和附近体验。'
+  }
+})
+
+assert.equal(
+  selectedHeritagePackage.primaryDomainKey,
+  'heritage',
+  'Explicit scan-page scene-domain intent should outrank generic POI/photo text'
+)
+assert.equal(
+  selectedHeritagePackage.primaryDomainLabel,
+  '非遗',
+  'Explicit scan-page scene-domain intent should preserve its human label'
+)
+
 for (const required of [
   "from '@/request/xunjing/visionAgentSceneUnderstanding.js'",
   'visionAgentSceneUnderstandingPackage()',

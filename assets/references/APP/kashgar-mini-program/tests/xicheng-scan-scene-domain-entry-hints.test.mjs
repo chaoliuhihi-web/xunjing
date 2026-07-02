@@ -74,6 +74,24 @@ assert.match(
 
 assert.match(
   scan,
+  /getSelectedSceneDomainCapability\(\)[\s\S]*this\.sceneDomainCapabilities\.find\(domain => domain\.domainKey === this\.selectedSceneDomainKey\)/,
+  'Scan page should resolve the selected visible scene domain before building Agent context'
+)
+
+assert.match(
+  scan,
+  /buildVisionAgentSceneContext\(source = '', trigger = \{\}\)[\s\S]*const selectedSceneDomain = this\.getSelectedSceneDomainCapability\(\)[\s\S]*sceneDomainIntentKey:\s*selectedSceneDomain\.domainKey[\s\S]*sceneDomainIntentLabel:\s*selectedSceneDomain\.label[\s\S]*sceneDomainIntentTitle:\s*selectedSceneDomain\.title[\s\S]*sceneDomainIntentCopy:\s*selectedSceneDomain\.copy/,
+  'Vision Agent context should preserve the selected scene-domain intent for result-page understanding'
+)
+
+assert.match(
+  scan,
+  /sourceRecognitionContext:\s*this\.createSceneDomainSourceRecognitionContext\(source,\s*trigger,\s*selectedSceneDomain\)/,
+  'Scan result context should serialize the selected scene domain into sourceRecognitionContext for later handoff'
+)
+
+assert.match(
+  scan,
   /shouldUseOcrImageRecognition\(\)[\s\S]*\['sign-ocr',\s*'menu'\]\.includes\(this\.selectedSceneDomainKey\)/,
   'Text-dense scene domains such as route signs and menus should route selected images through OCR recognition'
 )

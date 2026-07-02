@@ -506,14 +506,20 @@ export default {
 		buildVisionAgentSceneContext(source = '', trigger = {}) {
 			const agentDecisionSnapshot = this.buildAgentDecisionSnapshot()
 			const worldInterfaceSnapshot = this.buildWorldInterfaceSnapshot()
+			const selectedSceneDomain = this.getSelectedSceneDomainCapability()
 			return {
 				...this.visionAgentContext,
+				sourceRecognitionContext: this.createSceneDomainSourceRecognitionContext(source, trigger, selectedSceneDomain),
 				sceneFusionSummary: this.sceneFusionSummary,
 				sceneFusionSignals: this.sceneFusionSignals,
 				worldInterfaceSnapshot,
 				worldInterfaceSummary: worldInterfaceSnapshot.summary,
 				worldInterfaceSignals: worldInterfaceSnapshot.signals,
 				source,
+				sceneDomainIntentKey: selectedSceneDomain.domainKey || '',
+				sceneDomainIntentLabel: selectedSceneDomain.label || '',
+				sceneDomainIntentTitle: selectedSceneDomain.title || '',
+				sceneDomainIntentCopy: selectedSceneDomain.copy || '',
 				poiCode: trigger.poiCode || '',
 				poiName: trigger.poiName || '',
 				sourceLabel: trigger.sourceLabel || '',
@@ -654,8 +660,27 @@ export default {
 			if (!domain.domainKey) return
 			this.selectedSceneDomainKey = domain.domainKey
 		},
+		getSelectedSceneDomainCapability() {
+			return this.sceneDomainCapabilities.find(domain => domain.domainKey === this.selectedSceneDomainKey)
+				|| this.sceneDomainCapabilities[0]
+				|| {}
+		},
 		shouldUseOcrImageRecognition() {
 			return ['sign-ocr', 'menu'].includes(this.selectedSceneDomainKey)
+		},
+		createSceneDomainSourceRecognitionContext(source = '', trigger = {}, selectedSceneDomain = this.getSelectedSceneDomainCapability()) {
+			const previousContext = this.parseVisionAgentSourceContext((this.visionAgentContext || {}).sourceRecognitionContext)
+			return JSON.stringify({
+				...previousContext,
+				source,
+				poiCode: trigger.poiCode || previousContext.poiCode || '',
+				poiName: trigger.poiName || previousContext.poiName || '',
+				sourceLabel: trigger.sourceLabel || previousContext.sourceLabel || '',
+				sceneDomainIntentKey: selectedSceneDomain.domainKey || '',
+				sceneDomainIntentLabel: selectedSceneDomain.label || '',
+				sceneDomainIntentTitle: selectedSceneDomain.title || '',
+				sceneDomainIntentCopy: selectedSceneDomain.copy || ''
+			})
 		},
 		buildAgentDecisionSnapshot() {
 			const context = this.buildSceneFusionContext()
