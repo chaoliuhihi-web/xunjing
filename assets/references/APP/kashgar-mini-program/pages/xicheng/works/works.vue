@@ -34,7 +34,7 @@
 				<text class="profile-desc">{{ userProfile.desc }}</text>
 				<view class="profile-action-row">
 					<button class="profile-login-button" @click="openLogin">{{ userProfile.action }}</button>
-					<text class="profile-sync-note">登录后同步游记、草稿和发布素材</text>
+					<text class="profile-sync-note">登录后同步游记和发布素材</text>
 				</view>
 			</view>
 			<view class="profile-library-overview">
@@ -44,29 +44,6 @@
 					<text class="library-stat-label">{{ stat.label }}</text>
 					<text class="library-stat-value">{{ stat.value }}</text>
 				</view>
-			</view>
-		</view>
-
-		<view class="account-shortcut-grid xicheng-paper-card">
-			<view class="personal-entry-card account-shortcut" @click="openFootprint">
-				<xicheng-icon name="location" variant="plain" :size="28" />
-				<text class="account-shortcut-title">西城足迹</text>
-				<text class="account-shortcut-desc">素材时间线</text>
-			</view>
-			<view class="account-shortcut" @click="openLogin">
-				<xicheng-icon name="mine" variant="plain" :size="28" />
-				<text class="account-shortcut-title">账号资料</text>
-				<text class="account-shortcut-desc">登录信息</text>
-			</view>
-			<view class="account-shortcut" @click="openPrivacyScopeSettings('material')">
-				<xicheng-icon name="locked" variant="plain" :size="28" />
-				<text class="account-shortcut-title">素材授权</text>
-				<text class="account-shortcut-desc">照片与问答</text>
-			</view>
-			<view class="account-shortcut" @click="openPrivacyScopeSettings('public')">
-				<xicheng-icon name="eye" variant="plain" :size="28" />
-				<text class="account-shortcut-title">公开范围</text>
-				<text class="account-shortcut-desc">轨迹默认隐藏</text>
 			</view>
 		</view>
 
@@ -104,6 +81,29 @@
 				<button class="empty-action-card" @click="openTravelogue">去生成游记</button>
 			</view>
 			<button class="ghost-button xicheng-secondary-action" @click="openTravelogue">继续编辑</button>
+		</view>
+
+		<view class="account-shortcut-grid xicheng-paper-card">
+			<view class="personal-entry-card account-shortcut" @click="openFootprint">
+				<xicheng-icon name="location" variant="plain" :size="28" />
+				<text class="account-shortcut-title">西城足迹</text>
+				<text class="account-shortcut-desc">素材时间线</text>
+			</view>
+			<view class="account-shortcut" @click="openLogin">
+				<xicheng-icon name="mine" variant="plain" :size="28" />
+				<text class="account-shortcut-title">账号资料</text>
+				<text class="account-shortcut-desc">登录信息</text>
+			</view>
+			<view class="account-shortcut" @click="openPrivacyScopeSettings('material')">
+				<xicheng-icon name="locked" variant="plain" :size="28" />
+				<text class="account-shortcut-title">素材授权</text>
+				<text class="account-shortcut-desc">照片与问答</text>
+			</view>
+			<view class="account-shortcut" @click="openPrivacyScopeSettings('public')">
+				<xicheng-icon name="eye" variant="plain" :size="28" />
+				<text class="account-shortcut-title">公开范围</text>
+				<text class="account-shortcut-desc">轨迹默认隐藏</text>
+			</view>
 		</view>
 
 		<view class="privacy-card xicheng-paper-card">
@@ -169,7 +169,7 @@ export default {
 				{ key: 'all', label: '全部' },
 				{ key: 'travelogue', label: '精美游记' },
 				{ key: 'pdf', label: 'PDF' },
-				{ key: 'draft', label: '草稿' }
+				{ key: 'draft', label: '未发布' }
 			]
 		},
 		libraryStats() {
@@ -179,7 +179,7 @@ export default {
 				{ label: '精美游记', value: travelogues, icon: 'travelogue' },
 				{ label: '可打印 PDF', value: pdfs, icon: 'source' },
 				{ label: '已发布', value: this.publishedCount, icon: 'route' },
-				{ label: '本机草稿', value: this.draftCount, icon: 'edit' }
+				{ label: '本机存档', value: this.draftCount, icon: 'edit' }
 			]
 		},
 		travelogueItems() {
@@ -188,7 +188,7 @@ export default {
 				assetType: 'draft',
 				title: this.cachedDraft.editableTravelogueTitle || '在白塔下遇见西城',
 				desc: '穿梭在胡同里，记录下那些容易被忽略的角落、人文与生活细节。',
-				status: '草稿',
+				status: '未发布',
 				templateLabel: '胡同手账',
 				createdAt: '2025-05-10 创建',
 				placeCount: '1 个地点',
@@ -266,7 +266,7 @@ export default {
 		},
 		openWorksManager() {
 			uni.showToast({
-				title: '可管理游记、PDF 和草稿',
+				title: '可管理游记、PDF 和本机存档',
 				icon: 'none'
 			})
 		},

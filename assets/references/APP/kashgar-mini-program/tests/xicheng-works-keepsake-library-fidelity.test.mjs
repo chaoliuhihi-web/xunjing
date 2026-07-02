@@ -23,7 +23,7 @@ for (const token of [
   'filteredTravelogueItems',
   'libraryStats',
   '可打印 PDF',
-  '本机草稿',
+  '本机存档',
   '账号资料',
   '素材授权',
   '公开范围',
@@ -63,6 +63,11 @@ assert.match(
   'Works page should merge keepsake stats into the login card so the first screen reaches the travelogue list sooner'
 )
 
+assert.ok(
+  works.indexOf('class="works-card xicheng-paper-card"') < works.indexOf('class="account-shortcut-grid xicheng-paper-card"'),
+  'Works page should prioritize the travelogue library before account utility shortcuts on the first screen'
+)
+
 assert.match(
   worksStyle,
   /\.profile-library-overview\s*\{[\s\S]*grid-column:\s*1 \/ -1[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/,
@@ -99,9 +104,33 @@ assert.match(
 )
 
 assert.match(
+  works,
+  /libraryFilters\(\)[\s\S]*\{ key: 'draft', label: '未发布' \}/,
+  'Works page should avoid repeating 草稿 in the first-screen filter and use a cleaner unpublished label'
+)
+
+assert.match(
+  works,
+  /libraryStats\(\)[\s\S]*\{ label: '本机存档', value: this\.draftCount, icon: 'edit' \}/,
+  'Works profile stats should summarize local drafts as a storage concept instead of repeating 草稿'
+)
+
+assert.match(
   keepsakeCard,
   /v-for="meta in metaItems"[\s\S]*getMetaValue\(meta\)/,
   'Keepsake card should render route metadata from structured fields'
+)
+
+assert.match(
+  keepsakeCard,
+  /\.xicheng-keepsake-travelogue-card\s*\{[\s\S]*grid-template-columns:\s*204rpx 1fr[\s\S]*padding:\s*16rpx/,
+  'Keepsake travelogue card should stay compact enough for first-screen mine-page actions'
+)
+
+assert.match(
+  keepsakeCard,
+  /\.keepsake-desc\s*\{[\s\S]*max-height:\s*62rpx[\s\S]*overflow:\s*hidden/,
+  'Keepsake travelogue descriptions should be clamped so actions remain visible above the bottom nav'
 )
 
 assert.ok(works.split(/\r?\n/).length < 900, 'Works page should remain compact for APP packaging')
@@ -109,6 +138,6 @@ assert.ok(keepsakeCard.split(/\r?\n/).length < 260, 'Keepsake card should remain
 
 assert.doesNotMatch(
   `${works}\n${keepsakeCard}`,
-  /works-library-hero|值得反复打开的西城记忆|审核状态总览|作品审核状态|生成分享海报|亲子研学任务|路线护照|徽章|积分|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
-  'Works keepsake library should not reintroduce removed modules or client secrets'
+  /works-library-hero|值得反复打开的西城记忆|审核状态总览|作品审核状态|生成分享海报|亲子研学任务|路线护照|徽章|积分|登录后同步游记、草稿和发布素材|本机草稿|label:\s*'草稿'|status:\s*'草稿'|return '草稿'|可管理游记、PDF 和草稿|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
+  'Works keepsake library should not reintroduce removed modules, duplicated draft wording, or client secrets'
 )

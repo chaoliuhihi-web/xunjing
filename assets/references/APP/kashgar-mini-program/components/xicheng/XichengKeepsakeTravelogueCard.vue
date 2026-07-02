@@ -49,7 +49,7 @@ export default {
 		},
 		typeLabel() {
 			if (this.item.assetType === 'pdf') return 'PDF 纪念册'
-			if (this.item.assetType === 'draft') return '草稿'
+			if (this.item.assetType === 'draft') return '未发布'
 			return this.item.templateLabel || '精美游记'
 		},
 		thumb() {
@@ -83,35 +83,35 @@ export default {
 <style scoped>
 .xicheng-keepsake-travelogue-card {
 	display: grid;
-	grid-template-columns: 232rpx 1fr;
+	grid-template-columns: 204rpx 1fr;
 	align-items: stretch;
-	gap: 22rpx;
-	padding: 20rpx;
+	gap: 16rpx;
+	padding: 16rpx;
 	border: 1rpx solid rgba(181, 148, 94, 0.16);
-	border-radius: 28rpx;
+	border-radius: 24rpx;
 	background: rgba(255, 252, 246, 0.78);
 	box-shadow: 0 10rpx 28rpx rgba(23, 63, 53, 0.06);
 }
 .keepsake-cover {
 	position: relative;
-	min-height: 250rpx;
+	min-height: 204rpx;
 }
 .keepsake-thumb {
 	width: 100%;
 	height: 100%;
-	min-height: 250rpx;
-	border-radius: 22rpx;
+	min-height: 204rpx;
+	border-radius: 18rpx;
 	background: rgba(23, 63, 53, 0.08);
 }
 .keepsake-cover-badge {
 	position: absolute;
-	top: 12rpx;
-	left: 12rpx;
-	padding: 7rpx 12rpx;
+	top: 10rpx;
+	left: 10rpx;
+	padding: 6rpx 10rpx;
 	border-radius: 999rpx;
 	background: rgba(23, 63, 53, 0.82);
 	color: #FFF8EA;
-	font-size: 20rpx;
+	font-size: 18rpx;
 	font-weight: 900;
 }
 .keepsake-copy {
@@ -122,7 +122,7 @@ export default {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 12rpx;
+	gap: 8rpx;
 }
 .keepsake-title,
 .keepsake-type,
@@ -132,36 +132,38 @@ export default {
 }
 .keepsake-title {
 	color: #102F29;
-	font-size: 28rpx;
-	line-height: 1.35;
+	font-size: 25rpx;
+	line-height: 1.3;
 	font-weight: 900;
 }
 .keepsake-type {
-	padding: 7rpx 12rpx;
+	padding: 6rpx 10rpx;
 	border-radius: 999rpx;
 	background: rgba(181, 148, 94, 0.12);
 	color: #8D6A33;
-	font-size: 20rpx;
+	font-size: 18rpx;
 	font-weight: 900;
 	white-space: nowrap;
 }
 .keepsake-date {
-	margin-top: 8rpx;
+	margin-top: 6rpx;
 	color: #746F68;
-	font-size: 22rpx;
+	font-size: 20rpx;
 }
 .keepsake-desc {
-	margin-top: 12rpx;
+	margin-top: 8rpx;
+	max-height: 62rpx;
+	overflow: hidden;
 	color: #746F68;
-	font-size: 24rpx;
-	line-height: 1.45;
+	font-size: 22rpx;
+	line-height: 1.4;
 }
 .keepsake-meta-row {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 12rpx 18rpx;
-	margin-top: 16rpx;
-	padding-top: 14rpx;
+	gap: 8rpx 12rpx;
+	margin-top: 10rpx;
+	padding-top: 10rpx;
 	border-top: 1rpx solid rgba(181, 148, 94, 0.14);
 }
 .keepsake-primary-meta {
@@ -169,25 +171,25 @@ export default {
 	align-items: center;
 	gap: 6rpx;
 	color: #5F554A;
-	font-size: 21rpx;
+	font-size: 19rpx;
 	white-space: nowrap;
 }
 .keepsake-actions {
 	display: grid;
 	grid-template-columns: 1.12fr 0.88fr 1fr;
-	gap: 12rpx;
-	margin-top: 18rpx;
+	gap: 8rpx;
+	margin-top: 10rpx;
 }
 .keepsake-button {
 	min-width: 0;
-	min-height: 50rpx;
+	min-height: 44rpx;
 	margin: 0;
-	padding: 0 8rpx;
+	padding: 0 6rpx;
 	border-radius: 999rpx;
 	background: rgba(255, 252, 246, 0.9);
 	color: #173F35;
-	font-size: 20rpx;
-	line-height: 50rpx;
+	font-size: 18rpx;
+	line-height: 44rpx;
 	font-weight: 900;
 	white-space: nowrap;
 }
