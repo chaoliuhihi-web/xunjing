@@ -277,6 +277,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         XunjingQrCodeDO qrCode = resolveAnswerQrCode(reqVO, resourcePackage);
         hydrateVisionAgentMemoryFromPreviousAsk(resourcePackage, reqVO);
         hydrateVisionAgentContextFromPreviousTrigger(resourcePackage, reqVO);
+        hydrateVisionAgentContextFromPreviousAgentAction(resourcePackage, reqVO);
         recordAskEvent(resourcePackage, reqVO);
 
         RagChatRespVO quotaBlocked = buildQuotaBlockedIfNeeded(resourcePackage, qrCode, reqVO);
@@ -1001,6 +1002,108 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             log.warn("[hydrateVisionAgentContextFromPreviousTrigger][eventId({}) parse failed]",
                     previousEvent.getId(), ex);
         }
+    }
+
+    private void hydrateVisionAgentContextFromPreviousAgentAction(
+            XunjingResourcePackageDO resourcePackage, RagChatReqVO reqVO) {
+        if (!hasText(reqVO.getUserTraceId())) {
+            return;
+        }
+        XunjingInteractionEventDO previousEvent =
+                interactionEventMapper.selectLatestByPackageIdAndUserTraceIdAndEventType(
+                        resourcePackage.getId(), reqVO.getUserTraceId(), EventType.AGENT_ACTION.getType());
+        if (previousEvent == null || !hasText(previousEvent.getPayloadJson())) {
+            return;
+        }
+        try {
+            JsonNode root = JsonUtils.parseTree(previousEvent.getPayloadJson());
+            if (root == null || root.isNull() || root.isMissingNode()) {
+                return;
+            }
+            JsonNode agentAction = root.path("agentAction");
+            if (agentAction == null || agentAction.isMissingNode() || agentAction.isNull()) {
+                return;
+            }
+            hydrateAgentActionPoiContext(reqVO, agentAction);
+            hydrateAgentActionServiceHandoff(reqVO, agentAction);
+        } catch (RuntimeException ex) {
+            log.warn("[hydrateVisionAgentContextFromPreviousAgentAction][eventId({}) parse failed]",
+                    previousEvent.getId(), ex);
+        }
+    }
+
+    private void hydrateAgentActionPoiContext(RagChatReqVO reqVO, JsonNode agentAction) {
+        putReqTextIfBlank(reqVO::getPoiCode, reqVO::setPoiCode, agentAction, "poiCode");
+        putReqTextIfBlank(reqVO::getPoiName, reqVO::setPoiName, agentAction, "poiName");
+    }
+
+    private void hydrateAgentActionServiceHandoff(RagChatReqVO reqVO, JsonNode agentAction) {
+        String actionKey = visionAgentContextText(agentAction, "actionKey");
+        String title = visionAgentContextText(agentAction, "title");
+        String intent = visionAgentContextText(agentAction, "intent");
+        String summary = buildAgentActionServiceHandoffSummary(agentAction);
+        boolean hydrated = false;
+        if (hasText(actionKey)) {
+            reqVO.setServiceHandoffActionKey(actionKey);
+            hydrated = true;
+        }
+        reqVO.setServiceHandoffTaskType(EventType.AGENT_ACTION.getType());
+        if (hasText(intent)) {
+            reqVO.setServiceHandoffIntent(intent);
+            reqVO.setServiceHandoffIntentText(triggerIntentText(intent));
+            hydrated = true;
+        }
+        reqVO.setServiceHandoffStepText("用户已执行");
+        if (hasText(summary)) {
+            reqVO.setServiceHandoffSummary(summary);
+            hydrated = true;
+        }
+        if (agentAction.has("requiresRealSystem")) {
+            reqVO.setServiceHandoffRequiresRealSystem(agentAction.path("requiresRealSystem").asBoolean(false));
+        }
+        if (hasText(title)) {
+            reqVO.setVisionAgentDecisionActionTitle(title);
+            hydrated = true;
+        } else if (hasText(actionKey)) {
+            reqVO.setVisionAgentDecisionActionTitle(actionKey);
+        }
+        if (hydrated && !Boolean.TRUE.equals(reqVO.getVisionAgentContextAvailable())) {
+            reqVO.setVisionAgentContextAvailable(true);
+        }
+    }
+
+    private String buildAgentActionServiceHandoffSummary(JsonNode agentAction) {
+        List<String> parts = new ArrayList<>();
+        String title = visionAgentContextText(agentAction, "title");
+        String actionKey = visionAgentContextText(agentAction, "actionKey");
+        String intent = visionAgentContextText(agentAction, "intent");
+        String executionStatus = visionAgentContextText(agentAction, "executionStatus");
+        String sourceTriggerTraceId = visionAgentContextText(agentAction, "sourceTriggerTraceId");
+        String reason = visionAgentContextText(agentAction, "reason");
+        if (hasText(title)) {
+            parts.add("已执行Agent动作=" + title);
+        } else if (hasText(actionKey)) {
+            parts.add("已执行Agent动作=" + actionKey);
+        }
+        if (hasText(actionKey)) {
+            parts.add("actionKey=" + actionKey);
+        }
+        if (hasText(intent)) {
+            parts.add("意图=" + intent);
+        }
+        if (hasText(executionStatus)) {
+            parts.add("执行状态=" + executionStatus);
+        }
+        if (hasText(sourceTriggerTraceId)) {
+            parts.add("来源识境=" + sourceTriggerTraceId);
+        }
+        if (agentAction.has("requiresRealSystem")) {
+            parts.add("真实系统确认=" + agentAction.path("requiresRealSystem").asBoolean(false));
+        }
+        if (hasText(reason)) {
+            parts.add("原因=" + reason);
+        }
+        return String.join("；", parts);
     }
 
     private boolean hasCompleteSceneContext(RagChatReqVO reqVO) {

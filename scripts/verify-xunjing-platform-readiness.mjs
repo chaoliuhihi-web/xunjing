@@ -541,7 +541,11 @@ async function checkXichengAppEventBackend(rootDir) {
     'EventType.AGENT_ACTION',
     'buildAgentActionEventPayload',
     'sanitizeAgentActionClientPayload',
-    'payload.put("agentAction", buildAgentActionEventPayload(clientPayloadObject))'
+    'payload.put("agentAction", buildAgentActionEventPayload(clientPayloadObject))',
+    'hydrateVisionAgentContextFromPreviousAgentAction(resourcePackage, reqVO)',
+    'EventType.AGENT_ACTION.getType()',
+    'JsonNode agentAction = root.path("agentAction")',
+    'buildAgentActionServiceHandoffSummary(agentAction)'
   ]) {
     assertContains(appService, snippet, 'XunjingAppServiceImpl.java')
   }
@@ -590,6 +594,11 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(
     appTest,
     'testRecordAgentActionEventStoresStructuredTelemetryWithoutRawImagePayload',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'testAnswerHydratesExecutedAgentActionFromPreviousAgentActionEvent',
     'XunjingAppServiceImplTest.java'
   )
   assertContains(

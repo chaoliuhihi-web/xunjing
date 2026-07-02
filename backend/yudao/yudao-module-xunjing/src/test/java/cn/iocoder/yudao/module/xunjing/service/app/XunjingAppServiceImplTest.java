@@ -2166,6 +2166,104 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testAnswerHydratesExecutedAgentActionFromPreviousAgentActionEvent() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+        consoleService.addKnowledgeDocument(xichengGongwangfuKnowledgeReq(packageId));
+        ChatModel chatModel = mock(ChatModel.class);
+        when(aiModelService.getRequiredDefaultModel(AiModelTypeEnum.CHAT.getType())).thenReturn(defaultChatModel());
+        when(aiModelService.getChatModel(6601L)).thenReturn(chatModel);
+        when(chatModel.call(any(Prompt.class))).thenReturn(chatResponse("模型生成：已开始整理刚才的游记素材。"));
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户正在恭王府准备生成游记。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合定位和城市知识库后判断为恭王府。");
+        sceneSignals.put("sceneDomainIntentKey", "architecture");
+        sceneSignals.put("sceneDomainIntentLabel", "建筑");
+        sceneSignals.put("travelogueMaterialSummary", "恭王府门楼、夕阳和参观路线可作为游记素材。");
+        sceneSignals.put("agentDecisionReasonSummary", "适合把刚才识境内容接力成游记。");
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-agent-action-chat-001");
+        triggerReq.setOcrText("恭王府博物馆入口");
+        triggerReq.setImageLabels(List.of("palace", "courtyard"));
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        triggerReq.setSceneSignals(sceneSignals);
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("xicheng-gongwangfu", triggerResp.getPoiCode());
+
+        AppInteractionEventReqVO actionReq = new AppInteractionEventReqVO();
+        actionReq.setPackageCode("XICHENG-MAP-001");
+        actionReq.setSceneCode("xicheng-agent-action");
+        actionReq.setEventType(XunjingEnums.EventType.AGENT_ACTION.getType());
+        actionReq.setSourceChannel("xicheng-app");
+        actionReq.setUserTraceId("trace-xicheng-agent-action-chat-001");
+        actionReq.setPayloadJson("""
+                {
+                  "actionKey":"generate_travelogue",
+                  "title":"生成游记",
+                  "intent":"record",
+                  "targetPath":"/pages/travel-note/edit?regionCode=beijing-xicheng&poiCode=xicheng-gongwangfu&packageCode=XICHENG-MAP-001",
+                  "sourceTriggerTraceId":"trace-xicheng-agent-action-chat-001",
+                  "executionStatus":"clicked",
+                  "poiCode":"xicheng-gongwangfu",
+                  "poiName":"恭王府",
+                  "requiresUserConfirm":true,
+                  "requiresRealSystem":false,
+                  "reason":"用户点击生成游记，继续整理刚才识境素材。"
+                }
+                """);
+        appService.recordEvent(actionReq);
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-agent-action-chat-001");
+        followUpReq.setQuestion("继续把刚才点击的动作做下去。");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO followUpAnswer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", followUpAnswer.getSafetyStatus());
+        assertEquals("beijing-xicheng", followUpAnswer.getRegionCode());
+        assertEquals("xicheng-gongwangfu", followUpAnswer.getPoiCode());
+        assertEquals("恭王府", followUpAnswer.getPoiName());
+        ArgumentCaptor<Prompt> promptCaptor = ArgumentCaptor.forClass(Prompt.class);
+        verify(chatModel).call(promptCaptor.capture());
+        String prompt = promptCaptor.getValue().getContents();
+        assertTrue(prompt.contains("服务动作=generate_travelogue"));
+        assertTrue(prompt.contains("服务任务=AGENT_ACTION"));
+        assertTrue(prompt.contains("服务意图=record/旅行记录"));
+        assertTrue(prompt.contains("服务步骤=用户已执行"));
+        assertTrue(prompt.contains("服务承接=已执行Agent动作=生成游记"));
+        assertTrue(prompt.contains("执行状态=clicked"));
+        assertTrue(prompt.contains("用户点击生成游记"));
+        assertTrue(prompt.contains("真实系统确认=false"));
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId,
+                                "trace-xicheng-agent-action-chat-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertEquals("generate_travelogue", visionAgentContext.get("serviceHandoffActionKey").asText());
+        assertEquals("AGENT_ACTION", visionAgentContext.get("serviceHandoffTaskType").asText());
+        assertEquals("record", visionAgentContext.get("serviceHandoffIntent").asText());
+        assertEquals("旅行记录", visionAgentContext.get("serviceHandoffIntentText").asText());
+        assertEquals("用户已执行", visionAgentContext.get("serviceHandoffStepText").asText());
+        assertFalse(visionAgentContext.get("serviceHandoffRequiresRealSystem").asBoolean());
+        assertEquals("生成游记", visionAgentContext.get("decisionActionTitle").asText());
+        assertTrue(visionAgentContext.get("serviceHandoffSummary").asText().contains("generate_travelogue"));
+        assertTrue(visionAgentContext.get("serviceHandoffSummary").asText().contains("clicked"));
+        assertTrue(visionAgentContext.get("serviceHandoffSummary").asText().contains("用户点击生成游记"));
+    }
+
+    @Test
     public void testAnswerHydratesSceneUnderstandingFromPreviousTriggerEvent() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
