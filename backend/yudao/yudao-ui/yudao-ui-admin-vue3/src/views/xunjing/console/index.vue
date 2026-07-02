@@ -794,6 +794,20 @@
       <el-form-item label="来源地址">
         <el-input v-model="knowledgeCreateForm.sourceUrl" placeholder="官网、资料页或内部文件地址" />
       </el-form-item>
+      <el-form-item label="资料文件">
+        <el-upload
+          :auto-upload="false"
+          :limit="1"
+          :before-upload="beforeKnowledgeFileUpload"
+          :on-change="handleKnowledgeFileChange"
+          :on-remove="clearKnowledgeUploadFile"
+          accept=".txt,.md,.csv,.json,.html,.pdf,.doc,.docx"
+        >
+          <el-button>
+            <Icon icon="ep:upload" class="mr-5px" /> 上传文旅资料文件
+          </el-button>
+        </el-upload>
+      </el-form-item>
       <el-form-item label="资料摘要">
         <el-input
           v-model="knowledgeCreateForm.contentDigest"
@@ -847,6 +861,13 @@
       >
         确 定
       </el-button>
+      <el-button
+        type="success"
+        :loading="knowledgeCreateSubmitLoading"
+        @click="submitKnowledgeUpload"
+      >
+        上传入库
+      </el-button>
     </template>
   </Dialog>
 
@@ -875,6 +896,20 @@
       </el-form-item>
       <el-form-item label="文件地址">
         <el-input v-model="mediaCreateForm.fileUrl" placeholder="图片 URL 或对象存储访问地址" />
+      </el-form-item>
+      <el-form-item label="素材文件">
+        <el-upload
+          :auto-upload="false"
+          :limit="1"
+          :before-upload="beforeMediaFileUpload"
+          :on-change="handleMediaFileChange"
+          :on-remove="clearMediaUploadFile"
+          accept="image/*"
+        >
+          <el-button>
+            <Icon icon="ep:upload" class="mr-5px" /> 上传图片素材文件
+          </el-button>
+        </el-upload>
       </el-form-item>
       <el-form-item label="对象 Key">
         <el-input v-model="mediaCreateForm.objectKey" placeholder="对象存储 Key，可选" />
@@ -929,6 +964,9 @@
       </el-button>
       <el-button type="primary" :loading="mediaCreateSubmitLoading" @click="submitMediaCreate">
         确 定
+      </el-button>
+      <el-button type="success" :loading="mediaCreateSubmitLoading" @click="submitMediaUpload">
+        上传入库
       </el-button>
     </template>
   </Dialog>
@@ -1214,6 +1252,7 @@ const knowledgeCreateForm = reactive<XunjingConsoleApi.KnowledgeDocumentCreateRe
   reviewStatus: 'PENDING',
   vectorStatus: 'PENDING'
 })
+const knowledgeUploadFile = ref<File>()
 
 const mediaCreateDialogVisible = ref(false)
 const mediaCreateSubmitLoading = ref(false)
@@ -1232,6 +1271,7 @@ const mediaCreateForm = reactive<XunjingConsoleApi.MediaAssetCreateReqVO>({
   canAiUse: true,
   canPromotionUse: false
 })
+const mediaUploadFile = ref<File>()
 
 const reviewDialogVisible = ref(false)
 const reviewSubmitLoading = ref(false)
@@ -1536,6 +1576,18 @@ const resolveDefaultPackageId = (preferredPackageId?: number) => {
   return preferredPackageId || resourcePackageList.value[0]?.id || 1
 }
 
+const appendFormValue = (formData: FormData, key: string, value: unknown) => {
+  if (value === undefined || value === null || value === '') {
+    return
+  }
+  formData.append(key, String(value))
+}
+
+const titleFromFileName = (fileName: string) => {
+  const dotIndex = fileName.lastIndexOf('.')
+  return dotIndex > 0 ? fileName.slice(0, dotIndex) : fileName
+}
+
 const openKnowledgeCreateDialog = () => {
   Object.assign(knowledgeCreateForm, {
     packageId: resolveDefaultPackageId(knowledgeQuery.packageId),
@@ -1547,7 +1599,26 @@ const openKnowledgeCreateDialog = () => {
     reviewStatus: 'PENDING',
     vectorStatus: 'PENDING'
   })
+  knowledgeUploadFile.value = undefined
   knowledgeCreateDialogVisible.value = true
+}
+
+const beforeKnowledgeFileUpload = (file: File) => {
+  knowledgeUploadFile.value = file
+  if (!knowledgeCreateForm.title?.trim()) {
+    knowledgeCreateForm.title = titleFromFileName(file.name)
+  }
+  return false
+}
+
+const handleKnowledgeFileChange = (uploadFile: { raw?: File }) => {
+  if (uploadFile.raw) {
+    beforeKnowledgeFileUpload(uploadFile.raw)
+  }
+}
+
+const clearKnowledgeUploadFile = () => {
+  knowledgeUploadFile.value = undefined
 }
 
 const submitKnowledgeCreate = async () => {
@@ -1576,6 +1647,36 @@ const submitKnowledgeCreate = async () => {
   }
 }
 
+const submitKnowledgeUpload = async () => {
+  if (!knowledgeCreateForm.packageId) {
+    message.warning('请输入文旅集合 ID')
+    return
+  }
+  if (!knowledgeCreateForm.title?.trim()) {
+    message.warning('请输入资料标题')
+    return
+  }
+  if (!knowledgeUploadFile.value) {
+    message.warning('请选择需要上传的文旅资料文件')
+    return
+  }
+  const formData = new FormData()
+  appendFormValue(formData, 'packageId', knowledgeCreateForm.packageId)
+  appendFormValue(formData, 'title', knowledgeCreateForm.title.trim())
+  appendFormValue(formData, 'authorityLevel', knowledgeCreateForm.authorityLevel)
+  formData.append('file', knowledgeUploadFile.value)
+  knowledgeCreateSubmitLoading.value = true
+  try {
+    await XunjingConsoleApi.uploadKnowledgeDocument(formData)
+    message.success('文旅资料文件已上传入库')
+    knowledgeCreateDialogVisible.value = false
+    knowledgeQuery.packageId = knowledgeCreateForm.packageId
+    await Promise.all([getKnowledgeDocuments(), loadOverview()])
+  } finally {
+    knowledgeCreateSubmitLoading.value = false
+  }
+}
+
 const openMediaCreateDialog = () => {
   Object.assign(mediaCreateForm, {
     packageId: resolveDefaultPackageId(mediaQuery.packageId),
@@ -1592,7 +1693,26 @@ const openMediaCreateDialog = () => {
     canAiUse: true,
     canPromotionUse: false
   })
+  mediaUploadFile.value = undefined
   mediaCreateDialogVisible.value = true
+}
+
+const beforeMediaFileUpload = (file: File) => {
+  mediaUploadFile.value = file
+  if (!mediaCreateForm.title?.trim()) {
+    mediaCreateForm.title = titleFromFileName(file.name)
+  }
+  return false
+}
+
+const handleMediaFileChange = (uploadFile: { raw?: File }) => {
+  if (uploadFile.raw) {
+    beforeMediaFileUpload(uploadFile.raw)
+  }
+}
+
+const clearMediaUploadFile = () => {
+  mediaUploadFile.value = undefined
 }
 
 const submitMediaCreate = async () => {
@@ -1620,6 +1740,42 @@ const submitMediaCreate = async () => {
       imageTags: mediaCreateForm.imageTags?.trim() || undefined
     })
     message.success('图片素材已入库')
+    mediaCreateDialogVisible.value = false
+    mediaQuery.packageId = mediaCreateForm.packageId
+    await Promise.all([getMediaAssets(), loadOverview()])
+  } finally {
+    mediaCreateSubmitLoading.value = false
+  }
+}
+
+const submitMediaUpload = async () => {
+  if (!mediaCreateForm.packageId) {
+    message.warning('请输入文旅集合 ID')
+    return
+  }
+  if (!mediaCreateForm.title?.trim()) {
+    message.warning('请输入素材标题')
+    return
+  }
+  if (!mediaUploadFile.value) {
+    message.warning('请选择需要上传的图片素材文件')
+    return
+  }
+  const formData = new FormData()
+  appendFormValue(formData, 'packageId', mediaCreateForm.packageId)
+  appendFormValue(formData, 'title', mediaCreateForm.title.trim())
+  appendFormValue(formData, 'mediaType', mediaCreateForm.mediaType)
+  appendFormValue(formData, 'sourceProvider', mediaCreateForm.sourceProvider?.trim())
+  appendFormValue(formData, 'sourceUrl', mediaCreateForm.sourceUrl?.trim())
+  appendFormValue(formData, 'imageTags', mediaCreateForm.imageTags?.trim())
+  appendFormValue(formData, 'canPublic', mediaCreateForm.canPublic)
+  appendFormValue(formData, 'canAiUse', mediaCreateForm.canAiUse)
+  appendFormValue(formData, 'canPromotionUse', mediaCreateForm.canPromotionUse)
+  formData.append('file', mediaUploadFile.value)
+  mediaCreateSubmitLoading.value = true
+  try {
+    await XunjingConsoleApi.uploadMediaAsset(formData)
+    message.success('图片素材文件已上传入库')
     mediaCreateDialogVisible.value = false
     mediaQuery.packageId = mediaCreateForm.packageId
     await Promise.all([getMediaAssets(), loadOverview()])

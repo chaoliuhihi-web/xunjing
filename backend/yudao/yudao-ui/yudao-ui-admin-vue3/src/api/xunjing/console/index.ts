@@ -361,6 +361,10 @@ export const createKnowledgeDocument = (data: KnowledgeDocumentCreateReqVO) => {
   return request.post<number>({ url: `${baseUrl}/knowledge-documents`, data })
 }
 
+export const uploadKnowledgeDocument = (data: FormData) => {
+  return request.post<number>({ url: `${baseUrl}/knowledge-documents/upload`, data })
+}
+
 export const getKnowledgeDocumentPage = (params: ConsolePageReqVO) => {
   return request.get<{ list: KnowledgeDocumentRespVO[]; total: number }>({
     url: `${baseUrl}/knowledge-documents/page`,
@@ -381,6 +385,10 @@ export const getMediaAssetPage = (params: ConsolePageReqVO) => {
 
 export const createMediaAsset = (data: MediaAssetCreateReqVO) => {
   return request.post<number>({ url: `${baseUrl}/media-assets`, data })
+}
+
+export const uploadMediaAsset = (data: FormData) => {
+  return request.post<number>({ url: `${baseUrl}/media-assets/upload`, data })
 }
 
 export const reviewMediaAsset = (data: MediaAssetReviewReqVO) => {
