@@ -207,56 +207,17 @@
 				class="chat-list"
 				:style="{ paddingTop: chatListPaddingTop }"
 			>
-				<view v-if="isXichengChatMode" class="xicheng-chat-hero-card">
-					<image
-						class="xicheng-chat-hero-landmark"
-						:src="XICHENG_REGION_CONFIG.visualAssets.heroLandmark"
-						mode="aspectFill"
-					></image>
-					<view class="xicheng-chat-hero-overlay"></view>
-					<view class="xicheng-chat-hero-head">
-						<text class="xicheng-chat-hero-kicker">{{ xichengAiContext.poiName || XICHENG_REGION_CONFIG.cityName }}</text>
-						<text class="xicheng-chat-hero-title">{{ isXichengPlaybackMode ? 'AI 讲解' : '问问小京' }}</text>
-					</view>
-					<view class="xicheng-chat-companion-row">
-						<image
-							class="xicheng-chat-companion-avatar"
-							:src="XICHENG_REGION_CONFIG.companionAvatar"
-							mode="aspectFit"
-						></image>
-						<view class="xicheng-chat-companion-bubble xicheng-companion-bubble">
-							<text class="xicheng-chat-companion-title">你想了解西城的哪一面？</text>
-							<text class="xicheng-chat-companion-desc">{{ xichengHeroSubtitle }}</text>
-						</view>
-					</view>
-						<view v-if="xichengVisionAgentContextChips.length > 0" class="xicheng-vision-agent-strip">
-							<text class="xicheng-vision-agent-strip-title">AI识境已接入</text>
-							<view class="xicheng-vision-agent-chip-row">
-								<text
-									v-for="chip in xichengVisionAgentContextChips"
-									:key="chip.key"
-									class="xicheng-vision-agent-chip"
-								>
-									{{ chip.label }} {{ chip.value }}
-								</text>
-							</view>
-						</view>
-						<view v-if="xichengServiceHandoffContext" class="xicheng-service-handoff-strip">
-							<text class="xicheng-service-handoff-kicker">AI识境服务承接</text>
-							<text class="xicheng-service-handoff-title">{{ xichengServiceHandoffContext.title }}</text>
-							<view class="xicheng-service-handoff-row"><text class="xicheng-service-handoff-pill">{{ xichengServiceHandoffContext.intentText }}</text><text class="xicheng-service-handoff-next">{{ xichengServiceHandoffContext.stepText }}</text></view>
-						</view>
-						<view v-if="!isXichengPlaybackMode" class="xicheng-chat-prompt-row">
-							<button
-								v-for="question in xichengHeroQuestions"
-								:key="question"
-								class="xicheng-chat-prompt-chip"
-								@click="handleFollowUpClick(question)"
-							>
-							{{ question }}
-						</button>
-					</view>
-				</view>
+				<XichengAiGuideHero
+					v-if="isXichengChatMode"
+					:context="xichengAiContext"
+					:region-config="XICHENG_REGION_CONFIG"
+					:is-playback-mode="isXichengPlaybackMode"
+					:hero-subtitle="xichengHeroSubtitle"
+					:vision-agent-context-chips="xichengVisionAgentContextChips"
+					:service-handoff-context="xichengServiceHandoffContext"
+					:hero-questions="xichengHeroQuestions"
+					@follow-up="handleFollowUpClick"
+				/>
 				<view v-if="isXichengPlaybackMode" class="xicheng-playback-card">
 					<view class="xicheng-playback-head">
 						<text class="xicheng-playback-kicker">AI 讲解播放</text>
@@ -390,6 +351,7 @@ import { ref, computed, nextTick } from 'vue'
 import { onShow, onUnload, onLoad, onReady } from '@dcloudio/uni-app'
 import CustomNav from '@/components/custom-nav/custom-nav.vue'
 import TabBar from '@/components/tab-bar/tab-bar.vue'
+import XichengAiGuideHero from '@/components/xicheng/XichengAiGuideHero.vue'
 import XichengAiGuideMessageEvidence from '@/components/xicheng/XichengAiGuideMessageEvidence.vue'
 import config from '@/request/config.js'
 import { resolveXichengPhotoTrigger } from '@/request/xunjing/trigger.js'

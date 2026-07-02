@@ -6,7 +6,9 @@ const root = process.cwd()
 const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
 
 const aiGuide = read('pages', 'ai-guide', 'ai-guide.vue')
+const aiGuideHero = read('components', 'xicheng', 'XichengAiGuideHero.vue')
 const aiGuideCss = read('pages', 'ai-guide', 'ai-guide-xicheng-chat.css')
+const aiGuideVisibleSurface = `${aiGuide}\n${aiGuideHero}`
 
 const normalizeContextBlock = aiGuide.match(/const normalizeXichengAiContext\s*=\s*\(options = \{\}\) => \([\s\S]*?\n\}\)/)?.[0] || ''
 const applyContextBlock = aiGuide.match(/const applyXichengAiContext\s*=\s*\(options = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
@@ -85,7 +87,7 @@ for (const required of [
   'AI识境已接入',
   'xicheng-vision-agent-chip'
 ]) {
-  assert.ok(aiGuide.includes(required), `Xicheng Xiaojing UI should expose Vision Agent context chip ${required}`)
+  assert.ok(aiGuideVisibleSurface.includes(required), `Xicheng Xiaojing UI should expose Vision Agent context chip ${required}`)
 }
 
 assert.match(

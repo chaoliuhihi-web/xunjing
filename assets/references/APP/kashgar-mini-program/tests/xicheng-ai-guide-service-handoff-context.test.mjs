@@ -7,9 +7,11 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
 const aiGuide = read('pages', 'ai-guide', 'ai-guide.vue')
+const aiGuideHero = read('components', 'xicheng', 'XichengAiGuideHero.vue')
 const aiGuideCss = read('pages', 'ai-guide', 'ai-guide-xicheng-chat.css')
 const routeParams = read('request', 'xunjing', 'routeParams.js')
 const serviceHandoff = read('request', 'xunjing', 'serviceHandoff.js')
+const visibleAiGuideSurface = `${aiGuide}\n${aiGuideHero}`
 
 for (const required of [
   'serviceHandoffContext',
@@ -24,7 +26,7 @@ for (const required of [
   'AI识境服务承接'
 ]) {
   assert.ok(
-    `${scanResult}\n${aiGuide}\n${aiGuideCss}\n${serviceHandoff}`.includes(required),
+    `${scanResult}\n${visibleAiGuideSurface}\n${aiGuideCss}\n${serviceHandoff}`.includes(required),
     `AI guide service handoff continuity should include ${required}`
   )
 }
@@ -66,8 +68,8 @@ assert.match(
 )
 
 assert.match(
-  aiGuide,
-  /<view v-if="xichengServiceHandoffContext" class="xicheng-service-handoff-strip">[\s\S]*AI识境服务承接[\s\S]*xichengServiceHandoffContext\.intentText[\s\S]*xichengServiceHandoffContext\.stepText/,
+  aiGuideHero,
+  /<view v-if="serviceHandoffContext" class="xicheng-service-handoff-strip">[\s\S]*AI识境服务承接[\s\S]*serviceHandoffContext\.intentText[\s\S]*serviceHandoffContext\.stepText/,
   'Xicheng Xiaojing hero should visibly retain service intent and next steps from AI识境'
 )
 

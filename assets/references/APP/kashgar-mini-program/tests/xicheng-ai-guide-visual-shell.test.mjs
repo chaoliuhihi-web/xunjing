@@ -4,24 +4,27 @@ import path from 'node:path'
 
 const root = process.cwd()
 const aiGuide = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
+const aiGuideHero = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengAiGuideHero.vue'), 'utf8')
 const aiGuideTheme = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide-theme.css'), 'utf8')
 const aiGuideChat = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide-chat.css'), 'utf8')
 const aiGuideXichengChat = fs.readFileSync(path.join(root, 'pages', 'ai-guide', 'ai-guide-xicheng-chat.css'), 'utf8')
+const aiGuideSurface = `${aiGuide}\n${aiGuideHero}`
 
 for (const required of [
   'class="xicheng-chat-hero-card"',
   'class="xicheng-chat-hero-landmark"',
-  ':src="XICHENG_REGION_CONFIG.visualAssets.heroLandmark"',
+  ':src="regionConfig.visualAssets.heroLandmark"',
   'class="xicheng-chat-companion-avatar"',
-  ':src="XICHENG_REGION_CONFIG.companionAvatar"',
+  ':src="regionConfig.companionAvatar"',
   '你想了解西城的哪一面？',
   'xichengHeroQuestions',
   'class="xicheng-chat-prompt-chip"',
-  '@click="handleFollowUpClick(question)"',
+  '@follow-up="handleFollowUpClick"',
+  '$emit(\'follow-up\', question)',
   'class="loading-status-text"',
   '正在检索已审核来源'
 ]) {
-  assert.ok(aiGuide.includes(required), `Xicheng AI guide visual shell should include ${required}`)
+  assert.ok(aiGuideSurface.includes(required), `Xicheng AI guide visual shell should include ${required}`)
 }
 
 assert.match(
