@@ -88,7 +88,13 @@ public class XunjingMultimodalTriggerEngine {
             "personStorySummary",
             "statueSiteReasonSummary",
             "contributionSummary",
-            "contemporaryFigureKeywords"
+            "contemporaryFigureKeywords",
+            "activityName",
+            "activityBackgroundSummary",
+            "performerSummary",
+            "scheduleTimeText",
+            "ticketingHint",
+            "venueNavigationHint"
     );
 
     private static final List<PoiProfile> XICHENG_POIS = List.of(

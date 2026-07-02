@@ -390,6 +390,48 @@ public class XunjingVisionRecognitionServiceTest {
     }
 
     @Test
+    public void testEnrichMergesActivitySceneSignalsFromVisionProvider() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/vision/v1/chat/completions", exchange -> {
+            String response = """
+                    {"choices":[{"message":{"content":"{\\"labels\\":[\\"performance\\"],\\"ocrText\\":\\"木卡姆小剧场\\",\\"caption\\":\\"画面里是演出现场。\\",\\"sceneSignals\\":{\\"sceneDomainIntentKey\\":\\"activity\\",\\"sceneDomainIntentLabel\\":\\"活动\\",\\"activityName\\":\\"木卡姆小剧场\\",\\"activityBackgroundSummary\\":\\"节目背景来自丝路音乐交流\\",\\"performerSummary\\":\\"本地青年乐团和非遗传承人联合演出\\",\\"scheduleTimeText\\":\\"今晚 20:00 开始\\",\\"ticketingHint\\":\\"买票和预约必须跳转真实票务系统确认\\",\\"venueNavigationHint\\":\\"临时舞台入口集合\\"}}"}}]}
+                    """;
+            byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, responseBytes.length);
+            exchange.getResponseBody().write(responseBytes);
+            exchange.close();
+        });
+        server.start();
+        try {
+            XunjingVisionRecognitionService configuredService = new XunjingVisionRecognitionService();
+            setField(configuredService, "visionApiUrl",
+                    "http://127.0.0.1:" + server.getAddress().getPort() + "/vision/v1");
+            setField(configuredService, "visionApiKey", "test-key");
+
+            MultimodalTriggerReqVO reqVO = new MultimodalTriggerReqVO();
+            reqVO.setPhotoMeta(photoMeta("image/jpeg", "photo-base64"));
+
+            MultimodalTriggerReqVO enrichedReqVO = configuredService.enrich(reqVO);
+
+            assertEquals("木卡姆小剧场", enrichedReqVO.getOcrText());
+            assertEquals("activity", enrichedReqVO.getSceneSignals().get("sceneDomainIntentKey"));
+            assertEquals("活动", enrichedReqVO.getSceneSignals().get("sceneDomainIntentLabel"));
+            assertEquals("木卡姆小剧场", enrichedReqVO.getSceneSignals().get("activityName"));
+            assertEquals("节目背景来自丝路音乐交流",
+                    enrichedReqVO.getSceneSignals().get("activityBackgroundSummary"));
+            assertEquals("本地青年乐团和非遗传承人联合演出",
+                    enrichedReqVO.getSceneSignals().get("performerSummary"));
+            assertEquals("今晚 20:00 开始", enrichedReqVO.getSceneSignals().get("scheduleTimeText"));
+            assertEquals("买票和预约必须跳转真实票务系统确认",
+                    enrichedReqVO.getSceneSignals().get("ticketingHint"));
+            assertEquals("临时舞台入口集合",
+                    enrichedReqVO.getSceneSignals().get("venueNavigationHint"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     public void testEnrichMergesSignTranslationSceneSignalsFromVisionProvider() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/vision/v1/chat/completions", exchange -> {

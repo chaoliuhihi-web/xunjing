@@ -767,6 +767,42 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerUsesActivitySignalsForIntentAndContextMatch() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户举起手机拍到一处演出现场。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合演出识别、时间和城市知识库后等待场景引擎判断。");
+        sceneSignals.put("sceneDomainIntentKey", "activity");
+        sceneSignals.put("sceneDomainIntentLabel", "活动");
+        sceneSignals.put("agentDecisionReasonSummary", "适合讲节目背景、演员、开始时间、票务和场地导航。");
+        sceneSignals.put("activityName", "木卡姆小剧场");
+        sceneSignals.put("activityBackgroundSummary", "节目背景来自丝路音乐交流。");
+        sceneSignals.put("performerSummary", "本地青年乐团和非遗传承人联合演出。");
+        sceneSignals.put("scheduleTimeText", "今晚 20:00 开始。");
+        sceneSignals.put("ticketingHint", "买票和预约必须跳转真实票务系统确认。");
+        sceneSignals.put("venueNavigationHint", "恭王府附近临时舞台入口集合。");
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setText("");
+        reqVO.setOcrText("");
+        reqVO.setImageLabels(List.of());
+        reqVO.setLocation(null);
+        reqVO.setSceneSignals(sceneSignals);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("activity", respVO.getIntent());
+        assertEquals("confirm_activity_handoff", respVO.getAction());
+        assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
+        assertTrue(respVO.getCandidates().get(0).getMatchedSignals().contains("scene_context_alias"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerUsesPhotoAdviceIntent() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -2545,6 +2581,66 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testAnswerUsesActivitySignalsFromPreviousTriggerForSourceSearch() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        consoleService.addKnowledgeDocument(xichengUnrelatedKnowledgeReq(packageId));
+        consoleService.addKnowledgeDocument(xichengActivityKnowledgeReq(packageId));
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户举起手机拍到木卡姆演出现场。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合演出识别、时间和城市知识库后等待连续问答。");
+        sceneSignals.put("sceneDomainIntentKey", "activity");
+        sceneSignals.put("sceneDomainIntentLabel", "活动");
+        sceneSignals.put("agentDecisionReasonSummary", "适合讲节目背景、演员、开始时间、票务和场地导航。");
+        sceneSignals.put("activityName", "木卡姆小剧场");
+        sceneSignals.put("activityBackgroundSummary", "节目背景来自丝路音乐交流。");
+        sceneSignals.put("performerSummary", "本地青年乐团和非遗传承人联合演出。");
+        sceneSignals.put("scheduleTimeText", "今晚 20:00 开始。");
+        sceneSignals.put("ticketingHint", "买票和预约必须跳转真实票务系统确认。");
+        sceneSignals.put("venueNavigationHint", "临时舞台入口集合。");
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-activity-search-001");
+        triggerReq.setText("先记住这个节目");
+        triggerReq.setOcrText("");
+        triggerReq.setImageLabels(List.of());
+        triggerReq.setLocation(null);
+        triggerReq.setSceneSignals(sceneSignals);
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("ask", triggerResp.getIntent());
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-activity-search-001");
+        followUpReq.setQuestion("这个节目怎么安排？");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO followUpAnswer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", followUpAnswer.getSafetyStatus());
+        assertFalse(followUpAnswer.getSources().isEmpty());
+        assertEquals("西城木卡姆演出识境讲解稿", followUpAnswer.getSources().get(0).getTitle());
+        assertTrue(followUpAnswer.getAnswer().contains("木卡姆")
+                || followUpAnswer.getAnswer().contains("20:00")
+                || followUpAnswer.getAnswer().contains("真实票务系统"));
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId, "trace-xicheng-activity-search-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("木卡姆小剧场"));
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("20:00"));
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("真实票务系统"));
+    }
+
+    @Test
     public void testAnswerHydratesPhotoAdviceHandoffFromTrigger() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -3289,6 +3385,19 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
         reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/person-statue");
         reqVO.setContentDigest("香妃人物线索可连接乾隆、清朝新疆和丝绸之路，讲人物故事、建址原因、民族交流和同时期人物关系。");
+        reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
+        reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
+        reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());
+        return reqVO;
+    }
+
+    private KnowledgeDocumentCreateReqVO xichengActivityKnowledgeReq(Long packageId) {
+        KnowledgeDocumentCreateReqVO reqVO = new KnowledgeDocumentCreateReqVO();
+        reqVO.setPackageId(packageId);
+        reqVO.setTitle("西城木卡姆演出识境讲解稿");
+        reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
+        reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/activity-muqam");
+        reqVO.setContentDigest("木卡姆小剧场节目背景来自丝路音乐交流，今晚 20:00 开始，本地青年乐团和非遗传承人联合演出，买票和预约必须跳转真实票务系统确认。");
         reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
         reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
         reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());

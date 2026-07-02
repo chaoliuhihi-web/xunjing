@@ -162,6 +162,12 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             "statueSiteReasonSummary",
             "contributionSummary",
             "contemporaryFigureKeywords",
+            "activityName",
+            "activityBackgroundSummary",
+            "performerSummary",
+            "scheduleTimeText",
+            "ticketingHint",
+            "venueNavigationHint",
             "visionRecognitionStatus",
             "visionRecognitionModel"
     );
@@ -1062,6 +1068,12 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         putPreviousJsonMemoryPart(parts, "建址原因", sceneSignals, "statueSiteReasonSummary");
         putPreviousJsonMemoryPart(parts, "人物贡献", sceneSignals, "contributionSummary");
         putPreviousJsonMemoryPart(parts, "同时期人物", sceneSignals, "contemporaryFigureKeywords");
+        putPreviousJsonMemoryPart(parts, "活动名称", sceneSignals, "activityName");
+        putPreviousJsonMemoryPart(parts, "活动背景", sceneSignals, "activityBackgroundSummary");
+        putPreviousJsonMemoryPart(parts, "演员阵容", sceneSignals, "performerSummary");
+        putPreviousJsonMemoryPart(parts, "开始时间", sceneSignals, "scheduleTimeText");
+        putPreviousJsonMemoryPart(parts, "票务线索", sceneSignals, "ticketingHint");
+        putPreviousJsonMemoryPart(parts, "场地导航", sceneSignals, "venueNavigationHint");
         putPreviousJsonMemoryPart(parts, "OCR", root, "ocrText");
         return String.join("；", parts);
     }
