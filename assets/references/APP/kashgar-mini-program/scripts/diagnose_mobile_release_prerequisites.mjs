@@ -302,6 +302,7 @@ const parseHbuilderxAccount = (stdout = '') => {
   }
 
   return /(username|userName|email|nickname|账号|用户名)\s*[:：]/i.test(meaningful)
+    || /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(meaningful)
     ? meaningful
     : ''
 }
