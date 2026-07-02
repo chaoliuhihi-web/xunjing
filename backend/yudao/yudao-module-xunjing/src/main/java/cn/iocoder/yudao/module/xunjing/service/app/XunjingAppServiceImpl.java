@@ -2534,10 +2534,14 @@ public class XunjingAppServiceImpl implements XunjingAppService {
                 clientPayload, new TypeReference<Map<String, Object>>() {});
         if (EventType.AGENT_ACTION.getType().equals(eventType)) {
             Map<String, Object> agentAction = buildAgentActionEventPayload(clientPayloadObject);
+            Map<String, Object> sourceSceneSnapshot = buildAgentActionSourceSceneSnapshotPayload(resourcePackage, reqVO);
+            if (!sourceSceneSnapshot.isEmpty()) {
+                agentAction.put("sourceSceneSnapshot", sourceSceneSnapshot);
+            }
             payload.put("clientPayload", sanitizeAgentActionClientPayload(clientPayloadObject));
             payload.put("agentAction", agentAction);
             Map<String, Object> travelRecordMaterial = buildAgentActionTravelRecordMaterialPayload(
-                    resourcePackage, reqVO, agentAction);
+                    resourcePackage, reqVO, agentAction, sourceSceneSnapshot);
             if (!travelRecordMaterial.isEmpty()) {
                 payload.put("travelRecordMaterial", travelRecordMaterial);
             }
@@ -2569,8 +2573,33 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         return payload;
     }
 
+    private Map<String, Object> buildAgentActionSourceSceneSnapshotPayload(
+            XunjingResourcePackageDO resourcePackage, AppInteractionEventReqVO reqVO) {
+        if (resourcePackage == null || resourcePackage.getId() == null || !hasText(reqVO.getUserTraceId())) {
+            return Map.of();
+        }
+        XunjingInteractionEventDO previousEvent =
+                interactionEventMapper.selectLatestByPackageIdAndUserTraceIdAndEventType(
+                        resourcePackage.getId(), reqVO.getUserTraceId(), EventType.TRIGGER_RESOLVE.getType());
+        if (previousEvent == null || !hasText(previousEvent.getPayloadJson())) {
+            return Map.of();
+        }
+        try {
+            JsonNode root = JsonUtils.parseTree(previousEvent.getPayloadJson());
+            if (root == null || root.isNull() || root.isMissingNode()) {
+                return Map.of();
+            }
+            return buildPreviousTriggerSceneSnapshotPayload(root.path("sceneSnapshot"));
+        } catch (RuntimeException ex) {
+            log.warn("[buildAgentActionSourceSceneSnapshotPayload][eventId({}) parse failed]",
+                    previousEvent.getId(), ex);
+            return Map.of();
+        }
+    }
+
     private Map<String, Object> buildAgentActionTravelRecordMaterialPayload(
-            XunjingResourcePackageDO resourcePackage, AppInteractionEventReqVO reqVO, Map<String, Object> agentAction) {
+            XunjingResourcePackageDO resourcePackage, AppInteractionEventReqVO reqVO,
+            Map<String, Object> agentAction, Map<String, Object> sourceSceneSnapshot) {
         String actionKey = stringValue(agentAction.get("actionKey"));
         String intent = stringValue(agentAction.get("intent"));
         if (!isTravelRecordAgentAction(actionKey, intent)) {
@@ -2596,6 +2625,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         payload.put("addToTravelMap", "add_to_travel_map".equals(actionKey));
         payload.put("generateTravelogue", "generate_travelogue".equals(actionKey));
         payload.put("requiresRealSystem", Boolean.TRUE.equals(agentAction.get("requiresRealSystem")));
+        if (sourceSceneSnapshot != null && !sourceSceneSnapshot.isEmpty()) {
+            payload.put("sourceSceneSnapshot", sourceSceneSnapshot);
+        }
         return payload;
     }
 

@@ -355,6 +355,74 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testRecordAgentActionEventBindsLatestVisionSceneSnapshotToTravelRecordMaterial() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户举起手机看到恭王府博物馆入口和屋顶结构。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合 GPS、OCR 和城市知识库，判断当前位置是恭王府。");
+        sceneSignals.put("sceneDomainIntentKey", "architecture");
+        sceneSignals.put("sceneDomainIntentLabel", "建筑");
+        sceneSignals.put("agentDecisionReasonSummary", "适合把刚才识境内容接力成游记素材。");
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-agent-action-scene-snapshot-001");
+        triggerReq.setOcrText("恭王府博物馆入口");
+        triggerReq.setImageLabels(List.of("palace", "courtyard"));
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        triggerReq.setSceneSignals(sceneSignals);
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("xicheng-gongwangfu", triggerResp.getPoiCode());
+
+        AppInteractionEventReqVO actionReq = new AppInteractionEventReqVO();
+        actionReq.setPackageCode("XICHENG-MAP-001");
+        actionReq.setSceneCode("xicheng-agent-action");
+        actionReq.setEventType(XunjingEnums.EventType.AGENT_ACTION.getType());
+        actionReq.setSourceChannel("xicheng-app");
+        actionReq.setUserTraceId("trace-xicheng-agent-action-scene-snapshot-001");
+        actionReq.setPayloadJson("""
+                {
+                  "actionKey":"generate_travelogue",
+                  "title":"生成游记",
+                  "intent":"record",
+                  "targetPath":"/pages/travel-note/edit?regionCode=beijing-xicheng&poiCode=xicheng-gongwangfu&packageCode=XICHENG-MAP-001",
+                  "sourceTriggerTraceId":"trace-xicheng-agent-action-scene-snapshot-001",
+                  "requiresRealSystem":false,
+                  "executionStatus":"started",
+                  "poiCode":"xicheng-gongwangfu",
+                  "poiName":"恭王府"
+                }
+                """);
+
+        Long eventId = appService.recordEvent(actionReq);
+
+        XunjingInteractionEventDO event = interactionEventMapper.selectById(eventId);
+        JsonNode payload = JsonUtils.parseTree(event.getPayloadJson());
+        JsonNode agentAction = payload.get("agentAction");
+        JsonNode actionSceneSnapshot = agentAction.get("sourceSceneSnapshot");
+        assertEquals("vision_scene_snapshot", actionSceneSnapshot.get("artifactType").asText());
+        assertEquals("XICHENG-MAP-001", actionSceneSnapshot.get("packageCode").asText());
+        assertEquals("xicheng-gongwangfu", actionSceneSnapshot.get("poiCode").asText());
+        assertEquals("恭王府", actionSceneSnapshot.get("poiName").asText());
+        assertEquals("guide", actionSceneSnapshot.get("intent").asText());
+        assertEquals("architecture", actionSceneSnapshot.get("sceneDomainKey").asText());
+        assertEquals("建筑", actionSceneSnapshot.get("sceneDomainLabel").asText());
+        assertTrue(actionSceneSnapshot.get("matchedSignals").toString().contains("ocr_alias"));
+        JsonNode travelRecordMaterial = payload.get("travelRecordMaterial");
+        JsonNode materialSceneSnapshot = travelRecordMaterial.get("sourceSceneSnapshot");
+        assertEquals("xicheng-gongwangfu", materialSceneSnapshot.get("poiCode").asText());
+        assertEquals("architecture", materialSceneSnapshot.get("sceneDomainKey").asText());
+        assertTrue(travelRecordMaterial.get("generateTravelogue").asBoolean());
+        assertFalse(event.getPayloadJson().contains("imageBase64"));
+        assertFalse(event.getPayloadJson().contains("test-key"));
+        assertFalse(event.getPayloadJson().contains("/vision/v1"));
+    }
+
+    @Test
     public void testRecordAppEventDefaultsBlankTypeAndRejectsInvalidType() {
         Long projectId = consoleService.createProject(projectReq());
         Long schoolId = consoleService.createSchool(schoolReq());
