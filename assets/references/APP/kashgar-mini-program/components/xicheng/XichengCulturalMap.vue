@@ -99,6 +99,7 @@
 
 			<view v-if="selectedPoi" class="xicheng-map-bottom-sheet">
 				<view class="xicheng-map-sheet-handle"></view>
+				<button class="xicheng-map-sheet-close" @click="clearSelectedPoi">×</button>
 				<view class="xicheng-map-sheet-head" :class="{ 'xicheng-map-sheet-head-no-image': !selectedPoi.image }">
 					<image
 						v-if="selectedPoi.image"
@@ -115,17 +116,26 @@
 						<text class="xicheng-map-sheet-desc">{{ selectedPoi.summary }}</text>
 					</view>
 				</view>
-				<view class="xicheng-map-sheet-info">
-					<view class="xicheng-map-sheet-info-row">
-						<xicheng-icon name="source" variant="plain" :size="18" />
-						<text>来源：西城文旅官方资料库</text>
+				<view class="xicheng-map-sheet-detail-list">
+					<view class="xicheng-map-sheet-detail-row">
+						<xicheng-icon name="time" variant="plain" :size="18" />
+						<text class="xicheng-map-sheet-detail-label">开放时间</text>
+						<text class="xicheng-map-sheet-detail-value">{{ selectedPoi.openTime || '09:00-17:00' }}</text>
 					</view>
-					<view class="xicheng-map-sheet-info-row">
+					<view class="xicheng-map-sheet-detail-row">
 						<xicheng-icon name="route" variant="plain" :size="18" />
-						<text>{{ selectedPoi.walkText || '步行约 12 分钟 · 距当前位置约 850 米' }}</text>
+						<view class="xicheng-map-sheet-detail-copy">
+							<text class="xicheng-map-sheet-detail-label">{{ selectedPoi.walkDuration || '步行约 12 分钟' }}</text>
+							<text class="xicheng-map-sheet-detail-note">{{ selectedPoi.walkDistance || '距当前位置约 850 米' }}</text>
+						</view>
+					</view>
+					<view class="xicheng-map-sheet-detail-row">
+						<xicheng-icon name="source" variant="plain" :size="18" />
+						<text class="xicheng-map-sheet-detail-label">来源：西城文旅官方资料库</text>
 					</view>
 				</view>
 				<button class="xicheng-map-sheet-primary xicheng-primary-action" @click="$emit('navigate-poi', selectedPoi)">
+					<xicheng-icon name="route" class="xicheng-map-sheet-primary-icon" variant="plain" :size="20" />
 					导航去这里
 				</button>
 				<view class="xicheng-map-sheet-actions">
@@ -219,7 +229,8 @@ export default {
 			return stops.map((stop, index) => this.decoratePoi(stop, index))
 		},
 		selectedPoi() {
-			return this.positionedPois.find(poi => poi.poiCode === this.selectedPoiCode) || this.positionedPois[0] || null
+			if (!this.selectedPoiCode) return null
+			return this.positionedPois.find(poi => poi.poiCode === this.selectedPoiCode) || null
 		}
 	},
 	mounted() {
@@ -260,6 +271,9 @@ export default {
 		selectPoi(poi = {}) {
 			this.selectedPoiCode = poi.poiCode || ''
 			this.$emit('select-poi', poi)
+		},
+		clearSelectedPoi() {
+			this.selectedPoiCode = ''
 		}
 	}
 }
@@ -696,6 +710,22 @@ export default {
 	background: rgba(16, 47, 41, 0.18);
 }
 
+.xicheng-map-sheet-close {
+	position: absolute;
+	right: 18rpx;
+	top: 16rpx;
+	width: 52rpx;
+	height: 52rpx;
+	border: 0;
+	border-radius: 999rpx;
+	background: rgba(16, 47, 41, 0.06);
+	color: rgba(16, 47, 41, 0.72);
+	font-size: 42rpx;
+	line-height: 48rpx;
+	font-weight: 300;
+	padding: 0;
+}
+
 .xicheng-map-sheet-head {
 	display: grid;
 	grid-template-columns: 118rpx minmax(0, 1fr);
@@ -748,14 +778,14 @@ export default {
 	color: rgba(16, 47, 41, 0.74);
 }
 
-.xicheng-map-sheet-info {
+.xicheng-map-sheet-detail-list {
 	margin-top: 12rpx;
 	border: 1rpx solid rgba(181, 148, 94, 0.18);
 	border-radius: 16rpx;
 	overflow: hidden;
 }
 
-.xicheng-map-sheet-info-row {
+.xicheng-map-sheet-detail-row {
 	display: flex;
 	align-items: center;
 	gap: 10rpx;
@@ -766,8 +796,36 @@ export default {
 	border-bottom: 1rpx solid rgba(181, 148, 94, 0.14);
 }
 
-.xicheng-map-sheet-info-row:last-child {
+.xicheng-map-sheet-detail-row:last-child {
 	border-bottom: 0;
+}
+
+.xicheng-map-sheet-detail-label,
+.xicheng-map-sheet-detail-value,
+.xicheng-map-sheet-detail-note {
+	display: block;
+}
+
+.xicheng-map-sheet-detail-label {
+	color: #173F35;
+	font-weight: 800;
+}
+
+.xicheng-map-sheet-detail-value {
+	margin-left: auto;
+	color: #4F4A40;
+	font-weight: 700;
+}
+
+.xicheng-map-sheet-detail-copy {
+	display: grid;
+	gap: 4rpx;
+	min-width: 0;
+}
+
+.xicheng-map-sheet-detail-note {
+	color: rgba(16, 47, 41, 0.54);
+	font-size: 20rpx;
 }
 
 .xicheng-map-sheet-primary {
@@ -778,6 +836,15 @@ export default {
 	border-radius: 16rpx;
 	font-size: 25rpx;
 	font-weight: 900;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10rpx;
+	padding: 0;
+}
+
+.xicheng-map-sheet-primary-icon {
+	color: #FFFDF8;
 }
 
 .xicheng-map-sheet-actions {

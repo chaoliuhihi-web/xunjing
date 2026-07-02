@@ -37,7 +37,14 @@ for (const required of [
   '导航去这里',
   '问问小京',
   '加入路线',
+  '开放时间',
+  '09:00-17:00',
+  '距当前位置约 850 米',
   '已审核来源',
+  'xicheng-map-sheet-close',
+  'xicheng-map-sheet-detail-list',
+  'xicheng-map-sheet-primary-icon',
+  'clearSelectedPoi',
   '$emit(\'select-poi\'',
   '$emit(\'navigate-poi\'',
   '$emit(\'ask-poi\'',
@@ -58,6 +65,24 @@ assert.match(
   'Cultural map should show a bottom sheet with the selected POI name and introduction'
 )
 
+assert.match(
+  culturalMap,
+  /class="xicheng-map-sheet-close"[\s\S]*@click="clearSelectedPoi"[\s\S]*×/,
+  'Cultural map bottom sheet should expose a close control like the approved POI sheet reference'
+)
+
+assert.match(
+  culturalMap,
+  /class="xicheng-map-sheet-detail-list"[\s\S]*开放时间[\s\S]*selectedPoi\.openTime \|\| '09:00-17:00'[\s\S]*步行约 12 分钟[\s\S]*距当前位置约 850 米[\s\S]*来源：西城文旅官方资料库/,
+  'Cultural map bottom sheet should show open time, walking distance, and source detail rows before navigation'
+)
+
+assert.match(
+  culturalMap,
+  /class="xicheng-map-sheet-primary[\s\S]*<xicheng-icon name="route"[\s\S]*class="xicheng-map-sheet-primary-icon"[\s\S]*导航去这里/,
+  'Cultural map primary navigation action should use the shared route icon and clear navigation copy'
+)
+
 assert.ok(
   culturalMap.includes('\n\t\t\t<view v-if="selectedPoi" class="xicheng-map-bottom-sheet">'),
   'Cultural map POI bottom sheet should render inside the map canvas as an in-map overlay'
@@ -73,6 +98,12 @@ assert.match(
   culturalMap,
   /\.xicheng-map-sheet-desc\s*\{[\s\S]*max-height:\s*64rpx[\s\S]*overflow:\s*hidden/,
   'Cultural map POI introduction should stay compact inside the in-map overlay'
+)
+
+assert.match(
+  culturalMap,
+  /clearSelectedPoi\(\)[\s\S]*this\.selectedPoiCode = ''/,
+  'Cultural map close control should clear the selected POI without navigating away'
 )
 
 assert.match(
