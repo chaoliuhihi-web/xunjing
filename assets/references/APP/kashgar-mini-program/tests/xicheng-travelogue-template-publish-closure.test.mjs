@@ -12,6 +12,8 @@ const readOptional = (...segments) => {
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 const share = read('pages', 'xicheng', 'share', 'share.vue')
 const works = read('pages', 'xicheng', 'works', 'works.vue')
+const generationHero = read('components', 'xicheng', 'XichengTravelogueGenerationHero.vue')
+const travelogueGenerationSurface = `${travelogue}\n${generationHero}`
 
 const componentContracts = [
   {
@@ -57,7 +59,7 @@ for (const token of [
   'applyTravelogueTemplate',
   'updateTravelogueTemplateSettings'
 ]) {
-  assert.ok(travelogue.includes(token), `travelogue.vue should wire template generation via ${token}`)
+  assert.ok(travelogueGenerationSurface.includes(token), `travelogue generation surface should wire template generation via ${token}`)
 }
 
 for (const token of [

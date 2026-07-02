@@ -7,13 +7,19 @@ const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelog
 const secondaryEntries = fs.readFileSync(path.join(root, 'components', 'xicheng', 'travelogueSecondaryEntries.js'), 'utf8')
 const secondaryDirectoryPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueSecondaryDirectory.vue')
 const recordShellPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueRecordShell.vue')
+const generationHeroPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueGenerationHero.vue')
 assert.ok(
   fs.existsSync(secondaryDirectoryPath),
   'Travelogue secondary directory should be split into XichengTravelogueSecondaryDirectory.vue instead of growing travelogue.vue'
 )
+assert.ok(
+  fs.existsSync(generationHeroPath),
+  'Travelogue generation hero should be split into XichengTravelogueGenerationHero.vue instead of growing travelogue.vue'
+)
 const secondaryDirectory = fs.readFileSync(secondaryDirectoryPath, 'utf8')
 const recordShell = fs.readFileSync(recordShellPath, 'utf8')
-const travelogueSource = `${travelogue}\n${secondaryEntries}\n${secondaryDirectory}\n${recordShell}`
+const generationHero = fs.readFileSync(generationHeroPath, 'utf8')
+const travelogueSource = `${travelogue}\n${secondaryEntries}\n${secondaryDirectory}\n${recordShell}\n${generationHero}`
 const travelogueCss = fs.existsSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.css'))
   ? fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.css'), 'utf8')
   : travelogue
@@ -106,6 +112,36 @@ assert.match(
 
 assert.match(
   travelogue,
+  /import XichengTravelogueGenerationHero from '@\/components\/xicheng\/XichengTravelogueGenerationHero\.vue'[\s\S]*components:[\s\S]*XichengTravelogueGenerationHero/,
+  'Travelogue page should import and register the split generation hero component'
+)
+
+assert.match(
+  travelogue,
+  /<xicheng-travelogue-generation-hero[\s\S]*v-if="!isTravelogueEditMode && showAdvancedTravelogueGeneration"[\s\S]*:summary-cards="summaryCards"[\s\S]*:style-options="travelogueStyleOptions"[\s\S]*:active-style="activeTravelogueStyle"[\s\S]*@apply-template="applyTravelogueTemplate"[\s\S]*@generate="generateTravelogueDraft"/,
+  'Travelogue page should delegate the advanced generation surface to the split component while preserving template and generate handoffs'
+)
+
+assert.doesNotMatch(
+  travelogue,
+  /<view v-if="!isTravelogueEditMode && showAdvancedTravelogueGeneration" class="travelogue-generation-hero xicheng-paper-card">/,
+  'Travelogue page shell should not inline the advanced generation hero after extraction'
+)
+
+assert.match(
+  generationHero,
+  /props:[\s\S]*region:[\s\S]*type: Object[\s\S]*summaryCards:[\s\S]*type: Array[\s\S]*styleOptions:[\s\S]*type: Array[\s\S]*activeStyle:[\s\S]*type: String[\s\S]*generationState:[\s\S]*type: String[\s\S]*autoTraveloguePackage:[\s\S]*type: Object/,
+  'Split travelogue generation hero should be data-driven and keep page state in travelogue.vue'
+)
+
+assert.match(
+  generationHero,
+  /emits:\s*\[[\s\S]*'apply-template'[\s\S]*'generate'[\s\S]*'edit'[\s\S]*'open-reader'[\s\S]*'export-pdf'[\s\S]*'publish-moments'[\s\S]*'publish-xhs'[\s\S]*\]/,
+  'Split travelogue generation hero should emit semantic actions instead of calling page methods directly'
+)
+
+assert.match(
+  travelogue,
   /<xicheng-travelogue-secondary-directory[\s\S]*v-if="isTravelogueEditMode"[\s\S]*:entries="travelogueSecondaryEntries"[\s\S]*@open="openTravelogueSecondaryEntry"/,
   'Travelogue edit mode should collapse secondary workflows into a compact directory instead of rendering one long page'
 )
@@ -177,10 +213,13 @@ assert.match(
 )
 
 assert.ok(
-  travelogue.includes('<xicheng-long-travelogue-preview') &&
+  travelogueSource.includes('<xicheng-long-travelogue-preview') &&
     travelogue.includes(':route-items="editorRouteItems"') &&
     travelogue.includes(':photo-cards="editorPhotoCards"') &&
-    travelogue.includes(':tags="traveloguePreviewTags"'),
+    travelogue.includes(':tags="traveloguePreviewTags"') &&
+    generationHero.includes(':route-items="routeItems"') &&
+    generationHero.includes(':photo-cards="photoCards"') &&
+    generationHero.includes(':tags="tags"'),
   'Travelogue preview should use the approved long-form preview component with stable route, photo and tag inputs'
 )
 
