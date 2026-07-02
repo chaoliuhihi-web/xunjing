@@ -475,6 +475,17 @@ public class XunjingConsoleVO {
     }
 
     @Data
+    public static class AgentActionMetricRespVO {
+        private String actionKey;
+        private String title;
+        private String intent;
+        private String poiCode;
+        private String poiName;
+        private Long executionCount;
+        private BigDecimal shareRate;
+    }
+
+    @Data
     public static class DashboardSummaryRespVO {
         private Long projectId;
         private Long packageCount;
@@ -488,6 +499,7 @@ public class XunjingConsoleVO {
         private Long totalTriggerResolveCount;
         private Long totalAgentActionCount;
         private BigDecimal agentActionConversionRate;
+        private List<AgentActionMetricRespVO> topAgentActions;
         private Long mediaUsageCount;
         private Long aiGenerationCount;
         private Long pendingImportItemCount;

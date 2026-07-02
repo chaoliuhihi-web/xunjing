@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.xunjing.service.console;
 import cn.iocoder.yudao.framework.test.core.ut.BaseDbUnitTest;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AgentActionMetricRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.CrawlerSourceCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.CrawlerSourceRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.CrawlerRunReqVO;
@@ -259,6 +260,41 @@ public class XunjingConsoleServiceImplTest extends BaseDbUnitTest {
         assertTrue(report.getMetricsJson().contains("\"triggerResolveCount\":2"));
         assertTrue(report.getMetricsJson().contains("\"agentActionCount\":1"));
         assertTrue(report.getMetricsJson().contains("\"agentActionConversionRate\":0.5000"));
+    }
+
+    @Test
+    public void testDashboardRanksAgentActionExecutionsByActionIntentAndPoi() {
+        Long projectId = consoleService.createProject(projectReq());
+        Long schoolId = consoleService.createSchool(schoolReq());
+        Long packageId = consoleService.createResourcePackage(packageReq(projectId, schoolId));
+
+        consoleService.recordInteraction(agentActionEventReq(packageId, schoolId,
+                "generate_travelogue", "生成游记", "record", "xicheng-gongwangfu", "恭王府",
+                "trace-action-001"));
+        consoleService.recordInteraction(agentActionEventReq(packageId, schoolId,
+                "nearby_food", "附近美食", "merchant", "xicheng-baitasi", "妙应寺白塔",
+                "trace-action-002"));
+        consoleService.recordInteraction(agentActionEventReq(packageId, schoolId,
+                "generate_travelogue", "生成游记", "record", "xicheng-gongwangfu", "恭王府",
+                "trace-action-003"));
+
+        DashboardSummaryRespVO dashboard = consoleService.getDashboard(projectId);
+
+        assertEquals(2, dashboard.getTopAgentActions().size());
+        AgentActionMetricRespVO topAction = dashboard.getTopAgentActions().get(0);
+        assertEquals("generate_travelogue", topAction.getActionKey());
+        assertEquals("生成游记", topAction.getTitle());
+        assertEquals("record", topAction.getIntent());
+        assertEquals("xicheng-gongwangfu", topAction.getPoiCode());
+        assertEquals("恭王府", topAction.getPoiName());
+        assertEquals(2, topAction.getExecutionCount());
+        assertEquals(new BigDecimal("0.6667"), topAction.getShareRate());
+        AgentActionMetricRespVO secondAction = dashboard.getTopAgentActions().get(1);
+        assertEquals("nearby_food", secondAction.getActionKey());
+        assertEquals("merchant", secondAction.getIntent());
+        assertEquals("xicheng-baitasi", secondAction.getPoiCode());
+        assertEquals(1, secondAction.getExecutionCount());
+        assertEquals(new BigDecimal("0.3333"), secondAction.getShareRate());
     }
 
     @Test
@@ -636,6 +672,17 @@ public class XunjingConsoleServiceImplTest extends BaseDbUnitTest {
         reqVO.setSourceChannel("mini-program");
         reqVO.setUserTraceId(userTraceId);
         reqVO.setPayloadJson("{\"scene\":\"map-entry\"}");
+        return reqVO;
+    }
+
+    private InteractionEventCreateReqVO agentActionEventReq(
+            Long packageId, Long schoolId, String actionKey, String title, String intent,
+            String poiCode, String poiName, String userTraceId) {
+        InteractionEventCreateReqVO reqVO = eventReq(
+                packageId, schoolId, XunjingEnums.EventType.AGENT_ACTION.getType(), userTraceId);
+        reqVO.setPayloadJson("""
+                {"agentAction":{"actionKey":"%s","title":"%s","intent":"%s","poiCode":"%s","poiName":"%s"}}
+                """.formatted(actionKey, title, intent, poiCode, poiName));
         return reqVO;
     }
 

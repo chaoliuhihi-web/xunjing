@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.xunjing.dal.dataobject.event.XunjingInteractionEv
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.Collection;
+import java.util.List;
 
 @Mapper
 public interface XunjingInteractionEventMapper extends BaseMapperX<XunjingInteractionEventDO> {
@@ -25,6 +26,17 @@ public interface XunjingInteractionEventMapper extends BaseMapperX<XunjingIntera
         return selectCount(new LambdaQueryWrapperX<XunjingInteractionEventDO>()
                 .in(XunjingInteractionEventDO::getPackageId, packageIds)
                 .eq(XunjingInteractionEventDO::getEventType, eventType));
+    }
+
+    default List<XunjingInteractionEventDO> selectListByPackageIdsAndEventType(
+            Collection<Long> packageIds, String eventType) {
+        if (packageIds == null || packageIds.isEmpty()) {
+            return List.of();
+        }
+        return selectList(new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                .in(XunjingInteractionEventDO::getPackageId, packageIds)
+                .eq(XunjingInteractionEventDO::getEventType, eventType)
+                .orderByDesc(XunjingInteractionEventDO::getId));
     }
 
     default XunjingInteractionEventDO selectLatestByPackageIdAndUserTraceIdAndEventType(

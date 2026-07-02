@@ -515,12 +515,19 @@ async function checkXichengAppEventBackend(rootDir) {
     'private Long agentActionCount;',
     'private BigDecimal agentActionConversionRate;',
     'private Long totalTriggerResolveCount;',
-    'private Long totalAgentActionCount;'
+    'private Long totalAgentActionCount;',
+    'class AgentActionMetricRespVO',
+    'private List<AgentActionMetricRespVO> topAgentActions;',
+    'private Long executionCount;',
+    'private BigDecimal shareRate;'
   ]) {
     assertContains(consoleVo, snippet, 'XunjingConsoleVO.java')
   }
   for (const snippet of [
     'calculateAgentActionConversionRate',
+    'buildTopAgentActionMetrics',
+    'selectListByPackageIdsAndEventType',
+    'agentActionText',
     'EventType.TRIGGER_RESOLVE.getType()',
     'EventType.AGENT_ACTION.getType()',
     '\\"triggerResolveCount\\":',
@@ -540,6 +547,11 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(
     consoleTest,
     'testReadinessDashboardAndReportExposeAgentActionConversionMetrics',
+    'XunjingConsoleServiceImplTest.java'
+  )
+  assertContains(
+    consoleTest,
+    'testDashboardRanksAgentActionExecutionsByActionIntentAndPoi',
     'XunjingConsoleServiceImplTest.java'
   )
   return pass(
