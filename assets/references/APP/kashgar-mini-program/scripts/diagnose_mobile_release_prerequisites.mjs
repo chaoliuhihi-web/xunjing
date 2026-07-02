@@ -39,6 +39,17 @@ const parseJson = (value) => {
 
 const normalizeFirstLine = (value = '') => String(value || '').trim().split('\n')[0] || ''
 
+const shellQuote = (value) => {
+  const text = String(value)
+  return /^[A-Za-z0-9_./:=@-]+$/.test(text)
+    ? text
+    : `'${text.replace(/'/g, `'\\''`)}'`
+}
+
+const hbuilderxLoginNextAction = (executable) => (
+  `Export DCLOUD_USERNAME and DCLOUD_PASSWORD for the release account, then run: ${shellQuote(executable)} user login --username "$DCLOUD_USERNAME" --password "$DCLOUD_PASSWORD"; rerun npm run doctor:release:prereqs.`
+)
+
 const withTimeout = async (promise, timeoutMs, timeoutMessage) => {
   let timeout
   try {
@@ -311,7 +322,7 @@ const checkHbuilderxLogin = (nativePackageDryRun) => {
       message: result.status !== 0
         ? normalizeFirstLine(stderr || stdout) || 'HBuilderX user info failed'
         : 'HBuilderX user info did not include a logged-in release account',
-      nextAction: 'Run HBuilderX CLI user login with the release account, then rerun npm run doctor:release:prereqs.'
+      nextAction: hbuilderxLoginNextAction(executable)
     }
   }
   return {

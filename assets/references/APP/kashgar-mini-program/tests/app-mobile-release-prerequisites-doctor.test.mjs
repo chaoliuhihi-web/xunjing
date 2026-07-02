@@ -121,6 +121,21 @@ assert.match(
   /user login|发布账号/i,
   'HBuilderX login failure should tell the operator how to fix it'
 )
+assert.match(
+  loggedOutJson.checks.hbuilderxLogin.nextAction,
+  /DCLOUD_USERNAME/,
+  'HBuilderX login failure should tell the operator to pass the release account without hard-coding it'
+)
+assert.match(
+  loggedOutJson.checks.hbuilderxLogin.nextAction,
+  /DCLOUD_PASSWORD/,
+  'HBuilderX login failure should tell the operator to pass the release password without hard-coding it'
+)
+assert.match(
+  loggedOutJson.checks.hbuilderxLogin.nextAction,
+  /user login --username "\$DCLOUD_USERNAME" --password "\$DCLOUD_PASSWORD"/,
+  'HBuilderX login failure should include the exact CLI login command shape'
+)
 
 const loggedInResult = runDoctor({
   HBUILDERX_CLI: loggedInCliPath
