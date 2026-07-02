@@ -111,7 +111,17 @@ assert.match(
 
 for (const required of [
   "gps: 'GPS定位'",
-  "text: '文本识别'"
+  "text: '文本识别'",
+  'createXichengTriggerSceneSignals',
+  'sceneSignals: normalizedSceneSignals',
+  'sceneDomainIntentKey',
+  'agentDecisionReasonSummary'
 ]) {
   assert.ok(triggerRequest.includes(required), `Trigger source labels should include ${required}`)
 }
+
+assert.doesNotMatch(
+  triggerRequest.match(/export const createXichengTriggerSceneSignals[\s\S]*?\n\}/)?.[0] || '',
+  /sourceRecognitionContext|photoPath|imagePath|latitude|longitude/,
+  'Trigger Scene Engine signal normalizer should keep raw recognition context, photo paths, and exact coordinates out of sceneSignals'
+)

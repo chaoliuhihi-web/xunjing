@@ -96,6 +96,50 @@ const normalizeSourceBackedSafetyStatus = (safetyStatus = '', sources = []) => {
 		: normalizedSafetyStatus
 }
 
+const normalizeSceneSignalText = (value = '', limit = 120) => String(value || '').trim().slice(0, limit)
+
+const normalizeSceneSignalCount = (value = 0) => {
+	const count = Number(value || 0)
+	return Number.isFinite(count) && count > 0 ? count : 0
+}
+
+const normalizeHeadingDegrees = (value = '') => {
+	const degrees = Number(value)
+	if (!Number.isFinite(degrees)) return null
+	return Math.round(((degrees % 360) + 360) % 360)
+}
+
+export const createXichengTriggerSceneSignals = ({
+	sceneSignals = null,
+	visionAgentContext = null
+} = {}) => {
+	const signals = sceneSignals && typeof sceneSignals === 'object' ? sceneSignals : {}
+	const context = visionAgentContext && typeof visionAgentContext === 'object' ? visionAgentContext : {}
+	const pickSignalValue = (key = '') => {
+		const signalValue = signals[key]
+		return signalValue === undefined || signalValue === null || signalValue === ''
+			? context[key]
+			: signalValue
+	}
+	const normalizedSignals = {
+		sceneFusionSummary: normalizeSceneSignalText(pickSignalValue('sceneFusionSummary')),
+		worldInterfaceSummary: normalizeSceneSignalText(pickSignalValue('worldInterfaceSummary')),
+		localTimeText: normalizeSceneSignalText(pickSignalValue('localTimeText'), 40),
+		weatherText: normalizeSceneSignalText(pickSignalValue('weatherText'), 40),
+		headingText: normalizeSceneSignalText(pickSignalValue('headingText'), 40),
+		headingDegrees: normalizeHeadingDegrees(pickSignalValue('headingDegrees')),
+		sceneDomainIntentKey: normalizeSceneSignalText(pickSignalValue('sceneDomainIntentKey'), 48),
+		sceneDomainIntentLabel: normalizeSceneSignalText(pickSignalValue('sceneDomainIntentLabel'), 48),
+		sceneDomainIntentTitle: normalizeSceneSignalText(pickSignalValue('sceneDomainIntentTitle'), 64),
+		sceneDomainIntentCopy: normalizeSceneSignalText(pickSignalValue('sceneDomainIntentCopy')),
+		agentDecisionActionTitle: normalizeSceneSignalText(pickSignalValue('agentDecisionActionTitle'), 64),
+		agentDecisionReasonSummary: normalizeSceneSignalText(pickSignalValue('agentDecisionReasonSummary')),
+		memorySessionSceneCount: normalizeSceneSignalCount(pickSignalValue('memorySessionSceneCount'))
+	}
+	const hasSignals = Object.values(normalizedSignals).some(value => value !== '' && value !== 0 && value !== null)
+	return hasSignals ? normalizedSignals : null
+}
+
 const clampConfidence = (value) => Math.min(1, Math.max(0, value))
 
 const clampConfidencePercent = (value) => Math.min(100, Math.max(0, value))
@@ -187,9 +231,12 @@ export const requestXichengTriggerResolve = ({
 	location = null,
 	photoMeta = null,
 	imageLabels = [],
-	recentPoiCodes = []
+	recentPoiCodes = [],
+	sceneSignals = null,
+	visionAgentContext = null
 } = {}) => {
 	const normalizedLocation = normalizeLocationForTrigger(location)
+	const normalizedSceneSignals = createXichengTriggerSceneSignals({ sceneSignals, visionAgentContext })
 	return new Promise((resolve, reject) => {
 		uni.request({
 			url: buildYudaoAppApiUrl(XICHENG_TRIGGER_API_PATH),
@@ -210,7 +257,8 @@ export const requestXichengTriggerResolve = ({
 				location: normalizedLocation,
 				photoMeta,
 				imageLabels,
-				recentPoiCodes
+				recentPoiCodes,
+				sceneSignals: normalizedSceneSignals
 			},
 			success: (res) => {
 				if (res && res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
@@ -235,6 +283,8 @@ export const resolveXichengTextTrigger = async ({
 	ocrText = '',
 	location = null,
 	recentPoiCodes = [],
+	sceneSignals = null,
+	visionAgentContext = null,
 	source = 'ocr',
 	allowDevelopmentFallback = isXichengDevelopmentFallbackAllowed()
 } = {}) => {
@@ -244,6 +294,8 @@ export const resolveXichengTextTrigger = async ({
 			ocrText: ocrText || text,
 			location,
 			recentPoiCodes,
+			sceneSignals,
+			visionAgentContext,
 			imageLabels: inferImageLabelsFromLocalHints({ text, ocrText })
 		})
 		return normalizeXichengTriggerResult(result, source)
@@ -265,6 +317,8 @@ export const resolveXichengPhotoTrigger = async ({
 	text = '',
 	ocrText = '',
 	imageLabels = [],
+	sceneSignals = null,
+	visionAgentContext = null,
 	allowDevelopmentFallback = isXichengDevelopmentFallbackAllowed()
 } = {}) => {
 	const [location, imageInfo, imageBase64] = await Promise.all([
@@ -281,7 +335,9 @@ export const resolveXichengPhotoTrigger = async ({
 			ocrText,
 			location,
 			photoMeta: buildPhotoMetaForTrigger({ filePath, location, imageInfo, imageBase64 }),
-			imageLabels: labels
+			imageLabels: labels,
+			sceneSignals,
+			visionAgentContext
 		})
 		return normalizeXichengTriggerResult(result, 'photo')
 	} catch (error) {
@@ -302,6 +358,8 @@ export const resolveXichengOcrImageTrigger = async ({
 	text = '',
 	ocrText = '',
 	imageLabels = [],
+	sceneSignals = null,
+	visionAgentContext = null,
 	allowDevelopmentFallback = isXichengDevelopmentFallbackAllowed()
 } = {}) => {
 	try {
@@ -318,7 +376,9 @@ export const resolveXichengOcrImageTrigger = async ({
 			ocrText,
 			location,
 			photoMeta: buildPhotoMetaForTrigger({ filePath, location, imageInfo, imageBase64 }),
-			imageLabels: labels
+			imageLabels: labels,
+			sceneSignals,
+			visionAgentContext
 		})
 		return normalizeXichengTriggerResult(result, 'ocr')
 	} catch (error) {

@@ -61,7 +61,105 @@ const XICHENG_DEVELOPMENT_TRIGGER_FIXTURE = Object.freeze({
   )
 
 const triggerModule = await import(`data:text/javascript;base64,${Buffer.from(triggerSource).toString('base64')}`)
-const { normalizeXichengTriggerResult, shouldUseXichengDevelopmentFallback } = triggerModule
+const {
+  createXichengTriggerSceneSignals,
+  normalizeXichengTriggerResult,
+  requestXichengTriggerResolve,
+  shouldUseXichengDevelopmentFallback
+} = triggerModule
+
+assert.equal(
+  typeof createXichengTriggerSceneSignals,
+  'function',
+  'Xicheng trigger facade should expose a Scene Engine signal normalizer for backend trigger payloads'
+)
+
+const normalizedSceneSignals = createXichengTriggerSceneSignals({
+  sceneSignals: {
+    sourceRecognitionContext: '{"photoPath":"/tmp/raw.jpg","latitude":39.9,"longitude":116.3}',
+    sceneFusionSummary: '镜头、GPS、天气和知识库已融合',
+    worldInterfaceSummary: '现实世界成为 AI 交互入口',
+    localTimeText: '18:40',
+    weatherText: '晴',
+    headingText: '朝西',
+    headingDegrees: '270',
+    sceneDomainIntentKey: 'menu',
+    sceneDomainIntentLabel: '菜单',
+    agentDecisionActionTitle: '先拍照',
+    agentDecisionReasonSummary: '日落光线优先',
+    memorySessionSceneCount: '2',
+    photoPath: '/tmp/raw.jpg',
+    latitude: 39.9,
+    longitude: 116.3
+  }
+})
+
+assert.deepEqual(
+  normalizedSceneSignals,
+  {
+    sceneFusionSummary: '镜头、GPS、天气和知识库已融合',
+    worldInterfaceSummary: '现实世界成为 AI 交互入口',
+    localTimeText: '18:40',
+    weatherText: '晴',
+    headingText: '朝西',
+    headingDegrees: 270,
+    sceneDomainIntentKey: 'menu',
+    sceneDomainIntentLabel: '菜单',
+    sceneDomainIntentTitle: '',
+    sceneDomainIntentCopy: '',
+    agentDecisionActionTitle: '先拍照',
+    agentDecisionReasonSummary: '日落光线优先',
+    memorySessionSceneCount: 2
+  },
+  'Scene Engine signals should keep bounded real-time context for backend trigger routing'
+)
+
+assert.ok(
+  !JSON.stringify(normalizedSceneSignals).includes('/tmp/raw.jpg')
+    && !JSON.stringify(normalizedSceneSignals).includes('39.9')
+    && !JSON.stringify(normalizedSceneSignals).includes('116.3'),
+  'Scene Engine signal normalization should not leak raw photo paths or exact coordinates'
+)
+
+let triggerRequestOptions = null
+globalThis.uni = {
+  request: (options) => {
+    triggerRequestOptions = options
+    options.success?.({
+      statusCode: 200,
+      data: {
+        code: 0,
+        data: {
+          poiCode: 'xicheng-baitasi',
+          poiName: '白塔寺'
+        }
+      }
+    })
+  }
+}
+
+await requestXichengTriggerResolve({
+  text: '拍到餐厅菜单',
+  ocrText: '烤包子 清真 推荐菜',
+  location: { latitude: 39.9231, longitude: 116.35726, accuracy: 18 },
+  sceneSignals: {
+    ...normalizedSceneSignals,
+    sourceRecognitionContext: '{"photoPath":"/tmp/raw.jpg","latitude":39.9}',
+    photoPath: '/tmp/raw.jpg'
+  }
+})
+
+assert.equal(triggerRequestOptions.data.sceneSignals.sceneDomainIntentKey, 'menu')
+assert.equal(triggerRequestOptions.data.sceneSignals.localTimeText, '18:40')
+assert.equal(triggerRequestOptions.data.sceneSignals.weatherText, '晴')
+assert.equal(triggerRequestOptions.data.sceneSignals.headingDegrees, 270)
+assert.ok(
+  !JSON.stringify(triggerRequestOptions.data.sceneSignals).includes('/tmp/raw.jpg')
+    && !JSON.stringify(triggerRequestOptions.data.sceneSignals).includes('39.9'),
+  'Trigger resolve request should send only bounded Scene Engine signals, not raw recognition context'
+)
+
+delete globalThis.uni
 
 assert.equal(
   typeof shouldUseXichengDevelopmentFallback,
