@@ -18,7 +18,8 @@ const recordingMapCanvas = read('components', 'xicheng', 'XichengRouteRecordingM
 const recordingShell = `${recording}\n${recordingPanel}\n${recordingMapCanvas}`
 const routeDetail = read('pages', 'xicheng', 'route-detail', 'route-detail.vue')
 const routeDetailPanel = read('components', 'xicheng', 'XichengRouteDetailPanel.vue')
-const routeDetailShell = `${routeDetail}\n${routeDetailPanel}`
+const routeStopTimeline = read('components', 'xicheng', 'XichengRouteStopTimeline.vue')
+const routeDetailShell = `${routeDetail}\n${routeDetailPanel}\n${routeStopTimeline}`
 
 for (const required of [
   "refresh: 'refresh'",

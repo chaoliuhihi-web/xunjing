@@ -7,14 +7,21 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 const exists = (...segments) => fs.existsSync(path.join(root, ...segments))
 
 const componentPath = ['components', 'xicheng', 'XichengRouteDetailPanel.vue']
+const timelinePath = ['components', 'xicheng', 'XichengRouteStopTimeline.vue']
 
 assert.ok(
   exists(...componentPath),
   'Route detail should extract the approved reference UI into a dedicated component'
 )
+assert.ok(
+  exists(...timelinePath),
+  'Route detail should extract the stop timeline into a dedicated component'
+)
 
 const routeDetail = read('pages', 'xicheng', 'route-detail', 'route-detail.vue')
 const panel = read(...componentPath)
+const timeline = read(...timelinePath)
+const routeDetailShell = `${panel}\n${timeline}`
 
 assert.match(
   routeDetail,
@@ -48,7 +55,7 @@ for (const required of [
   '$emit(\'generate-travelogue\'',
   '$emit(\'passport\''
 ]) {
-  assert.ok(panel.includes(required), `Route detail reference component should include ${required}`)
+  assert.ok(routeDetailShell.includes(required), `Route detail reference shell should include ${required}`)
 }
 
 assert.match(
@@ -58,7 +65,7 @@ assert.match(
 )
 
 assert.match(
-  panel,
+  timeline,
   /v-for="\(\s*stop,\s*index\s*\) in routeStopItems"[\s\S]*class="route-detail-stop-card[^"]*"[\s\S]*getStopThumbnail\(stop, index\)[\s\S]*\$emit\('ask-stop', stop\)/,
   'Route detail timeline should render stop cards from structured route stops and emit stop guide actions'
 )
@@ -70,13 +77,13 @@ assert.match(
 )
 
 assert.match(
-  panel,
+  timeline,
   /\.route-detail-stop-card\s*\{[\s\S]*grid-template-columns:\s*180rpx 1fr 112rpx/,
   'Route detail stop cards should use the approved image/text/listen layout instead of a flat list'
 )
 
 assert.doesNotMatch(
-  panel + routeDetail,
+  routeDetailShell + routeDetail,
   /\/app-api\/xunjing|Authorization['"]?\s*:\s*`Bearer|pat_[A-Za-z0-9]{20,}|https:\/\/api\.coze\.cn|sk-[A-Za-z0-9]{20,}/,
   'High-fidelity route detail shell should not introduce backend calls or client-side secrets'
 )

@@ -15,7 +15,8 @@ const scanResultSummaryHero = fs.readFileSync(path.join(appRoot, 'components', '
 const scanResultShell = `${scanResult}\n${scanResultSummaryHero}`
 const routeDetail = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'route-detail', 'route-detail.vue'), 'utf8')
 const routeDetailPanel = fs.readFileSync(path.join(appRoot, 'components', 'xicheng', 'XichengRouteDetailPanel.vue'), 'utf8')
-const routeDetailShell = `${routeDetail}\n${routeDetailPanel}`
+const routeStopTimeline = fs.readFileSync(path.join(appRoot, 'components', 'xicheng', 'XichengRouteStopTimeline.vue'), 'utf8')
+const routeDetailShell = `${routeDetail}\n${routeDetailPanel}\n${routeStopTimeline}`
 const travelogue = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
 const travelogueCss = fs.existsSync(path.join(appRoot, 'pages', 'xicheng', 'travelogue', 'travelogue.css'))
   ? fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'travelogue', 'travelogue.css'), 'utf8')

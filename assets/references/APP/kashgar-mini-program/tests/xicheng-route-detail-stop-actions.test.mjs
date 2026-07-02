@@ -7,6 +7,7 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const routeDetail = read('pages', 'xicheng', 'route-detail', 'route-detail.vue')
 const panel = read('components', 'xicheng', 'XichengRouteDetailPanel.vue')
+const timeline = read('components', 'xicheng', 'XichengRouteStopTimeline.vue')
 
 assert.match(
   routeDetail,
@@ -27,7 +28,7 @@ for (const required of [
   "$emit('open-poi-detail', stop)",
   "$emit('navigate-stop', stop)"
 ]) {
-  assert.ok(panel.includes(required), `Route detail stop cards should include ${required}`)
+  assert.ok(timeline.includes(required), `Route detail stop cards should include ${required}`)
 }
 
 assert.match(
@@ -49,7 +50,7 @@ assert.match(
 )
 
 assert.doesNotMatch(
-  `${routeDetail}\n${panel}`,
+  `${routeDetail}\n${panel}\n${timeline}`,
   /openLocation|startLocationUpdateBackground|\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
   'Route detail stop actions should not add risky location permissions, backend calls, or client-side secrets'
 )

@@ -15,7 +15,8 @@ const home = read('pages', 'xicheng', 'home', 'home.vue')
 const routes = read('pages', 'xicheng', 'routes', 'routes.vue')
 const routeDetail = readOptional('pages', 'xicheng', 'route-detail', 'route-detail.vue')
 const routeDetailPanel = readOptional('components', 'xicheng', 'XichengRouteDetailPanel.vue')
-const routeDetailShell = `${routeDetail}\n${routeDetailPanel}`
+const routeStopTimeline = readOptional('components', 'xicheng', 'XichengRouteStopTimeline.vue')
+const routeDetailShell = `${routeDetail}\n${routeDetailPanel}\n${routeStopTimeline}`
 
 assert.ok(
   pagesJson.includes('"path": "pages/xicheng/route-detail/route-detail"'),

@@ -5,7 +5,9 @@ import path from 'node:path'
 const root = process.cwd()
 const routeDetail = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'route-detail', 'route-detail.vue'), 'utf8')
 const routeDetailPanel = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengRouteDetailPanel.vue'), 'utf8')
-const routeDetailShell = `${routeDetail}\n${routeDetailPanel}`
+const routeStopTimeline = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengRouteStopTimeline.vue'), 'utf8')
+const routeDetailConfig = fs.readFileSync(path.join(root, 'config', 'regions', 'xichengRouteDetail.js'), 'utf8')
+const routeDetailShell = `${routeDetail}\n${routeDetailPanel}\n${routeStopTimeline}\n${routeDetailConfig}`
 
 for (const required of [
   'class="route-detail-hero-image"',
@@ -39,7 +41,7 @@ assert.match(
 
 assert.match(
   routeDetailShell,
-  /getStopThumbnail\(stop = \{\}, index = 0\)[\s\S]*xicheng-baitasi[\s\S]*xicheng-shichahai[\s\S]*this\.routeHeroImage/,
+  /getStopThumbnail\(stop = \{\}, index = 0\)[\s\S]*XICHENG_ROUTE_DETAIL_STOP_THUMBNAILS\[stop\.poiCode\][\s\S]*this\.routeHeroImage[\s\S]*'xicheng-baitasi'[\s\S]*'xicheng-shichahai'/,
   'Route stop cards should use stable POI/route thumbnails instead of full-page design mockup images'
 )
 
