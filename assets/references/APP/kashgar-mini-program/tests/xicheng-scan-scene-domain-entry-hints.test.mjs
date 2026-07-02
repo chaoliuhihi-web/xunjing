@@ -44,6 +44,84 @@ assert.match(
 
 assert.match(
   scan,
+  /sceneDomainImageLabels\(\)[\s\S]*const selectedSceneDomain = this\.getSelectedSceneDomainCapability\(\)[\s\S]*return Array\.from\(new Set\(\[[\s\S]*`sceneDomainIntent:\$\{selectedSceneDomain\.domainKey\}`[\s\S]*selectedSceneDomain\.label[\s\S]*selectedSceneDomain\.title[\s\S]*selectedSceneDomain\.copy[\s\S]*\.\.\.domainLabels/,
+  'Backend image labels should prioritize the selected scene-domain intent before generic domain hints'
+)
+
+assert.match(
+  scan,
   /resolveXichengPhotoTrigger\(\{[\s\S]*imageLabels:\s*this\.sceneDomainImageLabels/,
   'Photo trigger should pass the expanded scene-domain labels into the multimodal backend facade'
+)
+
+assert.match(
+  scan,
+  /import \{[\s\S]*resolveXichengOcrImageTrigger[\s\S]*resolveXichengPhotoTrigger[\s\S]*\} from '@\/request\/xunjing\/trigger\.js'/,
+  'Scan page should import the dedicated OCR image trigger helper next to the photo trigger'
+)
+
+assert.match(
+  scan,
+  /v-for="domain in sceneDomainCapabilities"[\s\S]*:class="\{ 'scene-domain-item-active': selectedSceneDomainKey === domain\.domainKey \}"[\s\S]*@click="selectSceneDomain\(domain\)"/,
+  'Scene-domain cards should let the single AI识境 entry bias recognition without adding separate mode buttons'
+)
+
+assert.match(
+  scan,
+  /selectedSceneDomainKey:\s*'architecture'/,
+  'Scan page should keep an explicit selected scene domain for backend trigger intent'
+)
+
+assert.match(
+  scan,
+  /selectSceneDomain\(domain = \{\}\)[\s\S]*this\.selectedSceneDomainKey = domain\.domainKey/,
+  'Selecting a visible scene domain should update the Vision Agent recognition intent'
+)
+
+assert.match(
+  scan,
+  /getSelectedSceneDomainCapability\(\)[\s\S]*this\.sceneDomainCapabilities\.find\(domain => domain\.domainKey === this\.selectedSceneDomainKey\)/,
+  'Scan page should resolve the selected visible scene domain before building Agent context'
+)
+
+assert.match(
+  scan,
+  /buildVisionAgentSceneContext\(source = '', trigger = \{\}\)[\s\S]*const selectedSceneDomain = this\.getSelectedSceneDomainCapability\(\)[\s\S]*sceneDomainIntentKey:\s*selectedSceneDomain\.domainKey[\s\S]*sceneDomainIntentLabel:\s*selectedSceneDomain\.label[\s\S]*sceneDomainIntentTitle:\s*selectedSceneDomain\.title[\s\S]*sceneDomainIntentCopy:\s*selectedSceneDomain\.copy/,
+  'Vision Agent context should preserve the selected scene-domain intent for result-page understanding'
+)
+
+assert.match(
+  scan,
+  /sourceRecognitionContext:\s*this\.createSceneDomainSourceRecognitionContext\(source,\s*trigger,\s*selectedSceneDomain\)/,
+  'Scan result context should serialize the selected scene domain into sourceRecognitionContext for later handoff'
+)
+
+assert.match(
+  scan,
+  /buildTriggerSceneSignals\(source = ''\)[\s\S]*buildSceneFusionContext\(\)[\s\S]*buildWorldInterfaceSnapshot\(fusionContext\)[\s\S]*getSelectedSceneDomainCapability\(\)[\s\S]*buildAgentDecisionSnapshot\(\)[\s\S]*sceneFusionSummary[\s\S]*worldInterfaceSummary[\s\S]*localTimeText[\s\S]*weatherText[\s\S]*headingText[\s\S]*headingDegrees[\s\S]*sceneDomainIntentKey[\s\S]*agentDecisionReasonSummary[\s\S]*memorySessionSceneCount/,
+  'Scan page should build bounded Scene Engine trigger signals from live fusion, world-interface, selected domain, Agent decision, and memory context'
+)
+
+assert.match(
+  scan,
+  /shouldUseOcrImageRecognition\(\)[\s\S]*\['sign-ocr',\s*'menu'\]\.includes\(this\.selectedSceneDomainKey\)/,
+  'Text-dense scene domains such as route signs and menus should route selected images through OCR recognition'
+)
+
+assert.match(
+  scan,
+  /const source = this\.shouldUseOcrImageRecognition\(\) \? 'ocr' : 'photo'[\s\S]*const sceneSignals = this\.buildTriggerSceneSignals\(source\)[\s\S]*source === 'ocr'\s*\? resolveXichengOcrImageTrigger\(\{[\s\S]*filePath[\s\S]*text[\s\S]*ocrText:\s*text[\s\S]*imageLabels:\s*this\.sceneDomainImageLabels[\s\S]*sceneSignals[\s\S]*\}\)[\s\S]*:\s*resolveXichengPhotoTrigger\(\{[\s\S]*sceneSignals[\s\S]*this\.openScanResult\(trigger,\s*source\)/,
+  'Auto recognition should send Scene Engine trigger signals through OCR/photo backend contracts and preserve the source in scan-result'
+)
+
+assert.match(
+  scan,
+  /resolveNearbyLocation\(\)[\s\S]*const source = location \? 'gps' : 'text'[\s\S]*const sceneSignals = this\.buildTriggerSceneSignals\(source\)[\s\S]*resolveXichengTextTrigger\(\{[\s\S]*sceneSignals[\s\S]*this\.openScanResult\(trigger,\s*source\)/,
+  'Nearby GPS/text fallback recognition should send Scene Engine trigger signals before opening scan-result'
+)
+
+assert.match(
+  scan,
+  /resolveTextAndOpenResult\(text = '', source = 'scan'\)[\s\S]*const sceneSignals = this\.buildTriggerSceneSignals\(source\)[\s\S]*resolveXichengTextTrigger\(\{[\s\S]*sceneSignals[\s\S]*this\.openScanResult\(trigger,\s*source\)/,
+  'Manual text or scan recognition should send Scene Engine trigger signals into the shared trigger facade'
 )

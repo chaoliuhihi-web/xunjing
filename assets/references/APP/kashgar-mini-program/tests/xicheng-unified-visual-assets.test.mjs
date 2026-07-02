@@ -31,6 +31,8 @@ const bottomNavComponent = readOptional('components', 'xicheng-bottom-nav', 'xic
 
 for (const [relativePath, maxBytes] of [
   ['static/xicheng/xiaojing-companion.png', 500 * 1024],
+  ['static/xicheng/xiaojing-companion-cutout-v2.png', 360 * 1024],
+  ['static/xicheng/home-hero-xicheng-approved-v3.jpg', 220 * 1024],
   ['static/xicheng/scene-baitasi-waterfront.jpg', 300 * 1024],
   ['static/xicheng/poi-baitasi-card.jpg', 300 * 1024],
   ['static/xicheng/route-passport-stamp.png', 220 * 1024],
@@ -41,8 +43,8 @@ for (const [relativePath, maxBytes] of [
 
 assert.match(
   regionConfig,
-  /visualAssets:\s*\{[\s\S]*poiCards:\s*\{[\s\S]*['"]xicheng-baitasi['"]:\s*'\/static\/xicheng\/poi-baitasi-card\.jpg'[\s\S]*passportStamp:\s*'\/static\/xicheng\/route-passport-stamp\.png'[\s\S]*sharePosterBackground:\s*'\/static\/xicheng\/share-poster-background\.jpg'/,
-  'Xicheng visual assets should centralize POI card art, route passport stamp, and share poster background in region config'
+  /visualAssets:\s*\{[\s\S]*homeHeroBackground:\s*'\/static\/xicheng\/home-hero-xicheng-approved-v3\.jpg'[\s\S]*homeCompanion:\s*'\/static\/xicheng\/xiaojing-companion-cutout-v2\.png'[\s\S]*poiCards:\s*\{[\s\S]*['"]xicheng-baitasi['"]:\s*'\/static\/xicheng\/poi-baitasi-card\.jpg'[\s\S]*passportStamp:\s*'\/static\/xicheng\/route-passport-stamp\.png'[\s\S]*sharePosterBackground:\s*'\/static\/xicheng\/share-poster-background\.jpg'/,
+  'Xicheng visual assets should centralize the home hero art, home companion cutout, POI card art, route passport stamp, and share poster background in region config'
 )
 
 for (const required of [

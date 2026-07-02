@@ -43,6 +43,7 @@ const keystorePath = path.join(tempDir, 'xicheng-release.keystore')
 const fakeCliPath = path.join(tempDir, 'hbuilderx-cli')
 const importSoftFailureCliPath = path.join(tempDir, 'hbuilderx-import-soft-failure-cli')
 const softFailureCliPath = path.join(tempDir, 'hbuilderx-soft-failure-cli')
+const missingPluginCliPath = path.join(tempDir, 'hbuilderx-missing-plugin-cli')
 const loginFailureCliPath = path.join(tempDir, 'hbuilderx-login-failure-cli')
 const invocationPath = path.join(tempDir, 'hbuilderx-invocation.json')
 
@@ -116,6 +117,16 @@ fs.writeFileSync(loginFailureCliPath, [
   'exit 0'
 ].join('\n'))
 fs.chmodSync(loginFailureCliPath, 0o755)
+
+fs.writeFileSync(missingPluginCliPath, [
+  '#!/bin/sh',
+  'if [ "$1" = "project" ]; then',
+  '  exit 0',
+  'fi',
+  'printf "%s\\n" "09:45:10.298 当前操作依赖插件【app-safe-pack】，请安装后再试"',
+  'exit 0'
+].join('\n'))
+fs.chmodSync(missingPluginCliPath, 0o755)
 
 const baseEnv = {
   XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
@@ -251,6 +262,21 @@ assert.match(
   `${loginFailureExecuteResult.stderr}\n${loginFailureExecuteResult.stdout}`,
   /login|登录/i,
   'native cloud pack execute should explain HBuilderX login soft failure output'
+)
+
+const missingPluginExecuteResult = runPack({
+  XUNJING_NATIVE_PACK_CONFIRM: 'cloud-pack',
+  HBUILDERX_CLI: missingPluginCliPath
+}, ['--execute'])
+assert.notEqual(
+  missingPluginExecuteResult.status,
+  0,
+  'native cloud pack execute should fail when HBuilderX reports a missing app-safe-pack plugin even with exit 0'
+)
+assert.match(
+  `${missingPluginExecuteResult.stderr}\n${missingPluginExecuteResult.stdout}`,
+  /app-safe-pack|插件|请安装/i,
+  'native cloud pack execute should explain HBuilderX missing plugin soft failure output'
 )
 
 const missingEnvResult = runPack({

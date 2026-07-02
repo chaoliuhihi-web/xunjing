@@ -221,9 +221,13 @@ if (artifactStat.isDirectory()) {
 }
 
 const isExpectedApiUrl = (url) => url === expectedApiBaseUrl || url.startsWith(`${expectedApiBaseUrl}/`)
+const legacyOnlineFieldPattern = /^(?:UrlImg|UrlServer|UrlRequest|UrlRequest2)$/i
 const isApiGatewayContext = (record) => {
   const assignmentMatch = record.before.match(/([A-Za-z0-9_$.-]+)\s*[:=]\s*["']?$/)
   const assignedKey = assignmentMatch ? assignmentMatch[1] : ''
+  if (legacyOnlineFieldPattern.test(assignedKey)) {
+    return false
+  }
   return (
     /api|UrlYudao|VITE_XUNJING|XUNJING|baseUrl|baseURL/i.test(assignedKey) ||
     /app-api|xunjing/i.test(record.after) ||

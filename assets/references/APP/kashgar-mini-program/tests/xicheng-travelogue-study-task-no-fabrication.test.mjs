@@ -4,7 +4,7 @@ import path from 'node:path'
 
 const root = process.cwd()
 const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
-const draftBlock = travelogue.match(/export const createXichengTravelogueDraft\s*=\s*\(\{[\s\S]*?\n\}\n\nconst createEmptyRecordingSession/)?.[0] || ''
+const draftBlock = travelogue.match(/export const createXichengTravelogueDraft\s*=\s*\(\{[\s\S]*?\n\}\n+const createEmptyRecordingSession/)?.[0] || ''
 
 assert.ok(draftBlock, 'Travelogue should expose createXichengTravelogueDraft')
 

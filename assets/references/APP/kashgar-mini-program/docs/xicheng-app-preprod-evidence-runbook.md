@@ -68,6 +68,15 @@ npm run verify:yudao:preprod
 
 `npm run doctor:release:prereqs` 是预发证据前的只读诊断，不会触发真实云打包；它会从 `XUNJING_RELEASE_ENV_FILE` 加载 APP release env，并检查 release env、预发 API DNS、`/app-api/xunjing/scan/resolve` API 可达性、native cloud pack dry-run 和 HBuilderX 发布账号登录态。
 
+如果诊断返回 `hbuilderx-login-missing`，先用发布账号登录 HBuilderX CLI。不要把账号密码写进仓库或文档；建议只在当前 shell 中临时导出：
+
+```bash
+export DCLOUD_USERNAME="release-account@example.com"
+export DCLOUD_PASSWORD="replace-with-release-account-password"
+"/Applications/HBuilderX.app/Contents/MacOS/cli" user login --username "$DCLOUD_USERNAME" --password "$DCLOUD_PASSWORD"
+npm run doctor:release:prereqs
+```
+
 `npm run verify:yudao:preprod` 会先从 `XUNJING_RELEASE_ENV_FILE` 加载缺失的 release 变量，再执行 release 环境校验，拒绝 localhost、127.0.0.1、局域网和非 HTTPS 地址，然后调用仓库根目录 `npm run xunjing:platform:verify --`，输出 `qa/xicheng-app-readiness-evidence.json`。`XUNJING_PLATFORM_ENV_FILE` 会作为根平台验证器的 `--env-file`，相对路径按仓库根目录解析；该文件必须包含 `SPRING_PROFILES_ACTIVE`、数据库、Redis、OSS、Qdrant、Qwen 和内部鉴权变量。如果不设置会回退使用 `XUNJING_RELEASE_ENV_FILE`，所以只包含 APP 网关、租户或签名变量的 release env 不能替代完整平台 env。命令行显式传入的环境变量优先，安全 env 文件不得提交到仓库。
 
 `XUNJING_TENANT_ID` 不能使用 `0`、负数或 `tenant-prod` 这类环境占位符；预发证据和真机证据中的 `tenantId` 必须保持同一个正整数编号。

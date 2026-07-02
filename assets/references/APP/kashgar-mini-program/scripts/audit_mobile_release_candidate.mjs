@@ -31,6 +31,7 @@ const readGit = (gitArgs, fallback = '') => {
 const repoRoot = readGit(['rev-parse', '--show-toplevel'], process.cwd())
 const currentHead = readGit(['rev-parse', 'HEAD'])
 const currentBranch = readGit(['rev-parse', '--abbrev-ref', 'HEAD'], 'HEAD')
+const requiredReleaseBranch = 'main'
 
 const resolveInputPath = (inputPath) => {
   if (!String(inputPath || '').trim()) return ''
@@ -262,6 +263,20 @@ const runNodeGate = (scriptName, gateArgs, env = process.env) => {
   }
 }
 
+const prereqNextActionByBlocker = (prereqJson, prereqBlocker) => {
+  const checks = prereqJson?.checks || {}
+  const knownActions = {
+    'hbuilderx-login-missing': checks.hbuilderxLogin?.nextAction,
+    'api-route-missing': checks.apiReachability?.nextAction,
+    'api-unauthorized': checks.apiReachability?.nextAction,
+    'api-dns': checks.apiDns?.nextAction,
+    'release-env': checks.releaseEnv?.nextAction,
+    'native-package-dry-run': checks.nativePackageDryRun?.nextAction
+  }
+  return String(knownActions[prereqBlocker] || '').trim() ||
+    'Run XUNJING_RELEASE_ENV_FILE=/secure/path/preprod.env npm run doctor:release:prereqs, then resolve every reported blocker'
+}
+
 const preprodEvidenceArg = readArg('--preprod-evidence', process.env.XUNJING_PREPROD_EVIDENCE_FILE || defaultPreprodEvidencePath)
 const nativeEvidenceArg = readArg('--native-evidence', process.env.XUNJING_NATIVE_DEVICE_EVIDENCE_FILE || defaultNativeEvidencePath)
 const releaseArtifactArg = readArg('--release-artifact', process.env.XUNJING_RELEASE_ARTIFACT || '')
@@ -279,6 +294,7 @@ const gitStatusPorcelain = readGit(['status', '--porcelain', '--untracked-files=
 const dirtyEntries = gitStatusPorcelain ? gitStatusPorcelain.split('\n').filter(Boolean) : []
 const worktreeClean = dirtyEntries.length === 0
 const worktreeDirtyWithoutBypass = !worktreeClean && !allowTestBypass
+const onRequiredBranch = currentBranch === requiredReleaseBranch
 const remoteRefs = String(process.env.XUNJING_RELEASE_AUDIT_REMOTE_REFS || 'github/main,origin/main')
   .split(',')
   .map((remoteRef) => remoteRef.trim())
@@ -287,10 +303,13 @@ const remoteParityResults = remoteRefs.map((remoteRef) => remoteParity(remoteRef
 
 gates.git = {
   ok: Boolean(currentHead) &&
+    onRequiredBranch &&
     !remoteParitySkippedWithoutBypass &&
     !worktreeDirtyWithoutBypass &&
     (skipRemoteParity || remoteParityResults.every((remote) => remote.ok)),
   branch: currentBranch,
+  requiredBranch: requiredReleaseBranch,
+  onRequiredBranch,
   commit: currentHead,
   worktreeClean,
   dirtyEntryCount: dirtyEntries.length,
@@ -307,6 +326,14 @@ if (unsafeTestBypassWithoutTestMode) {
     'release-audit-test-bypass-without-test-mode',
     'Release audit test bypass was requested without explicit test mode, so it cannot affect a release candidate',
     'Unset XUNJING_RELEASE_AUDIT_ALLOW_TEST_BYPASS and run npm run audit:release:candidate normally for release'
+  )
+}
+if (!onRequiredBranch) {
+  addBlocker(
+    blockers,
+    'git-release-branch-not-main',
+    `Release candidate audit must run from ${requiredReleaseBranch}, got ${currentBranch || 'unknown'}`,
+    `Run git fetch --all --prune && git checkout ${requiredReleaseBranch} && git merge --ff-only github/${requiredReleaseBranch}, then rerun npm run audit:release:candidate`
   )
 }
 if (worktreeDirtyWithoutBypass) {
@@ -635,7 +662,7 @@ if (needsReleasePrerequisites) {
         blockers,
         `release-prerequisite-${String(prereqBlocker).replace(/[^a-z0-9]+/gi, '-')}`,
         `Release prerequisite diagnostic failed: ${prereqBlocker}`,
-        'Run XUNJING_RELEASE_ENV_FILE=/secure/path/preprod.env npm run doctor:release:prereqs, then resolve every reported blocker'
+        prereqNextActionByBlocker(prereqJson, prereqBlocker)
       )
     }
   }

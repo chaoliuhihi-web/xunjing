@@ -7,6 +7,7 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const home = read('pages', 'xicheng', 'home', 'home.vue')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
+const visionAgentRouteContext = read('request', 'xunjing', 'visionAgentRouteContext.js')
 
 const getBlock = (source, pattern, label) => {
   const block = source.match(pattern)?.[0] || ''
@@ -66,7 +67,7 @@ const scanAskXiaojingBlock = getBlock(
 )
 const startRecordingBlock = getBlock(
   scanResult,
-  /startRecording\(\)[\s\S]*?\n\t\t\},\n\t\tcreateRouteCheckinEvent/,
+  /startRecording\(\)[\s\S]*?\n\t+\},\n\t\tcreateRouteCheckinEvent/,
   'scan result startRecording block'
 )
 const createRouteCheckinEventBlock = getBlock(
@@ -98,7 +99,8 @@ for (const required of [
 
 for (const required of [
   'sceneCode=${encodeRouteValue(this.recentRecognition.sceneCode || this.region.sceneCode)}',
-  'sourceChannel=${encodeRouteValue(this.recentRecognition.sourceChannel || this.region.sourceChannel)}'
+  'sourceChannel=${encodeRouteValue(this.recentRecognition.sourceChannel || this.region.sourceChannel)}',
+  'memorySessionSceneCount=${encodeRouteValue(visionAgentContext.memorySessionSceneCount || \'\')}'
 ]) {
   assert.ok(continueRecentRecognitionBlock.includes(required), `Recent recognition Xiaojing query should carry ${required}`)
 }
@@ -126,17 +128,39 @@ for (const required of [
 
 for (const required of [
   'sceneCode: decodeRouteValue(options.sceneCode)',
-  'sourceChannel: decodeRouteValue(options.sourceChannel)'
+  'sourceChannel: decodeRouteValue(options.sourceChannel)',
+  'visionAgentContext: parseXichengVisionAgentRouteContext(options.visionAgentContext)',
+  'sourceRecognitionContext: decodeRouteValue(options.sourceRecognitionContext)',
+  'memorySessionSceneCount: decodeRouteValue(options.memorySessionSceneCount)'
 ]) {
   assert.ok(normalizeRouteOptionsBlock.includes(required), `Route options should decode ${required}`)
 }
 
 for (const required of [
   'sceneCode: routeOptions.sceneCode || (selectedCached && selectedCached.sceneCode) || XICHENG_REGION_CONFIG.sceneCode',
-  'sourceChannel: routeOptions.sourceChannel || (selectedCached && selectedCached.sourceChannel) || XICHENG_REGION_CONFIG.sourceChannel'
+  'sourceChannel: routeOptions.sourceChannel || (selectedCached && selectedCached.sourceChannel) || XICHENG_REGION_CONFIG.sourceChannel',
+  'visionAgentContext: mergeXichengVisionAgentRouteContext(routeOptions, selectedCached)'
 ]) {
   assert.ok(onLoadBlock.includes(required), `Scan result onLoad should merge attribution field ${required}`)
 }
+
+assert.match(
+  scanResult,
+  /import \{ mergeXichengVisionAgentRouteContext, parseXichengVisionAgentRouteContext \} from '@\/request\/xunjing\/visionAgentRouteContext\.js'/,
+  'Scan result should keep Vision Agent route parsing in a shared helper instead of growing the page file'
+)
+
+assert.match(
+  visionAgentRouteContext,
+  /const parseXichengVisionAgentRouteContext\s*=\s*\(value = ''\) => \{[\s\S]*decodeRouteValue\(value\)[\s\S]*JSON\.parse[\s\S]*sourceRecognitionContext/,
+  'Scan result should decode route-carried Vision Agent context JSON and fail soft into sourceRecognitionContext text'
+)
+
+assert.match(
+  visionAgentRouteContext,
+  /const mergeXichengVisionAgentRouteContext\s*=\s*\(routeOptions = \{\}, selectedCached = null\) => \{[\s\S]*routeOptions\.visionAgentContext[\s\S]*selectedCached\.visionAgentContext[\s\S]*sourceRecognitionContext:\s*routeOptions\.sourceRecognitionContext[\s\S]*memorySessionSceneCount:\s*routeOptions\.memorySessionSceneCount/,
+  'Scan result should merge route-carried Vision Agent JSON with standalone recognition and memory route params before using cache fallback'
+)
 
 for (const required of [
   'sceneCode=${encodeURIComponent(this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode)}',
@@ -154,24 +178,31 @@ for (const required of [
   'question=${encodeRouteValue(prompt)}',
   'poiCode=${encodeRouteValue(this.result.poiCode || \'\')}',
   'poiName=${encodeRouteValue(this.result.poiName || \'\')}',
-  'companionName=${encodeRouteValue(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}'
+  'companionName=${encodeRouteValue(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}',
+  'visionAgentContext=${encodeRouteValue(JSON.stringify(visionAgentContext))}',
+  'sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || \'\')}',
+  'memorySessionSceneCount=${encodeRouteValue(visionAgentContext.memorySessionSceneCount || \'\')}'
 ]) {
   assert.ok(scanAskXiaojingBlock.includes(required), `Scan result Xiaojing query should avoid double encoding ${required}`)
 }
 
 for (const required of [
-  'sceneCode: this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode',
-  'sourceChannel: this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel'
+	'sceneCode: this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode',
+	'sourceChannel: this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel',
+	'const visionAgentContext = this.enrichedVisionAgentContext',
+	'visionAgentContext,'
 ]) {
-  assert.ok(startRecordingBlock.includes(required), `Recognition material should persist ${required}`)
+	assert.ok(startRecordingBlock.includes(required), `Recognition material should persist ${required}`)
 }
 
 for (const required of [
-  'poiCode=${encodeRouteValue(this.result.poiCode || \'\')}',
-  'poiName=${encodeRouteValue(this.result.poiName || \'\')}',
-  'companionName=${encodeRouteValue(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}'
+	'poiCode=${encodeRouteValue(this.result.poiCode || \'\')}',
+	'poiName=${encodeRouteValue(this.result.poiName || \'\')}',
+	'companionName=${encodeRouteValue(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}',
+	'visionAgentContext=${encodeRouteValue(JSON.stringify(visionAgentContext))}',
+	"sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || '')}"
 ]) {
-  assert.ok(startRecordingBlock.includes(required), `Start recording route should avoid double encoding ${required}`)
+	assert.ok(startRecordingBlock.includes(required), `Start recording route should avoid double encoding ${required}`)
 }
 
 for (const required of [

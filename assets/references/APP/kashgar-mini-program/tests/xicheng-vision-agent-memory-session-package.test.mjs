@@ -36,8 +36,8 @@ for (const required of [
 
 assert.match(
   scanResult,
-  /createVisionAgentMemorySnapshot\(stage = 'current'\)[\s\S]*sceneDomainLabels:\s*this\.prioritizedSceneUnderstandingCards[\s\S]*serviceIntentLabels:\s*this\.prioritizedSceneServiceActions/,
-  'Memory snapshots should retain scene domains and service intents so later captures know what the visitor was looking at'
+  /createVisionAgentMemorySnapshot\(stage = 'current'\)[\s\S]*const sceneUnderstandingPackage = this\.visionAgentSceneUnderstandingPackage[\s\S]*sceneUnderstandingPackage[\s\S]*primarySceneDomainKey[\s\S]*sceneDomainLabels:\s*sceneUnderstandingPackage\.domainCards[\s\S]*serviceIntentLabels:\s*this\.prioritizedSceneServiceActions/,
+  'Memory snapshots should retain the shared scene understanding package, scene domains, and service intents so later captures know what the visitor was looking at'
 )
 
 assert.match(
@@ -56,6 +56,12 @@ assert.match(
   scanResult,
   /rememberVisionAgentServiceTask\(action = \{\}\)[\s\S]*memorySessionPackage:\s*this\.visionAgentMemorySessionPackage/,
   'Service task packages should carry the continuous memory session package into downstream actions'
+)
+
+assert.match(
+  scanResult,
+  /enrichedVisionAgentContext\(\)[\s\S]*const memorySessionPackage = this\.visionAgentMemorySessionPackage[\s\S]*visionAgentMemorySessionPackage:\s*memorySessionPackage[\s\S]*visionAgentMemorySessionText:[\s\S]*memorySessionSceneCount:/,
+  'Scan result should merge the current continuous memory session package into the route-carried Vision Agent context before entering Xiaojing or travelogue'
 )
 
 for (const required of [

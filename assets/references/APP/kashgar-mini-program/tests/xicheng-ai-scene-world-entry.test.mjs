@@ -18,17 +18,16 @@ assert.match(
 )
 
 for (const required of [
-  'home-world-entry',
-  '世界交互入口',
-  'AI识境',
-  '看见什么，就能问什么',
+  '扫一扫',
+  '拍照识别 · 文字识别 · 附近触发',
+  'home-scan-card',
   'worldEntrySignals',
   'worldEntrySummary',
   'buildSceneVisionContext',
   'buildSceneVisionEntryUrl',
   'startSceneVisionAgent'
 ]) {
-  assert.ok(home.includes(required), `Xicheng home should expose AI识境 world entry: ${required}`)
+  assert.ok(home.includes(required), `Xicheng home should preserve AI识境 context capability behind the approved scan entry: ${required}`)
 }
 
 assert.match(

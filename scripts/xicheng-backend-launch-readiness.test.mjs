@@ -31,6 +31,9 @@ describe('xicheng backend launch readiness', () => {
     const appService = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java'
     )
+    const appVo = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'
+    )
     const enums = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/enums/XunjingEnums.java'
     )
@@ -64,15 +67,34 @@ describe('xicheng backend launch readiness', () => {
     expect(triggerEngine).toContain('XunjingPoiMapper')
     expect(triggerEngine).toContain('loadDatabasePoiProfiles')
     expect(triggerEngine).toContain('selectPublishedListByRegionCode')
+    expect(triggerEngine).toContain('buildSceneSignalContextText')
+    expect(triggerEngine).toContain('detectSceneSignalIntent')
+    expect(triggerEngine).toContain('scene_context_alias')
+    expect(triggerEngine).toContain('containsAny(explicitText, List.of("游记", "记录", "拍照", "生成"))')
     expect(appService).toContain('recordTriggerResolveEventIfPossible')
     expect(appService).toContain('buildTriggerResolveEventPayload')
+    expect(appService).toContain('TRIGGER_SCENE_SIGNAL_TEXT_KEYS')
+    expect(appService).toContain('buildTriggerSceneSignalsPayload(reqVO.getSceneSignals())')
+    expect(appService).toContain('hydrateMultimodalTriggerMemoryFromPreviousResolve(reqVO)')
+    expect(appService).toContain('hydrateMultimodalTriggerMemoryFromPreviousAsk(resourcePackage, reqVO)')
+    expect(appService).toContain('shouldUsePreviousAskForTriggerMemory(previousAskEvent, previousResolveEvent)')
+    expect(appService).toContain('hasFreshMultimodalTriggerSignal(reqVO)')
+    expect(appService).not.toContain('payload.put("sceneSignals", reqVO.getSceneSignals())')
     expect(appService).toContain('EventType.TRIGGER_RESOLVE')
     expect(appService).toContain('resolveAppEventQrCode(reqVO, hasText(reqVO.getPackageCode()))')
     expect(appService).not.toContain('payload.put("imageBase64"')
+    expect(appVo).toContain('private Map<String, Object> sceneSignals;')
     expect(enums).toContain('TRIGGER_RESOLVE("TRIGGER_RESOLVE")')
     expect(enums).toContain('ERROR_FEEDBACK("ERROR_FEEDBACK")')
     expect(appTest).toContain('testResolveMultimodalTriggerUsesPublishedPoiFromDatabase')
+    expect(appTest).toContain('testResolveMultimodalTriggerUsesSceneSignalsForIntentAndContextMatch')
+    expect(appTest).toContain('testResolveMultimodalTriggerDoesNotTreatPhotoAdviceSceneSignalAsRecordIntent')
     expect(appTest).toContain('testResolveMultimodalTriggerRecordsRecognitionEventWhenPackageProvided')
+    expect(appTest).toContain('testResolveMultimodalTriggerRecordsSceneSignalsWithoutRawRecognitionContext')
+    expect(appTest).toContain('testResolveMultimodalTriggerHydratesContinuousContextFromPreviousTriggerEvent')
+    expect(appTest).toContain('testResolveMultimodalTriggerDoesNotReusePreviousSceneIntentWhenFreshOcrExists')
+    expect(appTest).toContain('testResolveMultimodalTriggerHydratesContinuousContextFromPreviousAskEvent')
+    expect(appTest).toContain('testResolveMultimodalTriggerUsesLatestAskWhenItIsNewerThanPreviousTrigger')
     expect(appTest).toContain('testRecordAppErrorFeedbackEventKeepsXichengContext')
     expect(appTest).toContain('testAnswerBlocksWhenReviewedSourcesDoNotMatchXichengPoiContext')
 

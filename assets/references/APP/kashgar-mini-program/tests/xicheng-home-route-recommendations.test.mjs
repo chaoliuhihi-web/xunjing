@@ -27,19 +27,62 @@ for (const required of [
 }
 
 for (const required of [
+  'hero-ask-card',
+  '问问小京',
+  '故事、路线和建筑',
+  '@click="askXiaojing"'
+]) {
+  assert.ok(home.includes(required), `Xicheng home should place Xiaojing ask entry in the hero ${required}`)
+}
+
+for (const required of [
+  'class="home-action-duo"',
+  '扫一扫',
+  'id="xicheng-recent-recognition-section"',
+  '最近识别：',
+  '开始讲解'
+]) {
+  assert.ok(home.includes(required), `Xicheng home should pair scan with recent recognition in the primary action row ${required}`)
+}
+
+for (const required of [
   'id="xicheng-map-entry-section"',
   '文旅地图',
   'POI 地图 · 路线推荐',
+  '游记生成',
+  'AI 帮你记录行程，生成专属游记',
   'openXichengRoutes',
   '/pages/xicheng/routes/routes?'
 ]) {
-  assert.ok(home.includes(required), `Xicheng home should expose only a compact map entry ${required}`)
+  assert.ok(home.includes(required), `Xicheng home should pair map and travelogue generation entries ${required}`)
 }
+
+for (const required of [
+  'id="xicheng-home-route-recommendation-section"',
+  '路线推荐',
+  '官方 Citywalk',
+  '一键抄作业',
+  'homeRouteRecommendations',
+  'v-for="route in homeRouteRecommendations"',
+  'openHomeRecommendedRoute(route)',
+  '查看路线'
+]) {
+  assert.ok(home.includes(required), `Xicheng home should keep a compact route recommendation section ${required}`)
+}
+
+assert.match(
+  home,
+  /class="hero[\s\S]*hero-ask-card[\s\S]*class="home-action-duo"[\s\S]*startScanRecognition[\s\S]*id="xicheng-recent-recognition-section"[\s\S]*id="xicheng-map-entry-section"[\s\S]*文旅地图[\s\S]*游记生成[\s\S]*id="xicheng-home-route-recommendation-section"/,
+  'Xicheng home should order modules as hero Xiaojing, scan with recent recognition, map with travelogue generation, then route recommendations'
+)
+
+assert.ok(!home.includes('更多路线'), 'Xicheng home route CTA should be renamed from 更多路线 to 一键抄作业')
+assert.ok(!home.includes('生成我的西城游记'), 'Xicheng home travelogue entry should use the shorter 游记生成 label')
 
 assert.doesNotMatch(
   home,
-  /filteredRecommendedRoutes|route-recommendation-section|route-reference-grid|v-for="route in filteredRecommendedRoutes\.slice\(0, 3\)"|openRecommendedRoute\(route = \{\}\)|createXichengOfficialPoiSources/,
-  'Home should not own route recommendation rendering or route material persistence after route recommendations move to the cultural map page'
+  /createXichengOfficialPoiSources|mergeXichengOfficialRouteMaterials|persistRoutePassport\(route = \{\}\)/,
+  'Home route recommendations should stay lightweight and leave route material persistence to the cultural map/detail flow'
 )
 
 for (const required of [

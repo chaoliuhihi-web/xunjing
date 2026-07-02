@@ -120,6 +120,18 @@ assert.equal(
   `release artifact scanner should allow the legacy online api2 base while Yudao APP API uses the release gateway: ${legacyOnlineApiResult.stderr || legacyOnlineApiResult.stdout}`
 )
 
+const minifiedLegacyConfigDir = makeArtifactDir({
+  'assets/app-service.js': 'const k={UrlImg:"https://kashi.weiapp.net",UrlRequest:"https://kashi.weiapp.net/",UrlYudaoAppRequest:"https://xunjingapi.xingheai.net/",XunjingTenantId:"1"};'
+})
+const minifiedLegacyConfigResult = runScanner(minifiedLegacyConfigDir, {
+  XUNJING_APP_API_BASE_URL: 'https://xunjingapi.xingheai.net'
+})
+assert.equal(
+  minifiedLegacyConfigResult.status,
+  0,
+  `release artifact scanner should allow minified legacy UrlRequest fields when UrlYudaoAppRequest embeds the configured Yudao gateway: ${minifiedLegacyConfigResult.stderr || minifiedLegacyConfigResult.stdout}`
+)
+
 const svgNamespaceDir = makeArtifactDir({
   'assets/index.js': 'const apiBase="https://api.xingheai.net";const tenantId="1";const icon="<svg xmlns=\\"http://www.w3.org/2000/svg\\"></svg>";'
 })

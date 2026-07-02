@@ -10,7 +10,7 @@ const normalizeBlock = aiGuide.match(/const normalizeXunjingAiResponse\s*=\s*\(r
 
 assert.match(
   aiGuide,
-  /import \{ normalizeXichengAiChatResponse \} from '@\/request\/xunjing\/chat\.js'/,
+  /import \{[^}]*normalizeXichengAiChatResponse[^}]*\} from '@\/request\/xunjing\/chat\.js'/,
   'AI guide should import the Xicheng chat facade response normalizer'
 )
 

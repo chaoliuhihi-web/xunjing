@@ -3,7 +3,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const root = process.cwd()
+const workspaceRoot = path.resolve(root, '../../../..')
 const checklistPath = path.join(root, 'docs', 'xicheng-app-release-checklist.md')
+const productionEnvExamplePath = path.join(workspaceRoot, 'ops', 'xicheng-production.env.example')
 
 assert.ok(
   fs.existsSync(checklistPath),
@@ -11,6 +13,13 @@ assert.ok(
 )
 
 const checklist = fs.readFileSync(checklistPath, 'utf8')
+const productionEnvExample = fs.readFileSync(productionEnvExamplePath, 'utf8')
+const productionApiBaseUrl = productionEnvExample.match(/^XUNJING_APP_API_BASE_URL=(\S+)$/m)?.[1]
+
+assert.ok(
+  productionApiBaseUrl,
+  'Production env example should declare XUNJING_APP_API_BASE_URL for release checklist alignment'
+)
 
 for (const required of [
   'main',
@@ -32,6 +41,7 @@ for (const required of [
   'XICHENG_DEVELOPMENT_TRIGGER_FIXTURE',
   'XUNJING_APP_API_BASE_URL',
   'XUNJING_RELEASE_ENV_FILE',
+  `XUNJING_APP_API_BASE_URL=${productionApiBaseUrl}`,
   'XUNJING_PLATFORM_ENV_FILE',
   'WX_MP_APP_ID',
   'WX_MP_SECRET',
@@ -71,6 +81,12 @@ assert.doesNotMatch(
   checklist,
   /product\/city-companion-main` 是稳定主线，不直接开发/,
   'Xicheng APP release checklist should not keep the old stable-mainline branch policy after development moved to main'
+)
+
+assert.doesNotMatch(
+  checklist,
+  /XUNJING_APP_API_BASE_URL=https:\/\/api\.xingheai\.net/,
+  'Xicheng APP release checklist should not point operators at the unresolved api.xingheai.net gateway'
 )
 
 assert.doesNotMatch(

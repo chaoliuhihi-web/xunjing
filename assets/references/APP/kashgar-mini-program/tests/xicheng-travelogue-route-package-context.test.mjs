@@ -8,7 +8,7 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 
-const startRecordingBlock = scanResult.match(/startRecording\(\)[\s\S]*?\n\t\t\},\n\t\tcreateRouteCheckinEvent/)?.[0] || ''
+const startRecordingBlock = scanResult.match(/startRecording\(\)[\s\S]*?\n\t+\},\n\t\tcreateRouteCheckinEvent/)?.[0] || ''
 const loadJourneyBlock = travelogue.match(/async loadJourney\(options = \{\}\)[\s\S]*?\n\t\t\},\n\t\tshouldAutoStartRecording/)?.[0] || ''
 const shouldAutoStartBlock = travelogue.match(/shouldAutoStartRecording\(options = \{\}\)[\s\S]*?\n\t\t\},\n\t\topenPrivacyPolicy/)?.[0] || ''
 

@@ -5,6 +5,14 @@ import path from 'node:path'
 const root = process.cwd()
 const component = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengSocialSharePreview.vue'), 'utf8')
 const share = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'share', 'share.vue'), 'utf8')
+const preflightPath = path.join(root, 'components', 'xicheng', 'XichengPublishPreflightPanel.vue')
+
+assert.ok(
+  fs.existsSync(preflightPath),
+  'Share page should split publish preflight checks into XichengPublishPreflightPanel instead of hiding them in the page shell'
+)
+
+const preflight = fs.readFileSync(preflightPath, 'utf8')
 
 for (const token of [
   '朋友圈预览',
@@ -62,10 +70,60 @@ assert.match(
   'Share page should continue wiring channel preview actions through the split component'
 )
 
+for (const token of [
+  '发布前检查',
+  '隐私范围',
+  '已审核来源',
+  '素材生成',
+  '用户确认',
+  '系统分享确认',
+  '精确位置已隐藏',
+  '来源可公开',
+  '素材已准备',
+  '待生成素材',
+  'preflight-grid',
+  'preflight-row',
+  'preflight-status-ready'
+]) {
+  assert.ok(preflight.includes(token), `Publish preflight panel should expose approved token: ${token}`)
+}
+
+assert.match(
+  preflight,
+  /v-for="item in normalizedItems"[\s\S]*item\.title[\s\S]*item\.status[\s\S]*item\.desc/,
+  'Publish preflight panel should render data-driven preflight rows for APP-side release checks'
+)
+
+assert.match(
+  share,
+  /import XichengPublishPreflightPanel from '@\/components\/xicheng\/XichengPublishPreflightPanel\.vue'[\s\S]*XichengPublishPreflightPanel,/,
+  'Share page should import and register the publish preflight component'
+)
+
+assert.match(
+  share,
+  /<xicheng-publish-preflight-panel[\s\S]*:items="publishPreflightItems"[\s\S]*:selected-channel="selectedPublishChannel"/,
+  'Share page should render publish preflight status between channel selection and final review'
+)
+
+const publishPreflightBlock = share.match(/publishPreflightItems\(\)[\s\S]*?\n\t\t\},\n\t\tcurrentVisionAgentShareBoundary/)?.[0] || ''
+for (const token of [
+  'shareSettingState.hideExactLocation',
+  'reviewedSourceCount',
+  'getSelectedChannelArtifactCount()',
+  '系统分享确认'
+]) {
+  assert.ok(
+    publishPreflightBlock.includes(token),
+    `Share page should derive preflight checks from privacy settings, reviewed source count, generated assets, and platform confirmation: ${token}`
+  )
+}
+
 assert.ok(component.split(/\r?\n/).length < 360, 'Social share preview component should stay compact for APP packaging')
+assert.ok(preflight.split(/\r?\n/).length < 260, 'Publish preflight panel should stay compact for APP packaging')
 
 assert.doesNotMatch(
-  component,
+  `${component}\n${preflight}`,
   /\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}|background-location|startLocationUpdateBackground/,
-  'Social share preview should not introduce backend calls, client secrets, or high-risk background permissions'
+  'Social share preview and preflight panel should not introduce backend calls, client secrets, or high-risk background permissions'
 )

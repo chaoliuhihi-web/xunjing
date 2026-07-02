@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import cn.iocoder.yudao.module.ai.dal.dataobject.model.AiModelDO;
 import cn.iocoder.yudao.module.ai.enums.model.AiModelTypeEnum;
 import cn.iocoder.yudao.module.ai.enums.model.AiPlatformEnum;
@@ -74,6 +75,7 @@ import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -96,6 +98,21 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     private static final String QUOTA_SCOPE_PACKAGE = "PACKAGE";
     private static final String QUOTA_SCOPE_QRCODE = "QRCODE";
     private static final String QUOTA_SCOPE_USER = "USER";
+    private static final int TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH = 200;
+    private static final int CHAT_CONTEXT_TEXT_MAX_LENGTH = 200;
+    private static final List<String> TRIGGER_SCENE_SIGNAL_TEXT_KEYS = List.of(
+            "sceneFusionSummary",
+            "worldInterfaceSummary",
+            "localTimeText",
+            "weatherText",
+            "headingText",
+            "sceneDomainIntentKey",
+            "sceneDomainIntentLabel",
+            "sceneDomainIntentTitle",
+            "sceneDomainIntentCopy",
+            "agentDecisionActionTitle",
+            "agentDecisionReasonSummary"
+    );
 
     @Resource
     private XunjingResourcePackageMapper resourcePackageMapper;
@@ -192,6 +209,8 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         XunjingResourcePackageDO resourcePackage = validatePublicPackage(reqVO.getPackageCode());
         validateExpectedResourceType(resourcePackage, expectedResourceType);
         XunjingQrCodeDO qrCode = resolveAnswerQrCode(reqVO, resourcePackage);
+        hydrateVisionAgentMemoryFromPreviousAsk(resourcePackage, reqVO);
+        hydrateVisionAgentContextFromPreviousTrigger(resourcePackage, reqVO);
         recordAskEvent(resourcePackage, reqVO);
 
         RagChatRespVO quotaBlocked = buildQuotaBlockedIfNeeded(resourcePackage, qrCode, reqVO);
@@ -255,9 +274,258 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public MultimodalTriggerRespVO resolveMultimodalTrigger(MultimodalTriggerReqVO reqVO) {
-        MultimodalTriggerRespVO respVO = multimodalTriggerEngine.resolve(reqVO);
-        recordTriggerResolveEventIfPossible(reqVO, respVO);
+        hydrateMultimodalTriggerMemoryFromPreviousResolve(reqVO);
+        MultimodalTriggerReqVO safeReqVO = reqVO == null ? new MultimodalTriggerReqVO() : reqVO;
+        MultimodalTriggerRespVO respVO = multimodalTriggerEngine.resolve(safeReqVO);
+        recordTriggerResolveEventIfPossible(safeReqVO, respVO);
         return respVO;
+    }
+
+    private void hydrateMultimodalTriggerMemoryFromPreviousResolve(MultimodalTriggerReqVO reqVO) {
+        if (reqVO == null || !hasText(reqVO.getPackageCode()) || !hasText(reqVO.getUserTraceId())) {
+            return;
+        }
+        XunjingResourcePackageDO resourcePackage = resourcePackageMapper.selectByPackageCodeAndStatus(
+                reqVO.getPackageCode(), PackageStatus.PUBLISHED.getStatus());
+        if (resourcePackage == null || resourcePackage.getId() == null) {
+            return;
+        }
+        XunjingInteractionEventDO previousResolveEvent =
+                selectLatestVisionAgentMemoryEvent(resourcePackage, reqVO, EventType.TRIGGER_RESOLVE.getType());
+        XunjingInteractionEventDO previousAskEvent =
+                selectLatestVisionAgentMemoryEvent(resourcePackage, reqVO, EventType.ASK.getType());
+        if (shouldUsePreviousAskForTriggerMemory(previousAskEvent, previousResolveEvent)
+                && hydrateMultimodalTriggerMemoryFromPreviousAsk(reqVO, previousAskEvent)) {
+            return;
+        }
+        if (hydrateMultimodalTriggerMemoryFromPreviousResolve(resourcePackage, reqVO)) {
+            return;
+        }
+        hydrateMultimodalTriggerMemoryFromPreviousAsk(resourcePackage, reqVO);
+    }
+
+    private XunjingInteractionEventDO selectLatestVisionAgentMemoryEvent(
+            XunjingResourcePackageDO resourcePackage, MultimodalTriggerReqVO reqVO, String eventType) {
+        return interactionEventMapper.selectLatestByPackageIdAndUserTraceIdAndEventType(
+                resourcePackage.getId(), reqVO.getUserTraceId(), eventType);
+    }
+
+    private boolean shouldUsePreviousAskForTriggerMemory(
+            XunjingInteractionEventDO previousAskEvent, XunjingInteractionEventDO previousResolveEvent) {
+        if (previousAskEvent == null || previousAskEvent.getId() == null) {
+            return false;
+        }
+        return previousResolveEvent == null || previousResolveEvent.getId() == null
+                || previousAskEvent.getId() > previousResolveEvent.getId();
+    }
+
+    private boolean hydrateMultimodalTriggerMemoryFromPreviousResolve(
+            XunjingResourcePackageDO resourcePackage, MultimodalTriggerReqVO reqVO) {
+        XunjingInteractionEventDO previousEvent =
+                selectLatestVisionAgentMemoryEvent(resourcePackage, reqVO, EventType.TRIGGER_RESOLVE.getType());
+        if (previousEvent == null || !hasText(previousEvent.getPayloadJson())) {
+            return false;
+        }
+        try {
+            JsonNode root = JsonUtils.parseTree(previousEvent.getPayloadJson());
+            if (root == null || root.isNull() || root.isMissingNode()) {
+                return false;
+            }
+            String poiCode = visionAgentContextText(root, "poiCode");
+            String poiName = visionAgentContextText(root, "poiName");
+            if (!hasText(poiCode) && !hasText(poiName)) {
+                return false;
+            }
+            hydratePreviousTriggerRecentPoi(reqVO, poiCode);
+            if (!hasFreshMultimodalTriggerSignal(reqVO)) {
+                hydratePreviousTriggerSceneSignals(reqVO, root);
+            }
+            return true;
+        } catch (RuntimeException ex) {
+            log.warn("[hydrateMultimodalTriggerMemoryFromPreviousResolve][eventId({}) parse failed]",
+                    previousEvent.getId(), ex);
+            return false;
+        }
+    }
+
+    private void hydrateMultimodalTriggerMemoryFromPreviousAsk(
+            XunjingResourcePackageDO resourcePackage, MultimodalTriggerReqVO reqVO) {
+        XunjingInteractionEventDO previousEvent =
+                selectLatestVisionAgentMemoryEvent(resourcePackage, reqVO, EventType.ASK.getType());
+        hydrateMultimodalTriggerMemoryFromPreviousAsk(reqVO, previousEvent);
+    }
+
+    private boolean hydrateMultimodalTriggerMemoryFromPreviousAsk(
+            MultimodalTriggerReqVO reqVO, XunjingInteractionEventDO previousEvent) {
+        if (previousEvent == null || !hasText(previousEvent.getPayloadJson())) {
+            return false;
+        }
+        try {
+            JsonNode root = JsonUtils.parseTree(previousEvent.getPayloadJson());
+            if (root == null || root.isNull() || root.isMissingNode()) {
+                return false;
+            }
+            JsonNode visionAgentContext = root.path("visionAgentContext");
+            String poiCode = visionAgentContextText(root, "poiCode");
+            String poiName = visionAgentContextText(root, "poiName");
+            if (!hasText(poiCode) && !hasText(poiName)) {
+                return false;
+            }
+            hydratePreviousTriggerRecentPoi(reqVO, poiCode);
+            if (!hasFreshMultimodalTriggerSignal(reqVO)) {
+                hydratePreviousAskSceneSignals(reqVO, root, visionAgentContext);
+            }
+            return true;
+        } catch (RuntimeException ex) {
+            log.warn("[hydrateMultimodalTriggerMemoryFromPreviousAsk][eventId({}) parse failed]",
+                    previousEvent.getId(), ex);
+            return false;
+        }
+    }
+
+    private boolean hasFreshMultimodalTriggerSignal(MultimodalTriggerReqVO reqVO) {
+        return hasText(reqVO.getOcrText())
+                || hasTriggerCoordinate(reqVO.getLocation())
+                || (reqVO.getPhotoMeta() != null && hasTriggerCoordinate(reqVO.getPhotoMeta().getExifLocation()));
+    }
+
+    private boolean hasTriggerCoordinate(LocationPointReqVO location) {
+        return location != null && location.getLatitude() != null && location.getLongitude() != null;
+    }
+
+    private void hydratePreviousTriggerRecentPoi(MultimodalTriggerReqVO reqVO, String poiCode) {
+        if (!hasText(poiCode)) {
+            return;
+        }
+        List<String> recentPoiCodes = new ArrayList<>();
+        if (reqVO.getRecentPoiCodes() != null) {
+            recentPoiCodes.addAll(reqVO.getRecentPoiCodes());
+        }
+        if (!recentPoiCodes.contains(poiCode)) {
+            recentPoiCodes.add(0, poiCode);
+        }
+        reqVO.setRecentPoiCodes(recentPoiCodes);
+    }
+
+    private void hydratePreviousTriggerSceneSignals(MultimodalTriggerReqVO reqVO, JsonNode root) {
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        if (reqVO.getSceneSignals() != null) {
+            sceneSignals.putAll(reqVO.getSceneSignals());
+        }
+        JsonNode previousSignals = root.path("sceneSignals");
+        putSceneSignalIfAbsent(sceneSignals, "sceneFusionSummary",
+                buildContinuousTriggerSceneFusionSummary(root));
+        putSceneSignalIfAbsent(sceneSignals, "worldInterfaceSummary",
+                buildContinuousTriggerWorldInterfaceSummary(previousSignals));
+        putSceneSignalIfAbsent(sceneSignals, "sceneDomainIntentKey",
+                visionAgentContextText(previousSignals, "sceneDomainIntentKey"));
+        putSceneSignalIfAbsent(sceneSignals, "sceneDomainIntentLabel",
+                visionAgentContextText(previousSignals, "sceneDomainIntentLabel"));
+        putSceneSignalIfAbsent(sceneSignals, "agentDecisionReasonSummary",
+                buildContinuousTriggerDecisionReasonSummary(root, previousSignals));
+        if (!sceneSignals.containsKey("memorySessionSceneCount")) {
+            int previousCount = previousSignals.path("memorySessionSceneCount").asInt(1);
+            sceneSignals.put("memorySessionSceneCount", Math.max(previousCount, 1) + 1);
+        }
+        reqVO.setSceneSignals(sceneSignals);
+    }
+
+    private void hydratePreviousAskSceneSignals(
+            MultimodalTriggerReqVO reqVO, JsonNode root, JsonNode visionAgentContext) {
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        if (reqVO.getSceneSignals() != null) {
+            sceneSignals.putAll(reqVO.getSceneSignals());
+        }
+        putSceneSignalIfAbsent(sceneSignals, "sceneFusionSummary",
+                buildContinuousAskSceneFusionSummary(root, visionAgentContext));
+        putSceneSignalIfAbsent(sceneSignals, "worldInterfaceSummary",
+                buildContinuousAskWorldInterfaceSummary(visionAgentContext));
+        putSceneSignalIfAbsent(sceneSignals, "sceneDomainIntentKey",
+                visionAgentContextText(visionAgentContext, "primarySceneDomainKey"));
+        putSceneSignalIfAbsent(sceneSignals, "sceneDomainIntentLabel",
+                visionAgentContextText(visionAgentContext, "primarySceneDomainLabel"));
+        putSceneSignalIfAbsent(sceneSignals, "agentDecisionReasonSummary",
+                buildContinuousAskDecisionReasonSummary(visionAgentContext));
+        if (!sceneSignals.containsKey("memorySessionSceneCount")) {
+            int previousCount = visionAgentContext.path("memorySessionSceneCount").asInt(1);
+            sceneSignals.put("memorySessionSceneCount", Math.max(previousCount, 1) + 1);
+        }
+        reqVO.setSceneSignals(sceneSignals);
+    }
+
+    private String buildContinuousTriggerSceneFusionSummary(JsonNode root) {
+        String poiName = visionAgentContextText(root, "poiName");
+        String poiCode = visionAgentContextText(root, "poiCode");
+        String reason = visionAgentContextText(root, "reason");
+        List<String> parts = new ArrayList<>();
+        if (hasText(poiName)) {
+            parts.add("上一轮识别到" + poiName);
+        } else if (hasText(poiCode)) {
+            parts.add("上一轮识别到" + poiCode);
+        }
+        if (hasText(reason)) {
+            parts.add(reason);
+        }
+        return parts.isEmpty() ? "" : truncateForEvent("连续识境：" + String.join("；", parts),
+                TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+    }
+
+    private String buildContinuousAskSceneFusionSummary(JsonNode root, JsonNode visionAgentContext) {
+        String previousScene = visionAgentContextText(visionAgentContext, "sceneFusionSummary");
+        if (hasText(previousScene)) {
+            return truncateForEvent("连续识境：" + previousScene, TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+        }
+        String poiName = visionAgentContextText(root, "poiName");
+        String question = visionAgentContextText(root, "question");
+        List<String> parts = new ArrayList<>();
+        if (hasText(poiName)) {
+            parts.add("上一轮问答对象=" + poiName);
+        }
+        if (hasText(question)) {
+            parts.add("上一轮问题=" + question);
+        }
+        return parts.isEmpty() ? "" : truncateForEvent("连续识境：" + String.join("；", parts),
+                TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+    }
+
+    private String buildContinuousTriggerWorldInterfaceSummary(JsonNode previousSignals) {
+        String previousWorld = visionAgentContextText(previousSignals, "worldInterfaceSummary");
+        if (hasText(previousWorld)) {
+            return truncateForEvent("连续识境：" + previousWorld, TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+        }
+        return "相机沿用上一轮识境上下文，等待用户确认是否继续当前场景。";
+    }
+
+    private String buildContinuousAskWorldInterfaceSummary(JsonNode visionAgentContext) {
+        String previousWorld = visionAgentContextText(visionAgentContext, "worldInterfaceSummary");
+        if (hasText(previousWorld)) {
+            return truncateForEvent("连续识境：" + previousWorld, TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+        }
+        return "相机沿用上一轮问答上下文，等待用户确认是否继续当前场景。";
+    }
+
+    private String buildContinuousTriggerDecisionReasonSummary(JsonNode root, JsonNode previousSignals) {
+        String previousReason = visionAgentContextText(previousSignals, "agentDecisionReasonSummary");
+        if (hasText(previousReason)) {
+            return previousReason;
+        }
+        String reason = visionAgentContextText(root, "reason");
+        return hasText(reason) ? "上一轮触发理由：" + reason : "";
+    }
+
+    private String buildContinuousAskDecisionReasonSummary(JsonNode visionAgentContext) {
+        String previousReason = visionAgentContextText(visionAgentContext, "decisionReasonSummary");
+        if (hasText(previousReason)) {
+            return previousReason;
+        }
+        String previousAction = visionAgentContextText(visionAgentContext, "decisionActionTitle");
+        return hasText(previousAction) ? "上一轮 Agent 建议：" + previousAction : "";
+    }
+
+    private void putSceneSignalIfAbsent(Map<String, Object> sceneSignals, String key, String value) {
+        if (!sceneSignals.containsKey(key) && hasText(value)) {
+            sceneSignals.put(key, truncateForEvent(value.trim(), TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH));
+        }
     }
 
     @Override
@@ -592,7 +860,292 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         payload.put("poiCode", defaultIfBlank(reqVO.getPoiCode(), ""));
         payload.put("poiName", defaultIfBlank(reqVO.getPoiName(), ""));
         payload.put("routeId", defaultIfBlank(reqVO.getRouteId(), ""));
+        payload.put("visionAgentContext", buildVisionAgentChatContextPayload(reqVO));
         return JsonUtils.toJsonString(payload);
+    }
+
+    private void hydrateVisionAgentMemoryFromPreviousAsk(XunjingResourcePackageDO resourcePackage, RagChatReqVO reqVO) {
+        if (hasText(reqVO.getVisionAgentMemorySessionText()) || !hasText(reqVO.getUserTraceId())) {
+            return;
+        }
+        XunjingInteractionEventDO previousEvent =
+                interactionEventMapper.selectLatestByPackageIdAndUserTraceIdAndEventType(
+                        resourcePackage.getId(), reqVO.getUserTraceId(), EventType.ASK.getType());
+        if (previousEvent == null || !hasText(previousEvent.getPayloadJson())) {
+            return;
+        }
+        try {
+            JsonNode root = JsonUtils.parseTree(previousEvent.getPayloadJson());
+            JsonNode visionAgentContext = root == null ? null : root.get("visionAgentContext");
+            String memoryText = buildPreviousVisionAgentMemoryText(visionAgentContext);
+            if (!hasText(memoryText)) {
+                return;
+            }
+            reqVO.setVisionAgentMemorySessionText(memoryText);
+            if (reqVO.getVisionAgentMemorySessionSceneCount() == null
+                    || reqVO.getVisionAgentMemorySessionSceneCount() <= 0) {
+                int previousSceneCount = visionAgentContext.path("memorySessionSceneCount").asInt(0);
+                reqVO.setVisionAgentMemorySessionSceneCount(previousSceneCount > 0 ? previousSceneCount : 1);
+            }
+            if (!Boolean.TRUE.equals(reqVO.getVisionAgentContextAvailable())) {
+                reqVO.setVisionAgentContextAvailable(true);
+            }
+        } catch (RuntimeException ex) {
+            log.warn("[hydrateVisionAgentMemoryFromPreviousAsk][eventId({}) parse failed]",
+                    previousEvent.getId(), ex);
+        }
+    }
+
+    private void hydrateVisionAgentContextFromPreviousTrigger(
+            XunjingResourcePackageDO resourcePackage, RagChatReqVO reqVO) {
+        if (!hasText(reqVO.getUserTraceId()) || hasCompleteSceneContext(reqVO)) {
+            return;
+        }
+        XunjingInteractionEventDO previousEvent =
+                interactionEventMapper.selectLatestByPackageIdAndUserTraceIdAndEventType(
+                        resourcePackage.getId(), reqVO.getUserTraceId(), EventType.TRIGGER_RESOLVE.getType());
+        if (previousEvent == null || !hasText(previousEvent.getPayloadJson())) {
+            return;
+        }
+        try {
+            JsonNode root = JsonUtils.parseTree(previousEvent.getPayloadJson());
+            if (root == null || root.isNull() || root.isMissingNode()) {
+                return;
+            }
+            hydrateTriggerPoiContext(reqVO, root);
+            JsonNode sceneSignals = root.path("sceneSignals");
+            if (!hasText(reqVO.getVisionAgentMemorySessionText())) {
+                String memoryText = buildPreviousTriggerMemoryText(root, sceneSignals);
+                if (hasText(memoryText)) {
+                    reqVO.setVisionAgentMemorySessionText(memoryText);
+                }
+            }
+            hydrateTriggerSceneSignalText(reqVO, sceneSignals);
+            hydrateTriggerSceneCount(reqVO, sceneSignals);
+            hydrateTriggerServiceHandoff(reqVO, root);
+            if (!Boolean.TRUE.equals(reqVO.getVisionAgentContextAvailable())
+                    && (hasText(reqVO.getVisionAgentMemorySessionText()) || hasText(reqVO.getPoiName()))) {
+                reqVO.setVisionAgentContextAvailable(true);
+            }
+        } catch (RuntimeException ex) {
+            log.warn("[hydrateVisionAgentContextFromPreviousTrigger][eventId({}) parse failed]",
+                    previousEvent.getId(), ex);
+        }
+    }
+
+    private boolean hasCompleteSceneContext(RagChatReqVO reqVO) {
+        return hasText(reqVO.getVisionAgentMemorySessionText())
+                && hasText(reqVO.getRegionCode())
+                && hasText(reqVO.getPoiCode())
+                && hasText(reqVO.getPoiName());
+    }
+
+    private void hydrateTriggerPoiContext(RagChatReqVO reqVO, JsonNode root) {
+        putReqTextIfBlank(reqVO::getRegionCode, reqVO::setRegionCode, root, "regionCode");
+        putReqTextIfBlank(reqVO::getPoiCode, reqVO::setPoiCode, root, "poiCode");
+        putReqTextIfBlank(reqVO::getPoiName, reqVO::setPoiName, root, "poiName");
+    }
+
+    private String buildPreviousTriggerMemoryText(JsonNode root, JsonNode sceneSignals) {
+        List<String> parts = new ArrayList<>();
+        putPreviousJsonMemoryPart(parts, "识别对象", root, "poiName");
+        putPreviousJsonMemoryPart(parts, "识别原因", root, "reason");
+        putPreviousJsonMemoryPart(parts, "上次识境", sceneSignals, "sceneFusionSummary");
+        putPreviousJsonMemoryPart(parts, "上次世界入口", sceneSignals, "worldInterfaceSummary");
+        String domain = previousTriggerDomainText(sceneSignals);
+        if (hasText(domain)) {
+            parts.add("场景域=" + domain);
+        }
+        putPreviousJsonMemoryPart(parts, "Agent理由", sceneSignals, "agentDecisionReasonSummary");
+        putPreviousJsonMemoryPart(parts, "OCR", root, "ocrText");
+        return String.join("；", parts);
+    }
+
+    private void hydrateTriggerSceneSignalText(RagChatReqVO reqVO, JsonNode sceneSignals) {
+        putReqTextIfBlank(reqVO::getVisionAgentSceneFusionSummary, reqVO::setVisionAgentSceneFusionSummary,
+                sceneSignals, "sceneFusionSummary");
+        putReqTextIfBlank(reqVO::getVisionAgentWorldInterfaceSummary, reqVO::setVisionAgentWorldInterfaceSummary,
+                sceneSignals, "worldInterfaceSummary");
+        putReqTextIfBlank(reqVO::getVisionAgentPrimarySceneDomainKey, reqVO::setVisionAgentPrimarySceneDomainKey,
+                sceneSignals, "sceneDomainIntentKey");
+        putReqTextIfBlank(reqVO::getVisionAgentPrimarySceneDomainLabel, reqVO::setVisionAgentPrimarySceneDomainLabel,
+                sceneSignals, "sceneDomainIntentLabel");
+        putReqTextIfBlank(reqVO::getVisionAgentDecisionActionTitle, reqVO::setVisionAgentDecisionActionTitle,
+                sceneSignals, "agentDecisionActionTitle");
+        putReqTextIfBlank(reqVO::getVisionAgentDecisionReasonSummary, reqVO::setVisionAgentDecisionReasonSummary,
+                sceneSignals, "agentDecisionReasonSummary");
+        putReqTextIfBlank(reqVO::getVisionAgentLocalTimeText, reqVO::setVisionAgentLocalTimeText,
+                sceneSignals, "localTimeText");
+        putReqTextIfBlank(reqVO::getVisionAgentWeatherText, reqVO::setVisionAgentWeatherText,
+                sceneSignals, "weatherText");
+        putReqTextIfBlank(reqVO::getVisionAgentHeadingText, reqVO::setVisionAgentHeadingText,
+                sceneSignals, "headingText");
+    }
+
+    private void hydrateTriggerServiceHandoff(RagChatReqVO reqVO, JsonNode root) {
+        String action = visionAgentContextText(root, "action");
+        String intent = visionAgentContextText(root, "intent");
+        String triggerType = visionAgentContextText(root, "triggerType");
+        if (!hasText(action) && !hasText(intent)) {
+            return;
+        }
+        putTextIfBlank(reqVO::getServiceHandoffActionKey, reqVO::setServiceHandoffActionKey, action);
+        putTextIfBlank(reqVO::getServiceHandoffTaskType, reqVO::setServiceHandoffTaskType, triggerType);
+        putTextIfBlank(reqVO::getServiceHandoffIntent, reqVO::setServiceHandoffIntent, intent);
+        putTextIfBlank(reqVO::getServiceHandoffIntentText, reqVO::setServiceHandoffIntentText,
+                triggerIntentText(intent));
+        putTextIfBlank(reqVO::getServiceHandoffStepText, reqVO::setServiceHandoffStepText,
+                triggerConfirmText(root.path("requiresUserConfirm").asBoolean(false)));
+        putTextIfBlank(reqVO::getServiceHandoffSummary, reqVO::setServiceHandoffSummary,
+                buildTriggerServiceHandoffSummary(action, intent, root));
+        putTextIfBlank(reqVO::getVisionAgentDecisionActionTitle, reqVO::setVisionAgentDecisionActionTitle,
+                triggerActionTitle(action, intent));
+    }
+
+    private String buildTriggerServiceHandoffSummary(String action, String intent, JsonNode root) {
+        List<String> parts = new ArrayList<>();
+        if (hasText(action)) {
+            parts.add("上一轮识境动作=" + action);
+        }
+        if (hasText(intent)) {
+            parts.add("意图=" + intent);
+        }
+        parts.add("需用户确认=" + root.path("requiresUserConfirm").asBoolean(false));
+        putPreviousJsonMemoryPart(parts, "触发理由", root, "reason");
+        return String.join("；", parts);
+    }
+
+    private String triggerActionTitle(String action, String intent) {
+        if ("open_route_recommendation".equals(action) || "confirm_route_recommendation".equals(action)) {
+            return "推荐下一站路线";
+        }
+        if ("open_food_recommendation".equals(action) || "confirm_food_recommendation".equals(action)) {
+            return "推荐附近美食";
+        }
+        if ("start_travel_note".equals(action) || "confirm_travel_note".equals(action)) {
+            return "生成旅行记录";
+        }
+        if ("start_ai_guide".equals(action) || "confirm_ai_guide".equals(action)) {
+            return "开始 AI 讲解";
+        }
+        if ("ask_ai_companion".equals(action)) {
+            return "继续问 AI 旅伴";
+        }
+        if ("route".equals(intent)) {
+            return "推荐下一站路线";
+        }
+        if ("food".equals(intent)) {
+            return "推荐附近美食";
+        }
+        if ("record".equals(intent)) {
+            return "生成旅行记录";
+        }
+        return hasText(action) ? action : intent;
+    }
+
+    private String triggerIntentText(String intent) {
+        if ("route".equals(intent)) {
+            return "路线推荐";
+        }
+        if ("food".equals(intent)) {
+            return "美食推荐";
+        }
+        if ("record".equals(intent)) {
+            return "旅行记录";
+        }
+        if ("guide".equals(intent)) {
+            return "AI 讲解";
+        }
+        return intent;
+    }
+
+    private String triggerConfirmText(boolean requiresUserConfirm) {
+        return requiresUserConfirm ? "需要用户确认" : "无需用户确认";
+    }
+
+    private void hydrateTriggerSceneCount(RagChatReqVO reqVO, JsonNode sceneSignals) {
+        if (reqVO.getVisionAgentMemorySessionSceneCount() != null
+                && reqVO.getVisionAgentMemorySessionSceneCount() > 0) {
+            return;
+        }
+        int previousSceneCount = sceneSignals.path("memorySessionSceneCount").asInt(0);
+        reqVO.setVisionAgentMemorySessionSceneCount(previousSceneCount > 0 ? previousSceneCount : 1);
+    }
+
+    private String previousTriggerDomainText(JsonNode sceneSignals) {
+        String key = visionAgentContextText(sceneSignals, "sceneDomainIntentKey");
+        String label = visionAgentContextText(sceneSignals, "sceneDomainIntentLabel");
+        if (hasText(key) && hasText(label)) {
+            return key + "/" + label;
+        }
+        return hasText(key) ? key : label;
+    }
+
+    private void putPreviousJsonMemoryPart(List<String> parts, String label, JsonNode context, String key) {
+        String text = visionAgentContextText(context, key);
+        if (hasText(text)) {
+            parts.add(label + "=" + text);
+        }
+    }
+
+    private void putReqTextIfBlank(
+            java.util.function.Supplier<String> getter, java.util.function.Consumer<String> setter,
+            JsonNode context, String key) {
+        if (hasText(getter.get())) {
+            return;
+        }
+        String text = visionAgentContextText(context, key);
+        if (hasText(text)) {
+            setter.accept(text);
+        }
+    }
+
+    private void putTextIfBlank(
+            java.util.function.Supplier<String> getter, java.util.function.Consumer<String> setter, String text) {
+        if (!hasText(getter.get()) && hasText(text)) {
+            setter.accept(truncateForEvent(text.trim(), CHAT_CONTEXT_TEXT_MAX_LENGTH));
+        }
+    }
+
+    private String buildPreviousVisionAgentMemoryText(JsonNode visionAgentContext) {
+        if (visionAgentContext == null || visionAgentContext.isNull() || visionAgentContext.isMissingNode()) {
+            return "";
+        }
+        List<String> parts = new ArrayList<>();
+        putPreviousVisionMemoryPart(parts, "上次识境", visionAgentContext, "sceneFusionSummary");
+        putPreviousVisionMemoryPart(parts, "上次世界入口", visionAgentContext, "worldInterfaceSummary");
+        String domain = previousVisionAgentDomainText(visionAgentContext);
+        if (hasText(domain)) {
+            parts.add("场景域=" + domain);
+        }
+        putPreviousVisionMemoryPart(parts, "场景理解", visionAgentContext, "sceneUnderstandingSummary");
+        putPreviousVisionMemoryPart(parts, "Agent理由", visionAgentContext, "decisionReasonSummary");
+        putPreviousVisionMemoryPart(parts, "服务承接", visionAgentContext, "serviceHandoffSummary");
+        return String.join("；", parts);
+    }
+
+    private void putPreviousVisionMemoryPart(List<String> parts, String label, JsonNode context, String key) {
+        String text = visionAgentContextText(context, key);
+        if (hasText(text)) {
+            parts.add(label + "=" + text);
+        }
+    }
+
+    private String previousVisionAgentDomainText(JsonNode context) {
+        String key = visionAgentContextText(context, "primarySceneDomainKey");
+        String label = visionAgentContextText(context, "primarySceneDomainLabel");
+        if (hasText(key) && hasText(label)) {
+            return key + "/" + label;
+        }
+        return hasText(key) ? key : label;
+    }
+
+    private String visionAgentContextText(JsonNode context, String key) {
+        if (context == null || context.get(key) == null || context.get(key).isNull()) {
+            return "";
+        }
+        String text = context.get(key).asText("").trim();
+        return hasText(text) ? truncateForEvent(text, CHAT_CONTEXT_TEXT_MAX_LENGTH) : "";
     }
 
     private void recordTriggerResolveEventIfPossible(MultimodalTriggerReqVO reqVO, MultimodalTriggerRespVO respVO) {
@@ -629,11 +1182,66 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         payload.put("ocrText", truncateForEvent(reqVO.getOcrText(), 200));
         payload.put("imageLabelCount", reqVO.getImageLabels() == null ? 0 : reqVO.getImageLabels().size());
         payload.put("recentPoiCount", reqVO.getRecentPoiCodes() == null ? 0 : reqVO.getRecentPoiCodes().size());
+        payload.put("sceneSignals", buildTriggerSceneSignalsPayload(reqVO.getSceneSignals()));
         payload.put("location", buildTriggerLocationPayload(reqVO.getLocation()));
         payload.put("photoMeta", buildTriggerPhotoMetaPayload(reqVO.getPhotoMeta()));
         payload.put("candidateCount", respVO.getCandidates() == null ? 0 : respVO.getCandidates().size());
         payload.put("sourceCount", respVO.getSources() == null ? 0 : respVO.getSources().size());
         return JsonUtils.toJsonString(payload);
+    }
+
+    private Map<String, Object> buildTriggerSceneSignalsPayload(Map<String, Object> sceneSignals) {
+        if (sceneSignals == null || sceneSignals.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        for (String key : TRIGGER_SCENE_SIGNAL_TEXT_KEYS) {
+            putTriggerSceneSignalText(payload, sceneSignals, key);
+        }
+        putTriggerSceneSignalNumber(payload, sceneSignals, "headingDegrees", true);
+        putTriggerSceneSignalNumber(payload, sceneSignals, "memorySessionSceneCount", false);
+        return payload;
+    }
+
+    private void putTriggerSceneSignalText(Map<String, Object> payload, Map<String, Object> sceneSignals, String key) {
+        Object value = sceneSignals.get(key);
+        if (value == null) {
+            return;
+        }
+        String text = String.valueOf(value).trim();
+        if (hasText(text)) {
+            payload.put(key, truncateForEvent(text, TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH));
+        }
+    }
+
+    private void putTriggerSceneSignalNumber(
+            Map<String, Object> payload, Map<String, Object> sceneSignals, String key, boolean normalizeHeading) {
+        Double value = triggerSceneSignalNumber(sceneSignals.get(key));
+        if (value == null || !Double.isFinite(value)) {
+            return;
+        }
+        long rounded = Math.round(value);
+        if (normalizeHeading) {
+            payload.put(key, (int) (((rounded % 360) + 360) % 360));
+            return;
+        }
+        if (rounded >= 0) {
+            payload.put(key, rounded);
+        }
+    }
+
+    private Double triggerSceneSignalNumber(Object value) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (value instanceof String text && hasText(text)) {
+            try {
+                return Double.valueOf(text.trim());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private Map<String, Object> buildTriggerLocationPayload(LocationPointReqVO location) {
@@ -1061,15 +1669,132 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     }
 
     private String buildChatContextText(RagChatReqVO reqVO) {
-        List<String> parts = List.of(
-                "regionCode=" + defaultIfBlank(reqVO.getRegionCode(), ""),
-                "poiCode=" + defaultIfBlank(reqVO.getPoiCode(), ""),
-                "poiName=" + defaultIfBlank(reqVO.getPoiName(), ""),
-                "routeId=" + defaultIfBlank(reqVO.getRouteId(), "")
-        );
+        List<String> parts = new ArrayList<>();
+        parts.add("regionCode=" + defaultIfBlank(reqVO.getRegionCode(), ""));
+        parts.add("poiCode=" + defaultIfBlank(reqVO.getPoiCode(), ""));
+        parts.add("poiName=" + defaultIfBlank(reqVO.getPoiName(), ""));
+        parts.add("routeId=" + defaultIfBlank(reqVO.getRouteId(), ""));
+        parts.add(buildVisionAgentChatContextText(reqVO));
         return parts.stream()
                 .filter(part -> !part.endsWith("="))
+                .filter(this::hasText)
                 .collect(Collectors.joining("\n"));
+    }
+
+    private String buildVisionAgentChatContextText(RagChatReqVO reqVO) {
+        List<String> parts = new ArrayList<>();
+        putChatContextPart(parts, "AI识境现场", reqVO.getVisionAgentSceneFusionSummary());
+        putChatContextPart(parts, "世界交互入口", reqVO.getVisionAgentWorldInterfaceSummary());
+        putChatContextPart(parts, "连续记忆", reqVO.getVisionAgentMemorySessionText());
+        if (reqVO.getVisionAgentMemorySessionSceneCount() != null
+                && reqVO.getVisionAgentMemorySessionSceneCount() > 0) {
+            parts.add("记忆场景数=" + reqVO.getVisionAgentMemorySessionSceneCount());
+        }
+        String domain = buildVisionAgentDomainText(reqVO);
+        if (hasText(domain)) {
+            parts.add("场景域=" + domain);
+        }
+        putChatContextPart(parts, "场景理解", reqVO.getVisionAgentSceneUnderstandingSummary());
+        putChatContextPart(parts, "Agent建议", reqVO.getVisionAgentDecisionActionTitle());
+        putChatContextPart(parts, "Agent理由", reqVO.getVisionAgentDecisionReasonSummary());
+        String environment = buildVisionAgentEnvironmentText(reqVO);
+        if (hasText(environment)) {
+            parts.add("实时环境=" + environment);
+        }
+        String serviceHandoff = buildServiceHandoffContextText(reqVO);
+        if (hasText(serviceHandoff)) {
+            parts.add(serviceHandoff);
+        }
+        putChatContextPart(parts, "服务承接", reqVO.getServiceHandoffSummary());
+        if (reqVO.getServiceHandoffRequiresRealSystem() != null) {
+            parts.add("真实系统确认=" + reqVO.getServiceHandoffRequiresRealSystem());
+        }
+        return String.join("\n", parts);
+    }
+
+    private String buildServiceHandoffContextText(RagChatReqVO reqVO) {
+        List<String> parts = new ArrayList<>();
+        putChatContextPart(parts, "服务动作", reqVO.getServiceHandoffActionKey());
+        putChatContextPart(parts, "服务任务", reqVO.getServiceHandoffTaskType());
+        String intent = buildServiceHandoffIntentText(reqVO);
+        if (hasText(intent)) {
+            parts.add("服务意图=" + intent);
+        }
+        putChatContextPart(parts, "服务步骤", reqVO.getServiceHandoffStepText());
+        return String.join("\n", parts);
+    }
+
+    private String buildServiceHandoffIntentText(RagChatReqVO reqVO) {
+        String intent = truncateForEvent(defaultIfBlank(reqVO.getServiceHandoffIntent(), ""),
+                CHAT_CONTEXT_TEXT_MAX_LENGTH);
+        String text = truncateForEvent(defaultIfBlank(reqVO.getServiceHandoffIntentText(), ""),
+                CHAT_CONTEXT_TEXT_MAX_LENGTH);
+        if (hasText(intent) && hasText(text)) {
+            return intent + "/" + text;
+        }
+        return hasText(intent) ? intent : text;
+    }
+
+    private Map<String, Object> buildVisionAgentChatContextPayload(RagChatReqVO reqVO) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        putChatContextPayloadText(payload, "sceneFusionSummary", reqVO.getVisionAgentSceneFusionSummary());
+        putChatContextPayloadText(payload, "worldInterfaceSummary", reqVO.getVisionAgentWorldInterfaceSummary());
+        putChatContextPayloadText(payload, "memorySessionText", reqVO.getVisionAgentMemorySessionText());
+        if (reqVO.getVisionAgentMemorySessionSceneCount() != null
+                && reqVO.getVisionAgentMemorySessionSceneCount() > 0) {
+            payload.put("memorySessionSceneCount", reqVO.getVisionAgentMemorySessionSceneCount());
+        }
+        putChatContextPayloadText(payload, "primarySceneDomainKey", reqVO.getVisionAgentPrimarySceneDomainKey());
+        putChatContextPayloadText(payload, "primarySceneDomainLabel", reqVO.getVisionAgentPrimarySceneDomainLabel());
+        putChatContextPayloadText(payload, "sceneUnderstandingSummary", reqVO.getVisionAgentSceneUnderstandingSummary());
+        putChatContextPayloadText(payload, "decisionActionTitle", reqVO.getVisionAgentDecisionActionTitle());
+        putChatContextPayloadText(payload, "decisionReasonSummary", reqVO.getVisionAgentDecisionReasonSummary());
+        putChatContextPayloadText(payload, "localTimeText", reqVO.getVisionAgentLocalTimeText());
+        putChatContextPayloadText(payload, "weatherText", reqVO.getVisionAgentWeatherText());
+        putChatContextPayloadText(payload, "headingText", reqVO.getVisionAgentHeadingText());
+        putChatContextPayloadText(payload, "serviceHandoffActionKey", reqVO.getServiceHandoffActionKey());
+        putChatContextPayloadText(payload, "serviceHandoffTaskType", reqVO.getServiceHandoffTaskType());
+        putChatContextPayloadText(payload, "serviceHandoffIntent", reqVO.getServiceHandoffIntent());
+        putChatContextPayloadText(payload, "serviceHandoffIntentText", reqVO.getServiceHandoffIntentText());
+        putChatContextPayloadText(payload, "serviceHandoffStepText", reqVO.getServiceHandoffStepText());
+        putChatContextPayloadText(payload, "serviceHandoffSummary", reqVO.getServiceHandoffSummary());
+        if (reqVO.getServiceHandoffRequiresRealSystem() != null) {
+            payload.put("serviceHandoffRequiresRealSystem", reqVO.getServiceHandoffRequiresRealSystem());
+        }
+        return payload;
+    }
+
+    private void putChatContextPart(List<String> parts, String label, String value) {
+        if (hasText(value)) {
+            parts.add(label + "=" + truncateForEvent(value.trim(), CHAT_CONTEXT_TEXT_MAX_LENGTH));
+        }
+    }
+
+    private void putChatContextPayloadText(Map<String, Object> payload, String key, String value) {
+        if (hasText(value)) {
+            payload.put(key, truncateForEvent(value.trim(), CHAT_CONTEXT_TEXT_MAX_LENGTH));
+        }
+    }
+
+    private String buildVisionAgentDomainText(RagChatReqVO reqVO) {
+        String key = truncateForEvent(defaultIfBlank(reqVO.getVisionAgentPrimarySceneDomainKey(), ""),
+                CHAT_CONTEXT_TEXT_MAX_LENGTH);
+        String label = truncateForEvent(defaultIfBlank(reqVO.getVisionAgentPrimarySceneDomainLabel(), ""),
+                CHAT_CONTEXT_TEXT_MAX_LENGTH);
+        if (hasText(key) && hasText(label)) {
+            return key + "/" + label;
+        }
+        return hasText(key) ? key : label;
+    }
+
+    private String buildVisionAgentEnvironmentText(RagChatReqVO reqVO) {
+        return java.util.stream.Stream.of(
+                        reqVO.getVisionAgentLocalTimeText(),
+                        reqVO.getVisionAgentWeatherText(),
+                        reqVO.getVisionAgentHeadingText())
+                .filter(this::hasText)
+                .map(value -> truncateForEvent(value.trim(), CHAT_CONTEXT_TEXT_MAX_LENGTH))
+                .collect(Collectors.joining(" "));
     }
 
     private String buildChatInputSummary(RagChatReqVO reqVO) {
@@ -1086,8 +1811,26 @@ public class XunjingAppServiceImpl implements XunjingAppService {
                         reqVO.getPoiName(),
                         reqVO.getPoiCode(),
                         reqVO.getRegionCode(),
-                        reqVO.getRouteId())
+                        reqVO.getRouteId(),
+                        buildVisionAgentSourceSearchText(reqVO))
                 .filter(this::hasText)
+                .distinct()
+                .collect(Collectors.joining("\n"));
+    }
+
+    private String buildVisionAgentSourceSearchText(RagChatReqVO reqVO) {
+        return java.util.stream.Stream.of(
+                        reqVO.getVisionAgentSceneFusionSummary(),
+                        reqVO.getVisionAgentWorldInterfaceSummary(),
+                        reqVO.getVisionAgentMemorySessionText(),
+                        reqVO.getVisionAgentPrimarySceneDomainKey(),
+                        reqVO.getVisionAgentPrimarySceneDomainLabel(),
+                        reqVO.getVisionAgentSceneUnderstandingSummary(),
+                        reqVO.getVisionAgentDecisionReasonSummary(),
+                        reqVO.getServiceHandoffIntentText(),
+                        reqVO.getServiceHandoffSummary())
+                .filter(this::hasText)
+                .map(value -> truncateForEvent(value.trim(), CHAT_CONTEXT_TEXT_MAX_LENGTH))
                 .distinct()
                 .collect(Collectors.joining("\n"));
     }

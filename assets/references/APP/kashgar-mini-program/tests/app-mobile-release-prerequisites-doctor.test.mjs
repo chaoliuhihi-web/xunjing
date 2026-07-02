@@ -12,6 +12,7 @@ const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-release-prereq-')
 const keystorePath = path.join(tempDir, 'xicheng-release.keystore')
 const loggedOutCliPath = path.join(tempDir, 'hbuilderx-logged-out-cli')
 const loggedInCliPath = path.join(tempDir, 'hbuilderx-logged-in-cli')
+const loggedInBareEmailCliPath = path.join(tempDir, 'hbuilderx-logged-in-bare-email-cli')
 
 assert.ok(
   fs.existsSync(scriptPath),
@@ -74,6 +75,16 @@ fs.writeFileSync(loggedInCliPath, [
 ].join('\n'))
 fs.chmodSync(loggedInCliPath, 0o755)
 
+fs.writeFileSync(loggedInBareEmailCliPath, [
+  '#!/bin/sh',
+  'if [ "$1" = "user" ] && [ "$2" = "info" ]; then',
+  '  printf "%s\\n" "release@example.com" "0:user info:OK"',
+  '  exit 0',
+  'fi',
+  'exit 0'
+].join('\n'))
+fs.chmodSync(loggedInBareEmailCliPath, 0o755)
+
 const baseEnv = {
   XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
   XUNJING_TENANT_ID: '1',
@@ -121,6 +132,21 @@ assert.match(
   /user login|发布账号/i,
   'HBuilderX login failure should tell the operator how to fix it'
 )
+assert.match(
+  loggedOutJson.checks.hbuilderxLogin.nextAction,
+  /DCLOUD_USERNAME/,
+  'HBuilderX login failure should tell the operator to pass the release account without hard-coding it'
+)
+assert.match(
+  loggedOutJson.checks.hbuilderxLogin.nextAction,
+  /DCLOUD_PASSWORD/,
+  'HBuilderX login failure should tell the operator to pass the release password without hard-coding it'
+)
+assert.match(
+  loggedOutJson.checks.hbuilderxLogin.nextAction,
+  /user login --username "\$DCLOUD_USERNAME" --password "\$DCLOUD_PASSWORD"/,
+  'HBuilderX login failure should include the exact CLI login command shape'
+)
 
 const loggedInResult = runDoctor({
   HBUILDERX_CLI: loggedInCliPath
@@ -136,6 +162,19 @@ assert.equal(loggedInJson.checks.releaseEnv.ok, true)
 assert.equal(loggedInJson.checks.nativePackageDryRun.ok, true)
 assert.equal(loggedInJson.checks.hbuilderxLogin.ok, true)
 assert.match(loggedInJson.checks.hbuilderxLogin.account, /release@example\.com/)
+
+const loggedInBareEmailResult = runDoctor({
+  HBUILDERX_CLI: loggedInBareEmailCliPath
+})
+assert.equal(
+  loggedInBareEmailResult.status,
+  0,
+  `release prerequisite doctor should pass when HBuilderX user info prints a bare account email and OK status: ${loggedInBareEmailResult.stderr || loggedInBareEmailResult.stdout}`
+)
+const loggedInBareEmailJson = JSON.parse(loggedInBareEmailResult.stdout)
+assert.equal(loggedInBareEmailJson.ok, true)
+assert.equal(loggedInBareEmailJson.checks.hbuilderxLogin.ok, true)
+assert.match(loggedInBareEmailJson.checks.hbuilderxLogin.account, /release@example\.com/)
 
 const dnsFailedResult = runDoctor({
   HBUILDERX_CLI: loggedInCliPath,

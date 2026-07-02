@@ -25,8 +25,10 @@ for (const required of [
 
 for (const required of [
   'home-scan-card',
-  '镜头理解 · 连续追问 · 城市服务',
-  'home-ask-card',
+  '扫一扫',
+  '拍照识别 · 文字识别 · 附近触发',
+  'hero-ask-card',
+  'id="xicheng-recent-recognition-section"',
   'textRecognitionInput',
   'textRecognitionPanelExpanded',
   'openTextRecognitionPanel',
@@ -56,7 +58,7 @@ assert.match(
 assert.match(
   homeActionDuoStyleBlock,
   /display:\s*grid;[\s\S]*grid-template-columns:\s*1fr 1fr/,
-  'Recognition entry should render as the approved two-card mobile layout: scan and Xiaojing'
+  'Recognition entry should render as the approved two-card mobile layout: scan and recent recognition'
 )
 
 assert.doesNotMatch(
@@ -109,7 +111,17 @@ assert.match(
 
 for (const required of [
   "gps: 'GPS定位'",
-  "text: '文本识别'"
+  "text: '文本识别'",
+  'createXichengTriggerSceneSignals',
+  'sceneSignals: normalizedSceneSignals',
+  'sceneDomainIntentKey',
+  'agentDecisionReasonSummary'
 ]) {
   assert.ok(triggerRequest.includes(required), `Trigger source labels should include ${required}`)
 }
+
+assert.doesNotMatch(
+  triggerRequest.match(/export const createXichengTriggerSceneSignals[\s\S]*?\n\}/)?.[0] || '',
+  /sourceRecognitionContext|photoPath|imagePath|latitude|longitude/,
+  'Trigger Scene Engine signal normalizer should keep raw recognition context, photo paths, and exact coordinates out of sceneSignals'
+)

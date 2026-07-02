@@ -1,6 +1,6 @@
 <template>
 	<view class="xicheng-bottom-nav-shell">
-		<view class="xicheng-bottom-nav">
+		<view class="xicheng-bottom-nav" :style="navGridStyle">
 			<view
 				v-for="item in items"
 				:key="item.key"
@@ -41,6 +41,12 @@ export default {
 			default: 'explore'
 		}
 	},
+	computed: {
+		navGridStyle() {
+			const count = Array.isArray(this.items) && this.items.length > 0 ? this.items.length : 4
+			return `grid-template-columns: repeat(${count}, minmax(0, 1fr));`
+		}
+	},
 	methods: {
 		isActive(key = '') {
 			return key === this.activeKey
@@ -70,7 +76,7 @@ export default {
 
 .xicheng-bottom-nav {
 	display: grid;
-	grid-template-columns: repeat(5, minmax(0, 1fr));
+	grid-template-columns: repeat(4, minmax(0, 1fr));
 	align-items: center;
 	min-height: 116rpx;
 }

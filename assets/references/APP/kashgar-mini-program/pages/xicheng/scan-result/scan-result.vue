@@ -353,6 +353,13 @@ import {
 	normalizeXichengReviewedSources
 } from '@/request/xunjing/sources.js'
 import { isXichengDevelopmentRecognitionCacheBlocked } from '@/request/xunjing/trigger.js'
+import { mergeXichengVisionAgentRouteContext, parseXichengVisionAgentRouteContext } from '@/request/xunjing/visionAgentRouteContext.js'
+import {
+	createXichengVisionAgentDomainServiceActions,
+	createXichengVisionAgentSceneUnderstandingCards,
+	createXichengVisionAgentSceneUnderstandingPrompt,
+	inferXichengVisionAgentSceneUnderstandingPackage
+} from '@/request/xunjing/visionAgentSceneUnderstanding.js'
 import XichengVisionAgentWorldInterfaceStrip from '@/components/xicheng/vision-agent-world-interface-strip.vue'
 
 const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
@@ -481,7 +488,10 @@ const normalizeRouteOptions = (options = {}) => ({
 	companionName: decodeRouteValue(options.companionName),
 	confidence: decodeRouteValue(options.confidence),
 	confidencePercent: decodeRouteValue(options.confidencePercent),
-	safetyStatus: normalizeXichengSafetyStatus(decodeRouteValue(options.safetyStatus))
+	safetyStatus: normalizeXichengSafetyStatus(decodeRouteValue(options.safetyStatus)),
+	visionAgentContext: parseXichengVisionAgentRouteContext(options.visionAgentContext),
+	sourceRecognitionContext: decodeRouteValue(options.sourceRecognitionContext),
+	memorySessionSceneCount: decodeRouteValue(options.memorySessionSceneCount)
 })
 
 const getCurrentXichengScanResultRouteOptions = () => {
@@ -799,32 +809,40 @@ export default {
 			]
 		},
 		sceneUnderstandingCards() {
-			return [
-				{ domainKey: 'architecture', domainLabel: '建筑', title: '建筑/空间', copy: '年代、结构、修复和拍照角度。', matchers: ['建筑', '门', '楼', '塔', '桥', '亭', '寺', '庙', '院', '胡同'] },
-				{ domainKey: 'artifact', domainLabel: '文物', title: '文物/展陈', copy: '用途、工艺、年代和同时代事件。', matchers: ['文物', '博物馆', '展品', '青铜', '陶', '瓷', '碑', '展陈'] },
-				{ domainKey: 'menu', domainLabel: '菜单', title: '菜单理解', copy: '辣度、清真、推荐菜和人数建议。', matchers: ['菜单', '菜品', '点菜', '价格', '清真', '辣'] },
-				{ domainKey: 'food', domainLabel: '食物', title: '食物讲解', copy: '来源、吃法、搭配和附近推荐。', matchers: ['食物', '小吃', '美食', '餐', '包子', '烤', '茶', '饮料'] },
-				{ domainKey: 'sign-ocr', domainLabel: '路牌/OCR', title: '文字与导航', copy: '翻译、发音、意义和怎么走。', matchers: ['路牌', '牌匾', '招牌', 'OCR', '文字', '维吾尔', '英文', '导航'] },
-				{ domainKey: 'heritage', domainLabel: '非遗', title: '非遗体验', copy: '器物、技艺、演奏和附近体验。', matchers: ['非遗', '乐器', '手作', '工艺', '体验', '热瓦普', '传承'] },
-				{ domainKey: 'plant', domainLabel: '植物', title: '植物观察', copy: '树龄、分布、季节和生态知识。', matchers: ['植物', '树', '花', '胡杨', '古树', '园林'] },
-				{ domainKey: 'animal', domainLabel: '动物', title: '动物保护', copy: '习性、栖息地、保护和安全距离。', matchers: ['动物', '鸟', '猫', '豹', '雪豹', '保护', '栖息'] },
-				{ domainKey: 'person', domainLabel: '人物', title: '人物故事', copy: '雕像、人物贡献和时代关系。', matchers: ['人物', '雕像', '塑像', '名人', '纪念', '故居'] },
-				{ domainKey: 'event', domainLabel: '活动', title: '活动/演出', copy: '节目、时间、票务和下一步服务。', matchers: ['活动', '演出', '节目', '票', '开场', '演员', '市集'] }
-			]
+			return createXichengVisionAgentSceneUnderstandingCards()
 		},
 		prioritizedSceneUnderstandingCards() {
 			if (this.recognitionActionBlocked) return []
-			return this.sceneUnderstandingCards
-				.map(card => ({
-					...card,
-					score: this.inferSceneUnderstandingDomainScore(card)
-				}))
-				.sort((left, right) => {
-					if (right.score !== left.score) return right.score - left.score
-					return this.sceneUnderstandingCards.findIndex(card => card.domainKey === left.domainKey)
-						- this.sceneUnderstandingCards.findIndex(card => card.domainKey === right.domainKey)
-				})
-				.slice(0, 6)
+			return this.visionAgentSceneUnderstandingPackage.domainCards
+		},
+		visionAgentSceneUnderstandingPackage() {
+			return inferXichengVisionAgentSceneUnderstandingPackage({
+				result: this.result,
+				visionAgentContext: this.result.visionAgentContext || {},
+				recommendedRoute: this.recommendedRoute
+			})
+		},
+		enrichedVisionAgentContext() {
+			const memorySessionPackage = this.visionAgentMemorySessionPackage
+			const fallbackVisionContext = this.result.visionAgentContext || {}
+			const visionAgentMemorySessionText = memorySessionPackage
+				? [
+					memorySessionPackage.poiTrailText,
+					memorySessionPackage.continuityCueText
+				].filter(Boolean).join(' ')
+				: fallbackVisionContext.visionAgentMemorySessionText || fallbackVisionContext.memorySessionText || ''
+			return {
+				...fallbackVisionContext,
+				visionAgentMemorySessionPackage: memorySessionPackage,
+				visionAgentMemorySessionText: visionAgentMemorySessionText,
+				memorySessionSceneCount: memorySessionPackage
+					? memorySessionPackage.sceneCount
+					: fallbackVisionContext.memorySessionSceneCount || '',
+				sceneUnderstandingPackage: this.visionAgentSceneUnderstandingPackage,
+				primarySceneDomainKey: this.visionAgentSceneUnderstandingPackage.primaryDomainKey,
+				primarySceneDomainLabel: this.visionAgentSceneUnderstandingPackage.primaryDomainLabel,
+				sceneUnderstandingSummary: this.visionAgentSceneUnderstandingPackage.sceneUnderstandingSummary
+			}
 		},
 		sceneFusionSignalBadges() {
 			const visionContext = this.result.visionAgentContext || {}
@@ -935,6 +953,8 @@ export default {
 			return this.prioritizeVisionAgentActions(this.visionAgentActionCards)
 		},
 		domainSceneServiceActions() {
+			const packagedActions = this.visionAgentSceneUnderstandingPackage.serviceActions
+			if (packagedActions.length > 0) return packagedActions
 			return this.createDomainSceneServiceActions(this.prioritizedSceneUnderstandingCards)
 		},
 		sceneServiceActions() {
@@ -1002,7 +1022,7 @@ export default {
 					active: !this.recognitionActionBlocked
 					}
 				]
-			},
+		},
 			visionAgentMemorySessionPackage() {
 				return this.createVisionAgentMemorySessionPackage(
 					this.readVisionAgentMemoryTrail(),
@@ -1034,7 +1054,8 @@ export default {
 			companionName: routeOptions.companionName || (selectedCached && selectedCached.companionName) || XICHENG_REGION_CONFIG.companionName,
 			confidence: routeOptions.confidence || (selectedCached && selectedCached.confidence) || '',
 			confidencePercent: routeOptions.confidencePercent || (selectedCached && selectedCached.confidencePercent) || '',
-			safetyStatus: routeOptions.safetyStatus || (selectedCached && selectedCached.safetyStatus) || ''
+			safetyStatus: routeOptions.safetyStatus || (selectedCached && selectedCached.safetyStatus) || '',
+			visionAgentContext: mergeXichengVisionAgentRouteContext(routeOptions, selectedCached)
 		}))
 		this.result = normalizedResult
 		if (!this.unsafeRecognitionSafetyStatus && this.result.officialPoiMatched && this.result.poiCode && this.result.poiName) {
@@ -1180,88 +1201,14 @@ export default {
 			})
 		},
 		createDomainSceneServiceActions(cards = []) {
-			const domainKeys = cards
-				.filter(card => card && Number(card.score || 0) > 0)
-				.map(card => card.domainKey)
-				.filter(Boolean)
-			const actions = []
-			const appendAction = (action = {}) => {
-				if (!action.actionKey || actions.some(item => item.actionKey === action.actionKey)) return
-				actions.push(action)
-			}
-			if (domainKeys.includes('menu')) {
-				appendAction({ actionKey: 'menu-order', title: '点推荐菜', copy: '按辣度、清真和人数生成点单建议', taskType: 'merchant', sceneDomain: 'menu', serviceIntent: 'order' })
-				appendAction({ actionKey: 'menu-coupon', title: '领优惠', copy: '匹配附近餐厅优惠券和套餐', taskType: 'merchant', sceneDomain: 'menu', serviceIntent: 'coupon' })
-			}
-			if (domainKeys.includes('food')) {
-				appendAction({ actionKey: 'food-reservation', title: '预约/排队', copy: '找附近同款美食并规划排队或预约', taskType: 'merchant', sceneDomain: 'food', serviceIntent: 'reservation' })
-			}
-			if (domainKeys.includes('event')) {
-				appendAction({ actionKey: 'event-ticket', title: '查票务', copy: '查看演出时间、票务和入场提醒', taskType: 'ticketing', sceneDomain: 'event', serviceIntent: 'ticket' })
-			}
-			if (domainKeys.includes('heritage')) {
-				appendAction({ actionKey: 'heritage-experience', title: '约体验', copy: '预约附近非遗体验、讲师或工坊', taskType: 'experience', sceneDomain: 'heritage', serviceIntent: 'experience' })
-			}
-			if (domainKeys.includes('sign-ocr')) {
-				appendAction({ actionKey: 'sign-translate', title: '翻译导航', copy: '翻译文字、读音并接到步行导航', taskType: 'navigation', sceneDomain: 'sign-ocr', serviceIntent: 'translate' })
-			}
-			return actions.slice(0, 6)
+			return createXichengVisionAgentDomainServiceActions(cards)
 		},
 		inferSceneUnderstandingDomainScore(card = {}) {
-			const visionContext = this.result.visionAgentContext || {}
-			const visionCaption = String(visionContext.visionCaption || this.result.visionCaption || this.result.poiName || '')
-			const ocrText = String(visionContext.ocrText || this.result.ocrText || this.result.text || '')
-			const serviceText = String(visionContext.serviceText || '')
-			const activityText = String(visionContext.activityText || '')
-			const knowledgeGraphText = String(visionContext.knowledgeGraphText || this.result.theme || this.result.reason || '')
-			const combinedText = [
-				visionCaption,
-				ocrText,
-				serviceText,
-				activityText,
-				knowledgeGraphText,
-				this.result.poiName,
-				this.result.sourceLabel,
-				this.result.reason
-			].join(' ').toLowerCase()
-			const matchers = Array.isArray(card.matchers) ? card.matchers : []
-			const matchedScore = matchers.reduce((total, matcher) => {
-				return combinedText.includes(String(matcher || '').toLowerCase()) ? total + 32 : total
-			}, 0)
-			const sourceBoost = card.domainKey === 'sign-ocr' && ['scan', 'ocr', 'text'].includes(String(this.result.source || '')) ? 18 : 0
-			const serviceBoost = ['menu', 'food', 'heritage', 'event'].includes(card.domainKey) && (serviceText || activityText) ? 14 : 0
-			return matchedScore + sourceBoost + serviceBoost
+			const matchedCard = this.visionAgentSceneUnderstandingPackage.domainCards.find(item => item.domainKey === card.domainKey)
+			return matchedCard ? Number(matchedCard.score || 0) : 0
 		},
 		createSceneUnderstandingPrompt(card = {}) {
-			const subject = this.result.poiName || '当前场景'
-			if (card.domainKey === 'menu') {
-				return `把${subject}当作菜单来理解：告诉我菜品、辣度、是否清真、推荐菜、适合几个人和本地来源。`
-			}
-			if (card.domainKey === 'food') {
-				return `把${subject}当作食物来理解：讲它来自哪里、怎么吃、配什么饮料，以及附近哪里更值得试。`
-			}
-			if (card.domainKey === 'sign-ocr') {
-				return `把${subject}里的路牌/OCR文字翻译出来，给我发音、意义、历史背景和导航建议。`
-			}
-			if (card.domainKey === 'heritage') {
-				return `把${subject}当作非遗线索理解：讲器物或技艺、制作过程、表演方式，并推荐附近体验。`
-			}
-			if (card.domainKey === 'artifact') {
-				return `把${subject}当作文物来理解：讲用途、工艺、年代、同时代事件，以及和其它文物的区别。`
-			}
-			if (card.domainKey === 'plant') {
-				return `把${subject}当作植物来理解：讲树龄或季节、生态特点、分布和最佳观赏时间。`
-			}
-			if (card.domainKey === 'animal') {
-				return `把${subject}当作动物来理解：讲习性、栖息地、保护情况、是否危险和观察距离。`
-			}
-			if (card.domainKey === 'person') {
-				return `把${subject}当作人物线索来理解：讲人物故事、贡献、为什么在这里，以及同时期人物。`
-			}
-			if (card.domainKey === 'event') {
-				return `把${subject}当作活动现场来理解：讲节目、背景、开始时间、票务和附近下一步安排。`
-			}
-			return `把${subject}当作建筑来理解：讲年代、建筑特点、结构、修复历史、隐藏细节和拍照角度。`
+			return createXichengVisionAgentSceneUnderstandingPrompt(card, this.result.poiName || '当前场景')
 		},
 		openSceneUnderstandingCard(card = {}) {
 			if (this.recognitionActionBlocked) {
@@ -1442,6 +1389,7 @@ export default {
 		},
 		createVisionAgentMemorySnapshot(stage = 'current') {
 			const visionContext = this.result.visionAgentContext || {}
+			const sceneUnderstandingPackage = this.visionAgentSceneUnderstandingPackage
 			return {
 				id: `vision-agent-memory-${Date.now()}`,
 				stage,
@@ -1463,7 +1411,10 @@ export default {
 				worldInterfaceSignals: this.worldInterfaceSnapshot.signals,
 				agentDecisionReasonSummary: visionContext.agentDecisionReasonSummary || '',
 				agentDecisionReasonCards: this.agentDecisionReasonCardItems,
-				sceneDomainLabels: this.prioritizedSceneUnderstandingCards.map(card => card.domainLabel || card.domainKey).filter(Boolean).slice(0, 6),
+				sceneUnderstandingPackage,
+				primarySceneDomainKey: sceneUnderstandingPackage.primaryDomainKey || '',
+				primarySceneDomainLabel: sceneUnderstandingPackage.primaryDomainLabel || '',
+				sceneDomainLabels: sceneUnderstandingPackage.domainCards.map(card => card.domainLabel || card.domainKey).filter(Boolean).slice(0, 6),
 				serviceIntentLabels: this.prioritizedSceneServiceActions.map(action => this.serviceIntentLabel(action.serviceIntent || '') || action.title).filter(Boolean).slice(0, 6),
 				confidence: this.result.confidence || visionContext.confidence || '',
 				safetyStatus: normalizeXichengSafetyStatus(this.result.safetyStatus || visionContext.safetyStatus),
@@ -1524,7 +1475,7 @@ export default {
 			}
 			this.rememberVisionAgentSceneMemory()
 			const prompt = question || this.suggestedQuestions[0] || `讲讲${this.result.poiName}`
-			const visionAgentContext = this.result.visionAgentContext || {}
+			const visionAgentContext = this.enrichedVisionAgentContext
 			const query = [
 				`question=${encodeRouteValue(prompt)}`,
 				`regionCode=${encodeURIComponent(this.result.regionCode || XICHENG_REGION_CONFIG.regionCode)}`,
@@ -1537,7 +1488,8 @@ export default {
 				`confidence=${encodeURIComponent(String(this.result.confidence || ''))}`,
 				`safetyStatus=${encodeURIComponent(this.result.safetyStatus || '')}`,
 				`visionAgentContext=${encodeRouteValue(JSON.stringify(visionAgentContext))}`,
-				`sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || '')}`
+				`sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || '')}`,
+				`memorySessionSceneCount=${encodeRouteValue(visionAgentContext.memorySessionSceneCount || '')}`
 			]
 			if (serviceHandoffContext) {
 				query.push(`serviceHandoffContext=${encodeRouteValue(JSON.stringify(serviceHandoffContext))}`)
@@ -1703,6 +1655,7 @@ export default {
 		rememberVisionAgentServiceTask(action = {}) {
 			const existingTasks = uni.getStorageSync(XICHENG_REGION_CONFIG.visionAgentServiceTasksStorageKey)
 			const tasks = Array.isArray(existingTasks) ? existingTasks : []
+			const sceneUnderstandingPackage = this.visionAgentSceneUnderstandingPackage
 			const task = {
 				id: `vision-agent-task-${Date.now()}`,
 				regionCode: this.result.regionCode || XICHENG_REGION_CONFIG.regionCode,
@@ -1721,7 +1674,10 @@ export default {
 				poiName: this.result.poiName || '',
 				sceneCode: this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode,
 				sourceChannel: this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
-				visionAgentContext: this.result.visionAgentContext || {},
+				visionAgentContext: this.enrichedVisionAgentContext,
+				sceneUnderstandingPackage,
+				primarySceneDomainKey: sceneUnderstandingPackage.primaryDomainKey || '',
+				primarySceneDomainLabel: sceneUnderstandingPackage.primaryDomainLabel || '',
 				memorySessionPackage: this.visionAgentMemorySessionPackage,
 				status: action.status || 'collected',
 				statusText: action.statusText || '已收进任务包',
@@ -1846,6 +1802,7 @@ export default {
 				return
 			}
 			const existingMaterials = uni.getStorageSync(XICHENG_REGION_CONFIG.materialsStorageKey)
+			const visionAgentContext = this.enrichedVisionAgentContext
 			const material = {
 				type: 'recognition',
 				regionCode: this.result.regionCode || XICHENG_REGION_CONFIG.regionCode,
@@ -1857,6 +1814,7 @@ export default {
 				sourceLabel: this.result.sourceLabel || '',
 				confidence: this.result.confidence || 0,
 				routeRecommendation: this.recommendedRoute,
+				visionAgentContext,
 				sources: this.sourceList,
 				safetyStatus: normalizeXichengSafetyStatus(this.result.safetyStatus),
 				recognitionFeedback: this.recognitionFeedback,
@@ -1873,7 +1831,7 @@ export default {
 				...materials
 			].slice(0, 50))
 			uni.navigateTo({
-				url: `/pages/xicheng/travelogue/travelogue?mode=record&autoStart=1&regionCode=${encodeURIComponent(this.result.regionCode || XICHENG_REGION_CONFIG.regionCode)}&packageCode=${encodeURIComponent(this.result.packageCode || XICHENG_REGION_CONFIG.packageCode)}&sceneCode=${encodeURIComponent(this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode)}&sourceChannel=${encodeURIComponent(this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel)}&poiCode=${encodeRouteValue(this.result.poiCode || '')}&poiName=${encodeRouteValue(this.result.poiName || '')}&companionName=${encodeRouteValue(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}&safetyStatus=${encodeURIComponent(this.result.safetyStatus || '')}`
+				url: `/pages/xicheng/travelogue/travelogue?mode=record&autoStart=1&regionCode=${encodeURIComponent(this.result.regionCode || XICHENG_REGION_CONFIG.regionCode)}&packageCode=${encodeURIComponent(this.result.packageCode || XICHENG_REGION_CONFIG.packageCode)}&sceneCode=${encodeURIComponent(this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode)}&sourceChannel=${encodeURIComponent(this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel)}&poiCode=${encodeRouteValue(this.result.poiCode || '')}&poiName=${encodeRouteValue(this.result.poiName || '')}&companionName=${encodeRouteValue(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}&safetyStatus=${encodeURIComponent(this.result.safetyStatus || '')}&visionAgentContext=${encodeRouteValue(JSON.stringify(visionAgentContext))}&sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || '')}&memorySessionSceneCount=${encodeRouteValue(visionAgentContext.memorySessionSceneCount || '')}`
 			})
 		},
 		createRouteCheckinEvent(material) {

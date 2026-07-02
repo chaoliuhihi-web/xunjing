@@ -16,11 +16,8 @@ for (const required of [
   "{ key: 'record', title: '记录', icon: 'record' }",
   "{ key: 'mine', title: '我的', icon: 'mine' }",
   "openXichengRecording()",
-  "openXichengShare()",
   "openXichengWorks()",
-  "url: '/pages/xicheng/share/share'",
-  "url: '/pages/xicheng/works/works'",
-  'class="home-share-button"'
+  "url: '/pages/xicheng/works/works'"
 ]) {
   assert.ok(home.includes(required), `Xicheng home should expose only current top-level growth/personal entry ${required}`)
 }
@@ -33,8 +30,8 @@ assert.match(
 
 assert.doesNotMatch(
   home,
-  /homeSecondaryEntries|openHomeSecondaryEntry|key: 'passport'|key: 'share'|key: 'ops'|key: 'footprint'|title: '收藏'|openXichengPassport|openXichengOpsReport|openXichengFootprint|url: '\/pages\/xicheng\/ops-report\/ops-report'|亲子研学任务|运营报告/,
-  'Home should hide route passport, parent-child study, ops report, and 收藏 as top-level growth entries'
+  /homeSecondaryEntries|openHomeSecondaryEntry|key: 'passport'|key: 'share'|key: 'ops'|key: 'footprint'|class="home-share-button"|openXichengShare|title: '收藏'|openXichengPassport|openXichengOpsReport|openXichengFootprint|url: '\/pages\/xicheng\/ops-report\/ops-report'|亲子研学任务|运营报告/,
+  'Home should hide route passport, share, parent-child study, ops report, and 收藏 as top-level growth entries'
 )
 
 for (const required of [

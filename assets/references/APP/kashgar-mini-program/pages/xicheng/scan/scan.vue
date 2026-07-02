@@ -1,188 +1,245 @@
 <template>
-	<view class="xicheng-scan xicheng-designed-page xicheng-bottom-safe">
-		<view class="scan-hero scan-reference-hero xicheng-paper-card">
-			<view class="scan-hero-copy">
-				<text class="scan-kicker">{{ region.cityName }}</text>
-				<text class="scan-title">AI识境</text>
-				<text class="scan-subtitle">看见什么，就能问什么。镜头、GPS、时间天气和城市知识会一起理解现场。</text>
-			</view>
-			<view class="scan-companion">
-				<image class="scan-companion-avatar" :src="region.companionAvatar" mode="aspectFit" />
-				<view class="scan-companion-bubble xicheng-companion-bubble">
-					<text class="scan-companion-name">{{ routeContext.companionName }}</text>
-					<text class="scan-companion-line">我会先匹配西城官方 POI</text>
-				</view>
-			</view>
-		</view>
-
-		<view class="scan-fusion-panel xicheng-paper-card">
-			<view class="section-head xicheng-section-label">
-				<view>
-					<text class="section-kicker">场景融合</text>
-					<text class="section-title">镜头打开前，小京已接入这些信号</text>
-				</view>
-				<text class="section-badge">Scene Engine</text>
-			</view>
-			<text class="scan-fusion-summary">{{ sceneFusionSummary }}</text>
-			<view class="scan-fusion-grid">
-				<view
-					v-for="signal in sceneFusionSignals"
-					:key="signal.key"
-					class="scan-fusion-signal"
-					:class="{ 'scan-fusion-signal-active': signal.active }"
-				>
-					<text class="scan-fusion-signal-label">{{ signal.label }}</text>
-					<text class="scan-fusion-signal-status">{{ signal.statusText }}</text>
-				</view>
-			</view>
-		</view>
-
-		<view class="scan-agent-preview-panel xicheng-paper-card">
-			<view class="section-head xicheng-section-label">
-				<view>
-					<text class="section-kicker">Agent 预判</text>
-					<text class="section-title">AI识境预判动作</text>
-				</view>
-				<text class="section-badge">Decision</text>
-			</view>
-			<text class="scan-agent-preview-summary">{{ agentDecisionPreviewSummary }}</text>
-			<view class="scan-agent-action-grid">
-				<view
-					class="scan-agent-action"
-					v-for="action in sceneAgentActionPreviews"
-					:key="action.key"
-					:class="{ 'scan-agent-action-active': selectedSceneAgentActionKey === action.key }"
-					@click="selectSceneAgentAction(action)"
-				>
-					<text class="scan-agent-action-label">{{ action.signal }}</text>
-					<text class="scan-agent-action-title">{{ action.title }}</text>
-					<text class="scan-agent-action-copy">{{ action.copy }}</text>
-				</view>
-			</view>
-		</view>
-
-		<view v-if="memorySessionContinuation" class="scan-memory-session-panel xicheng-paper-card">
-			<view class="section-head xicheng-section-label">
-				<view>
-					<text class="section-kicker">连续识境</text>
-					<text class="section-title">AI识境连续会话包</text>
-				</view>
-				<text class="section-badge">{{ memorySessionContinuation.sceneCount }}次识境</text>
-			</view>
-			<text class="scan-memory-session-copy">{{ memorySessionContinuation.poiTrailText }}</text>
-			<text class="scan-memory-session-copy">{{ memorySessionContinuation.continuityCueText }}</text>
-			<view class="scan-memory-session-cue-grid">
-				<view class="scan-memory-session-cue">
-					<text class="scan-memory-session-cue-label">场景领域</text>
-					<text class="scan-memory-session-cue-value">{{ memorySessionContinuation.domainContinuityText }}</text>
-				</view>
-				<view class="scan-memory-session-cue">
-					<text class="scan-memory-session-cue-label">服务接力</text>
-					<text class="scan-memory-session-cue-value">{{ memorySessionContinuation.serviceContinuityText }}</text>
-				</view>
-			</view>
-			<view class="scan-memory-session-action-grid">
-				<view
-					v-for="action in memorySessionActionItems"
-					:key="action.key"
-					class="scan-memory-session-action"
-					@click="handleMemorySessionAction(action)"
-				>
-					<text class="scan-memory-session-action-title">{{ action.title }}</text>
-					<text class="scan-memory-session-action-copy">{{ action.copy }}</text>
-				</view>
-			</view>
-		</view>
-
-		<view class="scan-world-interface-hud xicheng-paper-card">
-			<view class="section-head xicheng-section-label">
-				<view>
-					<text class="section-kicker">世界交互入口</text>
-					<text class="section-title">现实世界成为AI的交互界面</text>
-				</view>
-				<text class="section-badge">World Interface</text>
-			</view>
-			<view class="scan-world-interface-grid">
-				<view
-					v-for="signal in worldInterfaceSignals"
-					:key="signal.key"
-					class="scan-world-interface-signal"
-					:class="{ 'scan-world-interface-signal-active': signal.active }"
-				>
-					<text class="scan-world-interface-label">{{ signal.label }}</text>
-					<text class="scan-world-interface-value">{{ signal.value }}</text>
-				</view>
-			</view>
-			<text class="scan-world-interface-summary">{{ worldInterfaceSummary }}</text>
-		</view>
-
-		<view class="scan-panel xicheng-paper-card">
-			<view class="scan-frame">
-				<view class="scan-frame-corner scan-frame-corner-tl"></view>
-				<view class="scan-frame-corner scan-frame-corner-tr"></view>
-				<view class="scan-frame-corner scan-frame-corner-bl"></view>
-				<view class="scan-frame-corner scan-frame-corner-br"></view>
-				<view class="scan-frame-core">
-					<text class="scan-frame-title">场景理解</text>
-					<text class="scan-frame-copy">建筑/文物 / 菜单/食物 / 路牌/OCR / 非遗/活动 / 植物/动物 / 人物</text>
-				</view>
-			</view>
-
-			<textarea
-				v-model="manualText"
-				class="scan-textarea"
-				placeholder="可选：补充白塔寺、展牌文字、攻略片段或路线图说明"
-				auto-height
-			/>
-
-			<button
-				class="primary-button xicheng-primary-action scan-primary-button"
-				:disabled="recognizing"
-				@click="startAutoRecognition"
-			>
-				{{ recognizing ? '正在识别' : '开始自动识别' }}
+	<view class="xicheng-scan scan-reference-page xicheng-designed-page xicheng-bottom-safe">
+		<view class="scan-reference-topbar">
+			<button class="scan-topbar-button" @click="goBack">
+				<xicheng-icon name="back" variant="plain" :size="22" />
 			</button>
-			<text class="scan-privacy">图片和位置仅用于本次西城 POI 识别、来源匹配和本地游记素材生成，不默认公开。</text>
+			<text class="scan-page-title">扫一扫</text>
+			<view class="scan-topbar-spacer"></view>
 		</view>
 
-		<view class="scan-capabilities xicheng-paper-card">
-			<view class="section-head xicheng-section-label">
-				<view>
-					<text class="section-kicker">自动判断</text>
-					<text class="section-title">小京会处理这些线索</text>
-				</view>
-				<text class="section-badge">单入口</text>
-			</view>
-			<view class="capability-grid">
-				<view v-for="item in capabilities" :key="item.title" class="capability-item">
-					<text class="capability-title">{{ item.title }}</text>
-					<text class="capability-copy">{{ item.copy }}</text>
-				</view>
+		<view class="scan-hero scan-reference-hero">
+			<image class="scan-hero-avatar" :src="region.companionAvatar" mode="aspectFit" />
+			<view class="scan-hero-bubble xicheng-companion-bubble">
+				<text class="scan-hero-bubble-copy">对准二维码、展牌、建筑或路线图，</text>
+				<text class="scan-hero-bubble-copy">我会自动识别</text>
 			</view>
 		</view>
 
-		<view class="scan-scene-domain-panel xicheng-paper-card">
-			<view class="section-head xicheng-section-label">
-				<view>
-					<text class="section-kicker">可问场景</text>
-					<text class="section-title">看见什么，就能问什么</text>
-				</view>
-				<text class="section-badge">10类理解</text>
+		<view class="scan-reference-camera xicheng-paper-card">
+			<image class="scan-camera-image" src="/static/xicheng/scene-baitasi-waterfront.jpg" mode="aspectFill" />
+			<view class="scan-camera-dim"></view>
+			<view class="scan-camera-grid scan-camera-grid-vertical-a"></view>
+			<view class="scan-camera-grid scan-camera-grid-vertical-b"></view>
+			<view class="scan-camera-grid scan-camera-grid-horizontal-a"></view>
+			<view class="scan-camera-grid scan-camera-grid-horizontal-b"></view>
+			<view class="scan-reference-viewfinder">
+				<view class="scan-viewfinder-corner scan-viewfinder-corner-tl"></view>
+				<view class="scan-viewfinder-corner scan-viewfinder-corner-tr"></view>
+				<view class="scan-viewfinder-corner scan-viewfinder-corner-bl"></view>
+				<view class="scan-viewfinder-corner scan-viewfinder-corner-br"></view>
 			</view>
 			<view class="scene-domain-grid">
 				<view
 					v-for="domain in sceneDomainCapabilities"
 					:key="domain.domainKey"
 					class="scene-domain-item"
+					:class="{ 'scene-domain-item-active': selectedSceneDomainKey === domain.domainKey }"
+					@click="selectSceneDomain(domain)"
 				>
 					<text class="scene-domain-label">{{ domain.label }}</text>
 					<text class="scene-domain-title">{{ domain.title }}</text>
 					<text class="scene-domain-copy">{{ domain.copy }}</text>
 				</view>
 			</view>
+			<view class="scan-album-pill">
+				<xicheng-icon name="photo" variant="plain" :size="18" />
+				<text>相册</text>
+			</view>
+		</view>
+
+		<view class="scan-reference-auto-card xicheng-paper-card">
+			<view class="scan-auto-icon">
+				<xicheng-icon name="scan" variant="primary" active :size="22" />
+			</view>
+			<view class="scan-auto-content">
+				<view class="scan-auto-title-row">
+					<text class="scan-auto-title">自动识别中：</text>
+					<view class="scan-mode-list">
+						<text
+							v-for="mode in scanRecognitionModes"
+							:key="mode"
+							class="scan-reference-mode-chip"
+						>{{ mode }}</text>
+					</view>
+				</view>
+				<text class="scan-auto-copy">无需手动选择类型，系统将为你智能识别内容</text>
+			</view>
+		</view>
+
+		<textarea
+			v-model="manualText"
+			class="scan-textarea"
+			placeholder="可选：粘贴展牌文字、攻略片段或路线图说明"
+			auto-height
+		/>
+
+		<button
+			class="primary-button xicheng-primary-action scan-primary-button"
+			:disabled="recognizing"
+			@click="startAutoRecognition"
+		>
+			<view class="scan-primary-inner">
+				<xicheng-icon name="scan" variant="primary" active :size="24" />
+				<text>{{ recognizing ? '正在识别' : '开始识别' }}</text>
+			</view>
+		</button>
+
+		<view class="scan-reference-nearby-card xicheng-paper-card" @click="resolveNearbyLocation">
+			<xicheng-icon name="location" variant="plain" :size="24" />
+			<view class="scan-nearby-copy">
+				<text class="scan-nearby-label">附近可能是：</text>
+				<text class="scan-nearby-name">白塔寺片区</text>
+			</view>
+			<xicheng-icon name="next" variant="plain" :size="18" />
+		</view>
+
+		<view class="scan-privacy">
+			<xicheng-icon name="locked" variant="plain" :size="15" />
+			<text>识别结果会匹配官方 POI 与已审核来源</text>
 		</view>
 
 		<view v-if="lastError" class="error-line">{{ lastError }}</view>
+
+		<view v-if="showAdvancedScanContext" class="scan-advanced-context">
+			<view class="scan-fusion-panel xicheng-paper-card">
+				<view class="section-head xicheng-section-label">
+					<view>
+						<text class="section-kicker">场景融合</text>
+						<text class="section-title">镜头打开前，小京已接入这些信号</text>
+					</view>
+					<text class="section-badge">Scene Engine</text>
+				</view>
+				<text class="scan-fusion-summary">{{ sceneFusionSummary }}</text>
+				<view class="scan-fusion-grid">
+					<view
+						v-for="signal in sceneFusionSignals"
+						:key="signal.key"
+						class="scan-fusion-signal"
+						:class="{ 'scan-fusion-signal-active': signal.active }"
+					>
+						<text class="scan-fusion-signal-label">{{ signal.label }}</text>
+						<text class="scan-fusion-signal-status">{{ signal.statusText }}</text>
+					</view>
+				</view>
+			</view>
+
+			<view class="scan-agent-preview-panel xicheng-paper-card">
+				<view class="section-head xicheng-section-label">
+					<view>
+						<text class="section-kicker">Agent 预判</text>
+						<text class="section-title">AI识境预判动作</text>
+					</view>
+					<text class="section-badge">Decision</text>
+				</view>
+				<text class="scan-agent-preview-summary">{{ agentDecisionPreviewSummary }}</text>
+				<view class="scan-agent-action-grid">
+					<view
+						class="scan-agent-action"
+						v-for="action in sceneAgentActionPreviews"
+						:key="action.key"
+						:class="{ 'scan-agent-action-active': selectedSceneAgentActionKey === action.key }"
+						@click="selectSceneAgentAction(action)"
+					>
+						<text class="scan-agent-action-label">{{ action.signal }}</text>
+						<text class="scan-agent-action-title">{{ action.title }}</text>
+						<text class="scan-agent-action-copy">{{ action.copy }}</text>
+					</view>
+				</view>
+			</view>
+
+			<view v-if="memorySessionContinuation" class="scan-memory-session-panel xicheng-paper-card">
+				<view class="section-head xicheng-section-label">
+					<view>
+						<text class="section-kicker">连续识境</text>
+						<text class="section-title">AI识境连续会话包</text>
+					</view>
+					<text class="section-badge">{{ memorySessionContinuation.sceneCount }}次识境</text>
+				</view>
+				<text class="scan-memory-session-copy">{{ memorySessionContinuation.poiTrailText }}</text>
+				<text class="scan-memory-session-copy">{{ memorySessionContinuation.continuityCueText }}</text>
+				<view class="scan-memory-session-cue-grid">
+					<view class="scan-memory-session-cue">
+						<text class="scan-memory-session-cue-label">场景领域</text>
+						<text class="scan-memory-session-cue-value">{{ memorySessionContinuation.domainContinuityText }}</text>
+					</view>
+					<view class="scan-memory-session-cue">
+						<text class="scan-memory-session-cue-label">服务接力</text>
+						<text class="scan-memory-session-cue-value">{{ memorySessionContinuation.serviceContinuityText }}</text>
+					</view>
+				</view>
+				<view class="scan-memory-session-action-grid">
+					<view
+						v-for="action in memorySessionActionItems"
+						:key="action.key"
+						class="scan-memory-session-action"
+						@click="handleMemorySessionAction(action)"
+					>
+						<text class="scan-memory-session-action-title">{{ action.title }}</text>
+						<text class="scan-memory-session-action-copy">{{ action.copy }}</text>
+					</view>
+				</view>
+			</view>
+
+			<view class="scan-world-interface-hud xicheng-paper-card">
+				<view class="section-head xicheng-section-label">
+					<view>
+						<text class="section-kicker">世界交互入口</text>
+						<text class="section-title">现实世界成为AI的交互界面</text>
+					</view>
+					<text class="section-badge">World Interface</text>
+				</view>
+				<view class="scan-world-interface-grid">
+					<view
+						v-for="signal in worldInterfaceSignals"
+						:key="signal.key"
+						class="scan-world-interface-signal"
+						:class="{ 'scan-world-interface-signal-active': signal.active }"
+					>
+						<text class="scan-world-interface-label">{{ signal.label }}</text>
+						<text class="scan-world-interface-value">{{ signal.value }}</text>
+					</view>
+				</view>
+				<text class="scan-world-interface-summary">{{ worldInterfaceSummary }}</text>
+			</view>
+
+			<view class="scan-capabilities xicheng-paper-card">
+				<view class="section-head xicheng-section-label">
+					<view>
+						<text class="section-kicker">自动判断</text>
+						<text class="section-title">小京会处理这些线索</text>
+					</view>
+					<text class="section-badge">单入口</text>
+				</view>
+				<view class="capability-grid">
+					<view v-for="item in capabilities" :key="item.title" class="capability-item">
+						<text class="capability-title">{{ item.title }}</text>
+						<text class="capability-copy">{{ item.copy }}</text>
+					</view>
+				</view>
+			</view>
+
+			<view class="scan-scene-domain-panel xicheng-paper-card">
+				<view class="section-head xicheng-section-label">
+					<view>
+						<text class="section-kicker">可问场景</text>
+						<text class="section-title">看见什么，就能问什么</text>
+					</view>
+					<text class="section-badge">10类理解</text>
+				</view>
+				<view class="scene-domain-grid">
+					<view
+						v-for="domain in sceneDomainCapabilities"
+						:key="domain.domainKey"
+						class="scene-domain-item"
+					>
+						<text class="scene-domain-label">{{ domain.label }}</text>
+						<text class="scene-domain-title">{{ domain.title }}</text>
+						<text class="scene-domain-copy">{{ domain.copy }}</text>
+					</view>
+				</view>
+			</view>
+		</view>
 	</view>
 </template>
 
@@ -191,6 +248,7 @@ import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import {
 	isXichengDevelopmentRecognitionCacheBlocked,
 	requestCurrentLocationForTrigger,
+	resolveXichengOcrImageTrigger,
 	resolveXichengPhotoTrigger,
 	resolveXichengTextTrigger
 } from '@/request/xunjing/trigger.js'
@@ -208,11 +266,14 @@ export default {
 			recognizing: false,
 			lastError: '',
 			manualText: '',
+			showAdvancedScanContext: false,
+			scanRecognitionModes: ['扫码', '文字', '地点', '路线'],
 			currentLocation: null,
 			sceneFusionSignals: [],
 			sceneFusionSummary: '镜头待命，正在接入现场信号',
 			worldInterfaceSignals: [],
 			worldInterfaceSummary: '现实世界成为AI的交互界面，等待现场信号',
+			selectedSceneDomainKey: 'architecture',
 			selectedSceneAgentActionKey: '',
 			sceneAgentActionUserSelected: false,
 			routeContext: {
@@ -246,10 +307,21 @@ export default {
 	},
 	computed: {
 		sceneDomainImageLabels() {
+			const selectedSceneDomain = this.getSelectedSceneDomainCapability()
 			const domainLabels = this.sceneDomainCapabilities
 				.flatMap(domain => [domain.label, domain.title])
 				.filter(Boolean)
-			return [...domainLabels, '照片', 'OCR文字', '地点线索', '路线图']
+			return Array.from(new Set([
+				selectedSceneDomain.domainKey ? `sceneDomainIntent:${selectedSceneDomain.domainKey}` : '',
+				selectedSceneDomain.label,
+				selectedSceneDomain.title,
+				selectedSceneDomain.copy,
+				...domainLabels,
+				'照片',
+				'OCR文字',
+				'地点线索',
+				'路线图'
+			].filter(Boolean)))
 		},
 		sceneAgentActionPreviews() {
 			return this.createSceneAgentActionPreviews()
@@ -304,6 +376,14 @@ export default {
 		}
 	},
 	methods: {
+		goBack() {
+			const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : []
+			if (pages && pages.length > 1) {
+				uni.navigateBack({ delta: 1 })
+				return
+			}
+			uni.reLaunch({ url: '/pages/xicheng/home/home' })
+		},
 		applyVisionAgentQueryContext(options = {}) {
 			this.visionAgentContext = {
 				context: decodeRouteValue(options.context) || 'vision-agent',
@@ -502,14 +582,20 @@ export default {
 		buildVisionAgentSceneContext(source = '', trigger = {}) {
 			const agentDecisionSnapshot = this.buildAgentDecisionSnapshot()
 			const worldInterfaceSnapshot = this.buildWorldInterfaceSnapshot()
+			const selectedSceneDomain = this.getSelectedSceneDomainCapability()
 			return {
 				...this.visionAgentContext,
+				sourceRecognitionContext: this.createSceneDomainSourceRecognitionContext(source, trigger, selectedSceneDomain),
 				sceneFusionSummary: this.sceneFusionSummary,
 				sceneFusionSignals: this.sceneFusionSignals,
 				worldInterfaceSnapshot,
 				worldInterfaceSummary: worldInterfaceSnapshot.summary,
 				worldInterfaceSignals: worldInterfaceSnapshot.signals,
 				source,
+				sceneDomainIntentKey: selectedSceneDomain.domainKey || '',
+				sceneDomainIntentLabel: selectedSceneDomain.label || '',
+				sceneDomainIntentTitle: selectedSceneDomain.title || '',
+				sceneDomainIntentCopy: selectedSceneDomain.copy || '',
 				poiCode: trigger.poiCode || '',
 				poiName: trigger.poiName || '',
 				sourceLabel: trigger.sourceLabel || '',
@@ -524,6 +610,29 @@ export default {
 				agentDecisionReasonCards: agentDecisionSnapshot.agentDecisionReasonCards,
 				agentDecisionReasonSummary: agentDecisionSnapshot.agentDecisionReasonSummary,
 				sceneAgentActionPreviews: agentDecisionSnapshot.sceneAgentActionPreviews
+			}
+		},
+		buildTriggerSceneSignals(source = '') {
+			const fusionContext = this.buildSceneFusionContext()
+			const fusionSignals = this.buildSceneFusionSignals(fusionContext)
+			const worldInterfaceSnapshot = this.buildWorldInterfaceSnapshot(fusionContext)
+			const selectedSceneDomain = this.getSelectedSceneDomainCapability()
+			const agentDecisionSnapshot = this.buildAgentDecisionSnapshot()
+			return {
+				source,
+				sceneFusionSummary: this.buildSceneFusionSummary(fusionContext, fusionSignals),
+				worldInterfaceSummary: worldInterfaceSnapshot.summary,
+				localTimeText: fusionContext.localTimeText || '',
+				weatherText: fusionContext.weatherText || '',
+				headingText: fusionContext.headingText || '',
+				headingDegrees: fusionContext.headingDegrees || '',
+				sceneDomainIntentKey: selectedSceneDomain.domainKey || '',
+				sceneDomainIntentLabel: selectedSceneDomain.label || '',
+				sceneDomainIntentTitle: selectedSceneDomain.title || '',
+				sceneDomainIntentCopy: selectedSceneDomain.copy || '',
+				agentDecisionActionTitle: agentDecisionSnapshot.agentDecisionActionTitle || '',
+				agentDecisionReasonSummary: agentDecisionSnapshot.agentDecisionReasonSummary || '',
+				memorySessionSceneCount: agentDecisionSnapshot.memorySessionSceneCount || fusionContext.memorySessionSceneCount || 0
 			}
 		},
 		createSceneAgentActionPreviews() {
@@ -646,6 +755,32 @@ export default {
 			this.selectedSceneAgentActionKey = action.key
 			this.sceneAgentActionUserSelected = true
 		},
+		selectSceneDomain(domain = {}) {
+			if (!domain.domainKey) return
+			this.selectedSceneDomainKey = domain.domainKey
+		},
+		getSelectedSceneDomainCapability() {
+			return this.sceneDomainCapabilities.find(domain => domain.domainKey === this.selectedSceneDomainKey)
+				|| this.sceneDomainCapabilities[0]
+				|| {}
+		},
+		shouldUseOcrImageRecognition() {
+			return ['sign-ocr', 'menu'].includes(this.selectedSceneDomainKey)
+		},
+		createSceneDomainSourceRecognitionContext(source = '', trigger = {}, selectedSceneDomain = this.getSelectedSceneDomainCapability()) {
+			const previousContext = this.parseVisionAgentSourceContext((this.visionAgentContext || {}).sourceRecognitionContext)
+			return JSON.stringify({
+				...previousContext,
+				source,
+				poiCode: trigger.poiCode || previousContext.poiCode || '',
+				poiName: trigger.poiName || previousContext.poiName || '',
+				sourceLabel: trigger.sourceLabel || previousContext.sourceLabel || '',
+				sceneDomainIntentKey: selectedSceneDomain.domainKey || '',
+				sceneDomainIntentLabel: selectedSceneDomain.label || '',
+				sceneDomainIntentTitle: selectedSceneDomain.title || '',
+				sceneDomainIntentCopy: selectedSceneDomain.copy || ''
+			})
+		},
 		buildAgentDecisionSnapshot() {
 			const context = this.buildSceneFusionContext()
 			const sceneAgentActionPreviews = this.sceneAgentActionPreviews
@@ -717,17 +852,28 @@ export default {
 					this.recognizing = true
 					this.lastError = ''
 					this.refreshSceneFusionPanel()
+					const source = this.shouldUseOcrImageRecognition() ? 'ocr' : 'photo'
 					try {
 						const text = this.manualText.trim()
-						const trigger = await resolveXichengPhotoTrigger({
-							filePath,
-							text,
-							ocrText: text,
-							imageLabels: this.sceneDomainImageLabels
-						})
-						this.openScanResult(trigger, 'photo')
+						const sceneSignals = this.buildTriggerSceneSignals(source)
+						const trigger = await (source === 'ocr'
+							? resolveXichengOcrImageTrigger({
+								filePath,
+								text,
+								ocrText: text,
+								imageLabels: this.sceneDomainImageLabels,
+								sceneSignals
+							})
+							: resolveXichengPhotoTrigger({
+								filePath,
+								text,
+								ocrText: text,
+								imageLabels: this.sceneDomainImageLabels,
+								sceneSignals
+							}))
+						this.openScanResult(trigger, source)
 					} catch (error) {
-						this.handleRecognitionServiceFailure('photo', error)
+						this.handleRecognitionServiceFailure(source, error)
 					} finally {
 						this.recognizing = false
 					}
@@ -747,13 +893,16 @@ export default {
 				this.currentLocation = location
 				this.refreshSceneFusionPanel()
 				const text = this.manualText.trim() || '当前位置附近西城文化点'
+				const source = location ? 'gps' : 'text'
+				const sceneSignals = this.buildTriggerSceneSignals(source)
 				const trigger = await resolveXichengTextTrigger({
 					text,
 					ocrText: text,
 					location,
-					source: location ? 'gps' : 'text'
+					source,
+					sceneSignals
 				})
-				this.openScanResult(trigger, location ? 'gps' : 'text')
+				this.openScanResult(trigger, source)
 			} catch (error) {
 				this.handleRecognitionServiceFailure('gps', error)
 			} finally {
@@ -766,11 +915,13 @@ export default {
 			this.lastError = ''
 			this.refreshSceneFusionPanel()
 			try {
+				const sceneSignals = this.buildTriggerSceneSignals(source)
 				const trigger = await resolveXichengTextTrigger({
 					text,
 					ocrText: this.manualText.trim() || text,
 					location: this.currentLocation,
-					source
+					source,
+					sceneSignals
 				})
 				this.openScanResult(trigger, source)
 			} catch (error) {
@@ -801,8 +952,9 @@ export default {
 			} else {
 				uni.setStorageSync(this.region.storageKey, result)
 			}
+			const visionAgentContext = result.visionAgentContext || {}
 			uni.navigateTo({
-				url: `/pages/xicheng/scan-result/scan-result?source=${encodeRouteValue(source)}&regionCode=${encodeRouteValue(result.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(result.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(result.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(result.sourceChannel || this.region.sourceChannel)}&poiCode=${encodeRouteValue(result.poiCode || '')}&poiName=${encodeRouteValue(result.poiName || '')}&companionName=${encodeRouteValue(result.companionName || this.region.companionName)}&safetyStatus=${encodeRouteValue(result.safetyStatus || '')}`
+				url: `/pages/xicheng/scan-result/scan-result?source=${encodeRouteValue(source)}&regionCode=${encodeRouteValue(result.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(result.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(result.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(result.sourceChannel || this.region.sourceChannel)}&poiCode=${encodeRouteValue(result.poiCode || '')}&poiName=${encodeRouteValue(result.poiName || '')}&companionName=${encodeRouteValue(result.companionName || this.region.companionName)}&safetyStatus=${encodeRouteValue(result.safetyStatus || '')}&visionAgentContext=${encodeRouteValue(JSON.stringify(visionAgentContext || {}))}&sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || '')}&memorySessionSceneCount=${encodeRouteValue(visionAgentContext.memorySessionSceneCount || '')}`
 			})
 		},
 		handleMemorySessionAction(action = {}) {
@@ -1416,6 +1568,11 @@ export default {
 	box-sizing: border-box;
 }
 
+.scene-domain-item-active {
+	background: rgba(239, 248, 239, 0.96);
+	border-color: rgba(31, 110, 90, 0.34);
+}
+
 .scene-domain-label,
 .scene-domain-title,
 .scene-domain-copy {
@@ -1460,5 +1617,385 @@ export default {
 	color: #8B2D21;
 	font-size: 24rpx;
 	line-height: 1.45;
+}
+
+.scan-reference-page {
+	padding: 34rpx 32rpx 78rpx;
+	background:
+		radial-gradient(circle at 86% 4%, rgba(225, 209, 176, 0.24), transparent 30%),
+		linear-gradient(180deg, #FFFCF6 0%, #F7F0E4 100%);
+}
+
+.scan-reference-topbar {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	min-height: 86rpx;
+}
+
+.scan-topbar-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 72rpx;
+	height: 72rpx;
+	padding: 0;
+	margin: 0;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.88);
+	box-shadow: 0 10rpx 26rpx rgba(50, 37, 24, 0.10);
+}
+
+.scan-topbar-button::after,
+.scan-primary-button::after {
+	border: 0;
+}
+
+.scan-topbar-spacer {
+	width: 72rpx;
+	height: 72rpx;
+}
+
+.scan-page-title {
+	position: absolute;
+	left: 112rpx;
+	right: 112rpx;
+	top: 50%;
+	transform: translateY(-50%);
+	text-align: center;
+	font-size: 40rpx;
+	font-weight: 900;
+	color: #102F29;
+	letter-spacing: 0;
+}
+
+.scan-reference-page .scan-hero {
+	display: grid;
+	grid-template-columns: 200rpx minmax(0, 1fr);
+	align-items: end;
+	gap: 22rpx;
+	margin-top: 20rpx;
+	padding: 0;
+	background: transparent;
+	border: 0;
+	box-shadow: none;
+	overflow: visible;
+}
+
+.scan-hero-avatar {
+	width: 200rpx;
+	height: 228rpx;
+	object-fit: contain;
+	filter: drop-shadow(0 16rpx 24rpx rgba(50, 37, 24, 0.10));
+}
+
+.scan-hero-bubble {
+	position: relative;
+	min-height: 124rpx;
+	margin-bottom: 22rpx;
+	padding: 28rpx 30rpx;
+	border-radius: 26rpx;
+	background: rgba(255, 252, 246, 0.88);
+	border: 1rpx solid rgba(16, 47, 41, 0.10);
+	box-shadow: 0 12rpx 30rpx rgba(50, 37, 24, 0.08);
+	box-sizing: border-box;
+}
+
+.scan-hero-bubble::before {
+	content: "";
+	position: absolute;
+	left: -20rpx;
+	top: 54rpx;
+	width: 38rpx;
+	height: 28rpx;
+	background: rgba(255, 252, 246, 0.88);
+	border-left: 1rpx solid rgba(16, 47, 41, 0.10);
+	border-bottom: 1rpx solid rgba(16, 47, 41, 0.10);
+	transform: rotate(28deg);
+}
+
+.scan-hero-bubble-copy {
+	display: block;
+	font-size: 32rpx;
+	line-height: 1.5;
+	font-weight: 700;
+	color: #102F29;
+}
+
+.scan-reference-camera {
+	position: relative;
+	height: 780rpx;
+	margin-top: 14rpx;
+	padding: 0;
+	border-radius: 36rpx;
+	overflow: hidden;
+	background: #E5D7C1;
+	box-shadow: 0 18rpx 42rpx rgba(50, 37, 24, 0.14);
+}
+
+.scan-camera-image,
+.scan-camera-dim,
+.scan-reference-viewfinder {
+	position: absolute;
+	inset: 0;
+}
+
+.scan-camera-image {
+	width: 100%;
+	height: 100%;
+}
+
+.scan-camera-dim {
+	background: linear-gradient(180deg, rgba(16, 47, 41, 0.06), rgba(16, 47, 41, 0.08));
+}
+
+.scan-camera-grid {
+	position: absolute;
+	background: rgba(255, 255, 255, 0.56);
+}
+
+.scan-camera-grid-vertical-a,
+.scan-camera-grid-vertical-b {
+	top: 0;
+	bottom: 0;
+	width: 2rpx;
+}
+
+.scan-camera-grid-vertical-a {
+	left: 33.33%;
+}
+
+.scan-camera-grid-vertical-b {
+	left: 66.66%;
+}
+
+.scan-camera-grid-horizontal-a,
+.scan-camera-grid-horizontal-b {
+	left: 0;
+	right: 0;
+	height: 2rpx;
+}
+
+.scan-camera-grid-horizontal-a {
+	top: 33.33%;
+}
+
+.scan-camera-grid-horizontal-b {
+	top: 66.66%;
+}
+
+.scan-viewfinder-corner {
+	position: absolute;
+	width: 70rpx;
+	height: 70rpx;
+	border-color: rgba(255, 255, 255, 0.96);
+}
+
+.scan-viewfinder-corner-tl {
+	left: 42rpx;
+	top: 42rpx;
+	border-left: 7rpx solid;
+	border-top: 7rpx solid;
+	border-radius: 18rpx 0 0 0;
+}
+
+.scan-viewfinder-corner-tr {
+	right: 42rpx;
+	top: 42rpx;
+	border-right: 7rpx solid;
+	border-top: 7rpx solid;
+	border-radius: 0 18rpx 0 0;
+}
+
+.scan-viewfinder-corner-bl {
+	left: 42rpx;
+	bottom: 42rpx;
+	border-left: 7rpx solid;
+	border-bottom: 7rpx solid;
+	border-radius: 0 0 0 18rpx;
+}
+
+.scan-viewfinder-corner-br {
+	right: 42rpx;
+	bottom: 42rpx;
+	border-right: 7rpx solid;
+	border-bottom: 7rpx solid;
+	border-radius: 0 0 18rpx 0;
+}
+
+.scan-album-pill {
+	position: absolute;
+	top: 126rpx;
+	right: 32rpx;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8rpx;
+	padding: 18rpx 14rpx;
+	min-width: 74rpx;
+	border-radius: 24rpx;
+	background: rgba(16, 47, 41, 0.72);
+	color: #FFFFFF;
+	box-shadow: 0 12rpx 24rpx rgba(16, 47, 41, 0.18);
+	box-sizing: border-box;
+}
+
+.scan-album-pill text {
+	font-size: 22rpx;
+	font-weight: 700;
+	color: #FFFFFF;
+}
+
+.scan-reference-auto-card {
+	display: grid;
+	grid-template-columns: 74rpx minmax(0, 1fr);
+	gap: 20rpx;
+	align-items: center;
+	margin-top: 34rpx;
+	padding: 26rpx 28rpx;
+	border-radius: 32rpx;
+	background: rgba(255, 252, 246, 0.94);
+}
+
+.scan-auto-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 68rpx;
+	height: 68rpx;
+	border-radius: 50%;
+	background: #173F35;
+}
+
+.scan-auto-content {
+	min-width: 0;
+}
+
+.scan-auto-title-row,
+.scan-mode-list {
+	display: flex;
+	align-items: center;
+	min-width: 0;
+}
+
+.scan-auto-title-row {
+	gap: 12rpx;
+	flex-wrap: wrap;
+}
+
+.scan-auto-title {
+	font-size: 30rpx;
+	font-weight: 800;
+	color: #102F29;
+}
+
+.scan-mode-list {
+	gap: 10rpx;
+	flex-wrap: wrap;
+}
+
+.scan-reference-mode-chip {
+	padding: 10rpx 22rpx;
+	border-radius: 999rpx;
+	background: rgba(247, 240, 230, 0.96);
+	color: rgba(16, 47, 41, 0.70);
+	font-size: 24rpx;
+	font-weight: 700;
+	line-height: 1.1;
+}
+
+.scan-auto-copy {
+	display: block;
+	margin-top: 16rpx;
+	font-size: 25rpx;
+	line-height: 1.5;
+	color: rgba(16, 47, 41, 0.58);
+}
+
+.scan-reference-page .scan-textarea {
+	min-height: 86rpx;
+	margin-top: 20rpx;
+	padding: 22rpx 26rpx;
+	border-radius: 26rpx;
+	background: rgba(255, 252, 246, 0.86);
+	box-shadow: 0 10rpx 24rpx rgba(50, 37, 24, 0.06);
+}
+
+.scan-reference-page .scan-primary-button {
+	height: 96rpx;
+	margin-top: 26rpx;
+	border-radius: 999rpx;
+	box-shadow: 0 16rpx 28rpx rgba(16, 47, 41, 0.20);
+}
+
+.scan-primary-inner {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 18rpx;
+	width: 100%;
+	height: 100%;
+}
+
+.scan-primary-inner text {
+	font-size: 34rpx;
+	font-weight: 900;
+	color: #FFFFFF;
+}
+
+.scan-reference-nearby-card {
+	display: flex;
+	align-items: center;
+	gap: 20rpx;
+	margin-top: 28rpx;
+	padding: 26rpx 28rpx;
+	border-radius: 30rpx;
+	background: rgba(255, 252, 246, 0.94);
+}
+
+.scan-nearby-copy {
+	display: flex;
+	align-items: baseline;
+	gap: 12rpx;
+	min-width: 0;
+	flex: 1;
+}
+
+.scan-nearby-label {
+	font-size: 28rpx;
+	color: rgba(16, 47, 41, 0.72);
+	white-space: nowrap;
+}
+
+.scan-nearby-name {
+	min-width: 0;
+	font-size: 34rpx;
+	font-weight: 900;
+	color: #102F29;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.scan-reference-page .scan-privacy {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10rpx;
+	margin-top: 28rpx;
+	font-size: 24rpx;
+	color: rgba(16, 47, 41, 0.52);
+	text-align: center;
+}
+
+.scan-reference-page .scan-privacy text {
+	font-size: 24rpx;
+	line-height: 1.45;
+	color: rgba(16, 47, 41, 0.52);
+}
+
+.scan-advanced-context {
+	margin-top: 28rpx;
 }
 </style>

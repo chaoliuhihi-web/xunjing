@@ -21,12 +21,43 @@ assert.match(
   'Travelogue reader should pass title, route, chapter, photo and PDF actions into the long article preview component'
 )
 
+assert.match(
+  reader,
+  /reader-topbar-actions[\s\S]*@click="showReaderContents"[\s\S]*name="source"[\s\S]*目录[\s\S]*@click="openSharePage"[\s\S]*name="share"[\s\S]*分享/,
+  'Travelogue reader topbar should match the approved keepsake reader with catalog and share actions'
+)
+
+assert.match(
+  reader,
+  /<xicheng-long-travelogue-preview[\s\S]*:companion-avatar="region\.companionAvatar"[\s\S]*@view-sources="showReaderSources"/,
+  'Travelogue reader should pass Xiaojing avatar and source viewing action into the long article component without baking it into the page shell'
+)
+
+assert.match(
+  reader,
+  /scrollReaderTo\(selector, fallbackTitle\)[\s\S]*typeof uni !== 'undefined'[\s\S]*typeof uni\.pageScrollTo === 'function'/,
+  'Travelogue reader scroll helpers should guard uni access for H5 tests and APP packaging'
+)
+
+assert.doesNotMatch(
+  reader,
+  /if\s*\(\s*uni\s*&&/,
+  'Travelogue reader should not use a bare uni truthiness check that can throw outside UniApp runtime'
+)
+
 for (const token of [
   '出版级长文预览',
+  '封面',
   '行程路线概览',
+  '路线',
   'DAY 1',
   'DAY 2',
+  '照片',
+  '故事',
+  '来源',
   '我记住的瞬间',
+  '官方来源',
+  '查看来源',
   '西城慢行小贴士',
   '写在最后',
   '保存游记',
@@ -57,6 +88,12 @@ assert.match(
 
 assert.match(
   longPreview,
+  /class="long-reader-tabs"[\s\S]*v-for="tab in readerTabs"[\s\S]*:name="tab\.icon"[\s\S]*\{\{ tab\.title \}\}/,
+  'Long travelogue preview should expose the approved cover/route/photo/story/source reader tabs using shared icons'
+)
+
+assert.match(
+  longPreview,
   /travelTips\(\)[\s\S]*icon:\s*'route'[\s\S]*icon:\s*'location'[\s\S]*icon:\s*'favorite'[\s\S]*icon:\s*'heart'/,
   'Long travelogue tips should expose semantic icon names that stay stable across APP platforms'
 )
@@ -65,6 +102,18 @@ assert.doesNotMatch(
   longPreview,
   /\{\{\s*tip\.icon\s*\}\}/,
   'Long travelogue tips should not render raw tip.icon text glyphs'
+)
+
+assert.match(
+  longPreview,
+  /class="long-source-panel"[\s\S]*companionAvatar[\s\S]*官方来源[\s\S]*\{\{ sourceCountLabel \}\}[\s\S]*@click="\$emit\('view-sources'\)"[\s\S]*查看来源/,
+  'Long travelogue preview should render an official-source card with avatar, reviewed source count and view-source action'
+)
+
+assert.match(
+  longPreview,
+  /sourceCountLabel\(\)[\s\S]*this\.sourceCount > 0[\s\S]*`\$\{this\.sourceCount\} 条已核对`[\s\S]*'待补充来源'/,
+  'Long travelogue source card should summarize reviewed source count without inflating empty evidence'
 )
 
 for (const forbidden of [

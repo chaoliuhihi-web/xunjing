@@ -34,6 +34,16 @@ public class XunjingMultimodalTriggerEngine {
     private static final String PACKAGE_STATUS_PUBLISHED = "PUBLISHED";
     private static final String REVIEW_STATUS_APPROVED = "APPROVED";
     private static final double AUTO_TRIGGER_THRESHOLD = 0.85D;
+    private static final List<String> SCENE_SIGNAL_CONTEXT_KEYS = List.of(
+            "sceneFusionSummary",
+            "worldInterfaceSummary",
+            "sceneDomainIntentKey",
+            "sceneDomainIntentLabel",
+            "sceneDomainIntentTitle",
+            "sceneDomainIntentCopy",
+            "agentDecisionActionTitle",
+            "agentDecisionReasonSummary"
+    );
 
     private static final List<PoiProfile> XICHENG_POIS = List.of(
             new PoiProfile("xicheng-baitasi", "妙应寺白塔",
@@ -98,9 +108,10 @@ public class XunjingMultimodalTriggerEngine {
                 reqVO == null ? new MultimodalTriggerReqVO() : reqVO);
         String regionCode = normalizeRegionCode(safeReqVO.getRegionCode());
         List<PoiProfile> poiProfiles = loadPoiProfiles(regionCode, safeReqVO.getPackageCode());
+        String sceneSignalContextText = buildSceneSignalContextText(safeReqVO);
 
         List<MatchScore> matches = poiProfiles.stream()
-                .map(poi -> score(poi, safeReqVO))
+                .map(poi -> score(poi, safeReqVO, sceneSignalContextText))
                 .filter(match -> match.confidence() > 0D)
                 .sorted(Comparator.comparing(MatchScore::confidence).reversed()
                         .thenComparing(MatchScore::distanceMeters, Comparator.nullsLast(Comparator.naturalOrder()))
@@ -111,7 +122,7 @@ public class XunjingMultimodalTriggerEngine {
         if (matches.isEmpty()) {
             return noMatch(regionCode, safeReqVO.getPackageCode());
         }
-        String intent = detectIntent(safeReqVO);
+        String intent = detectIntent(safeReqVO, sceneSignalContextText);
         MatchScore best = matches.get(0);
         boolean autoTrigger = best.confidence() >= AUTO_TRIGGER_THRESHOLD;
 
@@ -135,7 +146,7 @@ public class XunjingMultimodalTriggerEngine {
         return respVO;
     }
 
-    private MatchScore score(PoiProfile poi, MultimodalTriggerReqVO reqVO) {
+    private MatchScore score(PoiProfile poi, MultimodalTriggerReqVO reqVO, String sceneSignalContextText) {
         double score = 0D;
         Set<String> signals = new LinkedHashSet<>();
         Double distanceMeters = null;
@@ -161,6 +172,10 @@ public class XunjingMultimodalTriggerEngine {
         if (containsAlias(reqVO.getText(), poi)) {
             score += 0.34D;
             signals.add("text_alias");
+        }
+        if (containsAlias(sceneSignalContextText, poi)) {
+            score += 0.24D;
+            signals.add("scene_context_alias");
         }
         if (reqVO.getRecentPoiCodes() != null && reqVO.getRecentPoiCodes().contains(poi.code())) {
             score += 0.08D;
@@ -300,15 +315,20 @@ public class XunjingMultimodalTriggerEngine {
                 .toList();
     }
 
-    private String detectIntent(MultimodalTriggerReqVO reqVO) {
-        String text = normalize(defaultIfBlank(reqVO.getText(), "") + " " + defaultIfBlank(reqVO.getOcrText(), ""));
-        if (containsAny(text, List.of("下一站", "路线", "怎么走", "去哪", "行程", "推荐路线"))) {
+    private String detectIntent(MultimodalTriggerReqVO reqVO, String sceneSignalContextText) {
+        String sceneIntent = detectSceneSignalIntent(reqVO.getSceneSignals());
+        if (hasText(sceneIntent)) {
+            return sceneIntent;
+        }
+        String explicitText = normalize(defaultIfBlank(reqVO.getText(), "") + " " + defaultIfBlank(reqVO.getOcrText(), ""));
+        String fusedText = normalize(explicitText + " " + sceneSignalContextText);
+        if (containsAny(fusedText, List.of("下一站", "路线", "怎么走", "去哪", "行程", "推荐路线"))) {
             return "route";
         }
-        if (containsAny(text, List.of("好吃", "美食", "餐厅", "小吃", "咖啡"))) {
+        if (containsAny(fusedText, List.of("菜单", "菜品", "推荐菜", "好吃", "美食", "餐厅", "小吃", "咖啡", "清真"))) {
             return "food";
         }
-        if (containsAny(text, List.of("游记", "记录", "拍照", "生成"))) {
+        if (containsAny(explicitText, List.of("游记", "记录", "拍照", "生成"))) {
             return "record";
         }
         return "guide";
@@ -378,6 +398,9 @@ public class XunjingMultimodalTriggerEngine {
         if (signals.contains("image_label")) {
             parts.add("图片识别");
         }
+        if (signals.contains("scene_context_alias")) {
+            parts.add("场景理解");
+        }
         if (signals.contains("context_poi")) {
             parts.add("上下文");
         }
@@ -416,6 +439,46 @@ public class XunjingMultimodalTriggerEngine {
             }
         }
         return count;
+    }
+
+    private String buildSceneSignalContextText(MultimodalTriggerReqVO reqVO) {
+        Map<String, Object> sceneSignals = reqVO.getSceneSignals();
+        if (sceneSignals == null || sceneSignals.isEmpty()) {
+            return "";
+        }
+        List<String> values = new ArrayList<>();
+        for (String key : SCENE_SIGNAL_CONTEXT_KEYS) {
+            Object value = sceneSignals.get(key);
+            if (value != null && hasText(value.toString())) {
+                values.add(value.toString().trim());
+            }
+        }
+        return String.join(" ", values);
+    }
+
+    private String detectSceneSignalIntent(Map<String, Object> sceneSignals) {
+        if (sceneSignals == null || sceneSignals.isEmpty()) {
+            return "";
+        }
+        String text = normalize(String.join(" ",
+                sceneSignalValue(sceneSignals, "sceneDomainIntentKey"),
+                sceneSignalValue(sceneSignals, "sceneDomainIntentLabel"),
+                sceneSignalValue(sceneSignals, "sceneDomainIntentTitle")));
+        if (containsAny(text, List.of("menu", "food", "restaurant", "cafe", "餐饮", "菜单", "菜品", "美食"))) {
+            return "food";
+        }
+        if (containsAny(text, List.of("route", "navigation", "nextstop", "路线", "导航", "下一站", "行程"))) {
+            return "route";
+        }
+        if (containsAny(text, List.of("travelogue", "record", "checkin", "badge", "游记", "记录", "打卡", "徽章"))) {
+            return "record";
+        }
+        return "";
+    }
+
+    private String sceneSignalValue(Map<String, Object> sceneSignals, String key) {
+        Object value = sceneSignals.get(key);
+        return value == null ? "" : value.toString();
     }
 
     private LocationPointReqVO effectiveLocation(MultimodalTriggerReqVO reqVO) {

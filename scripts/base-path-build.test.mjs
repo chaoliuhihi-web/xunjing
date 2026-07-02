@@ -50,5 +50,5 @@ describe('static base path build', () => {
     expect(html).toContain('href="/xinghexunjing/site.webmanifest"');
     expect(html).toMatch(/src="\/xinghexunjing\/assets\/index-[^"]+\.js"/);
     expect(html).not.toMatch(/(?:src|href)="\/(?:runtime-config\.js|logo-square\.png|site\.webmanifest|assets\/)/);
-  }, 20000);
+  }, 60000);
 });

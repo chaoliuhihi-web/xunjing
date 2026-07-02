@@ -12,13 +12,16 @@ const normalizeContextBlock = aiGuide.match(/const normalizeXichengAiContext\s*=
 const applyContextBlock = aiGuide.match(/const applyXichengAiContext\s*=\s*\(options = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const contextQuestionBlock = aiGuide.match(/const buildXichengContextQuestion\s*=\s*\(question = '', context = xichengAiContext\.value\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const heroSubtitleBlock = aiGuide.match(/const xichengHeroSubtitle\s*=\s*computed\(\(\) => \{[\s\S]*?\n\}\)/)?.[0] || ''
+const requestChatBlock = aiGuide.match(/const requestXunjingAiChat\s*=\s*\(question\) => \{[\s\S]*?\n\}\n\nconst escapeHtml/)?.[0] || ''
 
 assert.ok(normalizeContextBlock, 'AI guide should expose Xicheng context normalization')
 assert.ok(applyContextBlock, 'AI guide should expose Xicheng context application')
 assert.ok(contextQuestionBlock, 'AI guide should expose Xicheng prompt context builder')
 assert.ok(heroSubtitleBlock, 'AI guide should expose Xicheng hero subtitle')
+assert.ok(requestChatBlock, 'AI guide should expose Xicheng request block')
 
 for (const required of [
+  'createXichengVisionAgentChatContextFields',
   'parseXichengVisionAgentContext',
   'visionAgentContext: parseXichengVisionAgentContext(options.visionAgentContext)',
   'sourceRecognitionContext',
@@ -41,6 +44,12 @@ for (const required of [
 }
 
 assert.match(
+  requestChatBlock,
+  /requestPayload\.safetyStatus[\s\S]*Object\.assign\(requestPayload,\s*createXichengVisionAgentChatContextFields\(context\)\)[\s\S]*Object\.assign\(requestPayload,\s*createXichengServiceHandoffEvidenceFields\(context\)\)/,
+  'Xiaojing backend request payload should send structured Vision Agent context fields before service handoff evidence'
+)
+
+assert.match(
   aiGuide,
   /const parseXichengVisionAgentContext\s*=\s*\(value = ''\) => \{[\s\S]*decodeRouteValue\(value\)[\s\S]*JSON\.parse[\s\S]*sourceRecognitionContext/,
   'AI guide should decode the route Vision Agent context JSON and fail soft into sourceRecognitionContext text'
@@ -50,6 +59,12 @@ assert.match(
   applyContextBlock,
   /visionAgentContext:\s*context\.visionAgentContext[\s\S]*sourceRecognitionContext:\s*context\.sourceRecognitionContext[\s\S]*sceneFusionSummary:\s*context\.sceneFusionSummary[\s\S]*sceneFusionSignals:\s*context\.sceneFusionSignals[\s\S]*worldInterfaceSummary:\s*context\.worldInterfaceSummary[\s\S]*worldInterfaceSignals:\s*context\.worldInterfaceSignals[\s\S]*visionAgentMemorySessionText:\s*context\.visionAgentMemorySessionText[\s\S]*memorySessionSceneCount:\s*context\.memorySessionSceneCount[\s\S]*agentDecisionReasonSummary:\s*context\.agentDecisionReasonSummary[\s\S]*agentDecisionReasonCards:\s*context\.agentDecisionReasonCards/,
   'Applied Xiaojing context should retain Vision Agent scene fusion, World Interface, memory session, decision reasons, and live-signal fields'
+)
+
+assert.match(
+  normalizeContextBlock,
+  /memorySessionSceneCount:\s*parseXichengVisionAgentContext\(options\.visionAgentContext\)\.memorySessionSceneCount\s*\|\|\s*decodeRouteValue\(options\.memorySessionSceneCount\)\s*\|\|\s*''/,
+  'AI guide should recover the continuous AI识境 scene count from the standalone route param when the full Vision Agent JSON is missing or trimmed'
 )
 
 assert.match(

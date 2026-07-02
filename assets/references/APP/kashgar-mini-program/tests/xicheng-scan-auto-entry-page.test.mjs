@@ -36,7 +36,7 @@ assert.match(
 
 assert.match(
   scan,
-  /<button[^>]*class="primary-button xicheng-primary-action scan-primary-button"[^>]*@click="startAutoRecognition"[\s\S]*开始自动识别/,
+  /<button[^>]*class="primary-button xicheng-primary-action scan-primary-button"[^>]*@click="startAutoRecognition"[\s\S]*开始(?:自动)?识别/,
   'Scan page should expose one primary auto recognition button'
 )
 
@@ -84,6 +84,12 @@ assert.match(
   scan,
   /uni\.navigateTo\(\{[\s\S]*\/pages\/xicheng\/scan-result\/scan-result\?source=\$\{encodeRouteValue\(source\)\}[\s\S]*regionCode=\$\{encodeRouteValue\(result\.regionCode/,
   'Scan page should navigate to scan-result with source plus Xicheng region/package/POI context'
+)
+
+assert.match(
+  scan,
+  /openScanResult\(trigger = \{\}, source = ''\)[\s\S]*const visionAgentContext = result\.visionAgentContext[\s\S]*visionAgentContext=\$\{encodeRouteValue\(JSON\.stringify\(visionAgentContext \|\| \{\}\)\)\}[\s\S]*sourceRecognitionContext=\$\{encodeRouteValue\(visionAgentContext\.sourceRecognitionContext \|\| ''\)\}[\s\S]*memorySessionSceneCount=\$\{encodeRouteValue\(visionAgentContext\.memorySessionSceneCount \|\| ''\)\}/,
+  'Scan page should carry Vision Agent context in the scan-result route instead of relying only on local storage'
 )
 
 assert.doesNotMatch(

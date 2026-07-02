@@ -91,8 +91,9 @@ for (const token of [
 }
 
 for (const required of [
-  '西城 AI识境',
-  '镜头理解 · 连续追问 · 城市服务'
+  '西城 AI 旅伴',
+  '扫一扫',
+  '拍照识别 · 文字识别 · 附近触发'
 ]) {
   assert.ok(home.includes(required), `home.vue should keep the Xicheng reference first-screen copy ${required}`)
 }

@@ -12,6 +12,18 @@
 			<view class="long-template-pill">出版级长文预览 · {{ templateTitle }}</view>
 		</view>
 
+		<view class="long-reader-tabs">
+			<view
+				v-for="tab in readerTabs"
+				:key="tab.key"
+				class="long-reader-tab"
+				:class="{ 'long-reader-tab-active': tab.active }"
+			>
+				<xicheng-icon :name="tab.icon" variant="plain" :size="20" />
+				<text>{{ tab.title }}</text>
+			</view>
+		</view>
+
 		<view class="long-body">
 			<view class="long-route-overview">
 				<view class="long-section-head">
@@ -106,6 +118,21 @@
 				<text class="long-quote-text">旅行的意义，不在于去了多少地方，而在于每一次愿意停下来的瞬间。</text>
 			</view>
 
+			<view class="long-source-panel">
+				<image v-if="companionAvatar" class="long-source-avatar" :src="companionAvatar" mode="aspectFit" />
+				<view class="long-source-copy">
+					<text class="long-source-kicker">官方来源</text>
+					<text class="long-source-title">地点资料已核对，发布前可再次查看</text>
+					<text class="long-source-text">白塔寺、什刹海、胡同街区和路线说明只展示已核对的公开信息；精确轨迹默认隐藏。</text>
+				</view>
+				<view class="long-source-count-card">
+					<xicheng-icon name="source" variant="plain" :size="22" />
+					<text class="long-source-count-title">官方来源</text>
+					<text class="long-source-count">{{ sourceCountLabel }}</text>
+					<button class="long-source-link" @click="$emit('view-sources')">查看来源</button>
+				</view>
+			</view>
+
 			<view class="long-tips-panel">
 				<text class="long-section-title">西城慢行小贴士</text>
 				<view class="long-tips-grid">
@@ -181,13 +208,26 @@ export default {
 			type: Number,
 			default: 0
 		},
+		companionAvatar: {
+			type: String,
+			default: ''
+		},
 		hasEvidence: {
 			type: Boolean,
 			default: true
 		}
 	},
-	emits: ['save', 'edit', 'export-pdf', 'publish-moments', 'publish-xhs'],
+	emits: ['save', 'edit', 'export-pdf', 'publish-moments', 'publish-xhs', 'view-sources'],
 	computed: {
+		readerTabs() {
+			return [
+				{ key: 'cover', icon: 'travelogue', title: '封面', active: true },
+				{ key: 'route', icon: 'route', title: '路线', active: false },
+				{ key: 'photo', icon: 'photo', title: '照片', active: false },
+				{ key: 'story', icon: 'edit', title: '故事', active: false },
+				{ key: 'source', icon: 'source', title: '来源', active: false }
+			]
+		},
 		mapRouteItems() {
 			return this.safeRouteItems.slice(0, 3)
 		},
@@ -244,15 +284,18 @@ export default {
 					{ title: '保留编辑入口', text: '素材准备好后，可以选择模板、定制封面和排版，再生成可分享的游记。', image: '' }
 				]
 			}
-			if (Array.isArray(this.chapters) && this.chapters.length > 0) {
-				return this.chapters.slice(0, 6)
-			}
-			return this.safeRouteItems.map((item, index) => ({
+			const fallbackChapters = this.safeRouteItems.map((item, index) => ({
 				title: item.title,
 				text: item.desc || '这一站不只是一个地名，也是今天被认真保存下来的一段。',
 				quote: index % 2 === 0 ? '慢下来，才看见细节。' : '把时间留给真正喜欢的地方。',
 				image: item.image || this.coverImage
 			}))
+			if (Array.isArray(this.chapters) && this.chapters.length > 0) {
+				const customChapters = this.chapters.slice(0, 6)
+				const missingChapters = fallbackChapters.slice(customChapters.length, 6)
+				return [...customChapters, ...missingChapters].slice(0, 6)
+			}
+			return fallbackChapters
 		},
 		dailySections() {
 			const chapters = this.safeChapters
@@ -295,6 +338,9 @@ export default {
 		privacyText() {
 			const checkedText = this.sourceCount > 0 ? `${this.sourceCount} 条地点资料已核对` : '地点与照片可继续补充'
 			return `${checkedText} · 精确轨迹默认隐藏 · 发布前可再次检查公开范围`
+		},
+		sourceCountLabel() {
+			return this.sourceCount > 0 ? `${this.sourceCount} 条已核对` : '待补充来源'
 		}
 	}
 }

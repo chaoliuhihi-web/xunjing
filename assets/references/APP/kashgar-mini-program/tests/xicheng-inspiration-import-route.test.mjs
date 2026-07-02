@@ -17,6 +17,7 @@ const home = read('pages', 'xicheng', 'home', 'home.vue')
 const routes = read('pages', 'xicheng', 'routes', 'routes.vue')
 const inspiration = read('pages', 'xicheng', 'inspiration', 'inspiration.vue')
 const officialPoiSources = read('request', 'xunjing', 'officialPoi.js')
+const inspirationImportHelper = read('request', 'xunjing', 'inspirationImport.js')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 const sliceBetween = (content, start, end) => {
   const startIndex = content.indexOf(start)
@@ -65,8 +66,8 @@ for (const required of [
 
 assert.doesNotMatch(
   home,
-  /一键抄作业|一键导入灵感|openXichengInspiration|\/pages\/xicheng\/inspiration\/inspiration\?/,
-  'Xicheng home should not expose inspiration import as a prominent primary-page entry'
+  /一键导入灵感|openXichengInspiration|\/pages\/xicheng\/inspiration\/inspiration\?/,
+  'Xicheng home may label the route CTA 一键抄作业, but should not expose inspiration import as a prominent primary-page entry'
 )
 
 for (const required of [
@@ -142,9 +143,9 @@ assert.match(
 )
 
 assert.match(
-  inspiration,
-  /import \{ createXichengOfficialPoiSources \} from '@\/request\/xunjing\/officialPoi\.js'/,
-  'Inspiration route import should reuse the shared official POI source helper instead of saving source-less POI materials'
+  inspirationImportHelper,
+  /import \{ createXichengOfficialPoiSources \} from '\.\/officialPoi\.js'/,
+  'Inspiration route helper should reuse the shared official POI source helper instead of saving source-less POI materials'
 )
 
 assert.match(
@@ -185,25 +186,25 @@ assert.match(
 
 assert.match(
   saveRouteBlock,
-  /if \(!includeImageOnly\) \{[\s\S]*this\.matchedPois = extractXichengPoiMatches\(this\.rawText\)[\s\S]*if \(this\.matchedPois\.length === 0\) \{[\s\S]*this\.showInspirationRouteUnavailable\(\)[\s\S]*return false[\s\S]*this\.route = buildXichengWalkRoute\(this\.matchedPois\)[\s\S]*\}/,
+  /this\.refreshInspirationImportPackage\(\{ includeImageOnly \}\)[\s\S]*const importPackage = this\.importPackage[\s\S]*if \(!includeImageOnly && importPackage\.matchedPois\.length === 0\) \{[\s\S]*this\.showInspirationRouteUnavailable\(\)[\s\S]*return false/,
   'Saving an inspiration route should re-match current text and fail closed when no official POI is matched'
 )
 
 assert.match(
-  inspiration,
-  /buildXichengWalkRoute\s*=\s*\(pois = \[\]\) => \{[\s\S]*if \(pois\.length === 0\) \{[\s\S]*title:\s*'待匹配官方 POI'[\s\S]*stops:\s*\[\][\s\S]*durationText:\s*'待匹配'[\s\S]*先匹配西城官方 POI 后再生成可走路线/,
+  inspirationImportHelper,
+  /buildXichengWalkRoute\s*=\s*\(pois = \[\][\s\S]*if \(!Array\.isArray\(pois\) \|\| pois\.length === 0\) \{[\s\S]*title:\s*'待匹配官方 POI'[\s\S]*stops:\s*\[\][\s\S]*durationText:\s*'待匹配'[\s\S]*先匹配西城官方 POI 后再生成可走路线/,
   'Inspiration route builder should not display a default route when imported text has no official POI matches'
 )
 
 assert.doesNotMatch(
-  inspiration,
+  inspirationImportHelper,
   /pois\.length > 0 \? pois : XICHENG_OFFICIAL_POIS\.slice\(0, 3\)/,
   'Inspiration route builder should not fall back to the first official POIs when imported text has no matches'
 )
 
 assert.match(
   saveRouteBlock,
-  /if \(!includeImageOnly\) \{[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.inspirationStorageKey, route\)[\s\S]*\}[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.materialsStorageKey/,
+  /if \(!includeImageOnly\) \{[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.inspirationStorageKey, route\)[\s\S]*\}[\s\S]*uni\.setStorageSync\(\s*XICHENG_REGION_CONFIG\.materialsStorageKey/,
   'Image-only inspiration upload should not persist an active route until text extraction or POI confirmation has produced a route'
 )
 
@@ -214,31 +215,31 @@ assert.match(
 )
 
 assert.match(
-  saveRouteBlock,
-  /route\.stops\.map\(stop => \{[\s\S]*return \{[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel/,
+  inspirationImportHelper,
+  /safeArray\(route\.stops\)\.map\(stop => \{[\s\S]*return \{[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel/,
   'Inspiration route POI materials should carry package, scene, and source channel for review and operations attribution'
 )
 
 assert.match(
-  saveRouteBlock,
-  /route\.stops\.map\(stop => \{[\s\S]*return \{[\s\S]*type:\s*'inspiration-poi'[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
+  inspirationImportHelper,
+  /safeArray\(route\.stops\)\.map\(stop => \{[\s\S]*return \{[\s\S]*type:\s*'inspiration-poi'[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
   'Inspiration route POI materials should be pending review and private before share or review handoff'
 )
 
 assert.match(
-  saveRouteBlock,
-  /route\.stops\.map\(stop => \{[\s\S]*const sources = createXichengOfficialPoiSources\(stop\)[\s\S]*type:\s*'inspiration-poi'[\s\S]*sources,[\s\S]*sourceCount:\s*sources\.length[\s\S]*safetyStatus:\s*'PASSED'/,
+  inspirationImportHelper,
+  /safeArray\(route\.stops\)\.map\(stop => \{[\s\S]*const sources = createXichengOfficialPoiSources\(stop\)[\s\S]*type:\s*'inspiration-poi'[\s\S]*sources,[\s\S]*sourceCount:\s*sources\.length[\s\S]*safetyStatus:\s*'PASSED'/,
   'Inspiration route POI materials should carry approved official POI source cards and explicit PASSED safety status so travelogue/PDF/review evidence is traceable'
 )
 
 assert.match(
-  saveRouteBlock,
+  inspirationImportHelper,
   /type:\s*'inspiration-image'[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel/,
   'Inspiration image material should carry package, scene, and source channel for review and operations attribution'
 )
 
 assert.match(
-  saveRouteBlock,
+  inspirationImportHelper,
   /type:\s*'inspiration-image'[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending[\s\S]*publishStatus:\s*'private'/,
   'Inspiration image material should be pending review and private before share or review handoff'
 )
@@ -250,14 +251,14 @@ assert.match(
 )
 
 assert.match(
-  inspiration,
-  /extractXichengPoiMatches\s*=\s*\(text = ''[\s\S]*XICHENG_OFFICIAL_POIS[\s\S]*poi\.aliases[\s\S]*normalized\.indexOf\(String\(alias\)\.toLowerCase\(\)\)/,
-  'Inspiration page should extract route candidates by matching text against official Xicheng POI aliases'
+  inspirationImportHelper,
+  /extractXichengPoiMatches\s*=\s*\(text = ''[\s\S]*XICHENG_OFFICIAL_POIS[\s\S]*poi\.aliases[\s\S]*normalized\.indexOf\(normalizedAlias\)/,
+  'Inspiration helper should extract route candidates by matching text against official Xicheng POI aliases'
 )
 
 assert.match(
-  inspiration,
-  /extractXichengPoiMatches\s*=\s*\(text = ''[\s\S]*matchIndex[\s\S]*aliasIndex[\s\S]*Number\.MAX_SAFE_INTEGER[\s\S]*sort\(\(left, right\) => left\.matchIndex - right\.matchIndex/,
+  inspirationImportHelper,
+  /extractXichengPoiMatches\s*=\s*\(text = ''[\s\S]*matchIndex[\s\S]*matchedAliasesByPoiCode[\s\S]*sort\(\(left, right\) => left\.matchIndex - right\.matchIndex/,
   'Inspiration POI extraction should preserve the order of place names in the imported guide text instead of official config order'
 )
 

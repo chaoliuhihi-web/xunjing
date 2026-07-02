@@ -10,7 +10,7 @@
 			</button>
 		</view>
 
-		<view class="routes-hero xicheng-paper-card">
+		<view v-if="showRoutesHero" class="routes-hero xicheng-paper-card">
 			<image class="routes-companion" :src="region.companionAvatar" mode="aspectFit" />
 			<view class="routes-hero-copy">
 				<text class="hero-kicker">{{ region.cityName }}</text>
@@ -172,7 +172,8 @@ export default {
 			routeRecommendationFilters: XICHENG_ROUTE_RECOMMENDATION_FILTERS,
 			activeRouteFilter: XICHENG_ROUTE_RECOMMENDATION_FILTERS[0] ? XICHENG_ROUTE_RECOMMENDATION_FILTERS[0].key : '',
 			inspirationRoute: null,
-			selectedMapPoi: null
+			selectedMapPoi: null,
+			showRoutesHero: false
 		}
 	},
 	computed: {
@@ -540,10 +541,12 @@ export default {
 }
 
 .culture-map-card {
-	margin-top: 24rpx;
-	padding: 26rpx;
-	border-radius: 34rpx;
+	margin-top: 8rpx;
+	padding: 0;
+	border-radius: 36rpx;
 	overflow: hidden;
+	background: transparent !important;
+	box-shadow: none !important;
 }
 
 .culture-map-head,
