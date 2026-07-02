@@ -40,7 +40,8 @@ for (const required of [
   'routeStopCards',
   'nextStop',
   '到达打卡',
-  '亲子研学任务',
+  '游记素材任务',
+  '结束并生成游记',
   'pauseRecordingSession',
   'resumeRecordingSession',
   'arriveAtNextStop',
@@ -127,6 +128,12 @@ assert.match(
   recording,
   /currentStudyTask\(\)[\s\S]*完成路线后生成西城游记。/,
   'Recording page fallback task copy should keep the flow focused on travelogue generation'
+)
+
+assert.doesNotMatch(
+  recordingShell,
+  /路线护照|我的足迹|结束并生成游记素材|亲子研学任务|@passport|@footprint|openPassport\(\)|openFootprint\(\)/,
+  'Recording page should not expose older passport, footprint, or study-growth entry points in the travelogue-focused record flow'
 )
 
 assert.doesNotMatch(

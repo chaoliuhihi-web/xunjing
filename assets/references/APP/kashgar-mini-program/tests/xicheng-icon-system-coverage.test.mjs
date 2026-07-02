@@ -86,8 +86,8 @@ assert.match(
 
 assert.match(
   recordingShell,
-  /<xicheng-icon[\s\S]*name="back"[\s\S]*name="record"[\s\S]*name="route"[\s\S]*name="study"[\s\S]*name="resume"/,
-  'Recording page should use shared icons for navigation, recording state, route marker, and study task'
+  /<xicheng-icon[\s\S]*name="back"[\s\S]*name="record"[\s\S]*name="route"[\s\S]*name="resume"[\s\S]*name="edit"/,
+  'Recording page should use shared icons for navigation, recording state, route marker, resume, and travelogue material actions'
 )
 
 assert.match(

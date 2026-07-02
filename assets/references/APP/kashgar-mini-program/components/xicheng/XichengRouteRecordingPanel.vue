@@ -122,6 +122,27 @@
 			</view>
 		</view>
 
+		<view v-if="isPaused" class="recording-paused-actions">
+			<button class="recording-wide-primary xicheng-primary-action" @click="$emit('resume')">
+				<xicheng-icon name="resume" variant="plain" :size="23" />
+				<text>继续记录</text>
+			</button>
+			<button class="recording-wide-secondary xicheng-secondary-action" @click="$emit('finish')">
+				<xicheng-icon name="edit" variant="plain" :size="23" />
+				<text>结束并生成游记</text>
+			</button>
+			<view class="recording-paused-secondary-grid">
+				<button class="xicheng-secondary-action" @click="$emit('photo')">
+					<xicheng-icon name="photo" variant="plain" :size="21" />
+					<text>补记照片</text>
+				</button>
+				<button class="xicheng-secondary-action" @click="$emit('materials')">
+					<xicheng-icon name="ocr" variant="plain" :size="21" />
+					<text>查看今日素材</text>
+				</button>
+			</view>
+		</view>
+
 		<view v-if="isPaused" class="recording-paused-next-card xicheng-paper-card">
 			<image v-if="nextStopImage" class="recording-paused-next-image" :src="nextStopImage" mode="aspectFill" />
 			<view class="recording-paused-next-copy">
@@ -171,37 +192,13 @@
 		</view>
 		<view v-else class="recording-study-card xicheng-paper-card">
 			<view class="recording-study-head">
-				<xicheng-icon name="study" variant="primary" :size="22" />
-				<text>亲子研学任务</text>
+				<xicheng-icon name="edit" variant="primary" :size="22" />
+				<text>游记素材任务</text>
 				<text>{{ studyTaskDoneCount }} / {{ studyTaskCount }}</text>
 			</view>
 			<text class="recording-study-desc">{{ currentStudyTask }}</text>
 		</view>
 
-		<view v-if="isPaused" class="recording-paused-actions">
-			<button class="recording-wide-primary xicheng-primary-action" @click="$emit('resume')">
-				<xicheng-icon name="resume" variant="plain" :size="23" />
-				<text>继续记录</text>
-			</button>
-			<button class="recording-wide-secondary xicheng-secondary-action" @click="$emit('finish')">
-				<xicheng-icon name="record" variant="plain" :size="23" />
-				<text>结束并生成游记素材</text>
-			</button>
-			<view class="recording-paused-secondary-grid">
-				<button class="xicheng-secondary-action" @click="$emit('photo')">
-					<xicheng-icon name="photo" variant="plain" :size="21" />
-					<text>补记照片</text>
-				</button>
-				<button class="xicheng-secondary-action" @click="$emit('materials')">
-					<xicheng-icon name="ocr" variant="plain" :size="21" />
-					<text>查看今日素材</text>
-				</button>
-			</view>
-			<view class="recording-post-links">
-				<button @click="$emit('passport')">路线护照</button>
-				<button @click="$emit('footprint')">我的足迹</button>
-			</view>
-		</view>
 		<view v-else class="recording-live-actions xicheng-paper-card">
 			<button class="xicheng-secondary-action" @click="$emit('pause')">
 				<xicheng-icon name="record" variant="primary" :size="22" />
@@ -292,7 +289,7 @@ export default {
 			default: ''
 		}
 	},
-	emits: ['back', 'pause', 'resume', 'arrive', 'finish', 'ask', 'locate', 'toggle-layer', 'navigate-next', 'photo', 'materials', 'passport', 'footprint'],
+	emits: ['back', 'pause', 'resume', 'arrive', 'finish', 'ask', 'locate', 'toggle-layer', 'navigate-next', 'photo', 'materials'],
 	computed: {
 		isPaused() {
 			return this.session && this.session.status === 'paused'
@@ -1001,9 +998,15 @@ export default {
 }
 
 .recording-paused-actions {
+	position: sticky;
+	bottom: 168rpx;
+	z-index: 12;
 	display: grid;
 	gap: 18rpx;
 	margin-top: 28rpx;
+	padding: 14rpx 0;
+	border-radius: 30rpx;
+	background: linear-gradient(180deg, rgba(249, 243, 232, 0.1), rgba(249, 243, 232, 0.92));
 }
 
 .recording-wide-primary,
@@ -1033,22 +1036,6 @@ export default {
 	border-radius: 22rpx;
 	font-size: 27rpx;
 	font-weight: 700;
-}
-
-.recording-post-links {
-	display: flex;
-	justify-content: center;
-	gap: 28rpx;
-	padding: 0 12rpx;
-}
-
-.recording-post-links button {
-	min-height: 54rpx;
-	padding: 0 24rpx;
-	border-radius: 999rpx;
-	background: rgba(255, 252, 246, 0.66);
-	color: rgba(23, 63, 53, 0.72);
-	font-size: 24rpx;
 }
 
 .recording-foreground-tip {

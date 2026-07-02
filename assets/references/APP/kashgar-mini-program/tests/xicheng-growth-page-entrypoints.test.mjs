@@ -58,17 +58,20 @@ assert.doesNotMatch(
 )
 
 for (const required of [
-  'openPassport',
-  'openFootprint',
-  "url: '/pages/xicheng/passport/passport'",
-  "url: '/pages/xicheng/footprint/footprint'",
-  '@passport="openPassport"',
-  '@footprint="openFootprint"',
-  "$emit('passport')",
-  "$emit('footprint')"
+  '游记素材任务',
+  '结束并生成游记',
+  '查看今日素材',
+  "$emit('finish')",
+  "$emit('materials')"
 ]) {
-  assert.ok(recordingShell.includes(required), `Recording page should keep post-recording secondary entry ${required}`)
+  assert.ok(recordingShell.includes(required), `Recording page should keep travelogue-focused record action ${required}`)
 }
+
+assert.doesNotMatch(
+  recordingShell,
+  /openPassport|openFootprint|@passport|@footprint|\$emit\('passport'\)|\$emit\('footprint'\)|路线护照|我的足迹/,
+  'Recording page should not expose passport or footprint as post-recording secondary entries after the record flow moved to travelogue generation'
+)
 
 for (const required of [
   'openSharePage',
