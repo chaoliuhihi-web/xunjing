@@ -86,6 +86,12 @@ assert.match(
   'Scan page should navigate to scan-result with source plus Xicheng region/package/POI context'
 )
 
+assert.match(
+  scan,
+  /openScanResult\(trigger = \{\}, source = ''\)[\s\S]*const visionAgentContext = result\.visionAgentContext[\s\S]*visionAgentContext=\$\{encodeRouteValue\(JSON\.stringify\(visionAgentContext \|\| \{\}\)\)\}[\s\S]*sourceRecognitionContext=\$\{encodeRouteValue\(visionAgentContext\.sourceRecognitionContext \|\| ''\)\}[\s\S]*memorySessionSceneCount=\$\{encodeRouteValue\(visionAgentContext\.memorySessionSceneCount \|\| ''\)\}/,
+  'Scan page should carry Vision Agent context in the scan-result route instead of relying only on local storage'
+)
+
 assert.doesNotMatch(
   scan,
   /Authorization['"]?\s*:\s*`Bearer|pat_[A-Za-z0-9]{20,}|https:\/\/api\.coze\.cn|sk-[A-Za-z0-9]{20,}/,
