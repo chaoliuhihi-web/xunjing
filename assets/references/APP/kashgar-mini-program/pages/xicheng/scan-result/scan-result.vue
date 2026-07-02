@@ -293,22 +293,10 @@
 			<text v-if="suggestedQuestions.length === 0" class="question-empty">{{ questionEmptyCopy }}</text>
 		</view>
 
-		<view class="source-card xicheng-paper-card">
-			<text class="section-title">已审核来源</text>
-			<view v-if="sourceList.length > 0">
-				<view
-					v-for="(source, index) in sourceList"
-					:key="source.id || source.url || source.title || index"
-					class="source-row"
-				>
-					<text class="source-title">{{ getDisplaySourceTitle(source) || '审核来源' }}</text>
-					<text v-if="getDisplaySourceDescription(source)" class="source-desc">
-						{{ getDisplaySourceDescription(source) }}
-					</text>
-				</view>
-			</view>
-			<text v-else class="source-empty">{{ sourceEmptyCopy }}</text>
-		</view>
+		<xicheng-scan-result-sources-card
+			:source-list="sourceList"
+			:source-empty-copy="sourceEmptyCopy"
+		/>
 
 		<view class="feedback-card xicheng-paper-card">
 			<view class="section-head xicheng-section-label">
@@ -347,11 +335,7 @@ import { submitXichengRecognitionFeedbackEvent } from '@/request/xunjing/events.
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { decodeXichengRouteValue, createXichengRouteOutputValue } from '@/request/xunjing/routeParams.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
-import {
-	getXichengDisplaySourceDescription,
-	getXichengDisplaySourceTitle,
-	normalizeXichengReviewedSources
-} from '@/request/xunjing/sources.js'
+import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 import { isXichengDevelopmentRecognitionCacheBlocked } from '@/request/xunjing/trigger.js'
 import { mergeXichengVisionAgentRouteContext, parseXichengVisionAgentRouteContext } from '@/request/xunjing/visionAgentRouteContext.js'
 import {
@@ -361,6 +345,7 @@ import {
 	inferXichengVisionAgentSceneUnderstandingPackage
 } from '@/request/xunjing/visionAgentSceneUnderstanding.js'
 import XichengVisionAgentWorldInterfaceStrip from '@/components/xicheng/vision-agent-world-interface-strip.vue'
+import XichengScanResultSourcesCard from '@/components/xicheng/XichengScanResultSourcesCard.vue'
 
 const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
 	regionCode: XICHENG_REGION_CONFIG.regionCode,
@@ -632,6 +617,7 @@ const normalizeResult = (result = {}) => ({
 
 export default {
 	components: {
+		XichengScanResultSourcesCard,
 		XichengVisionAgentWorldInterfaceStrip
 	},
 	data() {
@@ -1782,12 +1768,6 @@ export default {
 		formatCandidateSummary(candidate = {}) {
 			return candidate.summary || `距离约 ${candidate.distanceMeters} 米`
 		},
-		getDisplaySourceTitle(source = {}) {
-			return getXichengDisplaySourceTitle(source)
-		},
-		getDisplaySourceDescription(source = {}) {
-			return getXichengDisplaySourceDescription(source)
-		},
 		startRecording() {
 			if (this.pendingCandidateConfirmation) {
 				this.requireOfficialPoiConfirmation('开始记录')
@@ -2001,7 +1981,6 @@ export default {
 .question-card,
 .route-card,
 .candidate-card,
-.source-card,
 .feedback-card {
 	padding: 32rpx;
 	border-radius: 34rpx;
@@ -2347,28 +2326,11 @@ export default {
 	color: #B42318;
 }
 
-.source-row {
-	margin-top: 18rpx;
-	padding: 22rpx;
-	border-radius: 24rpx;
-	border: 1rpx solid rgba(181, 148, 94, 0.24);
-	background: rgba(255, 252, 246, 0.72);
-}
-
-.source-title,
-.source-desc,
 .source-empty {
 	display: block;
 	line-height: 1.55;
 }
 
-.source-title {
-	font-size: 26rpx;
-	font-weight: 700;
-	color: #102F29;
-}
-
-.source-desc,
 .source-empty {
 	margin-top: 8rpx;
 	font-size: 24rpx;
