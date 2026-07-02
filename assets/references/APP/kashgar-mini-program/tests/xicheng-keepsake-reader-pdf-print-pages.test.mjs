@@ -16,6 +16,7 @@ const share = read('pages', 'xicheng', 'share', 'share.vue')
 const works = read('pages', 'xicheng', 'works', 'works.vue')
 const longTraveloguePreview = readOptional('components', 'xicheng', 'XichengLongTraveloguePreview.vue')
 const longTraveloguePreviewCss = readOptional('components', 'xicheng', 'XichengLongTraveloguePreview.css')
+const pdfPrintPreview = readOptional('components', 'xicheng', 'XichengPdfPrintPreview.vue')
 
 const requiredPages = [
   {
@@ -43,6 +44,7 @@ const requiredPages = [
     file: ['pages', 'xicheng', 'pdf-print', 'pdf-print.vue'],
     tokens: [
       'xicheng-pdf-print',
+      'xicheng-pdf-print-preview',
       'A4 打印设置',
       '页码预览',
       '保存 PDF',
@@ -50,7 +52,8 @@ const requiredPages = [
       '分享 PDF',
       '预览全部页面',
       'XICHENG_REGION_CONFIG.shareAssetStorageKey'
-    ]
+    ],
+    includePdfPrintPreview: true
   }
 ]
 
@@ -62,9 +65,12 @@ for (const page of requiredPages) {
   assert.ok(app.includes(`'${page.route}'`), `${page.route} should be public for saved travelogue links`)
 
   const pageSource = readOptional(...page.file)
-  const source = page.includeLongPreview
-    ? `${pageSource}\n${longTraveloguePreview}\n${longTraveloguePreviewCss}`
-    : pageSource
+  const source = [
+    pageSource,
+    page.includeLongPreview ? longTraveloguePreview : '',
+    page.includeLongPreview ? longTraveloguePreviewCss : '',
+    page.includePdfPrintPreview ? pdfPrintPreview : ''
+  ].join('\n')
   assert.ok(source, `${page.route} should have an implemented Vue page`)
   assert.ok(pageSource.split(/\r?\n/).length < 900, `${page.route} should stay focused and component-friendly`)
   for (const token of page.tokens) {

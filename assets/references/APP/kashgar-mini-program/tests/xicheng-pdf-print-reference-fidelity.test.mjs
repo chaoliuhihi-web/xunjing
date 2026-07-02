@@ -4,6 +4,15 @@ import path from 'node:path'
 
 const root = process.cwd()
 const pdfPrint = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'pdf-print', 'pdf-print.vue'), 'utf8')
+const previewComponentPath = path.join(root, 'components', 'xicheng', 'XichengPdfPrintPreview.vue')
+
+assert.ok(
+  fs.existsSync(previewComponentPath),
+  'PDF print page should split the heavy page preview stage into XichengPdfPrintPreview instead of growing the page shell'
+)
+
+const previewComponent = fs.readFileSync(previewComponentPath, 'utf8')
+const pdfSurface = `${pdfPrint}\n${previewComponent}`
 
 for (const token of [
   'PDF 纪念册',
@@ -21,7 +30,7 @@ for (const token of [
   '预览全部',
   '打印 / 分享 PDF'
 ]) {
-  assert.ok(pdfPrint.includes(token), `PDF print page should expose approved reference token: ${token}`)
+  assert.ok(pdfSurface.includes(token), `PDF print page should expose approved reference token: ${token}`)
 }
 
 for (const pageLabel of ['封面', '路线', '照片', '游记', '来源', '封底']) {
@@ -42,6 +51,18 @@ for (const methodName of ['selectPreviewPage', 'previewAllPages', 'savePdf', 'sy
 
 assert.match(
   pdfPrint,
+  /import XichengPdfPrintPreview from '@\/components\/xicheng\/XichengPdfPrintPreview\.vue'[\s\S]*components:[\s\S]*XichengPdfPrintPreview/,
+  'PDF print page should import and register the split preview component'
+)
+
+assert.match(
+  pdfPrint,
+  /<xicheng-pdf-print-preview[\s\S]*:preview-pages="previewPages"[\s\S]*:current-page-index="currentPageIndex"[\s\S]*:current-preview-page="currentPreviewPage"[\s\S]*@select-page="selectPreviewPage"/,
+  'PDF print page should pass preview data and page selection into the split preview component'
+)
+
+assert.match(
+  pdfPrint,
   /currentPreviewPage\(\)[\s\S]*return this\.previewPages\[this\.currentPageIndex\] \|\| this\.previewPages\[0\]/,
   'PDF page should render a selected large preview page from the thumbnail strip'
 )
@@ -58,10 +79,17 @@ assert.match(
   'PDF export content summary should reflect reviewed sources and selected material count'
 )
 
-assert.ok(pdfPrint.split(/\r?\n/).length < 760, 'PDF print page should stay compact and component-friendly')
+assert.match(
+  pdfPrint,
+  /\.setting-label,[\s\S]*\.setting-value,[\s\S]*\.export-title,[\s\S]*\.export-desc,[\s\S]*\.export-count[\s\S]*display:\s*block/,
+  'PDF print settings and export rows should keep title, description, and count text on separate scan-friendly lines after splitting preview styles'
+)
+
+assert.ok(pdfPrint.split(/\r?\n/).length < 520, 'PDF print page shell should stay compact after splitting the preview stage')
+assert.ok(previewComponent.split(/\r?\n/).length < 430, 'PDF print preview component should stay compact for APP packaging')
 
 assert.doesNotMatch(
-  pdfPrint,
+  pdfSurface,
   /\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}|background-location|startLocationUpdateBackground/,
   'PDF print page should not introduce backend calls, client secrets, or high-risk background permissions'
 )
