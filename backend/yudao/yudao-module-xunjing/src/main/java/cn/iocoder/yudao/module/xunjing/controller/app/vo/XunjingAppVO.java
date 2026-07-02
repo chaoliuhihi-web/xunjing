@@ -36,6 +36,29 @@ public class XunjingAppVO {
         private String poiCode;
         private String poiName;
         private String routeId;
+        private String companionName;
+        private Double recognitionConfidence;
+        private String safetyStatus;
+        private Boolean visionAgentContextAvailable;
+        private String visionAgentSceneFusionSummary;
+        private String visionAgentWorldInterfaceSummary;
+        private String visionAgentMemorySessionText;
+        private Integer visionAgentMemorySessionSceneCount;
+        private String visionAgentPrimarySceneDomainKey;
+        private String visionAgentPrimarySceneDomainLabel;
+        private String visionAgentSceneUnderstandingSummary;
+        private String visionAgentDecisionActionTitle;
+        private String visionAgentDecisionReasonSummary;
+        private String visionAgentLocalTimeText;
+        private String visionAgentWeatherText;
+        private String visionAgentHeadingText;
+        private String serviceHandoffActionKey;
+        private String serviceHandoffTaskType;
+        private String serviceHandoffIntent;
+        private String serviceHandoffIntentText;
+        private String serviceHandoffStepText;
+        private String serviceHandoffSummary;
+        private Boolean serviceHandoffRequiresRealSystem;
     }
 
     @Data

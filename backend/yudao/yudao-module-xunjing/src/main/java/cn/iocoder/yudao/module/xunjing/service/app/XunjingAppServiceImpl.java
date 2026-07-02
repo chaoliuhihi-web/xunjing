@@ -74,6 +74,7 @@ import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -97,6 +98,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     private static final String QUOTA_SCOPE_QRCODE = "QRCODE";
     private static final String QUOTA_SCOPE_USER = "USER";
     private static final int TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH = 200;
+    private static final int CHAT_CONTEXT_TEXT_MAX_LENGTH = 200;
     private static final List<String> TRIGGER_SCENE_SIGNAL_TEXT_KEYS = List.of(
             "sceneFusionSummary",
             "worldInterfaceSummary",
@@ -606,6 +608,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         payload.put("poiCode", defaultIfBlank(reqVO.getPoiCode(), ""));
         payload.put("poiName", defaultIfBlank(reqVO.getPoiName(), ""));
         payload.put("routeId", defaultIfBlank(reqVO.getRouteId(), ""));
+        payload.put("visionAgentContext", buildVisionAgentChatContextPayload(reqVO));
         return JsonUtils.toJsonString(payload);
     }
 
@@ -1130,15 +1133,105 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     }
 
     private String buildChatContextText(RagChatReqVO reqVO) {
-        List<String> parts = List.of(
-                "regionCode=" + defaultIfBlank(reqVO.getRegionCode(), ""),
-                "poiCode=" + defaultIfBlank(reqVO.getPoiCode(), ""),
-                "poiName=" + defaultIfBlank(reqVO.getPoiName(), ""),
-                "routeId=" + defaultIfBlank(reqVO.getRouteId(), "")
-        );
+        List<String> parts = new ArrayList<>();
+        parts.add("regionCode=" + defaultIfBlank(reqVO.getRegionCode(), ""));
+        parts.add("poiCode=" + defaultIfBlank(reqVO.getPoiCode(), ""));
+        parts.add("poiName=" + defaultIfBlank(reqVO.getPoiName(), ""));
+        parts.add("routeId=" + defaultIfBlank(reqVO.getRouteId(), ""));
+        parts.add(buildVisionAgentChatContextText(reqVO));
         return parts.stream()
                 .filter(part -> !part.endsWith("="))
+                .filter(this::hasText)
                 .collect(Collectors.joining("\n"));
+    }
+
+    private String buildVisionAgentChatContextText(RagChatReqVO reqVO) {
+        List<String> parts = new ArrayList<>();
+        putChatContextPart(parts, "AI识境现场", reqVO.getVisionAgentSceneFusionSummary());
+        putChatContextPart(parts, "世界交互入口", reqVO.getVisionAgentWorldInterfaceSummary());
+        putChatContextPart(parts, "连续记忆", reqVO.getVisionAgentMemorySessionText());
+        if (reqVO.getVisionAgentMemorySessionSceneCount() != null
+                && reqVO.getVisionAgentMemorySessionSceneCount() > 0) {
+            parts.add("记忆场景数=" + reqVO.getVisionAgentMemorySessionSceneCount());
+        }
+        String domain = buildVisionAgentDomainText(reqVO);
+        if (hasText(domain)) {
+            parts.add("场景域=" + domain);
+        }
+        putChatContextPart(parts, "场景理解", reqVO.getVisionAgentSceneUnderstandingSummary());
+        putChatContextPart(parts, "Agent建议", reqVO.getVisionAgentDecisionActionTitle());
+        putChatContextPart(parts, "Agent理由", reqVO.getVisionAgentDecisionReasonSummary());
+        String environment = buildVisionAgentEnvironmentText(reqVO);
+        if (hasText(environment)) {
+            parts.add("实时环境=" + environment);
+        }
+        putChatContextPart(parts, "服务承接", reqVO.getServiceHandoffSummary());
+        if (reqVO.getServiceHandoffRequiresRealSystem() != null) {
+            parts.add("真实系统确认=" + reqVO.getServiceHandoffRequiresRealSystem());
+        }
+        return String.join("\n", parts);
+    }
+
+    private Map<String, Object> buildVisionAgentChatContextPayload(RagChatReqVO reqVO) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        putChatContextPayloadText(payload, "sceneFusionSummary", reqVO.getVisionAgentSceneFusionSummary());
+        putChatContextPayloadText(payload, "worldInterfaceSummary", reqVO.getVisionAgentWorldInterfaceSummary());
+        putChatContextPayloadText(payload, "memorySessionText", reqVO.getVisionAgentMemorySessionText());
+        if (reqVO.getVisionAgentMemorySessionSceneCount() != null
+                && reqVO.getVisionAgentMemorySessionSceneCount() > 0) {
+            payload.put("memorySessionSceneCount", reqVO.getVisionAgentMemorySessionSceneCount());
+        }
+        putChatContextPayloadText(payload, "primarySceneDomainKey", reqVO.getVisionAgentPrimarySceneDomainKey());
+        putChatContextPayloadText(payload, "primarySceneDomainLabel", reqVO.getVisionAgentPrimarySceneDomainLabel());
+        putChatContextPayloadText(payload, "sceneUnderstandingSummary", reqVO.getVisionAgentSceneUnderstandingSummary());
+        putChatContextPayloadText(payload, "decisionActionTitle", reqVO.getVisionAgentDecisionActionTitle());
+        putChatContextPayloadText(payload, "decisionReasonSummary", reqVO.getVisionAgentDecisionReasonSummary());
+        putChatContextPayloadText(payload, "localTimeText", reqVO.getVisionAgentLocalTimeText());
+        putChatContextPayloadText(payload, "weatherText", reqVO.getVisionAgentWeatherText());
+        putChatContextPayloadText(payload, "headingText", reqVO.getVisionAgentHeadingText());
+        putChatContextPayloadText(payload, "serviceHandoffActionKey", reqVO.getServiceHandoffActionKey());
+        putChatContextPayloadText(payload, "serviceHandoffTaskType", reqVO.getServiceHandoffTaskType());
+        putChatContextPayloadText(payload, "serviceHandoffIntent", reqVO.getServiceHandoffIntent());
+        putChatContextPayloadText(payload, "serviceHandoffIntentText", reqVO.getServiceHandoffIntentText());
+        putChatContextPayloadText(payload, "serviceHandoffStepText", reqVO.getServiceHandoffStepText());
+        putChatContextPayloadText(payload, "serviceHandoffSummary", reqVO.getServiceHandoffSummary());
+        if (reqVO.getServiceHandoffRequiresRealSystem() != null) {
+            payload.put("serviceHandoffRequiresRealSystem", reqVO.getServiceHandoffRequiresRealSystem());
+        }
+        return payload;
+    }
+
+    private void putChatContextPart(List<String> parts, String label, String value) {
+        if (hasText(value)) {
+            parts.add(label + "=" + truncateForEvent(value.trim(), CHAT_CONTEXT_TEXT_MAX_LENGTH));
+        }
+    }
+
+    private void putChatContextPayloadText(Map<String, Object> payload, String key, String value) {
+        if (hasText(value)) {
+            payload.put(key, truncateForEvent(value.trim(), CHAT_CONTEXT_TEXT_MAX_LENGTH));
+        }
+    }
+
+    private String buildVisionAgentDomainText(RagChatReqVO reqVO) {
+        String key = truncateForEvent(defaultIfBlank(reqVO.getVisionAgentPrimarySceneDomainKey(), ""),
+                CHAT_CONTEXT_TEXT_MAX_LENGTH);
+        String label = truncateForEvent(defaultIfBlank(reqVO.getVisionAgentPrimarySceneDomainLabel(), ""),
+                CHAT_CONTEXT_TEXT_MAX_LENGTH);
+        if (hasText(key) && hasText(label)) {
+            return key + "/" + label;
+        }
+        return hasText(key) ? key : label;
+    }
+
+    private String buildVisionAgentEnvironmentText(RagChatReqVO reqVO) {
+        return java.util.stream.Stream.of(
+                        reqVO.getVisionAgentLocalTimeText(),
+                        reqVO.getVisionAgentWeatherText(),
+                        reqVO.getVisionAgentHeadingText())
+                .filter(this::hasText)
+                .map(value -> truncateForEvent(value.trim(), CHAT_CONTEXT_TEXT_MAX_LENGTH))
+                .collect(Collectors.joining(" "));
     }
 
     private String buildChatInputSummary(RagChatReqVO reqVO) {

@@ -811,6 +811,68 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testAnswerCarriesVisionAgentContextIntoPromptAndAskEvent() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        consoleService.addKnowledgeDocument(xichengBaitasiKnowledgeReq(packageId));
+        ChatModel chatModel = mock(ChatModel.class);
+        when(aiModelService.getRequiredDefaultModel(AiModelTypeEnum.CHAT.getType())).thenReturn(defaultChatModel());
+        when(aiModelService.getChatModel(6601L)).thenReturn(chatModel);
+        when(chatModel.call(any(Prompt.class))).thenReturn(chatResponse("模型生成：现在适合先拍照，再讲白塔历史。"));
+
+        RagChatReqVO reqVO = xichengRagReq();
+        reqVO.setVisionAgentContextAvailable(true);
+        reqVO.setVisionAgentSceneFusionSummary("晴天 18:40，夕阳适合先拍门楼。");
+        reqVO.setVisionAgentWorldInterfaceSummary("相机融合定位、天气、方向和城市知识库。");
+        reqVO.setVisionAgentMemorySessionText("用户刚识别过妙应寺白塔和白塔寺片区。");
+        reqVO.setVisionAgentMemorySessionSceneCount(2);
+        reqVO.setVisionAgentPrimarySceneDomainKey("architecture");
+        reqVO.setVisionAgentPrimarySceneDomainLabel("建筑");
+        reqVO.setVisionAgentSceneUnderstandingSummary("现场判断为建筑讲解和拍照建议。");
+        reqVO.setVisionAgentDecisionActionTitle("先拍照");
+        reqVO.setVisionAgentDecisionReasonSummary("马上日落，光线适合拍门楼。");
+        reqVO.setVisionAgentLocalTimeText("18:40");
+        reqVO.setVisionAgentWeatherText("晴");
+        reqVO.setVisionAgentHeadingText("向西");
+        reqVO.setServiceHandoffSummary("涉及商家、票务或优惠时必须说明需要真实系统确认。");
+        reqVO.setServiceHandoffRequiresRealSystem(true);
+
+        RagChatRespVO answer = appService.answer(reqVO);
+
+        assertEquals("PASSED", answer.getSafetyStatus());
+        ArgumentCaptor<Prompt> promptCaptor = ArgumentCaptor.forClass(Prompt.class);
+        verify(chatModel).call(promptCaptor.capture());
+        String prompt = promptCaptor.getValue().getContents();
+        assertTrue(prompt.contains("AI识境现场=晴天 18:40，夕阳适合先拍门楼。"));
+        assertTrue(prompt.contains("世界交互入口=相机融合定位、天气、方向和城市知识库。"));
+        assertTrue(prompt.contains("连续记忆=用户刚识别过妙应寺白塔和白塔寺片区。"));
+        assertTrue(prompt.contains("记忆场景数=2"));
+        assertTrue(prompt.contains("场景域=architecture/建筑"));
+        assertTrue(prompt.contains("Agent建议=先拍照"));
+        assertTrue(prompt.contains("Agent理由=马上日落，光线适合拍门楼。"));
+        assertTrue(prompt.contains("实时环境=18:40 晴 向西"));
+        assertTrue(prompt.contains("服务承接=涉及商家、票务或优惠时必须说明需要真实系统确认。"));
+        assertTrue(prompt.contains("真实系统确认=true"));
+        assertFalse(prompt.contains("sourceRecognitionContext"));
+        assertFalse(prompt.contains("/tmp/raw.jpg"));
+
+        List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType()));
+        assertEquals(1, events.size());
+        JsonNode payload = JsonUtils.parseTree(events.get(0).getPayloadJson());
+        JsonNode visionAgentContext = payload.get("visionAgentContext");
+        assertEquals("晴天 18:40，夕阳适合先拍门楼。", visionAgentContext.get("sceneFusionSummary").asText());
+        assertEquals("architecture", visionAgentContext.get("primarySceneDomainKey").asText());
+        assertEquals(2, visionAgentContext.get("memorySessionSceneCount").asInt());
+        assertEquals("涉及商家、票务或优惠时必须说明需要真实系统确认。",
+                visionAgentContext.get("serviceHandoffSummary").asText());
+        assertFalse(visionAgentContext.has("sourceRecognitionContext"));
+    }
+
+    @Test
     public void testAnswerBlocksWhenNoReviewedSourcesForXichengPoi() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
