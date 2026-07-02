@@ -1033,7 +1033,8 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     }
 
     private void hydrateVisionAgentMemoryFromPreviousAsk(XunjingResourcePackageDO resourcePackage, RagChatReqVO reqVO) {
-        if (hasText(reqVO.getVisionAgentMemorySessionText()) || !hasText(reqVO.getUserTraceId())) {
+        if (hasText(reqVO.getVisionAgentMemorySessionText()) || !hasText(reqVO.getUserTraceId())
+                || hasExplicitChatTargetContext(reqVO)) {
             return;
         }
         XunjingInteractionEventDO previousEvent =
@@ -1066,7 +1067,8 @@ public class XunjingAppServiceImpl implements XunjingAppService {
 
     private void hydrateVisionAgentContextFromPreviousTrigger(
             XunjingResourcePackageDO resourcePackage, RagChatReqVO reqVO) {
-        if (!hasText(reqVO.getUserTraceId()) || hasCompleteSceneContext(reqVO)) {
+        if (!hasText(reqVO.getUserTraceId()) || hasCompleteSceneContext(reqVO)
+                || hasExplicitChatTargetContext(reqVO)) {
             return;
         }
         XunjingInteractionEventDO previousEvent =
@@ -1107,7 +1109,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
 
     private void hydrateVisionAgentContextFromPreviousAgentAction(
             XunjingResourcePackageDO resourcePackage, RagChatReqVO reqVO) {
-        if (!hasText(reqVO.getUserTraceId())) {
+        if (!hasText(reqVO.getUserTraceId()) || hasExplicitChatTargetContext(reqVO)) {
             return;
         }
         XunjingInteractionEventDO previousAgentActionEvent =
@@ -1236,6 +1238,10 @@ public class XunjingAppServiceImpl implements XunjingAppService {
                 && hasText(reqVO.getRegionCode())
                 && hasText(reqVO.getPoiCode())
                 && hasText(reqVO.getPoiName());
+    }
+
+    private boolean hasExplicitChatTargetContext(RagChatReqVO reqVO) {
+        return hasText(reqVO.getPoiCode()) || hasText(reqVO.getPoiName()) || hasText(reqVO.getRouteId());
     }
 
     private void hydrateTriggerPoiContext(RagChatReqVO reqVO, JsonNode root) {

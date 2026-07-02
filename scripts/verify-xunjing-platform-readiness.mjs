@@ -552,6 +552,7 @@ async function checkXichengAppEventBackend(rootDir) {
     'payload.put("agentAction", buildAgentActionEventPayload(clientPayloadObject))',
     'hydrateVisionAgentContextFromPreviousAgentAction(resourcePackage, reqVO)',
     'shouldUsePreviousAgentActionForChatContext(previousAgentActionEvent, previousAskEvent, previousTriggerEvent)',
+    'hasExplicitChatTargetContext(reqVO)',
     'EventType.AGENT_ACTION.getType()',
     'JsonNode agentAction = root.path("agentAction")',
     'buildAgentActionServiceHandoffSummary(agentAction)'
@@ -616,6 +617,11 @@ async function checkXichengAppEventBackend(rootDir) {
     'XunjingAppServiceImplTest.java'
   )
   assertContains(
+    appTest,
+    'testAnswerKeepsExplicitPoiContextAheadOfPreviousTriggerAndAgentAction',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
     consoleTest,
     'testReadinessDashboardAndReportExposeAgentActionConversionMetrics',
     'XunjingConsoleServiceImplTest.java'
@@ -650,10 +656,16 @@ async function checkAdminUiContract(rootDir) {
     rootDir,
     'backend/yudao/yudao-ui/yudao-ui-admin-vue3/src/views/xunjing/console/index.vue'
   )
-  for (const snippet of ['getReadiness', 'getDashboard', 'getAiGenerationLogPage']) {
+  for (const snippet of [
+    'getReadiness',
+    'getDashboard',
+    'getAiGenerationLogPage',
+    'createKnowledgeDocument',
+    'createMediaAsset'
+  ]) {
     assertContains(api, snippet, 'xunjing console API')
   }
-  for (const snippet of ['XunjingConsole', '资料导入审核', '图影中华素材']) {
+  for (const snippet of ['XunjingConsole', '资料导入审核', '图影中华素材', '新增文旅资料', '新增图片素材']) {
     assertContains(view, snippet, 'xunjing console view')
   }
   return pass('admin-ui-contract', 'Yudao admin console route and API contract are present')

@@ -2411,6 +2411,78 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testAnswerKeepsExplicitPoiContextAheadOfPreviousTriggerAndAgentAction() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+        insertXichengBaitasiPoi(packageId);
+        consoleService.addKnowledgeDocument(xichengGongwangfuKnowledgeReq(packageId));
+        consoleService.addKnowledgeDocument(xichengBaitasiKnowledgeReq(packageId));
+
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-chat-explicit-poi-001");
+        triggerReq.setOcrText("恭王府博物馆入口");
+        triggerReq.setImageLabels(List.of("palace", "courtyard"));
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("xicheng-gongwangfu", triggerResp.getPoiCode());
+
+        AppInteractionEventReqVO actionReq = new AppInteractionEventReqVO();
+        actionReq.setPackageCode("XICHENG-MAP-001");
+        actionReq.setSceneCode("xicheng-agent-action");
+        actionReq.setEventType(XunjingEnums.EventType.AGENT_ACTION.getType());
+        actionReq.setSourceChannel("xicheng-app");
+        actionReq.setUserTraceId("trace-xicheng-chat-explicit-poi-001");
+        actionReq.setPayloadJson("""
+                {
+                  "actionKey":"generate_travelogue",
+                  "title":"生成游记",
+                  "intent":"record",
+                  "executionStatus":"clicked",
+                  "poiCode":"xicheng-gongwangfu",
+                  "poiName":"恭王府",
+                  "requiresUserConfirm":true,
+                  "requiresRealSystem":false,
+                  "reason":"用户上一轮点击了恭王府游记动作。"
+                }
+                """);
+        appService.recordEvent(actionReq);
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-chat-explicit-poi-001");
+        followUpReq.setQuestion("妙应寺白塔有什么看点？");
+        followUpReq.setRegionCode("beijing-xicheng");
+        followUpReq.setPoiCode("xicheng-baitasi");
+        followUpReq.setPoiName("妙应寺白塔");
+        RagChatRespVO followUpAnswer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", followUpAnswer.getSafetyStatus());
+        assertEquals("xicheng-baitasi", followUpAnswer.getPoiCode());
+        assertEquals("妙应寺白塔", followUpAnswer.getPoiName());
+        assertEquals("妙应寺白塔权威讲解稿", followUpAnswer.getSources().get(0).getTitle());
+        assertTrue(followUpAnswer.getAnswer().contains("妙应寺白塔"));
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId,
+                                "trace-xicheng-chat-explicit-poi-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        assertEquals("xicheng-baitasi", askPayload.get("poiCode").asText());
+        assertEquals("妙应寺白塔", askPayload.get("poiName").asText());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertFalse(visionAgentContext.has("memorySessionText"));
+        assertFalse(visionAgentContext.has("serviceHandoffActionKey"));
+        assertFalse(visionAgentContext.toString().contains("恭王府"));
+        assertFalse(visionAgentContext.toString().contains("generate_travelogue"));
+    }
+
+    @Test
     public void testAnswerHydratesSceneUnderstandingFromPreviousTriggerEvent() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
