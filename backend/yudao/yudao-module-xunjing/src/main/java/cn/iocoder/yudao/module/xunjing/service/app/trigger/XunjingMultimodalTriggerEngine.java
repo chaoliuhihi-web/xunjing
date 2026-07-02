@@ -328,6 +328,10 @@ public class XunjingMultimodalTriggerEngine {
         if (containsAny(fusedText, List.of("菜单", "菜品", "推荐菜", "好吃", "美食", "餐厅", "小吃", "咖啡", "清真"))) {
             return "food";
         }
+        if (containsAny(fusedText, List.of("animal", "wildlife", "snowleopard", "snow_leopard",
+                "动物", "野生动物", "雪豹", "会不会危险", "是否危险", "保持距离", "不要靠近", "不要投喂"))) {
+            return "safety";
+        }
         if (containsAny(explicitText, List.of("游记", "记录", "拍照", "生成"))) {
             return "record";
         }
@@ -341,6 +345,7 @@ public class XunjingMultimodalTriggerEngine {
             case "record" -> autoTrigger ? "start_travel_note" : "confirm_travel_note";
             case "activity" -> autoTrigger ? "open_activity_handoff" : "confirm_activity_handoff";
             case "translate" -> autoTrigger ? "start_sign_translation" : "confirm_sign_translation";
+            case "safety" -> autoTrigger ? "start_safety_advisory" : "confirm_safety_advisory";
             default -> autoTrigger ? "start_ai_guide" : "confirm_ai_guide";
         };
     }
@@ -353,6 +358,7 @@ public class XunjingMultimodalTriggerEngine {
             case "record" -> "/pages/travel-note/edit" + query;
             case "activity" -> "/pages/activity/recommend" + query;
             case "translate" -> "/pages/ai-guide/detail" + query;
+            case "safety" -> "/pages/ai-guide/detail" + query;
             default -> "/pages/ai-guide/detail" + query;
         };
     }
@@ -492,6 +498,10 @@ public class XunjingMultimodalTriggerEngine {
                 "指示牌", "招牌", "翻译", "发音"))) {
             return "translate";
         }
+        if (containsAny(text, List.of("animal", "wildlife", "snowleopard", "snow_leopard",
+                "动物", "野生动物", "雪豹", "安全提醒", "危险提醒"))) {
+            return "safety";
+        }
         String agentIntent = detectAgentDecisionIntent(sceneSignals);
         if (hasText(agentIntent)) {
             return agentIntent;
@@ -511,6 +521,10 @@ public class XunjingMultimodalTriggerEngine {
         }
         if (containsAny(text, List.of("翻译", "发音", "路牌", "街牌", "维吾尔文", "文字含义", "怎么读"))) {
             return "translate";
+        }
+        if (containsAny(text, List.of("安全提醒", "是否危险", "会不会危险", "保持距离", "不要靠近", "不要投喂",
+                "野生动物", "雪豹"))) {
+            return "safety";
         }
         if (containsAny(text, List.of("推荐菜", "附近美食", "餐厅", "点餐", "优惠券", "排队", "预约", "清真"))) {
             return "food";

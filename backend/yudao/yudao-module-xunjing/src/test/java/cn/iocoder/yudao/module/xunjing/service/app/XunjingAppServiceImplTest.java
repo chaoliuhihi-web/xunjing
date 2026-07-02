@@ -871,6 +871,48 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerUsesAnimalSceneForSafetyIntent() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户拍到野生动物，需要先判断是否危险并提醒保持距离。");
+        sceneSignals.put("sceneDomainIntentKey", "animal");
+        sceneSignals.put("sceneDomainIntentLabel", "动物");
+        sceneSignals.put("sceneDomainIntentTitle", "动物识境");
+        sceneSignals.put("agentDecisionActionTitle", "安全提醒");
+        sceneSignals.put("agentDecisionReasonSummary", "先说明保护情况、栖息地和是否危险，提醒不要靠近或投喂。");
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-multimodal-trigger");
+        reqVO.setText("这是什么动物，会不会危险？");
+        reqVO.setOcrText("恭王府博物馆入口");
+        reqVO.setLocation(location("39.937050", "116.386770", 20));
+        reqVO.setSceneSignals(sceneSignals);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("safety", respVO.getIntent());
+        assertEquals("confirm_safety_advisory", respVO.getAction());
+        assertTrue(respVO.getTargetPath().startsWith("/pages/ai-guide/detail"));
+        assertTrue(respVO.getReason().contains("Agent决策"));
+
+        List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.TRIGGER_RESOLVE.getType()));
+        assertEquals(1, events.size());
+        JsonNode payload = JsonUtils.parseTree(events.get(0).getPayloadJson());
+        assertEquals("safety", payload.get("intent").asText());
+        JsonNode persistedSignals = payload.get("sceneSignals");
+        assertEquals("animal", persistedSignals.get("sceneDomainIntentKey").asText());
+        assertEquals("安全提醒", persistedSignals.get("agentDecisionActionTitle").asText());
+    }
+
+    @Test
     public void testResolveMultimodalTriggerHydratesContinuousContextFromPreviousTriggerEvent() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -1619,6 +1661,63 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
         JsonNode visionAgentContext = askPayload.get("visionAgentContext");
         assertEquals("translate", visionAgentContext.get("serviceHandoffIntent").asText());
+        assertFalse(visionAgentContext.get("serviceHandoffRequiresRealSystem").asBoolean());
+    }
+
+    @Test
+    public void testAnswerHydratesAnimalSafetyHandoffFromTrigger() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+        consoleService.addKnowledgeDocument(xichengGongwangfuKnowledgeReq(packageId));
+        ChatModel chatModel = mock(ChatModel.class);
+        when(aiModelService.getRequiredDefaultModel(AiModelTypeEnum.CHAT.getType())).thenReturn(defaultChatModel());
+        when(aiModelService.getChatModel(6601L)).thenReturn(chatModel);
+        when(chatModel.call(any(Prompt.class))).thenReturn(chatResponse("模型生成：请先保持距离，不要投喂。"));
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneDomainIntentKey", "animal");
+        sceneSignals.put("sceneDomainIntentLabel", "动物");
+        sceneSignals.put("sceneFusionSummary", "用户拍到野生动物，想知道是否危险。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合视觉识别和城市知识库后判断为动物安全提醒场景。");
+        sceneSignals.put("agentDecisionActionTitle", "安全提醒");
+        sceneSignals.put("agentDecisionReasonSummary", "先说明保护情况、栖息地和是否危险，提醒不要靠近或投喂。");
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-animal-safety-001");
+        triggerReq.setText("这是什么动物，会不会危险？");
+        triggerReq.setOcrText("恭王府博物馆入口");
+        triggerReq.setSceneSignals(sceneSignals);
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("safety", triggerResp.getIntent());
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-animal-safety-001");
+        followUpReq.setQuestion("我现在该怎么做？");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO answer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", answer.getSafetyStatus());
+        ArgumentCaptor<Prompt> promptCaptor = ArgumentCaptor.forClass(Prompt.class);
+        verify(chatModel).call(promptCaptor.capture());
+        String prompt = promptCaptor.getValue().getContents();
+        assertTrue(prompt.contains("服务意图=safety/安全提醒"));
+        assertTrue(prompt.contains("真实系统确认=false"));
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId, "trace-xicheng-animal-safety-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertEquals("safety", visionAgentContext.get("serviceHandoffIntent").asText());
         assertFalse(visionAgentContext.get("serviceHandoffRequiresRealSystem").asBoolean());
     }
 

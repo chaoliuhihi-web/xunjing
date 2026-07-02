@@ -1036,6 +1036,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         if ("start_sign_translation".equals(action) || "confirm_sign_translation".equals(action)) {
             return "路牌翻译";
         }
+        if ("start_safety_advisory".equals(action) || "confirm_safety_advisory".equals(action)) {
+            return "安全提醒";
+        }
         if ("start_ai_guide".equals(action) || "confirm_ai_guide".equals(action)) {
             return "开始 AI 讲解";
         }
@@ -1056,6 +1059,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         }
         if ("translate".equals(intent)) {
             return "路牌翻译";
+        }
+        if ("safety".equals(intent)) {
+            return "安全提醒";
         }
         return hasText(action) ? action : intent;
     }
@@ -1084,6 +1090,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         }
         if ("translate".equals(intent)) {
             return "路牌翻译";
+        }
+        if ("safety".equals(intent)) {
+            return "安全提醒";
         }
         if ("guide".equals(intent)) {
             return "AI 讲解";
