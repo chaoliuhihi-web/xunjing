@@ -732,6 +732,41 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerUsesPersonSignalsForIntentAndContextMatch() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户举起手机拍到一座人物雕像。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合人物识别和城市知识库后等待场景引擎判断。");
+        sceneSignals.put("sceneDomainIntentKey", "person");
+        sceneSignals.put("sceneDomainIntentLabel", "人物");
+        sceneSignals.put("agentDecisionReasonSummary", "适合讲人物故事、为什么建在这里、贡献和同时期人物。");
+        sceneSignals.put("personName", "香妃");
+        sceneSignals.put("personStorySummary", "可沿人物传说讲到清代新疆和宫廷叙事。");
+        sceneSignals.put("statueSiteReasonSummary", "恭王府附近讲人物雕像时可延展到城市历史关系。");
+        sceneSignals.put("contributionSummary", "人物线索适合连接民族交流和丝路记忆。");
+        sceneSignals.put("contemporaryFigureKeywords", "乾隆 清朝新疆 丝绸之路");
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setText("");
+        reqVO.setOcrText("");
+        reqVO.setImageLabels(List.of());
+        reqVO.setLocation(null);
+        reqVO.setSceneSignals(sceneSignals);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("interpret", respVO.getIntent());
+        assertEquals("confirm_scene_interpretation", respVO.getAction());
+        assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
+        assertTrue(respVO.getCandidates().get(0).getMatchedSignals().contains("scene_context_alias"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerUsesPhotoAdviceIntent() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -2451,6 +2486,65 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testAnswerUsesPersonSignalsFromPreviousTriggerForSourceSearch() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        consoleService.addKnowledgeDocument(xichengUnrelatedKnowledgeReq(packageId));
+        consoleService.addKnowledgeDocument(xichengPersonKnowledgeReq(packageId));
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户举起手机拍到一座人物雕像。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合人物识别和城市知识库后等待连续问答。");
+        sceneSignals.put("sceneDomainIntentKey", "person");
+        sceneSignals.put("sceneDomainIntentLabel", "人物");
+        sceneSignals.put("agentDecisionReasonSummary", "适合讲人物故事、为什么建在这里、贡献和同时期人物。");
+        sceneSignals.put("personName", "香妃");
+        sceneSignals.put("personStorySummary", "可沿人物传说讲到清代新疆和宫廷叙事。");
+        sceneSignals.put("statueSiteReasonSummary", "雕像建址可连接城市历史关系。");
+        sceneSignals.put("contributionSummary", "人物线索适合连接民族交流和丝路记忆。");
+        sceneSignals.put("contemporaryFigureKeywords", "乾隆 清朝新疆 丝绸之路");
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-person-search-001");
+        triggerReq.setText("先记住这个人物");
+        triggerReq.setOcrText("");
+        triggerReq.setImageLabels(List.of());
+        triggerReq.setLocation(null);
+        triggerReq.setSceneSignals(sceneSignals);
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("ask", triggerResp.getIntent());
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-person-search-001");
+        followUpReq.setQuestion("这个人物怎么讲？");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO followUpAnswer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", followUpAnswer.getSafetyStatus());
+        assertFalse(followUpAnswer.getSources().isEmpty());
+        assertEquals("西城人物雕像识境讲解稿", followUpAnswer.getSources().get(0).getTitle());
+        assertTrue(followUpAnswer.getAnswer().contains("香妃")
+                || followUpAnswer.getAnswer().contains("乾隆")
+                || followUpAnswer.getAnswer().contains("丝绸之路"));
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId, "trace-xicheng-person-search-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("香妃"));
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("乾隆"));
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("丝绸之路"));
+    }
+
+    @Test
     public void testAnswerHydratesPhotoAdviceHandoffFromTrigger() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -3182,6 +3276,19 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
         reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/animal-snow-leopard");
         reqVO.setContentDigest("雪豹是国家一级保护野生动物，常在高山岩地和雪线附近活动；野外近距离接触有风险，应保持距离，不要靠近、投喂或追赶。");
+        reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
+        reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
+        reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());
+        return reqVO;
+    }
+
+    private KnowledgeDocumentCreateReqVO xichengPersonKnowledgeReq(Long packageId) {
+        KnowledgeDocumentCreateReqVO reqVO = new KnowledgeDocumentCreateReqVO();
+        reqVO.setPackageId(packageId);
+        reqVO.setTitle("西城人物雕像识境讲解稿");
+        reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
+        reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/person-statue");
+        reqVO.setContentDigest("香妃人物线索可连接乾隆、清朝新疆和丝绸之路，讲人物故事、建址原因、民族交流和同时期人物关系。");
         reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
         reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
         reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());

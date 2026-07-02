@@ -349,6 +349,47 @@ public class XunjingVisionRecognitionServiceTest {
     }
 
     @Test
+    public void testEnrichMergesPersonSceneSignalsFromVisionProvider() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/vision/v1/chat/completions", exchange -> {
+            String response = """
+                    {"choices":[{"message":{"content":"{\\"labels\\":[\\"statue\\"],\\"ocrText\\":\\"香妃\\",\\"caption\\":\\"画面里是一座人物雕像。\\",\\"sceneSignals\\":{\\"sceneDomainIntentKey\\":\\"person\\",\\"sceneDomainIntentLabel\\":\\"人物\\",\\"personName\\":\\"香妃\\",\\"personStorySummary\\":\\"可沿人物传说讲到清代新疆和宫廷叙事\\",\\"statueSiteReasonSummary\\":\\"建在这里用于连接城市历史关系\\",\\"contributionSummary\\":\\"人物线索适合连接民族交流和丝路记忆\\",\\"contemporaryFigureKeywords\\":\\"乾隆 清朝新疆 丝绸之路\\"}}"}}]}
+                    """;
+            byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, responseBytes.length);
+            exchange.getResponseBody().write(responseBytes);
+            exchange.close();
+        });
+        server.start();
+        try {
+            XunjingVisionRecognitionService configuredService = new XunjingVisionRecognitionService();
+            setField(configuredService, "visionApiUrl",
+                    "http://127.0.0.1:" + server.getAddress().getPort() + "/vision/v1");
+            setField(configuredService, "visionApiKey", "test-key");
+
+            MultimodalTriggerReqVO reqVO = new MultimodalTriggerReqVO();
+            reqVO.setPhotoMeta(photoMeta("image/jpeg", "photo-base64"));
+
+            MultimodalTriggerReqVO enrichedReqVO = configuredService.enrich(reqVO);
+
+            assertEquals("香妃", enrichedReqVO.getOcrText());
+            assertEquals("person", enrichedReqVO.getSceneSignals().get("sceneDomainIntentKey"));
+            assertEquals("人物", enrichedReqVO.getSceneSignals().get("sceneDomainIntentLabel"));
+            assertEquals("香妃", enrichedReqVO.getSceneSignals().get("personName"));
+            assertEquals("可沿人物传说讲到清代新疆和宫廷叙事",
+                    enrichedReqVO.getSceneSignals().get("personStorySummary"));
+            assertEquals("建在这里用于连接城市历史关系",
+                    enrichedReqVO.getSceneSignals().get("statueSiteReasonSummary"));
+            assertEquals("人物线索适合连接民族交流和丝路记忆",
+                    enrichedReqVO.getSceneSignals().get("contributionSummary"));
+            assertEquals("乾隆 清朝新疆 丝绸之路",
+                    enrichedReqVO.getSceneSignals().get("contemporaryFigureKeywords"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     public void testEnrichMergesSignTranslationSceneSignalsFromVisionProvider() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/vision/v1/chat/completions", exchange -> {
