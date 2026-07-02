@@ -784,6 +784,57 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerUsesLatestAskWhenItIsNewerThanPreviousTrigger() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+        insertXichengBaitasiPoi(packageId);
+        consoleService.addKnowledgeDocument(xichengBaitasiKnowledgeReq(packageId));
+
+        MultimodalTriggerReqVO firstTriggerReq = multimodalReq();
+        firstTriggerReq.setPackageCode("XICHENG-MAP-001");
+        firstTriggerReq.setSceneCode("xicheng-multimodal-trigger");
+        firstTriggerReq.setUserTraceId("trace-xicheng-latest-memory-001");
+        firstTriggerReq.setOcrText("恭王府博物馆入口");
+        firstTriggerReq.setImageLabels(List.of("palace", "courtyard"));
+        firstTriggerReq.setLocation(location("39.937050", "116.386770", 20));
+        MultimodalTriggerRespVO firstTriggerResp = appService.resolveMultimodalTrigger(firstTriggerReq);
+        assertEquals("xicheng-gongwangfu", firstTriggerResp.getPoiCode());
+
+        RagChatReqVO askReq = xichengRagReq();
+        askReq.setUserTraceId("trace-xicheng-latest-memory-001");
+        askReq.setQuestion("妙应寺白塔屋顶结构有什么看点？");
+        askReq.setPoiCode("xicheng-baitasi");
+        askReq.setPoiName("妙应寺白塔");
+        askReq.setVisionAgentSceneFusionSummary("用户转到妙应寺白塔，正在观察白塔和屋顶结构。");
+        askReq.setVisionAgentWorldInterfaceSummary("相机融合城市知识库，判断当前位置是妙应寺白塔。");
+        askReq.setVisionAgentPrimarySceneDomainKey("architecture");
+        askReq.setVisionAgentPrimarySceneDomainLabel("建筑");
+        askReq.setVisionAgentDecisionReasonSummary("适合继续讲白塔结构和白塔寺片区。");
+        askReq.setVisionAgentMemorySessionSceneCount(1);
+        RagChatRespVO askAnswer = appService.answer(askReq);
+        assertEquals("PASSED", askAnswer.getSafetyStatus());
+
+        MultimodalTriggerReqVO followUpReq = multimodalReq();
+        followUpReq.setPackageCode("XICHENG-MAP-001");
+        followUpReq.setSceneCode("xicheng-multimodal-trigger");
+        followUpReq.setUserTraceId("trace-xicheng-latest-memory-001");
+        followUpReq.setText("继续看这个屋顶结构");
+        followUpReq.setOcrText("");
+        followUpReq.setImageLabels(List.of());
+        followUpReq.setLocation(null);
+
+        MultimodalTriggerRespVO followUpResp = appService.resolveMultimodalTrigger(followUpReq);
+
+        assertEquals("xicheng-baitasi", followUpResp.getPoiCode());
+        assertEquals("妙应寺白塔", followUpResp.getPoiName());
+        assertEquals("confirm_ai_guide", followUpResp.getAction());
+        assertTrue(followUpResp.getCandidates().get(0).getMatchedSignals().contains("context_poi"));
+        assertTrue(followUpResp.getCandidates().get(0).getMatchedSignals().contains("scene_context_alias"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerRequiresConfirmWhenOnlyImageSignalMatches() {
         MultimodalTriggerReqVO reqVO = multimodalReq();
         reqVO.setImageLabels(List.of("lake", "imperial_garden", "white_tower"));
@@ -1542,6 +1593,23 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
                  '{"sourceType":"OFFICIAL_PUBLIC","sourceUrl":"https://www.bjxch.gov.cn/example/gongwangfu","contentDigest":"恭王府是西城王府文化和园林空间的代表性点位。"}',
                  '{"gpsRadiusMeters":280,"ocrKeywords":["恭王府","恭王府博物馆"],"photoLabels":["palace","garden","courtyard","museum"],"minConfidence":0.85}',
                  '{"shortIntro":"西城王府文化和园林空间的代表性点位。","recommendedQuestions":["恭王府适合怎么参观？","王府文化怎么给孩子讲？","附近还能去哪？"]}',
+                 'APPROVED', 'REVIEW_REQUIRED', 'REVIEW_REQUIRED', 'PUBLISHED', ?)
+                """, packageId, TENANT_ID);
+    }
+
+    private void insertXichengBaitasiPoi(Long packageId) {
+        new JdbcTemplate(dataSource).update("""
+                INSERT INTO "xunjing_poi"
+                ("package_id", "poi_code", "region_code", "name", "official_name", "aliases_json",
+                 "category", "poi_level", "address", "latitude", "longitude", "coord_type",
+                 "source_json", "trigger_json", "content_json", "review_status", "geo_status",
+                 "license_status", "status", "tenant_id")
+                VALUES (?, 'xicheng-baitasi', 'beijing-xicheng', '妙应寺白塔', '妙应寺白塔',
+                 '["妙应寺白塔","妙应寺","白塔寺","白塔"]',
+                 'historic_site', 'P0', '北京市西城区阜成门内大街171号', 39.9231000, 116.3572600, 'GCJ02',
+                 '{"sourceType":"OFFICIAL_PUBLIC","sourceUrl":"https://www.bjxch.gov.cn/example/baitasi","contentDigest":"妙应寺白塔是白塔寺片区的重要历史文化地标。"}',
+                 '{"gpsRadiusMeters":220,"ocrKeywords":["妙应寺白塔","白塔寺","妙应寺"],"photoLabels":["white_pagoda","pagoda","temple"],"minConfidence":0.85}',
+                 '{"shortIntro":"白塔寺片区的重要历史文化地标。","recommendedQuestions":["妙应寺白塔为什么重要？","白塔寺片区适合怎么逛？","这里适合拍什么？"]}',
                  'APPROVED', 'REVIEW_REQUIRED', 'REVIEW_REQUIRED', 'PUBLISHED', ?)
                 """, packageId, TENANT_ID);
     }

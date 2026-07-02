@@ -290,17 +290,39 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         if (resourcePackage == null || resourcePackage.getId() == null) {
             return;
         }
+        XunjingInteractionEventDO previousResolveEvent =
+                selectLatestVisionAgentMemoryEvent(resourcePackage, reqVO, EventType.TRIGGER_RESOLVE.getType());
+        XunjingInteractionEventDO previousAskEvent =
+                selectLatestVisionAgentMemoryEvent(resourcePackage, reqVO, EventType.ASK.getType());
+        if (shouldUsePreviousAskForTriggerMemory(previousAskEvent, previousResolveEvent)
+                && hydrateMultimodalTriggerMemoryFromPreviousAsk(reqVO, previousAskEvent)) {
+            return;
+        }
         if (hydrateMultimodalTriggerMemoryFromPreviousResolve(resourcePackage, reqVO)) {
             return;
         }
         hydrateMultimodalTriggerMemoryFromPreviousAsk(resourcePackage, reqVO);
     }
 
+    private XunjingInteractionEventDO selectLatestVisionAgentMemoryEvent(
+            XunjingResourcePackageDO resourcePackage, MultimodalTriggerReqVO reqVO, String eventType) {
+        return interactionEventMapper.selectLatestByPackageIdAndUserTraceIdAndEventType(
+                resourcePackage.getId(), reqVO.getUserTraceId(), eventType);
+    }
+
+    private boolean shouldUsePreviousAskForTriggerMemory(
+            XunjingInteractionEventDO previousAskEvent, XunjingInteractionEventDO previousResolveEvent) {
+        if (previousAskEvent == null || previousAskEvent.getId() == null) {
+            return false;
+        }
+        return previousResolveEvent == null || previousResolveEvent.getId() == null
+                || previousAskEvent.getId() > previousResolveEvent.getId();
+    }
+
     private boolean hydrateMultimodalTriggerMemoryFromPreviousResolve(
             XunjingResourcePackageDO resourcePackage, MultimodalTriggerReqVO reqVO) {
         XunjingInteractionEventDO previousEvent =
-                interactionEventMapper.selectLatestByPackageIdAndUserTraceIdAndEventType(
-                        resourcePackage.getId(), reqVO.getUserTraceId(), EventType.TRIGGER_RESOLVE.getType());
+                selectLatestVisionAgentMemoryEvent(resourcePackage, reqVO, EventType.TRIGGER_RESOLVE.getType());
         if (previousEvent == null || !hasText(previousEvent.getPayloadJson())) {
             return false;
         }
@@ -329,29 +351,35 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     private void hydrateMultimodalTriggerMemoryFromPreviousAsk(
             XunjingResourcePackageDO resourcePackage, MultimodalTriggerReqVO reqVO) {
         XunjingInteractionEventDO previousEvent =
-                interactionEventMapper.selectLatestByPackageIdAndUserTraceIdAndEventType(
-                        resourcePackage.getId(), reqVO.getUserTraceId(), EventType.ASK.getType());
+                selectLatestVisionAgentMemoryEvent(resourcePackage, reqVO, EventType.ASK.getType());
+        hydrateMultimodalTriggerMemoryFromPreviousAsk(reqVO, previousEvent);
+    }
+
+    private boolean hydrateMultimodalTriggerMemoryFromPreviousAsk(
+            MultimodalTriggerReqVO reqVO, XunjingInteractionEventDO previousEvent) {
         if (previousEvent == null || !hasText(previousEvent.getPayloadJson())) {
-            return;
+            return false;
         }
         try {
             JsonNode root = JsonUtils.parseTree(previousEvent.getPayloadJson());
             if (root == null || root.isNull() || root.isMissingNode()) {
-                return;
+                return false;
             }
             JsonNode visionAgentContext = root.path("visionAgentContext");
             String poiCode = visionAgentContextText(root, "poiCode");
             String poiName = visionAgentContextText(root, "poiName");
             if (!hasText(poiCode) && !hasText(poiName)) {
-                return;
+                return false;
             }
             hydratePreviousTriggerRecentPoi(reqVO, poiCode);
             if (!hasFreshMultimodalTriggerSignal(reqVO)) {
                 hydratePreviousAskSceneSignals(reqVO, root, visionAgentContext);
             }
+            return true;
         } catch (RuntimeException ex) {
             log.warn("[hydrateMultimodalTriggerMemoryFromPreviousAsk][eventId({}) parse failed]",
                     previousEvent.getId(), ex);
+            return false;
         }
     }
 
