@@ -2,7 +2,7 @@
 	<view class="xicheng-home xicheng-home-first-screen-density xicheng-designed-page xicheng-bottom-safe">
 		<view class="home-location-row">
 			<view class="home-location-main">
-				<view class="home-location-pin"></view>
+				<uni-icons class="home-location-pin" type="location-filled" size="22" color="#173F35" />
 				<text>{{ region.cityName }}</text>
 				<view class="home-location-caret"></view>
 			</view>
@@ -891,7 +891,7 @@ export default {
 .home-location-main {
 	display: flex;
 	align-items: center;
-	gap: 14rpx;
+	gap: 8rpx;
 	min-width: 0;
 	font-size: 32rpx;
 	font-weight: 700;
@@ -899,24 +899,12 @@ export default {
 }
 
 .home-location-pin {
-	position: relative;
-	width: 26rpx;
-	height: 32rpx;
-	border: 4rpx solid currentColor;
-	border-radius: 999rpx 999rpx 999rpx 0;
-	transform: rotate(-45deg);
-	box-sizing: border-box;
-}
-
-.home-location-pin::after {
-	content: '';
-	position: absolute;
-	left: 6rpx;
-	top: 6rpx;
-	width: 6rpx;
-	height: 6rpx;
-	border-radius: 999rpx;
-	background: currentColor;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	line-height: 1;
+	transform: translateY(-1rpx);
 }
 
 .home-location-caret {

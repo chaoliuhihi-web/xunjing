@@ -76,6 +76,8 @@ assert.match(
 
 for (const required of [
   'class="home-location-row"',
+  'class="home-location-pin"',
+  'type="location-filled"',
   'class="hero-landmark-image"',
   ':src="region.visualAssets.homeHeroBackground || region.visualAssets.heroLandmark"',
   'class="hero xicheng-reference-hero"',
@@ -134,6 +136,12 @@ assert.match(
   styleBlock,
   /\.home-location-row\s*\{[\s\S]*display:\s*flex[\s\S]*justify-content:\s*space-between/,
   'Xicheng home should start with a location/account row like the visual reference'
+)
+
+assert.doesNotMatch(
+  styleBlock,
+  /\.home-location-pin::after|rotate\(-45deg\)/,
+  'Xicheng home city selector should use the unified location icon instead of a hand-drawn rotated CSS pin'
 )
 
 assert.match(
