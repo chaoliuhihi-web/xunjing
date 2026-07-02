@@ -9,6 +9,7 @@ const secondaryDirectoryPath = path.join(root, 'components', 'xicheng', 'Xicheng
 const recordShellPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueRecordShell.vue')
 const generationHeroPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueGenerationHero.vue')
 const opsDetailsPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueOpsDetails.vue')
+const editTopbarPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueEditTopbar.vue')
 assert.ok(
   fs.existsSync(secondaryDirectoryPath),
   'Travelogue secondary directory should be split into XichengTravelogueSecondaryDirectory.vue instead of growing travelogue.vue'
@@ -21,11 +22,16 @@ assert.ok(
   fs.existsSync(opsDetailsPath),
   'Travelogue operations details should be split into XichengTravelogueOpsDetails.vue instead of growing travelogue.vue'
 )
+assert.ok(
+  fs.existsSync(editTopbarPath),
+  'Travelogue edit topbar should be split into XichengTravelogueEditTopbar.vue instead of growing travelogue.vue'
+)
 const secondaryDirectory = fs.readFileSync(secondaryDirectoryPath, 'utf8')
 const recordShell = fs.readFileSync(recordShellPath, 'utf8')
 const generationHero = fs.readFileSync(generationHeroPath, 'utf8')
 const opsDetails = fs.readFileSync(opsDetailsPath, 'utf8')
-const travelogueSource = `${travelogue}\n${secondaryEntries}\n${secondaryDirectory}\n${recordShell}\n${generationHero}\n${opsDetails}`
+const editTopbar = fs.readFileSync(editTopbarPath, 'utf8')
+const travelogueSource = `${travelogue}\n${secondaryEntries}\n${secondaryDirectory}\n${recordShell}\n${generationHero}\n${opsDetails}\n${editTopbar}`
 const travelogueCss = fs.existsSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.css'))
   ? fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.css'), 'utf8')
   : travelogue
@@ -99,7 +105,7 @@ assert.match(
 )
 
 assert.match(
-  travelogue,
+  editTopbar,
   /class="travelogue-editor-back"[\s\S]*<xicheng-icon name="back"[\s\S]*class="travelogue-editor-more"[\s\S]*<xicheng-icon name="more"/,
   'Travelogue edit topbar should use the shared Xicheng icon component for back and more actions'
 )

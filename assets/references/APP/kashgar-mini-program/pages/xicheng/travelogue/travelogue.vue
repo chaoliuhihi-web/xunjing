@@ -1,14 +1,10 @@
 <template>
 	<view class="xicheng-travelogue xicheng-designed-page xicheng-bottom-safe xicheng-travelogue-shell">
-		<view v-if="isTravelogueEditMode" class="travelogue-editor-topbar">
-			<view class="travelogue-editor-back" @click="goBack">
-				<xicheng-icon name="back" variant="plain" :size="22" />
-			</view>
-			<text class="travelogue-editor-title">编辑游记</text>
-			<view class="travelogue-editor-more" @click="openTravelogueActions">
-				<xicheng-icon name="more" variant="plain" :size="22" />
-			</view>
-		</view>
+		<xicheng-travelogue-edit-topbar
+			v-if="isTravelogueEditMode"
+			@go-back="goBack"
+			@open-actions="openTravelogueActions"
+		/>
 		<xicheng-travelogue-record-shell
 			v-if="!isTravelogueEditMode"
 			:region="region"
@@ -203,6 +199,7 @@ import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.j
 import { isXunjingUserCancelled } from '@/request/xunjing/userCancel.js'
 import XichengTravelogueGenerationHero from '@/components/xicheng/XichengTravelogueGenerationHero.vue'
 import XichengTravelogueEditorShare from '@/components/xicheng/travelogue-editor-share.vue'
+import XichengTravelogueEditTopbar from '@/components/xicheng/XichengTravelogueEditTopbar.vue'
 import XichengTravelogueRecordShell from '@/components/xicheng/XichengTravelogueRecordShell.vue'
 import XichengTravelogueSecondaryDirectory from '@/components/xicheng/XichengTravelogueSecondaryDirectory.vue'
 import XichengTravelogueOpsDetails from '@/components/xicheng/XichengTravelogueOpsDetails.vue'
@@ -518,7 +515,7 @@ export const resolvePhotoEvidenceFileMeta = (chooseImageResult = {}) => {
 	}
 }
 export default {
-	components: { XichengTravelogueGenerationHero, XichengTravelogueEditorShare, XichengTravelogueRecordShell, XichengTravelogueSecondaryDirectory, XichengTravelogueOpsDetails },
+	components: { XichengTravelogueGenerationHero, XichengTravelogueEditorShare, XichengTravelogueEditTopbar, XichengTravelogueRecordShell, XichengTravelogueSecondaryDirectory, XichengTravelogueOpsDetails },
 	mixins: [createXichengTravelogueGenerationStateMixin()],
 	data() {
 		return {
