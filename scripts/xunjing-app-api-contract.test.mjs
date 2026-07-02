@@ -131,6 +131,7 @@ describe('xunjing app API contract', () => {
     expect(appService).toContain('buildVisionAgentSourceSearchText(reqVO)')
     expect(appService).toContain('hydrateVisionAgentMemoryFromPreviousAsk(resourcePackage, reqVO)')
     expect(appService).toContain('hydrateVisionAgentContextFromPreviousTrigger(resourcePackage, reqVO)')
+    expect(appService).toContain('hydrateTriggerServiceHandoff(reqVO, root)')
     expect(appService).toContain('selectLatestByPackageIdAndUserTraceIdAndEventType')
     expect(appService).toContain('buildVisionAgentChatContextPayload(reqVO)')
     expect(appService).toContain('buildVisionAgentChatContextText(reqVO)')

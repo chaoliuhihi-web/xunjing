@@ -994,7 +994,13 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertEquals(1, askEvents.size());
         JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
         assertEquals("xicheng-gongwangfu", askPayload.get("poiCode").asText());
-        assertTrue(askPayload.get("visionAgentContext").get("memorySessionText").asText().contains("恭王府"));
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("恭王府"));
+        assertEquals("开始 AI 讲解", visionAgentContext.get("decisionActionTitle").asText());
+        assertEquals("start_ai_guide", visionAgentContext.get("serviceHandoffActionKey").asText());
+        assertEquals("guide", visionAgentContext.get("serviceHandoffIntent").asText());
+        assertEquals("无需用户确认", visionAgentContext.get("serviceHandoffStepText").asText());
+        assertTrue(visionAgentContext.get("serviceHandoffSummary").asText().contains("start_ai_guide"));
     }
 
     @Test

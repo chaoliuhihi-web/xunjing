@@ -673,6 +673,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             }
             hydrateTriggerSceneSignalText(reqVO, sceneSignals);
             hydrateTriggerSceneCount(reqVO, sceneSignals);
+            hydrateTriggerServiceHandoff(reqVO, root);
             if (!Boolean.TRUE.equals(reqVO.getVisionAgentContextAvailable())
                     && (hasText(reqVO.getVisionAgentMemorySessionText()) || hasText(reqVO.getPoiName()))) {
                 reqVO.setVisionAgentContextAvailable(true);
@@ -732,6 +733,87 @@ public class XunjingAppServiceImpl implements XunjingAppService {
                 sceneSignals, "headingText");
     }
 
+    private void hydrateTriggerServiceHandoff(RagChatReqVO reqVO, JsonNode root) {
+        String action = visionAgentContextText(root, "action");
+        String intent = visionAgentContextText(root, "intent");
+        String triggerType = visionAgentContextText(root, "triggerType");
+        if (!hasText(action) && !hasText(intent)) {
+            return;
+        }
+        putTextIfBlank(reqVO::getServiceHandoffActionKey, reqVO::setServiceHandoffActionKey, action);
+        putTextIfBlank(reqVO::getServiceHandoffTaskType, reqVO::setServiceHandoffTaskType, triggerType);
+        putTextIfBlank(reqVO::getServiceHandoffIntent, reqVO::setServiceHandoffIntent, intent);
+        putTextIfBlank(reqVO::getServiceHandoffIntentText, reqVO::setServiceHandoffIntentText,
+                triggerIntentText(intent));
+        putTextIfBlank(reqVO::getServiceHandoffStepText, reqVO::setServiceHandoffStepText,
+                triggerConfirmText(root.path("requiresUserConfirm").asBoolean(false)));
+        putTextIfBlank(reqVO::getServiceHandoffSummary, reqVO::setServiceHandoffSummary,
+                buildTriggerServiceHandoffSummary(action, intent, root));
+        putTextIfBlank(reqVO::getVisionAgentDecisionActionTitle, reqVO::setVisionAgentDecisionActionTitle,
+                triggerActionTitle(action, intent));
+    }
+
+    private String buildTriggerServiceHandoffSummary(String action, String intent, JsonNode root) {
+        List<String> parts = new ArrayList<>();
+        if (hasText(action)) {
+            parts.add("上一轮识境动作=" + action);
+        }
+        if (hasText(intent)) {
+            parts.add("意图=" + intent);
+        }
+        parts.add("需用户确认=" + root.path("requiresUserConfirm").asBoolean(false));
+        putPreviousJsonMemoryPart(parts, "触发理由", root, "reason");
+        return String.join("；", parts);
+    }
+
+    private String triggerActionTitle(String action, String intent) {
+        if ("open_route_recommendation".equals(action) || "confirm_route_recommendation".equals(action)) {
+            return "推荐下一站路线";
+        }
+        if ("open_food_recommendation".equals(action) || "confirm_food_recommendation".equals(action)) {
+            return "推荐附近美食";
+        }
+        if ("start_travel_note".equals(action) || "confirm_travel_note".equals(action)) {
+            return "生成旅行记录";
+        }
+        if ("start_ai_guide".equals(action) || "confirm_ai_guide".equals(action)) {
+            return "开始 AI 讲解";
+        }
+        if ("ask_ai_companion".equals(action)) {
+            return "继续问 AI 旅伴";
+        }
+        if ("route".equals(intent)) {
+            return "推荐下一站路线";
+        }
+        if ("food".equals(intent)) {
+            return "推荐附近美食";
+        }
+        if ("record".equals(intent)) {
+            return "生成旅行记录";
+        }
+        return hasText(action) ? action : intent;
+    }
+
+    private String triggerIntentText(String intent) {
+        if ("route".equals(intent)) {
+            return "路线推荐";
+        }
+        if ("food".equals(intent)) {
+            return "美食推荐";
+        }
+        if ("record".equals(intent)) {
+            return "旅行记录";
+        }
+        if ("guide".equals(intent)) {
+            return "AI 讲解";
+        }
+        return intent;
+    }
+
+    private String triggerConfirmText(boolean requiresUserConfirm) {
+        return requiresUserConfirm ? "需要用户确认" : "无需用户确认";
+    }
+
     private void hydrateTriggerSceneCount(RagChatReqVO reqVO, JsonNode sceneSignals) {
         if (reqVO.getVisionAgentMemorySessionSceneCount() != null
                 && reqVO.getVisionAgentMemorySessionSceneCount() > 0) {
@@ -766,6 +848,13 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         String text = visionAgentContextText(context, key);
         if (hasText(text)) {
             setter.accept(text);
+        }
+    }
+
+    private void putTextIfBlank(
+            java.util.function.Supplier<String> getter, java.util.function.Consumer<String> setter, String text) {
+        if (!hasText(getter.get()) && hasText(text)) {
+            setter.accept(truncateForEvent(text.trim(), CHAT_CONTEXT_TEXT_MAX_LENGTH));
         }
     }
 
