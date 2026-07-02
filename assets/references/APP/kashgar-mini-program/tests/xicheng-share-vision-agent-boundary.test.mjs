@@ -19,8 +19,8 @@ for (const required of [
 
 assert.match(
   share,
-  /sanitizePublicVisionAgentPackage\(packagePayload = \{\}\)\s*\{[\s\S]*packageName:\s*packagePayload\.packageName \|\| 'AI识境自动素材包'[\s\S]*taskCount:\s*toSafeCount\(packagePayload\.taskCount\)[\s\S]*sceneDomainLabels:\s*safeArray\(packagePayload\.sceneDomainLabels\)[\s\S]*serviceIntentLabels:\s*safeArray\(packagePayload\.serviceIntentLabels\)[\s\S]*realSystemRequiredTaskCount:\s*toSafeCount\(packagePayload\.realSystemRequiredTaskCount\)[\s\S]*realSystemBoundaryText:\s*String\(packagePayload\.realSystemBoundaryText \|\| ''\)/,
-  'Share page should whitelist only public AI识境 package summary fields'
+  /sanitizePublicVisionAgentPackage\(packagePayload = \{\}\)\s*\{[\s\S]*const safePackagePayload = safeObject\(packagePayload\)[\s\S]*packageName:\s*safePackagePayload\.packageName \|\| 'AI识境自动素材包'[\s\S]*taskCount:\s*toSafeCount\(safePackagePayload\.taskCount\)[\s\S]*sceneDomainLabels:\s*safeArray\(safePackagePayload\.sceneDomainLabels\)[\s\S]*serviceIntentLabels:\s*safeArray\(safePackagePayload\.serviceIntentLabels\)[\s\S]*realSystemRequiredTaskCount:\s*toSafeCount\(safePackagePayload\.realSystemRequiredTaskCount\)[\s\S]*realSystemBoundaryText:\s*String\(safePackagePayload\.realSystemBoundaryText \|\| ''\)/,
+  'Share page should whitelist only public AI识境 package summary fields from a null-safe object'
 )
 
 assert.match(

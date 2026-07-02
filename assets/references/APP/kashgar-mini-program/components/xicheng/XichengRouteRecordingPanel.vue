@@ -60,10 +60,12 @@
 			</view>
 
 			<view class="recording-route-path">
-				<view class="recording-path-segment recording-path-segment-1"></view>
-				<view class="recording-path-segment recording-path-segment-2"></view>
-				<view class="recording-path-segment recording-path-segment-3"></view>
-				<view class="recording-path-segment recording-path-segment-4"></view>
+				<view
+					v-for="segment in routeSegments"
+					:key="segment.key"
+					class="recording-path-segment recording-route-segment"
+					:style="getRouteSegmentStyle(segment)"
+				></view>
 			</view>
 
 			<view
@@ -122,6 +124,27 @@
 			</view>
 		</view>
 
+		<view v-if="isPaused" class="recording-paused-actions">
+			<button class="recording-wide-primary xicheng-primary-action" @click="$emit('resume')">
+				<xicheng-icon name="resume" variant="plain" :size="23" />
+				<text>继续记录</text>
+			</button>
+			<button class="recording-wide-secondary xicheng-secondary-action" @click="$emit('finish')">
+				<xicheng-icon name="edit" variant="plain" :size="23" />
+				<text>结束并生成游记</text>
+			</button>
+			<view class="recording-paused-secondary-grid">
+				<button class="xicheng-secondary-action" @click="$emit('photo')">
+					<xicheng-icon name="photo" variant="plain" :size="21" />
+					<text>补记照片</text>
+				</button>
+				<button class="xicheng-secondary-action" @click="$emit('materials')">
+					<xicheng-icon name="ocr" variant="plain" :size="21" />
+					<text>查看今日素材</text>
+				</button>
+			</view>
+		</view>
+
 		<view v-if="isPaused" class="recording-paused-next-card xicheng-paper-card">
 			<image v-if="nextStopImage" class="recording-paused-next-image" :src="nextStopImage" mode="aspectFill" />
 			<view class="recording-paused-next-copy">
@@ -166,42 +189,18 @@
 		<view v-if="isPaused" class="recording-xiaojing-card xicheng-paper-card">
 			<image v-if="companionAvatar" class="recording-xiaojing-avatar" :src="companionAvatar" mode="aspectFit" />
 			<view class="recording-xiaojing-bubble">
-				<text>记录已暂停，继续后会接着保存足迹。</text>
+				<text>记录已暂停，继续后会接着保存路线记录。</text>
 			</view>
 		</view>
 		<view v-else class="recording-study-card xicheng-paper-card">
 			<view class="recording-study-head">
-				<xicheng-icon name="study" variant="primary" :size="22" />
-				<text>亲子研学任务</text>
+				<xicheng-icon name="edit" variant="primary" :size="22" />
+				<text>游记素材任务</text>
 				<text>{{ studyTaskDoneCount }} / {{ studyTaskCount }}</text>
 			</view>
 			<text class="recording-study-desc">{{ currentStudyTask }}</text>
 		</view>
 
-		<view v-if="isPaused" class="recording-paused-actions">
-			<button class="recording-wide-primary xicheng-primary-action" @click="$emit('resume')">
-				<xicheng-icon name="resume" variant="plain" :size="23" />
-				<text>继续记录</text>
-			</button>
-			<button class="recording-wide-secondary xicheng-secondary-action" @click="$emit('finish')">
-				<xicheng-icon name="record" variant="plain" :size="23" />
-				<text>结束并生成游记素材</text>
-			</button>
-			<view class="recording-paused-secondary-grid">
-				<button class="xicheng-secondary-action" @click="$emit('photo')">
-					<xicheng-icon name="photo" variant="plain" :size="21" />
-					<text>补记照片</text>
-				</button>
-				<button class="xicheng-secondary-action" @click="$emit('materials')">
-					<xicheng-icon name="ocr" variant="plain" :size="21" />
-					<text>查看今日素材</text>
-				</button>
-			</view>
-			<view class="recording-post-links">
-				<button @click="$emit('passport')">路线护照</button>
-				<button @click="$emit('footprint')">我的足迹</button>
-			</view>
-		</view>
 		<view v-else class="recording-live-actions xicheng-paper-card">
 			<button class="xicheng-secondary-action" @click="$emit('pause')">
 				<xicheng-icon name="record" variant="primary" :size="22" />
@@ -292,7 +291,7 @@ export default {
 			default: ''
 		}
 	},
-	emits: ['back', 'pause', 'resume', 'arrive', 'finish', 'ask', 'locate', 'toggle-layer', 'navigate-next', 'photo', 'materials', 'passport', 'footprint'],
+	emits: ['back', 'pause', 'resume', 'arrive', 'finish', 'ask', 'locate', 'toggle-layer', 'navigate-next', 'photo', 'materials'],
 	computed: {
 		isPaused() {
 			return this.session && this.session.status === 'paused'
@@ -317,6 +316,21 @@ export default {
 			const pointCount = this.session && Array.isArray(this.session.trackPoints) ? this.session.trackPoints.length : 0
 			return Math.max(this.completedStopCount, Math.min(pointCount + this.completedStopCount, 9))
 		},
+		routeSegments() {
+			return this.routeStopItems.slice(0, -1).map((stop, index) => {
+				const start = this.getStopPosition(index)
+				const end = this.getStopPosition(index + 1)
+				const deltaLeft = Number(end.left) - Number(start.left)
+				const deltaTop = Number(end.top) - Number(start.top)
+				return {
+					key: `recording-segment-${stop.poiCode || stop.poiName || index}`,
+					left: Number(start.left),
+					top: Number(start.top),
+					width: Math.hypot(deltaLeft, deltaTop),
+					angle: Math.atan2(deltaTop, deltaLeft) * 180 / Math.PI
+				}
+			})
+		},
 		categories() {
 			return [
 				{ label: '文化建筑', color: '#16805F' },
@@ -328,6 +342,10 @@ export default {
 		}
 	},
 	methods: {
+		getStopPosition(index = 0) {
+			const layouts = this.isPaused ? PAUSED_STOP_LAYOUT : LIVE_STOP_LAYOUT
+			return layouts[index % layouts.length] || layouts[0]
+		},
 		isStopCompleted(stop = {}) {
 			const completedCodes = this.session && Array.isArray(this.session.completedStopPoiCodes)
 				? this.session.completedStopPoiCodes
@@ -335,9 +353,11 @@ export default {
 			return completedCodes.includes(stop.poiCode)
 		},
 		getStopStyle(index = 0) {
-			const layouts = this.isPaused ? PAUSED_STOP_LAYOUT : LIVE_STOP_LAYOUT
-			const layout = layouts[index % layouts.length] || layouts[0]
+			const layout = this.getStopPosition(index)
 			return `left:${layout.left}%;top:${layout.top}%;`
+		},
+		getRouteSegmentStyle(segment = {}) {
+			return `left:${segment.left}%;top:${segment.top}%;width:${segment.width}%;transform:rotate(${segment.angle}deg);`
 		}
 	}
 }
@@ -615,47 +635,31 @@ export default {
 }
 
 .recording-route-path {
-	left: 120rpx;
-	right: 136rpx;
-	top: 170rpx;
-	bottom: 122rpx;
+	inset: 0;
 	z-index: 2;
 }
 
 .recording-path-segment {
+	position: absolute;
 	height: 14rpx;
 	border-radius: 999rpx;
 	background: #1C604F;
 	box-shadow: 0 0 0 8rpx rgba(255, 252, 246, 0.65);
 	transform-origin: left center;
+	pointer-events: none;
 }
 
-.recording-path-segment-1 {
-	left: 0;
-	bottom: 26rpx;
-	width: 220rpx;
-	transform: rotate(-18deg);
-}
-
-.recording-path-segment-2 {
-	left: 190rpx;
-	bottom: 92rpx;
-	width: 190rpx;
-	transform: rotate(-2deg);
-}
-
-.recording-path-segment-3 {
-	right: 36rpx;
-	bottom: 118rpx;
-	width: 240rpx;
-	transform: rotate(-64deg);
-}
-
-.recording-path-segment-4 {
-	right: 66rpx;
-	top: 78rpx;
-	width: 170rpx;
-	transform: rotate(-70deg);
+.recording-route-segment::after {
+	content: '';
+	position: absolute;
+	right: -7rpx;
+	top: 50%;
+	width: 14rpx;
+	height: 14rpx;
+	border-radius: 999rpx;
+	background: #1C604F;
+	transform: translateY(-50%);
+	box-shadow: 0 0 0 6rpx rgba(255, 252, 246, 0.72);
 }
 
 .recording-stop-marker {
@@ -978,7 +982,7 @@ export default {
 
 .recording-live-actions {
 	position: sticky;
-	bottom: 20rpx;
+	bottom: 168rpx;
 	z-index: 12;
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1001,9 +1005,15 @@ export default {
 }
 
 .recording-paused-actions {
+	position: sticky;
+	bottom: 168rpx;
+	z-index: 12;
 	display: grid;
 	gap: 18rpx;
 	margin-top: 28rpx;
+	padding: 14rpx 0;
+	border-radius: 30rpx;
+	background: linear-gradient(180deg, rgba(249, 243, 232, 0.1), rgba(249, 243, 232, 0.92));
 }
 
 .recording-wide-primary,
@@ -1033,22 +1043,6 @@ export default {
 	border-radius: 22rpx;
 	font-size: 27rpx;
 	font-weight: 700;
-}
-
-.recording-post-links {
-	display: flex;
-	justify-content: center;
-	gap: 28rpx;
-	padding: 0 12rpx;
-}
-
-.recording-post-links button {
-	min-height: 54rpx;
-	padding: 0 24rpx;
-	border-radius: 999rpx;
-	background: rgba(255, 252, 246, 0.66);
-	color: rgba(23, 63, 53, 0.72);
-	font-size: 24rpx;
 }
 
 .recording-foreground-tip {

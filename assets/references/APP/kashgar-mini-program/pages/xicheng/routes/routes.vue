@@ -104,6 +104,11 @@
 			<xicheng-icon class="rerank-icon" name="refresh" variant="plain" :size="23" />
 			<text class="rerank-title">让小京重新推荐</text>
 		</view>
+
+		<xicheng-main-tab-nav
+			active-key="routes"
+			:route-context="routeContext"
+		/>
 	</view>
 </template>
 
@@ -119,6 +124,7 @@ import XichengMapImportGuide from '@/components/xicheng/XichengMapImportGuide.vu
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { mergeXichengOfficialRouteMaterials } from '@/request/xunjing/routeMaterials.js'
 import { createXichengRouteOutputValue, decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
+import XichengMainTabNav from '@/components/xicheng/XichengMainTabNav.vue'
 
 const XICHENG_HOME_ROUTE = '/pages/xicheng/home/home'
 const encodeRouteValue = (value = '') => createXichengRouteOutputValue(value, { platform: process.env.UNI_PLATFORM })
@@ -162,7 +168,8 @@ const normalizeRouteContext = (options = {}) => ({
 export default {
 	components: {
 		XichengCulturalMap,
-		XichengMapImportGuide
+		XichengMapImportGuide,
+		XichengMainTabNav
 	},
 	data() {
 		return {

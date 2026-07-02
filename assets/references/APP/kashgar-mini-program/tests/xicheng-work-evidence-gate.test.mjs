@@ -6,7 +6,7 @@ const root = process.cwd()
 const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
 
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
-const travelogueCss = read('pages', 'xicheng', 'travelogue', 'travelogue.css')
+const actionGrid = read('components', 'xicheng', 'XichengTravelogueActionGrid.vue')
 const workEvidenceBlock = travelogue.match(/export const hasXichengReviewableWorkEvidence\s*=\s*\(\{[\s\S]*?\n\}/)?.[0] || ''
 
 for (const required of [
@@ -67,7 +67,7 @@ assert.match(
   'Blocked work publishing actions should show a no-evidence explanation instead of creating artifacts'
 )
 
-const needsEvidenceBindings = travelogue.match(/'work-action-needs-evidence': !hasReviewableJourneyEvidence\(\)/g) || []
+const needsEvidenceBindings = actionGrid.match(/requiresEvidence:\s*true/g) || []
 assert.equal(
   needsEvidenceBindings.length,
   3,
@@ -75,13 +75,19 @@ assert.equal(
 )
 
 assert.match(
-  travelogueCss,
+  actionGrid,
+  /action\.requiresEvidence && !hasReviewableEvidence/,
+  'Split action grid should apply the muted no-evidence state only to actions that require reviewable work evidence'
+)
+
+assert.match(
+  actionGrid,
   /\.work-action-needs-evidence\s*\{[\s\S]*opacity:\s*0\.58[\s\S]*border-style:\s*dashed/,
   'No-evidence work actions should have a visible muted state while preserving tap-to-explain behavior'
 )
 
 assert.doesNotMatch(
-  travelogueCss.match(/\.work-action-needs-evidence\s*\{[\s\S]*?\n\}/)?.[0] || '',
+  actionGrid.match(/\.work-action-needs-evidence\s*\{[\s\S]*?\n\}/)?.[0] || '',
   /pointer-events:\s*none/,
   'No-evidence action styling should not suppress clicks because the existing click handler shows the required-evidence explanation'
 )

@@ -67,6 +67,86 @@
 			<button class="ghost-button xicheng-secondary-action" :disabled="recognitionActionBlocked" @click="askXiaojing(suggestedQuestions[1])">问问小京</button>
 		</view>
 
+		<view v-if="candidateList.length > 0" class="candidate-card xicheng-paper-card">
+			<view class="section-head xicheng-section-label">
+				<text class="section-title">可能匹配地点</text>
+				<text class="section-badge">{{ candidateSectionBadge }}</text>
+			</view>
+			<view
+				v-for="candidate in candidateList"
+				:key="candidate.poiCode || candidate.poiName"
+				class="candidate-row"
+				:class="{ 'candidate-row-disabled': isUnsafeCandidate(candidate) }"
+				@click="selectCandidate(candidate)"
+			>
+				<view>
+					<text class="candidate-title">{{ candidate.poiName || '西城文化点' }}</text>
+					<text v-if="candidate.summary || candidate.distanceMeters" class="candidate-desc">
+						{{ formatCandidateSummary(candidate) }}
+					</text>
+				</view>
+				<view class="candidate-side">
+					<text class="candidate-confidence">{{ Math.round(Number(candidate.confidence || 0) * 100) }}%</text>
+					<text v-if="isUnsafeCandidate(candidate)" class="candidate-safety">{{ candidateSafetyLabel(candidate) }}</text>
+				</view>
+			</view>
+		</view>
+
+		<view v-if="recommendedRoute" class="route-card xicheng-paper-card">
+			<view class="section-head xicheng-section-label">
+				<text class="section-title">推荐路线</text>
+				<text class="section-badge">{{ recommendedRoute.durationText || recommendedRoute.duration || '可加入路线护照' }}</text>
+			</view>
+			<text class="route-title">{{ recommendedRoute.title || '西城 Citywalk 推荐路线' }}</text>
+			<text v-if="recommendedRoute.summary || recommendedRoute.theme" class="route-desc">
+				{{ recommendedRoute.summary || recommendedRoute.theme }}
+			</text>
+			<view v-if="routeSteps.length > 0" class="route-steps">
+				<text
+					v-for="(stop, index) in routeSteps"
+					:key="`${stop.poiCode || stop.poiName || stop}-${index}`"
+					class="route-stop"
+				>
+					{{ index + 1 }}. {{ stop.poiName || stop }}
+				</text>
+			</view>
+		</view>
+
+		<xicheng-scan-result-questions-card
+			:section-title="questionSectionTitle"
+			:questions="suggestedQuestions"
+			:recognition-action-blocked="recognitionActionBlocked"
+			:empty-copy="questionEmptyCopy"
+			@ask="askXiaojing"
+		/>
+
+		<xicheng-scan-result-sources-card
+			:source-list="sourceList"
+			:source-empty-copy="sourceEmptyCopy"
+		/>
+
+		<view class="feedback-card xicheng-paper-card">
+			<view class="section-head xicheng-section-label">
+				<text class="section-title">识别反馈</text>
+				<text class="section-badge">{{ recognitionFeedback ? recognitionFeedback.feedbackLabel : '待反馈' }}</text>
+			</view>
+			<textarea
+				v-model="feedbackNote"
+				class="feedback-input"
+				placeholder="可补充正确地点、展牌文字或现场线索"
+				auto-height
+			/>
+			<view class="feedback-actions">
+				<button class="ghost-button xicheng-secondary-action" @click="submitRecognitionFeedback('correct')">识别准确</button>
+				<button class="ghost-button danger-button xicheng-secondary-action" @click="submitRecognitionFeedback('wrong')">识别有误</button>
+			</view>
+			<text v-if="recognitionFeedback" class="source-empty">
+				已记录为{{ recognitionFeedback.reviewStatus }}反馈，运营可用于 POI 纠错。
+			</text>
+			<view v-if="recognitionFeedback" class="feedback-actions">
+				<button class="ghost-button danger-button xicheng-secondary-action" @click="withdrawRecognitionFeedback">撤回反馈</button>
+			</view>
+		</view>
 		<view class="vision-agent-memory-panel xicheng-paper-card">
 			<view class="section-head xicheng-section-label">
 				<text class="section-title">连续理解</text>
@@ -234,104 +314,6 @@
 			<xicheng-icon name="next" variant="plain" :size="20" />
 		</view>
 
-		<view v-if="candidateList.length > 0" class="candidate-card xicheng-paper-card">
-			<view class="section-head xicheng-section-label">
-				<text class="section-title">可能匹配地点</text>
-				<text class="section-badge">{{ candidateSectionBadge }}</text>
-			</view>
-			<view
-				v-for="candidate in candidateList"
-				:key="candidate.poiCode || candidate.poiName"
-				class="candidate-row"
-				:class="{ 'candidate-row-disabled': isUnsafeCandidate(candidate) }"
-				@click="selectCandidate(candidate)"
-			>
-				<view>
-					<text class="candidate-title">{{ candidate.poiName || '西城文化点' }}</text>
-					<text v-if="candidate.summary || candidate.distanceMeters" class="candidate-desc">
-						{{ formatCandidateSummary(candidate) }}
-					</text>
-				</view>
-				<view class="candidate-side">
-					<text class="candidate-confidence">{{ Math.round(Number(candidate.confidence || 0) * 100) }}%</text>
-					<text v-if="isUnsafeCandidate(candidate)" class="candidate-safety">{{ candidateSafetyLabel(candidate) }}</text>
-				</view>
-			</view>
-		</view>
-
-		<view v-if="recommendedRoute" class="route-card xicheng-paper-card">
-			<view class="section-head xicheng-section-label">
-				<text class="section-title">推荐路线</text>
-				<text class="section-badge">{{ recommendedRoute.durationText || recommendedRoute.duration || '可加入路线护照' }}</text>
-			</view>
-			<text class="route-title">{{ recommendedRoute.title || '西城 Citywalk 推荐路线' }}</text>
-			<text v-if="recommendedRoute.summary || recommendedRoute.theme" class="route-desc">
-				{{ recommendedRoute.summary || recommendedRoute.theme }}
-			</text>
-			<view v-if="routeSteps.length > 0" class="route-steps">
-				<text
-					v-for="(stop, index) in routeSteps"
-					:key="`${stop.poiCode || stop.poiName || stop}-${index}`"
-					class="route-stop"
-				>
-					{{ index + 1 }}. {{ stop.poiName || stop }}
-				</text>
-			</view>
-		</view>
-
-		<view class="question-card xicheng-paper-card">
-			<text class="section-title">{{ questionSectionTitle }}</text>
-			<view
-				v-for="question in suggestedQuestions"
-				:key="question"
-				class="question-row"
-				:class="{ 'question-row-disabled': recognitionActionBlocked }"
-				@click="askXiaojing(question)"
-			>
-				<text>{{ question }}</text>
-			</view>
-			<text v-if="suggestedQuestions.length === 0" class="question-empty">{{ questionEmptyCopy }}</text>
-		</view>
-
-		<view class="source-card xicheng-paper-card">
-			<text class="section-title">已审核来源</text>
-			<view v-if="sourceList.length > 0">
-				<view
-					v-for="(source, index) in sourceList"
-					:key="source.id || source.url || source.title || index"
-					class="source-row"
-				>
-					<text class="source-title">{{ getDisplaySourceTitle(source) || '审核来源' }}</text>
-					<text v-if="getDisplaySourceDescription(source)" class="source-desc">
-						{{ getDisplaySourceDescription(source) }}
-					</text>
-				</view>
-			</view>
-			<text v-else class="source-empty">{{ sourceEmptyCopy }}</text>
-		</view>
-
-		<view class="feedback-card xicheng-paper-card">
-			<view class="section-head xicheng-section-label">
-				<text class="section-title">识别反馈</text>
-				<text class="section-badge">{{ recognitionFeedback ? recognitionFeedback.feedbackLabel : '待反馈' }}</text>
-			</view>
-			<textarea
-				v-model="feedbackNote"
-				class="feedback-input"
-				placeholder="可补充正确地点、展牌文字或现场线索"
-				auto-height
-			/>
-			<view class="feedback-actions">
-				<button class="ghost-button xicheng-secondary-action" @click="submitRecognitionFeedback('correct')">识别准确</button>
-				<button class="ghost-button danger-button xicheng-secondary-action" @click="submitRecognitionFeedback('wrong')">识别有误</button>
-			</view>
-			<text v-if="recognitionFeedback" class="source-empty">
-				已记录为{{ recognitionFeedback.reviewStatus }}反馈，运营可用于 POI 纠错。
-			</text>
-			<view v-if="recognitionFeedback" class="feedback-actions">
-				<button class="ghost-button danger-button xicheng-secondary-action" @click="withdrawRecognitionFeedback">撤回反馈</button>
-			</view>
-		</view>
 	</view>
 </template>
 
@@ -347,11 +329,7 @@ import { submitXichengRecognitionFeedbackEvent } from '@/request/xunjing/events.
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { decodeXichengRouteValue, createXichengRouteOutputValue } from '@/request/xunjing/routeParams.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
-import {
-	getXichengDisplaySourceDescription,
-	getXichengDisplaySourceTitle,
-	normalizeXichengReviewedSources
-} from '@/request/xunjing/sources.js'
+import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
 import { isXichengDevelopmentRecognitionCacheBlocked } from '@/request/xunjing/trigger.js'
 import { mergeXichengVisionAgentRouteContext, parseXichengVisionAgentRouteContext } from '@/request/xunjing/visionAgentRouteContext.js'
 import {
@@ -361,6 +339,8 @@ import {
 	inferXichengVisionAgentSceneUnderstandingPackage
 } from '@/request/xunjing/visionAgentSceneUnderstanding.js'
 import XichengVisionAgentWorldInterfaceStrip from '@/components/xicheng/vision-agent-world-interface-strip.vue'
+import XichengScanResultQuestionsCard from '@/components/xicheng/XichengScanResultQuestionsCard.vue'
+import XichengScanResultSourcesCard from '@/components/xicheng/XichengScanResultSourcesCard.vue'
 
 const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
 	regionCode: XICHENG_REGION_CONFIG.regionCode,
@@ -632,6 +612,8 @@ const normalizeResult = (result = {}) => ({
 
 export default {
 	components: {
+		XichengScanResultQuestionsCard,
+		XichengScanResultSourcesCard,
 		XichengVisionAgentWorldInterfaceStrip
 	},
 	data() {
@@ -1782,12 +1764,6 @@ export default {
 		formatCandidateSummary(candidate = {}) {
 			return candidate.summary || `距离约 ${candidate.distanceMeters} 米`
 		},
-		getDisplaySourceTitle(source = {}) {
-			return getXichengDisplaySourceTitle(source)
-		},
-		getDisplaySourceDescription(source = {}) {
-			return getXichengDisplaySourceDescription(source)
-		},
 		startRecording() {
 			if (this.pendingCandidateConfirmation) {
 				this.requireOfficialPoiConfirmation('开始记录')
@@ -1998,10 +1974,8 @@ export default {
 
 .result-card,
 .vision-agent-memory-panel,
-.question-card,
 .route-card,
 .candidate-card,
-.source-card,
 .feedback-card {
 	padding: 32rpx;
 	border-radius: 34rpx;
@@ -2191,10 +2165,6 @@ export default {
 	color: #746F68;
 }
 
-.question-card {
-	margin-top: 28rpx;
-}
-
 .candidate-card {
 	margin-top: 28rpx;
 }
@@ -2272,27 +2242,6 @@ export default {
 	color: #173F35;
 }
 
-.question-row {
-	margin-top: 18rpx;
-	padding: 22rpx;
-	border-radius: 22rpx;
-	background: rgba(255, 252, 246, 0.72);
-	font-size: 26rpx;
-	color: #173F35;
-}
-
-.question-row-disabled {
-	opacity: 0.58;
-}
-
-.question-empty {
-	display: block;
-	margin-top: 18rpx;
-	font-size: 24rpx;
-	line-height: 1.6;
-	color: #667085;
-}
-
 .candidate-row {
 	display: flex;
 	align-items: center;
@@ -2347,28 +2296,11 @@ export default {
 	color: #B42318;
 }
 
-.source-row {
-	margin-top: 18rpx;
-	padding: 22rpx;
-	border-radius: 24rpx;
-	border: 1rpx solid rgba(181, 148, 94, 0.24);
-	background: rgba(255, 252, 246, 0.72);
-}
-
-.source-title,
-.source-desc,
 .source-empty {
 	display: block;
 	line-height: 1.55;
 }
 
-.source-title {
-	font-size: 26rpx;
-	font-weight: 700;
-	color: #102F29;
-}
-
-.source-desc,
 .source-empty {
 	margin-top: 8rpx;
 	font-size: 24rpx;

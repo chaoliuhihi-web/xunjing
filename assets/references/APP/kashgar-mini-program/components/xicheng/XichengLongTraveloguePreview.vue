@@ -24,6 +24,34 @@
 			</view>
 		</view>
 
+		<view class="long-print-readiness-panel">
+			<view class="long-print-head">
+				<text class="long-print-kicker">成书预览</text>
+				<text class="long-print-title">适合保存、分享和打印的纪念游记</text>
+			</view>
+			<view class="long-print-metrics">
+				<view class="long-print-metric">
+					<xicheng-icon name="time" variant="plain" :size="20" />
+					<text class="long-print-metric-label">预计阅读</text>
+					<text class="long-print-metric-value">{{ estimatedReadMinutesLabel }}</text>
+				</view>
+				<view class="long-print-metric">
+					<xicheng-icon name="pdf" variant="plain" :size="20" />
+					<text class="long-print-metric-label">A4 可打印</text>
+					<text class="long-print-metric-value">{{ printPageCountLabel }}</text>
+				</view>
+				<view class="long-print-metric long-print-privacy">
+					<xicheng-icon name="lock" variant="plain" :size="20" />
+					<text class="long-print-metric-label">隐私保护</text>
+					<text class="long-print-metric-value">{{ privacySummary }}</text>
+				</view>
+			</view>
+			<button class="long-print-cta" @click="$emit('export-pdf')">
+				<xicheng-icon name="print" variant="plain" active :size="22" />
+				<text>打印成册</text>
+			</button>
+		</view>
+
 		<view class="long-body">
 			<view class="long-route-overview">
 				<view class="long-section-head">
@@ -208,6 +236,18 @@ export default {
 			type: Number,
 			default: 0
 		},
+		estimatedReadMinutes: {
+			type: Number,
+			default: 0
+		},
+		printPageCount: {
+			type: Number,
+			default: 0
+		},
+		privacySummary: {
+			type: String,
+			default: '精确轨迹默认隐藏 · 发布前可检查公开范围'
+		},
 		companionAvatar: {
 			type: String,
 			default: ''
@@ -341,6 +381,12 @@ export default {
 		},
 		sourceCountLabel() {
 			return this.sourceCount > 0 ? `${this.sourceCount} 条已核对` : '待补充来源'
+		},
+		printPageCountLabel() {
+			return this.printPageCount > 0 ? `${this.printPageCount} 页` : '待生成'
+		},
+		estimatedReadMinutesLabel() {
+			return this.estimatedReadMinutes > 0 ? `${this.estimatedReadMinutes} 分钟` : '待生成'
 		}
 	}
 }

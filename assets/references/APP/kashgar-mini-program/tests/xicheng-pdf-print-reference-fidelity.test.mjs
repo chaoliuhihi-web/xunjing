@@ -4,6 +4,19 @@ import path from 'node:path'
 
 const root = process.cwd()
 const pdfPrint = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'pdf-print', 'pdf-print.vue'), 'utf8')
+const previewComponentPath = path.join(root, 'components', 'xicheng', 'XichengPdfPrintPreview.vue')
+const getMethodBlock = (source, methodName) => {
+  const match = source.match(new RegExp(`${methodName}\\(\\)\\s*\\{([\\s\\S]*?)\\n\\t\\t\\},`))
+  return match ? match[1] : ''
+}
+
+assert.ok(
+  fs.existsSync(previewComponentPath),
+  'PDF print page should split the heavy page preview stage into XichengPdfPrintPreview instead of growing the page shell'
+)
+
+const previewComponent = fs.readFileSync(previewComponentPath, 'utf8')
+const pdfSurface = `${pdfPrint}\n${previewComponent}`
 
 for (const token of [
   'PDF 纪念册',
@@ -15,13 +28,18 @@ for (const token of [
   'print-page-stage',
   'print-page-counter',
   'print-thumbnail-strip',
+  'print-all-pages-overview',
+  '全页总览',
   'print-settings-grid',
   'export-content-card',
   '保存 PDF',
   '预览全部',
-  '打印 / 分享 PDF'
+  '打印 / 分享 PDF',
+  '打印前检查',
+  '不会自动发布',
+  '系统打印/分享前会再次确认'
 ]) {
-  assert.ok(pdfPrint.includes(token), `PDF print page should expose approved reference token: ${token}`)
+  assert.ok(pdfSurface.includes(token), `PDF print page should expose approved reference token: ${token}`)
 }
 
 for (const pageLabel of ['封面', '路线', '照片', '游记', '来源', '封底']) {
@@ -42,6 +60,18 @@ for (const methodName of ['selectPreviewPage', 'previewAllPages', 'savePdf', 'sy
 
 assert.match(
   pdfPrint,
+  /import XichengPdfPrintPreview from '@\/components\/xicheng\/XichengPdfPrintPreview\.vue'[\s\S]*components:[\s\S]*XichengPdfPrintPreview/,
+  'PDF print page should import and register the split preview component'
+)
+
+assert.match(
+  pdfPrint,
+  /<xicheng-pdf-print-preview[\s\S]*:preview-pages="previewPages"[\s\S]*:current-page-index="currentPageIndex"[\s\S]*:current-preview-page="currentPreviewPage"[\s\S]*:show-all-pages-preview="showAllPagesPreview"[\s\S]*@select-page="selectPreviewPage"/,
+  'PDF print page should pass preview data, all-page overview state and page selection into the split preview component'
+)
+
+assert.match(
+  pdfPrint,
   /currentPreviewPage\(\)[\s\S]*return this\.previewPages\[this\.currentPageIndex\] \|\| this\.previewPages\[0\]/,
   'PDF page should render a selected large preview page from the thumbnail strip'
 )
@@ -58,10 +88,59 @@ assert.match(
   'PDF export content summary should reflect reviewed sources and selected material count'
 )
 
-assert.ok(pdfPrint.split(/\r?\n/).length < 760, 'PDF print page should stay compact and component-friendly')
+assert.match(
+  pdfPrint,
+  /printPreflightItems\(\)[\s\S]*隐私保护[\s\S]*精确轨迹默认隐藏[\s\S]*来源检查[\s\S]*只导出已审核来源[\s\S]*用户确认[\s\S]*系统打印\/分享前会再次确认/,
+  'PDF print page should summarize privacy, source and user-confirmation readiness before export actions'
+)
+
+assert.match(
+  pdfPrint,
+  /previewAllPages\(\)[\s\S]*this\.showAllPagesPreview = !this\.showAllPagesPreview/,
+  'Preview-all action should toggle a real all-page overview instead of showing only a toast'
+)
 
 assert.doesNotMatch(
+  getMethodBlock(pdfPrint, 'previewAllPages'),
+  /uni\.showToast/,
+  'Preview-all action should not remain a toast-only placeholder'
+)
+
+assert.match(
+  previewComponent,
+  /v-if="showAllPagesPreview"[\s\S]*class="print-all-pages-overview[\s\S]*v-for="page in previewPages"[\s\S]*class="all-page-mini-sheet"[\s\S]*@click="\$emit\('select-page', page\.pageNo - 1\)"/,
+  'Split PDF preview component should render a tappable all-page overview for print checking'
+)
+
+assert.match(
   pdfPrint,
+  /confirmPdfExportAction\(actionLabel = ''\)[\s\S]*uni\.showModal\(\{[\s\S]*title:\s*`\$\{actionLabel\}确认`[\s\S]*content:\s*'PDF 会先保存到本机预览，不会自动发布；系统打印\/分享前会再次确认。'[\s\S]*confirmText:\s*actionLabel[\s\S]*resolve\(Boolean\(res\.confirm\)\)/,
+  'PDF print export actions should ask the user for confirmation instead of silently saving or printing'
+)
+
+assert.match(
+  pdfPrint,
+  /async savePdf\(\)[\s\S]*const confirmed = await this\.confirmPdfExportAction\('保存 PDF'\)[\s\S]*if \(!confirmed\) return[\s\S]*PDF 已保存到本机预览/,
+  'Save PDF action should be gated by the export confirmation copy'
+)
+
+assert.match(
+  pdfPrint,
+  /async sharePdf\(\)[\s\S]*const confirmed = await this\.confirmPdfExportAction\('打印 \/ 分享 PDF'\)[\s\S]*if \(!confirmed\) return[\s\S]*将唤起系统打印或分享 PDF/,
+  'Print/share PDF action should be gated by the export confirmation copy'
+)
+
+assert.match(
+  pdfPrint,
+  /\.setting-label,[\s\S]*\.setting-value,[\s\S]*\.export-title,[\s\S]*\.export-desc,[\s\S]*\.export-count[\s\S]*display:\s*block/,
+  'PDF print settings and export rows should keep title, description, and count text on separate scan-friendly lines after splitting preview styles'
+)
+
+assert.ok(pdfPrint.split(/\r?\n/).length < 520, 'PDF print page shell should stay compact after splitting the preview stage')
+assert.ok(previewComponent.split(/\r?\n/).length < 430, 'PDF print preview component should stay compact for APP packaging')
+
+assert.doesNotMatch(
+  pdfSurface,
   /\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}|background-location|startLocationUpdateBackground/,
   'PDF print page should not introduce backend calls, client secrets, or high-risk background permissions'
 )

@@ -22,6 +22,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppMapPoin
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppMediaAssetRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppPackageDetailRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.LocationPointReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalAgentActionRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PhotoMetaReqVO;
@@ -111,7 +112,71 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             "sceneDomainIntentTitle",
             "sceneDomainIntentCopy",
             "agentDecisionActionTitle",
-            "agentDecisionReasonSummary"
+            "agentDecisionReasonSummary",
+            "knowledgeGraphKeywords",
+            "relatedTopicKeywords",
+            "visitorProfileSummary",
+            "visitorGroup",
+            "interestTags",
+            "preferredLanguageText",
+            "nearbyActivitySummary",
+            "merchantServiceSummary",
+            "routeRecommendationSummary",
+            "menuItemNames",
+            "spiceLevelSummary",
+            "halalSuitabilityText",
+            "dishRecommendationSummary",
+            "foodItemName",
+            "foodOriginSummary",
+            "cookingMethodSummary",
+            "eatingMethodSummary",
+            "pairingSuggestionText",
+            "nearbyFoodRecommendationSummary",
+            "signOriginalText",
+            "signTranslationText",
+            "signPronunciationText",
+            "signNavigationHint",
+            "recognizedObjectName",
+            "eraOrPeriodText",
+            "structureOrCraftSummary",
+            "historicalStorySummary",
+            "hiddenDetailSummary",
+            "heritageItemName",
+            "heritageCategoryText",
+            "craftProcessSummary",
+            "performanceMethodSummary",
+            "soundAssetHint",
+            "nearbyExperienceSummary",
+            "plantSpeciesName",
+            "plantAgeEstimateText",
+            "plantAdaptationSummary",
+            "bestViewingSeasonText",
+            "regionalDistributionSummary",
+            "animalSpeciesName",
+            "conservationStatusText",
+            "habitatSummary",
+            "dangerAssessmentText",
+            "safetyReminderText",
+            "arDisplayHint",
+            "personName",
+            "personStorySummary",
+            "statueSiteReasonSummary",
+            "contributionSummary",
+            "contemporaryFigureKeywords",
+            "activityName",
+            "activityBackgroundSummary",
+            "performerSummary",
+            "scheduleTimeText",
+            "ticketingHint",
+            "venueNavigationHint",
+            "checkInTaskSummary",
+            "badgeRewardName",
+            "travelMapUpdateSummary",
+            "travelogueMaterialSummary",
+            "photoMomentSummary",
+            "socialShareDraftHint",
+            "visionRecognitionStatus",
+            "visionRecognitionModel"
     );
 
     @Resource
@@ -957,8 +1022,103 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             parts.add("场景域=" + domain);
         }
         putPreviousJsonMemoryPart(parts, "Agent理由", sceneSignals, "agentDecisionReasonSummary");
+        putPreviousJsonMemoryPart(parts, "知识图谱线索", sceneSignals, "knowledgeGraphKeywords");
+        putPreviousJsonMemoryPart(parts, "关联话题", sceneSignals, "relatedTopicKeywords");
+        putPreviousJsonMemoryPart(parts, "当前时间", sceneSignals, "localTimeText");
+        putPreviousJsonMemoryPart(parts, "当前天气", sceneSignals, "weatherText");
+        putPreviousJsonMemoryPart(parts, "当前朝向", sceneSignals, "headingText");
+        putPreviousJsonMemoryPart(parts, "游客画像", sceneSignals, "visitorProfileSummary");
+        putPreviousJsonMemoryPart(parts, "同行人", sceneSignals, "visitorGroup");
+        putPreviousJsonMemoryPart(parts, "兴趣偏好", sceneSignals, "interestTags");
+        putPreviousJsonMemoryPart(parts, "偏好语言", sceneSignals, "preferredLanguageText");
+        putPreviousJsonMemoryPart(parts, "附近活动", sceneSignals, "nearbyActivitySummary");
+        putPreviousJsonMemoryPart(parts, "商家服务", sceneSignals, "merchantServiceSummary");
+        putPreviousJsonMemoryPart(parts, "路线建议", sceneSignals, "routeRecommendationSummary");
+        putPreviousJsonMemoryPart(parts, "菜单菜品", sceneSignals, "menuItemNames");
+        putPreviousJsonMemoryPart(parts, "辣度", sceneSignals, "spiceLevelSummary");
+        putPreviousJsonMemoryPart(parts, "清真信息", sceneSignals, "halalSuitabilityText");
+        putPreviousJsonMemoryPart(parts, "推荐点单", sceneSignals, "dishRecommendationSummary");
+        putPreviousJsonMemoryPart(parts, "美食名称", sceneSignals, "foodItemName");
+        putPreviousJsonMemoryPart(parts, "美食来源", sceneSignals, "foodOriginSummary");
+        putPreviousJsonMemoryPart(parts, "制作方式", sceneSignals, "cookingMethodSummary");
+        putPreviousJsonMemoryPart(parts, "吃法", sceneSignals, "eatingMethodSummary");
+        putPreviousJsonMemoryPart(parts, "搭配建议", sceneSignals, "pairingSuggestionText");
+        putPreviousJsonMemoryPart(parts, "附近推荐", sceneSignals, "nearbyFoodRecommendationSummary");
+        putPreviousJsonMemoryPart(parts, "路牌原文", sceneSignals, "signOriginalText");
+        putPreviousJsonMemoryPart(parts, "路牌翻译", sceneSignals, "signTranslationText");
+        putPreviousJsonMemoryPart(parts, "发音", sceneSignals, "signPronunciationText");
+        putPreviousJsonMemoryPart(parts, "导航提示", sceneSignals, "signNavigationHint");
+        putPreviousJsonMemoryPart(parts, "识境对象", sceneSignals, "recognizedObjectName");
+        putPreviousJsonMemoryPart(parts, "年代时期", sceneSignals, "eraOrPeriodText");
+        putPreviousJsonMemoryPart(parts, "结构工艺", sceneSignals, "structureOrCraftSummary");
+        putPreviousJsonMemoryPart(parts, "历史故事", sceneSignals, "historicalStorySummary");
+        putPreviousJsonMemoryPart(parts, "隐藏细节", sceneSignals, "hiddenDetailSummary");
+        putPreviousJsonMemoryPart(parts, "非遗名称", sceneSignals, "heritageItemName");
+        putPreviousJsonMemoryPart(parts, "非遗类别", sceneSignals, "heritageCategoryText");
+        putPreviousJsonMemoryPart(parts, "制作过程", sceneSignals, "craftProcessSummary");
+        putPreviousJsonMemoryPart(parts, "演奏方式", sceneSignals, "performanceMethodSummary");
+        putPreviousJsonMemoryPart(parts, "声音线索", sceneSignals, "soundAssetHint");
+        putPreviousJsonMemoryPart(parts, "附近体验", sceneSignals, "nearbyExperienceSummary");
+        putPreviousJsonMemoryPart(parts, "植物名称", sceneSignals, "plantSpeciesName");
+        putPreviousJsonMemoryPart(parts, "树龄估计", sceneSignals, "plantAgeEstimateText");
+        putPreviousJsonMemoryPart(parts, "耐旱原因", sceneSignals, "plantAdaptationSummary");
+        putPreviousJsonMemoryPart(parts, "最佳观赏季", sceneSignals, "bestViewingSeasonText");
+        putPreviousJsonMemoryPart(parts, "分布范围", sceneSignals, "regionalDistributionSummary");
+        putPreviousJsonMemoryPart(parts, "动物名称", sceneSignals, "animalSpeciesName");
+        putPreviousJsonMemoryPart(parts, "保护情况", sceneSignals, "conservationStatusText");
+        putPreviousJsonMemoryPart(parts, "栖息地", sceneSignals, "habitatSummary");
+        putPreviousJsonMemoryPart(parts, "危险判断", sceneSignals, "dangerAssessmentText");
+        putPreviousJsonMemoryPart(parts, "安全提醒", sceneSignals, "safetyReminderText");
+        putPreviousJsonMemoryPart(parts, "AR展示", sceneSignals, "arDisplayHint");
+        putPreviousJsonMemoryPart(parts, "人物名称", sceneSignals, "personName");
+        putPreviousJsonMemoryPart(parts, "人物故事", sceneSignals, "personStorySummary");
+        putPreviousJsonMemoryPart(parts, "建址原因", sceneSignals, "statueSiteReasonSummary");
+        putPreviousJsonMemoryPart(parts, "人物贡献", sceneSignals, "contributionSummary");
+        putPreviousJsonMemoryPart(parts, "同时期人物", sceneSignals, "contemporaryFigureKeywords");
+        putPreviousJsonMemoryPart(parts, "活动名称", sceneSignals, "activityName");
+        putPreviousJsonMemoryPart(parts, "活动背景", sceneSignals, "activityBackgroundSummary");
+        putPreviousJsonMemoryPart(parts, "演员阵容", sceneSignals, "performerSummary");
+        putPreviousJsonMemoryPart(parts, "开始时间", sceneSignals, "scheduleTimeText");
+        putPreviousJsonMemoryPart(parts, "票务线索", sceneSignals, "ticketingHint");
+        putPreviousJsonMemoryPart(parts, "场地导航", sceneSignals, "venueNavigationHint");
+        putPreviousJsonMemoryPart(parts, "打卡任务", sceneSignals, "checkInTaskSummary");
+        putPreviousJsonMemoryPart(parts, "徽章奖励", sceneSignals, "badgeRewardName");
+        putPreviousJsonMemoryPart(parts, "旅行地图", sceneSignals, "travelMapUpdateSummary");
+        putPreviousJsonMemoryPart(parts, "游记素材", sceneSignals, "travelogueMaterialSummary");
+        putPreviousJsonMemoryPart(parts, "照片时刻", sceneSignals, "photoMomentSummary");
+        putPreviousJsonMemoryPart(parts, "分享文案", sceneSignals, "socialShareDraftHint");
+        putPreviousAgentActionsMemoryPart(parts, root.get("agentActions"));
         putPreviousJsonMemoryPart(parts, "OCR", root, "ocrText");
         return String.join("；", parts);
+    }
+
+    private void putPreviousAgentActionsMemoryPart(List<String> parts, JsonNode agentActions) {
+        if (agentActions == null || !agentActions.isArray() || agentActions.size() == 0) {
+            return;
+        }
+        List<String> actionParts = new ArrayList<>();
+        for (JsonNode action : agentActions) {
+            String actionKey = visionAgentContextText(action, "actionKey");
+            String title = visionAgentContextText(action, "title");
+            String intent = visionAgentContextText(action, "intent");
+            if (!hasText(actionKey) && !hasText(title)) {
+                continue;
+            }
+            String actionText = hasText(title) ? title : actionKey;
+            if (hasText(actionKey)) {
+                actionText += "(" + actionKey + ")";
+            }
+            if (hasText(intent)) {
+                actionText += "/" + intent;
+            }
+            if (action.path("requiresRealSystem").asBoolean(false)) {
+                actionText += "/需真实系统";
+            }
+            actionParts.add(actionText);
+        }
+        if (!actionParts.isEmpty()) {
+            parts.add("推荐动作=" + String.join(",", actionParts));
+        }
     }
 
     private void hydrateTriggerSceneSignalText(RagChatReqVO reqVO, JsonNode sceneSignals) {
@@ -1028,6 +1188,21 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         if ("start_travel_note".equals(action) || "confirm_travel_note".equals(action)) {
             return "生成旅行记录";
         }
+        if ("open_activity_handoff".equals(action) || "confirm_activity_handoff".equals(action)) {
+            return "活动票务";
+        }
+        if ("start_sign_translation".equals(action) || "confirm_sign_translation".equals(action)) {
+            return "路牌翻译";
+        }
+        if ("start_safety_advisory".equals(action) || "confirm_safety_advisory".equals(action)) {
+            return "安全提醒";
+        }
+        if ("start_scene_interpretation".equals(action) || "confirm_scene_interpretation".equals(action)) {
+            return "深度识境";
+        }
+        if ("start_photo_advice".equals(action) || "confirm_photo_advice".equals(action)) {
+            return "拍照建议";
+        }
         if ("start_ai_guide".equals(action) || "confirm_ai_guide".equals(action)) {
             return "开始 AI 讲解";
         }
@@ -1043,13 +1218,31 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         if ("record".equals(intent)) {
             return "生成旅行记录";
         }
+        if ("activity".equals(intent)) {
+            return "活动票务";
+        }
+        if ("translate".equals(intent)) {
+            return "路牌翻译";
+        }
+        if ("safety".equals(intent)) {
+            return "安全提醒";
+        }
+        if ("interpret".equals(intent)) {
+            return "深度识境";
+        }
+        if ("photo".equals(intent)) {
+            return "拍照建议";
+        }
         return hasText(action) ? action : intent;
     }
 
     private boolean triggerRequiresRealSystem(String action, String intent) {
         return "food".equals(intent)
+                || "activity".equals(intent)
                 || "open_food_recommendation".equals(action)
-                || "confirm_food_recommendation".equals(action);
+                || "confirm_food_recommendation".equals(action)
+                || "open_activity_handoff".equals(action)
+                || "confirm_activity_handoff".equals(action);
     }
 
     private String triggerIntentText(String intent) {
@@ -1061,6 +1254,21 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         }
         if ("record".equals(intent)) {
             return "旅行记录";
+        }
+        if ("activity".equals(intent)) {
+            return "活动票务";
+        }
+        if ("translate".equals(intent)) {
+            return "路牌翻译";
+        }
+        if ("safety".equals(intent)) {
+            return "安全提醒";
+        }
+        if ("interpret".equals(intent)) {
+            return "深度识境";
+        }
+        if ("photo".equals(intent)) {
+            return "拍照建议";
         }
         if ("guide".equals(intent)) {
             return "AI 讲解";
@@ -1192,11 +1400,138 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         payload.put("imageLabelCount", reqVO.getImageLabels() == null ? 0 : reqVO.getImageLabels().size());
         payload.put("recentPoiCount", reqVO.getRecentPoiCodes() == null ? 0 : reqVO.getRecentPoiCodes().size());
         payload.put("sceneSignals", buildTriggerSceneSignalsPayload(reqVO.getSceneSignals()));
+        payload.put("serviceHandoff", buildTriggerServiceHandoffPayload(reqVO, respVO));
+        payload.put("agentActions", buildTriggerAgentActionsPayload(respVO));
         payload.put("location", buildTriggerLocationPayload(reqVO.getLocation()));
         payload.put("photoMeta", buildTriggerPhotoMetaPayload(reqVO.getPhotoMeta()));
+        payload.put("matchedSignals", buildTriggerMatchedSignalsPayload(respVO));
         payload.put("candidateCount", respVO.getCandidates() == null ? 0 : respVO.getCandidates().size());
         payload.put("sourceCount", respVO.getSources() == null ? 0 : respVO.getSources().size());
         return JsonUtils.toJsonString(payload);
+    }
+
+    private List<Map<String, Object>> buildTriggerAgentActionsPayload(MultimodalTriggerRespVO respVO) {
+        if (respVO == null || respVO.getAgentActions() == null || respVO.getAgentActions().isEmpty()) {
+            return List.of();
+        }
+        return respVO.getAgentActions().stream()
+                .map(this::buildTriggerAgentActionPayload)
+                .toList();
+    }
+
+    private Map<String, Object> buildTriggerAgentActionPayload(MultimodalAgentActionRespVO action) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("actionKey", truncateForEvent(action.getActionKey(), 80));
+        payload.put("title", truncateForEvent(action.getTitle(), 80));
+        payload.put("intent", truncateForEvent(action.getIntent(), 50));
+        payload.put("targetPath", truncateForEvent(action.getTargetPath(), 200));
+        payload.put("requiresUserConfirm", Boolean.TRUE.equals(action.getRequiresUserConfirm()));
+        payload.put("requiresRealSystem", Boolean.TRUE.equals(action.getRequiresRealSystem()));
+        payload.put("reason", truncateForEvent(action.getReason(), TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH));
+        return payload;
+    }
+
+    private Map<String, Object> buildTriggerServiceHandoffPayload(
+            MultimodalTriggerReqVO reqVO, MultimodalTriggerRespVO respVO) {
+        if (respVO == null) {
+            return Map.of();
+        }
+        String action = defaultIfBlank(respVO.getAction(), "");
+        String intent = defaultIfBlank(respVO.getIntent(), "");
+        if (!hasText(action) && !hasText(intent)) {
+            return Map.of();
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("actionKey", action);
+        payload.put("taskType", defaultIfBlank(respVO.getTriggerType(), ""));
+        payload.put("intent", intent);
+        payload.put("intentText", triggerIntentText(intent));
+        payload.put("stepText", triggerConfirmText(Boolean.TRUE.equals(respVO.getRequiresUserConfirm())));
+        payload.put("requiresRealSystem", triggerRequiresRealSystem(action, intent));
+        Map<String, Object> sceneSignals = reqVO == null ? Map.of() : reqVO.getSceneSignals();
+        putTriggerServiceHandoffText(payload, sceneSignals, "merchantServiceSummary");
+        putTriggerServiceHandoffText(payload, sceneSignals, "nearbyActivitySummary");
+        putTriggerServiceHandoffText(payload, sceneSignals, "ticketingHint");
+        putTriggerServiceHandoffText(payload, sceneSignals, "venueNavigationHint");
+        putTriggerServiceHandoffText(payload, sceneSignals, "routeRecommendationSummary");
+        putTriggerServiceHandoffText(payload, sceneSignals, "dishRecommendationSummary");
+        putTriggerServiceHandoffText(payload, sceneSignals, "halalSuitabilityText");
+        putTriggerServiceHandoffText(payload, sceneSignals, "nearbyFoodRecommendationSummary");
+        putTriggerServiceHandoffText(payload, sceneSignals, "checkInTaskSummary");
+        putTriggerServiceHandoffText(payload, sceneSignals, "badgeRewardName");
+        putTriggerServiceHandoffText(payload, sceneSignals, "travelMapUpdateSummary");
+        putTriggerServiceHandoffText(payload, sceneSignals, "travelogueMaterialSummary");
+        putTriggerServiceHandoffText(payload, sceneSignals, "photoMomentSummary");
+        putTriggerServiceHandoffText(payload, sceneSignals, "socialShareDraftHint");
+        payload.put("summary", buildTriggerServiceHandoffPayloadSummary(action, intent, respVO, payload));
+        return payload;
+    }
+
+    private void putTriggerServiceHandoffText(
+            Map<String, Object> payload, Map<String, Object> sceneSignals, String key) {
+        if (sceneSignals == null || sceneSignals.isEmpty()) {
+            return;
+        }
+        Object value = sceneSignals.get(key);
+        if (value == null) {
+            return;
+        }
+        String text = String.valueOf(value).trim();
+        if (hasText(text)) {
+            payload.put(key, truncateForEvent(text, TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH));
+        }
+    }
+
+    private String buildTriggerServiceHandoffPayloadSummary(
+            String action, String intent, MultimodalTriggerRespVO respVO, Map<String, Object> handoffPayload) {
+        List<String> parts = new ArrayList<>();
+        if (hasText(action)) {
+            parts.add("动作=" + action);
+        }
+        if (hasText(intent)) {
+            parts.add("意图=" + intent);
+        }
+        parts.add("需用户确认=" + Boolean.TRUE.equals(respVO.getRequiresUserConfirm()));
+        parts.add("真实系统确认=" + triggerRequiresRealSystem(action, intent));
+        if (hasText(respVO.getReason())) {
+            parts.add("触发理由=" + truncateForEvent(respVO.getReason(), TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH));
+        }
+        putTriggerServiceHandoffSummaryPart(parts, "商家服务", handoffPayload, "merchantServiceSummary");
+        putTriggerServiceHandoffSummaryPart(parts, "附近活动", handoffPayload, "nearbyActivitySummary");
+        putTriggerServiceHandoffSummaryPart(parts, "票务线索", handoffPayload, "ticketingHint");
+        putTriggerServiceHandoffSummaryPart(parts, "场地导航", handoffPayload, "venueNavigationHint");
+        putTriggerServiceHandoffSummaryPart(parts, "路线建议", handoffPayload, "routeRecommendationSummary");
+        putTriggerServiceHandoffSummaryPart(parts, "推荐点单", handoffPayload, "dishRecommendationSummary");
+        putTriggerServiceHandoffSummaryPart(parts, "清真信息", handoffPayload, "halalSuitabilityText");
+        putTriggerServiceHandoffSummaryPart(parts, "附近推荐", handoffPayload, "nearbyFoodRecommendationSummary");
+        putTriggerServiceHandoffSummaryPart(parts, "打卡任务", handoffPayload, "checkInTaskSummary");
+        putTriggerServiceHandoffSummaryPart(parts, "徽章奖励", handoffPayload, "badgeRewardName");
+        putTriggerServiceHandoffSummaryPart(parts, "旅行地图", handoffPayload, "travelMapUpdateSummary");
+        putTriggerServiceHandoffSummaryPart(parts, "游记素材", handoffPayload, "travelogueMaterialSummary");
+        putTriggerServiceHandoffSummaryPart(parts, "照片时刻", handoffPayload, "photoMomentSummary");
+        putTriggerServiceHandoffSummaryPart(parts, "分享文案", handoffPayload, "socialShareDraftHint");
+        return String.join("；", parts);
+    }
+
+    private void putTriggerServiceHandoffSummaryPart(
+            List<String> parts, String label, Map<String, Object> payload, String key) {
+        Object value = payload.get(key);
+        if (value != null && hasText(String.valueOf(value))) {
+            parts.add(label + "=" + value);
+        }
+    }
+
+    private List<String> buildTriggerMatchedSignalsPayload(MultimodalTriggerRespVO respVO) {
+        if (respVO == null || respVO.getCandidates() == null || respVO.getCandidates().isEmpty()
+                || respVO.getCandidates().get(0).getMatchedSignals() == null) {
+            return List.of();
+        }
+        return respVO.getCandidates().get(0).getMatchedSignals().stream()
+                .filter(this::hasText)
+                .map(signal -> truncateForEvent(signal.trim(), 50))
+                .distinct()
+                .limit(12)
+                .toList();
     }
 
     private Map<String, Object> buildTriggerSceneSignalsPayload(Map<String, Object> sceneSignals) {
@@ -1209,6 +1544,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         }
         putTriggerSceneSignalNumber(payload, sceneSignals, "headingDegrees", true);
         putTriggerSceneSignalNumber(payload, sceneSignals, "memorySessionSceneCount", false);
+        putTriggerSceneSignalNumber(payload, sceneSignals, "visionRecognitionLabelCount", false);
         return payload;
     }
 
@@ -1596,14 +1932,65 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     private String buildAppEventPayload(
             XunjingResourcePackageDO resourcePackage, XunjingQrCodeDO qrCode, AppInteractionEventReqVO reqVO) {
         String clientPayload = defaultIfBlank(reqVO.getPayloadJson(), "{}").trim();
+        String eventType = normalizeAppEventType(reqVO.getEventType());
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("packageCode", resourcePackage.getPackageCode());
         payload.put("sceneCode", defaultIfBlank(reqVO.getSceneCode(), ""));
         payload.put("qrCodeId", qrCode == null ? null : qrCode.getId());
         Map<String, Object> clientPayloadObject = JsonUtils.parseObjectQuietly(
                 clientPayload, new TypeReference<Map<String, Object>>() {});
-        payload.put("clientPayload", clientPayloadObject == null ? clientPayload : clientPayloadObject);
+        if (EventType.AGENT_ACTION.getType().equals(eventType)) {
+            payload.put("clientPayload", sanitizeAgentActionClientPayload(clientPayloadObject));
+            payload.put("agentAction", buildAgentActionEventPayload(clientPayloadObject));
+        } else {
+            payload.put("clientPayload", clientPayloadObject == null ? clientPayload : clientPayloadObject);
+        }
         return JsonUtils.toJsonString(payload);
+    }
+
+    private Map<String, Object> sanitizeAgentActionClientPayload(Map<String, Object> clientPayload) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        putAgentActionText(payload, clientPayload, "actionKey", 80);
+        putAgentActionText(payload, clientPayload, "title", 80);
+        putAgentActionText(payload, clientPayload, "intent", 50);
+        putAgentActionText(payload, clientPayload, "targetPath", 200);
+        putAgentActionText(payload, clientPayload, "sourceTriggerTraceId", 100);
+        putAgentActionText(payload, clientPayload, "executionStatus", 40);
+        putAgentActionText(payload, clientPayload, "poiCode", 80);
+        putAgentActionText(payload, clientPayload, "poiName", 80);
+        putAgentActionBoolean(payload, clientPayload, "requiresUserConfirm");
+        putAgentActionBoolean(payload, clientPayload, "requiresRealSystem");
+        return payload;
+    }
+
+    private Map<String, Object> buildAgentActionEventPayload(Map<String, Object> clientPayload) {
+        Map<String, Object> payload = sanitizeAgentActionClientPayload(clientPayload);
+        putAgentActionText(payload, clientPayload, "reason", TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+        return payload;
+    }
+
+    private void putAgentActionText(Map<String, Object> payload, Map<String, Object> source, String key, int maxLength) {
+        if (source == null) {
+            return;
+        }
+        String value = stringValue(source.get(key));
+        if (hasText(value)) {
+            payload.put(key, truncateForEvent(value.trim(), maxLength));
+        }
+    }
+
+    private void putAgentActionBoolean(Map<String, Object> payload, Map<String, Object> source, String key) {
+        if (source == null) {
+            return;
+        }
+        Object value = source.get(key);
+        if (value instanceof Boolean booleanValue) {
+            payload.put(key, booleanValue);
+            return;
+        }
+        if (value instanceof String text && hasText(text)) {
+            payload.put(key, Boolean.parseBoolean(text.trim()));
+        }
     }
 
     private void recordAppMediaUsage(

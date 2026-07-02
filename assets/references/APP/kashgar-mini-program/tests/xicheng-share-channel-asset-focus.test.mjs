@@ -39,6 +39,12 @@ assert.match(
   'Share page should create assets for an explicit selected publish channel, not only the current UI selection'
 )
 
+assert.match(
+  share,
+  /onLoad\(options = \{\}\)[\s\S]*const routeChannel = normalizeXichengSharePublishChannel\(decodeXichengRouteValue\(options\.channel\)\)[\s\S]*this\.selectedPublishChannel = routeChannel[\s\S]*this\.selectedPublishChannels = Array\.from\(new Set\(\[routeChannel,\s*\.\.\.this\.selectedPublishChannels\]\)\)/,
+  'Share page should honor the selected publish channel passed from the travelogue action grid'
+)
+
 assert.doesNotMatch(
   `${share}\n${shareAssets}`,
   /亲子研学报告|createShareArtifact\('study'\)|xicheng-study-report-v1/,

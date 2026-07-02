@@ -13,9 +13,13 @@ const resultCardIndex = template.indexOf('class="result-card xicheng-paper-card 
 const primaryActionsIndex = template.indexOf('class="result-reference-actions"')
 const candidateCardIndex = template.indexOf('class="candidate-card xicheng-paper-card"')
 const routeCardIndex = template.indexOf('class="route-card xicheng-paper-card"')
-const questionCardIndex = template.indexOf('class="question-card xicheng-paper-card"')
-const sourceCardIndex = template.indexOf('class="source-card xicheng-paper-card"')
+const questionCardIndex = template.indexOf('<xicheng-scan-result-questions-card')
+const sourceCardIndex = template.indexOf('<xicheng-scan-result-sources-card')
 const feedbackCardIndex = template.indexOf('class="feedback-card xicheng-paper-card"')
+const memoryPanelIndex = template.indexOf('class="vision-agent-memory-panel xicheng-paper-card"')
+const agentPanelIndex = template.indexOf('class="vision-agent-panel xicheng-paper-card"')
+const knowledgePanelIndex = template.indexOf('class="vision-agent-knowledge-panel xicheng-paper-card"')
+const poiDetailEntryIndex = template.indexOf('class="poi-detail-entry xicheng-paper-card"')
 
 assert.ok(resultCardIndex >= 0, 'Recognition result should render the result summary card')
 assert.ok(primaryActionsIndex >= 0, 'Recognition result should render primary Xiaojing and recording actions')
@@ -31,6 +35,24 @@ for (const [label, index] of [
   assert.ok(
     resultCardIndex < primaryActionsIndex && primaryActionsIndex < index,
     `Primary actions should stay immediately after the result card before ${label} so the P0 path is visible before operations content`
+  )
+}
+
+assert.ok(
+  routeCardIndex < questionCardIndex && questionCardIndex < sourceCardIndex,
+  'P0 recognition result flow should show route, Xiaojing questions, then reviewed sources before enrichment content'
+)
+
+for (const [label, index] of [
+  ['Memory continuity panel', memoryPanelIndex],
+  ['AI scene vision panel', agentPanelIndex],
+  ['city knowledge graph', knowledgePanelIndex],
+  ['POI detail entry', poiDetailEntryIndex]
+]) {
+  assert.ok(index >= 0, `Recognition result should keep the ${label} section available`)
+  assert.ok(
+    sourceCardIndex < index,
+    `Reviewed sources should stay before the ${label} section so the P0 evidence path is visible before AI识境 enrichment`
   )
 }
 

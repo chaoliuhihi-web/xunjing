@@ -1,8 +1,11 @@
 package cn.iocoder.yudao.module.xunjing.service.console;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AgentActionMetricRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AgentActionPoiFunnelRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AiEvalCaseCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AiEvalCaseRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AiEvalRunCaseRespVO;
@@ -102,17 +105,22 @@ import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.MediaType;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.QrCodeStatus;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.VectorStatus;
 import cn.iocoder.yudao.module.xunjing.service.app.XunjingAppService;
+import com.fasterxml.jackson.core.type.TypeReference;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Validated
@@ -765,6 +773,10 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
         Long globeModelCount = globeModelMapper.selectCountByPackageIds(packageIds);
         Long qrCodeCount = qrCodeMapper.selectCountByPackageIds(packageIds);
         Long interactionCount = interactionEventMapper.selectCountByPackageIds(packageIds);
+        Long triggerResolveCount = interactionEventMapper.selectCountByPackageIdsAndEventType(
+                packageIds, EventType.TRIGGER_RESOLVE.getType());
+        Long agentActionCount = interactionEventMapper.selectCountByPackageIdsAndEventType(
+                packageIds, EventType.AGENT_ACTION.getType());
         Long mediaUsageCount = mediaUsageLogMapper.selectCountByPackageIds(packageIds);
         Long aiEvalCaseCount = aiEvalCaseMapper.selectCountByEvalSetIds(evalSetIds);
         Long quotaRuleCount = aiQuotaRuleMapper.selectCountByProjectId(projectId);
@@ -780,6 +792,9 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
         respVO.setGlobeModelCount(globeModelCount);
         respVO.setQrCodeCount(qrCodeCount);
         respVO.setInteractionCount(interactionCount);
+        respVO.setTriggerResolveCount(triggerResolveCount);
+        respVO.setAgentActionCount(agentActionCount);
+        respVO.setAgentActionConversionRate(calculateAgentActionConversionRate(agentActionCount, triggerResolveCount));
         respVO.setMediaUsageCount(mediaUsageCount);
         respVO.setAiEvalCaseCount(aiEvalCaseCount);
         respVO.setQuotaRuleCount(quotaRuleCount);
@@ -810,6 +825,11 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
                 packageIds, EventType.SCAN.getType()));
         respVO.setTotalAskCount(interactionEventMapper.selectCountByPackageIdsAndEventType(
                 packageIds, EventType.ASK.getType()));
+        respVO.setTotalTriggerResolveCount(readiness.getTriggerResolveCount());
+        respVO.setTotalAgentActionCount(readiness.getAgentActionCount());
+        respVO.setAgentActionConversionRate(readiness.getAgentActionConversionRate());
+        respVO.setTopAgentActions(buildTopAgentActionMetrics(packageIds, readiness.getAgentActionCount()));
+        respVO.setAgentActionPoiFunnels(buildAgentActionPoiFunnels(packageIds));
         respVO.setMediaUsageCount(readiness.getMediaUsageCount());
         respVO.setAiGenerationCount(readiness.getAiGenerationCount());
         respVO.setPendingImportItemCount(readiness.getPendingImportItemCount());
@@ -898,6 +918,9 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
                 "\"globeModelCount\":" + readiness.getGlobeModelCount() + "," +
                 "\"qrCodeCount\":" + readiness.getQrCodeCount() + "," +
                 "\"interactionCount\":" + readiness.getInteractionCount() + "," +
+                "\"triggerResolveCount\":" + readiness.getTriggerResolveCount() + "," +
+                "\"agentActionCount\":" + readiness.getAgentActionCount() + "," +
+                "\"agentActionConversionRate\":" + readiness.getAgentActionConversionRate() + "," +
                 "\"mediaUsageCount\":" + readiness.getMediaUsageCount() + "," +
                 "\"aiEvalCaseCount\":" + readiness.getAiEvalCaseCount() + "," +
                 "\"quotaRuleCount\":" + readiness.getQuotaRuleCount() + "," +
@@ -905,6 +928,164 @@ public class XunjingConsoleServiceImpl implements XunjingConsoleService {
                 "\"pendingImportItemCount\":" + readiness.getPendingImportItemCount() + "," +
                 "\"p0Ready\":" + readiness.getP0Ready() +
                 "}";
+    }
+
+    private BigDecimal calculateAgentActionConversionRate(Long agentActionCount, Long triggerResolveCount) {
+        if (triggerResolveCount == null || triggerResolveCount <= 0L) {
+            return BigDecimal.ZERO.setScale(4, RoundingMode.HALF_UP);
+        }
+        return BigDecimal.valueOf(agentActionCount == null ? 0L : agentActionCount)
+                .divide(BigDecimal.valueOf(triggerResolveCount), 4, RoundingMode.HALF_UP);
+    }
+
+    private List<AgentActionMetricRespVO> buildTopAgentActionMetrics(
+            List<Long> packageIds, Long totalAgentActionCount) {
+        Map<String, AgentActionMetricRespVO> metrics = new LinkedHashMap<>();
+        for (XunjingInteractionEventDO event : interactionEventMapper.selectListByPackageIdsAndEventType(
+                packageIds, EventType.AGENT_ACTION.getType())) {
+            Map<String, Object> root = JsonUtils.parseObjectQuietly(
+                    defaultIfBlank(event.getPayloadJson(), "{}"), new TypeReference<>() {});
+            Map<String, Object> agentAction = agentActionPayload(root);
+            String actionKey = agentActionText(agentAction, "actionKey");
+            String title = agentActionText(agentAction, "title");
+            String intent = agentActionText(agentAction, "intent");
+            String poiCode = agentActionText(agentAction, "poiCode");
+            String poiName = agentActionText(agentAction, "poiName");
+            if (actionKey.isBlank() && intent.isBlank() && poiCode.isBlank()) {
+                continue;
+            }
+            String groupKey = actionKey + "|" + intent + "|" + poiCode;
+            AgentActionMetricRespVO metric = metrics.computeIfAbsent(groupKey, key -> {
+                AgentActionMetricRespVO value = new AgentActionMetricRespVO();
+                value.setActionKey(actionKey);
+                value.setTitle(title);
+                value.setIntent(intent);
+                value.setPoiCode(poiCode);
+                value.setPoiName(poiName);
+                value.setExecutionCount(0L);
+                return value;
+            });
+            if (defaultIfBlank(metric.getTitle(), "").isBlank() && !title.isBlank()) {
+                metric.setTitle(title);
+            }
+            if (defaultIfBlank(metric.getPoiName(), "").isBlank() && !poiName.isBlank()) {
+                metric.setPoiName(poiName);
+            }
+            metric.setExecutionCount(metric.getExecutionCount() + 1L);
+        }
+        return metrics.values().stream()
+                .sorted((left, right) -> {
+                    int byExecutionCount = Long.compare(right.getExecutionCount(), left.getExecutionCount());
+                    if (byExecutionCount != 0) {
+                        return byExecutionCount;
+                    }
+                    int byActionKey = defaultIfBlank(left.getActionKey(), "")
+                            .compareTo(defaultIfBlank(right.getActionKey(), ""));
+                    if (byActionKey != 0) {
+                        return byActionKey;
+                    }
+                    int byIntent = defaultIfBlank(left.getIntent(), "")
+                            .compareTo(defaultIfBlank(right.getIntent(), ""));
+                    if (byIntent != 0) {
+                        return byIntent;
+                    }
+                    return defaultIfBlank(left.getPoiCode(), "")
+                            .compareTo(defaultIfBlank(right.getPoiCode(), ""));
+                })
+                .limit(5)
+                .peek(metric -> metric.setShareRate(calculateAgentActionConversionRate(
+                        metric.getExecutionCount(), totalAgentActionCount)))
+                .toList();
+    }
+
+    private List<AgentActionPoiFunnelRespVO> buildAgentActionPoiFunnels(List<Long> packageIds) {
+        Map<String, AgentActionPoiFunnelRespVO> funnels = new LinkedHashMap<>();
+        for (XunjingInteractionEventDO event : interactionEventMapper.selectListByPackageIdsAndEventType(
+                packageIds, EventType.TRIGGER_RESOLVE.getType())) {
+            recordPoiFunnelTriggerResolve(funnels, eventPayload(event));
+        }
+        for (XunjingInteractionEventDO event : interactionEventMapper.selectListByPackageIdsAndEventType(
+                packageIds, EventType.AGENT_ACTION.getType())) {
+            recordPoiFunnelAgentAction(funnels, agentActionPayload(eventPayload(event)));
+        }
+        return funnels.values().stream()
+                .peek(funnel -> funnel.setConversionRate(calculateAgentActionConversionRate(
+                        funnel.getAgentActionCount(), funnel.getTriggerResolveCount())))
+                .sorted((left, right) -> {
+                    int byTriggerCount = Long.compare(right.getTriggerResolveCount(), left.getTriggerResolveCount());
+                    if (byTriggerCount != 0) {
+                        return byTriggerCount;
+                    }
+                    int byActionCount = Long.compare(right.getAgentActionCount(), left.getAgentActionCount());
+                    if (byActionCount != 0) {
+                        return byActionCount;
+                    }
+                    return defaultIfBlank(left.getPoiCode(), "").compareTo(defaultIfBlank(right.getPoiCode(), ""));
+                })
+                .limit(10)
+                .toList();
+    }
+
+    private void recordPoiFunnelTriggerResolve(
+            Map<String, AgentActionPoiFunnelRespVO> funnels, Map<String, Object> payload) {
+        AgentActionPoiFunnelRespVO funnel = poiFunnel(funnels,
+                agentActionText(payload, "poiCode"), agentActionText(payload, "poiName"));
+        if (funnel != null) {
+            funnel.setTriggerResolveCount(funnel.getTriggerResolveCount() + 1L);
+        }
+    }
+
+    private void recordPoiFunnelAgentAction(
+            Map<String, AgentActionPoiFunnelRespVO> funnels, Map<String, Object> payload) {
+        AgentActionPoiFunnelRespVO funnel = poiFunnel(funnels,
+                agentActionText(payload, "poiCode"), agentActionText(payload, "poiName"));
+        if (funnel != null) {
+            funnel.setAgentActionCount(funnel.getAgentActionCount() + 1L);
+        }
+    }
+
+    private AgentActionPoiFunnelRespVO poiFunnel(
+            Map<String, AgentActionPoiFunnelRespVO> funnels, String poiCode, String poiName) {
+        if (poiCode.isBlank()) {
+            return null;
+        }
+        AgentActionPoiFunnelRespVO funnel = funnels.computeIfAbsent(poiCode, key -> {
+            AgentActionPoiFunnelRespVO value = new AgentActionPoiFunnelRespVO();
+            value.setPoiCode(poiCode);
+            value.setPoiName(poiName);
+            value.setTriggerResolveCount(0L);
+            value.setAgentActionCount(0L);
+            return value;
+        });
+        if (defaultIfBlank(funnel.getPoiName(), "").isBlank() && !poiName.isBlank()) {
+            funnel.setPoiName(poiName);
+        }
+        return funnel;
+    }
+
+    private Map<String, Object> eventPayload(XunjingInteractionEventDO event) {
+        return JsonUtils.parseObjectQuietly(
+                defaultIfBlank(event.getPayloadJson(), "{}"), new TypeReference<>() {});
+    }
+
+    private Map<String, Object> agentActionPayload(Map<String, Object> root) {
+        if (root == null || !(root.get("agentAction") instanceof Map<?, ?> rawAgentAction)) {
+            return Map.of();
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        rawAgentAction.forEach((key, value) -> {
+            if (key != null) {
+                payload.put(String.valueOf(key), value);
+            }
+        });
+        return payload;
+    }
+
+    private String agentActionText(Map<String, Object> agentAction, String fieldName) {
+        if (agentAction == null || agentAction.get(fieldName) == null) {
+            return "";
+        }
+        return defaultIfBlank(String.valueOf(agentAction.get(fieldName)), "").trim();
     }
 
     private String parseHost(String sourceUrl) {

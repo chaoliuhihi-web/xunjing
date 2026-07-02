@@ -114,6 +114,7 @@ public final class XunjingEnums {
         ASK("ASK"),
         TRIGGER_RESOLVE("TRIGGER_RESOLVE"),
         ERROR_FEEDBACK("ERROR_FEEDBACK"),
+        AGENT_ACTION("AGENT_ACTION"),
         SHARE("SHARE"),
         MEDIA_USE("MEDIA_USE");
 

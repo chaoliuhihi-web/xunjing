@@ -21,61 +21,12 @@
 			</button>
 		</view>
 
-		<view class="profile-card xicheng-paper-card">
-			<view class="profile-account-art">
-				<image class="profile-avatar" :src="region.companionAvatar" mode="aspectFit" />
-			</view>
-			<view class="profile-copy">
-				<text class="profile-kicker">登录信息</text>
-				<view class="profile-name-line">
-					<text class="profile-name">{{ userProfile.name }}</text>
-					<text class="profile-status">{{ userProfile.status }}</text>
-				</view>
-				<text class="profile-desc">{{ userProfile.desc }}</text>
-				<view class="profile-action-row">
-					<button class="profile-login-button" @click="openLogin">{{ userProfile.action }}</button>
-					<text class="profile-sync-note">登录后同步游记、草稿和发布素材</text>
-				</view>
-			</view>
-		</view>
-
-		<view class="works-library-hero xicheng-paper-card">
-			<view class="works-library-copy">
-				<text class="works-library-kicker">我的游记</text>
-				<text class="works-library-title">值得反复打开的西城记忆</text>
-				<text class="works-library-desc">已保存的精美游记、PDF 纪念册和发布素材</text>
-			</view>
-			<view class="library-overview">
-				<view v-for="stat in libraryStats" :key="stat.label" class="library-stat">
-					<xicheng-icon :name="stat.icon" variant="primary" :size="19" />
-					<text class="library-stat-label">{{ stat.label }}</text>
-					<text class="library-stat-value">{{ stat.value }}</text>
-				</view>
-			</view>
-		</view>
-
-		<view class="account-shortcut-grid xicheng-paper-card">
-			<view class="personal-entry-card account-shortcut" @click="openFootprint">
-				<xicheng-icon name="location" variant="plain" :size="28" />
-				<text class="account-shortcut-title">西城足迹</text>
-				<text class="account-shortcut-desc">素材时间线</text>
-			</view>
-			<view class="account-shortcut" @click="openLogin">
-				<xicheng-icon name="mine" variant="plain" :size="28" />
-				<text class="account-shortcut-title">账号资料</text>
-				<text class="account-shortcut-desc">登录信息</text>
-			</view>
-			<view class="account-shortcut" @click="openPrivacyScopeSettings('material')">
-				<xicheng-icon name="locked" variant="plain" :size="28" />
-				<text class="account-shortcut-title">素材授权</text>
-				<text class="account-shortcut-desc">照片与问答</text>
-			</view>
-			<view class="account-shortcut" @click="openPrivacyScopeSettings('public')">
-				<xicheng-icon name="eye" variant="plain" :size="28" />
-				<text class="account-shortcut-title">公开范围</text>
-				<text class="account-shortcut-desc">轨迹默认隐藏</text>
-			</view>
-		</view>
+		<xicheng-works-profile-card
+			:user-profile="userProfile"
+			:library-stats="libraryStats"
+			:companion-avatar="region.companionAvatar"
+			@login="openLogin"
+		/>
 
 		<view class="works-card xicheng-paper-card">
 			<view class="section-head">
@@ -113,16 +64,30 @@
 			<button class="ghost-button xicheng-secondary-action" @click="openTravelogue">继续编辑</button>
 		</view>
 
-		<view class="privacy-card xicheng-paper-card">
-			<view>
-				<text class="privacy-title">隐私授权</text>
-				<text class="privacy-copy">精确轨迹默认隐藏；发布前可单独设置正文、地点、照片和问答记录的公开范围。</text>
+		<view class="account-shortcut-grid xicheng-paper-card">
+			<view class="personal-entry-card account-shortcut" @click="openTravelogueMaterials">
+				<xicheng-icon name="location" variant="plain" :size="28" />
+				<text class="account-shortcut-title">游记素材</text>
+				<text class="account-shortcut-desc">路线/照片/问答</text>
 			</view>
-			<view class="privacy-action" @click="openPrivacyScopeSettings('privacy')">
-				<text>管理</text>
-				<xicheng-icon name="next" variant="plain" :size="18" />
+			<view class="account-shortcut" @click="openLogin">
+				<xicheng-icon name="mine" variant="plain" :size="28" />
+				<text class="account-shortcut-title">账号资料</text>
+				<text class="account-shortcut-desc">登录信息</text>
+			</view>
+			<view class="account-shortcut" @click="openPrivacyScopeSettings('material')">
+				<xicheng-icon name="locked" variant="plain" :size="28" />
+				<text class="account-shortcut-title">素材授权</text>
+				<text class="account-shortcut-desc">照片与问答</text>
+			</view>
+			<view class="account-shortcut" @click="openPrivacyScopeSettings('public')">
+				<xicheng-icon name="eye" variant="plain" :size="28" />
+				<text class="account-shortcut-title">公开范围</text>
+				<text class="account-shortcut-desc">轨迹默认隐藏</text>
 			</view>
 		</view>
+
+		<xicheng-public-scope-settings data-scope-label="隐私授权" :items="publicScopeItems" @toggle="togglePublicScopeSetting" />
 
 		<view class="works-tip-card xicheng-paper-card">
 			<image class="works-tip-avatar" :src="region.companionAvatar" mode="aspectFit" />
@@ -131,25 +96,56 @@
 				<text class="works-tip-copy">我的页面只放账号、游记和隐私设置，运营玩法会独立放在专门页面。</text>
 			</view>
 		</view>
+
+		<xicheng-main-tab-nav
+			active-key="mine"
+			:route-context="region"
+		/>
 	</view>
 </template>
 
 <script>
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import XichengKeepsakeTravelogueCard from '@/components/xicheng/XichengKeepsakeTravelogueCard.vue'
+import XichengMainTabNav from '@/components/xicheng/XichengMainTabNav.vue'
+import XichengPublicScopeSettings from '@/components/xicheng/XichengPublicScopeSettings.vue'
+import XichengWorksProfileCard from '@/components/xicheng/XichengWorksProfileCard.vue'
 
 const safeArray = value => Array.isArray(value) ? value : []
+const safeObject = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {}
+const XICHENG_DEFAULT_PUBLIC_SCOPE_STATE = Object.freeze({
+	hideExactLocation: true,
+	approvedOnly: true,
+	includeXiaojingSummary: true,
+	publicBody: true,
+	publicPlaces: true,
+	publicPhotos: true,
+	publicQaRecord: false
+})
+const normalizeWorksPublicScopeState = (settings = {}) => ({
+	hideExactLocation: settings.hideExactLocation !== false,
+	approvedOnly: settings.approvedOnly !== false,
+	includeXiaojingSummary: settings.includeXiaojingSummary !== false,
+	publicBody: settings.publicBody !== false,
+	publicPlaces: settings.publicPlaces !== false,
+	publicPhotos: settings.publicPhotos !== false,
+	publicQaRecord: settings.publicQaRecord === true
+})
 
 export default {
 	components: {
-		XichengKeepsakeTravelogueCard
+		XichengKeepsakeTravelogueCard,
+		XichengMainTabNav,
+		XichengPublicScopeSettings,
+		XichengWorksProfileCard
 	},
 	data() {
 		return {
 			region: XICHENG_REGION_CONFIG,
 			shareArtifacts: [],
 			cachedDraft: null,
-			selectedLibraryFilter: 'all'
+			selectedLibraryFilter: 'all',
+			publicScopeState: { ...XICHENG_DEFAULT_PUBLIC_SCOPE_STATE }
 		}
 	},
 	computed: {
@@ -169,7 +165,7 @@ export default {
 				{ key: 'all', label: '全部' },
 				{ key: 'travelogue', label: '精美游记' },
 				{ key: 'pdf', label: 'PDF' },
-				{ key: 'draft', label: '草稿' }
+				{ key: 'draft', label: '未发布' }
 			]
 		},
 		libraryStats() {
@@ -179,7 +175,7 @@ export default {
 				{ label: '精美游记', value: travelogues, icon: 'travelogue' },
 				{ label: '可打印 PDF', value: pdfs, icon: 'source' },
 				{ label: '已发布', value: this.publishedCount, icon: 'route' },
-				{ label: '本机草稿', value: this.draftCount, icon: 'edit' }
+				{ label: '本机存档', value: this.draftCount, icon: 'edit' }
 			]
 		},
 		travelogueItems() {
@@ -188,7 +184,7 @@ export default {
 				assetType: 'draft',
 				title: this.cachedDraft.editableTravelogueTitle || '在白塔下遇见西城',
 				desc: '穿梭在胡同里，记录下那些容易被忽略的角落、人文与生活细节。',
-				status: '草稿',
+				status: '未发布',
 				templateLabel: '胡同手账',
 				createdAt: '2025-05-10 创建',
 				placeCount: '1 个地点',
@@ -229,11 +225,21 @@ export default {
 		},
 		publishedCount() {
 			return this.shareArtifacts.filter(item => item.assetType && item.assetType !== 'pdf').length
+		},
+		publicScopeItems() {
+			return [
+				{ key: 'publicBody', icon: 'edit', title: '正文公开', desc: '公开页展示成品游记正文', enabled: this.publicScopeState.publicBody },
+				{ key: 'publicPlaces', icon: 'location', title: '地点公开', desc: '只展示 POI 范围，不公开精确坐标', enabled: this.publicScopeState.publicPlaces },
+				{ key: 'publicPhotos', icon: 'photo', title: '照片公开', desc: '只公开选入游记的照片', enabled: this.publicScopeState.publicPhotos },
+				{ key: 'publicQaRecord', icon: 'qa', title: '问答记录', desc: '默认不公开小京问答原文', enabled: this.publicScopeState.publicQaRecord },
+				{ key: 'hideExactLocation', icon: 'locked', title: '精确轨迹默认隐藏', desc: '不会公开精确坐标', enabled: this.publicScopeState.hideExactLocation }
+			]
 		}
 	},
 	onShow() {
 		this.shareArtifacts = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey))
 		this.cachedDraft = uni.getStorageSync(XICHENG_REGION_CONFIG.journeyStorageKey) || null
+		this.restorePublicScopeSettings()
 	},
 	methods: {
 		openTravelogue() {
@@ -259,19 +265,30 @@ export default {
 			uni.navigateTo({ url: '/pagesLogin/auth/auth' })
 		},
 		openPrivacyScopeSettings(scope = 'privacy') {
-			uni.showToast({
-				title: scope === 'material' ? '素材授权默认仅本机可见' : '公开范围发布前可设置',
-				icon: 'none'
-			})
+			uni.pageScrollTo({ selector: '.public-scope-card', duration: 180, fail: () => {} })
 		},
 		openWorksManager() {
-			uni.showToast({
-				title: '可管理游记、PDF 和草稿',
-				icon: 'none'
+			this.selectedLibraryFilter = 'all'
+			uni.pageScrollTo({ selector: '.works-card', duration: 180, fail: () => {} })
+		},
+		openTravelogueMaterials() {
+			uni.navigateTo({ url: '/pages/xicheng/footprint/footprint?mode=travelogueMaterial' })
+		},
+		restorePublicScopeSettings() {
+			const storedShareSettings = safeObject(uni.getStorageSync(XICHENG_REGION_CONFIG.shareSettingStorageKey))
+			this.publicScopeState = normalizeWorksPublicScopeState(storedShareSettings)
+		},
+		persistPublicScopeSettings() {
+			const storedShareSettings = safeObject(uni.getStorageSync(XICHENG_REGION_CONFIG.shareSettingStorageKey))
+			uni.setStorageSync(XICHENG_REGION_CONFIG.shareSettingStorageKey, {
+				...storedShareSettings,
+				...this.publicScopeState
 			})
 		},
-		openFootprint() {
-			uni.navigateTo({ url: '/pages/xicheng/footprint/footprint' })
+		togglePublicScopeSetting(key = '') {
+			if (!Object.prototype.hasOwnProperty.call(this.publicScopeState, key)) return
+			this.publicScopeState[key] = !this.publicScopeState[key]
+			this.persistPublicScopeSettings()
 		},
 		selectLibraryFilter(key = 'all') {
 			this.selectedLibraryFilter = key
@@ -384,21 +401,6 @@ export default {
 	border: 0;
 }
 
-.profile-card {
-	position: relative;
-	display: grid;
-	grid-template-columns: 150rpx minmax(0, 1fr);
-	align-items: center;
-	gap: 24rpx;
-	margin-top: 20rpx;
-	padding: 28rpx;
-	border-radius: 34rpx;
-	box-sizing: border-box;
-	overflow: hidden;
-}
-
-.profile-card::after,
-.works-library-hero::after,
 .works-tip-card::after {
 	content: '';
 	position: absolute;
@@ -411,45 +413,6 @@ export default {
 	border-radius: 999rpx 0 0 999rpx;
 }
 
-.profile-account-art {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 150rpx;
-	height: 150rpx;
-	border-radius: 999rpx;
-	background:
-		linear-gradient(180deg, rgba(23, 63, 53, 0.16), rgba(23, 63, 53, 0.04)),
-		rgba(255, 252, 246, 0.88);
-	position: relative;
-	z-index: 1;
-	box-shadow: inset 0 0 0 1rpx rgba(181, 148, 94, 0.20);
-	overflow: hidden;
-}
-
-.profile-avatar {
-	width: 142rpx;
-	height: 160rpx;
-	object-fit: contain;
-	position: relative;
-	z-index: 1;
-}
-
-.profile-copy {
-	min-width: 0;
-	position: relative;
-	z-index: 1;
-}
-
-.profile-kicker,
-.profile-name,
-.profile-status,
-.profile-desc,
-.works-library-kicker,
-.works-library-title,
-.works-library-desc,
-.library-stat-value,
-.library-stat-label,
 .account-shortcut-title,
 .account-shortcut-desc,
 .privacy-title,
@@ -457,156 +420,12 @@ export default {
 	display: block;
 }
 
-.profile-kicker {
-	font-size: 22rpx;
-	line-height: 1.2;
-	color: #B5945E;
-	font-weight: 800;
-}
-
-.profile-name-line {
-	display: flex;
-	align-items: center;
-	gap: 12rpx;
-	margin-top: 8rpx;
-	flex-wrap: wrap;
-}
-
-.profile-name {
-	font-size: 36rpx;
-	line-height: 1.22;
-	color: #102F29;
-	font-weight: 800;
-}
-
-.profile-status {
-	padding: 7rpx 13rpx;
-	border-radius: 999rpx;
-	background: #173F35;
-	color: #FFF8EA;
-	font-size: 20rpx;
-	font-weight: 900;
-	white-space: nowrap;
-}
-
-.profile-desc {
-	margin-top: 8rpx;
-	font-size: 23rpx;
-	line-height: 1.45;
-	color: rgba(16, 47, 41, 0.62);
-}
-
-.profile-action-row {
-	display: flex;
-	align-items: center;
-	gap: 14rpx;
-	margin-top: 16rpx;
-}
-
-.profile-login-button {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 132rpx;
-	height: 56rpx;
-	margin: 0;
-	padding: 0;
-	border-radius: 999rpx;
-	background: #173F35;
-	color: #FFF8EA;
-	font-size: 22rpx;
-	line-height: 56rpx;
-	font-weight: 800;
-	position: relative;
-	z-index: 1;
-}
-
-.profile-login-button::after {
-	border: 0;
-}
-
-.profile-sync-note {
-	flex: 1;
-	min-width: 0;
-	font-size: 20rpx;
-	line-height: 1.35;
-	color: rgba(16, 47, 41, 0.48);
-}
-
-.works-library-hero {
-	position: relative;
-	margin-top: 20rpx;
-	padding: 30rpx;
-	border-radius: 34rpx;
-	overflow: hidden;
-}
-
-.works-library-copy {
-	position: relative;
-	z-index: 1;
-}
-
-.works-library-kicker {
-	color: #B5945E;
-	font-size: 23rpx;
-	font-weight: 900;
-}
-
-.works-library-title {
-	margin-top: 10rpx;
-	color: #102F29;
-	font-size: 38rpx;
-	line-height: 1.25;
-	font-weight: 900;
-}
-
-.works-library-desc {
-	margin-top: 10rpx;
-	color: #5F554A;
-	font-size: 25rpx;
-	line-height: 1.45;
-}
-
-.library-overview {
-	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 14rpx;
-	margin-top: 20rpx;
-	position: relative;
-	z-index: 1;
-}
-
-.library-stat {
-	min-height: 122rpx;
-	padding: 16rpx 8rpx;
-	border: 1rpx solid rgba(181, 148, 94, 0.16);
-	border-radius: 22rpx;
-	background: rgba(255, 252, 246, 0.78);
-	text-align: center;
-	box-sizing: border-box;
-}
-
-.library-stat-value {
-	margin-top: 7rpx;
-	font-size: 34rpx;
-	line-height: 1;
-	font-weight: 900;
-	color: #173F35;
-}
-
-.library-stat-label {
-	margin-top: 8rpx;
-	font-size: 20rpx;
-	line-height: 1.2;
-	color: rgba(16, 47, 41, 0.62);
-}
-
 .account-shortcut-grid {
 	display: grid;
 	grid-template-columns: repeat(4, minmax(0, 1fr));
 	gap: 0;
-	margin-top: 20rpx;
-	padding: 16rpx 0;
+	margin-top: 16rpx;
+	padding: 10rpx 0;
 	border-radius: 28rpx;
 	box-sizing: border-box;
 }
@@ -653,30 +472,30 @@ export default {
 }
 
 .works-card {
-	margin-top: 24rpx;
-	padding: 30rpx;
+	margin-top: 18rpx;
+	padding: 26rpx;
 	border-radius: 34rpx;
 }
 
 .library-filter-row {
 	display: grid;
 	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 10rpx;
-	margin-top: 22rpx;
-	padding: 8rpx;
+	gap: 8rpx;
+	margin-top: 16rpx;
+	padding: 6rpx;
 	border-radius: 999rpx;
 	background: rgba(181, 148, 94, 0.08);
 }
 
 .library-filter-chip {
-	min-height: 62rpx;
+	min-height: 50rpx;
 	margin: 0;
-	padding: 0 12rpx;
+	padding: 0 8rpx;
 	border-radius: 999rpx;
 	background: transparent;
 	color: #3E3831;
-	font-size: 23rpx;
-	line-height: 62rpx;
+	font-size: 21rpx;
+	line-height: 50rpx;
 	font-weight: 900;
 }
 
@@ -700,7 +519,7 @@ export default {
 .work-list {
 	display: grid;
 	gap: 18rpx;
-	margin-top: 24rpx;
+	margin-top: 18rpx;
 }
 .work-row {
 	align-items: flex-start;

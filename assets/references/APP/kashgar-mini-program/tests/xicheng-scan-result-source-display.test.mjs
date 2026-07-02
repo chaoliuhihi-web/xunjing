@@ -4,10 +4,17 @@ import path from 'node:path'
 
 const root = process.cwd()
 const scanResult = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
+const sourcesCardPath = path.join(root, 'components', 'xicheng', 'XichengScanResultSourcesCard.vue')
 const sourceHelper = fs.readFileSync(path.join(root, 'request', 'xunjing', 'sources.js'), 'utf8')
 
-const sourceTitleHelper = scanResult.match(/getDisplaySourceTitle\(source = \{\}\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
-const sourceDescriptionHelper = scanResult.match(/getDisplaySourceDescription\(source = \{\}\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
+assert.ok(
+  fs.existsSync(sourcesCardPath),
+  'Recognition result reviewed-source list should live in XichengScanResultSourcesCard instead of growing scan-result.vue'
+)
+
+const sourcesCard = fs.readFileSync(sourcesCardPath, 'utf8')
+const sourceTitleHelper = sourcesCard.match(/getDisplaySourceTitle\(source = \{\}\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
+const sourceDescriptionHelper = sourcesCard.match(/getDisplaySourceDescription\(source = \{\}\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
 const sourceSummaryLabel = scanResult.match(/sourceSummaryLabel\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
 const sourceSummaryCopy = scanResult.match(/sourceSummaryCopy\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
 const questionSectionTitle = scanResult.match(/questionSectionTitle\(\) \{[\s\S]*?\n\t\t\}/)?.[0] || ''
@@ -15,6 +22,18 @@ const resultCompanionTitle = scanResult.match(/resultCompanionTitle\(\) \{[\s\S]
 
 assert.match(
   scanResult,
+  /import XichengScanResultSourcesCard from '@\/components\/xicheng\/XichengScanResultSourcesCard\.vue'[\s\S]*components:[\s\S]*XichengScanResultSourcesCard/,
+  'Recognition result page should import and register the split reviewed-source card'
+)
+
+assert.match(
+  scanResult,
+  /<xicheng-scan-result-sources-card[\s\S]*:source-list="sourceList"[\s\S]*:source-empty-copy="sourceEmptyCopy"/,
+  'Recognition result page should pass normalized reviewed sources and empty copy into the source card component'
+)
+
+assert.match(
+  sourcesCard,
   /<text class="source-title">\{\{ getDisplaySourceTitle\(source\) \|\| '审核来源' \}\}<\/text>/,
   'Recognition result source cards should render display-safe source titles'
 )
@@ -63,7 +82,7 @@ assert.ok(
 )
 
 assert.match(
-  scanResult,
+  sourcesCard,
   /<text v-if="getDisplaySourceDescription\(source\)" class="source-desc">\s*\{\{ getDisplaySourceDescription\(source\) \}\}\s*<\/text>/,
   'Recognition result source cards should render curated source descriptions instead of raw backend fields'
 )
@@ -117,7 +136,7 @@ assert.match(
 )
 
 assert.doesNotMatch(
-  scanResult,
+  sourcesCard,
   /\{\{\s*source\.excerpt \|\| source\.summary \|\| source\.url\s*\}\}/,
   'Recognition result source cards should not expose raw source excerpt, summary, or URL fields directly'
 )

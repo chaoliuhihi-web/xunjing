@@ -10,6 +10,37 @@
 			</view>
 		</view>
 
+		<view class="publish-summary-card xicheng-paper-card">
+			<image class="publish-summary-cover" :src="region.visualAssets.heroLandmark" mode="aspectFill" />
+			<view class="publish-summary-copy">
+				<view class="publish-summary-head">
+					<text class="publish-summary-kicker">发布游记</text>
+					<text class="publish-summary-status">待发布</text>
+				</view>
+				<text class="publish-summary-title">在白塔下遇见西城</text>
+				<text class="publish-summary-desc">清晨的白塔寺，慢慢走过胡同与湖水，生成可发布的纪念游记。</text>
+				<view class="publish-summary-metrics">
+					<view class="publish-summary-chip">
+						<xicheng-icon name="location" variant="soft" :size="15" />
+						<text>3 个地点</text>
+					</view>
+					<view class="publish-summary-chip">
+						<xicheng-icon name="eye" variant="soft" :size="15" />
+						<text>精确轨迹已隐藏</text>
+					</view>
+					<view class="publish-summary-chip">
+						<xicheng-icon name="source" variant="soft" :size="15" />
+						<text>来源已审核</text>
+					</view>
+				</view>
+			</view>
+		</view>
+
+		<xicheng-publish-channel-grid :selected-key="selectedPublishChannel" :selected-keys="selectedPublishChannels" :selected-count="selectedPublishChannelCount" @toggle="togglePublishChannel" @select="selectPublishChannel" />
+		<xicheng-publish-preflight-panel :items="publishPreflightItems" :selected-channel="selectedPublishChannel" />
+		<xicheng-publish-confirm-queue :items="publishConfirmationQueue" :focused-channel="selectedPublishChannel" @focus="focusPublishChannel" @confirm="confirmPublishQueueItem" />
+		<xicheng-social-share-preview v-if="['moments', 'xiaohongshu'].includes(selectedPublishChannel)" :channel="selectedPublishChannel" :cover-image="sharePosterBackground" :title="region.sharePoster.title" @copy="copyChannelShareCopy" @save-image="saveChannelShareImage" @confirm="createChannelShareArtifact" />
+
 		<view class="poster-card share-reference-poster-frame xicheng-paper-card">
 			<image class="poster-bg" :src="sharePosterBackground" mode="aspectFill" />
 			<view class="poster-brand-pill">
@@ -83,10 +114,6 @@
 			<text class="vision-agent-share-boundary-copy">{{ currentVisionAgentShareBoundary }}</text>
 		</view>
 
-		<xicheng-publish-channel-grid :selected-key="selectedPublishChannel" @select="selectPublishChannel" />
-		<xicheng-publish-preflight-panel :items="publishPreflightItems" :selected-channel="selectedPublishChannel" />
-		<xicheng-social-share-preview v-if="['moments', 'xiaohongshu'].includes(selectedPublishChannel)" :channel="selectedPublishChannel" :cover-image="sharePosterBackground" :title="region.sharePoster.title" @copy="copyChannelShareCopy" @save-image="saveChannelShareImage" @confirm="createChannelShareArtifact" />
-
 		<view class="privacy-card xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">分享设置</text>
@@ -119,8 +146,10 @@
 <script>
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
+import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
 import { getXichengShareChannelAssetLabel, getXichengShareChannelAssetType, getXichengShareChannelTemplateCode, normalizeXichengSharePublishChannel } from '@/request/xunjing/shareAssets.js'
 import XichengPublishChannelGrid from '@/components/xicheng/XichengPublishChannelGrid.vue'
+import XichengPublishConfirmQueue from '@/components/xicheng/XichengPublishConfirmQueue.vue'
 import XichengPublishPreflightPanel from '@/components/xicheng/XichengPublishPreflightPanel.vue'
 import XichengSocialSharePreview from '@/components/xicheng/XichengSocialSharePreview.vue'
 
@@ -134,18 +163,27 @@ const toSafeCount = value => {
 const XICHENG_DEFAULT_SHARE_SETTING_STATE = Object.freeze({
 	hideExactLocation: true,
 	approvedOnly: true,
-	includeXiaojingSummary: true
+	includeXiaojingSummary: true,
+	publicBody: true,
+	publicPlaces: true,
+	publicPhotos: true,
+	publicQaRecord: false
 })
 
 const normalizeShareSettingState = (settings = {}) => ({
 	hideExactLocation: settings.hideExactLocation !== false,
 	approvedOnly: settings.approvedOnly !== false,
-	includeXiaojingSummary: settings.includeXiaojingSummary !== false
+	includeXiaojingSummary: settings.includeXiaojingSummary !== false,
+	publicBody: settings.publicBody !== false,
+	publicPlaces: settings.publicPlaces !== false,
+	publicPhotos: settings.publicPhotos !== false,
+	publicQaRecord: settings.publicQaRecord === true
 })
 
 export default {
 	components: {
 		XichengPublishChannelGrid,
+		XichengPublishConfirmQueue,
 		XichengPublishPreflightPanel,
 		XichengSocialSharePreview
 	},
@@ -155,10 +193,14 @@ export default {
 			shareArtifacts: [],
 			reviewSubmissions: [],
 			selectedPublishChannel: 'xinghe',
+			selectedPublishChannels: ['xinghe', 'moments', 'xiaohongshu', 'pdf'],
 			shareSettingState: { ...XICHENG_DEFAULT_SHARE_SETTING_STATE }
 		}
 	},
 	computed: {
+		selectedPublishChannelCount() {
+			return this.selectedPublishChannels.length
+		},
 		sharePosterBackground() {
 			return this.region.visualAssets.sharePosterBackground || '/static/xicheng/share-poster-background.jpg'
 		},
@@ -196,6 +238,9 @@ export default {
 				{ index: '2', title: '提交审核', active: this.reviewSubmissions.length > 0 },
 				{ index: '3', title: '审核后公开', active: false }
 			]
+		},
+		publishConfirmationQueue() {
+			return this.selectedPublishChannels.map(channelKey => this.createPublishConfirmationQueueItem(channelKey))
 		},
 		publishPreflightItems() {
 			const journeyDraft = this.getShareJourneyDraft()
@@ -248,8 +293,14 @@ export default {
 			return journeyDraft.visionAgentRealSystemBoundary || safeObject(journeyDraft.visionAgentAutoTraveloguePackage).realSystemBoundaryText || ''
 		}
 	},
+	onLoad(options = {}) {
+		const routeChannel = normalizeXichengSharePublishChannel(decodeXichengRouteValue(options.channel))
+		this.selectedPublishChannel = routeChannel
+		this.selectedPublishChannels = Array.from(new Set([routeChannel, ...this.selectedPublishChannels]))
+	},
 	onShow() {
 		this.restoreShareSettings()
+		this.selectedPublishChannels = Array.from(new Set([this.selectedPublishChannel, ...this.selectedPublishChannels]))
 		this.shareArtifacts = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey))
 		this.reviewSubmissions = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey))
 	},
@@ -257,10 +308,22 @@ export default {
 		restoreShareSettings() {
 			const storedShareSettings = safeObject(uni.getStorageSync(XICHENG_REGION_CONFIG.shareSettingStorageKey))
 			this.shareSettingState = normalizeShareSettingState(storedShareSettings)
+			if (Array.isArray(storedShareSettings.selectedPublishChannels) && storedShareSettings.selectedPublishChannels.length > 0) {
+				this.selectedPublishChannels = storedShareSettings.selectedPublishChannels
+					.map(channelKey => normalizeXichengSharePublishChannel(channelKey))
+					.filter((channelKey, index, list) => list.indexOf(channelKey) === index)
+			}
 		},
 		persistShareSettings() {
 			this.shareSettingState = normalizeShareSettingState(this.shareSettingState)
-			uni.setStorageSync(XICHENG_REGION_CONFIG.shareSettingStorageKey, this.shareSettingState)
+			uni.setStorageSync(XICHENG_REGION_CONFIG.shareSettingStorageKey, {
+				...this.shareSettingState,
+				selectedPublishChannels: this.selectedPublishChannels
+			})
+		},
+		savePublishSettings() {
+			this.persistShareSettings()
+			uni.showToast({ title: '发布设置已保存', icon: 'none' })
 		},
 		getShareJourneyDraft() {
 			return safeObject(uni.getStorageSync(XICHENG_REGION_CONFIG.journeyStorageKey))
@@ -362,17 +425,18 @@ export default {
 			}
 		},
 		sanitizePublicVisionAgentPackage(packagePayload = {}) {
+			const safePackagePayload = safeObject(packagePayload)
 			return {
-				packageName: packagePayload.packageName || 'AI识境自动素材包',
-				taskCount: toSafeCount(packagePayload.taskCount),
-				sceneDomainLabels: safeArray(packagePayload.sceneDomainLabels).map(label => String(label || '').trim()).filter(Boolean).slice(0, 8),
-				serviceIntentLabels: safeArray(packagePayload.serviceIntentLabels).map(label => String(label || '').trim()).filter(Boolean).slice(0, 8),
-				realSystemRequiredTaskCount: toSafeCount(packagePayload.realSystemRequiredTaskCount),
-				realSystemRequiredActionTitles: safeArray(packagePayload.realSystemRequiredActionTitles).map(title => String(title || '').trim()).filter(Boolean).slice(0, 5),
-				storyCueText: String(packagePayload.storyCueText || '').slice(0, 160),
-				mapCueText: String(packagePayload.mapCueText || '').slice(0, 160),
-				shareCueText: String(packagePayload.shareCueText || '').slice(0, 160),
-				realSystemBoundaryText: String(packagePayload.realSystemBoundaryText || '').slice(0, 160)
+				packageName: safePackagePayload.packageName || 'AI识境自动素材包',
+				taskCount: toSafeCount(safePackagePayload.taskCount),
+				sceneDomainLabels: safeArray(safePackagePayload.sceneDomainLabels).map(label => String(label || '').trim()).filter(Boolean).slice(0, 8),
+				serviceIntentLabels: safeArray(safePackagePayload.serviceIntentLabels).map(label => String(label || '').trim()).filter(Boolean).slice(0, 8),
+				realSystemRequiredTaskCount: toSafeCount(safePackagePayload.realSystemRequiredTaskCount),
+				realSystemRequiredActionTitles: safeArray(safePackagePayload.realSystemRequiredActionTitles).map(title => String(title || '').trim()).filter(Boolean).slice(0, 5),
+				storyCueText: String(safePackagePayload.storyCueText || '').slice(0, 160),
+				mapCueText: String(safePackagePayload.mapCueText || '').slice(0, 160),
+				shareCueText: String(safePackagePayload.shareCueText || '').slice(0, 160),
+				realSystemBoundaryText: String(safePackagePayload.realSystemBoundaryText || '').slice(0, 160)
 			}
 		},
 		createSharePublicPreview(journeyDraft = {}) {
@@ -406,7 +470,7 @@ export default {
 			const publicPreview = this.createSharePublicPreview(journeyDraft)
 			const publishChannel = normalizeXichengSharePublishChannel(this.selectedPublishChannel, assetType)
 			const artifact = {
-				artifactId: `share-${assetType}-${Date.now()}`,
+				artifactId: `share-${publishChannel}-${assetType}-${Date.now()}`,
 				assetType,
 				assetLabel: getXichengShareChannelAssetLabel(publishChannel, assetType),
 				templateCode: getXichengShareChannelTemplateCode(publishChannel, assetType),
@@ -442,14 +506,75 @@ export default {
 			uni.setStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey, this.shareArtifacts)
 			uni.showToast({ title: `${artifact.assetLabel}已生成`, icon: 'none' })
 		},
+		getPublishChannelIcon(channelKey = '') {
+			if (channelKey === 'moments') return 'photo'
+			if (channelKey === 'xiaohongshu') return 'edit'
+			if (channelKey === 'pdf') return 'source'
+			return 'travelogue'
+		},
+		createPublishConfirmationQueueItem(channelKey) {
+			const publishChannel = normalizeXichengSharePublishChannel(channelKey)
+			const assetType = getXichengShareChannelAssetType(publishChannel)
+			const artifactCount = this.getSelectedChannelArtifactCount(channelKey)
+			const assetLabel = getXichengShareChannelAssetLabel(publishChannel, assetType)
+			return {
+				key: publishChannel,
+				icon: this.getPublishChannelIcon(publishChannel),
+				label: assetLabel,
+				desc: publishChannel === 'pdf' ? '保存 PDF 后可系统打印或分享' : '生成素材后进入系统分享确认',
+				assetType,
+				assetReady: artifactCount > 0,
+				statusText: artifactCount > 0 ? '素材已生成' : '待生成素材',
+				actionText: artifactCount > 0 ? '继续确认' : '生成素材'
+			}
+		},
 		createPdfShareArtifact() {
 			this.selectedPublishChannel = 'pdf'
 			this.createShareArtifact('pdf')
 			this.openPdfPrintPage()
 		},
 		selectPublishChannel(channel = {}) {
-			this.selectedPublishChannel = channel.key || 'xinghe'
-			if (this.selectedPublishChannel === 'pdf') this.openPdfPrintPage()
+			const channelKey = typeof channel === 'string' ? channel : channel.key
+			if (this.isPublishActionCard(channelKey)) {
+				this.handlePublishAction(channelKey)
+				return
+			}
+			this.selectedPublishChannel = channelKey || 'xinghe'
+		},
+		isPublishActionCard(channelKey = '') {
+			return ['save', 'publish'].includes(channelKey)
+		},
+		togglePublishChannel(channel = {}) {
+			const channelKey = normalizeXichengSharePublishChannel(channel.key)
+			const selectedChannelSet = new Set(this.selectedPublishChannels)
+			if (selectedChannelSet.has(channelKey) && selectedChannelSet.size > 1) {
+				selectedChannelSet.delete(channelKey)
+			} else {
+				selectedChannelSet.add(channelKey)
+			}
+			this.selectedPublishChannels = Array.from(selectedChannelSet)
+			this.selectedPublishChannel = channelKey
+			this.persistShareSettings()
+		},
+		createSelectedChannelShareArtifacts() {
+			const previewChannel = this.selectedPublishChannel
+			this.selectedPublishChannels.forEach(channelKey => {
+				this.selectedPublishChannel = channelKey
+				this.createShareArtifact(getXichengShareChannelAssetType(channelKey))
+			})
+			this.selectedPublishChannel = previewChannel
+			this.focusNextPublishConfirmationChannel()
+			uni.showToast({ title: '已生成所选渠道素材，请逐项确认发布', icon: 'none' })
+		},
+		handlePublishAction(event = {}) {
+			const publishAction = typeof event === 'string' ? event : event.publishAction
+			if (publishAction === 'publish') {
+				this.createSelectedChannelShareArtifacts()
+				return
+			}
+			if (publishAction === 'save') {
+				this.savePublishSettings()
+			}
 		},
 		createChannelShareArtifact(channelKey = '') {
 			const requestedChannel = typeof channelKey === 'string' && channelKey ? channelKey : this.selectedPublishChannel
@@ -457,8 +582,8 @@ export default {
 			this.createShareArtifact(getXichengShareChannelAssetType(requestedChannel))
 			uni.showToast({ title: '发布素材已生成，请确认后发布', icon: 'none' })
 		},
-		getSelectedChannelArtifactCount() {
-			const selectedChannel = normalizeXichengSharePublishChannel(this.selectedPublishChannel)
+		getSelectedChannelArtifactCount(channelKey = this.selectedPublishChannel) {
+			const selectedChannel = normalizeXichengSharePublishChannel(channelKey)
 			const selectedAssetType = getXichengShareChannelAssetType(selectedChannel)
 			return safeArray(this.shareArtifacts).filter(artifact => {
 				if (!artifact) return false
@@ -467,6 +592,24 @@ export default {
 				if (artifact.publishChannel) return artifactChannel === selectedChannel
 				return selectedChannel === 'pdf' ? artifactAssetType === 'pdf' : artifactAssetType === selectedAssetType
 			}).length
+		},
+		focusPublishChannel(item = {}) {
+			this.selectedPublishChannel = normalizeXichengSharePublishChannel(item.key)
+		},
+		focusNextPublishConfirmationChannel() {
+			const nextItem = this.publishConfirmationQueue.find(item => ['moments', 'xiaohongshu'].includes(item.key))
+				|| this.publishConfirmationQueue.find(item => item.key === 'xinghe')
+				|| this.publishConfirmationQueue[0]
+			if (nextItem) this.selectedPublishChannel = normalizeXichengSharePublishChannel(nextItem.key)
+		},
+		confirmPublishQueueItem(item = {}) {
+			this.selectedPublishChannel = normalizeXichengSharePublishChannel(item.key)
+			if (this.selectedPublishChannel === 'pdf') {
+				if (this.getSelectedChannelArtifactCount(this.selectedPublishChannel) <= 0) this.createShareArtifact('pdf')
+				this.openPdfPrintPage()
+				return
+			}
+			this.createChannelShareArtifact(this.selectedPublishChannel)
 		},
 		copyChannelShareCopy() {
 			uni.showToast({ title: '文案已复制', icon: 'none' })

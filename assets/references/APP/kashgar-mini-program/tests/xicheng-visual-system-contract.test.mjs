@@ -18,6 +18,9 @@ const travelogue = fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'trave
 const travelogueCss = fs.existsSync(path.join(appRoot, 'pages', 'xicheng', 'travelogue', 'travelogue.css'))
   ? fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'travelogue', 'travelogue.css'), 'utf8')
   : travelogue
+const travelogueActionGrid = fs.readFileSync(path.join(appRoot, 'components', 'xicheng', 'XichengTravelogueActionGrid.vue'), 'utf8')
+const travelogueVisualSurface = `${travelogue}\n${travelogueActionGrid}`
+const travelogueStyleSurface = `${travelogueCss}\n${travelogueActionGrid}`
 const aiGuide = fs.readFileSync(path.join(appRoot, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
 const qaReport = fs.readFileSync(path.join(appRoot, 'design-qa.md'), 'utf8')
 
@@ -103,10 +106,10 @@ for (const token of [
   'xicheng-travelogue-hero',
   'xicheng-travelogue-actions'
 ]) {
-  assert.ok(travelogue.includes(token), `travelogue.vue should support Xicheng travelogue visual token ${token}`)
+  assert.ok(travelogueVisualSurface.includes(token), `travelogue.vue should support Xicheng travelogue visual token ${token}`)
 }
 
-const travelogueActionsStyle = travelogueCss.match(/\.xicheng-travelogue-actions\s*\{[\s\S]*?\n\}/)?.[0] || ''
+const travelogueActionsStyle = travelogueStyleSurface.match(/\.xicheng-travelogue-actions\s*\{[\s\S]*?\n\}/)?.[0] || ''
 assert.ok(travelogueActionsStyle, 'travelogue.vue should style the Xicheng travelogue action group')
 assert.doesNotMatch(
   travelogueActionsStyle,

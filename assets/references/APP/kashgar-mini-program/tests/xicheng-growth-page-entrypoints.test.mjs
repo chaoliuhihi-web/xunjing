@@ -10,6 +10,9 @@ const recording = read('pages', 'xicheng', 'recording', 'recording.vue')
 const recordingPanel = read('components', 'xicheng', 'XichengRouteRecordingPanel.vue')
 const recordingShell = `${recording}\n${recordingPanel}`
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const travelogueRecordShell = read('components', 'xicheng', 'XichengTravelogueRecordShell.vue')
+const travelogueActionGrid = read('components', 'xicheng', 'XichengTravelogueActionGrid.vue')
+const travelogueShell = `${travelogue}\n${travelogueRecordShell}\n${travelogueActionGrid}`
 const works = read('pages', 'xicheng', 'works', 'works.vue')
 
 for (const required of [
@@ -37,48 +40,52 @@ assert.doesNotMatch(
 for (const required of [
   '我的游记',
   '登录信息',
-  '西城足迹',
+  '游记素材',
   '隐私授权',
   'personal-entry-card',
-  'openFootprint',
+  'openTravelogueMaterials',
   'openTravelogue',
-  "url: '/pages/xicheng/footprint/footprint'",
-  '@click="openFootprint"'
+  "url: '/pages/xicheng/footprint/footprint?mode=travelogueMaterial'",
+  '@click="openTravelogueMaterials"'
 ]) {
   assert.ok(works.includes(required), `Works personal center should expose simplified travelogue entry ${required}`)
 }
 
 assert.doesNotMatch(
   works,
-  /我的收藏|审核状态总览|作品审核状态|生成分享海报|提交审核|亲子研学任务/,
-  'Works personal center should not reintroduce duplicated favorite/share/review modules'
+  /西城足迹|openFootprint|我的收藏|审核状态总览|作品审核状态|生成分享海报|分享海报|提交审核|亲子研学任务/,
+  'Works personal center should not reintroduce duplicated footprint, favorite, share-poster, review, or study modules'
 )
 
 for (const required of [
-  'openPassport',
-  'openFootprint',
-  "url: '/pages/xicheng/passport/passport'",
-  "url: '/pages/xicheng/footprint/footprint'",
-  '@passport="openPassport"',
-  '@footprint="openFootprint"',
-  "$emit('passport')",
-  "$emit('footprint')"
+  '游记素材任务',
+  '结束并生成游记',
+  '查看今日素材',
+  "$emit('finish')",
+  "$emit('materials')"
 ]) {
-  assert.ok(recordingShell.includes(required), `Recording page should keep post-recording secondary entry ${required}`)
+  assert.ok(recordingShell.includes(required), `Recording page should keep travelogue-focused record action ${required}`)
 }
+
+assert.doesNotMatch(
+  recordingShell,
+  /openPassport|openFootprint|@passport|@footprint|\$emit\('passport'\)|\$emit\('footprint'\)|路线护照|我的足迹/,
+  'Recording page should not expose passport or footprint as post-recording secondary entries after the record flow moved to travelogue generation'
+)
 
 for (const required of [
   'openSharePage',
   'openWorksPage',
-  'openOpsReportPage',
-  "url: '/pages/xicheng/share/share'",
+  '/pages/xicheng/share/share?channel=${publishChannel}',
   "url: '/pages/xicheng/works/works'",
-  "url: '/pages/xicheng/ops-report/ops-report'",
-  '@click="openSharePage"',
-  '@click="openWorksPage"',
-  '@click="openOpsReportPage"'
+  '@open-share="openSharePage"',
+  '@open-works="openWorksPage"',
+  "label: '发朋友圈'",
+  "label: '发布小红书'",
+  "label: 'PDF 打印'",
+  "label: '我的游记'"
 ]) {
-  assert.ok(travelogue.includes(required), `Travelogue should link split secondary growth page ${required}`)
+  assert.ok(travelogueShell.includes(required), `Travelogue should link split secondary growth page ${required}`)
 }
 
 assert.match(

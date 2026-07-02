@@ -25,8 +25,10 @@
 			@navigate-next="navigateToNextStop"
 			@photo="addPhotoMaterial"
 			@materials="openTodayMaterials"
-			@passport="openPassport"
-			@footprint="openFootprint"
+		/>
+		<xicheng-main-tab-nav
+			active-key="record"
+			:route-context="mainTabRouteContext"
 		/>
 	</view>
 </template>
@@ -38,6 +40,7 @@ import {
 	normalizeXichengRouteCode
 } from '@/config/regions/xicheng.js'
 import XichengRouteRecordingPanel from '@/components/xicheng/XichengRouteRecordingPanel.vue'
+import XichengMainTabNav from '@/components/xicheng/XichengMainTabNav.vue'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { decodeXichengRouteValue, createXichengRouteOutputValue } from '@/request/xunjing/routeParams.js'
 
@@ -79,7 +82,8 @@ const createEmptyRecordingSession = () => ({
 
 export default {
 	components: {
-		XichengRouteRecordingPanel
+		XichengRouteRecordingPanel,
+		XichengMainTabNav
 	},
 	data() {
 		return {
@@ -125,7 +129,11 @@ export default {
 			return thumbnails[this.activeRoute.routeCode] || this.region.visualAssets.heroLandmark || ''
 		},
 		studyTasks() {
-			return this.region.parentChildTasks || []
+			return [
+				'到达一个真实路线点，系统会保存地点和来源。',
+				'补记一张现场照片或一句真实感受。',
+				'结束记录后生成一篇可编辑的西城游记。'
+			]
 		},
 		studyTaskDoneCount() {
 			return Math.min(this.completedStopCount, this.studyTasks.length)
@@ -138,6 +146,15 @@ export default {
 		},
 		companionAvatar() {
 			return this.region.companionAvatar || ''
+		},
+		mainTabRouteContext() {
+			return {
+				regionCode: this.routeOptions.regionCode || this.region.regionCode,
+				packageCode: this.routeOptions.packageCode || this.region.packageCode,
+				sceneCode: this.routeOptions.sceneCode || this.region.sceneCode,
+				sourceChannel: this.routeOptions.sourceChannel || this.region.sourceChannel,
+				companionName: this.routeOptions.companionName || this.region.companionName
+			}
 		}
 	},
 	onLoad(options = {}) {
@@ -406,18 +423,20 @@ export default {
 			this.generateTravelogue()
 		},
 		generateTravelogue() {
+			if (!this.recordingSession.sessionId) {
+				this.ensureRecordingSession()
+			}
+			const finishedAt = new Date().toISOString()
+			this.recordingSession = {
+				...this.recordingSession,
+				status: 'finished',
+				finishedAt,
+				updatedAt: finishedAt
+			}
 			this.saveRecordingSession()
 			uni.navigateTo({
 				url: `/pages/xicheng/travelogue/travelogue?mode=record&routeCode=${encodeRouteValue(this.activeRoute.routeCode || '')}&regionCode=${encodeRouteValue(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeOptions.sourceChannel || this.region.sourceChannel)}&companionName=${encodeRouteValue(this.routeOptions.companionName || this.region.companionName)}`
 			})
-		},
-		openPassport() {
-			this.saveRecordingSession()
-			uni.navigateTo({ url: '/pages/xicheng/passport/passport' })
-		},
-		openFootprint() {
-			this.saveRecordingSession()
-			uni.navigateTo({ url: '/pages/xicheng/footprint/footprint' })
 		}
 	}
 }

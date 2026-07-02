@@ -10,6 +10,8 @@
 			@back="goBack"
 			@passport="startRoutePassport"
 			@ask-stop="askStopGuide"
+			@open-poi-detail="openStopPoiDetail"
+			@navigate-stop="navigateStopPoi"
 			@start-recording="startRouteRecording"
 			@generate-travelogue="generateRouteTravelogue"
 		/>
@@ -78,13 +80,6 @@ export default {
 				? this.region.visualAssets.routeThumbnails
 				: {}
 			return thumbnails[this.activeRoute.routeCode] || this.region.visualAssets.heroLandmark || ''
-		},
-		routeOperationCards() {
-			return [
-				{ key: 'passport', label: '路线护照', value: `${this.activeRoute.passportTaskCount || this.routeStopCards.length} 点` },
-				{ key: 'study', label: '亲子研学任务', value: `${this.activeRoute.studyTaskCount || 0} 个` },
-				{ key: 'distance', label: '步行距离', value: this.activeRoute.distanceText || '可步行' }
-			]
 		}
 	},
 	onLoad(options = {}) {
@@ -168,6 +163,25 @@ export default {
 			uni.navigateTo({
 				url: `/pages/xicheng/recording/recording?autoStart=1&routeCode=${encodeRouteValue(this.activeRoute.routeCode || '')}&regionCode=${encodeRouteValue(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeOptions.sourceChannel || this.region.sourceChannel)}&companionName=${encodeRouteValue(this.routeOptions.companionName || this.region.companionName)}`
 			})
+		},
+		openRouteStopPoi(stop = {}, entryMode = 'detail') {
+			if (!stop.poiCode || !stop.poiName) {
+				uni.showToast({
+					title: '暂无官方 POI，不能打开地点详情',
+					icon: 'none'
+				})
+				return
+			}
+			this.persistStopGuideContext(stop, entryMode === 'navigation' ? `导航去${stop.poiName}` : `讲讲${stop.poiName}`)
+			uni.navigateTo({
+				url: `/pages/xicheng/poi/poi?entryMode=${encodeRouteValue(entryMode)}&poiCode=${encodeRouteValue(stop.poiCode || '')}&poiName=${encodeRouteValue(stop.poiName || '')}&regionCode=${encodeRouteValue(this.routeOptions.regionCode || this.region.regionCode)}&packageCode=${encodeRouteValue(this.routeOptions.packageCode || this.region.packageCode)}&sceneCode=${encodeRouteValue(this.routeOptions.sceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeOptions.sourceChannel || this.region.sourceChannel)}&companionName=${encodeRouteValue(this.routeOptions.companionName || this.region.companionName)}&safetyStatus=${encodeRouteValue('PASSED')}`
+			})
+		},
+		openStopPoiDetail(stop = {}) {
+			this.openRouteStopPoi(stop, 'detail')
+		},
+		navigateStopPoi(stop = {}) {
+			this.openRouteStopPoi(stop, 'navigation')
 		},
 		getStopThumbnail(stop = {}, index = 0) {
 			return this.routeHeroImage

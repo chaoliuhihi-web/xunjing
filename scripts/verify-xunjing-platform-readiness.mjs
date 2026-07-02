@@ -480,6 +480,18 @@ async function checkXichengAppEventBackend(rootDir) {
     rootDir,
     'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java'
   )
+  const consoleVo = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/admin/console/vo/XunjingConsoleVO.java'
+  )
+  const consoleService = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/console/XunjingConsoleServiceImpl.java'
+  )
+  const consoleTest = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/console/XunjingConsoleServiceImplTest.java'
+  )
   const enums = await readText(
     rootDir,
     'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/enums/XunjingEnums.java'
@@ -490,15 +502,72 @@ async function checkXichengAppEventBackend(rootDir) {
   )
   for (const snippet of [
     'resolveAppEventQrCode(reqVO, hasText(reqVO.getPackageCode()))',
-    'buildAppEventPayload'
+    'buildAppEventPayload',
+    'EventType.AGENT_ACTION',
+    'buildAgentActionEventPayload',
+    'sanitizeAgentActionClientPayload',
+    'payload.put("agentAction", buildAgentActionEventPayload(clientPayloadObject))'
   ]) {
     assertContains(appService, snippet, 'XunjingAppServiceImpl.java')
   }
+  for (const snippet of [
+    'private Long triggerResolveCount;',
+    'private Long agentActionCount;',
+    'private BigDecimal agentActionConversionRate;',
+    'private Long totalTriggerResolveCount;',
+    'private Long totalAgentActionCount;',
+    'class AgentActionMetricRespVO',
+    'private List<AgentActionMetricRespVO> topAgentActions;',
+    'class AgentActionPoiFunnelRespVO',
+    'private List<AgentActionPoiFunnelRespVO> agentActionPoiFunnels;',
+    'private BigDecimal conversionRate;',
+    'private Long executionCount;',
+    'private BigDecimal shareRate;'
+  ]) {
+    assertContains(consoleVo, snippet, 'XunjingConsoleVO.java')
+  }
+  for (const snippet of [
+    'calculateAgentActionConversionRate',
+    'buildTopAgentActionMetrics',
+    'buildAgentActionPoiFunnels',
+    'recordPoiFunnelTriggerResolve',
+    'recordPoiFunnelAgentAction',
+    'selectListByPackageIdsAndEventType',
+    'agentActionText',
+    'EventType.TRIGGER_RESOLVE.getType()',
+    'EventType.AGENT_ACTION.getType()',
+    '\\"triggerResolveCount\\":',
+    '\\"agentActionCount\\":',
+    '\\"agentActionConversionRate\\":'
+  ]) {
+    assertContains(consoleService, snippet, 'XunjingConsoleServiceImpl.java')
+  }
   assertContains(enums, 'ERROR_FEEDBACK("ERROR_FEEDBACK")', 'XunjingEnums.java')
+  assertContains(enums, 'AGENT_ACTION("AGENT_ACTION")', 'XunjingEnums.java')
   assertContains(appTest, 'testRecordAppErrorFeedbackEventKeepsXichengContext', 'XunjingAppServiceImplTest.java')
+  assertContains(
+    appTest,
+    'testRecordAgentActionEventStoresStructuredTelemetryWithoutRawImagePayload',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    consoleTest,
+    'testReadinessDashboardAndReportExposeAgentActionConversionMetrics',
+    'XunjingConsoleServiceImplTest.java'
+  )
+  assertContains(
+    consoleTest,
+    'testDashboardRanksAgentActionExecutionsByActionIntentAndPoi',
+    'XunjingConsoleServiceImplTest.java'
+  )
+  assertContains(
+    consoleTest,
+    'testDashboardBuildsPoiAgentActionFunnelFromTriggerAndActionEvents',
+    'XunjingConsoleServiceImplTest.java'
+  )
   return pass(
     'xicheng-app-event-backend',
-    'Xicheng APP events accept package-bound error feedback and keep ordinary scene context'
+    'Xicheng APP events accept package-bound feedback and expose structured Agent action telemetry metrics'
   )
 }
 

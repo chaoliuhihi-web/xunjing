@@ -36,7 +36,89 @@ public class XunjingVisionRecognitionService {
             "sceneDomainIntentTitle",
             "sceneDomainIntentCopy",
             "agentDecisionActionTitle",
-            "agentDecisionReasonSummary"
+            "agentDecisionReasonSummary",
+            "knowledgeGraphKeywords",
+            "relatedTopicKeywords",
+            "menuItemNames",
+            "spiceLevelSummary",
+            "halalSuitabilityText",
+            "dishRecommendationSummary",
+            "foodItemName",
+            "foodOriginSummary",
+            "cookingMethodSummary",
+            "eatingMethodSummary",
+            "pairingSuggestionText",
+            "nearbyFoodRecommendationSummary",
+            "signOriginalText",
+            "signTranslationText",
+            "signPronunciationText",
+            "signNavigationHint",
+            "recognizedObjectName",
+            "eraOrPeriodText",
+            "structureOrCraftSummary",
+            "historicalStorySummary",
+            "hiddenDetailSummary",
+            "heritageItemName",
+            "heritageCategoryText",
+            "craftProcessSummary",
+            "performanceMethodSummary",
+            "soundAssetHint",
+            "nearbyExperienceSummary",
+            "plantSpeciesName",
+            "plantAgeEstimateText",
+            "plantAdaptationSummary",
+            "bestViewingSeasonText",
+            "regionalDistributionSummary",
+            "animalSpeciesName",
+            "conservationStatusText",
+            "habitatSummary",
+            "dangerAssessmentText",
+            "safetyReminderText",
+            "arDisplayHint",
+            "personName",
+            "personStorySummary",
+            "statueSiteReasonSummary",
+            "contributionSummary",
+            "contemporaryFigureKeywords",
+            "activityName",
+            "activityBackgroundSummary",
+            "performerSummary",
+            "scheduleTimeText",
+            "ticketingHint",
+            "venueNavigationHint",
+            "checkInTaskSummary",
+            "badgeRewardName",
+            "travelMapUpdateSummary",
+            "travelogueMaterialSummary",
+            "photoMomentSummary",
+            "socialShareDraftHint"
+    );
+    private static final List<SceneDomainRule> VISION_SCENE_DOMAIN_RULES = List.of(
+            new SceneDomainRule("architecture", "建筑", "建筑识境", "讲解年代、结构、故事和拍照角度",
+                    List.of("architecture", "building", "palace", "courtyard", "temple", "pagoda", "tower",
+                            "gate", "bridge", "pavilion", "建筑", "古城门", "城门", "塔楼", "桥", "亭", "宫殿", "王府")),
+            new SceneDomainRule("artifact", "文物", "文物识境", "讲解年代、工艺、用途和同时代背景",
+                    List.of("artifact", "relic", "bronze", "museum_object", "vessel", "sword", "文物", "青铜",
+                            "博物馆藏品", "器物", "古剑")),
+            new SceneDomainRule("menu", "菜单", "菜单识境", "识别菜品、辣度、清真信息和推荐点单",
+                    List.of("menu", "dish_menu", "菜单", "菜品", "菜名", "价目")),
+            new SceneDomainRule("food", "美食", "美食识境", "讲来源、吃法、搭配和附近推荐",
+                    List.of("food", "dish", "snack", "restaurant", "cuisine", "美食", "餐厅", "小吃", "烤包子",
+                            "清真")),
+            new SceneDomainRule("sign", "路牌", "路牌识境", "翻译文字、讲发音并连接导航",
+                    List.of("sign", "road_sign", "street_name", "shop_sign", "路牌", "街牌", "指示牌", "招牌")),
+            new SceneDomainRule("intangible_heritage", "非遗", "非遗识境", "讲制作、演奏、传承和附近体验",
+                    List.of("intangible_heritage", "heritage_craft", "instrument", "music", "dance", "非遗",
+                            "乐器", "热瓦普", "工艺", "传承", "演奏")),
+            new SceneDomainRule("plant", "植物", "植物识境", "讲树龄、习性、分布和最佳观赏季",
+                    List.of("plant", "tree", "flower", "populus", "胡杨", "植物", "树", "花", "园林")),
+            new SceneDomainRule("animal", "动物", "动物识境", "讲保护情况、栖息地和安全提醒",
+                    List.of("animal", "wildlife", "bird", "snow_leopard", "动物", "鸟", "雪豹", "野生动物")),
+            new SceneDomainRule("person", "人物", "人物识境", "讲人物故事、贡献和同时期关系",
+                    List.of("person", "statue", "portrait", "人物", "雕像", "塑像", "画像", "名人")),
+            new SceneDomainRule("activity", "活动", "活动识境", "讲节目背景、时间、票务和参与方式",
+                    List.of("activity", "performance", "show", "festival", "event", "活动", "演出", "节目",
+                            "节庆", "表演"))
     );
 
     private final HttpClient httpClient = HttpClient.newBuilder()
@@ -69,12 +151,15 @@ public class XunjingVisionRecognitionService {
     private VisionRecognitionResult recognizeImage(MultimodalTriggerReqVO reqVO) {
         PhotoMetaReqVO photoMeta = reqVO.getPhotoMeta();
         String imageBase64 = photoMeta == null ? "" : photoMeta.getImageBase64();
-        if (photoMeta == null || !hasText(imageBase64) || !isConfigured()) {
+        if (photoMeta == null || !hasText(imageBase64)) {
             return VisionRecognitionResult.empty();
+        }
+        if (!isConfigured()) {
+            return VisionRecognitionResult.evidenceOnly(buildVisionRecognitionEvidence("provider_not_configured", 0));
         }
         if (imageBase64.length() > MAX_IMAGE_BASE64_CHARS) {
             log.warn("[recognizeImage][图片 base64 超过服务端上限，跳过视觉识别 imageId={}]", photoMeta.getImageId());
-            return VisionRecognitionResult.empty();
+            return VisionRecognitionResult.evidenceOnly(buildVisionRecognitionEvidence("skipped_oversized_image", 0));
         }
         try {
             HttpRequest request = HttpRequest.newBuilder(URI.create(resolveChatCompletionsUrl(visionApiUrl)))
@@ -87,12 +172,13 @@ public class XunjingVisionRecognitionService {
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 log.warn("[recognizeImage][视觉识别调用失败 status={} imageId={}]", response.statusCode(),
                         photoMeta.getImageId());
-                return VisionRecognitionResult.empty();
+                return VisionRecognitionResult.evidenceOnly(buildVisionRecognitionEvidence("provider_http_error", 0));
             }
-            return extractVisionResult(extractChatContent(response.body()));
+            VisionRecognitionResult recognition = extractVisionResult(extractChatContent(response.body()));
+            return recognition.withEvidence(buildVisionRecognitionEvidence("success", recognition.labels().size()));
         } catch (Exception ex) {
             log.warn("[recognizeImage][视觉识别异常 imageId={} message={}]", photoMeta.getImageId(), ex.getMessage());
-            return VisionRecognitionResult.empty();
+            return VisionRecognitionResult.evidenceOnly(buildVisionRecognitionEvidence("provider_error", 0));
         }
     }
 
@@ -112,7 +198,64 @@ public class XunjingVisionRecognitionService {
                                                 + "\"caption\":\"一句中文描述\",\"sceneSignals\":{\"sceneFusionSummary\":\"场景摘要\","
                                                 + "\"worldInterfaceSummary\":\"视觉如何参与判断\","
                                                 + "\"sceneDomainIntentKey\":\"architecture\","
-                                                + "\"sceneDomainIntentLabel\":\"建筑\"}}。"
+                                                + "\"sceneDomainIntentLabel\":\"建筑\","
+                                                + "\"knowledgeGraphKeywords\":\"相关人物、朝代、地点\","
+                                                + "\"relatedTopicKeywords\":\"关联话题\","
+                                                + "\"menuItemNames\":\"菜单菜品\","
+                                                + "\"spiceLevelSummary\":\"辣度\","
+                                                + "\"halalSuitabilityText\":\"清真信息\","
+                                                + "\"dishRecommendationSummary\":\"推荐点单\","
+                                                + "\"foodItemName\":\"美食名称\","
+                                                + "\"foodOriginSummary\":\"来源\","
+                                                + "\"cookingMethodSummary\":\"做法\","
+                                                + "\"eatingMethodSummary\":\"吃法\","
+                                                + "\"pairingSuggestionText\":\"搭配建议\","
+                                                + "\"nearbyFoodRecommendationSummary\":\"附近推荐\","
+                                                + "\"signOriginalText\":\"路牌或招牌原文\","
+                                                + "\"signTranslationText\":\"中文翻译\","
+                                                + "\"signPronunciationText\":\"发音或转写\","
+                                                + "\"signNavigationHint\":\"导航提示\","
+                                                + "\"recognizedObjectName\":\"识别对象名称\","
+                                                + "\"eraOrPeriodText\":\"年代或时期\","
+                                                + "\"structureOrCraftSummary\":\"结构或工艺\","
+                                                + "\"historicalStorySummary\":\"历史故事\","
+                                                + "\"hiddenDetailSummary\":\"隐藏细节\","
+                                                + "\"heritageItemName\":\"非遗名称\","
+                                                + "\"heritageCategoryText\":\"非遗类别\","
+                                                + "\"craftProcessSummary\":\"制作过程\","
+                                                + "\"performanceMethodSummary\":\"演奏或表演方式\","
+                                                + "\"soundAssetHint\":\"声音线索\","
+                                                + "\"nearbyExperienceSummary\":\"附近体验\","
+                                                + "\"plantSpeciesName\":\"植物名称\","
+                                                + "\"plantAgeEstimateText\":\"树龄估计\","
+                                                + "\"plantAdaptationSummary\":\"耐旱或生长习性\","
+                                                + "\"bestViewingSeasonText\":\"最佳观赏季\","
+                                                + "\"regionalDistributionSummary\":\"区域分布\","
+                                                + "\"animalSpeciesName\":\"动物名称\","
+                                                + "\"conservationStatusText\":\"保护情况\","
+                                                + "\"habitatSummary\":\"栖息地\","
+                                                + "\"dangerAssessmentText\":\"危险判断\","
+                                                + "\"safetyReminderText\":\"安全提醒\","
+                                                + "\"arDisplayHint\":\"AR展示线索\","
+                                                + "\"personName\":\"人物名称\","
+                                                + "\"personStorySummary\":\"人物故事\","
+                                                + "\"statueSiteReasonSummary\":\"建址原因\","
+                                                + "\"contributionSummary\":\"人物贡献\","
+                                                + "\"contemporaryFigureKeywords\":\"同时期人物或关系线索\","
+                                                + "\"activityName\":\"活动或节目名称\","
+                                                + "\"activityBackgroundSummary\":\"活动背景\","
+                                                + "\"performerSummary\":\"演员或表演者\","
+                                                + "\"scheduleTimeText\":\"开始时间\","
+                                                + "\"ticketingHint\":\"票务或预约线索\","
+                                                + "\"venueNavigationHint\":\"场地导航线索\","
+                                                + "\"checkInTaskSummary\":\"打卡任务\","
+                                                + "\"badgeRewardName\":\"徽章奖励\","
+                                                + "\"travelMapUpdateSummary\":\"旅行地图更新\","
+                                                + "\"travelogueMaterialSummary\":\"游记素材\","
+                                                + "\"photoMomentSummary\":\"照片时刻\","
+                                                + "\"socialShareDraftHint\":\"分享文案草稿\"}}。"
+                                                + "sceneDomainIntentKey 可选 architecture, artifact, menu, food, sign, "
+                                                + "intangible_heritage, plant, animal, person, activity。"
                                                 + "可用 labels 包括 white_pagoda, pagoda, temple, temple_gate, "
                                                 + "imperial_temple, paifang, beijing_architecture, lake, "
                                                 + "imperial_garden, white_tower, park, hutong, waterfront, "
@@ -135,20 +278,23 @@ public class XunjingVisionRecognitionService {
         Set<String> labels = new LinkedHashSet<>();
         String json = unwrapJson(content);
         String ocrText = "";
+        String caption = "";
         Map<String, String> sceneSignals = new LinkedHashMap<>();
         try {
             JsonNode root = JsonUtils.getObjectMapper().readTree(json);
             appendLabels(root.path("labels"), labels);
             appendLabels(root.path("imageLabels"), labels);
             appendLabels(root.path("objects"), labels);
-            String caption = firstText(root, "caption", "description", "summary");
+            caption = firstText(root, "caption", "description", "summary");
             ocrText = firstText(root, "ocrText", "ocr", "detectedText", "text");
             addKeywordLabels(caption, labels);
             addKeywordLabels(ocrText, labels);
             sceneSignals.putAll(extractVisionSceneSignals(root, caption));
         } catch (IOException ignored) {
             addKeywordLabels(content, labels);
+            caption = content;
         }
+        inferVisionSceneDomain(labels, caption, ocrText, sceneSignals);
         return new VisionRecognitionResult(new ArrayList<>(labels), ocrText, sceneSignals);
     }
 
@@ -178,6 +324,18 @@ public class XunjingVisionRecognitionService {
         reqVO.setSceneSignals(mergedSceneSignals);
     }
 
+    private Map<String, String> buildVisionRecognitionEvidence(String status, int labelCount) {
+        Map<String, String> evidence = new LinkedHashMap<>();
+        evidence.put("visionRecognitionStatus", status);
+        evidence.put("visionRecognitionModel", resolvedVisionModel());
+        evidence.put("visionRecognitionLabelCount", String.valueOf(Math.max(labelCount, 0)));
+        return evidence;
+    }
+
+    private String resolvedVisionModel() {
+        return hasText(visionModel) ? visionModel : DEFAULT_MODEL;
+    }
+
     private Map<String, String> extractVisionSceneSignals(JsonNode root, String caption) {
         Map<String, String> sceneSignals = new LinkedHashMap<>();
         JsonNode node = root.path("sceneSignals");
@@ -189,6 +347,37 @@ public class XunjingVisionRecognitionService {
             sceneSignals.put("sceneFusionSummary", caption.trim());
         }
         return sceneSignals;
+    }
+
+    private void inferVisionSceneDomain(
+            Set<String> labels, String caption, String ocrText, Map<String, String> sceneSignals) {
+        if (sceneSignals.containsKey("sceneDomainIntentKey")) {
+            return;
+        }
+        String text = normalizeDomainText(labels, caption, ocrText);
+        for (SceneDomainRule rule : VISION_SCENE_DOMAIN_RULES) {
+            if (containsAny(text, rule.keywords())) {
+                sceneSignals.put("sceneDomainIntentKey", rule.key());
+                sceneSignals.put("sceneDomainIntentLabel", rule.label());
+                sceneSignals.put("sceneDomainIntentTitle", rule.title());
+                sceneSignals.put("sceneDomainIntentCopy", rule.copy());
+                return;
+            }
+        }
+    }
+
+    private String normalizeDomainText(Set<String> labels, String caption, String ocrText) {
+        List<String> parts = new ArrayList<>();
+        if (labels != null) {
+            parts.addAll(labels);
+        }
+        if (hasText(caption)) {
+            parts.add(caption);
+        }
+        if (hasText(ocrText)) {
+            parts.add(ocrText);
+        }
+        return String.join(" ", parts).toLowerCase(Locale.ROOT);
     }
 
     private void putVisionSceneSignal(Map<String, String> sceneSignals, JsonNode node, String key) {
@@ -294,10 +483,23 @@ public class XunjingVisionRecognitionService {
             return new VisionRecognitionResult(List.of(), "", Map.of());
         }
 
+        private static VisionRecognitionResult evidenceOnly(Map<String, String> evidence) {
+            return new VisionRecognitionResult(List.of(), "", evidence);
+        }
+
+        private VisionRecognitionResult withEvidence(Map<String, String> evidence) {
+            Map<String, String> mergedSceneSignals = new LinkedHashMap<>(sceneSignals);
+            mergedSceneSignals.putAll(evidence);
+            return new VisionRecognitionResult(labels, ocrText, mergedSceneSignals);
+        }
+
         private static boolean hasText(String value) {
             return value != null && !value.isBlank();
         }
 
+    }
+
+    private record SceneDomainRule(String key, String label, String title, String copy, List<String> keywords) {
     }
 
 }

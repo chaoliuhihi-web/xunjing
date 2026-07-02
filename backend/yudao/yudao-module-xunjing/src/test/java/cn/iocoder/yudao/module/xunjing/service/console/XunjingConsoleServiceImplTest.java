@@ -3,6 +3,8 @@ package cn.iocoder.yudao.module.xunjing.service.console;
 import cn.iocoder.yudao.framework.test.core.ut.BaseDbUnitTest;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AgentActionMetricRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.AgentActionPoiFunnelRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.CrawlerSourceCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.CrawlerSourceRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.CrawlerRunReqVO;
@@ -228,6 +230,108 @@ public class XunjingConsoleServiceImplTest extends BaseDbUnitTest {
         assertTrue(report.getMetricsJson().contains("\"interactionCount\":1"));
         assertTrue(report.getMetricsJson().contains("\"mediaUsageCount\":1"));
         assertTrue(report.getMetricsJson().contains("\"aiGenerationCount\":1"));
+    }
+
+    @Test
+    public void testReadinessDashboardAndReportExposeAgentActionConversionMetrics() {
+        Long projectId = consoleService.createProject(projectReq());
+        Long schoolId = consoleService.createSchool(schoolReq());
+        Long packageId = consoleService.createResourcePackage(packageReq(projectId, schoolId));
+
+        consoleService.recordInteraction(eventReq(packageId, schoolId,
+                XunjingEnums.EventType.TRIGGER_RESOLVE.getType(), "trace-trigger-001"));
+        consoleService.recordInteraction(eventReq(packageId, schoolId,
+                XunjingEnums.EventType.TRIGGER_RESOLVE.getType(), "trace-trigger-002"));
+        consoleService.recordInteraction(eventReq(packageId, schoolId,
+                XunjingEnums.EventType.AGENT_ACTION.getType(), "trace-agent-action-001"));
+
+        ReadinessRespVO readiness = consoleService.getReadiness(projectId);
+        assertEquals(3, readiness.getInteractionCount());
+        assertEquals(2, readiness.getTriggerResolveCount());
+        assertEquals(1, readiness.getAgentActionCount());
+        assertEquals(new BigDecimal("0.5000"), readiness.getAgentActionConversionRate());
+
+        DashboardSummaryRespVO dashboard = consoleService.getDashboard(projectId);
+        assertEquals(2, dashboard.getTotalTriggerResolveCount());
+        assertEquals(1, dashboard.getTotalAgentActionCount());
+        assertEquals(new BigDecimal("0.5000"), dashboard.getAgentActionConversionRate());
+
+        Long reportId = consoleService.generatePublicReport(reportReq(projectId, schoolId));
+        XunjingPublicReportDO report = publicReportMapper.selectById(reportId);
+        assertTrue(report.getMetricsJson().contains("\"triggerResolveCount\":2"));
+        assertTrue(report.getMetricsJson().contains("\"agentActionCount\":1"));
+        assertTrue(report.getMetricsJson().contains("\"agentActionConversionRate\":0.5000"));
+    }
+
+    @Test
+    public void testDashboardRanksAgentActionExecutionsByActionIntentAndPoi() {
+        Long projectId = consoleService.createProject(projectReq());
+        Long schoolId = consoleService.createSchool(schoolReq());
+        Long packageId = consoleService.createResourcePackage(packageReq(projectId, schoolId));
+
+        consoleService.recordInteraction(agentActionEventReq(packageId, schoolId,
+                "generate_travelogue", "生成游记", "record", "xicheng-gongwangfu", "恭王府",
+                "trace-action-001"));
+        consoleService.recordInteraction(agentActionEventReq(packageId, schoolId,
+                "nearby_food", "附近美食", "merchant", "xicheng-baitasi", "妙应寺白塔",
+                "trace-action-002"));
+        consoleService.recordInteraction(agentActionEventReq(packageId, schoolId,
+                "generate_travelogue", "生成游记", "record", "xicheng-gongwangfu", "恭王府",
+                "trace-action-003"));
+
+        DashboardSummaryRespVO dashboard = consoleService.getDashboard(projectId);
+
+        assertEquals(2, dashboard.getTopAgentActions().size());
+        AgentActionMetricRespVO topAction = dashboard.getTopAgentActions().get(0);
+        assertEquals("generate_travelogue", topAction.getActionKey());
+        assertEquals("生成游记", topAction.getTitle());
+        assertEquals("record", topAction.getIntent());
+        assertEquals("xicheng-gongwangfu", topAction.getPoiCode());
+        assertEquals("恭王府", topAction.getPoiName());
+        assertEquals(2, topAction.getExecutionCount());
+        assertEquals(new BigDecimal("0.6667"), topAction.getShareRate());
+        AgentActionMetricRespVO secondAction = dashboard.getTopAgentActions().get(1);
+        assertEquals("nearby_food", secondAction.getActionKey());
+        assertEquals("merchant", secondAction.getIntent());
+        assertEquals("xicheng-baitasi", secondAction.getPoiCode());
+        assertEquals(1, secondAction.getExecutionCount());
+        assertEquals(new BigDecimal("0.3333"), secondAction.getShareRate());
+    }
+
+    @Test
+    public void testDashboardBuildsPoiAgentActionFunnelFromTriggerAndActionEvents() {
+        Long projectId = consoleService.createProject(projectReq());
+        Long schoolId = consoleService.createSchool(schoolReq());
+        Long packageId = consoleService.createResourcePackage(packageReq(projectId, schoolId));
+
+        consoleService.recordInteraction(triggerResolveEventReq(packageId, schoolId,
+                "xicheng-gongwangfu", "恭王府", "trace-trigger-gongwangfu-001"));
+        consoleService.recordInteraction(triggerResolveEventReq(packageId, schoolId,
+                "xicheng-gongwangfu", "恭王府", "trace-trigger-gongwangfu-002"));
+        consoleService.recordInteraction(triggerResolveEventReq(packageId, schoolId,
+                "xicheng-baitasi", "妙应寺白塔", "trace-trigger-baitasi-001"));
+        consoleService.recordInteraction(agentActionEventReq(packageId, schoolId,
+                "generate_travelogue", "生成游记", "record", "xicheng-gongwangfu", "恭王府",
+                "trace-action-gongwangfu-001"));
+        consoleService.recordInteraction(agentActionEventReq(packageId, schoolId,
+                "nearby_food", "附近美食", "merchant", "xicheng-baitasi", "妙应寺白塔",
+                "trace-action-baitasi-001"));
+
+        DashboardSummaryRespVO dashboard = consoleService.getDashboard(projectId);
+
+        assertEquals(2, dashboard.getAgentActionPoiFunnels().size());
+        AgentActionPoiFunnelRespVO gongwangfu = dashboard.getAgentActionPoiFunnels().get(0);
+        assertEquals("xicheng-gongwangfu", gongwangfu.getPoiCode());
+        assertEquals("恭王府", gongwangfu.getPoiName());
+        assertEquals(2, gongwangfu.getTriggerResolveCount());
+        assertEquals(1, gongwangfu.getAgentActionCount());
+        assertEquals(new BigDecimal("0.5000"), gongwangfu.getConversionRate());
+        AgentActionPoiFunnelRespVO baitasi = dashboard.getAgentActionPoiFunnels().get(1);
+        assertEquals("xicheng-baitasi", baitasi.getPoiCode());
+        assertEquals("妙应寺白塔", baitasi.getPoiName());
+        assertEquals(1, baitasi.getTriggerResolveCount());
+        assertEquals(1, baitasi.getAgentActionCount());
+        assertEquals(new BigDecimal("1.0000"), baitasi.getConversionRate());
     }
 
     @Test
@@ -593,13 +697,39 @@ public class XunjingConsoleServiceImplTest extends BaseDbUnitTest {
     }
 
     private InteractionEventCreateReqVO eventReq(Long packageId, Long schoolId) {
+        return eventReq(packageId, schoolId, XunjingEnums.EventType.SCAN.getType(), "trace-001");
+    }
+
+    private InteractionEventCreateReqVO eventReq(
+            Long packageId, Long schoolId, String eventType, String userTraceId) {
         InteractionEventCreateReqVO reqVO = new InteractionEventCreateReqVO();
         reqVO.setPackageId(packageId);
         reqVO.setSchoolId(schoolId);
-        reqVO.setEventType(XunjingEnums.EventType.SCAN.getType());
+        reqVO.setEventType(eventType);
         reqVO.setSourceChannel("mini-program");
-        reqVO.setUserTraceId("trace-001");
+        reqVO.setUserTraceId(userTraceId);
         reqVO.setPayloadJson("{\"scene\":\"map-entry\"}");
+        return reqVO;
+    }
+
+    private InteractionEventCreateReqVO triggerResolveEventReq(
+            Long packageId, Long schoolId, String poiCode, String poiName, String userTraceId) {
+        InteractionEventCreateReqVO reqVO = eventReq(
+                packageId, schoolId, XunjingEnums.EventType.TRIGGER_RESOLVE.getType(), userTraceId);
+        reqVO.setPayloadJson("""
+                {"poiCode":"%s","poiName":"%s","intent":"interpret","action":"start_explanation"}
+                """.formatted(poiCode, poiName));
+        return reqVO;
+    }
+
+    private InteractionEventCreateReqVO agentActionEventReq(
+            Long packageId, Long schoolId, String actionKey, String title, String intent,
+            String poiCode, String poiName, String userTraceId) {
+        InteractionEventCreateReqVO reqVO = eventReq(
+                packageId, schoolId, XunjingEnums.EventType.AGENT_ACTION.getType(), userTraceId);
+        reqVO.setPayloadJson("""
+                {"agentAction":{"actionKey":"%s","title":"%s","intent":"%s","poiCode":"%s","poiName":"%s"}}
+                """.formatted(actionKey, title, intent, poiCode, poiName));
         return reqVO;
     }
 

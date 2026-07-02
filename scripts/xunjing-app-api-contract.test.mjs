@@ -81,6 +81,8 @@ describe('xunjing app API contract', () => {
     expect(appVo).toContain('private String packageCode;')
     expect(appVo).toContain('private List<String> suggestedQuestions;')
     expect(appVo).toContain('private List<SourceRespVO> sources;')
+    expect(appVo).toContain('private List<MultimodalAgentActionRespVO> agentActions;')
+    expect(appVo).toContain('class MultimodalAgentActionRespVO')
     expect(appVo).toContain('class MultimodalCandidateRespVO')
     expect(appVo).toContain('imageLabels')
     expect(appVo).toContain('ocrText')
@@ -96,12 +98,36 @@ describe('xunjing app API contract', () => {
     expect(triggerEngine).toContain('ocr_alias')
     expect(triggerEngine).toContain('image_label')
     expect(triggerEngine).toContain('buildContextQuery(regionCode, poiCode, packageCode, confirm)')
+    expect(triggerEngine).toContain('buildAgentActions(')
+    expect(triggerEngine).toContain('addAgentAction(')
     expect(visionService).toContain('XUNJING_VISION_API_URL')
     expect(visionService).toContain('XUNJING_VISION_API_KEY')
     expect(visionService).toContain('XUNJING_VISION_MODEL')
     expect(visionService).toContain('imageBase64')
     expect(visionService).toContain('chat/completions')
     expect(visionService).toContain('extractVisionLabels')
+  })
+
+  test('agent action app event contract is backend telemetry and sanitizes raw media payloads', async () => {
+    const enums = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/enums/XunjingEnums.java'
+    )
+    const appService = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java'
+    )
+    const appTest = await readText(
+      'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImplTest.java'
+    )
+
+    expect(enums).toContain('AGENT_ACTION("AGENT_ACTION")')
+    expect(appService).toContain('EventType.AGENT_ACTION')
+    expect(appService).toContain('buildAgentActionEventPayload')
+    expect(appService).toContain('sanitizeAgentActionClientPayload')
+    expect(appService).toContain('payload.put("agentAction", buildAgentActionEventPayload(clientPayloadObject))')
+    expect(appService).toContain('"sourceTriggerTraceId"')
+    expect(appService).toContain('"executionStatus"')
+    expect(appService).not.toContain('payload.put("imageBase64"')
+    expect(appTest).toContain('testRecordAgentActionEventStoresStructuredTelemetryWithoutRawImagePayload')
   })
 
   test('xicheng AI chat contract carries POI context and blocks no-source answers', async () => {
@@ -132,6 +158,8 @@ describe('xunjing app API contract', () => {
     expect(appService).toContain('hydrateVisionAgentMemoryFromPreviousAsk(resourcePackage, reqVO)')
     expect(appService).toContain('hydrateVisionAgentContextFromPreviousTrigger(resourcePackage, reqVO)')
     expect(appService).toContain('hydrateTriggerServiceHandoff(reqVO, root)')
+    expect(appService).toContain('payload.put("agentActions", buildTriggerAgentActionsPayload(respVO))')
+    expect(appService).toContain('putPreviousAgentActionsMemoryPart(parts, root.get("agentActions"))')
     expect(appService).toContain('selectLatestByPackageIdAndUserTraceIdAndEventType')
     expect(appService).toContain('buildServiceHandoffContextText(reqVO)')
     expect(appService).toContain('buildVisionAgentChatContextPayload(reqVO)')

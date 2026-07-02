@@ -40,7 +40,8 @@ for (const required of [
   'routeStopCards',
   'nextStop',
   '到达打卡',
-  '亲子研学任务',
+  '游记素材任务',
+  '结束并生成游记',
   'pauseRecordingSession',
   'resumeRecordingSession',
   'arriveAtNextStop',
@@ -125,8 +126,20 @@ assert.match(
 
 assert.match(
   recording,
+  /generateTravelogue\(\)[\s\S]*const finishedAt = new Date\(\)\.toISOString\(\)[\s\S]*status:\s*'finished'[\s\S]*finishedAt,[\s\S]*updatedAt:\s*finishedAt[\s\S]*this\.saveRecordingSession\(\)[\s\S]*\/pages\/xicheng\/travelogue\/travelogue\?mode=record/,
+  'Finishing recording should persist a finished session state before entering travelogue generation'
+)
+
+assert.match(
+  recording,
   /currentStudyTask\(\)[\s\S]*完成路线后生成西城游记。/,
   'Recording page fallback task copy should keep the flow focused on travelogue generation'
+)
+
+assert.doesNotMatch(
+  recordingShell,
+  /路线护照|我的足迹|结束并生成游记素材|亲子研学任务|@passport|@footprint|openPassport\(\)|openFootprint\(\)/,
+  'Recording page should not expose older passport, footprint, or study-growth entry points in the travelogue-focused record flow'
 )
 
 assert.doesNotMatch(

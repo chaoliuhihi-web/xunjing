@@ -55,7 +55,12 @@
 				</view>
 			</view>
 
-			<view class="xicheng-map-route-path"></view>
+			<view
+				v-for="segment in routeSegments"
+				:key="segment.key"
+				class="xicheng-map-route-path xicheng-map-route-segment"
+				:style="getRouteSegmentStyle(segment)"
+			></view>
 			<view
 				v-for="(stop, index) in routeStopMarkers"
 				:key="`route-stop-${stop.poiCode || stop.poiName}-${index}`"
@@ -96,42 +101,52 @@
 					<text>放大</text>
 				</button>
 			</view>
-		</view>
 
-		<view v-if="selectedPoi" class="xicheng-map-bottom-sheet">
-			<view class="xicheng-map-sheet-handle"></view>
-			<view class="xicheng-map-sheet-head" :class="{ 'xicheng-map-sheet-head-no-image': !selectedPoi.image }">
-				<image
-					v-if="selectedPoi.image"
-					class="xicheng-map-sheet-image"
-					:src="selectedPoi.image"
-					mode="aspectFill"
-				/>
-				<view class="xicheng-map-sheet-copy">
-					<text class="xicheng-map-sheet-title">{{ selectedPoi.poiName }}</text>
-					<view class="xicheng-map-sheet-tags">
-						<text>{{ getCategoryLabel(selectedPoi.categoryKey) }}</text>
-						<text>已审核来源 {{ selectedPoi.sourceCount || 6 }} 条</text>
+			<view v-if="selectedPoi" class="xicheng-map-bottom-sheet">
+				<view class="xicheng-map-sheet-handle"></view>
+				<button class="xicheng-map-sheet-close" @click="clearSelectedPoi">×</button>
+				<view class="xicheng-map-sheet-head" :class="{ 'xicheng-map-sheet-head-no-image': !selectedPoi.image }">
+					<image
+						v-if="selectedPoi.image"
+						class="xicheng-map-sheet-image"
+						:src="selectedPoi.image"
+						mode="aspectFill"
+					/>
+					<view class="xicheng-map-sheet-copy">
+						<text class="xicheng-map-sheet-title">{{ selectedPoi.poiName }}</text>
+						<view class="xicheng-map-sheet-tags">
+							<text>{{ getCategoryLabel(selectedPoi.categoryKey) }}</text>
+							<text>已审核来源 {{ selectedPoi.sourceCount || 6 }} 条</text>
+						</view>
+						<text class="xicheng-map-sheet-desc">{{ selectedPoi.summary }}</text>
 					</view>
-					<text class="xicheng-map-sheet-desc">{{ selectedPoi.summary }}</text>
 				</view>
-			</view>
-			<view class="xicheng-map-sheet-info">
-				<view class="xicheng-map-sheet-info-row">
-					<xicheng-icon name="source" variant="plain" :size="22" />
-					<text>来源：西城文旅官方资料库</text>
+				<view class="xicheng-map-sheet-detail-list">
+					<view class="xicheng-map-sheet-detail-row">
+						<xicheng-icon name="time" variant="plain" :size="18" />
+						<text class="xicheng-map-sheet-detail-label">开放时间</text>
+						<text class="xicheng-map-sheet-detail-value">{{ selectedPoi.openTime || '09:00-17:00' }}</text>
+					</view>
+					<view class="xicheng-map-sheet-detail-row">
+						<xicheng-icon name="route" variant="plain" :size="18" />
+						<view class="xicheng-map-sheet-detail-copy">
+							<text class="xicheng-map-sheet-detail-label">{{ selectedPoi.walkDuration || '步行约 12 分钟' }}</text>
+							<text class="xicheng-map-sheet-detail-note">{{ selectedPoi.walkDistance || '距当前位置约 850 米' }}</text>
+						</view>
+					</view>
+					<view class="xicheng-map-sheet-detail-row">
+						<xicheng-icon name="source" variant="plain" :size="18" />
+						<text class="xicheng-map-sheet-detail-label">来源：西城文旅官方资料库</text>
+					</view>
 				</view>
-				<view class="xicheng-map-sheet-info-row">
-					<xicheng-icon name="route" variant="plain" :size="22" />
-					<text>{{ selectedPoi.walkText || '步行约 12 分钟 · 距当前位置约 850 米' }}</text>
+				<button class="xicheng-map-sheet-primary xicheng-primary-action" @click="$emit('navigate-poi', selectedPoi)">
+					<xicheng-icon name="route" class="xicheng-map-sheet-primary-icon" variant="plain" :size="20" />
+					导航去这里
+				</button>
+				<view class="xicheng-map-sheet-actions">
+					<button class="xicheng-map-sheet-action xicheng-secondary-action" @click="$emit('ask-poi', selectedPoi)">问问小京</button>
+					<button class="xicheng-map-sheet-action xicheng-secondary-action" @click="$emit('add-poi-to-route', selectedPoi)">加入路线</button>
 				</view>
-			</view>
-			<button class="xicheng-map-sheet-primary xicheng-primary-action" @click="$emit('navigate-poi', selectedPoi)">
-				导航去这里
-			</button>
-			<view class="xicheng-map-sheet-actions">
-				<button class="xicheng-map-sheet-action xicheng-secondary-action" @click="$emit('ask-poi', selectedPoi)">问问小京</button>
-				<button class="xicheng-map-sheet-action xicheng-secondary-action" @click="$emit('add-poi-to-route', selectedPoi)">加入路线</button>
 			</view>
 		</view>
 	</view>
@@ -218,13 +233,24 @@ export default {
 			const stops = Array.isArray(this.routeStops) ? this.routeStops : []
 			return stops.map((stop, index) => this.decoratePoi(stop, index))
 		},
+		routeSegments() {
+			const markers = this.routeStopMarkers
+			return markers.slice(0, -1).map((start, index) => {
+				const end = markers[index + 1]
+				const deltaLeft = Number(end.left) - Number(start.left)
+				const deltaTop = Number(end.top) - Number(start.top)
+				return {
+					key: `route-segment-${start.poiCode || index}-${end.poiCode || index + 1}`,
+					left: Number(start.left),
+					top: Number(start.top),
+					width: Math.hypot(deltaLeft, deltaTop),
+					angle: Math.atan2(deltaTop, deltaLeft) * 180 / Math.PI
+				}
+			})
+		},
 		selectedPoi() {
-			return this.positionedPois.find(poi => poi.poiCode === this.selectedPoiCode) || this.positionedPois[0] || null
-		}
-	},
-	mounted() {
-		if (!this.selectedPoiCode && this.positionedPois[0]) {
-			this.selectedPoiCode = this.positionedPois[0].poiCode
+			if (!this.selectedPoiCode) return null
+			return this.positionedPois.find(poi => poi.poiCode === this.selectedPoiCode) || null
 		}
 	},
 	methods: {
@@ -245,6 +271,9 @@ export default {
 		getPoiPositionStyle(poi = {}) {
 			return `left:${poi.left}%;top:${poi.top}%;`
 		},
+		getRouteSegmentStyle(segment = {}) {
+			return `left:${segment.left}%;top:${segment.top}%;width:${segment.width}%;transform:rotate(${segment.angle}deg);`
+		},
 		getCategoryColor(categoryKey = '') {
 			const category = DEFAULT_MAP_CATEGORIES.find(item => item.key === categoryKey)
 			return category ? category.color : '#16805F'
@@ -260,6 +289,9 @@ export default {
 		selectPoi(poi = {}) {
 			this.selectedPoiCode = poi.poiCode || ''
 			this.$emit('select-poi', poi)
+		},
+		clearSelectedPoi() {
+			this.selectedPoiCode = ''
 		}
 	}
 }
@@ -584,17 +616,25 @@ export default {
 .xicheng-map-route-path {
 	position: absolute;
 	z-index: 2;
-	left: 19%;
-	top: 62%;
-	width: 50%;
-	height: 14rpx;
+	height: 12rpx;
 	border-radius: 999rpx;
 	background: #173F35;
-	transform: rotate(-10deg);
-	box-shadow:
-		76rpx -90rpx 0 -2rpx #173F35,
-		156rpx -166rpx 0 -2rpx #173F35,
-		224rpx -222rpx 0 -2rpx #173F35;
+	transform-origin: left center;
+	box-shadow: 0 6rpx 16rpx rgba(16, 47, 41, 0.22);
+	pointer-events: none;
+}
+
+.xicheng-map-route-segment::after {
+	content: '';
+	position: absolute;
+	right: -6rpx;
+	top: 50%;
+	width: 12rpx;
+	height: 12rpx;
+	border-radius: 999rpx;
+	background: #173F35;
+	transform: translateY(-50%);
+	box-shadow: 0 0 0 5rpx rgba(255, 252, 246, 0.82);
 }
 
 .xicheng-map-route-stop,
@@ -677,27 +717,45 @@ export default {
 }
 
 .xicheng-map-bottom-sheet {
-	position: relative;
+	position: absolute;
 	z-index: 6;
-	margin-top: -40rpx;
-	padding: 18rpx 24rpx 26rpx;
-	border-radius: 34rpx;
+	left: 20rpx;
+	right: 20rpx;
+	bottom: 18rpx;
+	padding: 14rpx 18rpx 18rpx;
+	border-radius: 26rpx;
 	background: rgba(255, 252, 246, 0.98);
-	box-shadow: 0 -10rpx 40rpx rgba(26, 48, 39, 0.12);
+	box-shadow: 0 -10rpx 36rpx rgba(26, 48, 39, 0.14);
 }
 
 .xicheng-map-sheet-handle {
-	width: 76rpx;
-	height: 8rpx;
+	width: 66rpx;
+	height: 6rpx;
 	border-radius: 999rpx;
-	margin: 0 auto 20rpx;
+	margin: 0 auto 12rpx;
 	background: rgba(16, 47, 41, 0.18);
+}
+
+.xicheng-map-sheet-close {
+	position: absolute;
+	right: 18rpx;
+	top: 16rpx;
+	width: 52rpx;
+	height: 52rpx;
+	border: 0;
+	border-radius: 999rpx;
+	background: rgba(16, 47, 41, 0.06);
+	color: rgba(16, 47, 41, 0.72);
+	font-size: 42rpx;
+	line-height: 48rpx;
+	font-weight: 300;
+	padding: 0;
 }
 
 .xicheng-map-sheet-head {
 	display: grid;
-	grid-template-columns: 180rpx minmax(0, 1fr);
-	gap: 22rpx;
+	grid-template-columns: 118rpx minmax(0, 1fr);
+	gap: 14rpx;
 	align-items: start;
 }
 
@@ -706,15 +764,15 @@ export default {
 }
 
 .xicheng-map-sheet-image {
-	width: 180rpx;
-	height: 190rpx;
-	border-radius: 22rpx;
+	width: 118rpx;
+	height: 126rpx;
+	border-radius: 18rpx;
 	background: rgba(16, 47, 41, 0.08);
 }
 
 .xicheng-map-sheet-title {
 	display: block;
-	font-size: 40rpx;
+	font-size: 32rpx;
 	line-height: 1.15;
 	font-weight: 900;
 	color: #102F29;
@@ -723,70 +781,110 @@ export default {
 .xicheng-map-sheet-tags {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 12rpx;
-	margin-top: 16rpx;
+	gap: 8rpx;
+	margin-top: 10rpx;
 }
 
 .xicheng-map-sheet-tags text {
-	padding: 9rpx 14rpx;
-	border-radius: 12rpx;
+	padding: 6rpx 10rpx;
+	border-radius: 10rpx;
 	background: rgba(23, 63, 53, 0.08);
 	color: #173F35;
-	font-size: 22rpx;
+	font-size: 19rpx;
 	font-weight: 700;
 }
 
 .xicheng-map-sheet-desc {
 	display: block;
-	margin-top: 18rpx;
-	font-size: 28rpx;
-	line-height: 1.55;
+	margin-top: 10rpx;
+	max-height: 64rpx;
+	overflow: hidden;
+	font-size: 22rpx;
+	line-height: 1.42;
 	color: rgba(16, 47, 41, 0.74);
 }
 
-.xicheng-map-sheet-info {
-	margin-top: 24rpx;
+.xicheng-map-sheet-detail-list {
+	margin-top: 12rpx;
 	border: 1rpx solid rgba(181, 148, 94, 0.18);
-	border-radius: 22rpx;
+	border-radius: 16rpx;
 	overflow: hidden;
 }
 
-.xicheng-map-sheet-info-row {
+.xicheng-map-sheet-detail-row {
 	display: flex;
 	align-items: center;
-	gap: 14rpx;
-	padding: 20rpx 18rpx;
+	gap: 10rpx;
+	padding: 10rpx 12rpx;
 	color: rgba(16, 47, 41, 0.76);
-	font-size: 26rpx;
+	font-size: 21rpx;
+	line-height: 1.25;
 	border-bottom: 1rpx solid rgba(181, 148, 94, 0.14);
 }
 
-.xicheng-map-sheet-info-row:last-child {
+.xicheng-map-sheet-detail-row:last-child {
 	border-bottom: 0;
+}
+
+.xicheng-map-sheet-detail-label,
+.xicheng-map-sheet-detail-value,
+.xicheng-map-sheet-detail-note {
+	display: block;
+}
+
+.xicheng-map-sheet-detail-label {
+	color: #173F35;
+	font-weight: 800;
+}
+
+.xicheng-map-sheet-detail-value {
+	margin-left: auto;
+	color: #4F4A40;
+	font-weight: 700;
+}
+
+.xicheng-map-sheet-detail-copy {
+	display: grid;
+	gap: 4rpx;
+	min-width: 0;
+}
+
+.xicheng-map-sheet-detail-note {
+	color: rgba(16, 47, 41, 0.54);
+	font-size: 20rpx;
 }
 
 .xicheng-map-sheet-primary {
 	width: 100%;
-	height: 78rpx;
-	line-height: 78rpx;
-	margin-top: 24rpx;
-	border-radius: 20rpx;
-	font-size: 30rpx;
+	height: 58rpx;
+	line-height: 58rpx;
+	margin-top: 12rpx;
+	border-radius: 16rpx;
+	font-size: 25rpx;
 	font-weight: 900;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10rpx;
+	padding: 0;
+}
+
+.xicheng-map-sheet-primary-icon {
+	color: #FFFDF8;
 }
 
 .xicheng-map-sheet-actions {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 18rpx;
-	margin-top: 18rpx;
+	gap: 12rpx;
+	margin-top: 10rpx;
 }
 
 .xicheng-map-sheet-action {
-	height: 70rpx;
-	line-height: 70rpx;
-	border-radius: 18rpx;
-	font-size: 27rpx;
+	height: 52rpx;
+	line-height: 52rpx;
+	border-radius: 14rpx;
+	font-size: 22rpx;
 	font-weight: 800;
 }
 </style>

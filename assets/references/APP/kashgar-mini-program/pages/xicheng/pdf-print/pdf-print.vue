@@ -26,64 +26,16 @@
 			</view>
 		</view>
 
-		<view class="print-page-stage xicheng-paper-card">
-			<view class="print-page-sheet" :class="`print-page-sheet-${currentPreviewPage.type}`">
-				<view class="sheet-watermark"></view>
-				<view class="sheet-head">
-					<text class="sheet-title">{{ currentPreviewPage.title }}</text>
-					<text class="sheet-subtitle">{{ currentPreviewPage.subtitle }}</text>
-				</view>
-				<image v-if="currentPreviewPage.image" class="sheet-image" :src="currentPreviewPage.image" mode="aspectFill" />
-				<view v-if="currentPreviewPage.type === 'cover'" class="sheet-route">
-					<view v-for="(stop, index) in routeStops" :key="stop" class="sheet-route-stop">
-						<text class="sheet-route-index">{{ index + 1 }}</text>
-						<text class="sheet-route-name">{{ stop }}</text>
-					</view>
-				</view>
-				<view v-else-if="currentPreviewPage.type === 'route'" class="sheet-mini-map">
-					<view class="sheet-map-water sheet-map-water-left"></view>
-					<view class="sheet-map-water sheet-map-water-right"></view>
-					<view class="sheet-map-line"></view>
-					<view v-for="(stop, index) in routeStops.slice(0, 4)" :key="stop" class="sheet-map-pin" :class="`sheet-map-pin-${index + 1}`">
-						<text>{{ index + 1 }}</text>
-					</view>
-				</view>
-				<view v-else-if="currentPreviewPage.type === 'photos'" class="sheet-photo-grid">
-					<image v-for="photo in selectedPhotos" :key="photo.label" class="sheet-photo" :src="photo.image" mode="aspectFill" />
-				</view>
-				<view v-else class="sheet-text-blocks">
-					<text v-for="line in currentPreviewPage.lines" :key="line" class="sheet-text-line">{{ line }}</text>
-				</view>
-				<view class="sheet-companion">
-					<image class="sheet-companion-avatar" :src="region.companionAvatar" mode="aspectFit" />
-					<text>{{ currentPreviewPage.caption }}</text>
-				</view>
-			</view>
-		</view>
-
-		<view class="print-page-counter">
-			<button class="print-page-counter-button print-page-counter-prev" :disabled="currentPageIndex === 0" aria-label="上一页" @click="selectPreviewPage(currentPageIndex - 1)"><xicheng-icon name="back" variant="plain" :size="22" :disabled="currentPageIndex === 0" /></button>
-			<text class="print-page-counter-label">页码预览 第 {{ currentPageIndex + 1 }} / {{ previewPages.length }} 页</text>
-			<button class="print-page-counter-button print-page-counter-next" :disabled="currentPageIndex === previewPages.length - 1" aria-label="下一页" @click="selectPreviewPage(currentPageIndex + 1)"><xicheng-icon name="next" variant="plain" :size="22" :disabled="currentPageIndex === previewPages.length - 1" /></button>
-		</view>
-
-		<scroll-view class="print-thumbnail-strip" scroll-x :show-scrollbar="false">
-			<view class="thumbnail-row">
-				<view
-					v-for="(page, index) in previewPages"
-					:key="page.label"
-					class="thumbnail-item"
-					:class="{ 'thumbnail-item-active': index === currentPageIndex }"
-					@click="selectPreviewPage(index)"
-				>
-					<view class="thumbnail-paper">
-						<image v-if="page.image" class="thumbnail-image" :src="page.image" mode="aspectFill" />
-						<text class="thumbnail-no">P{{ page.pageNo }}</text>
-					</view>
-					<text class="thumbnail-label">{{ page.label }}</text>
-				</view>
-			</view>
-		</scroll-view>
+		<xicheng-pdf-print-preview
+			:preview-pages="previewPages"
+			:current-page-index="currentPageIndex"
+			:current-preview-page="currentPreviewPage"
+			:show-all-pages-preview="showAllPagesPreview"
+			:route-stops="routeStops"
+			:selected-photos="selectedPhotos"
+			:companion-avatar="region.companionAvatar"
+			@select-page="selectPreviewPage"
+		/>
 
 		<view class="print-bottom-grid">
 			<view class="print-settings-grid xicheng-paper-card">
@@ -119,9 +71,25 @@
 			</view>
 		</view>
 
+		<view class="print-preflight-card xicheng-paper-card">
+			<view class="section-head">
+				<view class="section-title-row">
+					<xicheng-icon name="locked" variant="plain" :size="19" />
+					<text class="section-title">打印前检查</text>
+				</view>
+				<text class="section-badge">不会自动发布</text>
+			</view>
+			<view class="preflight-grid">
+				<view v-for="item in printPreflightItems" :key="item.title" class="preflight-item">
+					<xicheng-icon :name="item.icon" variant="primary" :size="16" />
+					<view class="preflight-copy"><text class="preflight-title">{{ item.title }}</text><text class="preflight-desc">{{ item.desc }}</text></view>
+				</view>
+			</view>
+		</view>
+
 		<view class="print-actions">
 			<button class="ghost-button xicheng-secondary-action" @click="savePdf">保存 PDF</button>
-			<button class="ghost-button xicheng-secondary-action" @click="previewAllPages">预览全部</button>
+			<button class="ghost-button xicheng-secondary-action" @click="previewAllPages">预览全部页面</button>
 			<button class="primary-button xicheng-primary-action" @click="systemPrintPdf">打印 / 分享 PDF</button>
 		</view>
 
@@ -131,6 +99,7 @@
 
 <script>
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
+import XichengPdfPrintPreview from '@/components/xicheng/XichengPdfPrintPreview.vue'
 
 const safeArray = value => Array.isArray(value) ? value : []
 const safeObject = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {}
@@ -140,11 +109,15 @@ const toSafeCount = value => {
 }
 
 export default {
+	components: {
+		XichengPdfPrintPreview
+	},
 	data() {
 		return {
 			region: XICHENG_REGION_CONFIG,
 			journeyDraft: {},
 			shareArtifacts: [],
+			showAllPagesPreview: false,
 			currentPageIndex: 0
 		}
 	},
@@ -265,6 +238,11 @@ export default {
 				{ title: '精选照片', desc: '自动裁切为打印比例', count: `${materialCount} 张` },
 				{ title: '资料来源', desc: '只导出已审核来源', count: `${reviewedSourceCount} 条` }
 			]
+		},
+		printPreflightItems() {
+			return [
+				{ title: '隐私保护', desc: '精确轨迹默认隐藏', icon: 'locked' }, { title: '来源检查', desc: '只导出已审核来源', icon: 'source' }, { title: '用户确认', desc: '系统打印/分享前会再次确认', icon: 'check' }
+			]
 		}
 	},
 	onShow() {
@@ -278,15 +256,31 @@ export default {
 			this.currentPageIndex = Math.min(Math.max(Math.round(nextIndex), 0), this.previewPages.length - 1)
 		},
 		previewAllPages() {
-			uni.showToast({ title: '预览全部页面', icon: 'none' })
+			this.showAllPagesPreview = !this.showAllPagesPreview
 		},
-		savePdf() {
+		confirmPdfExportAction(actionLabel = '') {
+			return new Promise((resolve) => {
+				uni.showModal({
+					title: `${actionLabel}确认`,
+					content: 'PDF 会先保存到本机预览，不会自动发布；系统打印/分享前会再次确认。',
+					confirmText: actionLabel,
+					cancelText: '取消',
+					success: (res) => resolve(Boolean(res.confirm)),
+					fail: () => resolve(false)
+				})
+			})
+		},
+		async savePdf() {
+			const confirmed = await this.confirmPdfExportAction('保存 PDF')
+			if (!confirmed) return
 			uni.showToast({ title: 'PDF 已保存到本机预览', icon: 'none' })
 		},
 		systemPrintPdf() {
 			this.sharePdf()
 		},
-		sharePdf() {
+		async sharePdf() {
+			const confirmed = await this.confirmPdfExportAction('打印 / 分享 PDF')
+			if (!confirmed) return
 			uni.showToast({ title: '将唤起系统打印或分享 PDF', icon: 'none' })
 		},
 		openSharePage() {
@@ -314,8 +308,6 @@ export default {
 .section-head,
 .summary-tags,
 .print-actions,
-.sheet-route,
-.thumbnail-row,
 .setting-row,
 .export-row {
 	display: flex;
@@ -338,7 +330,6 @@ export default {
 }
 .topbar-title,
 .summary-title,
-.sheet-title,
 .section-title,
 .export-title {
 	font-weight: 900;
@@ -360,9 +351,9 @@ export default {
 	font-size: 27rpx;
 }
 .print-summary-card,
-.print-page-stage,
 .print-settings-grid,
-.export-content-card {
+.export-content-card,
+.print-preflight-card {
 	margin-top: 22rpx;
 	border-radius: 26rpx;
 }
@@ -422,262 +413,6 @@ export default {
 	text-align: center;
 	line-height: 116rpx;
 }
-.print-page-stage {
-	padding: 26rpx;
-}
-.print-page-sheet {
-	position: relative;
-	min-height: 720rpx;
-	padding: 44rpx 42rpx 34rpx;
-	border-radius: 12rpx;
-	background: #FFFDF8;
-	box-shadow: 0 18rpx 46rpx rgba(36, 31, 24, 0.16);
-	overflow: hidden;
-	box-sizing: border-box;
-}
-.sheet-watermark {
-	position: absolute;
-	right: 18rpx;
-	bottom: 14rpx;
-	width: 190rpx;
-	height: 150rpx;
-	border: 2rpx solid rgba(181, 148, 94, 0.12);
-	border-radius: 90rpx 90rpx 12rpx 12rpx;
-}
-.sheet-head {
-	position: relative;
-	z-index: 1;
-	text-align: center;
-}
-.sheet-title,
-.sheet-subtitle,
-.sheet-companion text,
-.sheet-text-line,
-.thumbnail-label,
-.setting-label,
-.setting-value,
-.export-title,
-.export-desc,
-.export-count,
-.print-footnote {
-	display: block;
-}
-.sheet-title {
-	font-size: 44rpx;
-	line-height: 1.18;
-}
-.sheet-subtitle {
-	margin-top: 14rpx;
-	font-size: 25rpx;
-	color: #5C574F;
-}
-.sheet-image {
-	position: relative;
-	z-index: 1;
-	width: 100%;
-	height: 330rpx;
-	margin-top: 34rpx;
-	border-radius: 8rpx 8rpx 38rpx 38rpx;
-}
-.sheet-route {
-	position: relative;
-	z-index: 1;
-	justify-content: space-between;
-	gap: 12rpx;
-	margin-top: 28rpx;
-	padding-top: 20rpx;
-	border-top: 2rpx dashed rgba(181, 148, 94, 0.46);
-}
-.sheet-route-stop {
-	text-align: center;
-	flex: 1;
-	min-width: 0;
-}
-.sheet-route-index,
-.sheet-map-pin text {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 42rpx;
-	height: 42rpx;
-	border-radius: 999px;
-	background: #173F35;
-	color: #FFF9EC;
-	font-size: 24rpx;
-	font-weight: 900;
-}
-.sheet-route-name {
-	display: block;
-	margin-top: 9rpx;
-	font-size: 21rpx;
-	color: #173F35;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-}
-.sheet-mini-map {
-	position: relative;
-	height: 330rpx;
-	margin-top: 34rpx;
-	border-radius: 18rpx;
-	background: linear-gradient(90deg, rgba(181, 148, 94, 0.12) 1rpx, transparent 1rpx), linear-gradient(0deg, rgba(181, 148, 94, 0.12) 1rpx, transparent 1rpx), #F8F0DF;
-	background-size: 54rpx 54rpx;
-	overflow: hidden;
-}
-.sheet-map-water {
-	position: absolute;
-	border-radius: 999px;
-	background: rgba(142, 185, 190, 0.42);
-}
-.sheet-map-water-left {
-	left: 116rpx;
-	top: 78rpx;
-	width: 210rpx;
-	height: 132rpx;
-}
-.sheet-map-water-right {
-	right: 80rpx;
-	top: 72rpx;
-	width: 122rpx;
-	height: 180rpx;
-}
-.sheet-map-line {
-	position: absolute;
-	left: 108rpx;
-	right: 102rpx;
-	top: 176rpx;
-	height: 100rpx;
-	border-left: 6rpx solid #173F35;
-	border-bottom: 6rpx solid #173F35;
-	border-radius: 0 0 0 38rpx;
-}
-.sheet-map-pin {
-	position: absolute;
-	z-index: 2;
-}
-.sheet-map-pin-1 {
-	left: 86rpx;
-	bottom: 52rpx;
-}
-.sheet-map-pin-2 {
-	left: 188rpx;
-	top: 130rpx;
-}
-.sheet-map-pin-3 {
-	right: 150rpx;
-	top: 104rpx;
-}
-.sheet-map-pin-4 {
-	right: 74rpx;
-	bottom: 58rpx;
-}
-.sheet-photo-grid {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 14rpx;
-	margin-top: 34rpx;
-}
-.sheet-photo {
-	width: 100%;
-	height: 152rpx;
-	border-radius: 16rpx;
-}
-.sheet-text-blocks {
-	margin-top: 34rpx;
-	padding: 26rpx;
-	border-radius: 20rpx;
-	background: rgba(255, 248, 234, 0.72);
-}
-.sheet-text-line {
-	font-size: 26rpx;
-	line-height: 1.72;
-	color: #3E3831;
-}
-.sheet-companion {
-	position: relative;
-	z-index: 1;
-	display: flex;
-	align-items: center;
-	gap: 18rpx;
-	margin-top: 32rpx;
-}
-.sheet-companion-avatar {
-	width: 106rpx;
-	height: 106rpx;
-	flex-shrink: 0;
-}
-.sheet-companion text {
-	flex: 1;
-	padding: 18rpx 22rpx;
-	border-radius: 18rpx;
-	background: rgba(255, 252, 246, 0.92);
-	border: 1rpx solid rgba(181, 148, 94, 0.16);
-	font-size: 23rpx;
-	line-height: 1.48;
-	color: #5C574F;
-}
-.print-page-counter {
-	display: flex; align-items: center; justify-content: center;
-	gap: 18rpx; margin-top: 16rpx; color: #8C8278;
-	font-size: 25rpx;
-}
-.print-page-counter-button {
-	width: 76rpx; height: 76rpx;
-	display: flex;
-	align-items: center; justify-content: center;
-	border-radius: 999rpx;
-	padding: 0; margin: 0;
-	background: rgba(255, 252, 246, 0.94);
-	border: 1rpx solid rgba(181, 148, 94, 0.16);
-	box-shadow: 0 10rpx 22rpx rgba(36, 31, 24, 0.08);
-}
-.print-page-counter-button[disabled] { opacity: 0.46; box-shadow: none; }
-.print-page-counter-label {
-	padding: 10rpx 30rpx; border-radius: 999px;
-	background: rgba(255, 252, 246, 0.94); border: 1rpx solid rgba(181, 148, 94, 0.14);
-}
-.print-thumbnail-strip {
-	margin-top: 20rpx;
-	white-space: nowrap;
-}
-.thumbnail-row {
-	gap: 18rpx;
-	padding: 0 2rpx 8rpx;
-}
-.thumbnail-item {
-	width: 112rpx;
-	flex-shrink: 0;
-	text-align: center;
-}
-.thumbnail-paper {
-	position: relative;
-	height: 146rpx;
-	border-radius: 10rpx;
-	background: #FFFDF8;
-	border: 2rpx solid rgba(181, 148, 94, 0.16);
-	overflow: hidden;
-}
-.thumbnail-item-active .thumbnail-paper {
-	border-color: #173F35;
-	box-shadow: 0 10rpx 24rpx rgba(16, 47, 41, 0.16);
-}
-.thumbnail-image {
-	width: 100%;
-	height: 96rpx;
-}
-.thumbnail-no {
-	position: absolute;
-	left: 8rpx;
-	bottom: 8rpx;
-	font-size: 19rpx;
-	font-weight: 900;
-	color: #B5945E;
-}
-.thumbnail-label {
-	margin-top: 8rpx;
-	font-size: 22rpx;
-	color: #4C463E;
-}
 .print-bottom-grid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -685,7 +420,8 @@ export default {
 	margin-top: 18rpx;
 }
 .print-settings-grid,
-.export-content-card {
+.export-content-card,
+.print-preflight-card {
 	padding: 24rpx;
 }
 .section-title-row {
@@ -698,6 +434,14 @@ export default {
 }
 .section-badge {
 	font-size: 21rpx;
+}
+.setting-label,
+.setting-value,
+.export-title,
+.export-desc,
+.export-count,
+.print-footnote {
+	display: block;
 }
 .setting-row,
 .export-row {
@@ -713,7 +457,9 @@ export default {
 .setting-value,
 .export-title,
 .export-desc,
-.export-count {
+.export-count,
+.preflight-title,
+.preflight-desc {
 	font-size: 24rpx;
 	line-height: 1.35;
 }
@@ -722,22 +468,30 @@ export default {
 	color: #3E3831;
 	text-align: right;
 }
-.setting-value-on {
-	color: #173F35;
-	font-weight: 800;
-}
-.export-copy {
-	flex: 1;
-	min-width: 0;
-}
-.export-title {
-	color: #173F35;
-	font-weight: 800;
-}
-.export-desc {
+.setting-value-on { color: #173F35; font-weight: 800; }
+.export-copy { flex: 1; min-width: 0; }
+.export-title { color: #173F35; font-weight: 800; }
+.export-desc,
+.preflight-desc {
 	margin-top: 4rpx;
 	color: #8C8278;
 }
+.preflight-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14rpx; margin-top: 18rpx; }
+.preflight-item {
+	display: flex;
+	align-items: flex-start;
+	gap: 12rpx;
+	min-height: 104rpx;
+	padding: 18rpx 16rpx;
+	border-radius: 20rpx;
+	background: rgba(255, 252, 246, 0.84);
+	border: 1rpx solid rgba(181, 148, 94, 0.14);
+	box-sizing: border-box;
+}
+.preflight-copy { flex: 1; min-width: 0; }
+.preflight-title,
+.preflight-desc { display: block; }
+.preflight-title { color: #173F35; font-weight: 800; }
 .print-actions {
 	gap: 18rpx;
 	margin-top: 24rpx;

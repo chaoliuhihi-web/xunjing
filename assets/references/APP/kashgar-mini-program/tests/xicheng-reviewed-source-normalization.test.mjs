@@ -16,6 +16,10 @@ const triggerRequest = read('request', 'xunjing', 'trigger.js')
 const chatRequest = read('request', 'xunjing', 'chat.js')
 const messageCache = read('request', 'xunjing', 'messageCache.js')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
+const scanResultSourcesCard = exists('components', 'xicheng', 'XichengScanResultSourcesCard.vue')
+  ? read('components', 'xicheng', 'XichengScanResultSourcesCard.vue')
+  : ''
+const scanResultDisplaySurface = `${scanResult}\n${scanResultSourcesCard}`
 const aiGuide = read('pages', 'ai-guide', 'ai-guide.vue')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 
@@ -69,7 +73,7 @@ assert.match(
 
 for (const [name, page] of [
   ['AI guide', aiGuide],
-  ['recognition result', scanResult],
+  ['recognition result', scanResultDisplaySurface],
   ['travelogue', travelogue]
 ]) {
   assert.match(
@@ -81,7 +85,7 @@ for (const [name, page] of [
 
 for (const [name, page] of [
   ['AI guide', aiGuide],
-  ['recognition result', scanResult],
+  ['recognition result', scanResultDisplaySurface],
   ['travelogue', travelogue]
 ]) {
   assert.doesNotMatch(

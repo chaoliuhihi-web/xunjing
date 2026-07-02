@@ -65,6 +65,14 @@
 						<xicheng-icon name="play" variant="primary" :size="24" />
 						<text>听讲解</text>
 					</button>
+					<view class="route-detail-stop-actions">
+						<button class="route-detail-stop-action" @click="$emit('open-poi-detail', stop)">
+							<text>地点详情</text>
+						</button>
+						<button class="route-detail-stop-action route-detail-stop-action-primary" @click="$emit('navigate-stop', stop)">
+							<text>导航去这里</text>
+						</button>
+					</view>
 				</view>
 			</view>
 			<view class="route-detail-finish-pin"></view>
@@ -147,7 +155,7 @@ export default {
 			default: ''
 		}
 	},
-	emits: ['back', 'passport', 'ask-stop', 'start-recording', 'generate-travelogue'],
+	emits: ['back', 'passport', 'ask-stop', 'open-poi-detail', 'navigate-stop', 'start-recording', 'generate-travelogue'],
 	computed: {
 		routeStopItems() {
 			return Array.isArray(this.routeStops) ? this.routeStops : []
@@ -479,6 +487,32 @@ export default {
 	font-size: 24rpx;
 	font-weight: 700;
 	padding: 0;
+}
+
+.route-detail-stop-actions {
+	grid-column: 2 / 4;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 12rpx;
+	margin-top: -6rpx;
+}
+
+.route-detail-stop-action {
+	min-height: 58rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 999rpx;
+	background: rgba(23, 63, 53, 0.08);
+	color: #173F35;
+	font-size: 24rpx;
+	font-weight: 700;
+	padding: 0 14rpx;
+}
+
+.route-detail-stop-action-primary {
+	background: rgba(181, 148, 94, 0.18);
+	color: #805F27;
 }
 
 .route-detail-finish-pin {
