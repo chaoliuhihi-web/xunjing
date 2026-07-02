@@ -430,6 +430,9 @@ export default {
 				memorySessionSceneCount: context.memorySessionSceneCount
 			}
 		},
+		buildTriggerSceneSignals(source = '') {
+			return this.buildVisionAgentSceneContext(source, {})
+		},
 		buildSceneVisionEntryUrl(context = this.buildSceneVisionContext(), entry = 'home-world-entry') {
 			const params = [
 				['context', 'vision-agent'],
@@ -490,7 +493,8 @@ export default {
 					text,
 					ocrText: text,
 					location,
-					source
+					source,
+					sceneSignals: this.buildTriggerSceneSignals(source)
 				})
 				this.openScanResult(trigger, source)
 			} catch (error) {
@@ -525,7 +529,8 @@ export default {
 					try {
 						const trigger = await resolveXichengOcrImageTrigger({
 							filePath,
-							ocrText: this.textRecognitionInput.trim()
+							ocrText: this.textRecognitionInput.trim(),
+							sceneSignals: this.buildTriggerSceneSignals('ocr')
 						})
 						this.openScanResult(trigger, 'ocr')
 					} catch (error) {
@@ -557,7 +562,8 @@ export default {
 					text: '当前位置附近西城文化点',
 					ocrText: '',
 					source: 'gps',
-					location
+					location,
+					sceneSignals: this.buildTriggerSceneSignals('gps')
 				})
 				this.openScanResult(trigger, 'gps')
 			} catch (error) {
@@ -608,7 +614,10 @@ export default {
 					this.recognizing = true
 					this.lastError = ''
 					try {
-						const trigger = await resolveXichengPhotoTrigger({ filePath })
+						const trigger = await resolveXichengPhotoTrigger({
+							filePath,
+							sceneSignals: this.buildTriggerSceneSignals('photo')
+						})
 						this.openScanResult(trigger, 'photo')
 					} catch (error) {
 						this.handleRecognitionServiceFailure('photo', error)

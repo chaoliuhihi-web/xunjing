@@ -612,6 +612,29 @@ export default {
 				sceneAgentActionPreviews: agentDecisionSnapshot.sceneAgentActionPreviews
 			}
 		},
+		buildTriggerSceneSignals(source = '') {
+			const fusionContext = this.buildSceneFusionContext()
+			const fusionSignals = this.buildSceneFusionSignals(fusionContext)
+			const worldInterfaceSnapshot = this.buildWorldInterfaceSnapshot(fusionContext)
+			const selectedSceneDomain = this.getSelectedSceneDomainCapability()
+			const agentDecisionSnapshot = this.buildAgentDecisionSnapshot()
+			return {
+				source,
+				sceneFusionSummary: this.buildSceneFusionSummary(fusionContext, fusionSignals),
+				worldInterfaceSummary: worldInterfaceSnapshot.summary,
+				localTimeText: fusionContext.localTimeText || '',
+				weatherText: fusionContext.weatherText || '',
+				headingText: fusionContext.headingText || '',
+				headingDegrees: fusionContext.headingDegrees || '',
+				sceneDomainIntentKey: selectedSceneDomain.domainKey || '',
+				sceneDomainIntentLabel: selectedSceneDomain.label || '',
+				sceneDomainIntentTitle: selectedSceneDomain.title || '',
+				sceneDomainIntentCopy: selectedSceneDomain.copy || '',
+				agentDecisionActionTitle: agentDecisionSnapshot.agentDecisionActionTitle || '',
+				agentDecisionReasonSummary: agentDecisionSnapshot.agentDecisionReasonSummary || '',
+				memorySessionSceneCount: agentDecisionSnapshot.memorySessionSceneCount || fusionContext.memorySessionSceneCount || 0
+			}
+		},
 		createSceneAgentActionPreviews() {
 			const context = this.buildSceneFusionContext()
 			const localTimeText = String(context.localTimeText || '')
@@ -832,18 +855,21 @@ export default {
 					const source = this.shouldUseOcrImageRecognition() ? 'ocr' : 'photo'
 					try {
 						const text = this.manualText.trim()
+						const sceneSignals = this.buildTriggerSceneSignals(source)
 						const trigger = await (source === 'ocr'
 							? resolveXichengOcrImageTrigger({
 								filePath,
 								text,
 								ocrText: text,
-								imageLabels: this.sceneDomainImageLabels
+								imageLabels: this.sceneDomainImageLabels,
+								sceneSignals
 							})
 							: resolveXichengPhotoTrigger({
 								filePath,
 								text,
 								ocrText: text,
-								imageLabels: this.sceneDomainImageLabels
+								imageLabels: this.sceneDomainImageLabels,
+								sceneSignals
 							}))
 						this.openScanResult(trigger, source)
 					} catch (error) {
@@ -867,13 +893,16 @@ export default {
 				this.currentLocation = location
 				this.refreshSceneFusionPanel()
 				const text = this.manualText.trim() || '当前位置附近西城文化点'
+				const source = location ? 'gps' : 'text'
+				const sceneSignals = this.buildTriggerSceneSignals(source)
 				const trigger = await resolveXichengTextTrigger({
 					text,
 					ocrText: text,
 					location,
-					source: location ? 'gps' : 'text'
+					source,
+					sceneSignals
 				})
-				this.openScanResult(trigger, location ? 'gps' : 'text')
+				this.openScanResult(trigger, source)
 			} catch (error) {
 				this.handleRecognitionServiceFailure('gps', error)
 			} finally {
@@ -886,11 +915,13 @@ export default {
 			this.lastError = ''
 			this.refreshSceneFusionPanel()
 			try {
+				const sceneSignals = this.buildTriggerSceneSignals(source)
 				const trigger = await resolveXichengTextTrigger({
 					text,
 					ocrText: this.manualText.trim() || text,
 					location: this.currentLocation,
-					source
+					source,
+					sceneSignals
 				})
 				this.openScanResult(trigger, source)
 			} catch (error) {

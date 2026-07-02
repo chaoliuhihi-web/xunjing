@@ -98,12 +98,30 @@ assert.match(
 
 assert.match(
   scan,
+  /buildTriggerSceneSignals\(source = ''\)[\s\S]*buildSceneFusionContext\(\)[\s\S]*buildWorldInterfaceSnapshot\(fusionContext\)[\s\S]*getSelectedSceneDomainCapability\(\)[\s\S]*buildAgentDecisionSnapshot\(\)[\s\S]*sceneFusionSummary[\s\S]*worldInterfaceSummary[\s\S]*localTimeText[\s\S]*weatherText[\s\S]*headingText[\s\S]*headingDegrees[\s\S]*sceneDomainIntentKey[\s\S]*agentDecisionReasonSummary[\s\S]*memorySessionSceneCount/,
+  'Scan page should build bounded Scene Engine trigger signals from live fusion, world-interface, selected domain, Agent decision, and memory context'
+)
+
+assert.match(
+  scan,
   /shouldUseOcrImageRecognition\(\)[\s\S]*\['sign-ocr',\s*'menu'\]\.includes\(this\.selectedSceneDomainKey\)/,
   'Text-dense scene domains such as route signs and menus should route selected images through OCR recognition'
 )
 
 assert.match(
   scan,
-  /const source = this\.shouldUseOcrImageRecognition\(\) \? 'ocr' : 'photo'[\s\S]*source === 'ocr'\s*\? resolveXichengOcrImageTrigger\(\{[\s\S]*filePath[\s\S]*text[\s\S]*ocrText:\s*text[\s\S]*imageLabels:\s*this\.sceneDomainImageLabels[\s\S]*\}\)[\s\S]*:\s*resolveXichengPhotoTrigger\(\{[\s\S]*this\.openScanResult\(trigger,\s*source\)/,
-  'Auto recognition should use the OCR image backend contract for selected text-dense domains and preserve the source in scan-result'
+  /const source = this\.shouldUseOcrImageRecognition\(\) \? 'ocr' : 'photo'[\s\S]*const sceneSignals = this\.buildTriggerSceneSignals\(source\)[\s\S]*source === 'ocr'\s*\? resolveXichengOcrImageTrigger\(\{[\s\S]*filePath[\s\S]*text[\s\S]*ocrText:\s*text[\s\S]*imageLabels:\s*this\.sceneDomainImageLabels[\s\S]*sceneSignals[\s\S]*\}\)[\s\S]*:\s*resolveXichengPhotoTrigger\(\{[\s\S]*sceneSignals[\s\S]*this\.openScanResult\(trigger,\s*source\)/,
+  'Auto recognition should send Scene Engine trigger signals through OCR/photo backend contracts and preserve the source in scan-result'
+)
+
+assert.match(
+  scan,
+  /resolveNearbyLocation\(\)[\s\S]*const source = location \? 'gps' : 'text'[\s\S]*const sceneSignals = this\.buildTriggerSceneSignals\(source\)[\s\S]*resolveXichengTextTrigger\(\{[\s\S]*sceneSignals[\s\S]*this\.openScanResult\(trigger,\s*source\)/,
+  'Nearby GPS/text fallback recognition should send Scene Engine trigger signals before opening scan-result'
+)
+
+assert.match(
+  scan,
+  /resolveTextAndOpenResult\(text = '', source = 'scan'\)[\s\S]*const sceneSignals = this\.buildTriggerSceneSignals\(source\)[\s\S]*resolveXichengTextTrigger\(\{[\s\S]*sceneSignals[\s\S]*this\.openScanResult\(trigger,\s*source\)/,
+  'Manual text or scan recognition should send Scene Engine trigger signals into the shared trigger facade'
 )
