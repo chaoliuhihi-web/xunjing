@@ -566,7 +566,11 @@ async function checkXichengAppEventBackend(rootDir) {
     'EventType.AGENT_ACTION',
     'buildAgentActionEventPayload',
     'sanitizeAgentActionClientPayload',
-    'payload.put("agentAction", buildAgentActionEventPayload(clientPayloadObject))',
+    'Map<String, Object> agentAction = buildAgentActionEventPayload(clientPayloadObject)',
+    'payload.put("agentAction", agentAction)',
+    'payload.put("travelRecordMaterial", travelRecordMaterial)',
+    'buildAgentActionTravelRecordMaterialPayload(',
+    'resourcePackage, reqVO, agentAction',
     'buildTriggerAgentActionPayload(action, respVO)',
     'payload.put("poiCode", truncateForEvent(respVO.getPoiCode(), 80))',
     'hydrateVisionAgentContextFromPreviousAgentAction(resourcePackage, reqVO, explicitChatTargetContext)',
@@ -623,6 +627,11 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(
     appTest,
     'testRecordAgentActionEventStoresStructuredTelemetryWithoutRawImagePayload',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'travelRecordMaterial.get("generateTravelogue").asBoolean()',
     'XunjingAppServiceImplTest.java'
   )
   assertContains(

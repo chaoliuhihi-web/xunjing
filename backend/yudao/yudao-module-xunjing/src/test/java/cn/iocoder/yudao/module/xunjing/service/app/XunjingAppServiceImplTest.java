@@ -337,6 +337,19 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertEquals("xicheng-gongwangfu", agentAction.get("poiCode").asText());
         assertEquals("恭王府", agentAction.get("poiName").asText());
         assertTrue(agentAction.get("targetPath").asText().contains("packageCode=XICHENG-MAP-001"));
+        JsonNode travelRecordMaterial = payload.get("travelRecordMaterial");
+        assertEquals("travel_record", travelRecordMaterial.get("artifactType").asText());
+        assertEquals("XICHENG-MAP-001", travelRecordMaterial.get("packageCode").asText());
+        assertEquals("xicheng-agent-action", travelRecordMaterial.get("sceneCode").asText());
+        assertEquals("beijing-xicheng", travelRecordMaterial.get("regionCode").asText());
+        assertEquals("xicheng-gongwangfu", travelRecordMaterial.get("poiCode").asText());
+        assertEquals("恭王府", travelRecordMaterial.get("poiName").asText());
+        assertEquals("generate_travelogue", travelRecordMaterial.get("actionKey").asText());
+        assertEquals("started", travelRecordMaterial.get("executionStatus").asText());
+        assertEquals("trace-xicheng-travel-record-actions-001",
+                travelRecordMaterial.get("sourceTriggerTraceId").asText());
+        assertTrue(travelRecordMaterial.get("generateTravelogue").asBoolean());
+        assertFalse(travelRecordMaterial.get("requiresRealSystem").asBoolean());
         assertFalse(event.getPayloadJson().contains("imageBase64"));
         assertFalse(event.getPayloadJson().contains("blocked"));
     }
