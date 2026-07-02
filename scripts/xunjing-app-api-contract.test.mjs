@@ -112,6 +112,7 @@ describe('xunjing app API contract', () => {
     expect(visionService).toContain('"recognitionEvidence"')
     expect(visionService).toContain('"providerConfigured"')
     expect(appServiceImpl).toContain('payload.put("recognitionEvidence", buildTriggerRecognitionEvidencePayload(reqVO))')
+    expect(appServiceImpl).toContain('payload.put("sceneSnapshot", buildTriggerSceneSnapshotPayload(reqVO, respVO))')
   })
 
   test('agent action app event contract is backend telemetry and sanitizes raw media payloads', async () => {

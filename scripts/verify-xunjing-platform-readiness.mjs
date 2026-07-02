@@ -446,8 +446,10 @@ async function checkXichengTriggerBackend(rootDir) {
     'buildTriggerResolveEventPayload',
     'payload.put("sceneUnderstanding", buildTriggerSceneUnderstandingPayload(respVO))',
     'payload.put("recognitionEvidence", buildTriggerRecognitionEvidencePayload(reqVO))',
+    'payload.put("sceneSnapshot", buildTriggerSceneSnapshotPayload(reqVO, respVO))',
     'buildTriggerSceneUnderstandingPayload',
     'buildTriggerRecognitionEvidencePayload',
+    'buildTriggerSceneSnapshotPayload',
     'JsonNode sceneUnderstanding = root.path("sceneUnderstanding")',
     'hydrateTriggerSceneUnderstandingText',
     'hydrateTriggerSceneCount(reqVO, sceneUnderstanding, sceneSignals)',
@@ -483,6 +485,16 @@ async function checkXichengTriggerBackend(rootDir) {
   assertContains(
     appTest,
     'recognitionEvidence.get("providerConfigured").asBoolean()',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'sceneSnapshot.get("artifactType").asText()',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'sceneSnapshot.get("serviceHandoffIntent").asText()',
     'XunjingAppServiceImplTest.java'
   )
   assertContains(

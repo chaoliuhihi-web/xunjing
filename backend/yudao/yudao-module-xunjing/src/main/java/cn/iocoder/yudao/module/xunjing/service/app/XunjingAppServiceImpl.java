@@ -1690,6 +1690,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         payload.put("recentPoiCount", reqVO.getRecentPoiCodes() == null ? 0 : reqVO.getRecentPoiCodes().size());
         payload.put("sceneSignals", buildTriggerSceneSignalsPayload(reqVO.getSceneSignals()));
         payload.put("recognitionEvidence", buildTriggerRecognitionEvidencePayload(reqVO));
+        payload.put("sceneSnapshot", buildTriggerSceneSnapshotPayload(reqVO, respVO));
         payload.put("sceneUnderstanding", buildTriggerSceneUnderstandingPayload(respVO));
         payload.put("serviceHandoff", buildTriggerServiceHandoffPayload(reqVO, respVO));
         payload.put("agentActions", buildTriggerAgentActionsPayload(respVO));
@@ -1730,6 +1731,102 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         putTriggerSceneUnderstandingText(payload, "serviceHandoffSummary",
                 sceneUnderstanding.getServiceHandoffSummary());
         return payload;
+    }
+
+    private Map<String, Object> buildTriggerSceneSnapshotPayload(
+            MultimodalTriggerReqVO reqVO, MultimodalTriggerRespVO respVO) {
+        if (reqVO == null && respVO == null) {
+            return Map.of();
+        }
+        Map<String, Object> recognitionEvidence = buildTriggerRecognitionEvidencePayload(reqVO);
+        Map<String, Object> sceneUnderstanding = buildTriggerSceneUnderstandingPayload(respVO);
+        Map<String, Object> serviceHandoff = buildTriggerServiceHandoffPayload(reqVO, respVO);
+        Map<String, Object> payload = new LinkedHashMap<>();
+        String reqPackageCode = reqVO == null ? "" : reqVO.getPackageCode();
+        String reqRegionCode = reqVO == null ? "" : reqVO.getRegionCode();
+        String respPackageCode = respVO == null ? "" : respVO.getPackageCode();
+        String respRegionCode = respVO == null ? "" : respVO.getRegionCode();
+        payload.put("artifactType", "vision_scene_snapshot");
+        putTriggerSceneSnapshotText(payload, "packageCode", defaultIfBlank(respPackageCode, reqPackageCode), 80);
+        putTriggerSceneSnapshotText(payload, "sceneCode", reqVO == null ? "" : reqVO.getSceneCode(), 80);
+        putTriggerSceneSnapshotText(payload, "regionCode", defaultIfBlank(respRegionCode, reqRegionCode), 80);
+        putTriggerSceneSnapshotText(payload, "poiCode", respVO == null ? "" : respVO.getPoiCode(), 80);
+        putTriggerSceneSnapshotText(payload, "poiName", respVO == null ? "" : respVO.getPoiName(), 80);
+        putTriggerSceneSnapshotText(payload, "intent", respVO == null ? "" : respVO.getIntent(), 50);
+        putTriggerSceneSnapshotText(payload, "action", respVO == null ? "" : respVO.getAction(), 80);
+        putTriggerSceneSnapshotText(payload, "triggerType", respVO == null ? "" : respVO.getTriggerType(), 50);
+        if (respVO != null && respVO.getConfidence() != null) {
+            payload.put("confidence", respVO.getConfidence());
+        }
+        if (respVO != null && respVO.getRequiresUserConfirm() != null) {
+            payload.put("requiresUserConfirm", respVO.getRequiresUserConfirm());
+        }
+        putTriggerSceneSnapshotText(payload, "sceneDomainKey",
+                stringValue(sceneUnderstanding.get("primarySceneDomainKey")), 80);
+        putTriggerSceneSnapshotText(payload, "sceneDomainLabel",
+                stringValue(sceneUnderstanding.get("primarySceneDomainLabel")), 80);
+        putTriggerSceneSnapshotText(payload, "sceneFusionSummary",
+                stringValue(sceneUnderstanding.get("sceneFusionSummary")), TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+        putTriggerSceneSnapshotText(payload, "worldInterfaceSummary",
+                stringValue(sceneUnderstanding.get("worldInterfaceSummary")), TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+        putTriggerSceneSnapshotText(payload, "recognitionStatus",
+                defaultIfBlank(stringValue(recognitionEvidence.get("status")),
+                        stringValue(sceneUnderstanding.get("visionRecognitionStatus"))), 50);
+        putTriggerSceneSnapshotText(payload, "recognitionModel",
+                defaultIfBlank(stringValue(recognitionEvidence.get("model")),
+                        stringValue(sceneUnderstanding.get("visionRecognitionModel"))), 80);
+        putTriggerSceneSnapshotNumber(payload, "recognitionLabelCount",
+                recognitionEvidence.get("labelCount"), sceneUnderstanding.get("visionRecognitionLabelCount"));
+        putTriggerSceneSnapshotText(payload, "ocrText",
+                defaultIfBlank(stringValue(recognitionEvidence.get("ocrText")), reqVO == null ? "" : reqVO.getOcrText()),
+                TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+        putTriggerSceneSnapshotText(payload, "imageId",
+                defaultIfBlank(stringValue(recognitionEvidence.get("imageId")),
+                        reqVO == null || reqVO.getPhotoMeta() == null ? "" : reqVO.getPhotoMeta().getImageId()), 100);
+        putTriggerSceneSnapshotText(payload, "serviceHandoffIntent",
+                stringValue(serviceHandoff.get("intent")), 50);
+        putTriggerSceneSnapshotBoolean(payload, "serviceHandoffRequiresRealSystem",
+                serviceHandoff.get("requiresRealSystem"));
+        List<String> matchedSignals = buildTriggerMatchedSignalsPayload(respVO);
+        if (!matchedSignals.isEmpty()) {
+            payload.put("matchedSignals", matchedSignals);
+        }
+        Map<String, Object> location = buildTriggerLocationPayload(reqVO == null ? null : reqVO.getLocation());
+        if (!location.isEmpty()) {
+            payload.put("location", location);
+        }
+        return payload;
+    }
+
+    private void putTriggerSceneSnapshotText(Map<String, Object> payload, String key, String value, int maxLength) {
+        if (hasText(value)) {
+            payload.put(key, truncateForEvent(value.trim(), maxLength));
+        }
+    }
+
+    private void putTriggerSceneSnapshotNumber(
+            Map<String, Object> payload, String key, Object primaryValue, Object fallbackValue) {
+        Double value = triggerSceneSignalNumber(primaryValue);
+        if (value == null) {
+            value = triggerSceneSignalNumber(fallbackValue);
+        }
+        if (value == null || !Double.isFinite(value)) {
+            return;
+        }
+        long rounded = Math.round(value);
+        if (rounded >= 0) {
+            payload.put(key, rounded);
+        }
+    }
+
+    private void putTriggerSceneSnapshotBoolean(Map<String, Object> payload, String key, Object value) {
+        if (value instanceof Boolean booleanValue) {
+            payload.put(key, booleanValue);
+            return;
+        }
+        if (value instanceof String text && hasText(text)) {
+            payload.put(key, Boolean.parseBoolean(text.trim()));
+        }
     }
 
     private void putTriggerSceneUnderstandingText(Map<String, Object> payload, String key, String value) {
