@@ -31,6 +31,7 @@ const checkOwnerLane = {
   'yudao-server-artifact': 'yudao-deploy',
   'yudao-server-build-evidence': 'yudao-deploy',
   'yudao-server-smoke': 'yudao-deploy',
+  'xunjing-admin-ui-artifact': 'admin-ui',
   'xicheng-production-poi-evidence': 'poi-data',
   'xicheng-runtime-seed-evidence': 'poi-data',
   'xicheng-production-seed-apply': 'poi-data',
@@ -43,6 +44,7 @@ const releaseGateEvidenceArgs = [
   '--yudao-server-jar /secure/path/yudao-server.jar',
   '--yudao-server-build-evidence qa/xicheng-yudao-server-build-evidence.json',
   '--yudao-server-smoke-evidence qa/xicheng-yudao-server-smoke-evidence.json',
+  '--admin-ui-dir /secure/path/yudao-admin-dist',
   '--ai-bootstrap-evidence qa/xicheng-yudao-ai-bootstrap-evidence.json',
   '--qdrant-evidence qa/xicheng-qdrant-smoke-evidence.json',
   '--embedding-evidence qa/xicheng-embedding-smoke-evidence.json',
@@ -122,6 +124,11 @@ const checkTaskInstructions = {
     taskDetail: 'Run the deployed Yudao server HTTP smoke against the production APP API domain.',
     requiredEvidence: 'Release evidence records yudaoServerSmokeEvidenceFile plus XICHENG_YUDAO_SERVER_SMOKE_READY public endpoint results and build-bound smoke metadata.',
     verificationCommand: 'npm run xunjing:yudao:server:smoke -- --env-file /secure/path/production.env --yudao-server-build-evidence qa/xicheng-yudao-server-build-evidence.json --evidence-file qa/xicheng-yudao-server-smoke-evidence.json'
+  },
+  'xunjing-admin-ui-artifact': {
+    taskDetail: 'Build and deploy the real Yudao Admin static artifact for xunjingadmin.xingheai.net.',
+    requiredEvidence: 'Release evidence records xunjing-admin-ui-artifact with a built Vue SPA dist directory and no placeholder landing page.',
+    verificationCommand: releaseGateCommand
   },
   'yudao-ai-model-bootstrap': {
     taskDetail: 'Run the Yudao AI model bootstrap against production or preprod MySQL and provide its secret-safe evidence file.',

@@ -127,6 +127,7 @@ const requiredProductionEnvTemplateKeys = [
   'QDRANT_TEXT_COLLECTION',
   'YUDAO_SERVER_BUILD_EVIDENCE',
   'YUDAO_SERVER_SMOKE_EVIDENCE',
+  'XUNJING_ADMIN_UI_DIR',
   'QWEN_API_KEY',
   'QWEN_BASE_URL',
   'QWEN_MODEL',
@@ -271,8 +272,40 @@ async function createProductionReadyFixture() {
   await writeYudaoServerBuildEvidence(rootDir, { jarPath: yudaoServerJarPath })
   await writeYudaoServerSmokeEvidence(rootDir)
   await writeEmbeddingEvidence(rootDir)
+  await writeAdminUiDist(rootDir)
 
   return rootDir
+}
+
+async function writeAdminUiDist(rootDir, overrides = {}) {
+  const adminDir = path.join(
+    rootDir,
+    'backend/yudao/yudao-ui/yudao-ui-admin-vue3/dist'
+  )
+  const assetsDir = path.join(adminDir, 'assets')
+  await mkdir(assetsDir, { recursive: true })
+  await writeFile(
+    path.join(adminDir, 'index.html'),
+    overrides.indexHtml || [
+      '<!doctype html>',
+      '<html lang="zh-CN">',
+      '<head>',
+      '  <meta charset="UTF-8" />',
+      '  <title>星河寻境运营后台</title>',
+      '  <script type="module" crossorigin src="/assets/index-xicheng.js"></script>',
+      '  <link rel="stylesheet" crossorigin href="/assets/index-xicheng.css">',
+      '</head>',
+      '<body>',
+      '  <div id="app"></div>',
+      '</body>',
+      '</html>'
+    ].join('\n')
+  )
+  if (overrides.skipAssets !== true) {
+    await writeFile(path.join(assetsDir, 'index-xicheng.js'), 'console.log("xicheng admin")\n')
+    await writeFile(path.join(assetsDir, 'index-xicheng.css'), 'body{margin:0}\n')
+  }
+  return adminDir
 }
 
 async function writeYudaoServerJar(rootDir, relativePath = 'backend/yudao/yudao-server/target/yudao-server.jar') {
@@ -1123,6 +1156,12 @@ describe('xicheng Yudao release readiness gate', () => {
       yudaoServerSmokePackageCode: 'XICHENG-MAP-001',
       yudaoServerSmokePublicReportMapPointCount: 80
     })
+    expect(result.checks.find((check) => check.name === 'xunjing-admin-ui-artifact')?.summary).toMatchObject({
+      adminUiDir: path.join(rootDir, 'backend/yudao/yudao-ui/yudao-ui-admin-vue3/dist'),
+      adminUiIndexHtmlFile: path.join(rootDir, 'backend/yudao/yudao-ui/yudao-ui-admin-vue3/dist/index.html'),
+      adminUiJsAssetCount: 1,
+      adminUiCssAssetCount: 1
+    })
     expect(result.checks.find((check) => check.name === 'xicheng-runtime-seed-evidence')?.summary).toMatchObject({
       runtimeSeedEvidenceFile: runtimeSeedEvidencePath,
       runtimeSeedReadinessMode: 'production',
@@ -1156,6 +1195,7 @@ describe('xicheng Yudao release readiness gate', () => {
       'yudao-server-artifact',
       'yudao-server-build-evidence',
       'yudao-server-smoke',
+      'xunjing-admin-ui-artifact',
       'xicheng-production-poi-evidence',
       'xicheng-runtime-seed-evidence',
       'xicheng-production-seed-apply',
@@ -1209,6 +1249,34 @@ describe('xicheng Yudao release readiness gate', () => {
       qdrantTextCollectionStatus: 'green'
     })
     expect(qdrantCheck?.summary).not.toHaveProperty('qdrantImageCollection')
+  })
+
+  test('fails closed when the admin UI artifact is only the server placeholder page', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const adminDir = path.join(rootDir, 'backend/yudao/yudao-ui/yudao-ui-admin-vue3/dist')
+    await rm(path.join(adminDir, 'assets'), { recursive: true, force: true })
+    await writeFile(path.join(adminDir, 'index.html'), [
+      '<!doctype html>',
+      '<html lang="zh-CN">',
+      '<body>',
+      '  <h1>星河寻境运营端入口已接通</h1>',
+      '  <p>完整 Yudao Admin 前端构建物尚未部署到此入口。</p>',
+      '</body>',
+      '</html>'
+    ].join('\n'))
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production'
+    })
+
+    const adminCheck = result.checks.find((check) => check.name === 'xunjing-admin-ui-artifact')
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    expect(adminCheck?.ok).toBe(false)
+    expect(adminCheck?.blockers.join('\n')).toContain('admin UI artifact must be the built Yudao Admin SPA, not the placeholder landing page')
+    expect(adminCheck?.blockers.join('\n')).toContain('admin UI artifact must include at least one built JavaScript asset')
   })
 
   test('fails closed when Qdrant vector store smoke evidence is missing', async () => {
@@ -2527,7 +2595,7 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(evidence.summary).toMatchObject({
       stage: 'production',
       status: 'NOT_READY',
-      totalChecks: 20,
+      totalChecks: 21,
       appApiBaseUrl: 'http://127.0.0.1:48080',
       runtimeEnvFingerprintMode: 'redacted-runtime-env-v1',
       runtimeEnvRequiredKeyCount: expect.any(Number),

@@ -1,5 +1,5 @@
 import { existsSync, statSync } from 'node:fs'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import path from 'node:path'
@@ -16,6 +16,7 @@ const expectedXichengPackageCode = 'XICHENG-MAP-001'
 const defaultPoiSourceCoverageEvidencePath = 'qa/xicheng-poi-source-coverage-evidence.json'
 const defaultPoiSourceReviewApplyEvidencePath = 'qa/xicheng-poi-source-review-apply-evidence.json'
 const defaultPoiProductionReviewApplyEvidencePath = 'qa/xicheng-poi-production-review-apply-evidence.json'
+const defaultAdminUiDir = 'backend/yudao/yudao-ui/yudao-ui-admin-vue3/dist'
 
 const requiredManifestEvidenceChecks = [
   'manifest-shape',
@@ -1017,6 +1018,84 @@ function resolveYudaoServerJarPath(rootDir, yudaoServerJarPath) {
   return path.isAbsolute(yudaoServerJarPath)
     ? path.resolve(yudaoServerJarPath)
     : path.resolve(rootDir, yudaoServerJarPath)
+}
+
+function resolveAdminUiDirPath(rootDir, adminUiDirPath) {
+  if (!hasValue(adminUiDirPath)) {
+    return path.join(rootDir, defaultAdminUiDir)
+  }
+  return path.isAbsolute(adminUiDirPath)
+    ? path.resolve(adminUiDirPath)
+    : path.resolve(rootDir, adminUiDirPath)
+}
+
+async function countAdminAssets(adminUiDir) {
+  const assetsDir = path.join(adminUiDir, 'assets')
+  if (!existsSync(assetsDir) || !statSync(assetsDir).isDirectory()) {
+    return {
+      adminUiAssetFileCount: 0,
+      adminUiJsAssetCount: 0,
+      adminUiCssAssetCount: 0
+    }
+  }
+
+  const entries = await readdir(assetsDir, { withFileTypes: true })
+  const files = entries.filter((entry) => entry.isFile()).map((entry) => entry.name)
+  return {
+    adminUiAssetFileCount: files.length,
+    adminUiJsAssetCount: files.filter((name) => name.endsWith('.js')).length,
+    adminUiCssAssetCount: files.filter((name) => name.endsWith('.css')).length
+  }
+}
+
+async function checkAdminUiArtifact(rootDir, adminUiDirPath) {
+  const adminUiDir = resolveAdminUiDirPath(rootDir, adminUiDirPath)
+  const indexHtmlFile = path.join(adminUiDir, 'index.html')
+  const blockers = []
+  const summary = {
+    adminUiDir,
+    adminUiIndexHtmlFile: indexHtmlFile,
+    adminUiIndexHtmlSha256: undefined,
+    adminUiAssetFileCount: 0,
+    adminUiJsAssetCount: 0,
+    adminUiCssAssetCount: 0
+  }
+
+  if (!existsSync(adminUiDir) || !statSync(adminUiDir).isDirectory()) {
+    blockers.push(`admin UI artifact directory is missing: ${adminUiDir}`)
+  } else if (!existsSync(indexHtmlFile) || !statSync(indexHtmlFile).isFile()) {
+    blockers.push(`admin UI artifact index.html is missing: ${indexHtmlFile}`)
+    Object.assign(summary, await countAdminAssets(adminUiDir))
+  } else {
+    const indexHtml = await readFile(indexHtmlFile, 'utf8')
+    Object.assign(summary, await countAdminAssets(adminUiDir))
+    summary.adminUiIndexHtmlSha256 = sha256(indexHtml)
+
+    if (/完整\s*Yudao\s*Admin\s*前端构建物尚未部署|运营端入口已接通/.test(indexHtml)) {
+      blockers.push('admin UI artifact must be the built Yudao Admin SPA, not the placeholder landing page')
+    }
+    if (!/id=["']app["']/.test(indexHtml)) {
+      blockers.push('admin UI artifact index.html must mount the Vue app with id="app"')
+    }
+    if (!/(?:type=["']module["'][^>]+src=|src=[^>]+\.js)/.test(indexHtml)) {
+      blockers.push('admin UI artifact index.html must reference a built JavaScript bundle')
+    }
+    if (summary.adminUiJsAssetCount < 1) {
+      blockers.push('admin UI artifact must include at least one built JavaScript asset')
+    }
+  }
+
+  return {
+    ...check(
+      'xunjing-admin-ui-artifact',
+      blockers.length === 0,
+      blockers.length === 0
+        ? `Xunjing Yudao Admin UI artifact is ready: ${adminUiDir}`
+        : blockers.join('; '),
+      blockers
+    ),
+    summary
+  }
 }
 
 async function checkFullYudaoBaseline(rootDir, yudaoBaselineSqlPath) {
@@ -2335,6 +2414,7 @@ export async function verifyXichengYudaoReleaseReadiness({
   stage = 'production',
   yudaoBaselineSqlPath,
   yudaoServerJarPath,
+  adminUiDirPath,
   yudaoServerBuildEvidencePath,
   yudaoServerSmokeEvidencePath,
   aiBootstrapEvidencePath,
@@ -2436,6 +2516,7 @@ export async function verifyXichengYudaoReleaseReadiness({
       yudaoServerBuildSummary: yudaoServerBuildEvidenceCheck.summary,
       freshnessOptions
     }),
+    await checkAdminUiArtifact(rootDir, adminUiDirPath || env.XUNJING_ADMIN_UI_DIR),
     productionPoiEvidenceCheck,
     await checkXichengRuntimeSeedEvidence({
       rootDir,
@@ -2504,6 +2585,7 @@ function buildReleaseEvidence(result) {
   const serverArtifactSummary = result.checks.find((item) => item.name === 'yudao-server-artifact')?.summary || {}
   const serverBuildSummary = result.checks.find((item) => item.name === 'yudao-server-build-evidence')?.summary || {}
   const serverSmokeSummary = result.checks.find((item) => item.name === 'yudao-server-smoke')?.summary || {}
+  const adminUiSummary = result.checks.find((item) => item.name === 'xunjing-admin-ui-artifact')?.summary || {}
   const productionPoiEvidenceSummary = result.checks.find((item) => item.name === 'xicheng-production-poi-evidence')?.summary || {}
   const runtimeSeedSummary = result.checks.find((item) => item.name === 'xicheng-runtime-seed-evidence')?.summary || {}
   const productionSeedApplySummary = result.checks.find((item) => item.name === 'xicheng-production-seed-apply')?.summary || {}
@@ -2527,6 +2609,7 @@ function buildReleaseEvidence(result) {
       ...serverArtifactSummary,
       ...serverBuildSummary,
       ...serverSmokeSummary,
+      ...adminUiSummary,
       ...productionPoiEvidenceSummary,
       ...runtimeSeedSummary,
       ...productionSeedApplySummary,
@@ -2571,6 +2654,8 @@ async function runCli() {
     stage: readArgValue(args, '--stage') || process.env.XUNJING_RELEASE_STAGE || 'production',
     yudaoBaselineSqlPath: readArgValue(args, '--yudao-baseline-sql') || env.YUDAO_BASELINE_SQL,
     yudaoServerJarPath: readArgValue(args, '--yudao-server-jar') || env.YUDAO_SERVER_JAR,
+    adminUiDirPath: readArgValue(args, '--admin-ui-dir') ||
+      env.XUNJING_ADMIN_UI_DIR,
     yudaoServerBuildEvidencePath: readArgValue(args, '--yudao-server-build-evidence') ||
       readArgValue(args, '--server-build-evidence') ||
       env.YUDAO_SERVER_BUILD_EVIDENCE,

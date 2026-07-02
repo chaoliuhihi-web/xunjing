@@ -10,6 +10,7 @@ const requiredReleaseGateEvidenceArgs = [
   '--yudao-server-jar /secure/path/yudao-server.jar',
   '--yudao-server-build-evidence qa/xicheng-yudao-server-build-evidence.json',
   '--yudao-server-smoke-evidence qa/xicheng-yudao-server-smoke-evidence.json',
+  '--admin-ui-dir /secure/path/yudao-admin-dist',
   '--ai-bootstrap-evidence qa/xicheng-yudao-ai-bootstrap-evidence.json',
   '--qdrant-evidence qa/xicheng-qdrant-smoke-evidence.json',
   '--embedding-evidence qa/xicheng-embedding-smoke-evidence.json',
@@ -263,6 +264,61 @@ describe('xicheng Yudao release blocker task export', () => {
     expect(csv).toContain(`xicheng-production-poi-evidence,4,POI source coverage evidence is required before production release,poi-data,Generate POI source coverage evidence from the source review summary.,Source coverage audit outputs SOURCE_COVERAGE_READY with uncoveredPoiCount=0.,npm run xunjing:xicheng:poi:source-coverage:audit -- --source-review workbench/xicheng-poi-source-review-summary.csv --evidence-file qa/xicheng-poi-source-coverage-evidence.json,TODO,${releaseEvidencePath}`)
     expect(csv).toContain(`xicheng-runtime-seed-evidence,1,Yudao runtime production seed evidence is required before production release,poi-data,Apply the approved Xicheng production seed to the target Yudao database and provide runtime seed evidence.,Production seed apply outputs YUDAO_XICHENG_PRODUCTION_SEED_APPLIED and writes YUDAO_XICHENG_PRODUCTION_SEED_READY runtime evidence.,${productionSeedApplyCommand},TODO,${releaseEvidencePath}`)
     expect(csv).toContain(`xicheng-production-seed-apply,1,Yudao production seed apply evidence is required before production release,poi-data,Run the controlled production seed apply command and provide apply evidence tied to the runtime seed evidence.,Release evidence records productionSeedApplyEvidenceFile with YUDAO_XICHENG_PRODUCTION_SEED_APPLIED and matching runtimeEvidenceFile.,${productionSeedApplyCommand},TODO,${releaseEvidencePath}`)
+  })
+
+  test('exports admin UI artifact blockers into admin-ui owner lane tasks', async () => {
+    const rootDir = await createTempRoot()
+    const releaseEvidencePath = await writeJson(rootDir, 'tmp/xicheng-yudao-release-evidence.json', {
+      artifactType: 'xicheng-yudao-release-readiness',
+      ok: false,
+      status: 'NOT_READY',
+      checkedAt: '2026-06-28T00:00:00.000Z',
+      summary: {
+        stage: 'production',
+        failedChecks: 1,
+        blockerCount: 1
+      },
+      checks: [
+        {
+          name: 'xunjing-admin-ui-artifact',
+          ok: false,
+          blockers: [
+            'admin UI artifact must be the built Yudao Admin SPA, not the placeholder landing page'
+          ]
+        }
+      ],
+      blockers: [
+        'admin UI artifact must be the built Yudao Admin SPA, not the placeholder landing page'
+      ]
+    })
+    const outputFile = path.join(rootDir, 'workbench/xicheng-yudao-release-blocker-tasks.csv')
+
+    const result = runTaskExport([
+      '--root', rootDir,
+      '--release-evidence', 'tmp/xicheng-yudao-release-evidence.json',
+      '--output', 'workbench/xicheng-yudao-release-blocker-tasks.csv'
+    ])
+
+    expect(result.status).toBe(0)
+    const report = JSON.parse(result.stdout)
+    expect(report.summary.ownerLaneCounts).toMatchObject({
+      'admin-ui': 1
+    })
+    expect(report.summary.ownerLaneBreakdown).toEqual([
+      {
+        ownerLane: 'admin-ui',
+        taskCount: 1,
+        checkNames: ['xunjing-admin-ui-artifact'],
+        verificationCommands: [
+          'npm run xunjing:yudao:release:gate -- --stage production --expected-branch feature/xicheng-p0 --env-file /secure/path/production.env --yudao-baseline-sql /secure/path/ruoyi-vue-pro.sql --yudao-server-jar /secure/path/yudao-server.jar --yudao-server-build-evidence qa/xicheng-yudao-server-build-evidence.json --yudao-server-smoke-evidence qa/xicheng-yudao-server-smoke-evidence.json --admin-ui-dir /secure/path/yudao-admin-dist --ai-bootstrap-evidence qa/xicheng-yudao-ai-bootstrap-evidence.json --qdrant-evidence qa/xicheng-qdrant-smoke-evidence.json --embedding-evidence qa/xicheng-embedding-smoke-evidence.json --vision-ocr-evidence qa/xicheng-vision-ocr-smoke-evidence.json --object-storage-evidence qa/xicheng-object-storage-smoke-evidence.json --runtime-seed-evidence qa/xicheng-yudao-runtime-seed-production-evidence.json --production-seed-apply-evidence qa/xicheng-yudao-production-seed-apply-evidence.json --poi-workbook-evidence qa/xicheng-poi-review-workbook-evidence.json --poi-manifest-evidence qa/xicheng-poi-manifest-evidence.json --poi-seed-evidence qa/xicheng-poi-production-seed-evidence.json --poi-source-coverage-evidence qa/xicheng-poi-source-coverage-evidence.json --poi-source-review-apply-evidence qa/xicheng-poi-source-review-apply-evidence.json --poi-production-review-apply-evidence qa/xicheng-poi-production-review-apply-evidence.json --evidence-file qa/xicheng-yudao-release-evidence.json'
+        ]
+      }
+    ])
+
+    const csv = await readFile(outputFile, 'utf8')
+    expect(csv).toContain('xunjing-admin-ui-artifact,1,"admin UI artifact must be the built Yudao Admin SPA, not the placeholder landing page",admin-ui')
+    expect(csv).toContain(`admin-ui,Build and deploy the real Yudao Admin static artifact for xunjingadmin.xingheai.net.`)
+    expect(csv).toContain(releaseEvidencePath)
   })
 
   test('exports POI review apply blockers with apply verification commands', async () => {

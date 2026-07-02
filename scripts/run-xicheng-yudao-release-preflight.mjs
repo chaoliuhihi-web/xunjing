@@ -80,6 +80,7 @@ function buildReleaseGateArgs({
     ...optionalArg(args, '--yudao-server-jar'),
     '--yudao-server-build-evidence', yudaoServerBuildEvidenceFile,
     '--yudao-server-smoke-evidence', yudaoServerSmokeEvidenceFile,
+    ...optionalArg(args, '--admin-ui-dir'),
     ...optionalArg(args, '--ai-bootstrap-evidence'),
     '--qdrant-evidence', qdrantEvidenceFile,
     '--embedding-evidence', embeddingEvidenceFile,
