@@ -460,6 +460,50 @@ assert.match(
   'release candidate audit should explain the missing BLOCKED-source guard check'
 )
 
+const malformedAiContextPreprodPath = path.join(missingTempDir, 'malformed-ai-context-preprod.json')
+fs.writeFileSync(malformedAiContextPreprodPath, `${JSON.stringify({
+  ...makePreprodEvidence(),
+  checks: makePreprodEvidence().checks.map((check) => (
+    check.name === 'live-xicheng-ai-chat-sourced'
+      ? {
+          ...check,
+          summary: {
+            safetyStatus: 'PASSED',
+            sourceCount: 1
+          }
+        }
+      : check
+  ))
+}, null, 2)}\n`)
+const malformedAiContextPreprodResult = runAudit([
+  '--preprod-evidence',
+  malformedAiContextPreprodPath,
+  '--native-evidence',
+  path.join(missingTempDir, 'missing-native.json'),
+  '--release-artifact',
+  path.join(missingTempDir, 'missing-release.apk')
+])
+assert.notEqual(
+  malformedAiContextPreprodResult.status,
+  0,
+  'release candidate audit should reject preprod AI chat evidence without route context echo, POI attribution, and log id'
+)
+const malformedAiContextPreprodAudit = parseAuditJson(malformedAiContextPreprodResult)
+assert.equal(
+  malformedAiContextPreprodAudit.gates.preprodEvidence.ok,
+  false,
+  'release candidate audit preprod gate should fail when sourced AI chat evidence lacks required route context'
+)
+assert.ok(
+  malformedAiContextPreprodAudit.blockers.some((blocker) => blocker.code === 'preprod-evidence-invalid-xicheng-ai-chat-summary'),
+  'release candidate audit should name invalid sourced AI chat summary fields as launch blockers'
+)
+assert.match(
+  `${malformedAiContextPreprodResult.stderr}\n${malformedAiContextPreprodResult.stdout}`,
+  /contextEcho|poiCode|poiName|logId|\/app-api\/xunjing\/ai\/chat/i,
+  'release candidate audit should explain the required sourced AI chat evidence fields'
+)
+
 const keystorePath = path.join(missingTempDir, 'xicheng-release.keystore')
 const keytoolResult = spawnSync('keytool', [
   '-genkeypair',

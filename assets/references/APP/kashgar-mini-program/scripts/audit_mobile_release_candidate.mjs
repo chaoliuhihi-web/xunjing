@@ -151,6 +151,65 @@ const addBlocker = (blockers, code, message, nextAction) => {
   blockers.push({ code, message, nextAction })
 }
 
+const summaryValueMatches = (actual, expected) => typeof expected === 'boolean'
+  ? actual === expected
+  : String(actual || '').trim() === String(expected)
+
+const addSummaryEqualsError = (errors, summary, field, expected, label) => {
+  if (!summaryValueMatches(summary?.[field], expected)) {
+    errors.push(`${label} summary.${field} must be ${expected}`)
+  }
+}
+
+const addSummaryPositiveNumberError = (errors, summary, field, label) => {
+  if (Number(summary?.[field] || 0) <= 0) {
+    errors.push(`${label} summary.${field} must be a positive number`)
+  }
+}
+
+const collectPreprodSummaryErrors = ({ preprodCheckByName, preprodTenantId }) => {
+  const errors = []
+  const sourcedLabel = 'live-xicheng-ai-chat-sourced'
+  const sourcedSummary = preprodCheckByName.get(sourcedLabel)?.summary || {}
+  addSummaryEqualsError(errors, sourcedSummary, 'endpoint', '/app-api/xunjing/ai/chat', sourcedLabel)
+  addSummaryEqualsError(errors, sourcedSummary, 'tenantId', preprodTenantId, sourcedLabel)
+  addSummaryEqualsError(errors, sourcedSummary, 'regionCode', expectedXichengRegionCode, sourcedLabel)
+  addSummaryEqualsError(errors, sourcedSummary, 'packageCode', expectedXichengPackageCode, sourcedLabel)
+  addSummaryEqualsError(errors, sourcedSummary, 'sceneCode', 'xicheng-ai-guide', sourcedLabel)
+  addSummaryEqualsError(errors, sourcedSummary, 'poiCode', 'xicheng-baitasi', sourcedLabel)
+  addSummaryEqualsError(errors, sourcedSummary, 'poiName', '妙应寺白塔', sourcedLabel)
+  addSummaryEqualsError(errors, sourcedSummary, 'contextEcho', true, sourcedLabel)
+  addSummaryEqualsError(errors, sourcedSummary, 'safetyStatus', 'PASSED', sourcedLabel)
+  addSummaryPositiveNumberError(errors, sourcedSummary, 'sourceCount', sourcedLabel)
+  addSummaryPositiveNumberError(errors, sourcedSummary, 'logId', sourcedLabel)
+
+  const blockedLabel = 'live-xicheng-ai-chat-blocked'
+  const blockedSummary = preprodCheckByName.get(blockedLabel)?.summary || {}
+  addSummaryEqualsError(errors, blockedSummary, 'endpoint', '/app-api/xunjing/ai/chat', blockedLabel)
+  addSummaryEqualsError(errors, blockedSummary, 'tenantId', preprodTenantId, blockedLabel)
+  addSummaryEqualsError(errors, blockedSummary, 'regionCode', expectedXichengRegionCode, blockedLabel)
+  addSummaryEqualsError(errors, blockedSummary, 'packageCode', expectedXichengPackageCode, blockedLabel)
+  addSummaryEqualsError(errors, blockedSummary, 'sceneCode', 'xicheng-ai-guide', blockedLabel)
+  addSummaryEqualsError(errors, blockedSummary, 'poiCode', 'xicheng-source-guard-negative', blockedLabel)
+  addSummaryEqualsError(errors, blockedSummary, 'poiName', '来源门禁测试点位', blockedLabel)
+  addSummaryEqualsError(errors, blockedSummary, 'contextEcho', true, blockedLabel)
+  addSummaryEqualsError(errors, blockedSummary, 'safetyStatus', 'BLOCKED', blockedLabel)
+  if (Number(blockedSummary.sourceCount || 0) !== 0) {
+    errors.push(`${blockedLabel} summary.sourceCount must be 0`)
+  }
+  addSummaryPositiveNumberError(errors, blockedSummary, 'logId', blockedLabel)
+
+  const scanResolveLabel = 'live-xicheng-scan-resolve'
+  const scanResolveSummary = preprodCheckByName.get(scanResolveLabel)?.summary || {}
+  addSummaryEqualsError(errors, scanResolveSummary, 'tenantId', preprodTenantId, scanResolveLabel)
+  addSummaryEqualsError(errors, scanResolveSummary, 'packageCode', expectedXichengPackageCode, scanResolveLabel)
+  if (!String(scanResolveSummary.targetPath || '').includes('/pages/map/detail')) {
+    errors.push(`${scanResolveLabel} summary.targetPath must include /pages/map/detail`)
+  }
+
+  return errors
+}
+
 const remoteParity = (remoteRef) => {
   const result = run('git', ['rev-list', '--left-right', '--count', `HEAD...${remoteRef}`])
   if (result.status !== 0) {
@@ -290,6 +349,9 @@ if (!preprodEvidence.exists) {
     const check = preprodCheckByName.get(checkName)
     return !check || check.ok !== true
   })
+  const invalidRequiredPreprodSummaryErrors = missingRequiredPreprodChecks.length > 0
+    ? []
+    : collectPreprodSummaryErrors({ preprodCheckByName, preprodTenantId })
   gates.preprodEvidence = {
     ...gates.preprodEvidence,
     ok: preprodBaseOk &&
@@ -299,7 +361,8 @@ if (!preprodEvidence.exists) {
       preprodTenantOk &&
       preprodIncludesXichengChecks &&
       preprodCheckCountsOk &&
-      missingRequiredPreprodChecks.length === 0,
+      missingRequiredPreprodChecks.length === 0 &&
+      invalidRequiredPreprodSummaryErrors.length === 0,
     checkedAt: preprodEvidence.json?.checkedAt || '',
     freshness: preprodFreshness,
     baseUrl: preprodBaseUrl.normalized,
@@ -319,7 +382,8 @@ if (!preprodEvidence.exists) {
       passedChecks: Number(summary.passedChecks || 0),
       failedChecks: Number(summary.failedChecks || 0)
     },
-    missingRequiredChecks: missingRequiredPreprodChecks
+    missingRequiredChecks: missingRequiredPreprodChecks,
+    invalidRequiredCheckSummaries: invalidRequiredPreprodSummaryErrors
   }
   if (!preprodBaseOk) {
     addBlocker(
@@ -383,6 +447,14 @@ if (!preprodEvidence.exists) {
       'preprod-evidence-missing-required-check',
       `APP readiness evidence missing required passing check(s): ${missingRequiredPreprodChecks.join(', ')}`,
       'Regenerate preprod readiness evidence with sourced AI, BLOCKED AI, trigger, and scan resolve checks passing'
+    )
+  }
+  if (invalidRequiredPreprodSummaryErrors.length > 0) {
+    addBlocker(
+      blockers,
+      'preprod-evidence-invalid-xicheng-ai-chat-summary',
+      `APP readiness evidence has invalid Xicheng live check summary fields: ${invalidRequiredPreprodSummaryErrors.join('; ')}`,
+      'Regenerate preprod readiness evidence and confirm sourced AI, BLOCKED AI, and scan resolve checks carry tenant, route context, POI attribution, sourceCount, and logId'
     )
   }
 }
