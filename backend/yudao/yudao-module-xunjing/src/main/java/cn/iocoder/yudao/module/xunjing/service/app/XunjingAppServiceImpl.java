@@ -967,6 +967,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         putPreviousJsonMemoryPart(parts, "Agent理由", sceneSignals, "agentDecisionReasonSummary");
         putPreviousJsonMemoryPart(parts, "知识图谱线索", sceneSignals, "knowledgeGraphKeywords");
         putPreviousJsonMemoryPart(parts, "关联话题", sceneSignals, "relatedTopicKeywords");
+        putPreviousJsonMemoryPart(parts, "当前时间", sceneSignals, "localTimeText");
+        putPreviousJsonMemoryPart(parts, "当前天气", sceneSignals, "weatherText");
+        putPreviousJsonMemoryPart(parts, "当前朝向", sceneSignals, "headingText");
         putPreviousJsonMemoryPart(parts, "游客画像", sceneSignals, "visitorProfileSummary");
         putPreviousJsonMemoryPart(parts, "同行人", sceneSignals, "visitorGroup");
         putPreviousJsonMemoryPart(parts, "兴趣偏好", sceneSignals, "interestTags");
