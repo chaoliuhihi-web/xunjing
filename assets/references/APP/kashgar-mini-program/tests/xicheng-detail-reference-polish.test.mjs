@@ -12,6 +12,8 @@ const scan = read('pages', 'xicheng', 'scan', 'scan.vue')
 const footprint = read('pages', 'xicheng', 'footprint', 'footprint.vue')
 const passport = read('pages', 'xicheng', 'passport', 'passport.vue')
 const share = read('pages', 'xicheng', 'share', 'share.vue')
+const shareAssetPanel = read('components', 'xicheng', 'XichengShareAssetPanel.vue')
+const sharePrivacyReviewPanel = read('components', 'xicheng', 'XichengSharePrivacyReviewPanel.vue')
 const works = read('pages', 'xicheng', 'works', 'works.vue')
 const worksProfileCard = read('components', 'xicheng', 'XichengWorksProfileCard.vue')
 const opsReport = read('pages', 'xicheng', 'ops-report', 'ops-report.vue')
@@ -64,6 +66,8 @@ for (const required of [
     footprint,
     passport,
     share,
+    shareAssetPanel,
+    sharePrivacyReviewPanel,
     works,
     worksProfileCard,
     opsReport
@@ -75,6 +79,8 @@ for (const [fileName, source] of [
   ['footprint.vue', footprint],
   ['passport.vue', passport],
   ['share.vue', share],
+  ['XichengShareAssetPanel.vue', shareAssetPanel],
+  ['XichengSharePrivacyReviewPanel.vue', sharePrivacyReviewPanel],
   ['works.vue', works],
   ['XichengWorksProfileCard.vue', worksProfileCard],
   ['ops-report.vue', opsReport]

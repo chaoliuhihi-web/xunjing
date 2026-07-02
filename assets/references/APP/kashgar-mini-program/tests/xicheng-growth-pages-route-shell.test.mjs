@@ -44,7 +44,8 @@ const requiredPages = [
     title: '分享纪念',
     file: ['pages', 'xicheng', 'share', 'share.vue'],
     componentFiles: [
-      ['components', 'xicheng', 'XichengShareAssetPanel.vue']
+      ['components', 'xicheng', 'XichengShareAssetPanel.vue'],
+      ['components', 'xicheng', 'XichengSharePrivacyReviewPanel.vue']
     ],
     requiredTokens: [
       'xicheng-share',

@@ -86,32 +86,7 @@
 			<text class="vision-agent-share-boundary-copy">{{ currentVisionAgentShareBoundary }}</text>
 		</view>
 
-		<view class="privacy-card xicheng-paper-card">
-			<view class="section-head">
-				<text class="section-title">分享设置</text>
-				<text class="section-badge">待审核 · 未公开</text>
-			</view>
-			<view class="share-setting-list">
-				<view v-for="setting in shareSettings" :key="setting.key" class="share-setting-row" @click="toggleShareSetting(setting.key)">
-					<xicheng-icon :name="setting.icon" variant="soft" :size="18" />
-					<view class="share-setting-copy">
-						<text class="share-setting-title">{{ setting.title }}</text>
-						<text class="share-setting-desc">{{ setting.desc }}</text>
-					</view>
-					<view class="share-switch" :class="{ 'share-switch-on': setting.enabled }">
-						<view class="share-switch-thumb"></view>
-					</view>
-				</view>
-			</view>
-			<text class="privacy-copy">分享前只生成本地预览；精确定位、照片路径和原始素材只进入本机审核包，不默认公开。</text>
-			<view class="share-review-steps">
-				<view v-for="step in reviewSteps" :key="step.title" class="review-step" :class="{ 'review-step-active': step.active }">
-					<text class="review-step-index">{{ step.index }}</text>
-					<text class="review-step-title">{{ step.title }}</text>
-				</view>
-			</view>
-			<button class="primary-button xicheng-primary-action" @click="submitReview">提交审核</button>
-		</view>
+		<xicheng-share-privacy-review-panel :settings="shareSettings" :review-steps="reviewSteps" @toggle-setting="toggleShareSetting" @submit-review="submitReview" />
 	</view>
 </template>
 
@@ -124,6 +99,7 @@ import XichengPublishChannelGrid from '@/components/xicheng/XichengPublishChanne
 import XichengPublishConfirmQueue from '@/components/xicheng/XichengPublishConfirmQueue.vue'
 import XichengPublishPreflightPanel from '@/components/xicheng/XichengPublishPreflightPanel.vue'
 import XichengShareAssetPanel from '@/components/xicheng/XichengShareAssetPanel.vue'
+import XichengSharePrivacyReviewPanel from '@/components/xicheng/XichengSharePrivacyReviewPanel.vue'
 import XichengSocialSharePreview from '@/components/xicheng/XichengSocialSharePreview.vue'
 
 const safeArray = value => Array.isArray(value) ? value : []
@@ -159,6 +135,7 @@ export default {
 		XichengPublishConfirmQueue,
 		XichengPublishPreflightPanel,
 		XichengShareAssetPanel,
+		XichengSharePrivacyReviewPanel,
 		XichengSocialSharePreview
 	},
 	data() {
