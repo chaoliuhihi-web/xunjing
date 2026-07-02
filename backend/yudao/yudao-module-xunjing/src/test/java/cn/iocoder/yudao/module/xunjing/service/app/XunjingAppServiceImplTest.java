@@ -2322,6 +2322,10 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         insertXichengPoi(packageId);
         consoleService.addKnowledgeDocument(xichengGongwangfuKnowledgeReq(packageId));
         consoleService.addKnowledgeDocument(xichengBaitasiKnowledgeReq(packageId));
+        ChatModel chatModel = mock(ChatModel.class);
+        when(aiModelService.getRequiredDefaultModel(AiModelTypeEnum.CHAT.getType())).thenReturn(defaultChatModel());
+        when(aiModelService.getChatModel(6601L)).thenReturn(chatModel);
+        when(chatModel.call(any(Prompt.class))).thenReturn(chatResponse("模型生成：恭王府入口适合先看建筑格局。"));
 
         Map<String, Object> sceneSignals = new LinkedHashMap<>();
         sceneSignals.put("sceneFusionSummary", "用户举起手机看到恭王府博物馆入口。");
@@ -2356,6 +2360,18 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertFalse(followUpAnswer.getSources().isEmpty());
         assertEquals("恭王府权威讲解稿", followUpAnswer.getSources().get(0).getTitle());
         assertTrue(followUpAnswer.getAnswer().contains("恭王府"));
+        ArgumentCaptor<Prompt> promptCaptor = ArgumentCaptor.forClass(Prompt.class);
+        verify(chatModel).call(promptCaptor.capture());
+        String prompt = promptCaptor.getValue().getContents();
+        assertTrue(prompt.contains("识境快照=artifactType=vision_scene_snapshot"));
+        assertTrue(prompt.contains("poiCode=xicheng-gongwangfu"));
+        assertTrue(prompt.contains("intent=guide"));
+        assertTrue(prompt.contains("matchedSignals="));
+        assertTrue(prompt.contains("ocr_alias"));
+        assertFalse(prompt.contains("imageBase64"));
+        assertFalse(prompt.contains("photo-base64"));
+        assertFalse(prompt.contains("test-key"));
+        assertFalse(prompt.contains("/vision/v1"));
 
         List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
                 new LambdaQueryWrapperX<XunjingInteractionEventDO>()
@@ -2372,6 +2388,24 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertEquals("guide", visionAgentContext.get("serviceHandoffIntent").asText());
         assertEquals("无需用户确认", visionAgentContext.get("serviceHandoffStepText").asText());
         assertTrue(visionAgentContext.get("serviceHandoffSummary").asText().contains("start_ai_guide"));
+        JsonNode sceneSnapshot = visionAgentContext.get("sceneSnapshot");
+        assertEquals("vision_scene_snapshot", sceneSnapshot.get("artifactType").asText());
+        assertEquals("XICHENG-MAP-001", sceneSnapshot.get("packageCode").asText());
+        assertEquals("xicheng-multimodal-trigger", sceneSnapshot.get("sceneCode").asText());
+        assertEquals("beijing-xicheng", sceneSnapshot.get("regionCode").asText());
+        assertEquals("xicheng-gongwangfu", sceneSnapshot.get("poiCode").asText());
+        assertEquals("恭王府", sceneSnapshot.get("poiName").asText());
+        assertEquals("guide", sceneSnapshot.get("intent").asText());
+        assertEquals("start_ai_guide", sceneSnapshot.get("action").asText());
+        assertEquals("architecture", sceneSnapshot.get("sceneDomainKey").asText());
+        assertEquals("建筑", sceneSnapshot.get("sceneDomainLabel").asText());
+        assertEquals("guide", sceneSnapshot.get("serviceHandoffIntent").asText());
+        assertFalse(sceneSnapshot.get("serviceHandoffRequiresRealSystem").asBoolean());
+        assertTrue(sceneSnapshot.get("matchedSignals").toString().contains("ocr_alias"));
+        assertFalse(askEvents.get(0).getPayloadJson().contains("imageBase64"));
+        assertFalse(askEvents.get(0).getPayloadJson().contains("photo-base64"));
+        assertFalse(askEvents.get(0).getPayloadJson().contains("test-key"));
+        assertFalse(askEvents.get(0).getPayloadJson().contains("/vision/v1"));
     }
 
     @Test

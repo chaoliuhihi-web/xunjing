@@ -47,6 +47,7 @@ public class XunjingAppVO {
         private String visionAgentPrimarySceneDomainKey;
         private String visionAgentPrimarySceneDomainLabel;
         private String visionAgentSceneUnderstandingSummary;
+        private Map<String, Object> visionAgentSceneSnapshot;
         private String visionAgentDecisionActionTitle;
         private String visionAgentDecisionReasonSummary;
         private String visionAgentLocalTimeText;

@@ -279,6 +279,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         hydrateVisionAgentMemoryFromPreviousAsk(resourcePackage, reqVO, explicitChatTargetContext);
         hydrateVisionAgentContextFromPreviousTrigger(resourcePackage, reqVO, explicitChatTargetContext);
         hydrateVisionAgentContextFromPreviousAgentAction(resourcePackage, reqVO, explicitChatTargetContext);
+        sanitizeVisionAgentSceneSnapshot(reqVO);
         recordAskEvent(resourcePackage, reqVO);
 
         RagChatRespVO quotaBlocked = buildQuotaBlockedIfNeeded(resourcePackage, qrCode, reqVO);
@@ -1085,6 +1086,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
                 return;
             }
             hydrateTriggerPoiContext(reqVO, root);
+            if (reqVO.getVisionAgentSceneSnapshot() == null || reqVO.getVisionAgentSceneSnapshot().isEmpty()) {
+                reqVO.setVisionAgentSceneSnapshot(buildPreviousTriggerSceneSnapshotPayload(root.path("sceneSnapshot")));
+            }
             JsonNode sceneUnderstanding = root.path("sceneUnderstanding");
             JsonNode sceneSignals = root.path("sceneSignals");
             if (!hasText(reqVO.getVisionAgentMemorySessionText())) {
@@ -1100,6 +1104,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             if (!Boolean.TRUE.equals(reqVO.getVisionAgentContextAvailable())
                     && (hasText(reqVO.getVisionAgentMemorySessionText())
                     || hasText(reqVO.getVisionAgentSceneFusionSummary())
+                    || (reqVO.getVisionAgentSceneSnapshot() != null && !reqVO.getVisionAgentSceneSnapshot().isEmpty())
                     || hasText(reqVO.getPoiName()))) {
                 reqVO.setVisionAgentContextAvailable(true);
             }
@@ -1250,6 +1255,16 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         putReqTextIfBlank(reqVO::getRegionCode, reqVO::setRegionCode, root, "regionCode");
         putReqTextIfBlank(reqVO::getPoiCode, reqVO::setPoiCode, root, "poiCode");
         putReqTextIfBlank(reqVO::getPoiName, reqVO::setPoiName, root, "poiName");
+    }
+
+    private Map<String, Object> buildPreviousTriggerSceneSnapshotPayload(JsonNode sceneSnapshot) {
+        if (sceneSnapshot == null || sceneSnapshot.isNull() || sceneSnapshot.isMissingNode()
+                || !sceneSnapshot.isObject()) {
+            return Map.of();
+        }
+        Map<String, Object> source = JsonUtils.convertObject(
+                sceneSnapshot, new TypeReference<Map<String, Object>>() {});
+        return buildVisionAgentSceneSnapshotPayload(source);
     }
 
     private String buildPreviousTriggerMemoryText(JsonNode root, JsonNode sceneUnderstanding, JsonNode sceneSignals) {
@@ -2645,6 +2660,106 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         return JsonUtils.toJsonString(sources);
     }
 
+    private void sanitizeVisionAgentSceneSnapshot(RagChatReqVO reqVO) {
+        if (reqVO.getVisionAgentSceneSnapshot() == null || reqVO.getVisionAgentSceneSnapshot().isEmpty()) {
+            return;
+        }
+        reqVO.setVisionAgentSceneSnapshot(buildVisionAgentSceneSnapshotPayload(reqVO.getVisionAgentSceneSnapshot()));
+    }
+
+    private Map<String, Object> buildVisionAgentSceneSnapshotPayload(Map<String, Object> source) {
+        if (source == null || source.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        putVisionAgentSceneSnapshotText(payload, source, "artifactType", 50);
+        putVisionAgentSceneSnapshotText(payload, source, "packageCode", 80);
+        putVisionAgentSceneSnapshotText(payload, source, "sceneCode", 80);
+        putVisionAgentSceneSnapshotText(payload, source, "regionCode", 80);
+        putVisionAgentSceneSnapshotText(payload, source, "poiCode", 80);
+        putVisionAgentSceneSnapshotText(payload, source, "poiName", 80);
+        putVisionAgentSceneSnapshotText(payload, source, "intent", 50);
+        putVisionAgentSceneSnapshotText(payload, source, "action", 80);
+        putVisionAgentSceneSnapshotText(payload, source, "triggerType", 50);
+        putVisionAgentSceneSnapshotNumber(payload, source, "confidence", false);
+        putVisionAgentSceneSnapshotBoolean(payload, source, "requiresUserConfirm");
+        putVisionAgentSceneSnapshotText(payload, source, "sceneDomainKey", 80);
+        putVisionAgentSceneSnapshotText(payload, source, "sceneDomainLabel", 80);
+        putVisionAgentSceneSnapshotText(payload, source, "sceneFusionSummary", TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+        putVisionAgentSceneSnapshotText(payload, source, "worldInterfaceSummary", TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+        putVisionAgentSceneSnapshotText(payload, source, "recognitionStatus", 50);
+        putVisionAgentSceneSnapshotText(payload, source, "recognitionModel", 80);
+        putVisionAgentSceneSnapshotNumber(payload, source, "recognitionLabelCount", true);
+        putVisionAgentSceneSnapshotText(payload, source, "ocrText", TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+        putVisionAgentSceneSnapshotText(payload, source, "imageId", 100);
+        putVisionAgentSceneSnapshotText(payload, source, "serviceHandoffIntent", 50);
+        putVisionAgentSceneSnapshotBoolean(payload, source, "serviceHandoffRequiresRealSystem");
+        putVisionAgentSceneSnapshotMatchedSignals(payload, source);
+        return payload;
+    }
+
+    private void putVisionAgentSceneSnapshotText(
+            Map<String, Object> payload, Map<String, Object> source, String key, int maxLength) {
+        Object value = source.get(key);
+        if (value == null || value instanceof Map<?, ?> || value instanceof Iterable<?>) {
+            return;
+        }
+        String text = String.valueOf(value).trim();
+        if (hasText(text)) {
+            payload.put(key, truncateForEvent(text, maxLength));
+        }
+    }
+
+    private void putVisionAgentSceneSnapshotNumber(
+            Map<String, Object> payload, Map<String, Object> source, String key, boolean integerOnly) {
+        Double value = triggerSceneSignalNumber(source.get(key));
+        if (value == null || !Double.isFinite(value)) {
+            return;
+        }
+        if (integerOnly) {
+            long rounded = Math.round(value);
+            if (rounded >= 0) {
+                payload.put(key, rounded);
+            }
+            return;
+        }
+        payload.put(key, value);
+    }
+
+    private void putVisionAgentSceneSnapshotBoolean(
+            Map<String, Object> payload, Map<String, Object> source, String key) {
+        Object value = source.get(key);
+        if (value instanceof Boolean booleanValue) {
+            payload.put(key, booleanValue);
+            return;
+        }
+        if (value instanceof String text && hasText(text)) {
+            payload.put(key, Boolean.parseBoolean(text.trim()));
+        }
+    }
+
+    private void putVisionAgentSceneSnapshotMatchedSignals(
+            Map<String, Object> payload, Map<String, Object> source) {
+        Object value = source.get("matchedSignals");
+        if (!(value instanceof Iterable<?> matchedSignals)) {
+            return;
+        }
+        List<String> signals = new ArrayList<>();
+        for (Object signal : matchedSignals) {
+            if (signal == null || signal instanceof Map<?, ?> || signal instanceof Iterable<?>) {
+                continue;
+            }
+            String text = String.valueOf(signal).trim();
+            if (hasText(text)) {
+                signals.add(truncateForEvent(text, 50));
+            }
+        }
+        List<String> distinctSignals = signals.stream().distinct().limit(12).toList();
+        if (!distinctSignals.isEmpty()) {
+            payload.put("matchedSignals", distinctSignals);
+        }
+    }
+
     private String buildChatContextText(RagChatReqVO reqVO) {
         List<String> parts = new ArrayList<>();
         parts.add("regionCode=" + defaultIfBlank(reqVO.getRegionCode(), ""));
@@ -2670,6 +2785,10 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         String domain = buildVisionAgentDomainText(reqVO);
         if (hasText(domain)) {
             parts.add("场景域=" + domain);
+        }
+        String sceneSnapshot = buildVisionAgentSceneSnapshotContextText(reqVO.getVisionAgentSceneSnapshot());
+        if (hasText(sceneSnapshot)) {
+            parts.add("识境快照=" + sceneSnapshot);
         }
         putChatContextPart(parts, "场景理解", reqVO.getVisionAgentSceneUnderstandingSummary());
         putChatContextPart(parts, "Agent建议", reqVO.getVisionAgentDecisionActionTitle());
@@ -2712,6 +2831,63 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         return hasText(intent) ? intent : text;
     }
 
+    private String buildVisionAgentSceneSnapshotContextText(Map<String, Object> sceneSnapshot) {
+        if (sceneSnapshot == null || sceneSnapshot.isEmpty()) {
+            return "";
+        }
+        List<String> parts = new ArrayList<>();
+        putVisionAgentSceneSnapshotContextPart(parts, sceneSnapshot, "artifactType");
+        putVisionAgentSceneSnapshotContextPart(parts, sceneSnapshot, "packageCode");
+        putVisionAgentSceneSnapshotContextPart(parts, sceneSnapshot, "sceneCode");
+        putVisionAgentSceneSnapshotContextPart(parts, sceneSnapshot, "regionCode");
+        putVisionAgentSceneSnapshotContextPart(parts, sceneSnapshot, "poiCode");
+        putVisionAgentSceneSnapshotContextPart(parts, sceneSnapshot, "poiName");
+        putVisionAgentSceneSnapshotContextPart(parts, sceneSnapshot, "intent");
+        putVisionAgentSceneSnapshotContextPart(parts, sceneSnapshot, "action");
+        putVisionAgentSceneSnapshotContextPart(parts, sceneSnapshot, "triggerType");
+        putVisionAgentSceneSnapshotContextPart(parts, sceneSnapshot, "sceneDomainKey");
+        putVisionAgentSceneSnapshotContextPart(parts, sceneSnapshot, "sceneDomainLabel");
+        putVisionAgentSceneSnapshotContextPart(parts, sceneSnapshot, "recognitionStatus");
+        putVisionAgentSceneSnapshotContextPart(parts, sceneSnapshot, "recognitionModel");
+        putVisionAgentSceneSnapshotContextPart(parts, sceneSnapshot, "recognitionLabelCount");
+        putVisionAgentSceneSnapshotContextPart(parts, sceneSnapshot, "serviceHandoffIntent");
+        putVisionAgentSceneSnapshotContextPart(parts, sceneSnapshot, "serviceHandoffRequiresRealSystem");
+        putVisionAgentSceneSnapshotContextPart(parts, sceneSnapshot, "matchedSignals");
+        return String.join("；", parts);
+    }
+
+    private void putVisionAgentSceneSnapshotContextPart(
+            List<String> parts, Map<String, Object> sceneSnapshot, String key) {
+        Object value = sceneSnapshot.get(key);
+        if (value == null) {
+            return;
+        }
+        String text = visionAgentSceneSnapshotContextValue(value);
+        if (hasText(text)) {
+            parts.add(key + "=" + truncateForEvent(text, CHAT_CONTEXT_TEXT_MAX_LENGTH));
+        }
+    }
+
+    private String visionAgentSceneSnapshotContextValue(Object value) {
+        if (value instanceof Iterable<?> items) {
+            List<String> texts = new ArrayList<>();
+            for (Object item : items) {
+                if (item == null || item instanceof Map<?, ?> || item instanceof Iterable<?>) {
+                    continue;
+                }
+                String text = String.valueOf(item).trim();
+                if (hasText(text)) {
+                    texts.add(text);
+                }
+            }
+            return String.join(",", texts);
+        }
+        if (value instanceof Map<?, ?>) {
+            return "";
+        }
+        return String.valueOf(value).trim();
+    }
+
     private Map<String, Object> buildVisionAgentChatContextPayload(RagChatReqVO reqVO) {
         Map<String, Object> payload = new LinkedHashMap<>();
         putChatContextPayloadText(payload, "sceneFusionSummary", reqVO.getVisionAgentSceneFusionSummary());
@@ -2729,6 +2905,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         putChatContextPayloadText(payload, "localTimeText", reqVO.getVisionAgentLocalTimeText());
         putChatContextPayloadText(payload, "weatherText", reqVO.getVisionAgentWeatherText());
         putChatContextPayloadText(payload, "headingText", reqVO.getVisionAgentHeadingText());
+        if (reqVO.getVisionAgentSceneSnapshot() != null && !reqVO.getVisionAgentSceneSnapshot().isEmpty()) {
+            payload.put("sceneSnapshot", reqVO.getVisionAgentSceneSnapshot());
+        }
         putChatContextPayloadText(payload, "serviceHandoffActionKey", reqVO.getServiceHandoffActionKey());
         putChatContextPayloadText(payload, "serviceHandoffTaskType", reqVO.getServiceHandoffTaskType());
         putChatContextPayloadText(payload, "serviceHandoffIntent", reqVO.getServiceHandoffIntent());
@@ -2804,6 +2983,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
                         reqVO.getVisionAgentPrimarySceneDomainLabel(),
                         reqVO.getVisionAgentSceneUnderstandingSummary(),
                         reqVO.getVisionAgentDecisionReasonSummary(),
+                        buildVisionAgentSceneSnapshotContextText(reqVO.getVisionAgentSceneSnapshot()),
                         reqVO.getServiceHandoffIntentText(),
                         reqVO.getServiceHandoffSummary())
                 .filter(this::hasText)
