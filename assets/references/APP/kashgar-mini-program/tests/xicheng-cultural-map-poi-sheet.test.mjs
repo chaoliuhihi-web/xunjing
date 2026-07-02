@@ -58,6 +58,23 @@ assert.match(
   'Cultural map should show a bottom sheet with the selected POI name and introduction'
 )
 
+assert.ok(
+  culturalMap.includes('\n\t\t\t<view v-if="selectedPoi" class="xicheng-map-bottom-sheet">'),
+  'Cultural map POI bottom sheet should render inside the map canvas as an in-map overlay'
+)
+
+assert.match(
+  culturalMap,
+  /\.xicheng-map-bottom-sheet\s*\{[\s\S]*position:\s*absolute[\s\S]*left:\s*20rpx[\s\S]*right:\s*20rpx[\s\S]*bottom:\s*18rpx/,
+  'Cultural map POI bottom sheet should be absolutely positioned inside the map canvas'
+)
+
+assert.match(
+  culturalMap,
+  /\.xicheng-map-sheet-desc\s*\{[\s\S]*max-height:\s*64rpx[\s\S]*overflow:\s*hidden/,
+  'Cultural map POI introduction should stay compact inside the in-map overlay'
+)
+
 assert.match(
   culturalMap,
   /:class="\{ 'xicheng-map-sheet-head-no-image': !selectedPoi\.image \}"/,
