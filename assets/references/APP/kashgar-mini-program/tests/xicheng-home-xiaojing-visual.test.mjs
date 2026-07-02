@@ -90,7 +90,6 @@ for (const required of [
   'class="home-action-duo"',
   'home-scan-card',
   'hero-ask-card',
-  'class="home-share-button"',
   'id="xicheng-map-entry-section"',
   'class="home-light-entry-grid"',
   '文旅地图',
@@ -120,10 +119,10 @@ assert.ok(
   'Xicheng home should surface compact map and Citywalk entries after the two primary action cards'
 )
 
-assert.match(
+assert.doesNotMatch(
   home,
-  /class="home-share-button"[\s\S]*@click="openXichengShare"/,
-  'Xicheng home should keep the share poster entry as a small top-right action instead of a prominent home card'
+  /class="home-share-button"|openXichengShare|name="travelogue"[\s\S]*variant="plain"/,
+  'Xicheng home should not show a top-right favorite/share icon in the city selector row'
 )
 
 assert.match(

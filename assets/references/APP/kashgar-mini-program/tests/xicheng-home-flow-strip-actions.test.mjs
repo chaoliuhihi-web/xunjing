@@ -17,9 +17,7 @@ for (const required of [
   '开始记录',
   '游记草稿',
   '@click="openXichengRoutes"',
-  '@click.stop="openXichengRecording"',
-  'class="home-share-button"',
-  '@click="openXichengShare"'
+  '@click.stop="openXichengRecording"'
 ]) {
   assert.ok(home.includes(required), `Xicheng home should expose compact primary P0 entry ${required}`)
 }
@@ -38,6 +36,6 @@ assert.match(
 
 assert.doesNotMatch(
   home,
-  /homeSecondaryEntries|openHomeSecondaryEntry|class="flow-strip"|class="journey-panel|class="ops-section|class="inspiration-panel|title: '收藏'|key: 'footprint'|亲子研学|运营报告/,
-  'Xicheng home should not keep hidden growth, parent-child study, ops report, or favorite entrypoints on the primary page'
+  /homeSecondaryEntries|openHomeSecondaryEntry|class="flow-strip"|class="journey-panel|class="ops-section|class="inspiration-panel|class="home-share-button"|openXichengShare|title: '收藏'|key: 'footprint'|亲子研学|运营报告/,
+  'Xicheng home should not keep hidden growth, share, parent-child study, ops report, or favorite entrypoints on the primary page'
 )

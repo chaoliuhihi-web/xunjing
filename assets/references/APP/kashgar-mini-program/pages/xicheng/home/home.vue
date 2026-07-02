@@ -6,9 +6,6 @@
 				<text>{{ region.cityName }}</text>
 				<view class="home-location-caret"></view>
 			</view>
-			<view class="home-share-button" @click="openXichengShare">
-				<xicheng-icon name="travelogue" variant="plain" :size="22" />
-			</view>
 		</view>
 
 		<view class="hero xicheng-reference-hero">
@@ -832,9 +829,6 @@ export default {
 				url: `/pages/xicheng/recording/recording?autoStart=1&regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&companionName=${encodeRouteValue(this.region.companionName)}`
 			})
 		},
-		openXichengShare() {
-			uni.navigateTo({ url: '/pages/xicheng/share/share' })
-		},
 		openXichengWorks() {
 			uni.navigateTo({ url: '/pages/xicheng/works/works' })
 		},
@@ -913,19 +907,6 @@ export default {
 	border-left: 8rpx solid transparent;
 	border-right: 8rpx solid transparent;
 	border-top: 10rpx solid currentColor;
-}
-
-.home-share-button {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 64rpx;
-	height: 64rpx;
-	border: 2rpx solid rgba(23, 63, 53, 0.16);
-	border-radius: 999rpx;
-	background: rgba(255, 253, 248, 0.88);
-	box-shadow: 0 10rpx 24rpx rgba(16, 47, 41, 0.08);
-	box-sizing: border-box;
 }
 
 .hero {
