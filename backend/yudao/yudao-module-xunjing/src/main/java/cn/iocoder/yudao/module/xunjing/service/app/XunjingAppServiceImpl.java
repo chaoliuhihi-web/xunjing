@@ -125,6 +125,12 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             "spiceLevelSummary",
             "halalSuitabilityText",
             "dishRecommendationSummary",
+            "foodItemName",
+            "foodOriginSummary",
+            "cookingMethodSummary",
+            "eatingMethodSummary",
+            "pairingSuggestionText",
+            "nearbyFoodRecommendationSummary",
             "signOriginalText",
             "signTranslationText",
             "signPronunciationText",
@@ -997,6 +1003,12 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         putPreviousJsonMemoryPart(parts, "辣度", sceneSignals, "spiceLevelSummary");
         putPreviousJsonMemoryPart(parts, "清真信息", sceneSignals, "halalSuitabilityText");
         putPreviousJsonMemoryPart(parts, "推荐点单", sceneSignals, "dishRecommendationSummary");
+        putPreviousJsonMemoryPart(parts, "美食名称", sceneSignals, "foodItemName");
+        putPreviousJsonMemoryPart(parts, "美食来源", sceneSignals, "foodOriginSummary");
+        putPreviousJsonMemoryPart(parts, "制作方式", sceneSignals, "cookingMethodSummary");
+        putPreviousJsonMemoryPart(parts, "吃法", sceneSignals, "eatingMethodSummary");
+        putPreviousJsonMemoryPart(parts, "搭配建议", sceneSignals, "pairingSuggestionText");
+        putPreviousJsonMemoryPart(parts, "附近推荐", sceneSignals, "nearbyFoodRecommendationSummary");
         putPreviousJsonMemoryPart(parts, "路牌原文", sceneSignals, "signOriginalText");
         putPreviousJsonMemoryPart(parts, "路牌翻译", sceneSignals, "signTranslationText");
         putPreviousJsonMemoryPart(parts, "发音", sceneSignals, "signPronunciationText");

@@ -522,6 +522,41 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerUsesFoodSignalsForIntentAndContextMatch() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户举起手机拍到刚出炉的小吃。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合美食识别和城市知识库后等待场景引擎判断。");
+        sceneSignals.put("sceneDomainIntentKey", "food");
+        sceneSignals.put("sceneDomainIntentLabel", "美食");
+        sceneSignals.put("foodItemName", "烤包子");
+        sceneSignals.put("foodOriginSummary", "新疆街头小吃。");
+        sceneSignals.put("cookingMethodSummary", "馕坑高温烤制。");
+        sceneSignals.put("eatingMethodSummary", "趁热掰开吃。");
+        sceneSignals.put("pairingSuggestionText", "适合配酸奶。");
+        sceneSignals.put("nearbyFoodRecommendationSummary", "恭王府附近可找清真老字号。");
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setText("");
+        reqVO.setOcrText("");
+        reqVO.setImageLabels(List.of());
+        reqVO.setLocation(null);
+        reqVO.setSceneSignals(sceneSignals);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("food", respVO.getIntent());
+        assertEquals("confirm_food_recommendation", respVO.getAction());
+        assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
+        assertTrue(respVO.getCandidates().get(0).getMatchedSignals().contains("scene_context_alias"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerUsesSignTranslationSignalsForIntentAndContextMatch() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -1953,6 +1988,66 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testAnswerUsesFoodSignalsFromPreviousTriggerForSourceSearch() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        consoleService.addKnowledgeDocument(xichengUnrelatedKnowledgeReq(packageId));
+        consoleService.addKnowledgeDocument(xichengFoodKnowledgeReq(packageId));
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户举起手机拍到一份地方小吃。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合美食识别和城市知识库后等待连续问答。");
+        sceneSignals.put("sceneDomainIntentKey", "food");
+        sceneSignals.put("sceneDomainIntentLabel", "美食");
+        sceneSignals.put("agentDecisionReasonSummary", "适合讲来源、做法、吃法、搭配和附近推荐。");
+        sceneSignals.put("foodItemName", "烤包子");
+        sceneSignals.put("foodOriginSummary", "新疆街头小吃。");
+        sceneSignals.put("cookingMethodSummary", "馕坑高温烤制。");
+        sceneSignals.put("eatingMethodSummary", "趁热掰开吃。");
+        sceneSignals.put("pairingSuggestionText", "适合配酸奶。");
+        sceneSignals.put("nearbyFoodRecommendationSummary", "附近可找清真老字号。");
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-food-search-001");
+        triggerReq.setText("先记住这份小吃线索");
+        triggerReq.setOcrText("");
+        triggerReq.setImageLabels(List.of());
+        triggerReq.setLocation(null);
+        triggerReq.setSceneSignals(sceneSignals);
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("ask", triggerResp.getIntent());
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-food-search-001");
+        followUpReq.setQuestion("这个怎么吃？");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO followUpAnswer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", followUpAnswer.getSafetyStatus());
+        assertFalse(followUpAnswer.getSources().isEmpty());
+        assertEquals("西城烤包子美食讲解稿", followUpAnswer.getSources().get(0).getTitle());
+        assertTrue(followUpAnswer.getAnswer().contains("烤包子")
+                || followUpAnswer.getAnswer().contains("馕坑")
+                || followUpAnswer.getAnswer().contains("酸奶"));
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId, "trace-xicheng-food-search-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("烤包子"));
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("馕坑高温烤制"));
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("适合配酸奶"));
+    }
+
+    @Test
     public void testAnswerUsesSignTranslationSignalsFromPreviousTriggerForSourceSearch() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -2736,6 +2831,19 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
         reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/sign-translation");
         reqVO.setContentDigest("市场路可读作 bazaar yoli，可作为前往市场入口的导航线索。");
+        reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
+        reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
+        reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());
+        return reqVO;
+    }
+
+    private KnowledgeDocumentCreateReqVO xichengFoodKnowledgeReq(Long packageId) {
+        KnowledgeDocumentCreateReqVO reqVO = new KnowledgeDocumentCreateReqVO();
+        reqVO.setPackageId(packageId);
+        reqVO.setTitle("西城烤包子美食讲解稿");
+        reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
+        reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/food-snack");
+        reqVO.setContentDigest("烤包子是新疆街头小吃，常用馕坑高温烤制，趁热掰开吃，适合配酸奶，附近可找清真老字号。");
         reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
         reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
         reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());

@@ -43,6 +43,12 @@ public class XunjingVisionRecognitionService {
             "spiceLevelSummary",
             "halalSuitabilityText",
             "dishRecommendationSummary",
+            "foodItemName",
+            "foodOriginSummary",
+            "cookingMethodSummary",
+            "eatingMethodSummary",
+            "pairingSuggestionText",
+            "nearbyFoodRecommendationSummary",
             "signOriginalText",
             "signTranslationText",
             "signPronunciationText",
@@ -165,6 +171,12 @@ public class XunjingVisionRecognitionService {
                                                 + "\"spiceLevelSummary\":\"辣度\","
                                                 + "\"halalSuitabilityText\":\"清真信息\","
                                                 + "\"dishRecommendationSummary\":\"推荐点单\","
+                                                + "\"foodItemName\":\"美食名称\","
+                                                + "\"foodOriginSummary\":\"来源\","
+                                                + "\"cookingMethodSummary\":\"做法\","
+                                                + "\"eatingMethodSummary\":\"吃法\","
+                                                + "\"pairingSuggestionText\":\"搭配建议\","
+                                                + "\"nearbyFoodRecommendationSummary\":\"附近推荐\","
                                                 + "\"signOriginalText\":\"路牌或招牌原文\","
                                                 + "\"signTranslationText\":\"中文翻译\","
                                                 + "\"signPronunciationText\":\"发音或转写\","

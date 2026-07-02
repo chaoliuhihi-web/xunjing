@@ -189,6 +189,45 @@ public class XunjingVisionRecognitionServiceTest {
     }
 
     @Test
+    public void testEnrichMergesFoodSceneSignalsFromVisionProvider() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/vision/v1/chat/completions", exchange -> {
+            String response = """
+                    {"choices":[{"message":{"content":"{\\"labels\\":[\\"dish\\"],\\"ocrText\\":\\"烤包子\\",\\"caption\\":\\"画面里是一份刚出炉的烤包子。\\",\\"sceneSignals\\":{\\"sceneDomainIntentKey\\":\\"food\\",\\"sceneDomainIntentLabel\\":\\"美食\\",\\"foodItemName\\":\\"烤包子\\",\\"foodOriginSummary\\":\\"新疆街头小吃\\",\\"cookingMethodSummary\\":\\"馕坑高温烤制\\",\\"eatingMethodSummary\\":\\"趁热掰开吃\\",\\"pairingSuggestionText\\":\\"适合配酸奶\\",\\"nearbyFoodRecommendationSummary\\":\\"附近可找清真老字号\\"}}"}}]}
+                    """;
+            byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, responseBytes.length);
+            exchange.getResponseBody().write(responseBytes);
+            exchange.close();
+        });
+        server.start();
+        try {
+            XunjingVisionRecognitionService configuredService = new XunjingVisionRecognitionService();
+            setField(configuredService, "visionApiUrl",
+                    "http://127.0.0.1:" + server.getAddress().getPort() + "/vision/v1");
+            setField(configuredService, "visionApiKey", "test-key");
+
+            MultimodalTriggerReqVO reqVO = new MultimodalTriggerReqVO();
+            reqVO.setPhotoMeta(photoMeta("image/jpeg", "photo-base64"));
+
+            MultimodalTriggerReqVO enrichedReqVO = configuredService.enrich(reqVO);
+
+            assertEquals("烤包子", enrichedReqVO.getOcrText());
+            assertEquals("food", enrichedReqVO.getSceneSignals().get("sceneDomainIntentKey"));
+            assertEquals("美食", enrichedReqVO.getSceneSignals().get("sceneDomainIntentLabel"));
+            assertEquals("烤包子", enrichedReqVO.getSceneSignals().get("foodItemName"));
+            assertEquals("新疆街头小吃", enrichedReqVO.getSceneSignals().get("foodOriginSummary"));
+            assertEquals("馕坑高温烤制", enrichedReqVO.getSceneSignals().get("cookingMethodSummary"));
+            assertEquals("趁热掰开吃", enrichedReqVO.getSceneSignals().get("eatingMethodSummary"));
+            assertEquals("适合配酸奶", enrichedReqVO.getSceneSignals().get("pairingSuggestionText"));
+            assertEquals("附近可找清真老字号",
+                    enrichedReqVO.getSceneSignals().get("nearbyFoodRecommendationSummary"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     public void testEnrichMergesSignTranslationSceneSignalsFromVisionProvider() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/vision/v1/chat/completions", exchange -> {
