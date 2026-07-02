@@ -139,6 +139,7 @@ const redactArgv = (argv) => argv.map((value, index) => (
 const hbuilderxSoftFailurePatterns = [
   /项目[\s\S]*不存在[\s\S]*请先导入/,
   /project[\s\S]*(not found|does not exist|not imported|import first)/i,
+  /(依赖插件|missing plugin|required plugin|plugin required)[\s\S]*(请安装|install)/i,
   /(user not login|not logged in|未登录|请.*登录)/i
 ]
 
