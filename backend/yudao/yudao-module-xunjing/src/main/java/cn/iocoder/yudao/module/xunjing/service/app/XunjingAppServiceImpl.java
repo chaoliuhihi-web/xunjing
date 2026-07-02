@@ -1248,8 +1248,26 @@ public class XunjingAppServiceImpl implements XunjingAppService {
                         reqVO.getPoiName(),
                         reqVO.getPoiCode(),
                         reqVO.getRegionCode(),
-                        reqVO.getRouteId())
+                        reqVO.getRouteId(),
+                        buildVisionAgentSourceSearchText(reqVO))
                 .filter(this::hasText)
+                .distinct()
+                .collect(Collectors.joining("\n"));
+    }
+
+    private String buildVisionAgentSourceSearchText(RagChatReqVO reqVO) {
+        return java.util.stream.Stream.of(
+                        reqVO.getVisionAgentSceneFusionSummary(),
+                        reqVO.getVisionAgentWorldInterfaceSummary(),
+                        reqVO.getVisionAgentMemorySessionText(),
+                        reqVO.getVisionAgentPrimarySceneDomainKey(),
+                        reqVO.getVisionAgentPrimarySceneDomainLabel(),
+                        reqVO.getVisionAgentSceneUnderstandingSummary(),
+                        reqVO.getVisionAgentDecisionReasonSummary(),
+                        reqVO.getServiceHandoffIntentText(),
+                        reqVO.getServiceHandoffSummary())
+                .filter(this::hasText)
+                .map(value -> truncateForEvent(value.trim(), CHAT_CONTEXT_TEXT_MAX_LENGTH))
                 .distinct()
                 .collect(Collectors.joining("\n"));
     }

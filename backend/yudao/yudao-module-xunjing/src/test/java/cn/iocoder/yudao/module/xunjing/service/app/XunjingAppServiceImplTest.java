@@ -873,6 +873,30 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testAnswerUsesVisionAgentContextForSourceSearchWhenQuestionIsGeneric() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        consoleService.addKnowledgeDocument(xichengUnrelatedKnowledgeReq(packageId));
+        consoleService.addKnowledgeDocument(xichengBaitasiKnowledgeReq(packageId));
+
+        RagChatReqVO reqVO = xichengRagReq();
+        reqVO.setQuestion("现在适合先做什么？");
+        reqVO.setPoiCode("");
+        reqVO.setPoiName("");
+        reqVO.setVisionAgentSceneFusionSummary("妙应寺白塔。夕阳照到门楼。");
+        reqVO.setVisionAgentWorldInterfaceSummary("白塔寺片区。相机融合定位和城市知识库。");
+        reqVO.setVisionAgentSceneUnderstandingSummary("妙应寺白塔。现场主体是建筑。");
+
+        RagChatRespVO answer = appService.answer(reqVO);
+
+        assertEquals("PASSED", answer.getSafetyStatus());
+        assertFalse(answer.getSources().isEmpty());
+        assertEquals("妙应寺白塔权威讲解稿", answer.getSources().get(0).getTitle());
+        assertTrue(answer.getAnswer().contains("妙应寺白塔"));
+    }
+
+    @Test
     public void testAnswerBlocksWhenNoReviewedSourcesForXichengPoi() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
