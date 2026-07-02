@@ -6,7 +6,9 @@ const root = process.cwd()
 const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
 
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
+const candidateCard = read('components', 'xicheng', 'XichengScanResultCandidateCard.vue')
 const triggerRequest = read('request', 'xunjing', 'trigger.js')
+const scanResultShell = `${scanResult}\n${candidateCard}`
 
 for (const required of [
   '可能匹配地点',
@@ -17,7 +19,7 @@ for (const required of [
   'normalizeRecognitionCandidates',
   'uni.setStorageSync(XICHENG_REGION_CONFIG.storageKey, this.result)'
 ]) {
-  assert.ok(scanResult.includes(required), `Recognition result page should support candidate confirmation token ${required}`)
+  assert.ok(scanResultShell.includes(required), `Recognition result page should support candidate confirmation token ${required}`)
 }
 
 assert.match(

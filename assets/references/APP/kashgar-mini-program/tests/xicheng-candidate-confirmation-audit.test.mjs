@@ -19,7 +19,7 @@ const sliceBetween = (content, start, end) => {
 const candidateConfirmationAuditFactory = sliceBetween(
   scanResult,
   '\t\tcreateCandidateConfirmationAudit(selectedCandidate, retainedReviewedSources) {',
-  'formatCandidateSummary(candidate = {})'
+  'startRecording()'
 )
 
 for (const required of [
