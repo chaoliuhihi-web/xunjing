@@ -7,7 +7,9 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 const exists = (...segments) => fs.existsSync(path.join(root, ...segments))
 
 const componentPath = ['components', 'xicheng', 'XichengCulturalMap.vue']
+const backdropPath = ['components', 'xicheng', 'XichengCulturalMapBackdrop.vue']
 const poiSheetPath = ['components', 'xicheng', 'XichengCulturalMapPoiSheet.vue']
+const mapConfigPath = ['config', 'regions', 'xichengMap.js']
 
 assert.ok(
   exists(...componentPath),
@@ -17,11 +19,21 @@ assert.ok(
   exists(...poiSheetPath),
   'Cultural map POI bottom sheet should be extracted into a dedicated component'
 )
+assert.ok(
+  exists(...backdropPath),
+  'Cultural map decorative backdrop should be extracted into a dedicated component'
+)
+assert.ok(
+  exists(...mapConfigPath),
+  'Cultural map POI layout and category data should be extracted into config'
+)
 
 const culturalMap = read(...componentPath)
+const backdrop = read(...backdropPath)
 const poiSheet = read(...poiSheetPath)
+const mapConfig = read(...mapConfigPath)
 const routes = read('pages', 'xicheng', 'routes', 'routes.vue')
-const mapShell = `${culturalMap}\n${poiSheet}`
+const mapShell = `${culturalMap}\n${backdrop}\n${poiSheet}\n${mapConfig}`
 
 for (const required of [
   '西城文旅地图',
@@ -62,9 +74,15 @@ for (const required of [
 }
 
 assert.match(
+  backdrop,
+  /v-for="category in mapCategories"[\s\S]*category\.label/,
+  'Cultural map backdrop should render category legend from structured data'
+)
+
+assert.match(
   culturalMap,
-  /v-for="category in mapCategories"[\s\S]*category\.label[\s\S]*v-for="poi in positionedPois"[\s\S]*selectPoi\(poi\)/,
-  'Cultural map should render category legend and tappable POI pins from structured data'
+  /v-for="poi in positionedPois"[\s\S]*selectPoi\(poi\)/,
+  'Cultural map shell should render tappable POI pins from structured data'
 )
 
 assert.match(
@@ -206,7 +224,7 @@ for (const required of [
 }
 
 assert.doesNotMatch(
-  culturalMap + poiSheet + routes,
+  mapShell + routes,
   /\/app-api\/xunjing|Authorization['"]?\s*:\s*`Bearer|pat_[A-Za-z0-9]{20,}|https:\/\/api\.coze\.cn|sk-[A-Za-z0-9]{20,}/,
   'Cultural map POI shell should not introduce backend calls or client-side secrets'
 )
