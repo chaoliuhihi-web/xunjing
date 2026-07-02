@@ -729,6 +729,61 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerHydratesContinuousContextFromPreviousAskEvent() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+        consoleService.addKnowledgeDocument(xichengGongwangfuKnowledgeReq(packageId));
+
+        RagChatReqVO askReq = xichengRagReq();
+        askReq.setUserTraceId("trace-xicheng-ask-trigger-001");
+        askReq.setQuestion("恭王府屋顶结构有什么看点？");
+        askReq.setRegionCode("beijing-xicheng");
+        askReq.setPoiCode("xicheng-gongwangfu");
+        askReq.setPoiName("恭王府");
+        askReq.setVisionAgentSceneFusionSummary("用户正在看恭王府博物馆入口和屋顶结构。");
+        askReq.setVisionAgentWorldInterfaceSummary("相机融合城市知识库，判断当前位置是恭王府。");
+        askReq.setVisionAgentPrimarySceneDomainKey("architecture");
+        askReq.setVisionAgentPrimarySceneDomainLabel("建筑");
+        askReq.setVisionAgentDecisionReasonSummary("适合继续讲王府格局和建筑细节。");
+        askReq.setVisionAgentMemorySessionSceneCount(1);
+        RagChatRespVO askAnswer = appService.answer(askReq);
+        assertEquals("PASSED", askAnswer.getSafetyStatus());
+
+        MultimodalTriggerReqVO followUpReq = multimodalReq();
+        followUpReq.setPackageCode("XICHENG-MAP-001");
+        followUpReq.setSceneCode("xicheng-multimodal-trigger");
+        followUpReq.setUserTraceId("trace-xicheng-ask-trigger-001");
+        followUpReq.setText("继续看这个屋顶结构");
+        followUpReq.setOcrText("");
+        followUpReq.setImageLabels(List.of());
+        followUpReq.setLocation(null);
+
+        MultimodalTriggerRespVO followUpResp = appService.resolveMultimodalTrigger(followUpReq);
+
+        assertEquals("xicheng-gongwangfu", followUpResp.getPoiCode());
+        assertEquals("恭王府", followUpResp.getPoiName());
+        assertEquals("confirm_ai_guide", followUpResp.getAction());
+        assertTrue(followUpResp.getRequiresUserConfirm());
+        assertTrue(followUpResp.getCandidates().get(0).getMatchedSignals().contains("context_poi"));
+        assertTrue(followUpResp.getCandidates().get(0).getMatchedSignals().contains("scene_context_alias"));
+
+        List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.TRIGGER_RESOLVE.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId, "trace-xicheng-ask-trigger-001"));
+        assertEquals(1, events.size());
+        JsonNode payload = JsonUtils.parseTree(events.get(0).getPayloadJson());
+        assertEquals("xicheng-gongwangfu", payload.get("poiCode").asText());
+        assertEquals("", payload.get("ocrText").asText());
+        JsonNode sceneSignals = payload.get("sceneSignals");
+        assertTrue(sceneSignals.get("sceneFusionSummary").asText().contains("恭王府"));
+        assertEquals(2, sceneSignals.get("memorySessionSceneCount").asInt());
+    }
+
+    @Test
     public void testResolveMultimodalTriggerRequiresConfirmWhenOnlyImageSignalMatches() {
         MultimodalTriggerReqVO reqVO = multimodalReq();
         reqVO.setImageLabels(List.of("lake", "imperial_garden", "white_tower"));
