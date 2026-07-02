@@ -85,7 +85,13 @@ public class XunjingVisionRecognitionService {
             "performerSummary",
             "scheduleTimeText",
             "ticketingHint",
-            "venueNavigationHint"
+            "venueNavigationHint",
+            "checkInTaskSummary",
+            "badgeRewardName",
+            "travelMapUpdateSummary",
+            "travelogueMaterialSummary",
+            "photoMomentSummary",
+            "socialShareDraftHint"
     );
     private static final List<SceneDomainRule> VISION_SCENE_DOMAIN_RULES = List.of(
             new SceneDomainRule("architecture", "建筑", "建筑识境", "讲解年代、结构、故事和拍照角度",
@@ -241,7 +247,13 @@ public class XunjingVisionRecognitionService {
                                                 + "\"performerSummary\":\"演员或表演者\","
                                                 + "\"scheduleTimeText\":\"开始时间\","
                                                 + "\"ticketingHint\":\"票务或预约线索\","
-                                                + "\"venueNavigationHint\":\"场地导航线索\"}}。"
+                                                + "\"venueNavigationHint\":\"场地导航线索\","
+                                                + "\"checkInTaskSummary\":\"打卡任务\","
+                                                + "\"badgeRewardName\":\"徽章奖励\","
+                                                + "\"travelMapUpdateSummary\":\"旅行地图更新\","
+                                                + "\"travelogueMaterialSummary\":\"游记素材\","
+                                                + "\"photoMomentSummary\":\"照片时刻\","
+                                                + "\"socialShareDraftHint\":\"分享文案草稿\"}}。"
                                                 + "sceneDomainIntentKey 可选 architecture, artifact, menu, food, sign, "
                                                 + "intangible_heritage, plant, animal, person, activity。"
                                                 + "可用 labels 包括 white_pagoda, pagoda, temple, temple_gate, "

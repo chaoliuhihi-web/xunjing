@@ -432,6 +432,49 @@ public class XunjingVisionRecognitionServiceTest {
     }
 
     @Test
+    public void testEnrichMergesTravelRecordSceneSignalsFromVisionProvider() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/vision/v1/chat/completions", exchange -> {
+            String response = """
+                    {"choices":[{"message":{"content":"{\\"labels\\":[\\"checkin\\"],\\"ocrText\\":\\"旅行徽章\\",\\"caption\\":\\"画面里是景点打卡徽章。\\",\\"sceneSignals\\":{\\"sceneDomainIntentKey\\":\\"record\\",\\"sceneDomainIntentLabel\\":\\"旅行记录\\",\\"checkInTaskSummary\\":\\"完成第 12 个景点打卡\\",\\"badgeRewardName\\":\\"西城晨昏观察徽章\\",\\"travelMapUpdateSummary\\":\\"今天路线已串联 12 个景点\\",\\"travelogueMaterialSummary\\":\\"50 张照片、5 小时停留和讲解线索可生成旅行故事\\",\\"photoMomentSummary\\":\\"王府入口合影可作为今日封面\\",\\"socialShareDraftHint\\":\\"可生成朋友圈和小红书文案草稿\\"}}"}}]}
+                    """;
+            byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, responseBytes.length);
+            exchange.getResponseBody().write(responseBytes);
+            exchange.close();
+        });
+        server.start();
+        try {
+            XunjingVisionRecognitionService configuredService = new XunjingVisionRecognitionService();
+            setField(configuredService, "visionApiUrl",
+                    "http://127.0.0.1:" + server.getAddress().getPort() + "/vision/v1");
+            setField(configuredService, "visionApiKey", "test-key");
+
+            MultimodalTriggerReqVO reqVO = new MultimodalTriggerReqVO();
+            reqVO.setPhotoMeta(photoMeta("image/jpeg", "photo-base64"));
+
+            MultimodalTriggerReqVO enrichedReqVO = configuredService.enrich(reqVO);
+
+            assertEquals("旅行徽章", enrichedReqVO.getOcrText());
+            assertEquals("record", enrichedReqVO.getSceneSignals().get("sceneDomainIntentKey"));
+            assertEquals("旅行记录", enrichedReqVO.getSceneSignals().get("sceneDomainIntentLabel"));
+            assertEquals("完成第 12 个景点打卡",
+                    enrichedReqVO.getSceneSignals().get("checkInTaskSummary"));
+            assertEquals("西城晨昏观察徽章", enrichedReqVO.getSceneSignals().get("badgeRewardName"));
+            assertEquals("今天路线已串联 12 个景点",
+                    enrichedReqVO.getSceneSignals().get("travelMapUpdateSummary"));
+            assertEquals("50 张照片、5 小时停留和讲解线索可生成旅行故事",
+                    enrichedReqVO.getSceneSignals().get("travelogueMaterialSummary"));
+            assertEquals("王府入口合影可作为今日封面",
+                    enrichedReqVO.getSceneSignals().get("photoMomentSummary"));
+            assertEquals("可生成朋友圈和小红书文案草稿",
+                    enrichedReqVO.getSceneSignals().get("socialShareDraftHint"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     public void testEnrichMergesSignTranslationSceneSignalsFromVisionProvider() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/vision/v1/chat/completions", exchange -> {

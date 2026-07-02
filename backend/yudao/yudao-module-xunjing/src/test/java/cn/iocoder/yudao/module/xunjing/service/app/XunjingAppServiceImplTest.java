@@ -803,6 +803,42 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerUsesTravelRecordSignalsForIntentAndContextMatch() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户完成当前识境任务，适合沉淀旅行记录。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合位置、照片和连续记忆后生成游记任务包。");
+        sceneSignals.put("sceneDomainIntentKey", "record");
+        sceneSignals.put("sceneDomainIntentLabel", "旅行记录");
+        sceneSignals.put("agentDecisionReasonSummary", "适合完成打卡、领取徽章、加入旅行地图并生成游记素材。");
+        sceneSignals.put("checkInTaskSummary", "完成恭王府入口打卡。");
+        sceneSignals.put("badgeRewardName", "西城王府探索徽章");
+        sceneSignals.put("travelMapUpdateSummary", "已加入今天的旅行地图。");
+        sceneSignals.put("travelogueMaterialSummary", "保留照片、停留时长和讲解线索。");
+        sceneSignals.put("photoMomentSummary", "王府入口合影可作为今日封面。");
+        sceneSignals.put("socialShareDraftHint", "可生成朋友圈和小红书文案草稿。");
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setText("");
+        reqVO.setOcrText("");
+        reqVO.setImageLabels(List.of());
+        reqVO.setLocation(null);
+        reqVO.setSceneSignals(sceneSignals);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("record", respVO.getIntent());
+        assertEquals("confirm_travel_note", respVO.getAction());
+        assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
+        assertTrue(respVO.getCandidates().get(0).getMatchedSignals().contains("scene_context_alias"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerUsesPhotoAdviceIntent() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -2641,6 +2677,66 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testAnswerUsesTravelRecordSignalsFromPreviousTriggerForSourceSearch() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        consoleService.addKnowledgeDocument(xichengUnrelatedKnowledgeReq(packageId));
+        consoleService.addKnowledgeDocument(xichengTravelRecordKnowledgeReq(packageId));
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户完成一天识境任务，准备自动生成游记。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合照片、路线、停留时长和连续记忆后生成旅行故事。");
+        sceneSignals.put("sceneDomainIntentKey", "record");
+        sceneSignals.put("sceneDomainIntentLabel", "旅行记录");
+        sceneSignals.put("agentDecisionReasonSummary", "适合完成打卡、领取徽章、加入旅行地图并生成游记素材。");
+        sceneSignals.put("checkInTaskSummary", "完成第 12 个景点打卡。");
+        sceneSignals.put("badgeRewardName", "西城晨昏观察徽章");
+        sceneSignals.put("travelMapUpdateSummary", "今天路线已串联 12 个景点。");
+        sceneSignals.put("travelogueMaterialSummary", "50 张照片、5 小时停留和讲解线索可生成旅行故事。");
+        sceneSignals.put("photoMomentSummary", "王府入口合影可作为今日封面。");
+        sceneSignals.put("socialShareDraftHint", "可生成朋友圈和小红书文案草稿。");
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-travel-record-search-001");
+        triggerReq.setText("先记住今天的游记任务包");
+        triggerReq.setOcrText("");
+        triggerReq.setImageLabels(List.of());
+        triggerReq.setLocation(null);
+        triggerReq.setSceneSignals(sceneSignals);
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("ask", triggerResp.getIntent());
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-travel-record-search-001");
+        followUpReq.setQuestion("今天怎么整理？");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO followUpAnswer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", followUpAnswer.getSafetyStatus());
+        assertFalse(followUpAnswer.getSources().isEmpty());
+        assertEquals("西城自动游记任务包讲解稿", followUpAnswer.getSources().get(0).getTitle());
+        assertTrue(followUpAnswer.getAnswer().contains("12 个景点")
+                || followUpAnswer.getAnswer().contains("50 张照片")
+                || followUpAnswer.getAnswer().contains("小红书"));
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId, "trace-xicheng-travel-record-search-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("西城晨昏观察徽章"));
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("50 张照片"));
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("小红书文案草稿"));
+    }
+
+    @Test
     public void testAnswerHydratesPhotoAdviceHandoffFromTrigger() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -3398,6 +3494,19 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
         reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/activity-muqam");
         reqVO.setContentDigest("木卡姆小剧场节目背景来自丝路音乐交流，今晚 20:00 开始，本地青年乐团和非遗传承人联合演出，买票和预约必须跳转真实票务系统确认。");
+        reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
+        reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
+        reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());
+        return reqVO;
+    }
+
+    private KnowledgeDocumentCreateReqVO xichengTravelRecordKnowledgeReq(Long packageId) {
+        KnowledgeDocumentCreateReqVO reqVO = new KnowledgeDocumentCreateReqVO();
+        reqVO.setPackageId(packageId);
+        reqVO.setTitle("西城自动游记任务包讲解稿");
+        reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
+        reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/travel-record-package");
+        reqVO.setContentDigest("自动游记任务包可把 12 个景点、50 张照片、5 小时停留、徽章和旅行地图整理为旅行故事，并生成朋友圈和小红书文案草稿。");
         reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
         reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
         reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());

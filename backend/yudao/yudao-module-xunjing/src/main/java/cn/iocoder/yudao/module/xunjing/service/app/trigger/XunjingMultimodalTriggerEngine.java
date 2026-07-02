@@ -94,7 +94,13 @@ public class XunjingMultimodalTriggerEngine {
             "performerSummary",
             "scheduleTimeText",
             "ticketingHint",
-            "venueNavigationHint"
+            "venueNavigationHint",
+            "checkInTaskSummary",
+            "badgeRewardName",
+            "travelMapUpdateSummary",
+            "travelogueMaterialSummary",
+            "photoMomentSummary",
+            "socialShareDraftHint"
     );
 
     private static final List<PoiProfile> XICHENG_POIS = List.of(
