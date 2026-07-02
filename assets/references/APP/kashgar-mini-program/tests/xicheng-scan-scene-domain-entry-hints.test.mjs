@@ -44,6 +44,12 @@ assert.match(
 
 assert.match(
   scan,
+  /sceneDomainImageLabels\(\)[\s\S]*const selectedSceneDomain = this\.getSelectedSceneDomainCapability\(\)[\s\S]*return Array\.from\(new Set\(\[[\s\S]*`sceneDomainIntent:\$\{selectedSceneDomain\.domainKey\}`[\s\S]*selectedSceneDomain\.label[\s\S]*selectedSceneDomain\.title[\s\S]*selectedSceneDomain\.copy[\s\S]*\.\.\.domainLabels/,
+  'Backend image labels should prioritize the selected scene-domain intent before generic domain hints'
+)
+
+assert.match(
+  scan,
   /resolveXichengPhotoTrigger\(\{[\s\S]*imageLabels:\s*this\.sceneDomainImageLabels/,
   'Photo trigger should pass the expanded scene-domain labels into the multimodal backend facade'
 )

@@ -250,10 +250,21 @@ export default {
 	},
 	computed: {
 		sceneDomainImageLabels() {
+			const selectedSceneDomain = this.getSelectedSceneDomainCapability()
 			const domainLabels = this.sceneDomainCapabilities
 				.flatMap(domain => [domain.label, domain.title])
 				.filter(Boolean)
-			return [...domainLabels, '照片', 'OCR文字', '地点线索', '路线图']
+			return Array.from(new Set([
+				selectedSceneDomain.domainKey ? `sceneDomainIntent:${selectedSceneDomain.domainKey}` : '',
+				selectedSceneDomain.label,
+				selectedSceneDomain.title,
+				selectedSceneDomain.copy,
+				...domainLabels,
+				'照片',
+				'OCR文字',
+				'地点线索',
+				'路线图'
+			].filter(Boolean)))
 		},
 		sceneAgentActionPreviews() {
 			return this.createSceneAgentActionPreviews()
