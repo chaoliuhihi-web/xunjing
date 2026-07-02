@@ -118,6 +118,12 @@ assert.match(
   'Route detail should persist official route payload and POI materials before travelogue handoff'
 )
 
+assert.doesNotMatch(
+  routeDetail,
+  /routeOperationCards\(\)|亲子研学任务/,
+  'Route detail should not keep unused passport/study operation cards after route work moved to recording and travelogue handoffs'
+)
+
 assert.match(
   routeDetail,
   /generateRouteTravelogue\(\)[\s\S]*persistRoutePassport\(\)[\s\S]*\/pages\/xicheng\/travelogue\/travelogue\?mode=route[\s\S]*routeCode=\$\{encodeRouteValue\(this\.activeRoute\.routeCode \|\| ''\)\}[\s\S]*companionName=\$\{encodeRouteValue\(this\.routeOptions\.companionName \|\| this\.region\.companionName\)\}/,

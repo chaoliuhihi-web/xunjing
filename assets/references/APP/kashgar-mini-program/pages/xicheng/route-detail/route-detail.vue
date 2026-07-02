@@ -80,13 +80,6 @@ export default {
 				? this.region.visualAssets.routeThumbnails
 				: {}
 			return thumbnails[this.activeRoute.routeCode] || this.region.visualAssets.heroLandmark || ''
-		},
-		routeOperationCards() {
-			return [
-				{ key: 'passport', label: '路线护照', value: `${this.activeRoute.passportTaskCount || this.routeStopCards.length} 点` },
-				{ key: 'study', label: '亲子研学任务', value: `${this.activeRoute.studyTaskCount || 0} 个` },
-				{ key: 'distance', label: '步行距离', value: this.activeRoute.distanceText || '可步行' }
-			]
 		}
 	},
 	onLoad(options = {}) {
