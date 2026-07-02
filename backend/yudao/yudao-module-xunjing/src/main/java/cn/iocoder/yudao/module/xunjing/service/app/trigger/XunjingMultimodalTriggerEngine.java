@@ -359,10 +359,15 @@ public class XunjingMultimodalTriggerEngine {
         Map<String, Object> sceneSignals = reqVO == null || reqVO.getSceneSignals() == null
                 ? Map.of() : reqVO.getSceneSignals();
         SceneUnderstandingRespVO sceneUnderstanding = new SceneUnderstandingRespVO();
-        sceneUnderstanding.setSceneFusionSummary(sceneSignalValue(sceneSignals, "sceneFusionSummary"));
-        sceneUnderstanding.setWorldInterfaceSummary(sceneSignalValue(sceneSignals, "worldInterfaceSummary"));
-        sceneUnderstanding.setPrimarySceneDomainKey(sceneSignalValue(sceneSignals, "sceneDomainIntentKey"));
-        sceneUnderstanding.setPrimarySceneDomainLabel(sceneSignalValue(sceneSignals, "sceneDomainIntentLabel"));
+        sceneUnderstanding.setSceneFusionSummary(defaultIfBlank(sceneSignalValue(sceneSignals, "sceneFusionSummary"),
+                buildFallbackSceneFusionSummary(respVO, evidenceSignals)));
+        sceneUnderstanding.setWorldInterfaceSummary(defaultIfBlank(sceneSignalValue(sceneSignals, "worldInterfaceSummary"),
+                buildFallbackWorldInterfaceSummary(respVO, evidenceSignals)));
+        sceneUnderstanding.setPrimarySceneDomainKey(defaultIfBlank(sceneSignalValue(sceneSignals, "sceneDomainIntentKey"),
+                respVO == null ? "" : respVO.getIntent()));
+        String fallbackDomainLabel = respVO == null ? sceneDomainLabel("") : sceneDomainLabel(respVO.getIntent());
+        sceneUnderstanding.setPrimarySceneDomainLabel(defaultIfBlank(sceneSignalValue(sceneSignals, "sceneDomainIntentLabel"),
+                fallbackDomainLabel));
         sceneUnderstanding.setLocalTimeText(sceneSignalValue(sceneSignals, "localTimeText"));
         sceneUnderstanding.setWeatherText(sceneSignalValue(sceneSignals, "weatherText"));
         sceneUnderstanding.setHeadingText(sceneSignalValue(sceneSignals, "headingText"));
@@ -370,11 +375,86 @@ public class XunjingMultimodalTriggerEngine {
         sceneUnderstanding.setVisionRecognitionStatus(sceneSignalValue(sceneSignals, "visionRecognitionStatus"));
         sceneUnderstanding.setVisionRecognitionModel(sceneSignalValue(sceneSignals, "visionRecognitionModel"));
         sceneUnderstanding.setVisionRecognitionLabelCount(sceneSignalInteger(sceneSignals, "visionRecognitionLabelCount"));
-        sceneUnderstanding.setAgentDecisionActionTitle(sceneSignalValue(sceneSignals, "agentDecisionActionTitle"));
-        sceneUnderstanding.setAgentDecisionReasonSummary(sceneSignalValue(sceneSignals, "agentDecisionReasonSummary"));
+        String fallbackDecisionTitle = respVO == null ? "" : agentActionTitle(respVO.getAction(), respVO.getIntent());
+        sceneUnderstanding.setAgentDecisionActionTitle(defaultIfBlank(
+                sceneSignalValue(sceneSignals, "agentDecisionActionTitle"), fallbackDecisionTitle));
+        sceneUnderstanding.setAgentDecisionReasonSummary(defaultIfBlank(
+                sceneSignalValue(sceneSignals, "agentDecisionReasonSummary"), respVO == null ? "" : respVO.getReason()));
         sceneUnderstanding.setEvidenceSignals(distinctTexts(evidenceSignals == null ? List.of() : evidenceSignals));
         sceneUnderstanding.setServiceHandoffSummary(buildSceneUnderstandingServiceHandoffSummary(respVO));
         return sceneUnderstanding;
+    }
+
+    private String buildFallbackSceneFusionSummary(MultimodalTriggerRespVO respVO, List<String> evidenceSignals) {
+        if (respVO == null) {
+            return "";
+        }
+        List<String> parts = new ArrayList<>();
+        if (hasText(respVO.getPoiName())) {
+            parts.add("识境对象=" + respVO.getPoiName());
+        } else if (hasText(respVO.getPoiCode())) {
+            parts.add("识境对象=" + respVO.getPoiCode());
+        }
+        String evidence = buildEvidenceSignalText(evidenceSignals);
+        if (hasText(evidence)) {
+            parts.add("证据=" + evidence);
+        }
+        if (hasText(respVO.getIntent())) {
+            parts.add("场景意图=" + sceneDomainLabel(respVO.getIntent()));
+        }
+        if (parts.isEmpty()) {
+            return "AI识境需要更多现场信息，已转入问答澄清。";
+        }
+        return "AI识境已理解当前场景：" + String.join("；", parts);
+    }
+
+    private String buildFallbackWorldInterfaceSummary(MultimodalTriggerRespVO respVO, List<String> evidenceSignals) {
+        if (respVO == null) {
+            return "";
+        }
+        if (!hasText(respVO.getPoiName()) && !hasText(respVO.getPoiCode())) {
+            return "相机信号不足，转入 AI 问答澄清并等待更多现场信息。";
+        }
+        String evidence = defaultIfBlank(buildEvidenceSignalText(evidenceSignals), "现场信号");
+        return "相机融合" + evidence + "，连接城市知识库和" + sceneDomainLabel(respVO.getIntent()) + "服务。";
+    }
+
+    private String buildEvidenceSignalText(List<String> evidenceSignals) {
+        if (evidenceSignals == null || evidenceSignals.isEmpty()) {
+            return "";
+        }
+        List<String> labels = new ArrayList<>();
+        for (String signal : evidenceSignals) {
+            addText(labels, evidenceSignalLabel(signal));
+        }
+        return String.join("+", distinctTexts(labels));
+    }
+
+    private String evidenceSignalLabel(String signal) {
+        return switch (defaultIfBlank(signal, "")) {
+            case "gps_radius", "gps_nearby" -> "定位";
+            case "ocr_alias" -> "OCR文字";
+            case "text_alias" -> "用户文本";
+            case "image_label" -> "图片识别";
+            case "scene_context_alias" -> "场景理解";
+            case "context_poi" -> "连续记忆";
+            default -> signal;
+        };
+    }
+
+    private String sceneDomainLabel(String intent) {
+        return switch (defaultIfBlank(intent, "")) {
+            case "route" -> "路线推荐";
+            case "food" -> "美食服务";
+            case "record" -> "旅行记录";
+            case "activity" -> "活动票务";
+            case "translate" -> "路牌翻译";
+            case "safety" -> "安全提醒";
+            case "interpret" -> "深度识境";
+            case "photo" -> "拍照建议";
+            case "ask" -> "问答澄清";
+            default -> "AI讲解";
+        };
     }
 
     private String buildSceneUnderstandingServiceHandoffSummary(MultimodalTriggerRespVO respVO) {
@@ -502,6 +582,9 @@ public class XunjingMultimodalTriggerEngine {
         }
         if ("ask_ai_companion".equals(action)) {
             return "继续问";
+        }
+        if ("start_ai_guide".equals(action) || "confirm_ai_guide".equals(action)) {
+            return "开始 AI 讲解";
         }
         return hasText(intent) ? intent : action;
     }

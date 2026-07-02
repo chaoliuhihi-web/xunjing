@@ -407,6 +407,11 @@ async function checkXichengTriggerBackend(rootDir) {
     'sourceProfiles',
     'buildSceneUnderstanding',
     'setSceneUnderstanding(buildSceneUnderstanding',
+    'buildFallbackSceneFusionSummary(respVO, evidenceSignals)',
+    'buildFallbackWorldInterfaceSummary(respVO, evidenceSignals)',
+    'sceneDomainLabel(respVO.getIntent())',
+    '"start_ai_guide".equals(action) || "confirm_ai_guide".equals(action)',
+    '"开始 AI 讲解"',
     'return noMatch(regionCode, safeReqVO.getPackageCode(), safeReqVO)',
     'respVO.setSceneUnderstanding(buildSceneUnderstanding(reqVO, List.of(), respVO))',
     'databasePoiProfiles.isEmpty() ? XICHENG_POIS : databasePoiProfiles'
@@ -459,6 +464,11 @@ async function checkXichengTriggerBackend(rootDir) {
   assertContains(
     appTest,
     'testResolveMultimodalTriggerRecordsRecognitionEventWhenPackageProvided',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'testResolveMultimodalTriggerBuildsFallbackSceneUnderstandingWithoutClientSignals',
     'XunjingAppServiceImplTest.java'
   )
   assertContains(

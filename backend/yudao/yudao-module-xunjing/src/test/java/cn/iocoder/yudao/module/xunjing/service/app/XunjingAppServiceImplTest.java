@@ -1046,6 +1046,39 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerBuildsFallbackSceneUnderstandingWithoutClientSignals() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-multimodal-trigger");
+        reqVO.setOcrText("恭王府博物馆入口");
+        reqVO.setImageLabels(List.of("palace", "courtyard"));
+        reqVO.setLocation(location("39.937050", "116.386770", 20));
+        reqVO.setSceneSignals(null);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
+        assertNotNull(respVO.getSceneUnderstanding());
+        assertTrue(respVO.getSceneUnderstanding().getSceneFusionSummary().contains("恭王府"),
+                respVO.getSceneUnderstanding().getSceneFusionSummary());
+        assertTrue(respVO.getSceneUnderstanding().getSceneFusionSummary().contains("OCR文字"),
+                respVO.getSceneUnderstanding().getSceneFusionSummary());
+        assertTrue(respVO.getSceneUnderstanding().getWorldInterfaceSummary().contains("城市知识库"));
+        assertEquals("guide", respVO.getSceneUnderstanding().getPrimarySceneDomainKey());
+        assertEquals("AI讲解", respVO.getSceneUnderstanding().getPrimarySceneDomainLabel());
+        assertEquals("开始 AI 讲解", respVO.getSceneUnderstanding().getAgentDecisionActionTitle());
+        assertTrue(respVO.getSceneUnderstanding().getAgentDecisionReasonSummary().contains("定位"));
+        assertTrue(respVO.getSceneUnderstanding().getServiceHandoffSummary().contains("start_ai_guide"));
+        assertTrue(respVO.getSceneUnderstanding().getEvidenceSignals().contains("gps_radius"));
+        assertTrue(respVO.getSceneUnderstanding().getEvidenceSignals().contains("ocr_alias"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerRecordsServiceHandoffContractForMerchantScene() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
