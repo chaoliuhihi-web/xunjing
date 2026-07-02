@@ -944,6 +944,60 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testAnswerHydratesVisionAgentContextFromPreviousTriggerEvent() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+        consoleService.addKnowledgeDocument(xichengGongwangfuKnowledgeReq(packageId));
+        consoleService.addKnowledgeDocument(xichengBaitasiKnowledgeReq(packageId));
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户举起手机看到恭王府博物馆入口。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合 GPS、OCR 和城市知识库，判断当前位置是恭王府。");
+        sceneSignals.put("sceneDomainIntentKey", "architecture");
+        sceneSignals.put("sceneDomainIntentLabel", "建筑");
+        sceneSignals.put("agentDecisionReasonSummary", "适合先讲王府格局，再推荐参观路线。");
+        sceneSignals.put("memorySessionSceneCount", 1);
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-trigger-chat-001");
+        triggerReq.setOcrText("恭王府博物馆入口");
+        triggerReq.setImageLabels(List.of("palace", "courtyard"));
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        triggerReq.setSceneSignals(sceneSignals);
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("xicheng-gongwangfu", triggerResp.getPoiCode());
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-trigger-chat-001");
+        followUpReq.setQuestion("它有什么看点？");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO followUpAnswer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", followUpAnswer.getSafetyStatus());
+        assertEquals("beijing-xicheng", followUpAnswer.getRegionCode());
+        assertEquals("xicheng-gongwangfu", followUpAnswer.getPoiCode());
+        assertEquals("恭王府", followUpAnswer.getPoiName());
+        assertFalse(followUpAnswer.getSources().isEmpty());
+        assertEquals("恭王府权威讲解稿", followUpAnswer.getSources().get(0).getTitle());
+        assertTrue(followUpAnswer.getAnswer().contains("恭王府"));
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId, "trace-xicheng-trigger-chat-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        assertEquals("xicheng-gongwangfu", askPayload.get("poiCode").asText());
+        assertTrue(askPayload.get("visionAgentContext").get("memorySessionText").asText().contains("恭王府"));
+    }
+
+    @Test
     public void testAnswerBlocksWhenNoReviewedSourcesForXichengPoi() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -1185,6 +1239,19 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
         reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/baitasi");
         reqVO.setContentDigest("妙应寺白塔是北京西城重要的历史文化地标，适合作为白塔寺片区 Citywalk 的讲解起点。");
+        reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
+        reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
+        reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());
+        return reqVO;
+    }
+
+    private KnowledgeDocumentCreateReqVO xichengGongwangfuKnowledgeReq(Long packageId) {
+        KnowledgeDocumentCreateReqVO reqVO = new KnowledgeDocumentCreateReqVO();
+        reqVO.setPackageId(packageId);
+        reqVO.setTitle("恭王府权威讲解稿");
+        reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
+        reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/gongwangfu");
+        reqVO.setContentDigest("恭王府是北京西城王府文化和园林空间的代表性点位，适合讲王府格局、历史人物和亲子参观路线。");
         reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
         reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
         reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());
