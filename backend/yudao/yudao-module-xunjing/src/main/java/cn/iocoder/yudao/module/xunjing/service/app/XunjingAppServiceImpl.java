@@ -558,16 +558,20 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         if (reqVO.getSceneSignals() != null) {
             sceneSignals.putAll(reqVO.getSceneSignals());
         }
+        JsonNode sceneSnapshot = visionAgentContext.path("sceneSnapshot");
         putSceneSignalIfAbsent(sceneSignals, "sceneFusionSummary",
-                buildContinuousAskSceneFusionSummary(root, visionAgentContext));
+                buildContinuousAskSceneFusionSummary(root, visionAgentContext, sceneSnapshot));
         putSceneSignalIfAbsent(sceneSignals, "worldInterfaceSummary",
-                buildContinuousAskWorldInterfaceSummary(visionAgentContext));
+                buildContinuousAskWorldInterfaceSummary(visionAgentContext, sceneSnapshot));
         putSceneSignalIfAbsent(sceneSignals, "sceneDomainIntentKey",
-                visionAgentContextText(visionAgentContext, "primarySceneDomainKey"));
+                defaultIfBlank(visionAgentContextText(visionAgentContext, "primarySceneDomainKey"),
+                        visionAgentContextText(sceneSnapshot, "sceneDomainKey")));
         putSceneSignalIfAbsent(sceneSignals, "sceneDomainIntentLabel",
-                visionAgentContextText(visionAgentContext, "primarySceneDomainLabel"));
+                defaultIfBlank(visionAgentContextText(visionAgentContext, "primarySceneDomainLabel"),
+                        visionAgentContextText(sceneSnapshot, "sceneDomainLabel")));
         putSceneSignalIfAbsent(sceneSignals, "agentDecisionReasonSummary",
-                buildContinuousAskDecisionReasonSummary(visionAgentContext));
+                buildContinuousAskDecisionReasonSummary(visionAgentContext, sceneSnapshot));
+        hydratePreviousAskSceneSnapshotSignals(sceneSignals, sceneSnapshot);
         if (!sceneSignals.containsKey("memorySessionSceneCount")) {
             int previousCount = visionAgentContext.path("memorySessionSceneCount").asInt(1);
             sceneSignals.put("memorySessionSceneCount", Math.max(previousCount, 1) + 1);
@@ -619,10 +623,15 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         return hasText(summary) ? truncateForEvent("连续识境：" + summary, TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH) : "";
     }
 
-    private String buildContinuousAskSceneFusionSummary(JsonNode root, JsonNode visionAgentContext) {
+    private String buildContinuousAskSceneFusionSummary(
+            JsonNode root, JsonNode visionAgentContext, JsonNode sceneSnapshot) {
         String previousScene = visionAgentContextText(visionAgentContext, "sceneFusionSummary");
         if (hasText(previousScene)) {
             return truncateForEvent("连续识境：" + previousScene, TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+        }
+        String snapshotScene = visionAgentContextText(sceneSnapshot, "sceneFusionSummary");
+        if (hasText(snapshotScene)) {
+            return truncateForEvent("连续识境快照：" + snapshotScene, TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
         }
         String poiName = visionAgentContextText(root, "poiName");
         String question = visionAgentContextText(root, "question");
@@ -645,10 +654,14 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         return "相机沿用上一轮识境上下文，等待用户确认是否继续当前场景。";
     }
 
-    private String buildContinuousAskWorldInterfaceSummary(JsonNode visionAgentContext) {
+    private String buildContinuousAskWorldInterfaceSummary(JsonNode visionAgentContext, JsonNode sceneSnapshot) {
         String previousWorld = visionAgentContextText(visionAgentContext, "worldInterfaceSummary");
         if (hasText(previousWorld)) {
             return truncateForEvent("连续识境：" + previousWorld, TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+        }
+        String snapshotWorld = visionAgentContextText(sceneSnapshot, "worldInterfaceSummary");
+        if (hasText(snapshotWorld)) {
+            return truncateForEvent("连续识境快照：" + snapshotWorld, TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
         }
         return "相机沿用上一轮问答上下文，等待用户确认是否继续当前场景。";
     }
@@ -662,13 +675,25 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         return hasText(reason) ? "上一轮触发理由：" + reason : "";
     }
 
-    private String buildContinuousAskDecisionReasonSummary(JsonNode visionAgentContext) {
+    private String buildContinuousAskDecisionReasonSummary(JsonNode visionAgentContext, JsonNode sceneSnapshot) {
         String previousReason = visionAgentContextText(visionAgentContext, "decisionReasonSummary");
         if (hasText(previousReason)) {
             return previousReason;
         }
         String previousAction = visionAgentContextText(visionAgentContext, "decisionActionTitle");
-        return hasText(previousAction) ? "上一轮 Agent 建议：" + previousAction : "";
+        if (hasText(previousAction)) {
+            return "上一轮 Agent 建议：" + previousAction;
+        }
+        String snapshotAction = visionAgentContextText(sceneSnapshot, "action");
+        String snapshotIntent = visionAgentContextText(sceneSnapshot, "intent");
+        List<String> parts = new ArrayList<>();
+        if (hasText(snapshotAction)) {
+            parts.add("action=" + snapshotAction);
+        }
+        if (hasText(snapshotIntent)) {
+            parts.add("intent=" + snapshotIntent);
+        }
+        return parts.isEmpty() ? "" : "上一轮识境快照：" + String.join("；", parts);
     }
 
     private String buildContinuousAgentActionDecisionReasonSummary(JsonNode agentAction) {
@@ -695,6 +720,39 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     private void putSceneSignalIfAbsent(Map<String, Object> sceneSignals, String key, String value) {
         if (!sceneSignals.containsKey(key) && hasText(value)) {
             sceneSignals.put(key, truncateForEvent(value.trim(), TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH));
+        }
+    }
+
+    private void hydratePreviousAskSceneSnapshotSignals(Map<String, Object> sceneSignals, JsonNode sceneSnapshot) {
+        if (sceneSnapshot == null || sceneSnapshot.isNull() || sceneSnapshot.isMissingNode()) {
+            return;
+        }
+        putSceneSignalIfAbsent(sceneSignals, "visionRecognitionStatus",
+                visionAgentContextText(sceneSnapshot, "recognitionStatus"));
+        putSceneSignalIfAbsent(sceneSignals, "visionRecognitionModel",
+                visionAgentContextText(sceneSnapshot, "recognitionModel"));
+        putSceneSignalNumberIfAbsent(sceneSignals, "visionRecognitionLabelCount",
+                sceneSnapshot, "recognitionLabelCount");
+    }
+
+    private void putSceneSignalNumberIfAbsent(
+            Map<String, Object> sceneSignals, String targetKey, JsonNode source, String sourceKey) {
+        if (sceneSignals.containsKey(targetKey) || source == null || source.isNull() || source.isMissingNode()) {
+            return;
+        }
+        JsonNode value = source.path(sourceKey);
+        Double number = null;
+        if (value.isNumber()) {
+            number = triggerSceneSignalNumber(value.numberValue());
+        } else if (value.isTextual()) {
+            number = triggerSceneSignalNumber(value.asText());
+        }
+        if (number == null || !Double.isFinite(number)) {
+            return;
+        }
+        long rounded = Math.round(number);
+        if (rounded >= 0) {
+            sceneSignals.put(targetKey, rounded);
         }
     }
 

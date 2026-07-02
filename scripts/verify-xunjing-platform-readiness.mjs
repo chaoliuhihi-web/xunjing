@@ -456,6 +456,8 @@ async function checkXichengTriggerBackend(rootDir) {
     'JsonNode sceneUnderstanding = root.path("sceneUnderstanding")',
     'hydrateTriggerSceneUnderstandingText',
     'hydrateTriggerSceneCount(reqVO, sceneUnderstanding, sceneSignals)',
+    'JsonNode sceneSnapshot = visionAgentContext.path("sceneSnapshot")',
+    'hydratePreviousAskSceneSnapshotSignals(sceneSignals, sceneSnapshot)',
     'hydrateMultimodalTriggerMemoryFromPreviousAgentAction(resourcePackage, reqVO)',
     'shouldUsePreviousAgentActionForTriggerMemory(previousAgentActionEvent, previousAskEvent, previousResolveEvent)',
     'buildContinuousAgentActionSceneFusionSummary(agentAction)',
@@ -503,6 +505,16 @@ async function checkXichengTriggerBackend(rootDir) {
   assertContains(
     appTest,
     'visionAgentContext.get("sceneSnapshot")',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'testResolveMultimodalTriggerHydratesSceneSnapshotFromPreviousAskEvent',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'sceneSignals.get("visionRecognitionStatus").asText()',
     'XunjingAppServiceImplTest.java'
   )
   assertContains(
