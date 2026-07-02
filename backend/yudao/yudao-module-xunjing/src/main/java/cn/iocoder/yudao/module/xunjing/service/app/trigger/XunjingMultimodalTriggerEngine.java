@@ -340,6 +340,7 @@ public class XunjingMultimodalTriggerEngine {
             case "food" -> autoTrigger ? "open_food_recommendation" : "confirm_food_recommendation";
             case "record" -> autoTrigger ? "start_travel_note" : "confirm_travel_note";
             case "activity" -> autoTrigger ? "open_activity_handoff" : "confirm_activity_handoff";
+            case "translate" -> autoTrigger ? "start_sign_translation" : "confirm_sign_translation";
             default -> autoTrigger ? "start_ai_guide" : "confirm_ai_guide";
         };
     }
@@ -351,6 +352,7 @@ public class XunjingMultimodalTriggerEngine {
             case "food" -> "/pages/food/recommend" + query;
             case "record" -> "/pages/travel-note/edit" + query;
             case "activity" -> "/pages/activity/recommend" + query;
+            case "translate" -> "/pages/ai-guide/detail" + query;
             default -> "/pages/ai-guide/detail" + query;
         };
     }
@@ -486,6 +488,10 @@ public class XunjingMultimodalTriggerEngine {
                 "节目", "节庆", "表演", "票务", "买票", "预约"))) {
             return "activity";
         }
+        if (containsAny(text, List.of("sign", "roadsign", "streetname", "shopsign", "路牌", "街牌",
+                "指示牌", "招牌", "翻译", "发音"))) {
+            return "translate";
+        }
         String agentIntent = detectAgentDecisionIntent(sceneSignals);
         if (hasText(agentIntent)) {
             return agentIntent;
@@ -502,6 +508,9 @@ public class XunjingMultimodalTriggerEngine {
                 sceneSignalValue(sceneSignals, "agentDecisionReasonSummary")));
         if (containsAny(text, List.of("活动", "演出", "节目", "票务", "买票", "查看票务", "购票"))) {
             return "activity";
+        }
+        if (containsAny(text, List.of("翻译", "发音", "路牌", "街牌", "维吾尔文", "文字含义", "怎么读"))) {
+            return "translate";
         }
         if (containsAny(text, List.of("推荐菜", "附近美食", "餐厅", "点餐", "优惠券", "排队", "预约", "清真"))) {
             return "food";

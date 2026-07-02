@@ -1033,6 +1033,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         if ("open_activity_handoff".equals(action) || "confirm_activity_handoff".equals(action)) {
             return "活动票务";
         }
+        if ("start_sign_translation".equals(action) || "confirm_sign_translation".equals(action)) {
+            return "路牌翻译";
+        }
         if ("start_ai_guide".equals(action) || "confirm_ai_guide".equals(action)) {
             return "开始 AI 讲解";
         }
@@ -1050,6 +1053,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         }
         if ("activity".equals(intent)) {
             return "活动票务";
+        }
+        if ("translate".equals(intent)) {
+            return "路牌翻译";
         }
         return hasText(action) ? action : intent;
     }
@@ -1075,6 +1081,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         }
         if ("activity".equals(intent)) {
             return "活动票务";
+        }
+        if ("translate".equals(intent)) {
+            return "路牌翻译";
         }
         if ("guide".equals(intent)) {
             return "AI 讲解";

@@ -830,6 +830,47 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerUsesSignSceneForTranslationIntent() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户拍到恭王府入口路牌，画面文字需要翻译并讲发音。");
+        sceneSignals.put("sceneDomainIntentKey", "sign");
+        sceneSignals.put("sceneDomainIntentLabel", "路牌");
+        sceneSignals.put("sceneDomainIntentTitle", "路牌识境");
+        sceneSignals.put("agentDecisionActionTitle", "翻译路牌");
+        sceneSignals.put("agentDecisionReasonSummary", "先翻译画面文字，讲发音和含义，再连接导航。");
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-multimodal-trigger");
+        reqVO.setOcrText("恭王府 入口");
+        reqVO.setLocation(location("39.937050", "116.386770", 20));
+        reqVO.setSceneSignals(sceneSignals);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("translate", respVO.getIntent());
+        assertEquals("confirm_sign_translation", respVO.getAction());
+        assertTrue(respVO.getTargetPath().startsWith("/pages/ai-guide/detail"));
+        assertTrue(respVO.getReason().contains("Agent决策"));
+
+        List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.TRIGGER_RESOLVE.getType()));
+        assertEquals(1, events.size());
+        JsonNode payload = JsonUtils.parseTree(events.get(0).getPayloadJson());
+        assertEquals("translate", payload.get("intent").asText());
+        JsonNode persistedSignals = payload.get("sceneSignals");
+        assertEquals("sign", persistedSignals.get("sceneDomainIntentKey").asText());
+        assertEquals("翻译路牌", persistedSignals.get("agentDecisionActionTitle").asText());
+    }
+
+    @Test
     public void testResolveMultimodalTriggerHydratesContinuousContextFromPreviousTriggerEvent() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -1523,6 +1564,62 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         JsonNode visionAgentContext = askPayload.get("visionAgentContext");
         assertEquals("activity", visionAgentContext.get("serviceHandoffIntent").asText());
         assertTrue(visionAgentContext.get("serviceHandoffRequiresRealSystem").asBoolean());
+    }
+
+    @Test
+    public void testAnswerHydratesSignTranslationHandoffFromTrigger() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+        consoleService.addKnowledgeDocument(xichengGongwangfuKnowledgeReq(packageId));
+        ChatModel chatModel = mock(ChatModel.class);
+        when(aiModelService.getRequiredDefaultModel(AiModelTypeEnum.CHAT.getType())).thenReturn(defaultChatModel());
+        when(aiModelService.getChatModel(6601L)).thenReturn(chatModel);
+        when(chatModel.call(any(Prompt.class))).thenReturn(chatResponse("模型生成：这块路牌可以先翻译文字，再讲发音。"));
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneDomainIntentKey", "sign");
+        sceneSignals.put("sceneDomainIntentLabel", "路牌");
+        sceneSignals.put("sceneFusionSummary", "用户正在恭王府入口拍路牌，想知道文字含义和发音。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合 OCR、定位和城市知识库后判断为路牌翻译场景。");
+        sceneSignals.put("agentDecisionActionTitle", "翻译路牌");
+        sceneSignals.put("agentDecisionReasonSummary", "先翻译画面文字，讲发音和含义，再连接导航。");
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-sign-translation-001");
+        triggerReq.setOcrText("恭王府 入口");
+        triggerReq.setSceneSignals(sceneSignals);
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("translate", triggerResp.getIntent());
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-sign-translation-001");
+        followUpReq.setQuestion("这个路牌怎么读，是什么意思？");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO answer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", answer.getSafetyStatus());
+        ArgumentCaptor<Prompt> promptCaptor = ArgumentCaptor.forClass(Prompt.class);
+        verify(chatModel).call(promptCaptor.capture());
+        String prompt = promptCaptor.getValue().getContents();
+        assertTrue(prompt.contains("服务意图=translate/路牌翻译"));
+        assertTrue(prompt.contains("真实系统确认=false"));
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId, "trace-xicheng-sign-translation-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertEquals("translate", visionAgentContext.get("serviceHandoffIntent").asText());
+        assertFalse(visionAgentContext.get("serviceHandoffRequiresRealSystem").asBoolean());
     }
 
     @Test
