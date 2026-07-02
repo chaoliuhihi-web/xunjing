@@ -8,10 +8,12 @@ const home = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'home', 'home.v
 const buildVisionAgentSceneContextBlock = home.match(/buildVisionAgentSceneContext\(source = '', trigger = \{\}\)[\s\S]*?\n\t\t\},\n\t\tbuildSceneVisionEntryUrl/)?.[0] || ''
 const openScanResultBlock = home.match(/openScanResult\(trigger = \{\}, source = ''\)[\s\S]*?\n\t\t\},\n\t\topenRecentRecognition/)?.[0] || ''
 const continueRecentRecognitionBlock = home.match(/continueRecentRecognitionWithXiaojing\(\)[\s\S]*?\n\t\t\},\n\t\taskXiaojing/)?.[0] || ''
+const askXiaojingBlock = home.match(/askXiaojing\(\)[\s\S]*?\n\t\t\},\n\t\thandleXichengHomeNav/)?.[0] || ''
 
 assert.ok(buildVisionAgentSceneContextBlock, 'Home should expose a Vision Agent result-context builder')
 assert.ok(openScanResultBlock, 'Home should expose openScanResult')
 assert.ok(continueRecentRecognitionBlock, 'Home should expose continueRecentRecognitionWithXiaojing')
+assert.ok(askXiaojingBlock, 'Home should expose askXiaojing')
 
 for (const required of [
   'const context = this.buildSceneVisionContext()',
@@ -53,5 +55,19 @@ for (const required of [
   assert.ok(
     continueRecentRecognitionBlock.includes(required),
     `Recent-recognition Xiaojing shortcut should carry ${required}`
+  )
+}
+
+for (const required of [
+  "const visionAgentContext = this.buildVisionAgentSceneContext('home-xiaojing', this.recentRecognition || {})",
+  '`visionAgentContext=${encodeRouteValue(JSON.stringify(visionAgentContext))}`',
+  "`sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || '')}`",
+  "`memorySessionSceneCount=${encodeRouteValue(visionAgentContext.memorySessionSceneCount || '')}`",
+  "`poiCode=${encodeRouteValue(visionAgentContext.poiCode || '')}`",
+  "`poiName=${encodeRouteValue(visionAgentContext.poiName || '')}`"
+]) {
+  assert.ok(
+    askXiaojingBlock.includes(required),
+    `Primary Xiaojing entry should carry live AI识境 context: ${required}`
   )
 }

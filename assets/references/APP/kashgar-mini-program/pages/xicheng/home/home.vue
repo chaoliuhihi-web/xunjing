@@ -699,8 +699,21 @@ export default {
 		},
 		askXiaojing() {
 			if (this.recognizing) return
+			const visionAgentContext = this.buildVisionAgentSceneContext('home-xiaojing', this.recentRecognition || {})
+			const query = [
+				`regionCode=${encodeRouteValue(this.region.regionCode)}`,
+				`packageCode=${encodeRouteValue(this.region.packageCode)}`,
+				`sceneCode=${encodeRouteValue(this.region.aiSceneCode || this.region.sceneCode)}`,
+				`sourceChannel=${encodeRouteValue(this.region.sourceChannel)}`,
+				`companionName=${encodeRouteValue(this.region.companionName)}`,
+				`poiCode=${encodeRouteValue(visionAgentContext.poiCode || '')}`,
+				`poiName=${encodeRouteValue(visionAgentContext.poiName || '')}`,
+				`visionAgentContext=${encodeRouteValue(JSON.stringify(visionAgentContext))}`,
+				`sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || '')}`,
+				`memorySessionSceneCount=${encodeRouteValue(visionAgentContext.memorySessionSceneCount || '')}`
+			].join('&')
 			uni.navigateTo({
-				url: `/pages/ai-guide/ai-guide?regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.aiSceneCode || this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&companionName=${encodeRouteValue(this.region.companionName)}`
+				url: `/pages/ai-guide/ai-guide?${query}`
 			})
 		},
 		handleXichengHomeNav(key = 'explore') {
