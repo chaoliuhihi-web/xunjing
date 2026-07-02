@@ -102,6 +102,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     private static final String QUOTA_SCOPE_USER = "USER";
     private static final int TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH = 200;
     private static final int CHAT_CONTEXT_TEXT_MAX_LENGTH = 200;
+    private static final int CHAT_MEMORY_TEXT_MAX_LENGTH = 1200;
     private static final List<String> TRIGGER_SCENE_SIGNAL_TEXT_KEYS = List.of(
             "sceneFusionSummary",
             "worldInterfaceSummary",
@@ -938,13 +939,40 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     private List<String> searchTokens(String query) {
         Matcher matcher = Pattern.compile("[\\p{IsHan}\\p{Alnum}-]{2,}").matcher(normalizeSearchText(query));
         List<String> tokens = new java.util.ArrayList<>();
-        while (matcher.find() && tokens.size() < 20) {
+        while (matcher.find() && tokens.size() < 120) {
             String token = matcher.group();
             if (!tokens.contains(token)) {
                 tokens.add(token);
             }
         }
+        List<String> fullTokens = List.copyOf(tokens);
+        for (String token : fullTokens) {
+            addChineseSearchNgrams(tokens, token);
+            if (tokens.size() >= 120) {
+                break;
+            }
+        }
         return tokens;
+    }
+
+    private void addChineseSearchNgrams(List<String> tokens, String token) {
+        if (!hasText(token) || token.length() <= 4 || !containsChinese(token)) {
+            return;
+        }
+        int maxLength = Math.min(8, token.length());
+        for (int length = 2; length <= maxLength && tokens.size() < 120; length++) {
+            for (int start = 0; start + length <= token.length() && tokens.size() < 120; start++) {
+                String ngram = token.substring(start, start + length);
+                if (containsChinese(ngram) && !tokens.contains(ngram)) {
+                    tokens.add(ngram);
+                }
+            }
+        }
+    }
+
+    private boolean containsChinese(String value) {
+        return hasText(value) && value.codePoints()
+                .anyMatch(codePoint -> Character.UnicodeScript.of(codePoint) == Character.UnicodeScript.HAN);
     }
 
     private String normalizeSearchText(String value) {
@@ -2492,7 +2520,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         List<String> parts = new ArrayList<>();
         putChatContextPart(parts, "AI识境现场", reqVO.getVisionAgentSceneFusionSummary());
         putChatContextPart(parts, "世界交互入口", reqVO.getVisionAgentWorldInterfaceSummary());
-        putChatContextPart(parts, "连续记忆", reqVO.getVisionAgentMemorySessionText());
+        putChatMemoryContextPart(parts, "连续记忆", reqVO.getVisionAgentMemorySessionText());
         if (reqVO.getVisionAgentMemorySessionSceneCount() != null
                 && reqVO.getVisionAgentMemorySessionSceneCount() > 0) {
             parts.add("记忆场景数=" + reqVO.getVisionAgentMemorySessionSceneCount());
@@ -2546,7 +2574,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         Map<String, Object> payload = new LinkedHashMap<>();
         putChatContextPayloadText(payload, "sceneFusionSummary", reqVO.getVisionAgentSceneFusionSummary());
         putChatContextPayloadText(payload, "worldInterfaceSummary", reqVO.getVisionAgentWorldInterfaceSummary());
-        putChatContextPayloadText(payload, "memorySessionText", reqVO.getVisionAgentMemorySessionText());
+        putChatMemoryContextPayloadText(payload, "memorySessionText", reqVO.getVisionAgentMemorySessionText());
         if (reqVO.getVisionAgentMemorySessionSceneCount() != null
                 && reqVO.getVisionAgentMemorySessionSceneCount() > 0) {
             payload.put("memorySessionSceneCount", reqVO.getVisionAgentMemorySessionSceneCount());
@@ -2577,9 +2605,21 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         }
     }
 
+    private void putChatMemoryContextPart(List<String> parts, String label, String value) {
+        if (hasText(value)) {
+            parts.add(label + "=" + truncateForEvent(value.trim(), CHAT_MEMORY_TEXT_MAX_LENGTH));
+        }
+    }
+
     private void putChatContextPayloadText(Map<String, Object> payload, String key, String value) {
         if (hasText(value)) {
             payload.put(key, truncateForEvent(value.trim(), CHAT_CONTEXT_TEXT_MAX_LENGTH));
+        }
+    }
+
+    private void putChatMemoryContextPayloadText(Map<String, Object> payload, String key, String value) {
+        if (hasText(value)) {
+            payload.put(key, truncateForEvent(value.trim(), CHAT_MEMORY_TEXT_MAX_LENGTH));
         }
     }
 
@@ -2626,20 +2666,25 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     }
 
     private String buildVisionAgentSourceSearchText(RagChatReqVO reqVO) {
-        return java.util.stream.Stream.of(
-                        reqVO.getVisionAgentSceneFusionSummary(),
-                        reqVO.getVisionAgentWorldInterfaceSummary(),
-                        reqVO.getVisionAgentMemorySessionText(),
-                        reqVO.getVisionAgentPrimarySceneDomainKey(),
-                        reqVO.getVisionAgentPrimarySceneDomainLabel(),
-                        reqVO.getVisionAgentSceneUnderstandingSummary(),
-                        reqVO.getVisionAgentDecisionReasonSummary(),
-                        reqVO.getServiceHandoffIntentText(),
-                        reqVO.getServiceHandoffSummary())
-                .filter(this::hasText)
-                .map(value -> truncateForEvent(value.trim(), CHAT_CONTEXT_TEXT_MAX_LENGTH))
+        List<String> parts = new ArrayList<>();
+        addSourceSearchContextPart(parts, reqVO.getVisionAgentSceneFusionSummary(), CHAT_CONTEXT_TEXT_MAX_LENGTH);
+        addSourceSearchContextPart(parts, reqVO.getVisionAgentWorldInterfaceSummary(), CHAT_CONTEXT_TEXT_MAX_LENGTH);
+        addSourceSearchContextPart(parts, reqVO.getVisionAgentMemorySessionText(), CHAT_MEMORY_TEXT_MAX_LENGTH);
+        addSourceSearchContextPart(parts, reqVO.getVisionAgentPrimarySceneDomainKey(), CHAT_CONTEXT_TEXT_MAX_LENGTH);
+        addSourceSearchContextPart(parts, reqVO.getVisionAgentPrimarySceneDomainLabel(), CHAT_CONTEXT_TEXT_MAX_LENGTH);
+        addSourceSearchContextPart(parts, reqVO.getVisionAgentSceneUnderstandingSummary(), CHAT_CONTEXT_TEXT_MAX_LENGTH);
+        addSourceSearchContextPart(parts, reqVO.getVisionAgentDecisionReasonSummary(), CHAT_CONTEXT_TEXT_MAX_LENGTH);
+        addSourceSearchContextPart(parts, reqVO.getServiceHandoffIntentText(), CHAT_CONTEXT_TEXT_MAX_LENGTH);
+        addSourceSearchContextPart(parts, reqVO.getServiceHandoffSummary(), CHAT_CONTEXT_TEXT_MAX_LENGTH);
+        return parts.stream()
                 .distinct()
                 .collect(Collectors.joining("\n"));
+    }
+
+    private void addSourceSearchContextPart(List<String> parts, String value, int maxLength) {
+        if (hasText(value)) {
+            parts.add(truncateForEvent(value.trim(), maxLength));
+        }
     }
 
     private String jsonEscape(String value) {

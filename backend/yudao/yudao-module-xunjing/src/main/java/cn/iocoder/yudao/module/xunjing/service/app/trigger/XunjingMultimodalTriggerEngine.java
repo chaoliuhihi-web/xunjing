@@ -185,23 +185,24 @@ public class XunjingMultimodalTriggerEngine {
         String intent = detectIntent(safeReqVO, sceneSignalContextText);
         MatchScore best = matches.get(0);
         boolean autoTrigger = best.confidence() >= AUTO_TRIGGER_THRESHOLD;
+        boolean autoExecute = shouldAutoExecute(intent, autoTrigger, safeReqVO.getSceneSignals());
 
         MultimodalTriggerRespVO respVO = new MultimodalTriggerRespVO();
         respVO.setIntent(intent);
-        respVO.setAction(resolveAction(intent, autoTrigger));
+        respVO.setAction(resolveAction(intent, autoExecute));
         respVO.setTriggerType(resolveTriggerType(best.signals()));
         respVO.setPackageCode(safeReqVO.getPackageCode());
         respVO.setRegionCode(regionCode);
         respVO.setPoiCode(best.poi().code());
         respVO.setPoiName(best.poi().name());
         respVO.setConfidence(best.confidence());
-        respVO.setRequiresUserConfirm(!autoTrigger);
-        respVO.setReason(buildReason(best.signals(), autoTrigger, intent, safeReqVO.getSceneSignals()));
-        respVO.setTargetPath(buildTargetPath(intent, regionCode, best.poi().code(), safeReqVO.getPackageCode(), !autoTrigger));
+        respVO.setRequiresUserConfirm(!autoExecute);
+        respVO.setReason(buildReason(best.signals(), autoExecute, intent, safeReqVO.getSceneSignals()));
+        respVO.setTargetPath(buildTargetPath(intent, regionCode, best.poi().code(), safeReqVO.getPackageCode(), !autoExecute));
         respVO.setSuggestedQuestions(best.poi().suggestedQuestions());
         respVO.setSources(toSources(best.poi()));
         respVO.setAgentActions(buildAgentActions(intent, respVO.getAction(), regionCode, best.poi().code(),
-                safeReqVO.getPackageCode(), !autoTrigger, safeReqVO.getSceneSignals()));
+                safeReqVO.getPackageCode(), !autoExecute, safeReqVO.getSceneSignals()));
         respVO.setSceneUnderstanding(buildSceneUnderstanding(safeReqVO, best.signals(), respVO));
         respVO.setCandidates(matches.stream()
                 .map(match -> toCandidate(match, intent, regionCode, safeReqVO.getPackageCode()))
@@ -650,7 +651,7 @@ public class XunjingMultimodalTriggerEngine {
         }
         String explicitText = normalize(defaultIfBlank(reqVO.getText(), "") + " " + defaultIfBlank(reqVO.getOcrText(), ""));
         String fusedText = normalize(explicitText + " " + sceneSignalContextText);
-        if (containsAny(fusedText, List.of("下一站", "路线", "怎么走", "去哪", "行程", "推荐路线"))) {
+        if (containsAny(fusedText, List.of("下一站", "怎么走", "去哪", "行程", "推荐路线", "路线推荐", "室内路线", "导航"))) {
             return "route";
         }
         if (containsAny(fusedText, List.of("菜单", "菜品", "推荐菜", "好吃", "美食", "餐厅", "小吃", "咖啡", "清真"))) {
@@ -687,6 +688,16 @@ public class XunjingMultimodalTriggerEngine {
             case "photo" -> autoTrigger ? "start_photo_advice" : "confirm_photo_advice";
             default -> autoTrigger ? "start_ai_guide" : "confirm_ai_guide";
         };
+    }
+
+    private boolean shouldAutoExecute(String intent, boolean highConfidence, Map<String, Object> sceneSignals) {
+        if (!highConfidence) {
+            return false;
+        }
+        if (agentActionRequiresRealSystem("", intent) || "record".equals(intent)) {
+            return false;
+        }
+        return !intent.equals(detectAgentDecisionIntent(sceneSignals));
     }
 
     private String buildTargetPath(String intent, String regionCode, String poiCode, String packageCode, boolean confirm) {

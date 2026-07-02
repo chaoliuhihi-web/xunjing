@@ -932,6 +932,7 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
 
         MultimodalTriggerReqVO reqVO = multimodalReq();
         reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setUserTraceId("trace-xicheng-travel-record-actions-001");
         reqVO.setText("");
         reqVO.setOcrText("");
         reqVO.setImageLabels(List.of());
