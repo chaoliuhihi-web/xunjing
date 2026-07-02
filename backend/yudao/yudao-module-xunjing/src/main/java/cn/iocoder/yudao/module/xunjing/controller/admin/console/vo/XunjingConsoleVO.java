@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.xunjing.controller.admin.console.vo;
 
 import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -91,6 +92,14 @@ public class XunjingConsoleVO {
     }
 
     @Data
+    public static class KnowledgeDocumentUploadReqVO {
+        private Long packageId;
+        private String title;
+        private String authorityLevel;
+        private MultipartFile file;
+    }
+
+    @Data
     public static class KnowledgeDocumentReviewReqVO {
         private Long id;
         private String authorityLevel;
@@ -113,6 +122,20 @@ public class XunjingConsoleVO {
         private Boolean canPublic;
         private Boolean canAiUse;
         private Boolean canPromotionUse;
+    }
+
+    @Data
+    public static class MediaAssetUploadReqVO {
+        private Long packageId;
+        private String title;
+        private String mediaType;
+        private String sourceProvider;
+        private String sourceUrl;
+        private String imageTags;
+        private Boolean canPublic;
+        private Boolean canAiUse;
+        private Boolean canPromotionUse;
+        private MultipartFile file;
     }
 
     @Data

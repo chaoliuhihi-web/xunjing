@@ -664,6 +664,75 @@ async function checkXichengAppEventBackend(rootDir) {
   )
 }
 
+async function checkXunjingUploadBackend(rootDir) {
+  const controller = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/admin/console/XunjingConsoleController.java'
+  )
+  const consoleVo = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/admin/console/vo/XunjingConsoleVO.java'
+  )
+  const service = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/console/XunjingConsoleService.java'
+  )
+  const serviceImpl = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/console/XunjingConsoleServiceImpl.java'
+  )
+  const consoleTest = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/console/XunjingConsoleServiceImplTest.java'
+  )
+
+  for (const snippet of [
+    '@PostMapping(value = "/knowledge-documents/upload"',
+    '@PostMapping(value = "/media-assets/upload"',
+    'MediaType.MULTIPART_FORM_DATA_VALUE',
+    'consoleService.uploadKnowledgeDocument(reqVO)',
+    'consoleService.uploadMediaAsset(reqVO)'
+  ]) {
+    assertContains(controller, snippet, 'XunjingConsoleController.java')
+  }
+  for (const snippet of [
+    'class KnowledgeDocumentUploadReqVO',
+    'class MediaAssetUploadReqVO',
+    'private MultipartFile file;'
+  ]) {
+    assertContains(consoleVo, snippet, 'XunjingConsoleVO.java')
+  }
+  for (const snippet of [
+    'Long uploadKnowledgeDocument(KnowledgeDocumentUploadReqVO reqVO);',
+    'Long uploadMediaAsset(MediaAssetUploadReqVO reqVO);'
+  ]) {
+    assertContains(service, snippet, 'XunjingConsoleService.java')
+  }
+  for (const snippet of [
+    'private FileApi fileApi;',
+    'requireFileApi().createFile(content, fileName, directory, file.getContentType())',
+    'uploadDirectory("xunjing/tourism-knowledge", reqVO.getPackageId())',
+    'uploadDirectory("xunjing/tourism-media", reqVO.getPackageId())',
+    'buildKnowledgeUploadDigest(file, content)',
+    'ReviewStatus.PENDING.getStatus()',
+    'VectorStatus.PENDING.getStatus()',
+    'CopyrightStatus.PENDING.getStatus()'
+  ]) {
+    assertContains(serviceImpl, snippet, 'XunjingConsoleServiceImpl.java')
+  }
+  for (const snippet of [
+    'testUploadKnowledgeDocumentStoresFileAndCreatesPendingTourismDocument',
+    'testUploadMediaAssetStoresFileAndCreatesPendingImageMaterial',
+    'fileApi.createFile'
+  ]) {
+    assertContains(consoleTest, snippet, 'XunjingConsoleServiceImplTest.java')
+  }
+  return pass(
+    'xunjing-upload-backend',
+    'Tourism knowledge documents and media assets can enter the backend through FileApi-backed upload endpoints'
+  )
+}
+
 async function checkAdminUiContract(rootDir) {
   const api = await readText(
     rootDir,
@@ -678,11 +747,21 @@ async function checkAdminUiContract(rootDir) {
     'getDashboard',
     'getAiGenerationLogPage',
     'createKnowledgeDocument',
-    'createMediaAsset'
+    'uploadKnowledgeDocument',
+    'createMediaAsset',
+    'uploadMediaAsset'
   ]) {
     assertContains(api, snippet, 'xunjing console API')
   }
-  for (const snippet of ['XunjingConsole', '资料导入审核', '图影中华素材', '新增文旅资料', '新增图片素材']) {
+  for (const snippet of [
+    'XunjingConsole',
+    '资料导入审核',
+    '图影中华素材',
+    '新增文旅资料',
+    '新增图片素材',
+    '上传文旅资料文件',
+    '上传图片素材文件'
+  ]) {
     assertContains(view, snippet, 'xunjing console view')
   }
   return pass('admin-ui-contract', 'Yudao admin console route and API contract are present')
@@ -1177,6 +1256,7 @@ export async function verifyXunjingPlatformReadiness({
   checks.push(await checkXichengTriggerBackend(rootDir))
   checks.push(await checkXichengAiSourceGuardBackend(rootDir))
   checks.push(await checkXichengAppEventBackend(rootDir))
+  checks.push(await checkXunjingUploadBackend(rootDir))
   checks.push(await checkAdminUiContract(rootDir))
   if (!staticOnly) {
     checks.push(checkEnvironment(env))

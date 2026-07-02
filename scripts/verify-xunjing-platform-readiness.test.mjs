@@ -24,9 +24,14 @@ const staticReadinessFixtureFiles = [
   'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/dal/dataobject/poi/XunjingPoiDO.java',
   'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/dal/mysql/poi/XunjingPoiMapper.java',
   'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java',
+  'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/admin/console/XunjingConsoleController.java',
+  'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/admin/console/vo/XunjingConsoleVO.java',
   'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java',
+  'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/console/XunjingConsoleService.java',
+  'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/console/XunjingConsoleServiceImpl.java',
   'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/enums/XunjingEnums.java',
   'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImplTest.java',
+  'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/console/XunjingConsoleServiceImplTest.java',
   'backend/yudao/yudao-module-xunjing/src/test/resources/sql/create_tables.sql',
   'ops/xunjing-platform.compose.yml',
   'ops/xunjing-platform.env.example'
@@ -401,6 +406,7 @@ describe('xunjing platform readiness verifier', () => {
       'xicheng-trigger-backend',
       'xicheng-ai-source-guard-backend',
       'xicheng-app-event-backend',
+      'xunjing-upload-backend',
       'admin-ui-contract',
       'environment',
       'live-admin',
@@ -433,6 +439,7 @@ describe('xunjing platform readiness verifier', () => {
       'xicheng-trigger-backend',
       'xicheng-ai-source-guard-backend',
       'xicheng-app-event-backend',
+      'xunjing-upload-backend',
       'admin-ui-contract'
     ])
   })
@@ -511,6 +518,7 @@ describe('xunjing platform readiness verifier', () => {
       'xicheng-trigger-backend',
       'xicheng-ai-source-guard-backend',
       'xicheng-app-event-backend',
+      'xunjing-upload-backend',
       'admin-ui-contract',
       'environment',
       'live-resource-package',

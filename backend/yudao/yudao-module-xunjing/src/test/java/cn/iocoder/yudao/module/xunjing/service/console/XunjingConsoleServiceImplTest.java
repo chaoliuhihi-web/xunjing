@@ -29,9 +29,11 @@ import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsol
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.InteractionEventCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.KnowledgeDocumentCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.KnowledgeDocumentReviewReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.KnowledgeDocumentUploadReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MapPointCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MediaAssetCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MediaAssetReviewReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MediaAssetUploadReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MediaUsageCreateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.MediaUsageRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.PackageDetailRespVO;
@@ -47,9 +49,14 @@ import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsol
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.ResourcePackageRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.ResourcePackageUpdateReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.admin.console.vo.XunjingConsoleVO.SchoolCreateReqVO;
+import cn.iocoder.yudao.module.infra.api.file.FileApi;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.event.XunjingInteractionEventDO;
+import cn.iocoder.yudao.module.xunjing.dal.dataobject.knowledge.XunjingKnowledgeDocumentDO;
+import cn.iocoder.yudao.module.xunjing.dal.dataobject.media.XunjingMediaAssetDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.report.XunjingPublicReportDO;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.event.XunjingInteractionEventMapper;
+import cn.iocoder.yudao.module.xunjing.dal.mysql.knowledge.XunjingKnowledgeDocumentMapper;
+import cn.iocoder.yudao.module.xunjing.dal.mysql.media.XunjingMediaAssetMapper;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.report.XunjingPublicReportMapper;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums;
 import cn.iocoder.yudao.module.xunjing.service.app.XunjingAppServiceImpl;
@@ -59,9 +66,12 @@ import jakarta.annotation.Resource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.mock.web.MockMultipartFile;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -70,6 +80,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
 @Import({XunjingConsoleServiceImpl.class, XunjingAppServiceImpl.class, XunjingMultimodalTriggerEngine.class,
         XunjingVisionRecognitionService.class})
@@ -83,6 +95,12 @@ public class XunjingConsoleServiceImplTest extends BaseDbUnitTest {
     private XunjingPublicReportMapper publicReportMapper;
     @Resource
     private XunjingInteractionEventMapper interactionEventMapper;
+    @Resource
+    private XunjingKnowledgeDocumentMapper knowledgeDocumentMapper;
+    @Resource
+    private XunjingMediaAssetMapper mediaAssetMapper;
+    @MockBean
+    private FileApi fileApi;
 
     @BeforeEach
     public void setUp() {
@@ -590,6 +608,63 @@ public class XunjingConsoleServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testUploadKnowledgeDocumentStoresFileAndCreatesPendingTourismDocument() throws Exception {
+        Long projectId = consoleService.createProject(projectReq());
+        Long schoolId = consoleService.createSchool(schoolReq());
+        Long packageId = consoleService.createResourcePackage(packageReq(projectId, schoolId));
+        byte[] content = "恭王府是清代王府建筑群，适合 AI 讲解与研学问答。".getBytes(StandardCharsets.UTF_8);
+        when(fileApi.createFile(eq(content), eq("gongwangfu-guide.txt"),
+                eq("xunjing/tourism-knowledge/1/" + packageId), eq("text/plain")))
+                .thenReturn("https://oss.example.com/xunjing/tourism-knowledge/gongwangfu-guide.txt");
+
+        Long documentId = consoleService.uploadKnowledgeDocument(knowledgeUploadReq(packageId, content));
+
+        XunjingKnowledgeDocumentDO document = knowledgeDocumentMapper.selectById(documentId);
+        assertNotNull(document);
+        assertEquals(packageId, document.getPackageId());
+        assertEquals("恭王府讲解资料", document.getTitle());
+        assertEquals(XunjingEnums.SourceType.IMPORT.getType(), document.getSourceType());
+        assertEquals("https://oss.example.com/xunjing/tourism-knowledge/gongwangfu-guide.txt",
+                document.getSourceUrl());
+        assertTrue(document.getContentDigest().contains("恭王府是清代王府建筑群"));
+        assertEquals(XunjingEnums.AuthorityLevel.REFERENCE.getLevel(), document.getAuthorityLevel());
+        assertEquals(XunjingEnums.ReviewStatus.PENDING.getStatus(), document.getReviewStatus());
+        assertEquals(XunjingEnums.VectorStatus.PENDING.getStatus(), document.getVectorStatus());
+    }
+
+    @Test
+    public void testUploadMediaAssetStoresFileAndCreatesPendingImageMaterial() throws Exception {
+        Long projectId = consoleService.createProject(projectReq());
+        Long schoolId = consoleService.createSchool(schoolReq());
+        Long packageId = consoleService.createResourcePackage(packageReq(projectId, schoolId));
+        byte[] content = new byte[]{1, 2, 3, 4};
+        when(fileApi.createFile(eq(content), eq("gongwangfu-entry.jpg"),
+                eq("xunjing/tourism-media/1/" + packageId), eq("image/jpeg")))
+                .thenReturn("https://oss.example.com/xunjing/tourism-media/gongwangfu-entry.jpg");
+
+        Long mediaId = consoleService.uploadMediaAsset(mediaUploadReq(packageId, content));
+
+        XunjingMediaAssetDO mediaAsset = mediaAssetMapper.selectById(mediaId);
+        assertNotNull(mediaAsset);
+        assertEquals(packageId, mediaAsset.getPackageId());
+        assertEquals("恭王府入口图片", mediaAsset.getTitle());
+        assertEquals(XunjingEnums.MediaType.IMAGE.getType(), mediaAsset.getMediaType());
+        assertEquals("https://oss.example.com/xunjing/tourism-media/gongwangfu-entry.jpg",
+                mediaAsset.getFileUrl());
+        assertEquals("xunjing/tourism-media/1/" + packageId + "/gongwangfu-entry.jpg",
+                mediaAsset.getObjectKey());
+        assertEquals("项目方授权资料", mediaAsset.getSourceProvider());
+        assertEquals("https://oss.example.com/xunjing/tourism-media/gongwangfu-entry.jpg",
+                mediaAsset.getSourceUrl());
+        assertEquals(XunjingEnums.CopyrightStatus.PENDING.getStatus(), mediaAsset.getCopyrightStatus());
+        assertEquals(XunjingEnums.ReviewStatus.PENDING.getStatus(), mediaAsset.getReviewStatus());
+        assertEquals("恭王府,入口,北京西城", mediaAsset.getImageTags());
+        assertTrue(mediaAsset.getCanPublic());
+        assertTrue(mediaAsset.getCanAiUse());
+        assertFalse(mediaAsset.getCanPromotionUse());
+    }
+
+    @Test
     public void testRunAiEvalSetUsesAppAnswerAndRequiresSources() {
         Long projectId = consoleService.createProject(projectReq());
         Long schoolId = consoleService.createSchool(schoolReq());
@@ -708,6 +783,15 @@ public class XunjingConsoleServiceImplTest extends BaseDbUnitTest {
         return reqVO;
     }
 
+    private KnowledgeDocumentUploadReqVO knowledgeUploadReq(Long packageId, byte[] content) {
+        KnowledgeDocumentUploadReqVO reqVO = new KnowledgeDocumentUploadReqVO();
+        reqVO.setPackageId(packageId);
+        reqVO.setTitle("恭王府讲解资料");
+        reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.REFERENCE.getLevel());
+        reqVO.setFile(new MockMultipartFile("file", "gongwangfu-guide.txt", "text/plain", content));
+        return reqVO;
+    }
+
     private MediaAssetCreateReqVO mediaReq(Long packageId) {
         MediaAssetCreateReqVO reqVO = new MediaAssetCreateReqVO();
         reqVO.setPackageId(packageId);
@@ -728,6 +812,16 @@ public class XunjingConsoleServiceImplTest extends BaseDbUnitTest {
         reqVO.setTitle("待授权图片");
         reqVO.setCopyrightStatus(XunjingEnums.CopyrightStatus.PENDING.getStatus());
         reqVO.setReviewStatus(XunjingEnums.ReviewStatus.PENDING.getStatus());
+        return reqVO;
+    }
+
+    private MediaAssetUploadReqVO mediaUploadReq(Long packageId, byte[] content) {
+        MediaAssetUploadReqVO reqVO = new MediaAssetUploadReqVO();
+        reqVO.setPackageId(packageId);
+        reqVO.setTitle("恭王府入口图片");
+        reqVO.setSourceProvider("项目方授权资料");
+        reqVO.setImageTags("恭王府,入口,北京西城");
+        reqVO.setFile(new MockMultipartFile("file", "gongwangfu-entry.jpg", "image/jpeg", content));
         return reqVO;
     }
 

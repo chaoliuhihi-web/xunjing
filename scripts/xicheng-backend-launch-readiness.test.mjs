@@ -46,6 +46,12 @@ describe('xicheng backend launch readiness', () => {
     const consoleVo = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/admin/console/vo/XunjingConsoleVO.java'
     )
+    const consoleController = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/admin/console/XunjingConsoleController.java'
+    )
+    const consoleServiceContract = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/console/XunjingConsoleService.java'
+    )
     const consoleService = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/console/XunjingConsoleServiceImpl.java'
     )
@@ -63,6 +69,7 @@ describe('xicheng backend launch readiness', () => {
     expect(verifier).toContain('xicheng-trigger-backend')
     expect(verifier).toContain('xicheng-ai-source-guard-backend')
     expect(verifier).toContain('xicheng-app-event-backend')
+    expect(verifier).toContain('xunjing-upload-backend')
     expect(verifier).toContain('includeXichengAppCheck')
     expect(verifier).toContain('--include-xicheng-app-check')
     expect(verifier).toContain('includeXichengTriggerCheck')
@@ -428,6 +435,22 @@ describe('xicheng backend launch readiness', () => {
     expect(appService).toContain('EventType.AGENT_ACTION.getType()')
     expect(appService).toContain('JsonNode agentAction = root.path("agentAction")')
     expect(appService).toContain('buildAgentActionServiceHandoffSummary(agentAction)')
+    expect(consoleController).toContain('@PostMapping(value = "/knowledge-documents/upload"')
+    expect(consoleController).toContain('@PostMapping(value = "/media-assets/upload"')
+    expect(consoleController).toContain('MediaType.MULTIPART_FORM_DATA_VALUE')
+    expect(consoleVo).toContain('class KnowledgeDocumentUploadReqVO')
+    expect(consoleVo).toContain('class MediaAssetUploadReqVO')
+    expect(consoleVo).toContain('private MultipartFile file;')
+    expect(consoleServiceContract).toContain('Long uploadKnowledgeDocument(KnowledgeDocumentUploadReqVO reqVO);')
+    expect(consoleServiceContract).toContain('Long uploadMediaAsset(MediaAssetUploadReqVO reqVO);')
+    expect(consoleService).toContain('private FileApi fileApi;')
+    expect(consoleService).toContain('requireFileApi().createFile(content, fileName, directory, file.getContentType())')
+    expect(consoleService).toContain('uploadDirectory("xunjing/tourism-knowledge", reqVO.getPackageId())')
+    expect(consoleService).toContain('uploadDirectory("xunjing/tourism-media", reqVO.getPackageId())')
+    expect(consoleService).toContain('buildKnowledgeUploadDigest(file, content)')
+    expect(consoleTest).toContain('testUploadKnowledgeDocumentStoresFileAndCreatesPendingTourismDocument')
+    expect(consoleTest).toContain('testUploadMediaAssetStoresFileAndCreatesPendingImageMaterial')
+    expect(consoleTest).toContain('fileApi.createFile')
     expect(appService).toContain('resolveAppEventQrCode(reqVO, hasText(reqVO.getPackageCode()))')
     expect(appService).not.toContain('payload.put("imageBase64"')
     expect(appVo).toContain('private List<MultimodalAgentActionRespVO> agentActions;')
