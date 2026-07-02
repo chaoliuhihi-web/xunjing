@@ -13,6 +13,7 @@ const footprint = read('pages', 'xicheng', 'footprint', 'footprint.vue')
 const passport = read('pages', 'xicheng', 'passport', 'passport.vue')
 const share = read('pages', 'xicheng', 'share', 'share.vue')
 const works = read('pages', 'xicheng', 'works', 'works.vue')
+const worksProfileCard = read('components', 'xicheng', 'XichengWorksProfileCard.vue')
 const opsReport = read('pages', 'xicheng', 'ops-report', 'ops-report.vue')
 
 for (const required of [
@@ -64,6 +65,7 @@ for (const required of [
     passport,
     share,
     works,
+    worksProfileCard,
     opsReport
   ].join('\n')
   assert.ok(allSources.includes(required), `Xicheng detail pages should keep approved reference token ${required}`)
@@ -74,6 +76,7 @@ for (const [fileName, source] of [
   ['passport.vue', passport],
   ['share.vue', share],
   ['works.vue', works],
+  ['XichengWorksProfileCard.vue', worksProfileCard],
   ['ops-report.vue', opsReport]
 ]) {
   assert.doesNotMatch(
