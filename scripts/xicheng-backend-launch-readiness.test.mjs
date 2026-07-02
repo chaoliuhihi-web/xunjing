@@ -98,6 +98,8 @@ describe('xicheng backend launch readiness', () => {
     }
     expect(appService).toContain('recordTriggerResolveEventIfPossible')
     expect(appService).toContain('buildTriggerResolveEventPayload')
+    expect(appService).toContain('buildTriggerMatchedSignalsPayload(respVO)')
+    expect(appService).toContain('payload.put("matchedSignals", buildTriggerMatchedSignalsPayload(respVO))')
     expect(appService).toContain('TRIGGER_SCENE_SIGNAL_TEXT_KEYS')
     expect(appService).toContain('buildTriggerSceneSignalsPayload(reqVO.getSceneSignals())')
     expect(appService).toContain('"visionRecognitionStatus"')
@@ -109,6 +111,7 @@ describe('xicheng backend launch readiness', () => {
     expect(appService).toContain('triggerRequiresRealSystem(action, intent)')
     expect(appService).toContain('hasFreshMultimodalTriggerSignal(reqVO)')
     expect(appService).not.toContain('payload.put("sceneSignals", reqVO.getSceneSignals())')
+    expect(appService).not.toContain('payload.put("candidates", respVO.getCandidates())')
     expect(appService).toContain('EventType.TRIGGER_RESOLVE')
     expect(appService).toContain('resolveAppEventQrCode(reqVO, hasText(reqVO.getPackageCode()))')
     expect(appService).not.toContain('payload.put("imageBase64"')

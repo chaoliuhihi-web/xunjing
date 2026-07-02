@@ -580,6 +580,13 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertTrue(event.getPayloadJson().contains("\"requiresUserConfirm\":false"));
         assertTrue(event.getPayloadJson().contains("\"ocrText\":\"恭王府博物馆入口\""));
         assertTrue(event.getPayloadJson().contains("\"imageLabelCount\":2"));
+        JsonNode payload = JsonUtils.parseTree(event.getPayloadJson());
+        JsonNode matchedSignals = payload.get("matchedSignals");
+        assertEquals(3, matchedSignals.size());
+        assertTrue(matchedSignals.toString().contains("gps_radius"));
+        assertTrue(matchedSignals.toString().contains("ocr_alias"));
+        assertTrue(matchedSignals.toString().contains("image_label"));
+        assertFalse(payload.has("candidates"));
         assertFalse(event.getPayloadJson().contains("imageBase64"));
     }
 

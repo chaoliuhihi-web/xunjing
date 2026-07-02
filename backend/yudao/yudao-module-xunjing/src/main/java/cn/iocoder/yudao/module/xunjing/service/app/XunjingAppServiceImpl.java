@@ -1196,9 +1196,23 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         payload.put("sceneSignals", buildTriggerSceneSignalsPayload(reqVO.getSceneSignals()));
         payload.put("location", buildTriggerLocationPayload(reqVO.getLocation()));
         payload.put("photoMeta", buildTriggerPhotoMetaPayload(reqVO.getPhotoMeta()));
+        payload.put("matchedSignals", buildTriggerMatchedSignalsPayload(respVO));
         payload.put("candidateCount", respVO.getCandidates() == null ? 0 : respVO.getCandidates().size());
         payload.put("sourceCount", respVO.getSources() == null ? 0 : respVO.getSources().size());
         return JsonUtils.toJsonString(payload);
+    }
+
+    private List<String> buildTriggerMatchedSignalsPayload(MultimodalTriggerRespVO respVO) {
+        if (respVO == null || respVO.getCandidates() == null || respVO.getCandidates().isEmpty()
+                || respVO.getCandidates().get(0).getMatchedSignals() == null) {
+            return List.of();
+        }
+        return respVO.getCandidates().get(0).getMatchedSignals().stream()
+                .filter(this::hasText)
+                .map(signal -> truncateForEvent(signal.trim(), 50))
+                .distinct()
+                .limit(12)
+                .toList();
     }
 
     private Map<String, Object> buildTriggerSceneSignalsPayload(Map<String, Object> sceneSignals) {
