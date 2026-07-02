@@ -180,7 +180,7 @@ public class XunjingMultimodalTriggerEngine {
                 .toList();
 
         if (matches.isEmpty()) {
-            return noMatch(regionCode, safeReqVO.getPackageCode());
+            return noMatch(regionCode, safeReqVO.getPackageCode(), safeReqVO);
         }
         String intent = detectIntent(safeReqVO, sceneSignalContextText);
         MatchScore best = matches.get(0);
@@ -334,7 +334,7 @@ public class XunjingMultimodalTriggerEngine {
         return candidate;
     }
 
-    private MultimodalTriggerRespVO noMatch(String regionCode, String packageCode) {
+    private MultimodalTriggerRespVO noMatch(String regionCode, String packageCode, MultimodalTriggerReqVO reqVO) {
         MultimodalTriggerRespVO respVO = new MultimodalTriggerRespVO();
         respVO.setIntent("ask");
         respVO.setAction("ask_ai_companion");
@@ -349,7 +349,7 @@ public class XunjingMultimodalTriggerEngine {
         respVO.setSources(List.of());
         respVO.setAgentActions(buildAgentActions("ask", "ask_ai_companion", regionCode, null, packageCode,
                 true, Map.of()));
-        respVO.setSceneUnderstanding(buildSceneUnderstanding(null, List.of(), respVO));
+        respVO.setSceneUnderstanding(buildSceneUnderstanding(reqVO, List.of(), respVO));
         respVO.setCandidates(List.of());
         return respVO;
     }

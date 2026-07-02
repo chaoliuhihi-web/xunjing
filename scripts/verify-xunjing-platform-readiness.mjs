@@ -407,6 +407,8 @@ async function checkXichengTriggerBackend(rootDir) {
     'sourceProfiles',
     'buildSceneUnderstanding',
     'setSceneUnderstanding(buildSceneUnderstanding',
+    'return noMatch(regionCode, safeReqVO.getPackageCode(), safeReqVO)',
+    'respVO.setSceneUnderstanding(buildSceneUnderstanding(reqVO, List.of(), respVO))',
     'databasePoiProfiles.isEmpty() ? XICHENG_POIS : databasePoiProfiles'
   ]) {
     assertContains(engine, snippet, 'XunjingMultimodalTriggerEngine.java')
@@ -454,6 +456,11 @@ async function checkXichengTriggerBackend(rootDir) {
   assertContains(
     appTest,
     'testResolveMultimodalTriggerRecordsRecognitionEventWhenPackageProvided',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'testResolveMultimodalTriggerNoMatchKeepsVisionEvidenceInSceneUnderstanding',
     'XunjingAppServiceImplTest.java'
   )
   assertContains(

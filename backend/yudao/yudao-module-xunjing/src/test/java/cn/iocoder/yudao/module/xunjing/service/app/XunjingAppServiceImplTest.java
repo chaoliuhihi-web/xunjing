@@ -1162,6 +1162,56 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerNoMatchKeepsVisionEvidenceInSceneUnderstanding() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        setField(visionRecognitionService, "visionApiUrl", "");
+        setField(visionRecognitionService, "visionApiKey", "");
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-multimodal-trigger");
+        reqVO.setUserTraceId("trace-xicheng-no-match-vision-evidence-001");
+        reqVO.setOcrText("");
+        reqVO.setImageLabels(List.of());
+        PhotoMetaReqVO photoMeta = new PhotoMetaReqVO();
+        photoMeta.setImageId("photo-provider-missing-001");
+        photoMeta.setImageMimeType("image/jpeg");
+        photoMeta.setImageBase64("photo-base64");
+        reqVO.setPhotoMeta(photoMeta);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("ask", respVO.getIntent());
+        assertEquals("ask_ai_companion", respVO.getAction());
+        assertNotNull(respVO.getSceneUnderstanding());
+        assertEquals("provider_not_configured", respVO.getSceneUnderstanding().getVisionRecognitionStatus());
+        assertEquals("qwen-vl-max", respVO.getSceneUnderstanding().getVisionRecognitionModel());
+        assertEquals(0, respVO.getSceneUnderstanding().getVisionRecognitionLabelCount());
+        assertTrue(respVO.getSceneUnderstanding().getServiceHandoffSummary().contains("ask_ai_companion"));
+
+        List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType,
+                                XunjingEnums.EventType.TRIGGER_RESOLVE.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId,
+                                "trace-xicheng-no-match-vision-evidence-001"));
+        assertEquals(1, events.size());
+        JsonNode payload = JsonUtils.parseTree(events.get(0).getPayloadJson());
+        JsonNode sceneSignals = payload.get("sceneSignals");
+        assertEquals("provider_not_configured", sceneSignals.get("visionRecognitionStatus").asText());
+        JsonNode sceneUnderstanding = payload.get("sceneUnderstanding");
+        assertEquals("provider_not_configured",
+                sceneUnderstanding.get("visionRecognitionStatus").asText());
+        assertEquals("qwen-vl-max", sceneUnderstanding.get("visionRecognitionModel").asText());
+        assertEquals(0, sceneUnderstanding.get("visionRecognitionLabelCount").asInt());
+        assertFalse(events.get(0).getPayloadJson().contains("imageBase64"));
+        assertFalse(events.get(0).getPayloadJson().contains("photo-base64"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerRecordsSceneSignalsWithoutRawRecognitionContext() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
