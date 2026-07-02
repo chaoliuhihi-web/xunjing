@@ -70,6 +70,22 @@
 			</view>
 		</view>
 
+		<view class="print-preflight-card xicheng-paper-card">
+			<view class="section-head">
+				<view class="section-title-row">
+					<xicheng-icon name="locked" variant="plain" :size="19" />
+					<text class="section-title">打印前检查</text>
+				</view>
+				<text class="section-badge">不会自动发布</text>
+			</view>
+			<view class="preflight-grid">
+				<view v-for="item in printPreflightItems" :key="item.title" class="preflight-item">
+					<xicheng-icon :name="item.icon" variant="primary" :size="16" />
+					<view class="preflight-copy"><text class="preflight-title">{{ item.title }}</text><text class="preflight-desc">{{ item.desc }}</text></view>
+				</view>
+			</view>
+		</view>
+
 		<view class="print-actions">
 			<button class="ghost-button xicheng-secondary-action" @click="savePdf">保存 PDF</button>
 			<button class="ghost-button xicheng-secondary-action" @click="previewAllPages">预览全部</button>
@@ -220,6 +236,11 @@ export default {
 				{ title: '精选照片', desc: '自动裁切为打印比例', count: `${materialCount} 张` },
 				{ title: '资料来源', desc: '只导出已审核来源', count: `${reviewedSourceCount} 条` }
 			]
+		},
+		printPreflightItems() {
+			return [
+				{ title: '隐私保护', desc: '精确轨迹默认隐藏', icon: 'locked' }, { title: '来源检查', desc: '只导出已审核来源', icon: 'source' }, { title: '用户确认', desc: '系统打印/分享前会再次确认', icon: 'check' }
+			]
 		}
 	},
 	onShow() {
@@ -235,13 +256,29 @@ export default {
 		previewAllPages() {
 			uni.showToast({ title: '预览全部页面', icon: 'none' })
 		},
-		savePdf() {
+		confirmPdfExportAction(actionLabel = '') {
+			return new Promise((resolve) => {
+				uni.showModal({
+					title: `${actionLabel}确认`,
+					content: 'PDF 会先保存到本机预览，不会自动发布；系统打印/分享前会再次确认。',
+					confirmText: actionLabel,
+					cancelText: '取消',
+					success: (res) => resolve(Boolean(res.confirm)),
+					fail: () => resolve(false)
+				})
+			})
+		},
+		async savePdf() {
+			const confirmed = await this.confirmPdfExportAction('保存 PDF')
+			if (!confirmed) return
 			uni.showToast({ title: 'PDF 已保存到本机预览', icon: 'none' })
 		},
 		systemPrintPdf() {
 			this.sharePdf()
 		},
-		sharePdf() {
+		async sharePdf() {
+			const confirmed = await this.confirmPdfExportAction('打印 / 分享 PDF')
+			if (!confirmed) return
 			uni.showToast({ title: '将唤起系统打印或分享 PDF', icon: 'none' })
 		},
 		openSharePage() {
@@ -313,7 +350,8 @@ export default {
 }
 .print-summary-card,
 .print-settings-grid,
-.export-content-card {
+.export-content-card,
+.print-preflight-card {
 	margin-top: 22rpx;
 	border-radius: 26rpx;
 }
@@ -380,7 +418,8 @@ export default {
 	margin-top: 18rpx;
 }
 .print-settings-grid,
-.export-content-card {
+.export-content-card,
+.print-preflight-card {
 	padding: 24rpx;
 }
 .section-title-row {
@@ -416,7 +455,9 @@ export default {
 .setting-value,
 .export-title,
 .export-desc,
-.export-count {
+.export-count,
+.preflight-title,
+.preflight-desc {
 	font-size: 24rpx;
 	line-height: 1.35;
 }
@@ -425,22 +466,30 @@ export default {
 	color: #3E3831;
 	text-align: right;
 }
-.setting-value-on {
-	color: #173F35;
-	font-weight: 800;
-}
-.export-copy {
-	flex: 1;
-	min-width: 0;
-}
-.export-title {
-	color: #173F35;
-	font-weight: 800;
-}
-.export-desc {
+.setting-value-on { color: #173F35; font-weight: 800; }
+.export-copy { flex: 1; min-width: 0; }
+.export-title { color: #173F35; font-weight: 800; }
+.export-desc,
+.preflight-desc {
 	margin-top: 4rpx;
 	color: #8C8278;
 }
+.preflight-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14rpx; margin-top: 18rpx; }
+.preflight-item {
+	display: flex;
+	align-items: flex-start;
+	gap: 12rpx;
+	min-height: 104rpx;
+	padding: 18rpx 16rpx;
+	border-radius: 20rpx;
+	background: rgba(255, 252, 246, 0.84);
+	border: 1rpx solid rgba(181, 148, 94, 0.14);
+	box-sizing: border-box;
+}
+.preflight-copy { flex: 1; min-width: 0; }
+.preflight-title,
+.preflight-desc { display: block; }
+.preflight-title { color: #173F35; font-weight: 800; }
 .print-actions {
 	gap: 18rpx;
 	margin-top: 24rpx;

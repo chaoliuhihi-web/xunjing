@@ -28,7 +28,10 @@ for (const token of [
   'export-content-card',
   '保存 PDF',
   '预览全部',
-  '打印 / 分享 PDF'
+  '打印 / 分享 PDF',
+  '打印前检查',
+  '不会自动发布',
+  '系统打印/分享前会再次确认'
 ]) {
   assert.ok(pdfSurface.includes(token), `PDF print page should expose approved reference token: ${token}`)
 }
@@ -77,6 +80,30 @@ assert.match(
   pdfPrint,
   /exportContentItems\(\)[\s\S]*reviewedSourceCount[\s\S]*materialCount/,
   'PDF export content summary should reflect reviewed sources and selected material count'
+)
+
+assert.match(
+  pdfPrint,
+  /printPreflightItems\(\)[\s\S]*隐私保护[\s\S]*精确轨迹默认隐藏[\s\S]*来源检查[\s\S]*只导出已审核来源[\s\S]*用户确认[\s\S]*系统打印\/分享前会再次确认/,
+  'PDF print page should summarize privacy, source and user-confirmation readiness before export actions'
+)
+
+assert.match(
+  pdfPrint,
+  /confirmPdfExportAction\(actionLabel = ''\)[\s\S]*uni\.showModal\(\{[\s\S]*title:\s*`\$\{actionLabel\}确认`[\s\S]*content:\s*'PDF 会先保存到本机预览，不会自动发布；系统打印\/分享前会再次确认。'[\s\S]*confirmText:\s*actionLabel[\s\S]*resolve\(Boolean\(res\.confirm\)\)/,
+  'PDF print export actions should ask the user for confirmation instead of silently saving or printing'
+)
+
+assert.match(
+  pdfPrint,
+  /async savePdf\(\)[\s\S]*const confirmed = await this\.confirmPdfExportAction\('保存 PDF'\)[\s\S]*if \(!confirmed\) return[\s\S]*PDF 已保存到本机预览/,
+  'Save PDF action should be gated by the export confirmation copy'
+)
+
+assert.match(
+  pdfPrint,
+  /async sharePdf\(\)[\s\S]*const confirmed = await this\.confirmPdfExportAction\('打印 \/ 分享 PDF'\)[\s\S]*if \(!confirmed\) return[\s\S]*将唤起系统打印或分享 PDF/,
+  'Print/share PDF action should be gated by the export confirmation copy'
 )
 
 assert.match(
