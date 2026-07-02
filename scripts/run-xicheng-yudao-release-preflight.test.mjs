@@ -387,6 +387,79 @@ describe('xicheng Yudao release preflight', () => {
     expect(handoffMarkdown).toContain('### field-review')
   })
 
+  test('does not surface stale production review tasks after production review apply evidence is ready', async () => {
+    const rootDir = await createTempRoot()
+    await mkdir(path.join(rootDir, 'workbench'), { recursive: true })
+    await writeFile(path.join(rootDir, 'workbench/xicheng-poi-production-review-summary.csv'), productionReviewCsv([
+      'xicheng-baitasi,REVIEW_REQUIRED,PASSED,,,,REVIEW_REQUIRED,REVIEW_REQUIRED,REVIEW_REQUIRED,DRAFT,,,Attach field evidence.'
+    ]))
+    const productionReviewApplyEvidenceFile = await writeJson(
+      rootDir,
+      'qa/xicheng-poi-production-review-apply-evidence.json',
+      {
+        artifactType: 'xicheng-poi-production-review-apply',
+        ok: true,
+        status: 'PRODUCTION_REVIEW_APPLIED',
+        checkedAt: new Date().toISOString(),
+        summary: {
+          productionReviewFile: path.join(rootDir, 'workbench/xicheng-poi-production-review-summary.online-applied.csv'),
+          productionReviewRows: 80,
+          approvedReviewRowCount: 80,
+          appliedPoiCount: 80,
+          pendingProductionReviewPoiCount: 0,
+          pendingProductionReviewPoiCodes: []
+        },
+        blockers: []
+      }
+    )
+
+    const result = runPreflight([
+      '--root', rootDir,
+      '--env-file', 'ops/xunjing-platform.env.example',
+      '--release-evidence', 'qa/xicheng-yudao-release-evidence.json',
+      '--tasks-output', 'workbench/xicheng-yudao-release-blocker-tasks.csv',
+      '--poi-tasks-output', 'workbench/xicheng-yudao-release-poi-blocker-tasks.csv',
+      '--poi-summary-output', 'workbench/xicheng-yudao-release-poi-summary.csv',
+      '--handoff-output', 'workbench/xicheng-yudao-release-handoff.md',
+      '--production-review-tasks-output', 'workbench/xicheng-poi-production-review-tasks.csv',
+      '--production-review-owner-lanes-output', 'workbench/xicheng-poi-production-review-owner-lanes.csv',
+      '--production-review-owner-lane-dir', 'workbench/xicheng-poi-production-review-owner-lanes',
+      '--production-review-tasks-evidence', 'qa/xicheng-poi-production-review-tasks-evidence.json',
+      '--poi-production-review-apply-evidence', productionReviewApplyEvidenceFile
+    ])
+
+    expect(result.status).toBe(1)
+    const report = JSON.parse(result.stdout)
+    expect(report.summary).toMatchObject({
+      productionReviewTasksStatus: 'PRODUCTION_REVIEW_APPLIED',
+      productionReviewTaskCount: 0,
+      productionReviewPendingPoiCount: 0,
+      productionReviewTasksEvidenceFile: productionReviewApplyEvidenceFile
+    })
+    expect(report.productionReviewTasks).toMatchObject({
+      ok: true,
+      status: 'PRODUCTION_REVIEW_APPLIED',
+      summary: {
+        taskCount: 0,
+        pendingPoiCount: 0,
+        productionReviewApplyEvidenceFile
+      },
+      blockers: []
+    })
+    expect(report.summary.productionReviewOwnerLaneTaskFiles).toEqual([])
+
+    const handoffMarkdown = await readFile(
+      path.join(rootDir, 'workbench/xicheng-yudao-release-handoff.md'),
+      'utf8'
+    )
+    expect(handoffMarkdown).toContain('Status: `PRODUCTION_REVIEW_APPLIED`')
+    expect(handoffMarkdown).toContain('Task count: 0')
+    expect(handoffMarkdown).toContain('Pending POIs: 0')
+    expect(handoffMarkdown).toContain('Production review apply evidence is ready; no field-level production review tasks are pending.')
+    expect(handoffMarkdown).not.toContain('Status: `PRODUCTION_REVIEW_TASKS_REQUIRED`')
+    expect(handoffMarkdown).not.toContain('field-review.csv')
+  })
+
   test('rejects placeholder APP readiness backend domains', async () => {
     const rootDir = await createTempRoot()
     await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', {
