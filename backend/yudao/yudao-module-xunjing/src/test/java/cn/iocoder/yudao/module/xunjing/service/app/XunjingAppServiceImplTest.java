@@ -835,6 +835,11 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         reqVO.setVisionAgentLocalTimeText("18:40");
         reqVO.setVisionAgentWeatherText("晴");
         reqVO.setVisionAgentHeadingText("向西");
+        reqVO.setServiceHandoffActionKey("start_ai_guide");
+        reqVO.setServiceHandoffTaskType("auto");
+        reqVO.setServiceHandoffIntent("guide");
+        reqVO.setServiceHandoffIntentText("AI 讲解");
+        reqVO.setServiceHandoffStepText("无需用户确认");
         reqVO.setServiceHandoffSummary("涉及商家、票务或优惠时必须说明需要真实系统确认。");
         reqVO.setServiceHandoffRequiresRealSystem(true);
 
@@ -852,6 +857,10 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertTrue(prompt.contains("Agent建议=先拍照"));
         assertTrue(prompt.contains("Agent理由=马上日落，光线适合拍门楼。"));
         assertTrue(prompt.contains("实时环境=18:40 晴 向西"));
+        assertTrue(prompt.contains("服务动作=start_ai_guide"));
+        assertTrue(prompt.contains("服务任务=auto"));
+        assertTrue(prompt.contains("服务意图=guide/AI 讲解"));
+        assertTrue(prompt.contains("服务步骤=无需用户确认"));
         assertTrue(prompt.contains("服务承接=涉及商家、票务或优惠时必须说明需要真实系统确认。"));
         assertTrue(prompt.contains("真实系统确认=true"));
         assertFalse(prompt.contains("sourceRecognitionContext"));
@@ -867,6 +876,9 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertEquals("晴天 18:40，夕阳适合先拍门楼。", visionAgentContext.get("sceneFusionSummary").asText());
         assertEquals("architecture", visionAgentContext.get("primarySceneDomainKey").asText());
         assertEquals(2, visionAgentContext.get("memorySessionSceneCount").asInt());
+        assertEquals("start_ai_guide", visionAgentContext.get("serviceHandoffActionKey").asText());
+        assertEquals("guide", visionAgentContext.get("serviceHandoffIntent").asText());
+        assertEquals("无需用户确认", visionAgentContext.get("serviceHandoffStepText").asText());
         assertEquals("涉及商家、票务或优惠时必须说明需要真实系统确认。",
                 visionAgentContext.get("serviceHandoffSummary").asText());
         assertFalse(visionAgentContext.has("sourceRecognitionContext"));

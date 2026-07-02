@@ -1452,11 +1452,38 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         if (hasText(environment)) {
             parts.add("实时环境=" + environment);
         }
+        String serviceHandoff = buildServiceHandoffContextText(reqVO);
+        if (hasText(serviceHandoff)) {
+            parts.add(serviceHandoff);
+        }
         putChatContextPart(parts, "服务承接", reqVO.getServiceHandoffSummary());
         if (reqVO.getServiceHandoffRequiresRealSystem() != null) {
             parts.add("真实系统确认=" + reqVO.getServiceHandoffRequiresRealSystem());
         }
         return String.join("\n", parts);
+    }
+
+    private String buildServiceHandoffContextText(RagChatReqVO reqVO) {
+        List<String> parts = new ArrayList<>();
+        putChatContextPart(parts, "服务动作", reqVO.getServiceHandoffActionKey());
+        putChatContextPart(parts, "服务任务", reqVO.getServiceHandoffTaskType());
+        String intent = buildServiceHandoffIntentText(reqVO);
+        if (hasText(intent)) {
+            parts.add("服务意图=" + intent);
+        }
+        putChatContextPart(parts, "服务步骤", reqVO.getServiceHandoffStepText());
+        return String.join("\n", parts);
+    }
+
+    private String buildServiceHandoffIntentText(RagChatReqVO reqVO) {
+        String intent = truncateForEvent(defaultIfBlank(reqVO.getServiceHandoffIntent(), ""),
+                CHAT_CONTEXT_TEXT_MAX_LENGTH);
+        String text = truncateForEvent(defaultIfBlank(reqVO.getServiceHandoffIntentText(), ""),
+                CHAT_CONTEXT_TEXT_MAX_LENGTH);
+        if (hasText(intent) && hasText(text)) {
+            return intent + "/" + text;
+        }
+        return hasText(intent) ? intent : text;
     }
 
     private Map<String, Object> buildVisionAgentChatContextPayload(RagChatReqVO reqVO) {
