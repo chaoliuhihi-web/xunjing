@@ -7,14 +7,21 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 const exists = (...segments) => fs.existsSync(path.join(root, ...segments))
 
 const componentPath = ['components', 'xicheng', 'XichengCulturalMap.vue']
+const poiSheetPath = ['components', 'xicheng', 'XichengCulturalMapPoiSheet.vue']
 
 assert.ok(
   exists(...componentPath),
   'Xicheng cultural map should be extracted into a dedicated component instead of staying as a flat decorative canvas'
 )
+assert.ok(
+  exists(...poiSheetPath),
+  'Cultural map POI bottom sheet should be extracted into a dedicated component'
+)
 
 const culturalMap = read(...componentPath)
+const poiSheet = read(...poiSheetPath)
 const routes = read('pages', 'xicheng', 'routes', 'routes.vue')
+const mapShell = `${culturalMap}\n${poiSheet}`
 
 for (const required of [
   '西城文旅地图',
@@ -51,7 +58,7 @@ for (const required of [
   '$emit(\'ask-poi\'',
   '$emit(\'add-poi-to-route\''
 ]) {
-  assert.ok(culturalMap.includes(required), `Cultural map component should include ${required}`)
+  assert.ok(mapShell.includes(required), `Cultural map component should include ${required}`)
 }
 
 assert.match(
@@ -85,7 +92,7 @@ assert.doesNotMatch(
 )
 
 assert.match(
-  culturalMap,
+  mapShell,
   /selectedPoi[\s\S]*class="xicheng-map-bottom-sheet"[\s\S]*selectedPoi\.poiName[\s\S]*selectedPoi\.summary/,
   'Cultural map should show a bottom sheet with the selected POI name and introduction'
 )
@@ -104,35 +111,41 @@ assert.doesNotMatch(
 
 assert.match(
   culturalMap,
-  /class="xicheng-map-sheet-close"[\s\S]*@click="clearSelectedPoi"[\s\S]*×/,
+  /<xicheng-cultural-map-poi-sheet[\s\S]*@close="clearSelectedPoi"/,
   'Cultural map bottom sheet should expose a close control like the approved POI sheet reference'
 )
 
 assert.match(
-  culturalMap,
+  poiSheet,
+  /class="xicheng-map-sheet-close"[\s\S]*@click="\$emit\('close'\)"[\s\S]*×/,
+  'Extracted POI sheet should keep a close control like the approved reference'
+)
+
+assert.match(
+  poiSheet,
   /class="xicheng-map-sheet-detail-list"[\s\S]*开放时间[\s\S]*selectedPoi\.openTime \|\| '09:00-17:00'[\s\S]*步行约 12 分钟[\s\S]*距当前位置约 850 米[\s\S]*来源：西城文旅官方资料库/,
   'Cultural map bottom sheet should show open time, walking distance, and source detail rows before navigation'
 )
 
 assert.match(
-  culturalMap,
+  poiSheet,
   /class="xicheng-map-sheet-primary[\s\S]*<xicheng-icon name="route"[\s\S]*class="xicheng-map-sheet-primary-icon"[\s\S]*导航去这里/,
   'Cultural map primary navigation action should use the shared route icon and clear navigation copy'
 )
 
 assert.ok(
-  culturalMap.includes('\n\t\t\t<view v-if="selectedPoi" class="xicheng-map-bottom-sheet">'),
+  culturalMap.includes('\n\t\t\t<xicheng-cultural-map-poi-sheet'),
   'Cultural map POI bottom sheet should render inside the map canvas as an in-map overlay'
 )
 
 assert.match(
-  culturalMap,
+  poiSheet,
   /\.xicheng-map-bottom-sheet\s*\{[\s\S]*position:\s*absolute[\s\S]*left:\s*20rpx[\s\S]*right:\s*20rpx[\s\S]*bottom:\s*18rpx/,
   'Cultural map POI bottom sheet should be absolutely positioned inside the map canvas'
 )
 
 assert.match(
-  culturalMap,
+  poiSheet,
   /\.xicheng-map-sheet-desc\s*\{[\s\S]*max-height:\s*64rpx[\s\S]*overflow:\s*hidden/,
   'Cultural map POI introduction should stay compact inside the in-map overlay'
 )
@@ -144,13 +157,13 @@ assert.match(
 )
 
 assert.match(
-  culturalMap,
+  poiSheet,
   /:class="\{ 'xicheng-map-sheet-head-no-image': !selectedPoi\.image \}"/,
   'Cultural map bottom sheet should switch to a one-column layout when the selected POI has no card image'
 )
 
 assert.match(
-  culturalMap,
+  poiSheet,
   /\.xicheng-map-sheet-head-no-image\s*\{[\s\S]*grid-template-columns:\s*1fr/,
   'Cultural map no-image bottom sheet layout should keep POI titles and descriptions readable'
 )
@@ -193,7 +206,7 @@ for (const required of [
 }
 
 assert.doesNotMatch(
-  culturalMap + routes,
+  culturalMap + poiSheet + routes,
   /\/app-api\/xunjing|Authorization['"]?\s*:\s*`Bearer|pat_[A-Za-z0-9]{20,}|https:\/\/api\.coze\.cn|sk-[A-Za-z0-9]{20,}/,
   'Cultural map POI shell should not introduce backend calls or client-side secrets'
 )
