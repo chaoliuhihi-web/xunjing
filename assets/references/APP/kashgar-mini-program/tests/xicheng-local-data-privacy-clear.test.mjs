@@ -7,6 +7,8 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const opsDetails = read('components', 'xicheng', 'XichengTravelogueOpsDetails.vue')
+const traveloguePrivacySurface = `${travelogue}\n${opsDetails}`
 const pagesJson = read('pages.json')
 
 assert.ok(
@@ -51,7 +53,7 @@ for (const required of [
   'openXichengFeedbackEntry',
   'privacyClearStorageKeys'
 ]) {
-  assert.ok(travelogue.includes(required), `Travelogue should expose privacy/local data control ${required}`)
+  assert.ok(traveloguePrivacySurface.includes(required), `Travelogue should expose privacy/local data control ${required}`)
 }
 
 assert.match(

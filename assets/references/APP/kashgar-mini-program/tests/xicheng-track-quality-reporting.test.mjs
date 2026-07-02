@@ -4,6 +4,8 @@ import path from 'node:path'
 
 const root = process.cwd()
 const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
+const opsDetails = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengTravelogueOpsDetails.vue'), 'utf8')
+const travelogueTrackQualitySurface = `${travelogue}\n${opsDetails}`
 
 for (const required of [
   'filteredTrackPointCount',
@@ -13,13 +15,13 @@ for (const required of [
   'filteredTrackPoints: this.recordingSession.filteredTrackPoints',
   'filteredTrackPointCount: this.filteredTrackPointCount'
 ]) {
-  assert.ok(travelogue.includes(required), `Travelogue should expose track quality reporting token ${required}`)
+  assert.ok(travelogueTrackQualitySurface.includes(required), `Travelogue should expose track quality reporting token ${required}`)
 }
 
 assert.match(
-  travelogue,
+  opsDetails,
   /<text class="report-value">\{\{ filteredTrackPointCount \}\}<\/text>[\s\S]*<text class="report-label">异常点<\/text>/,
-  'Recording summary should show filtered abnormal track point count'
+  'Split recording summary should show filtered abnormal track point count'
 )
 
 assert.match(
@@ -59,13 +61,13 @@ assert.match(
 )
 
 assert.match(
-  travelogue,
+  opsDetails,
   /轨迹质量：\{\{ opsReport\.qualityReport\.usableRate \}\}% 可用 · 异常点：\{\{ opsReport\.filteredTrackPointCount \}\}/,
-  'Local operations report UI should expose track quality and abnormal point counts for acceptance review'
+  'Split local operations report UI should expose track quality and abnormal point counts for acceptance review'
 )
 
 assert.doesNotMatch(
-  travelogue,
+  travelogueTrackQualitySurface,
   /background-location|startLocationUpdateBackground|\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
   'Track quality reporting should not introduce background location, backend calls, or client-side secrets'
 )

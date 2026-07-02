@@ -7,6 +7,8 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const opsDetails = read('components', 'xicheng', 'XichengTravelogueOpsDetails.vue')
+const travelogueCandidateSurface = `${travelogue}\n${opsDetails}`
 const sliceBetween = (content, start, end) => {
   const startIndex = content.indexOf(start)
   const endIndex = content.indexOf(end, startIndex)
@@ -67,7 +69,7 @@ for (const required of [
   'candidateConfirmedPoiLabel',
   '候选确认'
 ]) {
-  assert.ok(travelogue.includes(required), `Travelogue should expose candidate confirmation audit evidence ${required}`)
+  assert.ok(travelogueCandidateSurface.includes(required), `Travelogue should expose candidate confirmation audit evidence ${required}`)
 }
 
 assert.match(
@@ -101,7 +103,7 @@ assert.match(
 )
 
 assert.doesNotMatch(
-  `${scanResult}\n${travelogue}`,
+  `${scanResult}\n${travelogue}\n${opsDetails}`,
   /\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
   'Candidate confirmation audit should stay local and must not introduce backend calls or client-side secrets'
 )

@@ -7,6 +7,8 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const opsDetails = read('components', 'xicheng', 'XichengTravelogueOpsDetails.vue')
+const travelogueShareAssetSurface = `${travelogue}\n${opsDetails}`
 const sourceHelper = read('request', 'xunjing', 'sources.js')
 const extractTravelogueMethodBlock = (methodName, nextMethodName) => {
   const block = travelogue.match(new RegExp(`${methodName}\\([^)]*\\)[\\s\\S]*?\\n\\t\\t\\},\\n\\t\\t${nextMethodName}`))?.[0] || ''
@@ -44,7 +46,7 @@ for (const required of [
   'formatArtifactTime',
   '删除产物'
 ]) {
-  assert.ok(travelogue.includes(required), `Travelogue page should support share asset export evidence ${required}`)
+  assert.ok(travelogueShareAssetSurface.includes(required), `Travelogue page should support share asset export evidence ${required}`)
 }
 
 assert.match(
@@ -66,9 +68,15 @@ assert.match(
 )
 
 assert.match(
+  opsDetails,
+  /v-for="\(\s*artifact,\s*index\s*\) in shareArtifacts\.slice\(0, 3\)"[\s\S]*@click="\$emit\('delete-share-artifact', index\)"[\s\S]*删除产物/,
+  'Share artifact list should expose a per-asset delete action before review/public sharing through the split component'
+)
+
+assert.match(
   travelogue,
-  /v-for="\(\s*artifact,\s*index\s*\) in shareArtifacts\.slice\(0, 3\)"[\s\S]*@click="deleteShareArtifact\(index\)"[\s\S]*删除产物/,
-  'Share artifact list should expose a per-asset delete action before review/public sharing'
+  /@delete-share-artifact="deleteShareArtifact"/,
+  'Travelogue page should bind the split share-artifact delete event back to page logic'
 )
 
 assert.match(
@@ -146,9 +154,9 @@ assert.match(
 )
 
 assert.match(
-  travelogue,
+  opsDetails,
   /artifact\.assetLabel[\s\S]*artifact\.visibilityLabel/,
-  'Share artifact list should show audit visibility so operators know generated works are not public'
+  'Split share artifact list should show audit visibility so operators know generated works are not public'
 )
 
 assert.doesNotMatch(
@@ -188,9 +196,9 @@ assert.match(
 )
 
 assert.match(
-  travelogue,
+  opsDetails,
   /artifact\.templateLabel/,
-  'Share artifact list should expose the fixed template label for operations review'
+  'Split share artifact list should expose the fixed template label for operations review'
 )
 
 assert.match(

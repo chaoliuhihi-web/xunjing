@@ -9,6 +9,8 @@ const regionConfig = read('config', 'regions', 'xicheng.js')
 const triggerRequest = read('request', 'xunjing', 'trigger.js')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const opsDetails = read('components', 'xicheng', 'XichengTravelogueOpsDetails.vue')
+const travelogueRouteSurface = `${travelogue}\n${opsDetails}`
 
 assert.match(
   regionConfig,
@@ -57,7 +59,7 @@ for (const required of [
   'routeRecommendation',
   'route-steps'
 ]) {
-  assert.ok(travelogue.includes(required), `Travelogue page should show recognized route recommendation ${required}`)
+  assert.ok(travelogueRouteSurface.includes(required), `Travelogue page should show recognized route recommendation ${required}`)
 }
 
 assert.match(

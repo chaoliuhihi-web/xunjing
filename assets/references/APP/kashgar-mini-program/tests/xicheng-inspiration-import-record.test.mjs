@@ -9,6 +9,8 @@ const regionConfig = read('config', 'regions', 'xicheng.js')
 const inspiration = read('pages', 'xicheng', 'inspiration', 'inspiration.vue')
 const inspirationImportHelper = read('request', 'xunjing', 'inspirationImport.js')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const opsDetails = read('components', 'xicheng', 'XichengTravelogueOpsDetails.vue')
+const travelogueInspirationSurface = `${travelogue}\n${opsDetails}`
 const sliceBetween = (content, start, end) => {
   const startIndex = content.indexOf(start)
   const endIndex = content.indexOf(end, startIndex)
@@ -107,7 +109,7 @@ for (const required of [
   'deleteInspirationImport',
   '删除导入'
 ]) {
-  assert.ok(travelogue.includes(required), `Travelogue should expose inspiration import record evidence ${required}`)
+  assert.ok(travelogueInspirationSurface.includes(required), `Travelogue should expose inspiration import record evidence ${required}`)
 }
 
 assert.match(
@@ -123,9 +125,15 @@ assert.match(
 )
 
 assert.match(
+  opsDetails,
+  /v-for="\(\s*record,\s*index\s*\) in inspirationImports\.slice\(0, 3\)"[\s\S]*@click="\$emit\('delete-inspiration-import', index\)"[\s\S]*删除导入/,
+  'Travelogue details component should expose a per-record delete action for imported inspiration records'
+)
+
+assert.match(
   travelogue,
-  /v-for="\(\s*record,\s*index\s*\) in inspirationImports\.slice\(0, 3\)"[\s\S]*@click="deleteInspirationImport\(index\)"[\s\S]*删除导入/,
-  'Travelogue should expose a per-record delete action for imported inspiration records'
+  /@delete-inspiration-import="deleteInspirationImport"/,
+  'Travelogue page should bind the imported inspiration delete event back to page logic'
 )
 
 assert.match(

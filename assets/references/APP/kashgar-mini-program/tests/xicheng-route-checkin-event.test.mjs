@@ -8,6 +8,8 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const opsDetails = read('components', 'xicheng', 'XichengTravelogueOpsDetails.vue')
+const travelogueCheckinSurface = `${travelogue}\n${opsDetails}`
 
 assert.ok(
   regionConfig.includes("checkinStorageKey: 'xicheng:routeCheckins'"),
@@ -64,7 +66,7 @@ for (const required of [
   'deleteRouteCheckin',
   '删除打卡'
 ]) {
-  assert.ok(travelogue.includes(required), `Travelogue should expose route check-in evidence ${required}`)
+  assert.ok(travelogueCheckinSurface.includes(required), `Travelogue should expose route check-in evidence ${required}`)
 }
 
 assert.match(
@@ -80,9 +82,15 @@ assert.match(
 )
 
 assert.match(
+  opsDetails,
+  /v-for="\(\s*checkin,\s*index\s*\) in routeCheckins\.slice\(0, 5\)"[\s\S]*@click="\$emit\('delete-route-checkin', index\)"[\s\S]*删除打卡/,
+  'Route check-in list should expose a per-check-in delete action for mis-trigger cleanup through the split component'
+)
+
+assert.match(
   travelogue,
-  /v-for="\(\s*checkin,\s*index\s*\) in routeCheckins\.slice\(0, 5\)"[\s\S]*@click="deleteRouteCheckin\(index\)"[\s\S]*删除打卡/,
-  'Route check-in list should expose a per-check-in delete action for mis-trigger cleanup'
+  /@delete-route-checkin="deleteRouteCheckin"/,
+  'Travelogue page should bind the split route-checkin delete event back to page logic'
 )
 
 assert.match(

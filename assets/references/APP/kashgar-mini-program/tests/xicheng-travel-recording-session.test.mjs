@@ -7,6 +7,8 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const opsDetails = read('components', 'xicheng', 'XichengTravelogueOpsDetails.vue')
+const travelogueRecordingSurface = `${travelogue}\n${opsDetails}`
 
 assert.ok(
   regionConfig.includes("recordingStorageKey: 'xicheng:recordingSession'"),
@@ -34,7 +36,7 @@ for (const required of [
   'appState',
   'syncStatus'
 ]) {
-  assert.ok(travelogue.includes(required), `Travelogue page should support active recording session behavior ${required}`)
+  assert.ok(travelogueRecordingSurface.includes(required), `Travelogue page should support active recording session behavior ${required}`)
 }
 
 assert.match(
@@ -62,15 +64,15 @@ assert.match(
 )
 
 assert.match(
-  travelogue,
-  /@click="resumeRecordingSession"/,
-  'Recording controls should expose an explicit resume entry after pausing'
+  opsDetails,
+  /@click="\$emit\('resume-recording'\)"/,
+  'Split recording controls should expose an explicit resume entry after pausing'
 )
 
 assert.match(
-  travelogue,
+  opsDetails,
   /:disabled="recordingSession\.status === 'recording' \|\| recordingSession\.status === 'paused'"/,
-  'Start recording should not reset an existing paused recording session'
+  'Split start recording control should not reset an existing paused recording session'
 )
 
 assert.match(
@@ -86,9 +88,9 @@ assert.match(
 )
 
 assert.match(
-  travelogue,
-  /@click="deleteRecordingSession"/,
-  'Recording controls should expose an explicit delete-recording entry for privacy and acceptance'
+  opsDetails,
+  /@click="\$emit\('delete-recording'\)"/,
+  'Split recording controls should expose an explicit delete-recording entry for privacy and acceptance'
 )
 
 assert.match(
@@ -110,9 +112,15 @@ assert.match(
 )
 
 assert.match(
+  opsDetails,
+  /@click="\$emit\('capture-track-point', 'manual'\)"/,
+  'Split manual track point capture should not receive the raw click event as pointType'
+)
+
+assert.match(
   travelogue,
-  /@click="captureTrackPoint\('manual'\)"/,
-  'Manual track point capture should not receive the raw click event as pointType'
+  /@start-recording="startRecordingSession"[\s\S]*@resume-recording="resumeRecordingSession"[\s\S]*@capture-track-point="captureTrackPoint"[\s\S]*@pause-recording="pauseRecordingSession"[\s\S]*@finish-recording="finishRecordingSession"[\s\S]*@delete-recording="deleteRecordingSession"/,
+  'Travelogue page should bind split recording control events back to page logic'
 )
 
 assert.match(
@@ -140,7 +148,7 @@ assert.match(
 )
 
 assert.doesNotMatch(
-  travelogue,
+  travelogueRecordingSurface,
   /background-location|startLocationUpdateBackground|\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
   'Local recording MVP should avoid background location, backend calls, and client-side secrets'
 )

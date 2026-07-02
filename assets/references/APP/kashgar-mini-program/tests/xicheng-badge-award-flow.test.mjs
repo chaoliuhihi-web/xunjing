@@ -7,6 +7,8 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const opsDetails = read('components', 'xicheng', 'XichengTravelogueOpsDetails.vue')
+const travelogueBadgeSurface = `${travelogue}\n${opsDetails}`
 const sliceBetween = (content, start, end) => {
   const startIndex = content.indexOf(start)
   const endIndex = content.indexOf(end, startIndex)
@@ -45,7 +47,7 @@ for (const required of [
   'awardedAt',
   'badgeAwardCount'
 ]) {
-  assert.ok(travelogue.includes(required), `Travelogue should support route badge award evidence ${required}`)
+  assert.ok(travelogueBadgeSurface.includes(required), `Travelogue should support route badge award evidence ${required}`)
 }
 
 assert.match(

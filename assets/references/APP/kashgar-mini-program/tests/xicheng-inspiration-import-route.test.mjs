@@ -19,6 +19,8 @@ const inspiration = read('pages', 'xicheng', 'inspiration', 'inspiration.vue')
 const officialPoiSources = read('request', 'xunjing', 'officialPoi.js')
 const inspirationImportHelper = read('request', 'xunjing', 'inspirationImport.js')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const opsDetails = read('components', 'xicheng', 'XichengTravelogueOpsDetails.vue')
+const travelogueInspirationSurface = `${travelogue}\n${opsDetails}`
 const sliceBetween = (content, start, end) => {
   const startIndex = content.indexOf(start)
   const endIndex = content.indexOf(end, startIndex)
@@ -263,7 +265,7 @@ assert.match(
 )
 
 assert.match(
-  travelogue,
+  travelogueInspirationSurface,
   /inspirationStorageKey[\s\S]*灵感导入路线|灵感导入路线[\s\S]*inspirationStorageKey/,
   'Travelogue page should surface the imported inspiration route as part of the route passport flow'
 )

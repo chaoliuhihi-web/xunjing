@@ -21,8 +21,9 @@ const travelogueCss = fs.existsSync(path.join(appRoot, 'pages', 'xicheng', 'trav
   ? fs.readFileSync(path.join(appRoot, 'pages', 'xicheng', 'travelogue', 'travelogue.css'), 'utf8')
   : travelogue
 const travelogueActionGrid = fs.readFileSync(path.join(appRoot, 'components', 'xicheng', 'XichengTravelogueActionGrid.vue'), 'utf8')
-const travelogueVisualSurface = `${travelogue}\n${travelogueActionGrid}`
-const travelogueStyleSurface = `${travelogueCss}\n${travelogueActionGrid}`
+const travelogueOpsDetails = fs.readFileSync(path.join(appRoot, 'components', 'xicheng', 'XichengTravelogueOpsDetails.vue'), 'utf8')
+const travelogueVisualSurface = `${travelogue}\n${travelogueActionGrid}\n${travelogueOpsDetails}`
+const travelogueStyleSurface = `${travelogueCss}\n${travelogueActionGrid}\n${travelogueOpsDetails}`
 const aiGuide = fs.readFileSync(path.join(appRoot, 'pages', 'ai-guide', 'ai-guide.vue'), 'utf8')
 const qaReport = fs.readFileSync(path.join(appRoot, 'design-qa.md'), 'utf8')
 
@@ -83,7 +84,8 @@ for (const [fileName, source] of [
     'xicheng-paper-card',
     'xicheng-primary-action'
   ]) {
-    assert.ok(source.includes(className), `${fileName} should use ${className} from the shared visual theme`)
+    const visualSurface = fileName === 'travelogue.vue' ? travelogueVisualSurface : source
+    assert.ok(visualSurface.includes(className), `${fileName} should use ${className} from the shared visual theme`)
   }
 }
 

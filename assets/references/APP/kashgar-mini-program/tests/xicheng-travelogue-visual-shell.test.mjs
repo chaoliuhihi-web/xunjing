@@ -8,6 +8,7 @@ const secondaryEntries = fs.readFileSync(path.join(root, 'components', 'xicheng'
 const secondaryDirectoryPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueSecondaryDirectory.vue')
 const recordShellPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueRecordShell.vue')
 const generationHeroPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueGenerationHero.vue')
+const opsDetailsPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueOpsDetails.vue')
 assert.ok(
   fs.existsSync(secondaryDirectoryPath),
   'Travelogue secondary directory should be split into XichengTravelogueSecondaryDirectory.vue instead of growing travelogue.vue'
@@ -16,10 +17,15 @@ assert.ok(
   fs.existsSync(generationHeroPath),
   'Travelogue generation hero should be split into XichengTravelogueGenerationHero.vue instead of growing travelogue.vue'
 )
+assert.ok(
+  fs.existsSync(opsDetailsPath),
+  'Travelogue operations details should be split into XichengTravelogueOpsDetails.vue instead of growing travelogue.vue'
+)
 const secondaryDirectory = fs.readFileSync(secondaryDirectoryPath, 'utf8')
 const recordShell = fs.readFileSync(recordShellPath, 'utf8')
 const generationHero = fs.readFileSync(generationHeroPath, 'utf8')
-const travelogueSource = `${travelogue}\n${secondaryEntries}\n${secondaryDirectory}\n${recordShell}\n${generationHero}`
+const opsDetails = fs.readFileSync(opsDetailsPath, 'utf8')
+const travelogueSource = `${travelogue}\n${secondaryEntries}\n${secondaryDirectory}\n${recordShell}\n${generationHero}\n${opsDetails}`
 const travelogueCss = fs.existsSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.css'))
   ? fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.css'), 'utf8')
   : travelogue
@@ -184,8 +190,14 @@ assert.doesNotMatch(
 
 assert.match(
   travelogue,
-  /<template v-if="!isTravelogueEditMode && showTravelogueOpsDetails">[\s\S]*class="stats-grid"[\s\S]*记录会话[\s\S]*旅行素材盒[\s\S]*亲子研学任务[\s\S]*城市运营报告[\s\S]*<\/template>/,
-  'Long travelogue operations should stay outside edit mode and move behind secondary entries'
+  /<xicheng-travelogue-ops-details[\s\S]*v-if="!isTravelogueEditMode && showTravelogueOpsDetails"[\s\S]*:material-count="materialCount"[\s\S]*:ops-report="opsReport"/,
+  'Long travelogue operations should stay outside edit mode and move behind a split details component'
+)
+
+assert.match(
+  opsDetails,
+  /class="stats-grid"[\s\S]*记录会话[\s\S]*旅行素材盒[\s\S]*亲子研学任务[\s\S]*城市运营报告/,
+  'Split travelogue operations details should keep the long route, material, study, privacy, and ops sections'
 )
 
 assert.match(

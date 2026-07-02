@@ -4,6 +4,8 @@ import path from 'node:path'
 
 const root = process.cwd()
 const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
+const opsDetails = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengTravelogueOpsDetails.vue'), 'utf8')
+const travelogueSafetySurface = `${travelogue}\n${opsDetails}`
 
 const computedBlock = travelogue.match(/computed:\s*\{[\s\S]*?\n\t\},\n\tonLoad/)?.[0] || ''
 const methodsBlock = travelogue.match(/methods:\s*\{[\s\S]*?\n\t\}\n\}/)?.[0] || ''
@@ -60,13 +62,13 @@ assert.match(
 )
 
 assert.match(
-  travelogue,
+  travelogueSafetySurface,
   /安全拦截：\{\{ opsReport\.safetyBlockedCount \}\} · 服务不可用：\{\{ opsReport\.safetyUnavailableCount \}\}/,
   'City operations report UI should surface safety block and unavailable counts for local acceptance review'
 )
 
 assert.doesNotMatch(
-  travelogue,
+  travelogueSafetySurface,
   /\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
   'Local safety status report should not introduce backend calls or client-side secrets'
 )

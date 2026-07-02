@@ -6,6 +6,8 @@ const root = process.cwd()
 const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
 
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const opsDetails = read('components', 'xicheng', 'XichengTravelogueOpsDetails.vue')
+const travelogueOpsSurface = `${travelogue}\n${opsDetails}`
 
 for (const required of [
   'xicheng-city-ops-report-v1',
@@ -59,25 +61,25 @@ assert.match(
 )
 
 assert.match(
-  travelogue,
+  travelogueOpsSurface,
   /路线完成[\s\S]*热门 POI[\s\S]*误触发[\s\S]*优化建议/,
   'Travelogue UI should expose city operations report template fields for local acceptance review'
 )
 
 assert.match(
-  travelogue,
+  travelogueOpsSurface,
   /试运营日报[\s\S]*识别、路线、分享、审核来源和安全状态/,
   'City operations report UI should present a ready trial-operations report instead of a future backend placeholder'
 )
 
 assert.doesNotMatch(
-  travelogue,
+  travelogueOpsSurface,
   /上线后可替换|后端真实|待替换/,
   'City operations report UI should not ship future backend replacement placeholder copy'
 )
 
 assert.doesNotMatch(
-  travelogue,
+  travelogueOpsSurface,
   /\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
   'Local operations report template should not introduce backend calls or client-side secrets'
 )

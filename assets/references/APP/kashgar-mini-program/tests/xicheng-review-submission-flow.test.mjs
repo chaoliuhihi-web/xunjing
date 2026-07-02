@@ -7,6 +7,8 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const opsDetails = read('components', 'xicheng', 'XichengTravelogueOpsDetails.vue')
+const travelogueReviewSurface = `${travelogue}\n${opsDetails}`
 
 assert.ok(
   regionConfig.includes("reviewStorageKey: 'xicheng:reviewSubmissions'"),
@@ -28,7 +30,7 @@ for (const required of [
   'withdrawReviewSubmission',
   '撤回审核'
 ]) {
-  assert.ok(travelogue.includes(required), `Travelogue page should support review submission evidence ${required}`)
+  assert.ok(travelogueReviewSurface.includes(required), `Travelogue page should support review submission evidence ${required}`)
 }
 
 assert.match(
@@ -80,7 +82,7 @@ assert.doesNotMatch(
 )
 
 assert.match(
-  travelogue,
+  travelogueReviewSurface,
   /公开预览[\s\S]*reviewSubmission\.publicPreview\.materialCount[\s\S]*reviewSubmission\.publicPreview\.checkinCount[\s\S]*reviewSubmission\.publicPreview\.studyTaskEvidenceCount/,
   'review submission card should show sanitized public preview counts for operator acceptance'
 )
@@ -92,9 +94,15 @@ assert.match(
 )
 
 assert.match(
+  opsDetails,
+  /v-if="reviewSubmission"[\s\S]*@click="\$emit\('withdraw-review'\)"[\s\S]*撤回审核/,
+  'review submission details component should expose a withdraw action before local review/public handoff'
+)
+
+assert.match(
   travelogue,
-  /v-if="reviewSubmission"[\s\S]*@click="withdrawReviewSubmission"[\s\S]*撤回审核/,
-  'review submission card should expose a withdraw action before local review/public handoff'
+  /@withdraw-review="withdrawReviewSubmission"/,
+  'Travelogue page should bind the split withdraw-review event back to page logic'
 )
 
 assert.match(
@@ -104,7 +112,7 @@ assert.match(
 )
 
 assert.doesNotMatch(
-  travelogue,
+  travelogueReviewSurface,
   /\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
   'local review MVP should not introduce backend calls or client-side secrets'
 )

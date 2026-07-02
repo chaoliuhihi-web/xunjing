@@ -6,6 +6,8 @@ const root = process.cwd()
 const regionConfig = fs.readFileSync(path.join(root, 'config', 'regions', 'xicheng.js'), 'utf8')
 const scanResult = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan-result', 'scan-result.vue'), 'utf8')
 const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
+const opsDetails = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengTravelogueOpsDetails.vue'), 'utf8')
+const travelogueServiceTaskSurface = `${travelogue}\n${opsDetails}`
 
 assert.match(
   regionConfig,
@@ -33,7 +35,7 @@ for (const required of [
   'vision-agent-task-card',
   'visionAgentServiceTaskCount'
 ]) {
-  assert.ok(travelogue.includes(required), `Travelogue should expose AI识境 service task package behavior: ${required}`)
+  assert.ok(travelogueServiceTaskSurface.includes(required), `Travelogue should expose AI识境 service task package behavior: ${required}`)
 }
 
 assert.match(

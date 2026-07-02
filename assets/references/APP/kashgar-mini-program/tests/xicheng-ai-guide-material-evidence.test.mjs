@@ -7,6 +7,8 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const aiGuide = read('pages', 'ai-guide', 'ai-guide.vue')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const opsDetails = read('components', 'xicheng', 'XichengTravelogueOpsDetails.vue')
+const travelogueEvidenceSurface = `${travelogue}\n${opsDetails}`
 
 for (const required of [
   'persistXichengAiGuideMaterial',
@@ -72,7 +74,7 @@ for (const required of [
   '小京讲解',
   '小京回答'
 ]) {
-  assert.ok(travelogue.includes(required), `Travelogue should expose Xiaojing answer evidence token ${required}`)
+  assert.ok(travelogueEvidenceSurface.includes(required), `Travelogue should expose Xiaojing answer evidence token ${required}`)
 }
 
 assert.match(

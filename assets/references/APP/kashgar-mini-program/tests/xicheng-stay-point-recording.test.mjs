@@ -6,6 +6,8 @@ const root = process.cwd()
 const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
 
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const opsDetails = read('components', 'xicheng', 'XichengTravelogueOpsDetails.vue')
+const travelogueStayPointSurface = `${travelogue}\n${opsDetails}`
 
 for (const required of [
   '标记停留',
@@ -15,19 +17,25 @@ for (const required of [
   'stayText',
   '停留点摘要'
 ]) {
-  assert.ok(travelogue.includes(required), `Travelogue should support stay point evidence ${required}`)
+  assert.ok(travelogueStayPointSurface.includes(required), `Travelogue should support stay point evidence ${required}`)
 }
 
 assert.match(
-  travelogue,
+  opsDetails,
   /<text class="report-value">\{\{ stayPointCount \}\}<\/text>/,
-  'Recording summary should render stayPointCount instead of directly reading the raw stayPoints array'
+  'Split recording summary should render stayPointCount instead of directly reading the raw stayPoints array'
+)
+
+assert.match(
+  opsDetails,
+  /@click="\$emit\('mark-stay-point'\)"/,
+  'Split recording actions should expose an explicit mark-stay-point button event'
 )
 
 assert.match(
   travelogue,
-  /@click="markStayPoint"/,
-  'Recording actions should expose an explicit mark-stay-point button'
+  /@mark-stay-point="markStayPoint"/,
+  'Travelogue page should bind the split mark-stay-point event back to recording logic'
 )
 
 assert.match(

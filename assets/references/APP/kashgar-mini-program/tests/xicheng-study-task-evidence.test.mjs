@@ -7,6 +7,8 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const opsDetails = read('components', 'xicheng', 'XichengTravelogueOpsDetails.vue')
+const travelogueStudyTaskSurface = `${travelogue}\n${opsDetails}`
 const sliceBetween = (content, start, end) => {
   const startIndex = content.indexOf(start)
   const endIndex = content.indexOf(end, startIndex)
@@ -48,7 +50,7 @@ for (const required of [
   '研学任务证据',
   '删除证据'
 ]) {
-  assert.ok(travelogue.includes(required), `Travelogue should support study task evidence ${required}`)
+  assert.ok(travelogueStudyTaskSurface.includes(required), `Travelogue should support study task evidence ${required}`)
 }
 
 assert.match(
@@ -100,9 +102,21 @@ assert.match(
 )
 
 assert.match(
+  opsDetails,
+  /v-if="getStudyTaskEvidence\(index\)"[\s\S]*@click="\$emit\('delete-study-task-evidence', index\)"[\s\S]*删除证据/,
+  'Split completed study task evidence should expose a delete action so users can remove photo evidence'
+)
+
+assert.match(
+  opsDetails,
+  /@click="\$emit\('submit-study-task-evidence', index\)"[\s\S]*提交观察[\s\S]*@click="\$emit\('add-study-task-photo', index\)"[\s\S]*拍照完成/,
+  'Split study task card should emit observation and photo completion events'
+)
+
+assert.match(
   travelogue,
-  /v-if="getStudyTaskEvidence\(index\)"[\s\S]*@click="deleteStudyTaskEvidence\(index\)"[\s\S]*删除证据/,
-  'Completed study task evidence should expose a delete action so users can remove photo evidence'
+  /@delete-study-task-evidence="deleteStudyTaskEvidence"[\s\S]*@submit-study-task-evidence="submitStudyTaskEvidence"[\s\S]*@add-study-task-photo="addStudyTaskPhoto"/,
+  'Travelogue page should bind split study task evidence events back to page logic'
 )
 
 assert.match(
@@ -154,7 +168,7 @@ assert.match(
 )
 
 assert.doesNotMatch(
-  travelogue,
+  travelogueStudyTaskSurface,
   /background-location|startLocationUpdateBackground|\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,
   'Study task evidence MVP should stay local and avoid background location, backend calls, or client-side secrets'
 )

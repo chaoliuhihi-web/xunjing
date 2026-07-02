@@ -6,6 +6,8 @@ const root = process.cwd()
 const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
 
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const opsDetails = read('components', 'xicheng', 'XichengTravelogueOpsDetails.vue')
+const travelogueUiSurface = `${travelogue}\n${opsDetails}`
 const getBlock = (source, pattern, label) => {
   const block = source.match(pattern)?.[0] || ''
   assert.ok(block, `Should find ${label}`)
@@ -52,7 +54,7 @@ for (const required of [
   'poiCorrection',
   'refreshDraftFromEvidence'
 ]) {
-  assert.ok(travelogue.includes(required), `Travelogue should support field evidence input ${required}`)
+  assert.ok(travelogueUiSurface.includes(required), `Travelogue should support field evidence input ${required}`)
 }
 
 assert.match(
@@ -62,8 +64,8 @@ assert.match(
 )
 
 assert.match(
-  travelogue,
-  /textarea[\s\S]*v-model="remarkInput"[\s\S]*placeholder="记录现场观察、亲子问答或同行感受"/,
+  travelogueUiSurface,
+  /textarea[\s\S]*(v-model="remarkInput"|:value="remarkInput")[\s\S]*placeholder="记录现场观察、亲子问答或同行感受"/,
   'Travelogue page should expose a user remark input'
 )
 
@@ -135,8 +137,14 @@ assert.match(
 
 assert.match(
   travelogue,
-  /@click="hideMaterialLocation\(index\)"/,
-  'Each journey material should expose a hide-location action'
+  /@hide-material-location="hideMaterialLocation"/,
+  'Travelogue page should bind the split hide-location event back to page logic'
+)
+
+assert.match(
+  opsDetails,
+  /@click="\$emit\('hide-material-location', index\)"/,
+  'Each journey material should expose a hide-location action through the split detail component'
 )
 
 assert.match(
@@ -147,8 +155,14 @@ assert.match(
 
 assert.match(
   travelogue,
-  /@click="deleteJourneyMaterial\(index\)"/,
-  'Each journey material should expose a delete action'
+  /@delete-journey-material="deleteJourneyMaterial"/,
+  'Travelogue page should bind the split delete-material event back to page logic'
+)
+
+assert.match(
+  opsDetails,
+  /@click="\$emit\('delete-journey-material', index\)"/,
+  'Each journey material should expose a delete action through the split detail component'
 )
 
 assert.match(
@@ -159,8 +173,14 @@ assert.match(
 
 assert.match(
   travelogue,
-  /<picker[\s\S]*:range="officialPoiNames"[\s\S]*@change="correctMaterialPoi\(index, \$event\)"[\s\S]*修正 POI[\s\S]*<\/picker>/,
-  'Each journey material should expose an official POI picker for correcting attribution'
+  /@correct-material-poi="correctMaterialPoi"/,
+  'Travelogue page should bind the split material POI correction event back to page logic'
+)
+
+assert.match(
+  opsDetails,
+  /<picker[\s\S]*:range="officialPoiNames"[\s\S]*@change="\$emit\('correct-material-poi', index, \$event\)"[\s\S]*修正 POI[\s\S]*<\/picker>/,
+  'Each journey material should expose an official POI picker for correcting attribution through the split detail component'
 )
 
 assert.match(
