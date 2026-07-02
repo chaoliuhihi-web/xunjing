@@ -623,6 +623,10 @@ async function checkXichengAppEventBackend(rootDir) {
     'agentAction.put("sourceSceneSnapshot", sourceSceneSnapshot)',
     'payload.put("sourceSceneSnapshot", sourceSceneSnapshot)',
     'resourcePackage, reqVO, agentAction, sourceSceneSnapshot',
+    'putTriggerSceneSnapshotText(payload, "photoTakenAt"',
+    'payload.put("photoExifLocation", photoExifLocation)',
+    'payload.put("photoTakenAt", sourceSceneSnapshot.get("photoTakenAt"))',
+    'payload.put("photoExifLocation", sourceSceneSnapshot.get("photoExifLocation"))',
     'buildTriggerAgentActionPayload(action, respVO)',
     'payload.put("poiCode", truncateForEvent(respVO.getPoiCode(), 80))',
     'hydrateVisionAgentContextFromPreviousAgentAction(resourcePackage, reqVO, explicitChatTargetContext)',
@@ -688,7 +692,22 @@ async function checkXichengAppEventBackend(rootDir) {
   )
   assertContains(
     appTest,
+    'testTravelRecordMaterialCarriesPhotoTimeExifLocationAndRecognizedPoi',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
     'travelRecordMaterial.get("sourceSceneSnapshot")',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'travelRecordMaterial.get("photoTakenAt")',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'travelRecordMaterial.get("photoExifLocation")',
     'XunjingAppServiceImplTest.java'
   )
   assertContains(

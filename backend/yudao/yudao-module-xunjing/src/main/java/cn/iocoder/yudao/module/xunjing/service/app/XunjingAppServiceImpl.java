@@ -1856,6 +1856,13 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         putTriggerSceneSnapshotText(payload, "imageId",
                 defaultIfBlank(stringValue(recognitionEvidence.get("imageId")),
                         reqVO == null || reqVO.getPhotoMeta() == null ? "" : reqVO.getPhotoMeta().getImageId()), 100);
+        PhotoMetaReqVO photoMeta = reqVO == null ? null : reqVO.getPhotoMeta();
+        putTriggerSceneSnapshotText(payload, "photoTakenAt", photoMeta == null ? "" : photoMeta.getTakenAt(), 80);
+        Map<String, Object> photoExifLocation = buildTriggerLocationPayload(
+                photoMeta == null ? null : photoMeta.getExifLocation());
+        if (!photoExifLocation.isEmpty()) {
+            payload.put("photoExifLocation", photoExifLocation);
+        }
         putTriggerSceneSnapshotText(payload, "serviceHandoffIntent",
                 stringValue(serviceHandoff.get("intent")), 50);
         putTriggerSceneSnapshotBoolean(payload, "serviceHandoffRequiresRealSystem",
@@ -2626,6 +2633,13 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         payload.put("generateTravelogue", "generate_travelogue".equals(actionKey));
         payload.put("requiresRealSystem", Boolean.TRUE.equals(agentAction.get("requiresRealSystem")));
         if (sourceSceneSnapshot != null && !sourceSceneSnapshot.isEmpty()) {
+            if (hasText(stringValue(sourceSceneSnapshot.get("photoTakenAt")))) {
+                payload.put("photoTakenAt", sourceSceneSnapshot.get("photoTakenAt"));
+            }
+            if (sourceSceneSnapshot.get("photoExifLocation") instanceof Map<?, ?> photoExifLocation
+                    && !photoExifLocation.isEmpty()) {
+                payload.put("photoExifLocation", sourceSceneSnapshot.get("photoExifLocation"));
+            }
             payload.put("sourceSceneSnapshot", sourceSceneSnapshot);
         }
         return payload;
@@ -2782,6 +2796,8 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         putVisionAgentSceneSnapshotNumber(payload, source, "recognitionLabelCount", true);
         putVisionAgentSceneSnapshotText(payload, source, "ocrText", TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
         putVisionAgentSceneSnapshotText(payload, source, "imageId", 100);
+        putVisionAgentSceneSnapshotText(payload, source, "photoTakenAt", 80);
+        putVisionAgentSceneSnapshotLocation(payload, source, "photoExifLocation");
         putVisionAgentSceneSnapshotText(payload, source, "serviceHandoffIntent", 50);
         putVisionAgentSceneSnapshotBoolean(payload, source, "serviceHandoffRequiresRealSystem");
         putVisionAgentSceneSnapshotMatchedSignals(payload, source);
@@ -2847,6 +2863,38 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         List<String> distinctSignals = signals.stream().distinct().limit(12).toList();
         if (!distinctSignals.isEmpty()) {
             payload.put("matchedSignals", distinctSignals);
+        }
+    }
+
+    private void putVisionAgentSceneSnapshotLocation(
+            Map<String, Object> payload, Map<String, Object> source, String key) {
+        Object value = source.get(key);
+        if (!(value instanceof Map<?, ?> sourceLocation)) {
+            return;
+        }
+        Map<String, Object> location = new LinkedHashMap<>();
+        putVisionAgentSceneSnapshotLocationValue(location, sourceLocation, "latitude");
+        putVisionAgentSceneSnapshotLocationValue(location, sourceLocation, "longitude");
+        putVisionAgentSceneSnapshotLocationValue(location, sourceLocation, "coordType");
+        putVisionAgentSceneSnapshotLocationValue(location, sourceLocation, "accuracyMeters");
+        if (!location.isEmpty()) {
+            payload.put(key, location);
+        }
+    }
+
+    private void putVisionAgentSceneSnapshotLocationValue(
+            Map<String, Object> payload, Map<?, ?> source, String key) {
+        Object value = source.get(key);
+        if (value == null || value instanceof Map<?, ?> || value instanceof Iterable<?>) {
+            return;
+        }
+        if (value instanceof Number || value instanceof Boolean) {
+            payload.put(key, value);
+            return;
+        }
+        String text = String.valueOf(value).trim();
+        if (hasText(text)) {
+            payload.put(key, truncateForEvent(text, 80));
         }
     }
 

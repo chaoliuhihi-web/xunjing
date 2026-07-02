@@ -423,6 +423,71 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testTravelRecordMaterialCarriesPhotoTimeExifLocationAndRecognizedPoi() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        PhotoMetaReqVO photoMeta = new PhotoMetaReqVO();
+        photoMeta.setImageId("img-gongwangfu-sunset-001");
+        photoMeta.setTakenAt("2026-07-02T18:40:00+08:00");
+        photoMeta.setImageMimeType("image/jpeg");
+        photoMeta.setImageWidth(1440);
+        photoMeta.setImageHeight(1080);
+        photoMeta.setImageBase64("raw-image-should-not-persist");
+        photoMeta.setExifLocation(location("39.937051", "116.386771", 8));
+
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-travel-material-photo-001");
+        triggerReq.setOcrText("恭王府博物馆入口");
+        triggerReq.setImageLabels(List.of("palace", "sunset"));
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        triggerReq.setPhotoMeta(photoMeta);
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("xicheng-gongwangfu", triggerResp.getPoiCode());
+
+        AppInteractionEventReqVO actionReq = new AppInteractionEventReqVO();
+        actionReq.setPackageCode("XICHENG-MAP-001");
+        actionReq.setSceneCode("xicheng-agent-action");
+        actionReq.setEventType(XunjingEnums.EventType.AGENT_ACTION.getType());
+        actionReq.setSourceChannel("xicheng-app");
+        actionReq.setUserTraceId("trace-xicheng-travel-material-photo-001");
+        actionReq.setPayloadJson("""
+                {
+                  "actionKey":"generate_travelogue",
+                  "title":"生成游记",
+                  "intent":"record",
+                  "targetPath":"/pages/travel-note/edit?regionCode=beijing-xicheng&poiCode=xicheng-gongwangfu&packageCode=XICHENG-MAP-001",
+                  "sourceTriggerTraceId":"trace-xicheng-travel-material-photo-001",
+                  "requiresRealSystem":false,
+                  "executionStatus":"started"
+                }
+                """);
+        Long eventId = appService.recordEvent(actionReq);
+
+        XunjingInteractionEventDO event = interactionEventMapper.selectById(eventId);
+        JsonNode payload = JsonUtils.parseTree(event.getPayloadJson());
+        JsonNode travelRecordMaterial = payload.get("travelRecordMaterial");
+        assertEquals("xicheng-gongwangfu", travelRecordMaterial.get("poiCode").asText());
+        assertEquals("2026-07-02T18:40:00+08:00", travelRecordMaterial.get("photoTakenAt").asText());
+        assertEquals("39.937051",
+                travelRecordMaterial.get("photoExifLocation").get("latitude").asText());
+        assertEquals("116.386771",
+                travelRecordMaterial.get("photoExifLocation").get("longitude").asText());
+        assertEquals(8, travelRecordMaterial.get("photoExifLocation").get("accuracyMeters").asInt());
+        JsonNode sourceSceneSnapshot = travelRecordMaterial.get("sourceSceneSnapshot");
+        assertEquals("img-gongwangfu-sunset-001", sourceSceneSnapshot.get("imageId").asText());
+        assertEquals("2026-07-02T18:40:00+08:00", sourceSceneSnapshot.get("photoTakenAt").asText());
+        assertEquals("39.937051",
+                sourceSceneSnapshot.get("photoExifLocation").get("latitude").asText());
+        assertFalse(event.getPayloadJson().contains("raw-image-should-not-persist"));
+        assertFalse(event.getPayloadJson().contains("imageBase64"));
+    }
+
+    @Test
     public void testRecordAppEventDefaultsBlankTypeAndRejectsInvalidType() {
         Long projectId = consoleService.createProject(projectReq());
         Long schoolId = consoleService.createSchool(schoolReq());
