@@ -47,3 +47,39 @@ assert.match(
   /resolveXichengPhotoTrigger\(\{[\s\S]*imageLabels:\s*this\.sceneDomainImageLabels/,
   'Photo trigger should pass the expanded scene-domain labels into the multimodal backend facade'
 )
+
+assert.match(
+  scan,
+  /import \{[\s\S]*resolveXichengOcrImageTrigger[\s\S]*resolveXichengPhotoTrigger[\s\S]*\} from '@\/request\/xunjing\/trigger\.js'/,
+  'Scan page should import the dedicated OCR image trigger helper next to the photo trigger'
+)
+
+assert.match(
+  scan,
+  /v-for="domain in sceneDomainCapabilities"[\s\S]*:class="\{ 'scene-domain-item-active': selectedSceneDomainKey === domain\.domainKey \}"[\s\S]*@click="selectSceneDomain\(domain\)"/,
+  'Scene-domain cards should let the single AI识境 entry bias recognition without adding separate mode buttons'
+)
+
+assert.match(
+  scan,
+  /selectedSceneDomainKey:\s*'architecture'/,
+  'Scan page should keep an explicit selected scene domain for backend trigger intent'
+)
+
+assert.match(
+  scan,
+  /selectSceneDomain\(domain = \{\}\)[\s\S]*this\.selectedSceneDomainKey = domain\.domainKey/,
+  'Selecting a visible scene domain should update the Vision Agent recognition intent'
+)
+
+assert.match(
+  scan,
+  /shouldUseOcrImageRecognition\(\)[\s\S]*\['sign-ocr',\s*'menu'\]\.includes\(this\.selectedSceneDomainKey\)/,
+  'Text-dense scene domains such as route signs and menus should route selected images through OCR recognition'
+)
+
+assert.match(
+  scan,
+  /const source = this\.shouldUseOcrImageRecognition\(\) \? 'ocr' : 'photo'[\s\S]*source === 'ocr'\s*\? resolveXichengOcrImageTrigger\(\{[\s\S]*filePath[\s\S]*text[\s\S]*ocrText:\s*text[\s\S]*imageLabels:\s*this\.sceneDomainImageLabels[\s\S]*\}\)[\s\S]*:\s*resolveXichengPhotoTrigger\(\{[\s\S]*this\.openScanResult\(trigger,\s*source\)/,
+  'Auto recognition should use the OCR image backend contract for selected text-dense domains and preserve the source in scan-result'
+)

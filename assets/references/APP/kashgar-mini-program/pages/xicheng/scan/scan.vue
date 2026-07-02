@@ -174,6 +174,8 @@
 					v-for="domain in sceneDomainCapabilities"
 					:key="domain.domainKey"
 					class="scene-domain-item"
+					:class="{ 'scene-domain-item-active': selectedSceneDomainKey === domain.domainKey }"
+					@click="selectSceneDomain(domain)"
 				>
 					<text class="scene-domain-label">{{ domain.label }}</text>
 					<text class="scene-domain-title">{{ domain.title }}</text>
@@ -191,6 +193,7 @@ import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import {
 	isXichengDevelopmentRecognitionCacheBlocked,
 	requestCurrentLocationForTrigger,
+	resolveXichengOcrImageTrigger,
 	resolveXichengPhotoTrigger,
 	resolveXichengTextTrigger
 } from '@/request/xunjing/trigger.js'
@@ -213,6 +216,7 @@ export default {
 			sceneFusionSummary: '镜头待命，正在接入现场信号',
 			worldInterfaceSignals: [],
 			worldInterfaceSummary: '现实世界成为AI的交互界面，等待现场信号',
+			selectedSceneDomainKey: 'architecture',
 			selectedSceneAgentActionKey: '',
 			sceneAgentActionUserSelected: false,
 			routeContext: {
@@ -646,6 +650,13 @@ export default {
 			this.selectedSceneAgentActionKey = action.key
 			this.sceneAgentActionUserSelected = true
 		},
+		selectSceneDomain(domain = {}) {
+			if (!domain.domainKey) return
+			this.selectedSceneDomainKey = domain.domainKey
+		},
+		shouldUseOcrImageRecognition() {
+			return ['sign-ocr', 'menu'].includes(this.selectedSceneDomainKey)
+		},
 		buildAgentDecisionSnapshot() {
 			const context = this.buildSceneFusionContext()
 			const sceneAgentActionPreviews = this.sceneAgentActionPreviews
@@ -717,17 +728,25 @@ export default {
 					this.recognizing = true
 					this.lastError = ''
 					this.refreshSceneFusionPanel()
+					const source = this.shouldUseOcrImageRecognition() ? 'ocr' : 'photo'
 					try {
 						const text = this.manualText.trim()
-						const trigger = await resolveXichengPhotoTrigger({
-							filePath,
-							text,
-							ocrText: text,
-							imageLabels: this.sceneDomainImageLabels
-						})
-						this.openScanResult(trigger, 'photo')
+						const trigger = await (source === 'ocr'
+							? resolveXichengOcrImageTrigger({
+								filePath,
+								text,
+								ocrText: text,
+								imageLabels: this.sceneDomainImageLabels
+							})
+							: resolveXichengPhotoTrigger({
+								filePath,
+								text,
+								ocrText: text,
+								imageLabels: this.sceneDomainImageLabels
+							}))
+						this.openScanResult(trigger, source)
 					} catch (error) {
-						this.handleRecognitionServiceFailure('photo', error)
+						this.handleRecognitionServiceFailure(source, error)
 					} finally {
 						this.recognizing = false
 					}
@@ -1414,6 +1433,11 @@ export default {
 	background: rgba(255, 252, 244, 0.78);
 	border: 1rpx solid rgba(31, 110, 90, 0.10);
 	box-sizing: border-box;
+}
+
+.scene-domain-item-active {
+	background: rgba(239, 248, 239, 0.96);
+	border-color: rgba(31, 110, 90, 0.34);
 }
 
 .scene-domain-label,
