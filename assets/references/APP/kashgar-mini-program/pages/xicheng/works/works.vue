@@ -4,14 +4,27 @@
 			<view class="topbar-button" @click="goBack">
 				<xicheng-icon name="back" variant="plain" :size="22" />
 			</view>
-			<text class="topbar-title">我的游记</text>
+			<text class="topbar-title">我的</text>
 			<view class="topbar-button" @click="openTravelogue">
 				<xicheng-icon name="edit" variant="plain" :size="21" />
 			</view>
 		</view>
 
+		<view class="works-page-head">
+			<view class="works-page-copy">
+				<text class="works-page-kicker">西城记忆</text>
+				<text class="works-page-title">我的游记</text>
+			</view>
+			<button class="works-manage-button" @click="openWorksManager">
+				<xicheng-icon name="settings" variant="plain" :size="18" />
+				<text>管理</text>
+			</button>
+		</view>
+
 		<view class="profile-card xicheng-paper-card">
-			<image class="profile-avatar" :src="region.companionAvatar" mode="aspectFit" />
+			<view class="profile-account-art">
+				<image class="profile-avatar" :src="region.companionAvatar" mode="aspectFit" />
+			</view>
 			<view class="profile-copy">
 				<text class="profile-kicker">登录信息</text>
 				<view class="profile-name-line">
@@ -19,8 +32,11 @@
 					<text class="profile-status">{{ userProfile.status }}</text>
 				</view>
 				<text class="profile-desc">{{ userProfile.desc }}</text>
+				<view class="profile-action-row">
+					<button class="profile-login-button" @click="openLogin">{{ userProfile.action }}</button>
+					<text class="profile-sync-note">登录后同步游记、草稿和发布素材</text>
+				</view>
 			</view>
-			<button class="profile-login-button" @click="openLogin">{{ userProfile.action }}</button>
 		</view>
 
 		<view class="works-library-hero xicheng-paper-card">
@@ -248,6 +264,12 @@ export default {
 				icon: 'none'
 			})
 		},
+		openWorksManager() {
+			uni.showToast({
+				title: '可管理游记、PDF 和草稿',
+				icon: 'none'
+			})
+		},
 		openFootprint() {
 			uni.navigateTo({ url: '/pages/xicheng/footprint/footprint' })
 		},
@@ -305,15 +327,72 @@ export default {
 	font-size: 34rpx;
 }
 
+.works-page-head {
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 24rpx;
+	margin-top: 18rpx;
+}
+
+.works-page-copy {
+	min-width: 0;
+}
+
+.works-page-kicker,
+.works-page-title,
+.profile-sync-note {
+	display: block;
+}
+
+.works-page-kicker {
+	font-size: 24rpx;
+	line-height: 1.25;
+	font-weight: 800;
+	color: #B5945E;
+}
+
+.works-page-title {
+	margin-top: 4rpx;
+	font-size: 60rpx;
+	font-family: "Songti SC", "STSong", "Noto Serif CJK SC", "Noto Serif SC", serif;
+	font-weight: 800;
+	line-height: 1.1;
+	color: #102F29;
+}
+
+.works-manage-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8rpx;
+	width: 118rpx;
+	height: 82rpx;
+	margin: 0;
+	padding: 0;
+	border-radius: 22rpx;
+	background: rgba(255, 252, 246, 0.92);
+	border: 1rpx solid rgba(181, 148, 94, 0.22);
+	color: #173F35;
+	font-size: 22rpx;
+	line-height: 1.2;
+	font-weight: 900;
+	box-shadow: 0 10rpx 24rpx rgba(23, 63, 53, 0.08);
+}
+
+.works-manage-button::after {
+	border: 0;
+}
+
 .profile-card {
 	position: relative;
 	display: grid;
-	grid-template-columns: 112rpx 1fr auto;
+	grid-template-columns: 150rpx minmax(0, 1fr);
 	align-items: center;
-	gap: 20rpx;
+	gap: 24rpx;
 	margin-top: 20rpx;
-	padding: 24rpx;
-	border-radius: 32rpx;
+	padding: 28rpx;
+	border-radius: 34rpx;
 	box-sizing: border-box;
 	overflow: hidden;
 }
@@ -332,9 +411,25 @@ export default {
 	border-radius: 999rpx 0 0 999rpx;
 }
 
+.profile-account-art {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 150rpx;
+	height: 150rpx;
+	border-radius: 999rpx;
+	background:
+		linear-gradient(180deg, rgba(23, 63, 53, 0.16), rgba(23, 63, 53, 0.04)),
+		rgba(255, 252, 246, 0.88);
+	position: relative;
+	z-index: 1;
+	box-shadow: inset 0 0 0 1rpx rgba(181, 148, 94, 0.20);
+	overflow: hidden;
+}
+
 .profile-avatar {
-	width: 112rpx;
-	height: 124rpx;
+	width: 142rpx;
+	height: 160rpx;
 	object-fit: contain;
 	position: relative;
 	z-index: 1;
@@ -374,10 +469,11 @@ export default {
 	align-items: center;
 	gap: 12rpx;
 	margin-top: 8rpx;
+	flex-wrap: wrap;
 }
 
 .profile-name {
-	font-size: 32rpx;
+	font-size: 36rpx;
 	line-height: 1.22;
 	color: #102F29;
 	font-weight: 800;
@@ -400,19 +496,26 @@ export default {
 	color: rgba(16, 47, 41, 0.62);
 }
 
+.profile-action-row {
+	display: flex;
+	align-items: center;
+	gap: 14rpx;
+	margin-top: 16rpx;
+}
+
 .profile-login-button {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 112rpx;
-	height: 64rpx;
+	width: 132rpx;
+	height: 56rpx;
 	margin: 0;
 	padding: 0;
 	border-radius: 999rpx;
 	background: #173F35;
 	color: #FFF8EA;
-	font-size: 24rpx;
-	line-height: 64rpx;
+	font-size: 22rpx;
+	line-height: 56rpx;
 	font-weight: 800;
 	position: relative;
 	z-index: 1;
@@ -420,6 +523,14 @@ export default {
 
 .profile-login-button::after {
 	border: 0;
+}
+
+.profile-sync-note {
+	flex: 1;
+	min-width: 0;
+	font-size: 20rpx;
+	line-height: 1.35;
+	color: rgba(16, 47, 41, 0.48);
 }
 
 .works-library-hero {

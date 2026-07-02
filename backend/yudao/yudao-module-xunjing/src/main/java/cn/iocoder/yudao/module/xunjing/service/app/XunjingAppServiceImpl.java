@@ -998,6 +998,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
                 triggerConfirmText(root.path("requiresUserConfirm").asBoolean(false)));
         putTextIfBlank(reqVO::getServiceHandoffSummary, reqVO::setServiceHandoffSummary,
                 buildTriggerServiceHandoffSummary(action, intent, root));
+        if (reqVO.getServiceHandoffRequiresRealSystem() == null) {
+            reqVO.setServiceHandoffRequiresRealSystem(triggerRequiresRealSystem(action, intent));
+        }
         putTextIfBlank(reqVO::getVisionAgentDecisionActionTitle, reqVO::setVisionAgentDecisionActionTitle,
                 triggerActionTitle(action, intent));
     }
@@ -1041,6 +1044,12 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             return "生成旅行记录";
         }
         return hasText(action) ? action : intent;
+    }
+
+    private boolean triggerRequiresRealSystem(String action, String intent) {
+        return "food".equals(intent)
+                || "open_food_recommendation".equals(action)
+                || "confirm_food_recommendation".equals(action);
     }
 
     private String triggerIntentText(String intent) {

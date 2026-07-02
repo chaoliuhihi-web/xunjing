@@ -7,8 +7,15 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const works = read('pages', 'xicheng', 'works', 'works.vue')
 const keepsakeCard = read('components', 'xicheng', 'XichengKeepsakeTravelogueCard.vue')
+const worksStyle = works.match(/<style scoped>[\s\S]*<\/style>/)?.[0] || ''
 
 for (const token of [
+  'works-page-head',
+  'works-page-title',
+  'works-manage-button',
+  '西城记忆',
+  'openWorksManager',
+  'profile-account-art',
   'works-library-hero',
   '值得反复打开的西城记忆',
   '已保存的精美游记、PDF 纪念册和发布素材',
@@ -26,6 +33,30 @@ for (const token of [
 ]) {
   assert.ok(works.includes(token), `Works page should match keepsake library UI token: ${token}`)
 }
+
+assert.match(
+  works,
+  /class="works-page-head"[\s\S]*class="works-page-title"[\s\S]*我的游记[\s\S]*class="works-manage-button"[\s\S]*管理/,
+  'Works page should match the approved keepsake library shell with a large page title and management action'
+)
+
+assert.match(
+  works,
+  /class="works-page-kicker">西城记忆<\/text>/,
+  'Works page heading kicker should avoid repeating 我的 and use a cleaner keepsake context label'
+)
+
+assert.match(
+  worksStyle,
+  /\.works-page-title\s*\{[\s\S]*font-size:\s*60rpx[\s\S]*font-family:\s*"Songti SC"/,
+  'Works page title should use the same high-fidelity cultural typography as the approved reference'
+)
+
+assert.match(
+  worksStyle,
+  /\.profile-card\s*\{[\s\S]*grid-template-columns:\s*150rpx minmax\(0,\s*1fr\)/,
+  'Works profile card should use a larger account portrait treatment instead of the current compact utility row'
+)
 
 for (const token of [
   'keepsake-cover-badge',
