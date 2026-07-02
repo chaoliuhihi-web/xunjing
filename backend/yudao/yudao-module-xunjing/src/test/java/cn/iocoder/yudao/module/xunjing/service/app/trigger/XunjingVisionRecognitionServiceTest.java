@@ -189,6 +189,43 @@ public class XunjingVisionRecognitionServiceTest {
     }
 
     @Test
+    public void testEnrichMergesSignTranslationSceneSignalsFromVisionProvider() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/vision/v1/chat/completions", exchange -> {
+            String response = """
+                    {"choices":[{"message":{"content":"{\\"labels\\":[\\"road_sign\\"],\\"ocrText\\":\\"بازار يولى\\",\\"caption\\":\\"画面里是街道路牌。\\",\\"sceneSignals\\":{\\"sceneDomainIntentKey\\":\\"sign\\",\\"sceneDomainIntentLabel\\":\\"路牌\\",\\"signOriginalText\\":\\"بازار يولى\\",\\"signTranslationText\\":\\"市场路\\",\\"signPronunciationText\\":\\"bazaar yoli\\",\\"signNavigationHint\\":\\"可作为前往市场入口的导航线索\\"}}"}}]}
+                    """;
+            byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, responseBytes.length);
+            exchange.getResponseBody().write(responseBytes);
+            exchange.close();
+        });
+        server.start();
+        try {
+            XunjingVisionRecognitionService configuredService = new XunjingVisionRecognitionService();
+            setField(configuredService, "visionApiUrl",
+                    "http://127.0.0.1:" + server.getAddress().getPort() + "/vision/v1");
+            setField(configuredService, "visionApiKey", "test-key");
+
+            MultimodalTriggerReqVO reqVO = new MultimodalTriggerReqVO();
+            reqVO.setPhotoMeta(photoMeta("image/jpeg", "photo-base64"));
+
+            MultimodalTriggerReqVO enrichedReqVO = configuredService.enrich(reqVO);
+
+            assertEquals("بازار يولى", enrichedReqVO.getOcrText());
+            assertEquals("sign", enrichedReqVO.getSceneSignals().get("sceneDomainIntentKey"));
+            assertEquals("路牌", enrichedReqVO.getSceneSignals().get("sceneDomainIntentLabel"));
+            assertEquals("بازار يولى", enrichedReqVO.getSceneSignals().get("signOriginalText"));
+            assertEquals("市场路", enrichedReqVO.getSceneSignals().get("signTranslationText"));
+            assertEquals("bazaar yoli", enrichedReqVO.getSceneSignals().get("signPronunciationText"));
+            assertEquals("可作为前往市场入口的导航线索",
+                    enrichedReqVO.getSceneSignals().get("signNavigationHint"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     public void testEnrichInfersSceneDomainWhenProviderOnlyReturnsCaptionAndLabels() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/vision/v1/chat/completions", exchange -> {
