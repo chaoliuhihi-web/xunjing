@@ -7,19 +7,30 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 const exists = (...segments) => fs.existsSync(path.join(root, ...segments))
 
 const componentPath = ['components', 'xicheng', 'XichengRouteRecordingPanel.vue']
+const mapCanvasPath = ['components', 'xicheng', 'XichengRouteRecordingMapCanvas.vue']
 
 assert.ok(
   exists(...componentPath),
   'Route recording page should extract the approved UI shell into a dedicated component'
 )
 
+assert.ok(
+  exists(...mapCanvasPath),
+  'Route recording page should keep the recording map canvas in a focused child component'
+)
+
 const recording = read('pages', 'xicheng', 'recording', 'recording.vue')
 const panel = read(...componentPath)
+const mapCanvas = read(...mapCanvasPath)
+const combinedShell = `${panel}\n${mapCanvas}`
 const getStyleBlock = (source, selector) => {
   const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   return source.match(new RegExp(`${escapedSelector}\\s*\\{([\\s\\S]*?)\\n\\}`))?.[1] || ''
 }
 const liveActionsStyle = getStyleBlock(panel, '.recording-live-actions')
+const liveNextCardStyle = getStyleBlock(panel, '.recording-live-next-card')
+const liveNextImageStyle = getStyleBlock(panel, '.recording-live-next-image')
+const checkinButtonStyle = getStyleBlock(panel, '.recording-checkin-button')
 
 assert.match(
   recording,
@@ -58,7 +69,7 @@ for (const required of [
   '查看今日素材',
   '为保证定位准确，请保持 APP 在前台运行'
 ]) {
-  assert.ok(panel.includes(required), `Recording panel should include approved UI element ${required}`)
+  assert.ok(combinedShell.includes(required), `Recording shell should include approved UI element ${required}`)
 }
 
 assert.match(
@@ -74,25 +85,25 @@ assert.match(
 )
 
 assert.match(
-  panel,
+  combinedShell,
   /v-for="segment in routeSegments"[\s\S]*class="recording-path-segment recording-route-segment"[\s\S]*:style="getRouteSegmentStyle\(segment\)"/,
   'Recording route line should be rendered from dynamic route-stop segments instead of fixed decorative CSS segments'
 )
 
 assert.match(
-  panel,
+  combinedShell,
   /routeSegments\(\)[\s\S]*this\.routeStopItems[\s\S]*slice\(0,\s*-1\)[\s\S]*Math\.hypot[\s\S]*Math\.atan2/,
   'Recording route segments should be calculated from adjacent route-stop coordinates'
 )
 
 assert.match(
-  panel,
+  combinedShell,
   /getRouteSegmentStyle\(segment = \{\}\)[\s\S]*left:\$\{segment\.left\}%[\s\S]*top:\$\{segment\.top\}%[\s\S]*width:\$\{segment\.width\}%[\s\S]*rotate\(\$\{segment\.angle\}deg\)/,
   'Recording route segment style should use percentage position, length, and rotation'
 )
 
 assert.doesNotMatch(
-  panel,
+  combinedShell,
   /recording-path-segment-1|recording-path-segment-2|recording-path-segment-3|recording-path-segment-4/,
   'Recording route should not keep fixed segment classes after switching to route-stop-driven geometry'
 )
@@ -103,10 +114,28 @@ assert.match(
   'Paused recording actions should stay above the four-tab bottom nav in the target mobile viewport'
 )
 
-assert.match(
+assert.doesNotMatch(
   liveActionsStyle,
-  /position:\s*sticky[\s\S]*bottom:\s*168rpx[\s\S]*z-index:\s*12/,
-  'Live recording actions should stay above the four-tab bottom nav so Generate Travelogue remains tappable'
+  /position:\s*sticky/,
+  'Live recording actions should stay in normal flow so they do not cover the next-stop check-in button'
+)
+
+assert.match(
+  liveNextCardStyle,
+  /margin-bottom:\s*24rpx/,
+  'Live next-stop card should leave visible breathing room before secondary recording actions'
+)
+
+assert.match(
+  liveNextImageStyle,
+  /height:\s*172rpx/,
+  'Live next-stop image should stay compact enough for the check-in button to remain above the bottom nav'
+)
+
+assert.match(
+  checkinButtonStyle,
+  /min-height:\s*76rpx/,
+  'Live check-in button should fit above the bottom nav in the target mobile viewport'
 )
 
 assert.match(
@@ -126,7 +155,7 @@ assert.doesNotMatch(
 )
 
 assert.doesNotMatch(
-  panel + recording,
+  combinedShell + recording,
   /\/app-api\/xunjing|Authorization['"]?\s*:\s*`Bearer|pat_[A-Za-z0-9]{20,}|https:\/\/api\.coze\.cn|sk-[A-Za-z0-9]{20,}/,
   'High-fidelity recording shell should not introduce backend calls or client-side secrets'
 )

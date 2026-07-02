@@ -14,7 +14,8 @@ const app = read('App.vue')
 const routeDetail = read('pages', 'xicheng', 'route-detail', 'route-detail.vue')
 const recording = readOptional('pages', 'xicheng', 'recording', 'recording.vue')
 const recordingPanel = readOptional('components', 'xicheng', 'XichengRouteRecordingPanel.vue')
-const recordingShell = `${recording}\n${recordingPanel}`
+const recordingMapCanvas = readOptional('components', 'xicheng', 'XichengRouteRecordingMapCanvas.vue')
+const recordingShell = `${recording}\n${recordingPanel}\n${recordingMapCanvas}`
 
 assert.ok(
   pagesJson.includes('"path": "pages/xicheng/recording/recording"'),

@@ -14,7 +14,8 @@ const scanResultSummaryHero = read('components', 'xicheng', 'XichengScanResultSu
 const scanResultVisionAgentPanel = read('components', 'xicheng', 'XichengScanResultVisionAgentPanel.vue')
 const recording = read('pages', 'xicheng', 'recording', 'recording.vue')
 const recordingPanel = read('components', 'xicheng', 'XichengRouteRecordingPanel.vue')
-const recordingShell = `${recording}\n${recordingPanel}`
+const recordingMapCanvas = read('components', 'xicheng', 'XichengRouteRecordingMapCanvas.vue')
+const recordingShell = `${recording}\n${recordingPanel}\n${recordingMapCanvas}`
 const routeDetail = read('pages', 'xicheng', 'route-detail', 'route-detail.vue')
 const routeDetailPanel = read('components', 'xicheng', 'XichengRouteDetailPanel.vue')
 const routeDetailShell = `${routeDetail}\n${routeDetailPanel}`
@@ -92,11 +93,13 @@ assert.match(
   'Scan result service handoff close control should keep a stable app touch target'
 )
 
-assert.match(
-  recordingShell,
-  /<xicheng-icon[\s\S]*name="back"[\s\S]*name="record"[\s\S]*name="route"[\s\S]*name="resume"[\s\S]*name="edit"/,
-  'Recording page should use shared icons for navigation, recording state, route marker, resume, and travelogue material actions'
-)
+for (const iconName of ['back', 'record', 'route', 'resume', 'edit']) {
+  assert.match(
+    recordingShell,
+    new RegExp(`<xicheng-icon[\\s\\S]*name="${iconName}"`),
+    `Recording page should use the shared ${iconName} icon for navigation, recording state, route marker, resume, and travelogue material actions`
+  )
+}
 
 assert.match(
   routeDetailShell,
