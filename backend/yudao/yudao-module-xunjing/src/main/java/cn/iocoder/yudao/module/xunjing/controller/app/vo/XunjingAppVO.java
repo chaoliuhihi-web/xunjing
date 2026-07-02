@@ -122,8 +122,28 @@ public class XunjingAppVO {
         private String targetPath;
         private List<String> suggestedQuestions;
         private List<SourceRespVO> sources;
+        private SceneUnderstandingRespVO sceneUnderstanding;
         private List<MultimodalAgentActionRespVO> agentActions;
         private List<MultimodalCandidateRespVO> candidates;
+    }
+
+    @Data
+    public static class SceneUnderstandingRespVO {
+        private String sceneFusionSummary;
+        private String worldInterfaceSummary;
+        private String primarySceneDomainKey;
+        private String primarySceneDomainLabel;
+        private String localTimeText;
+        private String weatherText;
+        private String headingText;
+        private Integer memorySessionSceneCount;
+        private String visionRecognitionStatus;
+        private String visionRecognitionModel;
+        private Integer visionRecognitionLabelCount;
+        private String agentDecisionActionTitle;
+        private String agentDecisionReasonSummary;
+        private List<String> evidenceSignals;
+        private String serviceHandoffSummary;
     }
 
     @Data

@@ -405,9 +405,22 @@ async function checkXichengTriggerBackend(rootDir) {
     'selectPublishedListByRegionCodeAndPackageId',
     'selectPublishedListByRegionCode',
     'sourceProfiles',
+    'buildSceneUnderstanding',
+    'setSceneUnderstanding(buildSceneUnderstanding',
     'databasePoiProfiles.isEmpty() ? XICHENG_POIS : databasePoiProfiles'
   ]) {
     assertContains(engine, snippet, 'XunjingMultimodalTriggerEngine.java')
+  }
+  const appVo = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'
+  )
+  for (const snippet of [
+    'class SceneUnderstandingRespVO',
+    'private SceneUnderstandingRespVO sceneUnderstanding;',
+    'private List<String> evidenceSignals;'
+  ]) {
+    assertContains(appVo, snippet, 'XunjingAppVO.java')
   }
   for (const snippet of ['@TableName("xunjing_poi")', 'private String sourceJson', 'private String triggerJson', 'private String contentJson']) {
     assertContains(poiDo, snippet, 'XunjingPoiDO.java')
@@ -422,6 +435,8 @@ async function checkXichengTriggerBackend(rootDir) {
   for (const snippet of [
     'recordTriggerResolveEventIfPossible',
     'buildTriggerResolveEventPayload',
+    'payload.put("sceneUnderstanding", buildTriggerSceneUnderstandingPayload(respVO))',
+    'buildTriggerSceneUnderstandingPayload',
     'EventType.TRIGGER_RESOLVE'
   ]) {
     assertContains(appService, snippet, 'XunjingAppServiceImpl.java')
@@ -436,6 +451,11 @@ async function checkXichengTriggerBackend(rootDir) {
   assertContains(
     appTest,
     'testResolveMultimodalTriggerRecordsRecognitionEventWhenPackageProvided',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'testResolveMultimodalTriggerExposesSceneUnderstandingContract',
     'XunjingAppServiceImplTest.java'
   )
   assertContains(appTest, 'xicheng-gongwangfu', 'XunjingAppServiceImplTest.java')

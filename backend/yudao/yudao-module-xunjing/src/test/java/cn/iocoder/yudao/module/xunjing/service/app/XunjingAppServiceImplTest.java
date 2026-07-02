@@ -1217,6 +1217,76 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerExposesSceneUnderstandingContract() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "晴天 18:40，夕阳照到恭王府门楼，建议先拍照再讲历史。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合 GPS、OCR、时间、天气和城市知识库后判断当前世界。");
+        sceneSignals.put("localTimeText", "18:40");
+        sceneSignals.put("weatherText", "晴");
+        sceneSignals.put("headingText", "向西");
+        sceneSignals.put("sceneDomainIntentKey", "architecture");
+        sceneSignals.put("sceneDomainIntentLabel", "建筑");
+        sceneSignals.put("agentDecisionActionTitle", "先拍照");
+        sceneSignals.put("agentDecisionReasonSummary", "马上日落，门楼光线适合先拍照。");
+        sceneSignals.put("memorySessionSceneCount", 4);
+        sceneSignals.put("visionRecognitionStatus", "success");
+        sceneSignals.put("visionRecognitionModel", "qwen-vl-max");
+        sceneSignals.put("visionRecognitionLabelCount", 2);
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-multimodal-trigger");
+        reqVO.setUserTraceId("trace-xicheng-scene-understanding-001");
+        reqVO.setOcrText("恭王府博物馆入口");
+        reqVO.setImageLabels(List.of("palace", "courtyard"));
+        reqVO.setLocation(location("39.937050", "116.386770", 20));
+        reqVO.setSceneSignals(sceneSignals);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertNotNull(respVO.getSceneUnderstanding());
+        assertEquals("晴天 18:40，夕阳照到恭王府门楼，建议先拍照再讲历史。",
+                respVO.getSceneUnderstanding().getSceneFusionSummary());
+        assertEquals("相机融合 GPS、OCR、时间、天气和城市知识库后判断当前世界。",
+                respVO.getSceneUnderstanding().getWorldInterfaceSummary());
+        assertEquals("architecture", respVO.getSceneUnderstanding().getPrimarySceneDomainKey());
+        assertEquals("建筑", respVO.getSceneUnderstanding().getPrimarySceneDomainLabel());
+        assertEquals("18:40", respVO.getSceneUnderstanding().getLocalTimeText());
+        assertEquals("晴", respVO.getSceneUnderstanding().getWeatherText());
+        assertEquals("向西", respVO.getSceneUnderstanding().getHeadingText());
+        assertEquals(4, respVO.getSceneUnderstanding().getMemorySessionSceneCount());
+        assertEquals("success", respVO.getSceneUnderstanding().getVisionRecognitionStatus());
+        assertEquals("先拍照", respVO.getSceneUnderstanding().getAgentDecisionActionTitle());
+        assertTrue(respVO.getSceneUnderstanding().getAgentDecisionReasonSummary().contains("马上日落"));
+        assertTrue(respVO.getSceneUnderstanding().getEvidenceSignals().contains("gps_radius"));
+        assertTrue(respVO.getSceneUnderstanding().getEvidenceSignals().contains("ocr_alias"));
+        assertTrue(respVO.getSceneUnderstanding().getEvidenceSignals().contains("image_label"));
+        assertTrue(respVO.getSceneUnderstanding().getServiceHandoffSummary().contains(respVO.getAction()));
+
+        List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.TRIGGER_RESOLVE.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId,
+                                "trace-xicheng-scene-understanding-001"));
+        assertEquals(1, events.size());
+        JsonNode payload = JsonUtils.parseTree(events.get(0).getPayloadJson());
+        JsonNode sceneUnderstanding = payload.get("sceneUnderstanding");
+        assertEquals("晴天 18:40，夕阳照到恭王府门楼，建议先拍照再讲历史。",
+                sceneUnderstanding.get("sceneFusionSummary").asText());
+        assertEquals("architecture", sceneUnderstanding.get("primarySceneDomainKey").asText());
+        assertEquals(4, sceneUnderstanding.get("memorySessionSceneCount").asInt());
+        assertTrue(sceneUnderstanding.get("evidenceSignals").toString().contains("gps_radius"));
+        assertTrue(sceneUnderstanding.get("serviceHandoffSummary").asText().contains(respVO.getAction()));
+        assertFalse(sceneUnderstanding.toString().contains("imageBase64"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerUsesRealtimeEnvironmentForRouteIntent() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());

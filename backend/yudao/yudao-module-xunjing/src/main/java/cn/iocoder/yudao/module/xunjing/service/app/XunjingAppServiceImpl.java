@@ -29,6 +29,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PhotoMetaR
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PublicReportSummaryRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.SceneUnderstandingRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.SourceRespVO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.ai.XunjingAiGenerationLogDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.ai.XunjingAiQuotaRuleDO;
@@ -1400,6 +1401,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         payload.put("imageLabelCount", reqVO.getImageLabels() == null ? 0 : reqVO.getImageLabels().size());
         payload.put("recentPoiCount", reqVO.getRecentPoiCodes() == null ? 0 : reqVO.getRecentPoiCodes().size());
         payload.put("sceneSignals", buildTriggerSceneSignalsPayload(reqVO.getSceneSignals()));
+        payload.put("sceneUnderstanding", buildTriggerSceneUnderstandingPayload(respVO));
         payload.put("serviceHandoff", buildTriggerServiceHandoffPayload(reqVO, respVO));
         payload.put("agentActions", buildTriggerAgentActionsPayload(respVO));
         payload.put("location", buildTriggerLocationPayload(reqVO.getLocation()));
@@ -1408,6 +1410,61 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         payload.put("candidateCount", respVO.getCandidates() == null ? 0 : respVO.getCandidates().size());
         payload.put("sourceCount", respVO.getSources() == null ? 0 : respVO.getSources().size());
         return JsonUtils.toJsonString(payload);
+    }
+
+    private Map<String, Object> buildTriggerSceneUnderstandingPayload(MultimodalTriggerRespVO respVO) {
+        if (respVO == null || respVO.getSceneUnderstanding() == null) {
+            return Map.of();
+        }
+        SceneUnderstandingRespVO sceneUnderstanding = respVO.getSceneUnderstanding();
+        Map<String, Object> payload = new LinkedHashMap<>();
+        putTriggerSceneUnderstandingText(payload, "sceneFusionSummary", sceneUnderstanding.getSceneFusionSummary());
+        putTriggerSceneUnderstandingText(payload, "worldInterfaceSummary", sceneUnderstanding.getWorldInterfaceSummary());
+        putTriggerSceneUnderstandingText(payload, "primarySceneDomainKey", sceneUnderstanding.getPrimarySceneDomainKey());
+        putTriggerSceneUnderstandingText(payload, "primarySceneDomainLabel", sceneUnderstanding.getPrimarySceneDomainLabel());
+        putTriggerSceneUnderstandingText(payload, "localTimeText", sceneUnderstanding.getLocalTimeText());
+        putTriggerSceneUnderstandingText(payload, "weatherText", sceneUnderstanding.getWeatherText());
+        putTriggerSceneUnderstandingText(payload, "headingText", sceneUnderstanding.getHeadingText());
+        putTriggerSceneUnderstandingNumber(payload, "memorySessionSceneCount",
+                sceneUnderstanding.getMemorySessionSceneCount());
+        putTriggerSceneUnderstandingText(payload, "visionRecognitionStatus",
+                sceneUnderstanding.getVisionRecognitionStatus());
+        putTriggerSceneUnderstandingText(payload, "visionRecognitionModel",
+                sceneUnderstanding.getVisionRecognitionModel());
+        putTriggerSceneUnderstandingNumber(payload, "visionRecognitionLabelCount",
+                sceneUnderstanding.getVisionRecognitionLabelCount());
+        putTriggerSceneUnderstandingText(payload, "agentDecisionActionTitle",
+                sceneUnderstanding.getAgentDecisionActionTitle());
+        putTriggerSceneUnderstandingText(payload, "agentDecisionReasonSummary",
+                sceneUnderstanding.getAgentDecisionReasonSummary());
+        payload.put("evidenceSignals", buildTriggerSceneUnderstandingEvidenceSignals(sceneUnderstanding));
+        putTriggerSceneUnderstandingText(payload, "serviceHandoffSummary",
+                sceneUnderstanding.getServiceHandoffSummary());
+        return payload;
+    }
+
+    private void putTriggerSceneUnderstandingText(Map<String, Object> payload, String key, String value) {
+        if (hasText(value)) {
+            payload.put(key, truncateForEvent(value, TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH));
+        }
+    }
+
+    private void putTriggerSceneUnderstandingNumber(Map<String, Object> payload, String key, Integer value) {
+        if (value != null && value >= 0) {
+            payload.put(key, value);
+        }
+    }
+
+    private List<String> buildTriggerSceneUnderstandingEvidenceSignals(SceneUnderstandingRespVO sceneUnderstanding) {
+        if (sceneUnderstanding.getEvidenceSignals() == null || sceneUnderstanding.getEvidenceSignals().isEmpty()) {
+            return List.of();
+        }
+        return sceneUnderstanding.getEvidenceSignals().stream()
+                .filter(this::hasText)
+                .map(signal -> truncateForEvent(signal.trim(), 50))
+                .distinct()
+                .limit(12)
+                .toList();
     }
 
     private List<Map<String, Object>> buildTriggerAgentActionsPayload(MultimodalTriggerRespVO respVO) {

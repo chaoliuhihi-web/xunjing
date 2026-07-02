@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.Multimodal
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PhotoMetaReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.SceneUnderstandingRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.SourceRespVO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.packagepkg.XunjingResourcePackageDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.poi.XunjingPoiDO;
@@ -201,6 +202,7 @@ public class XunjingMultimodalTriggerEngine {
         respVO.setSources(toSources(best.poi()));
         respVO.setAgentActions(buildAgentActions(intent, respVO.getAction(), regionCode, best.poi().code(),
                 safeReqVO.getPackageCode(), !autoTrigger, safeReqVO.getSceneSignals()));
+        respVO.setSceneUnderstanding(buildSceneUnderstanding(safeReqVO, best.signals(), respVO));
         respVO.setCandidates(matches.stream()
                 .map(match -> toCandidate(match, intent, regionCode, safeReqVO.getPackageCode()))
                 .toList());
@@ -347,8 +349,51 @@ public class XunjingMultimodalTriggerEngine {
         respVO.setSources(List.of());
         respVO.setAgentActions(buildAgentActions("ask", "ask_ai_companion", regionCode, null, packageCode,
                 true, Map.of()));
+        respVO.setSceneUnderstanding(buildSceneUnderstanding(null, List.of(), respVO));
         respVO.setCandidates(List.of());
         return respVO;
+    }
+
+    private SceneUnderstandingRespVO buildSceneUnderstanding(
+            MultimodalTriggerReqVO reqVO, List<String> evidenceSignals, MultimodalTriggerRespVO respVO) {
+        Map<String, Object> sceneSignals = reqVO == null || reqVO.getSceneSignals() == null
+                ? Map.of() : reqVO.getSceneSignals();
+        SceneUnderstandingRespVO sceneUnderstanding = new SceneUnderstandingRespVO();
+        sceneUnderstanding.setSceneFusionSummary(sceneSignalValue(sceneSignals, "sceneFusionSummary"));
+        sceneUnderstanding.setWorldInterfaceSummary(sceneSignalValue(sceneSignals, "worldInterfaceSummary"));
+        sceneUnderstanding.setPrimarySceneDomainKey(sceneSignalValue(sceneSignals, "sceneDomainIntentKey"));
+        sceneUnderstanding.setPrimarySceneDomainLabel(sceneSignalValue(sceneSignals, "sceneDomainIntentLabel"));
+        sceneUnderstanding.setLocalTimeText(sceneSignalValue(sceneSignals, "localTimeText"));
+        sceneUnderstanding.setWeatherText(sceneSignalValue(sceneSignals, "weatherText"));
+        sceneUnderstanding.setHeadingText(sceneSignalValue(sceneSignals, "headingText"));
+        sceneUnderstanding.setMemorySessionSceneCount(sceneSignalInteger(sceneSignals, "memorySessionSceneCount"));
+        sceneUnderstanding.setVisionRecognitionStatus(sceneSignalValue(sceneSignals, "visionRecognitionStatus"));
+        sceneUnderstanding.setVisionRecognitionModel(sceneSignalValue(sceneSignals, "visionRecognitionModel"));
+        sceneUnderstanding.setVisionRecognitionLabelCount(sceneSignalInteger(sceneSignals, "visionRecognitionLabelCount"));
+        sceneUnderstanding.setAgentDecisionActionTitle(sceneSignalValue(sceneSignals, "agentDecisionActionTitle"));
+        sceneUnderstanding.setAgentDecisionReasonSummary(sceneSignalValue(sceneSignals, "agentDecisionReasonSummary"));
+        sceneUnderstanding.setEvidenceSignals(distinctTexts(evidenceSignals == null ? List.of() : evidenceSignals));
+        sceneUnderstanding.setServiceHandoffSummary(buildSceneUnderstandingServiceHandoffSummary(respVO));
+        return sceneUnderstanding;
+    }
+
+    private String buildSceneUnderstandingServiceHandoffSummary(MultimodalTriggerRespVO respVO) {
+        if (respVO == null) {
+            return "";
+        }
+        List<String> parts = new ArrayList<>();
+        if (hasText(respVO.getAction())) {
+            parts.add("动作=" + respVO.getAction());
+        }
+        if (hasText(respVO.getIntent())) {
+            parts.add("意图=" + respVO.getIntent());
+        }
+        parts.add("需用户确认=" + Boolean.TRUE.equals(respVO.getRequiresUserConfirm()));
+        parts.add("真实系统确认=" + agentActionRequiresRealSystem(respVO.getAction(), respVO.getIntent()));
+        if (hasText(respVO.getReason())) {
+            parts.add("触发理由=" + respVO.getReason());
+        }
+        return String.join("；", parts);
     }
 
     private List<SourceProfile> sourceProfiles(XunjingPoiDO poi, Map<String, Object> source, String summary) {
@@ -811,6 +856,24 @@ public class XunjingMultimodalTriggerEngine {
         }
         Object value = sceneSignals.get(key);
         return value == null ? "" : value.toString();
+    }
+
+    private Integer sceneSignalInteger(Map<String, Object> sceneSignals, String key) {
+        if (sceneSignals == null) {
+            return null;
+        }
+        Object value = sceneSignals.get(key);
+        if (value instanceof Number number) {
+            return Math.max(0, number.intValue());
+        }
+        if (value != null && hasText(value.toString())) {
+            try {
+                return Math.max(0, Integer.parseInt(value.toString().trim()));
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private LocationPointReqVO effectiveLocation(MultimodalTriggerReqVO reqVO) {
