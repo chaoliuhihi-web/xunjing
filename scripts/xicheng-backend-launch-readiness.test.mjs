@@ -77,6 +77,10 @@ describe('xicheng backend launch readiness', () => {
     expect(visionService).toContain('recognizeImage(reqVO)')
     expect(visionService).toContain('mergeVisionSceneSignals(reqVO, recognition)')
     expect(visionService).toContain('VISION_SCENE_SIGNAL_TEXT_KEYS')
+    expect(visionService).toContain('buildVisionRecognitionEvidence')
+    expect(visionService).toContain('visionRecognitionStatus')
+    expect(visionService).toContain('visionRecognitionModel')
+    expect(visionService).toContain('visionRecognitionLabelCount')
     expect(visionService).toContain('inferVisionSceneDomain(labels, caption, ocrText, sceneSignals)')
     for (const domain of [
       'architecture',
@@ -96,6 +100,9 @@ describe('xicheng backend launch readiness', () => {
     expect(appService).toContain('buildTriggerResolveEventPayload')
     expect(appService).toContain('TRIGGER_SCENE_SIGNAL_TEXT_KEYS')
     expect(appService).toContain('buildTriggerSceneSignalsPayload(reqVO.getSceneSignals())')
+    expect(appService).toContain('"visionRecognitionStatus"')
+    expect(appService).toContain('"visionRecognitionModel"')
+    expect(appService).toContain('putTriggerSceneSignalNumber(payload, sceneSignals, "visionRecognitionLabelCount", false)')
     expect(appService).toContain('hydrateMultimodalTriggerMemoryFromPreviousResolve(reqVO)')
     expect(appService).toContain('hydrateMultimodalTriggerMemoryFromPreviousAsk(resourcePackage, reqVO)')
     expect(appService).toContain('shouldUsePreviousAskForTriggerMemory(previousAskEvent, previousResolveEvent)')

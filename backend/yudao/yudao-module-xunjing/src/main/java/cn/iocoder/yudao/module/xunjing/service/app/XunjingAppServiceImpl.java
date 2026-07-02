@@ -111,7 +111,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             "sceneDomainIntentTitle",
             "sceneDomainIntentCopy",
             "agentDecisionActionTitle",
-            "agentDecisionReasonSummary"
+            "agentDecisionReasonSummary",
+            "visionRecognitionStatus",
+            "visionRecognitionModel"
     );
 
     @Resource
@@ -1209,6 +1211,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         }
         putTriggerSceneSignalNumber(payload, sceneSignals, "headingDegrees", true);
         putTriggerSceneSignalNumber(payload, sceneSignals, "memorySessionSceneCount", false);
+        putTriggerSceneSignalNumber(payload, sceneSignals, "visionRecognitionLabelCount", false);
         return payload;
     }
 

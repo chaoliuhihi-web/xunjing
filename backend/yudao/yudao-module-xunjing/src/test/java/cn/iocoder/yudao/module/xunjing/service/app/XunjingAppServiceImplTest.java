@@ -636,7 +636,12 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
             assertEquals("视觉识别到恭王府入口牌匾。", sceneSignals.get("sceneFusionSummary").asText());
             assertEquals("视觉模型读取画面文字后交给场景引擎。", sceneSignals.get("worldInterfaceSummary").asText());
             assertEquals("architecture", sceneSignals.get("sceneDomainIntentKey").asText());
+            assertEquals("success", sceneSignals.get("visionRecognitionStatus").asText());
+            assertEquals("qwen-vl-max", sceneSignals.get("visionRecognitionModel").asText());
+            assertEquals(0, sceneSignals.get("visionRecognitionLabelCount").asInt());
             assertFalse(sceneSignals.has("sourceRecognitionContext"));
+            assertFalse(events.get(0).getPayloadJson().contains("test-key"));
+            assertFalse(events.get(0).getPayloadJson().contains("/vision/v1"));
             assertFalse(events.get(0).getPayloadJson().contains("imageBase64"));
         } finally {
             setField(visionRecognitionService, "visionApiUrl", "");

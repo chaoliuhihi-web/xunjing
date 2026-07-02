@@ -119,6 +119,7 @@ public class XunjingVisionRecognitionServiceTest {
             setField(configuredService, "visionApiUrl",
                     "http://127.0.0.1:" + server.getAddress().getPort() + "/vision/v1");
             setField(configuredService, "visionApiKey", "test-key");
+            setField(configuredService, "visionModel", "qwen-vl-max");
 
             MultimodalTriggerReqVO reqVO = new MultimodalTriggerReqVO();
             reqVO.setOcrText("");
@@ -139,7 +140,12 @@ public class XunjingVisionRecognitionServiceTest {
             assertEquals("视觉模型读取画面文字后交给场景引擎。", enrichedReqVO.getSceneSignals().get("worldInterfaceSummary"));
             assertEquals("architecture", enrichedReqVO.getSceneSignals().get("sceneDomainIntentKey"));
             assertEquals("建筑", enrichedReqVO.getSceneSignals().get("sceneDomainIntentLabel"));
+            assertEquals("success", enrichedReqVO.getSceneSignals().get("visionRecognitionStatus"));
+            assertEquals("qwen-vl-max", enrichedReqVO.getSceneSignals().get("visionRecognitionModel"));
+            assertEquals("1", enrichedReqVO.getSceneSignals().get("visionRecognitionLabelCount"));
             assertFalse(enrichedReqVO.getSceneSignals().containsKey("sourceRecognitionContext"));
+            assertFalse(enrichedReqVO.getSceneSignals().toString().contains("test-key"));
+            assertFalse(enrichedReqVO.getSceneSignals().toString().contains("/vision/v1"));
         } finally {
             server.stop(0);
         }
