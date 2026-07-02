@@ -2116,6 +2116,123 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testAnswerHydratesSceneUnderstandingFromPreviousTriggerEvent() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+        consoleService.addKnowledgeDocument(xichengGongwangfuKnowledgeReq(packageId));
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "晴天 18:40，夕阳照到恭王府门楼，建议先拍照再讲历史。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合 GPS、OCR、时间、天气和城市知识库后判断当前世界。");
+        sceneSignals.put("sceneDomainIntentKey", "architecture");
+        sceneSignals.put("sceneDomainIntentLabel", "建筑");
+        sceneSignals.put("agentDecisionActionTitle", "先拍照");
+        sceneSignals.put("agentDecisionReasonSummary", "马上日落，门楼光线适合先拍照。");
+        sceneSignals.put("localTimeText", "18:40");
+        sceneSignals.put("weatherText", "晴");
+        sceneSignals.put("headingText", "向西");
+        sceneSignals.put("memorySessionSceneCount", 4);
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-scene-understanding-chat-001");
+        triggerReq.setOcrText("恭王府博物馆入口");
+        triggerReq.setImageLabels(List.of("palace", "courtyard"));
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        triggerReq.setSceneSignals(sceneSignals);
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("photo", triggerResp.getIntent());
+
+        List<XunjingInteractionEventDO> triggerEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType,
+                                XunjingEnums.EventType.TRIGGER_RESOLVE.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId,
+                                "trace-xicheng-scene-understanding-chat-001"));
+        assertEquals(1, triggerEvents.size());
+        JsonNode triggerPayload = JsonUtils.parseTree(triggerEvents.get(0).getPayloadJson());
+        JsonNode sceneUnderstanding = triggerPayload.get("sceneUnderstanding");
+        assertEquals("晴天 18:40，夕阳照到恭王府门楼，建议先拍照再讲历史。",
+                sceneUnderstanding.get("sceneFusionSummary").asText());
+
+        Map<String, Object> canonicalPayload = new LinkedHashMap<>();
+        canonicalPayload.put("regionCode", triggerPayload.get("regionCode").asText());
+        canonicalPayload.put("poiCode", triggerPayload.get("poiCode").asText());
+        canonicalPayload.put("poiName", triggerPayload.get("poiName").asText());
+        canonicalPayload.put("action", triggerPayload.get("action").asText());
+        canonicalPayload.put("intent", triggerPayload.get("intent").asText());
+        canonicalPayload.put("triggerType", triggerPayload.get("triggerType").asText());
+        canonicalPayload.put("requiresUserConfirm", triggerPayload.get("requiresUserConfirm").asBoolean());
+        canonicalPayload.put("reason", triggerPayload.get("reason").asText());
+        canonicalPayload.put("sceneSignals", Map.of());
+        Map<String, Object> canonicalSceneUnderstanding = new LinkedHashMap<>();
+        canonicalSceneUnderstanding.put("sceneFusionSummary",
+                sceneUnderstanding.get("sceneFusionSummary").asText());
+        canonicalSceneUnderstanding.put("worldInterfaceSummary",
+                sceneUnderstanding.get("worldInterfaceSummary").asText());
+        canonicalSceneUnderstanding.put("primarySceneDomainKey",
+                sceneUnderstanding.get("primarySceneDomainKey").asText());
+        canonicalSceneUnderstanding.put("primarySceneDomainLabel",
+                sceneUnderstanding.get("primarySceneDomainLabel").asText());
+        canonicalSceneUnderstanding.put("agentDecisionActionTitle",
+                sceneUnderstanding.get("agentDecisionActionTitle").asText());
+        canonicalSceneUnderstanding.put("agentDecisionReasonSummary",
+                sceneUnderstanding.get("agentDecisionReasonSummary").asText());
+        canonicalSceneUnderstanding.put("localTimeText", sceneUnderstanding.get("localTimeText").asText());
+        canonicalSceneUnderstanding.put("weatherText", sceneUnderstanding.get("weatherText").asText());
+        canonicalSceneUnderstanding.put("headingText", sceneUnderstanding.get("headingText").asText());
+        canonicalSceneUnderstanding.put("memorySessionSceneCount",
+                sceneUnderstanding.get("memorySessionSceneCount").asInt());
+        canonicalSceneUnderstanding.put("serviceHandoffSummary",
+                sceneUnderstanding.get("serviceHandoffSummary").asText());
+        canonicalPayload.put("sceneUnderstanding", canonicalSceneUnderstanding);
+        new JdbcTemplate(dataSource).update("""
+                UPDATE "xunjing_interaction_event"
+                SET "payload_json" = ?
+                WHERE "id" = ?
+                """, JsonUtils.toJsonString(canonicalPayload), triggerEvents.get(0).getId());
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-scene-understanding-chat-001");
+        followUpReq.setQuestion("现在适合先做什么？");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO followUpAnswer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", followUpAnswer.getSafetyStatus());
+        assertEquals("xicheng-gongwangfu", followUpAnswer.getPoiCode());
+        assertEquals("恭王府权威讲解稿", followUpAnswer.getSources().get(0).getTitle());
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId,
+                                "trace-xicheng-scene-understanding-chat-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertEquals("晴天 18:40，夕阳照到恭王府门楼，建议先拍照再讲历史。",
+                visionAgentContext.get("sceneFusionSummary").asText());
+        assertEquals("相机融合 GPS、OCR、时间、天气和城市知识库后判断当前世界。",
+                visionAgentContext.get("worldInterfaceSummary").asText());
+        assertEquals("architecture", visionAgentContext.get("primarySceneDomainKey").asText());
+        assertEquals("建筑", visionAgentContext.get("primarySceneDomainLabel").asText());
+        assertEquals("先拍照", visionAgentContext.get("decisionActionTitle").asText());
+        assertTrue(visionAgentContext.get("decisionReasonSummary").asText().contains("马上日落"));
+        assertEquals("18:40", visionAgentContext.get("localTimeText").asText());
+        assertEquals("晴", visionAgentContext.get("weatherText").asText());
+        assertEquals("向西", visionAgentContext.get("headingText").asText());
+        assertEquals(4, visionAgentContext.get("memorySessionSceneCount").asInt());
+        assertEquals(sceneUnderstanding.get("serviceHandoffSummary").asText(),
+                visionAgentContext.get("serviceHandoffSummary").asText());
+    }
+
+    @Test
     public void testAnswerUsesKnowledgeGraphSignalsFromPreviousTriggerForSourceSearch() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());

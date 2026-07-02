@@ -979,18 +979,22 @@ public class XunjingAppServiceImpl implements XunjingAppService {
                 return;
             }
             hydrateTriggerPoiContext(reqVO, root);
+            JsonNode sceneUnderstanding = root.path("sceneUnderstanding");
             JsonNode sceneSignals = root.path("sceneSignals");
             if (!hasText(reqVO.getVisionAgentMemorySessionText())) {
-                String memoryText = buildPreviousTriggerMemoryText(root, sceneSignals);
+                String memoryText = buildPreviousTriggerMemoryText(root, sceneUnderstanding, sceneSignals);
                 if (hasText(memoryText)) {
                     reqVO.setVisionAgentMemorySessionText(memoryText);
                 }
             }
+            hydrateTriggerSceneUnderstandingText(reqVO, sceneUnderstanding);
             hydrateTriggerSceneSignalText(reqVO, sceneSignals);
-            hydrateTriggerSceneCount(reqVO, sceneSignals);
+            hydrateTriggerSceneCount(reqVO, sceneUnderstanding, sceneSignals);
             hydrateTriggerServiceHandoff(reqVO, root);
             if (!Boolean.TRUE.equals(reqVO.getVisionAgentContextAvailable())
-                    && (hasText(reqVO.getVisionAgentMemorySessionText()) || hasText(reqVO.getPoiName()))) {
+                    && (hasText(reqVO.getVisionAgentMemorySessionText())
+                    || hasText(reqVO.getVisionAgentSceneFusionSummary())
+                    || hasText(reqVO.getPoiName()))) {
                 reqVO.setVisionAgentContextAvailable(true);
             }
         } catch (RuntimeException ex) {
@@ -1012,22 +1016,32 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         putReqTextIfBlank(reqVO::getPoiName, reqVO::setPoiName, root, "poiName");
     }
 
-    private String buildPreviousTriggerMemoryText(JsonNode root, JsonNode sceneSignals) {
+    private String buildPreviousTriggerMemoryText(JsonNode root, JsonNode sceneUnderstanding, JsonNode sceneSignals) {
         List<String> parts = new ArrayList<>();
         putPreviousJsonMemoryPart(parts, "识别对象", root, "poiName");
         putPreviousJsonMemoryPart(parts, "识别原因", root, "reason");
-        putPreviousJsonMemoryPart(parts, "上次识境", sceneSignals, "sceneFusionSummary");
-        putPreviousJsonMemoryPart(parts, "上次世界入口", sceneSignals, "worldInterfaceSummary");
-        String domain = previousTriggerDomainText(sceneSignals);
+        putPreviousTriggerMemoryPart(parts, "上次识境",
+                sceneUnderstanding, "sceneFusionSummary", sceneSignals, "sceneFusionSummary");
+        putPreviousTriggerMemoryPart(parts, "上次世界入口",
+                sceneUnderstanding, "worldInterfaceSummary", sceneSignals, "worldInterfaceSummary");
+        String domain = previousVisionAgentDomainText(sceneUnderstanding);
+        if (!hasText(domain)) {
+            domain = previousTriggerDomainText(sceneSignals);
+        }
         if (hasText(domain)) {
             parts.add("场景域=" + domain);
         }
-        putPreviousJsonMemoryPart(parts, "Agent理由", sceneSignals, "agentDecisionReasonSummary");
+        putPreviousTriggerMemoryPart(parts, "Agent理由",
+                sceneUnderstanding, "agentDecisionReasonSummary", sceneSignals, "agentDecisionReasonSummary");
+        putPreviousJsonMemoryPart(parts, "服务承接", sceneUnderstanding, "serviceHandoffSummary");
         putPreviousJsonMemoryPart(parts, "知识图谱线索", sceneSignals, "knowledgeGraphKeywords");
         putPreviousJsonMemoryPart(parts, "关联话题", sceneSignals, "relatedTopicKeywords");
-        putPreviousJsonMemoryPart(parts, "当前时间", sceneSignals, "localTimeText");
-        putPreviousJsonMemoryPart(parts, "当前天气", sceneSignals, "weatherText");
-        putPreviousJsonMemoryPart(parts, "当前朝向", sceneSignals, "headingText");
+        putPreviousTriggerMemoryPart(parts, "当前时间",
+                sceneUnderstanding, "localTimeText", sceneSignals, "localTimeText");
+        putPreviousTriggerMemoryPart(parts, "当前天气",
+                sceneUnderstanding, "weatherText", sceneSignals, "weatherText");
+        putPreviousTriggerMemoryPart(parts, "当前朝向",
+                sceneUnderstanding, "headingText", sceneSignals, "headingText");
         putPreviousJsonMemoryPart(parts, "游客画像", sceneSignals, "visitorProfileSummary");
         putPreviousJsonMemoryPart(parts, "同行人", sceneSignals, "visitorGroup");
         putPreviousJsonMemoryPart(parts, "兴趣偏好", sceneSignals, "interestTags");
@@ -1093,6 +1107,18 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         return String.join("；", parts);
     }
 
+    private void putPreviousTriggerMemoryPart(
+            List<String> parts, String label, JsonNode primaryContext, String primaryKey,
+            JsonNode fallbackContext, String fallbackKey) {
+        String text = visionAgentContextText(primaryContext, primaryKey);
+        if (!hasText(text)) {
+            text = visionAgentContextText(fallbackContext, fallbackKey);
+        }
+        if (hasText(text)) {
+            parts.add(label + "=" + text);
+        }
+    }
+
     private void putPreviousAgentActionsMemoryPart(List<String> parts, JsonNode agentActions) {
         if (agentActions == null || !agentActions.isArray() || agentActions.size() == 0) {
             return;
@@ -1141,6 +1167,29 @@ public class XunjingAppServiceImpl implements XunjingAppService {
                 sceneSignals, "weatherText");
         putReqTextIfBlank(reqVO::getVisionAgentHeadingText, reqVO::setVisionAgentHeadingText,
                 sceneSignals, "headingText");
+    }
+
+    private void hydrateTriggerSceneUnderstandingText(RagChatReqVO reqVO, JsonNode sceneUnderstanding) {
+        putReqTextIfBlank(reqVO::getVisionAgentSceneFusionSummary, reqVO::setVisionAgentSceneFusionSummary,
+                sceneUnderstanding, "sceneFusionSummary");
+        putReqTextIfBlank(reqVO::getVisionAgentWorldInterfaceSummary, reqVO::setVisionAgentWorldInterfaceSummary,
+                sceneUnderstanding, "worldInterfaceSummary");
+        putReqTextIfBlank(reqVO::getVisionAgentPrimarySceneDomainKey, reqVO::setVisionAgentPrimarySceneDomainKey,
+                sceneUnderstanding, "primarySceneDomainKey");
+        putReqTextIfBlank(reqVO::getVisionAgentPrimarySceneDomainLabel, reqVO::setVisionAgentPrimarySceneDomainLabel,
+                sceneUnderstanding, "primarySceneDomainLabel");
+        putReqTextIfBlank(reqVO::getVisionAgentDecisionActionTitle, reqVO::setVisionAgentDecisionActionTitle,
+                sceneUnderstanding, "agentDecisionActionTitle");
+        putReqTextIfBlank(reqVO::getVisionAgentDecisionReasonSummary, reqVO::setVisionAgentDecisionReasonSummary,
+                sceneUnderstanding, "agentDecisionReasonSummary");
+        putReqTextIfBlank(reqVO::getVisionAgentLocalTimeText, reqVO::setVisionAgentLocalTimeText,
+                sceneUnderstanding, "localTimeText");
+        putReqTextIfBlank(reqVO::getVisionAgentWeatherText, reqVO::setVisionAgentWeatherText,
+                sceneUnderstanding, "weatherText");
+        putReqTextIfBlank(reqVO::getVisionAgentHeadingText, reqVO::setVisionAgentHeadingText,
+                sceneUnderstanding, "headingText");
+        putReqTextIfBlank(reqVO::getServiceHandoffSummary, reqVO::setServiceHandoffSummary,
+                sceneUnderstanding, "serviceHandoffSummary");
     }
 
     private void hydrateTriggerServiceHandoff(RagChatReqVO reqVO, JsonNode root) {
@@ -1281,12 +1330,15 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         return requiresUserConfirm ? "需要用户确认" : "无需用户确认";
     }
 
-    private void hydrateTriggerSceneCount(RagChatReqVO reqVO, JsonNode sceneSignals) {
+    private void hydrateTriggerSceneCount(RagChatReqVO reqVO, JsonNode sceneUnderstanding, JsonNode sceneSignals) {
         if (reqVO.getVisionAgentMemorySessionSceneCount() != null
                 && reqVO.getVisionAgentMemorySessionSceneCount() > 0) {
             return;
         }
-        int previousSceneCount = sceneSignals.path("memorySessionSceneCount").asInt(0);
+        int previousSceneCount = sceneUnderstanding.path("memorySessionSceneCount").asInt(0);
+        if (previousSceneCount <= 0) {
+            previousSceneCount = sceneSignals.path("memorySessionSceneCount").asInt(0);
+        }
         reqVO.setVisionAgentMemorySessionSceneCount(previousSceneCount > 0 ? previousSceneCount : 1);
     }
 
