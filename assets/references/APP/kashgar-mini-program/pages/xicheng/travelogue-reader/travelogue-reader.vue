@@ -5,8 +5,15 @@
 				<xicheng-icon name="back" variant="plain" :size="22" />
 			</view>
 			<text class="reader-topbar-title">精美游记</text>
-			<view class="reader-topbar-button" @click="openSharePage">
-				<xicheng-icon name="edit" variant="plain" :size="21" />
+			<view class="reader-topbar-actions">
+				<button class="reader-topbar-action" @click="showReaderContents">
+					<xicheng-icon name="source" variant="plain" :size="19" />
+					<text>目录</text>
+				</button>
+				<button class="reader-topbar-action" @click="openSharePage">
+					<xicheng-icon name="share" variant="plain" :size="19" />
+					<text>分享</text>
+				</button>
 			</view>
 		</view>
 
@@ -21,11 +28,13 @@
 			:photo-cards="photoMemoryCards"
 			:tags="readerTags"
 			:source-count="sourceCount"
+			:companion-avatar="region.companionAvatar"
 			@save="saveKeepsakeReader"
 			@edit="openTravelogueEditor"
 			@export-pdf="openPdfPrintPage"
 			@publish-moments="openSharePage"
 			@publish-xhs="openSharePage"
+			@view-sources="showReaderSources"
 		/>
 	</view>
 </template>
@@ -129,6 +138,25 @@ export default {
 		openPdfPrintPage() {
 			uni.navigateTo({ url: '/pages/xicheng/pdf-print/pdf-print' })
 		},
+		scrollReaderTo(selector, fallbackTitle) {
+			if (typeof uni !== 'undefined' && typeof uni.pageScrollTo === 'function') {
+				uni.pageScrollTo({
+					selector,
+					duration: 220,
+					fail: () => uni.showToast({ title: fallbackTitle, icon: 'none' })
+				})
+				return
+			}
+			if (typeof uni !== 'undefined' && typeof uni.showToast === 'function') {
+				uni.showToast({ title: fallbackTitle, icon: 'none' })
+			}
+		},
+		showReaderContents() {
+			this.scrollReaderTo('.long-reader-tabs', '已定位到目录')
+		},
+		showReaderSources() {
+			this.scrollReaderTo('.long-source-panel', '已定位到来源')
+		},
 		goBack() {
 			const pages = getCurrentPages()
 			if (pages.length <= 1) {
@@ -150,10 +178,10 @@ export default {
 
 .reader-topbar {
 	display: grid;
-	grid-template-columns: 72rpx 1fr 72rpx;
+	grid-template-columns: 72rpx 1fr auto;
 	align-items: center;
 	gap: 16rpx;
-	height: 72rpx;
+	min-height: 72rpx;
 	margin-bottom: 18rpx;
 }
 
@@ -165,6 +193,34 @@ export default {
 	height: 64rpx;
 	border-radius: 999rpx;
 	background: rgba(255, 252, 246, 0.86);
+}
+
+.reader-topbar-actions {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 10rpx;
+}
+
+.reader-topbar-action {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4rpx;
+	min-width: 76rpx;
+	min-height: 64rpx;
+	margin: 0;
+	padding: 0 12rpx;
+	border-radius: 999rpx;
+	background: rgba(255, 252, 246, 0.86);
+	color: #173F35;
+	font-size: 21rpx;
+	line-height: 1;
+	font-weight: 800;
+}
+
+.reader-topbar-action::after {
+	border: 0;
 }
 
 .reader-topbar-title {
