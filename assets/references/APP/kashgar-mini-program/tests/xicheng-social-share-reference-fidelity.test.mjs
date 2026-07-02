@@ -6,6 +6,7 @@ const root = process.cwd()
 const component = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengSocialSharePreview.vue'), 'utf8')
 const share = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'share', 'share.vue'), 'utf8')
 const preflightPath = path.join(root, 'components', 'xicheng', 'XichengPublishPreflightPanel.vue')
+const publishChannelPath = path.join(root, 'components', 'xicheng', 'XichengPublishChannelGrid.vue')
 
 assert.ok(
   fs.existsSync(preflightPath),
@@ -13,6 +14,7 @@ assert.ok(
 )
 
 const preflight = fs.readFileSync(preflightPath, 'utf8')
+const publishChannel = fs.readFileSync(publishChannelPath, 'utf8')
 
 for (const token of [
   '朋友圈预览',
@@ -105,6 +107,41 @@ assert.match(
   /<xicheng-publish-preflight-panel[\s\S]*:items="publishPreflightItems"[\s\S]*:selected-channel="selectedPublishChannel"/,
   'Share page should render publish preflight status between channel selection and final review'
 )
+
+for (const token of [
+  'publish-summary-card',
+  'publish-summary-cover',
+  'publish-summary-title',
+  '待发布',
+  '3 个地点',
+  '精确轨迹已隐藏',
+  '来源已审核'
+]) {
+  assert.ok(share.includes(token), `Share page should front-load the publish summary token: ${token}`)
+}
+
+assert.ok(
+  share.indexOf('publish-summary-card') < share.indexOf('<xicheng-publish-channel-grid'),
+  'Share page should show the travelogue publish summary before channel selection'
+)
+
+assert.ok(
+  share.indexOf('<xicheng-publish-channel-grid') < share.indexOf('<xicheng-publish-preflight-panel'),
+  'Share page should show channel selection before release preflight checks'
+)
+
+assert.ok(
+  share.indexOf('<xicheng-publish-preflight-panel') < share.indexOf('poster-card'),
+  'Share page should keep publish channel and preflight controls above the poster preview so the first viewport is action-led'
+)
+
+for (const token of [
+  '选择发布渠道',
+  'channel-card-check',
+  'channel-card-active'
+]) {
+  assert.ok(publishChannel.includes(token), `Publish channel component should match the approved channel selector token: ${token}`)
+}
 
 const publishPreflightBlock = share.match(/publishPreflightItems\(\)[\s\S]*?\n\t\t\},\n\t\tcurrentVisionAgentShareBoundary/)?.[0] || ''
 for (const token of [

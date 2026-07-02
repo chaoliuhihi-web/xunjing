@@ -31,6 +31,7 @@
 	font-size: 34rpx;
 }
 .poster-card,
+.publish-summary-card,
 .asset-card,
 .vision-agent-share-boundary,
 .privacy-card {
@@ -38,9 +39,103 @@
 	padding: 28rpx;
 	border-radius: 34rpx;
 }
+
+.publish-summary-card {
+	display: grid;
+	grid-template-columns: 156rpx minmax(0, 1fr);
+	align-items: center;
+	gap: 22rpx;
+	margin-top: 18rpx;
+	padding: 24rpx;
+	overflow: hidden;
+	background:
+		linear-gradient(105deg, rgba(255, 253, 247, 0.96) 0%, rgba(255, 250, 239, 0.94) 62%, rgba(238, 229, 207, 0.72) 100%);
+	border: 1rpx solid rgba(181, 148, 94, 0.22);
+}
+
+.publish-summary-cover {
+	width: 156rpx;
+	height: 156rpx;
+	border-radius: 26rpx;
+	box-shadow: 0 14rpx 28rpx rgba(35, 42, 34, 0.12);
+}
+
+.publish-summary-copy {
+	min-width: 0;
+}
+
+.publish-summary-head,
+.publish-summary-metrics {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+}
+
+.publish-summary-head {
+	justify-content: space-between;
+}
+
+.publish-summary-kicker,
+.publish-summary-status,
+.publish-summary-title,
+.publish-summary-desc,
+.publish-summary-chip {
+	display: block;
+}
+
+.publish-summary-kicker {
+	color: #B5945E;
+	font-size: 22rpx;
+	font-weight: 900;
+}
+
+.publish-summary-status {
+	padding: 6rpx 14rpx;
+	border-radius: 999rpx;
+	background: rgba(181, 148, 94, 0.14);
+	color: #8A6B33;
+	font-size: 21rpx;
+	font-weight: 900;
+	white-space: nowrap;
+}
+
+.publish-summary-title {
+	margin-top: 10rpx;
+	color: #102F29;
+	font-size: 34rpx;
+	line-height: 1.25;
+	font-weight: 900;
+}
+
+.publish-summary-desc {
+	margin-top: 8rpx;
+	color: #5F5953;
+	font-size: 23rpx;
+	line-height: 1.45;
+}
+
+.publish-summary-metrics {
+	flex-wrap: wrap;
+	margin-top: 14rpx;
+}
+
+.publish-summary-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 7rpx;
+	padding: 8rpx 12rpx;
+	border-radius: 999rpx;
+	background: rgba(255, 252, 246, 0.86);
+	border: 1rpx solid rgba(31, 110, 90, 0.14);
+	color: #173F35;
+	font-size: 21rpx;
+	font-weight: 800;
+	white-space: nowrap;
+}
+
 .poster-card {
 	position: relative;
-	min-height: 760rpx;
+	min-height: 720rpx;
 	overflow: hidden;
 }
 

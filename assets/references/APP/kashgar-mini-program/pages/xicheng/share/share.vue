@@ -10,6 +10,36 @@
 			</view>
 		</view>
 
+		<view class="publish-summary-card xicheng-paper-card">
+			<image class="publish-summary-cover" :src="region.visualAssets.heroLandmark" mode="aspectFill" />
+			<view class="publish-summary-copy">
+				<view class="publish-summary-head">
+					<text class="publish-summary-kicker">发布游记</text>
+					<text class="publish-summary-status">待发布</text>
+				</view>
+				<text class="publish-summary-title">在白塔下遇见西城</text>
+				<text class="publish-summary-desc">清晨的白塔寺，慢慢走过胡同与湖水，生成可发布的纪念游记。</text>
+				<view class="publish-summary-metrics">
+					<view class="publish-summary-chip">
+						<xicheng-icon name="location" variant="soft" :size="15" />
+						<text>3 个地点</text>
+					</view>
+					<view class="publish-summary-chip">
+						<xicheng-icon name="eye" variant="soft" :size="15" />
+						<text>精确轨迹已隐藏</text>
+					</view>
+					<view class="publish-summary-chip">
+						<xicheng-icon name="source" variant="soft" :size="15" />
+						<text>来源已审核</text>
+					</view>
+				</view>
+			</view>
+		</view>
+
+		<xicheng-publish-channel-grid :selected-key="selectedPublishChannel" @select="selectPublishChannel" />
+		<xicheng-publish-preflight-panel :items="publishPreflightItems" :selected-channel="selectedPublishChannel" />
+		<xicheng-social-share-preview v-if="['moments', 'xiaohongshu'].includes(selectedPublishChannel)" :channel="selectedPublishChannel" :cover-image="sharePosterBackground" :title="region.sharePoster.title" @copy="copyChannelShareCopy" @save-image="saveChannelShareImage" @confirm="createChannelShareArtifact" />
+
 		<view class="poster-card share-reference-poster-frame xicheng-paper-card">
 			<image class="poster-bg" :src="sharePosterBackground" mode="aspectFill" />
 			<view class="poster-brand-pill">
@@ -82,10 +112,6 @@
 			</view>
 			<text class="vision-agent-share-boundary-copy">{{ currentVisionAgentShareBoundary }}</text>
 		</view>
-
-		<xicheng-publish-channel-grid :selected-key="selectedPublishChannel" @select="selectPublishChannel" />
-		<xicheng-publish-preflight-panel :items="publishPreflightItems" :selected-channel="selectedPublishChannel" />
-		<xicheng-social-share-preview v-if="['moments', 'xiaohongshu'].includes(selectedPublishChannel)" :channel="selectedPublishChannel" :cover-image="sharePosterBackground" :title="region.sharePoster.title" @copy="copyChannelShareCopy" @save-image="saveChannelShareImage" @confirm="createChannelShareArtifact" />
 
 		<view class="privacy-card xicheng-paper-card">
 			<view class="section-head">

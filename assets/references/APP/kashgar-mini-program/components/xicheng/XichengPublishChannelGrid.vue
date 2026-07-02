@@ -1,7 +1,7 @@
 <template>
 	<view class="xicheng-publish-channel-grid xicheng-paper-card">
 		<view class="channel-head">
-			<text class="channel-title">发布渠道</text>
+			<text class="channel-title">选择发布渠道</text>
 			<text class="channel-note">生成素材后唤起用户确认</text>
 		</view>
 		<view class="channel-grid">
@@ -12,6 +12,7 @@
 				:class="{ 'channel-card-active': channel.key === selectedKey }"
 				@click="$emit('select', channel)"
 			>
+				<text v-if="channel.key === selectedKey" class="channel-card-check">✓</text>
 				<xicheng-icon :name="channel.icon" variant="soft" :size="21" />
 				<text class="channel-name">{{ channel.title }}</text>
 				<text class="channel-desc">{{ channel.desc }}</text>
@@ -77,12 +78,29 @@ export default {
 	margin-top: 22rpx;
 }
 .channel-card {
+	position: relative;
 	min-height: 150rpx;
 	padding: 20rpx;
 	border-radius: 26rpx;
 	background: rgba(255, 248, 234, 0.72);
 	border: 2rpx solid rgba(181, 148, 94, 0.14);
 	box-sizing: border-box;
+}
+.channel-card-check {
+	position: absolute;
+	right: 18rpx;
+	top: 18rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 34rpx;
+	height: 34rpx;
+	border-radius: 999rpx;
+	background: #1F6E5A;
+	color: #FFFDF8;
+	font-size: 22rpx;
+	font-weight: 900;
+	line-height: 1;
 }
 .channel-card-active {
 	border-color: #1F6E5A;
