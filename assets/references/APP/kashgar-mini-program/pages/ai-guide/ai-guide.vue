@@ -342,32 +342,12 @@
 							</view>
 						</view>
 						<text v-if="msg.interrupted" class="message-status">已打断</text>
-						<view v-if="msg.sources && msg.sources.length > 0" class="message-source-list">
-							<text class="message-source-heading">已审核来源</text>
-							<view
-								v-for="(source, sourceIndex) in msg.sources"
-								:key="source.id || source.url || source.title || sourceIndex"
-								class="message-source-item"
-							>
-								<text class="message-source-title">{{ getDisplaySourceTitle(source) || '审核来源' }}</text>
-								<text v-if="getDisplaySourceDescription(source)" class="message-source-desc">
-									{{ getDisplaySourceDescription(source) }}
-								</text>
-							</view>
-						</view>
-
-						<!-- 跟进问题列表 -->
-						<view v-if="msg.followUps && msg.followUps.length > 0" class="follow-up-list">
-							<view
-								v-for="(followUp, fIndex) in msg.followUps"
-								:key="fIndex"
-								class="follow-up-item"
-								@click="handleFollowUpClick(followUp)"
-							>
-								<text class="follow-up-icon">💡</text>
-								<text class="follow-up-text">{{ followUp }}</text>
-							</view>
-						</view>
+						<XichengAiGuideMessageEvidence
+							:sources="msg.sources"
+							:follow-ups="msg.followUps"
+							:xicheng-mode="isXichengChatMode"
+							@follow-up="handleFollowUpClick"
+						/>
 					</view>
 				</view>
 				<view id="chat-bottom-anchor" class="chat-bottom-spacer"></view>
@@ -410,6 +390,7 @@ import { ref, computed, nextTick } from 'vue'
 import { onShow, onUnload, onLoad, onReady } from '@dcloudio/uni-app'
 import CustomNav from '@/components/custom-nav/custom-nav.vue'
 import TabBar from '@/components/tab-bar/tab-bar.vue'
+import XichengAiGuideMessageEvidence from '@/components/xicheng/XichengAiGuideMessageEvidence.vue'
 import config from '@/request/config.js'
 import { resolveXichengPhotoTrigger } from '@/request/xunjing/trigger.js'
 import { createXichengVisionAgentChatContextFields, normalizeXichengAiChatResponse } from '@/request/xunjing/chat.js'
@@ -421,7 +402,6 @@ import {
 import { createXichengRouteSignature, decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import {
-	getXichengDisplaySourceDescription,
 	getXichengDisplaySourceTitle,
 	normalizeXichengReviewedSources
 } from '@/request/xunjing/sources.js'
@@ -1554,7 +1534,6 @@ const createXunjingResultFollowUps = (result = {}) => {
 	return createSourceFollowUps(result && result.sources ? result.sources : [])
 }
 
-const getDisplaySourceDescription = getXichengDisplaySourceDescription
 const requestXunjingAiChat = (question) => {
 	let requestTask = null
 	const context = xichengAiContext.value || {}
