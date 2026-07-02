@@ -55,8 +55,14 @@ assert.match(
 
 assert.match(
   share,
-  /persistShareSettings\(\)[\s\S]*this\.shareSettingState = normalizeShareSettingState\(this\.shareSettingState\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.shareSettingStorageKey,\s*this\.shareSettingState\)/,
-  'Share page should persist normalized share settings after changes'
+  /restoreShareSettings\(\)[\s\S]*Array\.isArray\(storedShareSettings\.selectedPublishChannels\)[\s\S]*this\.selectedPublishChannels = storedShareSettings\.selectedPublishChannels[\s\S]*normalizeXichengSharePublishChannel\(channelKey\)/,
+  'Share page should restore persisted multi-channel publish selections through the approved channel normalizer'
+)
+
+assert.match(
+  share,
+  /persistShareSettings\(\)[\s\S]*this\.shareSettingState = normalizeShareSettingState\(this\.shareSettingState\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.shareSettingStorageKey,\s*\{[\s\S]*\.\.\.this\.shareSettingState[\s\S]*selectedPublishChannels:\s*this\.selectedPublishChannels[\s\S]*\}\)/,
+  'Share page should persist normalized share settings together with selected publish channels after changes'
 )
 
 assert.match(

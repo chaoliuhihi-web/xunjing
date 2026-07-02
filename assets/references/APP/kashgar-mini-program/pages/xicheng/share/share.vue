@@ -36,7 +36,7 @@
 			</view>
 		</view>
 
-		<xicheng-publish-channel-grid :selected-key="selectedPublishChannel" @select="selectPublishChannel" />
+		<xicheng-publish-channel-grid :selected-key="selectedPublishChannel" :selected-keys="selectedPublishChannels" :selected-count="selectedPublishChannelCount" @toggle="togglePublishChannel" @select="selectPublishChannel" />
 		<xicheng-publish-preflight-panel :items="publishPreflightItems" :selected-channel="selectedPublishChannel" />
 		<xicheng-social-share-preview v-if="['moments', 'xiaohongshu'].includes(selectedPublishChannel)" :channel="selectedPublishChannel" :cover-image="sharePosterBackground" :title="region.sharePoster.title" @copy="copyChannelShareCopy" @save-image="saveChannelShareImage" @confirm="createChannelShareArtifact" />
 
@@ -181,10 +181,14 @@ export default {
 			shareArtifacts: [],
 			reviewSubmissions: [],
 			selectedPublishChannel: 'xinghe',
+			selectedPublishChannels: ['xinghe', 'moments', 'xiaohongshu', 'pdf'],
 			shareSettingState: { ...XICHENG_DEFAULT_SHARE_SETTING_STATE }
 		}
 	},
 	computed: {
+		selectedPublishChannelCount() {
+			return this.selectedPublishChannels.length
+		},
 		sharePosterBackground() {
 			return this.region.visualAssets.sharePosterBackground || '/static/xicheng/share-poster-background.jpg'
 		},
@@ -283,10 +287,22 @@ export default {
 		restoreShareSettings() {
 			const storedShareSettings = safeObject(uni.getStorageSync(XICHENG_REGION_CONFIG.shareSettingStorageKey))
 			this.shareSettingState = normalizeShareSettingState(storedShareSettings)
+			if (Array.isArray(storedShareSettings.selectedPublishChannels) && storedShareSettings.selectedPublishChannels.length > 0) {
+				this.selectedPublishChannels = storedShareSettings.selectedPublishChannels
+					.map(channelKey => normalizeXichengSharePublishChannel(channelKey))
+					.filter((channelKey, index, list) => list.indexOf(channelKey) === index)
+			}
 		},
 		persistShareSettings() {
 			this.shareSettingState = normalizeShareSettingState(this.shareSettingState)
-			uni.setStorageSync(XICHENG_REGION_CONFIG.shareSettingStorageKey, this.shareSettingState)
+			uni.setStorageSync(XICHENG_REGION_CONFIG.shareSettingStorageKey, {
+				...this.shareSettingState,
+				selectedPublishChannels: this.selectedPublishChannels
+			})
+		},
+		savePublishSettings() {
+			this.persistShareSettings()
+			uni.showToast({ title: '发布设置已保存', icon: 'none' })
 		},
 		getShareJourneyDraft() {
 			return safeObject(uni.getStorageSync(XICHENG_REGION_CONFIG.journeyStorageKey))
@@ -388,17 +404,18 @@ export default {
 			}
 		},
 		sanitizePublicVisionAgentPackage(packagePayload = {}) {
+			const safePackagePayload = safeObject(packagePayload)
 			return {
-				packageName: packagePayload.packageName || 'AI识境自动素材包',
-				taskCount: toSafeCount(packagePayload.taskCount),
-				sceneDomainLabels: safeArray(packagePayload.sceneDomainLabels).map(label => String(label || '').trim()).filter(Boolean).slice(0, 8),
-				serviceIntentLabels: safeArray(packagePayload.serviceIntentLabels).map(label => String(label || '').trim()).filter(Boolean).slice(0, 8),
-				realSystemRequiredTaskCount: toSafeCount(packagePayload.realSystemRequiredTaskCount),
-				realSystemRequiredActionTitles: safeArray(packagePayload.realSystemRequiredActionTitles).map(title => String(title || '').trim()).filter(Boolean).slice(0, 5),
-				storyCueText: String(packagePayload.storyCueText || '').slice(0, 160),
-				mapCueText: String(packagePayload.mapCueText || '').slice(0, 160),
-				shareCueText: String(packagePayload.shareCueText || '').slice(0, 160),
-				realSystemBoundaryText: String(packagePayload.realSystemBoundaryText || '').slice(0, 160)
+				packageName: safePackagePayload.packageName || 'AI识境自动素材包',
+				taskCount: toSafeCount(safePackagePayload.taskCount),
+				sceneDomainLabels: safeArray(safePackagePayload.sceneDomainLabels).map(label => String(label || '').trim()).filter(Boolean).slice(0, 8),
+				serviceIntentLabels: safeArray(safePackagePayload.serviceIntentLabels).map(label => String(label || '').trim()).filter(Boolean).slice(0, 8),
+				realSystemRequiredTaskCount: toSafeCount(safePackagePayload.realSystemRequiredTaskCount),
+				realSystemRequiredActionTitles: safeArray(safePackagePayload.realSystemRequiredActionTitles).map(title => String(title || '').trim()).filter(Boolean).slice(0, 5),
+				storyCueText: String(safePackagePayload.storyCueText || '').slice(0, 160),
+				mapCueText: String(safePackagePayload.mapCueText || '').slice(0, 160),
+				shareCueText: String(safePackagePayload.shareCueText || '').slice(0, 160),
+				realSystemBoundaryText: String(safePackagePayload.realSystemBoundaryText || '').slice(0, 160)
 			}
 		},
 		createSharePublicPreview(journeyDraft = {}) {
@@ -432,7 +449,7 @@ export default {
 			const publicPreview = this.createSharePublicPreview(journeyDraft)
 			const publishChannel = normalizeXichengSharePublishChannel(this.selectedPublishChannel, assetType)
 			const artifact = {
-				artifactId: `share-${assetType}-${Date.now()}`,
+				artifactId: `share-${publishChannel}-${assetType}-${Date.now()}`,
 				assetType,
 				assetLabel: getXichengShareChannelAssetLabel(publishChannel, assetType),
 				templateCode: getXichengShareChannelTemplateCode(publishChannel, assetType),
@@ -474,8 +491,46 @@ export default {
 			this.openPdfPrintPage()
 		},
 		selectPublishChannel(channel = {}) {
-			this.selectedPublishChannel = channel.key || 'xinghe'
-			if (this.selectedPublishChannel === 'pdf') this.openPdfPrintPage()
+			const channelKey = typeof channel === 'string' ? channel : channel.key
+			if (this.isPublishActionCard(channelKey)) {
+				this.handlePublishAction(channelKey)
+				return
+			}
+			this.selectedPublishChannel = channelKey || 'xinghe'
+		},
+		isPublishActionCard(channelKey = '') {
+			return ['save', 'publish'].includes(channelKey)
+		},
+		togglePublishChannel(channel = {}) {
+			const channelKey = normalizeXichengSharePublishChannel(channel.key)
+			const selectedChannelSet = new Set(this.selectedPublishChannels)
+			if (selectedChannelSet.has(channelKey) && selectedChannelSet.size > 1) {
+				selectedChannelSet.delete(channelKey)
+			} else {
+				selectedChannelSet.add(channelKey)
+			}
+			this.selectedPublishChannels = Array.from(selectedChannelSet)
+			this.selectedPublishChannel = channelKey
+			this.persistShareSettings()
+		},
+		createSelectedChannelShareArtifacts() {
+			const previewChannel = this.selectedPublishChannel
+			this.selectedPublishChannels.forEach(channelKey => {
+				this.selectedPublishChannel = channelKey
+				this.createShareArtifact(getXichengShareChannelAssetType(channelKey))
+			})
+			this.selectedPublishChannel = previewChannel
+			uni.showToast({ title: '已生成所选渠道素材，请逐项确认发布', icon: 'none' })
+		},
+		handlePublishAction(event = {}) {
+			const publishAction = typeof event === 'string' ? event : event.publishAction
+			if (publishAction === 'publish') {
+				this.createSelectedChannelShareArtifacts()
+				return
+			}
+			if (publishAction === 'save') {
+				this.savePublishSettings()
+			}
 		},
 		createChannelShareArtifact(channelKey = '') {
 			const requestedChannel = typeof channelKey === 'string' && channelKey ? channelKey : this.selectedPublishChannel
