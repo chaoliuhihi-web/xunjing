@@ -33,25 +33,11 @@
 			@select-candidate="selectCandidate"
 		/>
 
-		<view v-if="recommendedRoute" class="route-card xicheng-paper-card">
-			<view class="section-head xicheng-section-label">
-				<text class="section-title">推荐路线</text>
-				<text class="section-badge">{{ recommendedRoute.durationText || recommendedRoute.duration || '可加入路线护照' }}</text>
-			</view>
-			<text class="route-title">{{ recommendedRoute.title || '西城 Citywalk 推荐路线' }}</text>
-			<text v-if="recommendedRoute.summary || recommendedRoute.theme" class="route-desc">
-				{{ recommendedRoute.summary || recommendedRoute.theme }}
-			</text>
-			<view v-if="routeSteps.length > 0" class="route-steps">
-				<text
-					v-for="(stop, index) in routeSteps"
-					:key="`${stop.poiCode || stop.poiName || stop}-${index}`"
-					class="route-stop"
-				>
-					{{ index + 1 }}. {{ stop.poiName || stop }}
-				</text>
-			</view>
-		</view>
+		<xicheng-scan-result-route-card
+			v-if="recommendedRoute"
+			:recommended-route="recommendedRoute"
+			:route-steps="routeSteps"
+		/>
 
 		<xicheng-scan-result-questions-card
 			:section-title="questionSectionTitle"
@@ -163,6 +149,7 @@ import XichengScanResultQuestionsCard from '@/components/xicheng/XichengScanResu
 import XichengScanResultVisionAgentPanel from '@/components/xicheng/XichengScanResultVisionAgentPanel.vue'
 import XichengScanResultSummaryHero from '@/components/xicheng/XichengScanResultSummaryHero.vue'
 import XichengScanResultSourcesCard from '@/components/xicheng/XichengScanResultSourcesCard.vue'
+import XichengScanResultRouteCard from '@/components/xicheng/XichengScanResultRouteCard.vue'
 
 const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
 	regionCode: XICHENG_REGION_CONFIG.regionCode,
@@ -433,7 +420,7 @@ const normalizeResult = (result = {}) => ({
 })
 
 export default {
-	components: { XichengScanResultMemoryPanel, XichengScanResultCandidateCard, XichengScanResultQuestionsCard, XichengScanResultVisionAgentPanel, XichengScanResultSummaryHero, XichengScanResultSourcesCard },
+	components: { XichengScanResultMemoryPanel, XichengScanResultCandidateCard, XichengScanResultQuestionsCard, XichengScanResultVisionAgentPanel, XichengScanResultSummaryHero, XichengScanResultSourcesCard, XichengScanResultRouteCard },
 	data() {
 		return {
 			region: XICHENG_REGION_CONFIG,
@@ -1781,7 +1768,6 @@ export default {
 	justify-content: center;
 }
 
-.route-card,
 .feedback-card {
 	padding: 32rpx;
 	border-radius: 34rpx;
@@ -1828,10 +1814,6 @@ export default {
 	margin-top: 28rpx;
 }
 
-.route-card {
-	margin-top: 28rpx;
-}
-
 .section-title {
 	display: block;
 	font-size: 30rpx;
@@ -1860,36 +1842,6 @@ export default {
 	border-radius: 999rpx;
 	background: rgba(181, 148, 94, 0.16);
 	font-size: 22rpx;
-	color: #173F35;
-}
-
-.route-title {
-	display: block;
-	margin-top: 18rpx;
-	font-size: 28rpx;
-	font-weight: 700;
-	color: #102F29;
-}
-
-.route-desc {
-	display: block;
-	margin-top: 10rpx;
-	font-size: 24rpx;
-	line-height: 1.55;
-	color: #746F68;
-}
-
-.route-steps {
-	margin-top: 18rpx;
-}
-
-.route-stop {
-	display: block;
-	margin-top: 12rpx;
-	padding: 18rpx;
-	border-radius: 22rpx;
-	background: rgba(23, 63, 53, 0.08);
-	font-size: 26rpx;
 	color: #173F35;
 }
 

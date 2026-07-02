@@ -8,6 +8,7 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const triggerRequest = read('request', 'xunjing', 'trigger.js')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
+const scanResultRouteCard = read('components', 'xicheng', 'XichengScanResultRouteCard.vue')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 const opsDetails = read('components', 'xicheng', 'XichengTravelogueOpsDetails.vue')
 const travelogueRouteSurface = `${travelogue}\n${opsDetails}`
@@ -33,12 +34,20 @@ assert.match(
 for (const required of [
   'routeRecommendation',
   'recommendedRoute',
+  '<xicheng-scan-result-route-card',
+  ':recommended-route="recommendedRoute"',
+  ':route-steps="routeSteps"'
+]) {
+  assert.ok(scanResult.includes(required), `Recognition result page should surface route recommendation ${required}`)
+}
+
+for (const required of [
   '推荐路线',
   'route-card',
   'route-title',
   'route-steps'
 ]) {
-  assert.ok(scanResult.includes(required), `Recognition result page should surface route recommendation ${required}`)
+  assert.ok(scanResultRouteCard.includes(required), `Recognition result route card should surface route recommendation ${required}`)
 }
 
 assert.match(
