@@ -40,7 +40,6 @@
 	text-align: center;
 }
 
-.hero,
 .section-card,
 .stat-card {
 	border: 1rpx solid rgba(255, 255, 255, 0.78);
@@ -48,86 +47,6 @@
 	background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(250, 246, 237, 0.88));
 	box-shadow: 0 18rpx 46rpx rgba(28, 35, 32, 0.10);
 	overflow: hidden;
-}
-
-.hero {
-	padding: 36rpx 32rpx;
-}
-
-.travelogue-hero-main {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 24rpx;
-}
-
-.travelogue-hero-copy {
-	flex: 1;
-	min-width: 0;
-}
-
-.xicheng-travelogue-hero-edit {
-	padding: 34rpx 32rpx;
-	text-align: center;
-}
-
-.xicheng-travelogue-hero-edit .travelogue-hero-main {
-	justify-content: center;
-}
-
-.xicheng-travelogue-hero-edit .travelogue-hero-copy {
-	max-width: 620rpx;
-}
-
-.xicheng-travelogue-hero-edit .title {
-	font-size: 48rpx;
-	letter-spacing: 0;
-}
-
-.xicheng-travelogue-hero-edit .subtitle {
-	color: #6B6255;
-}
-
-.travelogue-companion {
-	width: 228rpx;
-	flex-shrink: 0;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-}
-
-.travelogue-companion-avatar {
-	width: 208rpx;
-	height: 268rpx;
-	border-radius: 30rpx;
-	background: #E7EFE8;
-}
-
-.travelogue-companion-bubble {
-	width: 100%;
-	margin-top: 14rpx;
-	padding: 14rpx 12rpx;
-	border-radius: 26rpx;
-	box-sizing: border-box;
-}
-
-.companion-name,
-.companion-line {
-	display: block;
-	text-align: center;
-}
-
-.companion-name {
-	font-size: 24rpx;
-	font-weight: 700;
-	color: #173F35;
-}
-
-.companion-line {
-	margin-top: 4rpx;
-	font-size: 22rpx;
-	line-height: 1.4;
-	color: #746F68;
 }
 
 .vision-agent-task-card {
@@ -207,8 +126,6 @@
 	margin-top: 24rpx;
 }
 
-.eyebrow,
-.subtitle,
 .section-desc,
 .badge-copy,
 .empty-copy,
@@ -218,18 +135,6 @@
 	font-size: 24rpx;
 	line-height: 1.6;
 	color: #667085;
-}
-
-.title {
-	display: block;
-	margin-top: 12rpx;
-	font-size: 44rpx;
-	font-weight: 700;
-	color: #102F29;
-}
-
-.subtitle {
-	margin-top: 14rpx;
 }
 
 .stats-grid,

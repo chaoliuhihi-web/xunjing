@@ -8,6 +8,7 @@ const secondaryEntries = fs.readFileSync(path.join(root, 'components', 'xicheng'
 const secondaryDirectoryPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueSecondaryDirectory.vue')
 const recordShellPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueRecordShell.vue')
 const generationHeroPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueGenerationHero.vue')
+const legacyHeroPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueLegacyHero.vue')
 const opsDetailsPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueOpsDetails.vue')
 const editTopbarPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueEditTopbar.vue')
 assert.ok(
@@ -17,6 +18,10 @@ assert.ok(
 assert.ok(
   fs.existsSync(generationHeroPath),
   'Travelogue generation hero should be split into XichengTravelogueGenerationHero.vue instead of growing travelogue.vue'
+)
+assert.ok(
+  fs.existsSync(legacyHeroPath),
+  'Legacy travelogue hero should be split into XichengTravelogueLegacyHero.vue instead of growing travelogue.vue'
 )
 assert.ok(
   fs.existsSync(opsDetailsPath),
@@ -29,9 +34,10 @@ assert.ok(
 const secondaryDirectory = fs.readFileSync(secondaryDirectoryPath, 'utf8')
 const recordShell = fs.readFileSync(recordShellPath, 'utf8')
 const generationHero = fs.readFileSync(generationHeroPath, 'utf8')
+const legacyHero = fs.readFileSync(legacyHeroPath, 'utf8')
 const opsDetails = fs.readFileSync(opsDetailsPath, 'utf8')
 const editTopbar = fs.readFileSync(editTopbarPath, 'utf8')
-const travelogueSource = `${travelogue}\n${secondaryEntries}\n${secondaryDirectory}\n${recordShell}\n${generationHero}\n${opsDetails}\n${editTopbar}`
+const travelogueSource = `${travelogue}\n${secondaryEntries}\n${secondaryDirectory}\n${recordShell}\n${generationHero}\n${legacyHero}\n${opsDetails}\n${editTopbar}`
 const travelogueCss = fs.existsSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.css'))
   ? fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.css'), 'utf8')
   : travelogue
@@ -68,7 +74,7 @@ for (const required of [
   '<text class="travelogue-editor-title">编辑游记</text>',
   'travelogueHeroTitle',
   'travelogueHeroSubtitle',
-  '<view v-if="!isTravelogueEditMode && showLegacyTravelogueHero" :class="[\'hero\'',
+  '<xicheng-travelogue-legacy-hero',
   'v-if="isTravelogueEditMode"',
   'travelogue-editor-reference-stack',
   'travelogue-secondary-directory',
@@ -126,6 +132,24 @@ assert.match(
   travelogue,
   /import XichengTravelogueGenerationHero from '@\/components\/xicheng\/XichengTravelogueGenerationHero\.vue'[\s\S]*components:[\s\S]*XichengTravelogueGenerationHero/,
   'Travelogue page should import and register the split generation hero component'
+)
+
+assert.match(
+  travelogue,
+  /import XichengTravelogueLegacyHero from '@\/components\/xicheng\/XichengTravelogueLegacyHero\.vue'[\s\S]*components:[\s\S]*XichengTravelogueLegacyHero/,
+  'Travelogue page should import and register the split legacy hero component'
+)
+
+assert.match(
+  travelogue,
+  /<xicheng-travelogue-legacy-hero[\s\S]*v-if="!isTravelogueEditMode && showLegacyTravelogueHero"[\s\S]*:region="region"[\s\S]*:title="travelogueHeroTitle"[\s\S]*:subtitle="travelogueHeroSubtitle"[\s\S]*:companion-line="travelogueCompanionLine"/,
+  'Travelogue page should delegate the old optional hero to the split component while preserving display data'
+)
+
+assert.doesNotMatch(
+  travelogue,
+  /<view v-if="!isTravelogueEditMode && showLegacyTravelogueHero" :class="\['hero'[\s\S]*travelogue-companion-bubble/,
+  'Travelogue page shell should not keep inline legacy hero markup after extraction'
 )
 
 assert.match(

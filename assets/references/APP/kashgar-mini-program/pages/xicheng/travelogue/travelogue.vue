@@ -28,22 +28,14 @@
 			@open-share="openSharePage"
 			@open-works="openWorksPage"
 		/>
-		<view v-if="!isTravelogueEditMode && showLegacyTravelogueHero" :class="['hero', 'xicheng-paper-card', 'xicheng-travelogue-hero']">
-			<view class="travelogue-hero-main">
-				<view class="travelogue-hero-copy">
-					<text class="eyebrow">{{ region.cityName }} P0</text>
-					<text class="title">{{ travelogueHeroTitle }}</text>
-					<text class="subtitle">{{ travelogueHeroSubtitle }}</text>
-				</view>
-				<view v-if="!isTravelogueEditMode" class="travelogue-companion">
-					<image class="travelogue-companion-avatar" :src="region.companionAvatar" mode="aspectFit" />
-					<view class="travelogue-companion-bubble xicheng-companion-bubble">
-						<text class="companion-name">{{ region.companionName }}</text>
-						<text class="companion-line">{{ travelogueCompanionLine }}</text>
-					</view>
-				</view>
-			</view>
-		</view>
+		<xicheng-travelogue-legacy-hero
+			v-if="!isTravelogueEditMode && showLegacyTravelogueHero"
+			class="xicheng-travelogue-hero-host"
+			:region="region"
+			:title="travelogueHeroTitle"
+			:subtitle="travelogueHeroSubtitle"
+			:companion-line="travelogueCompanionLine"
+		/>
 		<xicheng-travelogue-generation-hero
 			v-if="!isTravelogueEditMode && showAdvancedTravelogueGeneration"
 			:region="region"
@@ -198,6 +190,7 @@ import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/req
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
 import { isXunjingUserCancelled } from '@/request/xunjing/userCancel.js'
 import XichengTravelogueGenerationHero from '@/components/xicheng/XichengTravelogueGenerationHero.vue'
+import XichengTravelogueLegacyHero from '@/components/xicheng/XichengTravelogueLegacyHero.vue'
 import XichengTravelogueEditorShare from '@/components/xicheng/travelogue-editor-share.vue'
 import XichengTravelogueEditTopbar from '@/components/xicheng/XichengTravelogueEditTopbar.vue'
 import XichengTravelogueRecordShell from '@/components/xicheng/XichengTravelogueRecordShell.vue'
@@ -515,7 +508,7 @@ export const resolvePhotoEvidenceFileMeta = (chooseImageResult = {}) => {
 	}
 }
 export default {
-	components: { XichengTravelogueGenerationHero, XichengTravelogueEditorShare, XichengTravelogueEditTopbar, XichengTravelogueRecordShell, XichengTravelogueSecondaryDirectory, XichengTravelogueOpsDetails },
+	components: { XichengTravelogueGenerationHero, XichengTravelogueLegacyHero, XichengTravelogueEditorShare, XichengTravelogueEditTopbar, XichengTravelogueRecordShell, XichengTravelogueSecondaryDirectory, XichengTravelogueOpsDetails },
 	mixins: [createXichengTravelogueGenerationStateMixin()],
 	data() {
 		return {
