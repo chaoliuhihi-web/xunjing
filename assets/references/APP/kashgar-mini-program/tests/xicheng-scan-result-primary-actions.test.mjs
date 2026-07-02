@@ -13,7 +13,7 @@ const resultCardIndex = template.indexOf('class="result-card xicheng-paper-card 
 const primaryActionsIndex = template.indexOf('class="result-reference-actions"')
 const candidateCardIndex = template.indexOf('class="candidate-card xicheng-paper-card"')
 const routeCardIndex = template.indexOf('class="route-card xicheng-paper-card"')
-const questionCardIndex = template.indexOf('class="question-card xicheng-paper-card"')
+const questionCardIndex = template.indexOf('<xicheng-scan-result-questions-card')
 const sourceCardIndex = template.indexOf('<xicheng-scan-result-sources-card')
 const feedbackCardIndex = template.indexOf('class="feedback-card xicheng-paper-card"')
 

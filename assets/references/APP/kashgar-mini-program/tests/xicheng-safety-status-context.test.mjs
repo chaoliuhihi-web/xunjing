@@ -88,8 +88,8 @@ assert.match(
 
 assert.match(
   scanResult,
-  /<text v-if="suggestedQuestions\.length === 0" class="question-empty">\{\{ questionEmptyCopy \}\}<\/text>/,
-  'Recognition result should show an explicit safe empty state when no Xiaojing follow-up questions are allowed'
+  /<xicheng-scan-result-questions-card[\s\S]*:questions="suggestedQuestions"[\s\S]*:recognition-action-blocked="recognitionActionBlocked"[\s\S]*:empty-copy="questionEmptyCopy"/,
+  'Recognition result should pass an explicit safe empty state into the suggested-questions card when no Xiaojing follow-up questions are allowed'
 )
 
 assert.match(

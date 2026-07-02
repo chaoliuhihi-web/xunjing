@@ -279,19 +279,13 @@
 			</view>
 		</view>
 
-		<view class="question-card xicheng-paper-card">
-			<text class="section-title">{{ questionSectionTitle }}</text>
-			<view
-				v-for="question in suggestedQuestions"
-				:key="question"
-				class="question-row"
-				:class="{ 'question-row-disabled': recognitionActionBlocked }"
-				@click="askXiaojing(question)"
-			>
-				<text>{{ question }}</text>
-			</view>
-			<text v-if="suggestedQuestions.length === 0" class="question-empty">{{ questionEmptyCopy }}</text>
-		</view>
+		<xicheng-scan-result-questions-card
+			:section-title="questionSectionTitle"
+			:questions="suggestedQuestions"
+			:recognition-action-blocked="recognitionActionBlocked"
+			:empty-copy="questionEmptyCopy"
+			@ask="askXiaojing"
+		/>
 
 		<xicheng-scan-result-sources-card
 			:source-list="sourceList"
@@ -345,6 +339,7 @@ import {
 	inferXichengVisionAgentSceneUnderstandingPackage
 } from '@/request/xunjing/visionAgentSceneUnderstanding.js'
 import XichengVisionAgentWorldInterfaceStrip from '@/components/xicheng/vision-agent-world-interface-strip.vue'
+import XichengScanResultQuestionsCard from '@/components/xicheng/XichengScanResultQuestionsCard.vue'
 import XichengScanResultSourcesCard from '@/components/xicheng/XichengScanResultSourcesCard.vue'
 
 const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
@@ -617,6 +612,7 @@ const normalizeResult = (result = {}) => ({
 
 export default {
 	components: {
+		XichengScanResultQuestionsCard,
 		XichengScanResultSourcesCard,
 		XichengVisionAgentWorldInterfaceStrip
 	},
@@ -1978,7 +1974,6 @@ export default {
 
 .result-card,
 .vision-agent-memory-panel,
-.question-card,
 .route-card,
 .candidate-card,
 .feedback-card {
@@ -2170,10 +2165,6 @@ export default {
 	color: #746F68;
 }
 
-.question-card {
-	margin-top: 28rpx;
-}
-
 .candidate-card {
 	margin-top: 28rpx;
 }
@@ -2249,27 +2240,6 @@ export default {
 	background: rgba(23, 63, 53, 0.08);
 	font-size: 26rpx;
 	color: #173F35;
-}
-
-.question-row {
-	margin-top: 18rpx;
-	padding: 22rpx;
-	border-radius: 22rpx;
-	background: rgba(255, 252, 246, 0.72);
-	font-size: 26rpx;
-	color: #173F35;
-}
-
-.question-row-disabled {
-	opacity: 0.58;
-}
-
-.question-empty {
-	display: block;
-	margin-top: 18rpx;
-	font-size: 24rpx;
-	line-height: 1.6;
-	color: #667085;
 }
 
 .candidate-row {
