@@ -226,6 +226,45 @@ public class XunjingVisionRecognitionServiceTest {
     }
 
     @Test
+    public void testEnrichMergesInterpretationSceneSignalsFromVisionProvider() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/vision/v1/chat/completions", exchange -> {
+            String response = """
+                    {"choices":[{"message":{"content":"{\\"labels\\":[\\"museum_object\\"],\\"ocrText\\":\\"展柜文物\\",\\"caption\\":\\"画面里是展柜里的青铜器。\\",\\"sceneSignals\\":{\\"sceneDomainIntentKey\\":\\"artifact\\",\\"sceneDomainIntentLabel\\":\\"文物\\",\\"recognizedObjectName\\":\\"青铜礼器\\",\\"eraOrPeriodText\\":\\"西周\\",\\"structureOrCraftSummary\\":\\"兽面纹铸造工艺\\",\\"historicalStorySummary\\":\\"用于礼制场景\\",\\"hiddenDetailSummary\\":\\"器身边缘有细密云雷纹\\"}}"}}]}
+                    """;
+            byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, responseBytes.length);
+            exchange.getResponseBody().write(responseBytes);
+            exchange.close();
+        });
+        server.start();
+        try {
+            XunjingVisionRecognitionService configuredService = new XunjingVisionRecognitionService();
+            setField(configuredService, "visionApiUrl",
+                    "http://127.0.0.1:" + server.getAddress().getPort() + "/vision/v1");
+            setField(configuredService, "visionApiKey", "test-key");
+
+            MultimodalTriggerReqVO reqVO = new MultimodalTriggerReqVO();
+            reqVO.setPhotoMeta(photoMeta("image/jpeg", "photo-base64"));
+
+            MultimodalTriggerReqVO enrichedReqVO = configuredService.enrich(reqVO);
+
+            assertEquals("展柜文物", enrichedReqVO.getOcrText());
+            assertEquals("artifact", enrichedReqVO.getSceneSignals().get("sceneDomainIntentKey"));
+            assertEquals("文物", enrichedReqVO.getSceneSignals().get("sceneDomainIntentLabel"));
+            assertEquals("青铜礼器", enrichedReqVO.getSceneSignals().get("recognizedObjectName"));
+            assertEquals("西周", enrichedReqVO.getSceneSignals().get("eraOrPeriodText"));
+            assertEquals("兽面纹铸造工艺",
+                    enrichedReqVO.getSceneSignals().get("structureOrCraftSummary"));
+            assertEquals("用于礼制场景", enrichedReqVO.getSceneSignals().get("historicalStorySummary"));
+            assertEquals("器身边缘有细密云雷纹",
+                    enrichedReqVO.getSceneSignals().get("hiddenDetailSummary"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     public void testEnrichInfersSceneDomainWhenProviderOnlyReturnsCaptionAndLabels() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/vision/v1/chat/completions", exchange -> {

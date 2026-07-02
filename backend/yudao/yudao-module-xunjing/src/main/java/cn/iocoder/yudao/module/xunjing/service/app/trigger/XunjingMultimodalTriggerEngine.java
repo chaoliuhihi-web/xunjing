@@ -55,7 +55,12 @@ public class XunjingMultimodalTriggerEngine {
             "signOriginalText",
             "signTranslationText",
             "signPronunciationText",
-            "signNavigationHint"
+            "signNavigationHint",
+            "recognizedObjectName",
+            "eraOrPeriodText",
+            "structureOrCraftSummary",
+            "historicalStorySummary",
+            "hiddenDetailSummary"
     );
 
     private static final List<PoiProfile> XICHENG_POIS = List.of(

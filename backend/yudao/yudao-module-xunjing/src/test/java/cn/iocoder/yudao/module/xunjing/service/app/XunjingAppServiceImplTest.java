@@ -555,6 +555,41 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerUsesInterpretationSignalsForIntentAndContextMatch() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户举起手机等待识境讲解。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合建筑细节、城市知识库和连续记忆后等待场景引擎判断。");
+        sceneSignals.put("sceneDomainIntentKey", "architecture");
+        sceneSignals.put("sceneDomainIntentLabel", "建筑");
+        sceneSignals.put("agentDecisionReasonSummary", "适合深入讲解年代、结构、隐藏细节和历史故事。");
+        sceneSignals.put("recognizedObjectName", "恭王府彩画木梁");
+        sceneSignals.put("eraOrPeriodText", "清代王府建筑");
+        sceneSignals.put("structureOrCraftSummary", "榫卯木梁结构");
+        sceneSignals.put("historicalStorySummary", "修缮时保留原有梁架和王府格局。");
+        sceneSignals.put("hiddenDetailSummary", "抬头能看到不用钉子的咬合节点。");
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setText("");
+        reqVO.setOcrText("");
+        reqVO.setImageLabels(List.of());
+        reqVO.setLocation(null);
+        reqVO.setSceneSignals(sceneSignals);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("interpret", respVO.getIntent());
+        assertEquals("confirm_scene_interpretation", respVO.getAction());
+        assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
+        assertTrue(respVO.getCandidates().get(0).getMatchedSignals().contains("scene_context_alias"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerUsesPhotoAdviceIntent() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -1976,6 +2011,65 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testAnswerUsesInterpretationSignalsFromPreviousTriggerForSourceSearch() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        consoleService.addKnowledgeDocument(xichengUnrelatedKnowledgeReq(packageId));
+        consoleService.addKnowledgeDocument(xichengArchitectureInterpretKnowledgeReq(packageId));
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户举起手机等待建筑细节讲解。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合建筑细节和城市知识库后等待连续问答。");
+        sceneSignals.put("sceneDomainIntentKey", "architecture");
+        sceneSignals.put("sceneDomainIntentLabel", "建筑");
+        sceneSignals.put("agentDecisionReasonSummary", "适合深入讲解。");
+        sceneSignals.put("recognizedObjectName", "无钉木梁");
+        sceneSignals.put("eraOrPeriodText", "清代");
+        sceneSignals.put("structureOrCraftSummary", "榫卯木梁结构");
+        sceneSignals.put("historicalStorySummary", "修缮时保留原有梁架。");
+        sceneSignals.put("hiddenDetailSummary", "抬头能看到不用钉子的咬合节点。");
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-interpret-search-001");
+        triggerReq.setText("先记住这个建筑细节");
+        triggerReq.setOcrText("");
+        triggerReq.setImageLabels(List.of());
+        triggerReq.setLocation(null);
+        triggerReq.setSceneSignals(sceneSignals);
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("ask", triggerResp.getIntent());
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-interpret-search-001");
+        followUpReq.setQuestion("这个细节怎么讲？");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO followUpAnswer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", followUpAnswer.getSafetyStatus());
+        assertFalse(followUpAnswer.getSources().isEmpty());
+        assertEquals("西城建筑榫卯细节讲解稿", followUpAnswer.getSources().get(0).getTitle());
+        assertTrue(followUpAnswer.getAnswer().contains("无钉木梁")
+                || followUpAnswer.getAnswer().contains("榫卯")
+                || followUpAnswer.getAnswer().contains("咬合节点"));
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId, "trace-xicheng-interpret-search-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("无钉木梁"));
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("榫卯木梁结构"));
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("咬合节点"));
+    }
+
+    @Test
     public void testAnswerHydratesPhotoAdviceHandoffFromTrigger() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -2642,6 +2736,19 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
         reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/sign-translation");
         reqVO.setContentDigest("市场路可读作 bazaar yoli，可作为前往市场入口的导航线索。");
+        reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
+        reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
+        reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());
+        return reqVO;
+    }
+
+    private KnowledgeDocumentCreateReqVO xichengArchitectureInterpretKnowledgeReq(Long packageId) {
+        KnowledgeDocumentCreateReqVO reqVO = new KnowledgeDocumentCreateReqVO();
+        reqVO.setPackageId(packageId);
+        reqVO.setTitle("西城建筑榫卯细节讲解稿");
+        reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
+        reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/architecture-detail");
+        reqVO.setContentDigest("无钉木梁常通过榫卯木梁结构完成受力和咬合，抬头可观察不用钉子的咬合节点。");
         reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
         reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
         reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());

@@ -129,6 +129,11 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             "signTranslationText",
             "signPronunciationText",
             "signNavigationHint",
+            "recognizedObjectName",
+            "eraOrPeriodText",
+            "structureOrCraftSummary",
+            "historicalStorySummary",
+            "hiddenDetailSummary",
             "visionRecognitionStatus",
             "visionRecognitionModel"
     );
@@ -996,6 +1001,11 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         putPreviousJsonMemoryPart(parts, "路牌翻译", sceneSignals, "signTranslationText");
         putPreviousJsonMemoryPart(parts, "发音", sceneSignals, "signPronunciationText");
         putPreviousJsonMemoryPart(parts, "导航提示", sceneSignals, "signNavigationHint");
+        putPreviousJsonMemoryPart(parts, "识境对象", sceneSignals, "recognizedObjectName");
+        putPreviousJsonMemoryPart(parts, "年代时期", sceneSignals, "eraOrPeriodText");
+        putPreviousJsonMemoryPart(parts, "结构工艺", sceneSignals, "structureOrCraftSummary");
+        putPreviousJsonMemoryPart(parts, "历史故事", sceneSignals, "historicalStorySummary");
+        putPreviousJsonMemoryPart(parts, "隐藏细节", sceneSignals, "hiddenDetailSummary");
         putPreviousJsonMemoryPart(parts, "OCR", root, "ocrText");
         return String.join("；", parts);
     }
