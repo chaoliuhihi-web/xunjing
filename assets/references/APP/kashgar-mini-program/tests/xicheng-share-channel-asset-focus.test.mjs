@@ -4,7 +4,9 @@ import path from 'node:path'
 
 const root = process.cwd()
 const share = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'share', 'share.vue'), 'utf8')
+const shareAssetPanel = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengShareAssetPanel.vue'), 'utf8')
 const shareAssets = fs.readFileSync(path.join(root, 'request', 'xunjing', 'shareAssets.js'), 'utf8')
+const shareSurface = `${share}\n${shareAssetPanel}`
 
 for (const token of [
   '朋友圈素材',
@@ -17,7 +19,7 @@ for (const token of [
   'getXichengShareChannelAssetType',
   'getXichengShareChannelTemplateCode'
 ]) {
-  assert.ok(share.includes(token), `Share page should expose channel-focused asset token: ${token}`)
+  assert.ok(shareSurface.includes(token), `Share page should expose channel-focused asset token: ${token}`)
 }
 
 for (const token of [
@@ -46,7 +48,7 @@ assert.match(
 )
 
 assert.doesNotMatch(
-  `${share}\n${shareAssets}`,
+  `${shareSurface}\n${shareAssets}`,
   /亲子研学报告|createShareArtifact\('study'\)|xicheng-study-report-v1/,
   'Share page primary asset creation should focus on travelogue publishing and PDF printing, not study reports'
 )

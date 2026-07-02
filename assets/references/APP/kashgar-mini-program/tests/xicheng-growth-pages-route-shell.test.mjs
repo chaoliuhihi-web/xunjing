@@ -43,6 +43,9 @@ const requiredPages = [
     route: 'pages/xicheng/share/share',
     title: '分享纪念',
     file: ['pages', 'xicheng', 'share', 'share.vue'],
+    componentFiles: [
+      ['components', 'xicheng', 'XichengShareAssetPanel.vue']
+    ],
     requiredTokens: [
       'xicheng-share',
       'XICHENG_REGION_CONFIG.shareAssetStorageKey',
@@ -107,19 +110,24 @@ for (const page of requiredPages) {
     `${page.route} should stay a focused shell page and avoid growing into another large file`
   )
 
+  const componentSource = (page.componentFiles || [])
+    .map(componentFile => readOptional(...componentFile))
+    .join('\n')
+  const implementationSurface = `${source}\n${componentSource}`
+
   for (const token of page.requiredTokens) {
-    assert.ok(source.includes(token), `${page.route} should expose ${token}`)
+    assert.ok(implementationSurface.includes(token), `${page.route} should expose ${token}`)
   }
 
   assert.doesNotMatch(
-    source,
+    implementationSurface,
     /\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}|background-location|startLocationUpdateBackground/,
     `${page.route} should not introduce backend calls, client secrets, or high-risk background permissions`
   )
 
   if (page.forbiddenPattern) {
     assert.doesNotMatch(
-      source,
+      implementationSurface,
       page.forbiddenPattern,
       `${page.route} should not surface disabled or duplicated product modules`
     )
