@@ -17,53 +17,18 @@
 			@generate="$emit('generate')"
 			@add-photo="$emit('add-photo')"
 		/>
-		<view class="travelogue-approved-card xicheng-paper-card">
-			<view class="travelogue-approved-section-head">
-				<text class="travelogue-approved-section-title">今日素材</text>
-				<text class="travelogue-approved-section-link" @click="$emit('scroll-draft')">查看全部</text>
-			</view>
-			<view class="travelogue-approved-material-grid">
-				<view class="travelogue-approved-material-card">
-					<xicheng-icon name="location" variant="plain" :size="24" />
-					<text class="material-label">识别地点</text>
-					<text class="material-value">{{ materialCount }} 个</text>
-				</view>
-				<view class="travelogue-approved-material-card">
-					<xicheng-icon name="route" variant="plain" :size="24" />
-					<text class="material-label">路线</text>
-					<text class="material-value">{{ routeCount }} 条</text>
-				</view>
-				<view class="travelogue-approved-material-card">
-					<xicheng-icon name="photo" variant="plain" :size="24" />
-					<text class="material-label">照片</text>
-					<text class="material-value">{{ photoCount }} 张</text>
-				</view>
-				<view class="travelogue-approved-material-card">
-					<xicheng-icon name="qa" variant="plain" :size="24" />
-					<text class="material-label">问答</text>
-					<text class="material-value">{{ qaCount }} 条</text>
-				</view>
-			</view>
-			<view class="travelogue-approved-ready-line" :class="{ 'ready-line-active': hasEvidence }">
-				<xicheng-icon name="check" variant="plain" :size="18" />
-				<text>{{ hasEvidence ? '素材充足，可生成草稿' : '素材不足，继续补充后再生成' }}</text>
-			</view>
-			<view class="travelogue-approved-draft-card">
-				<image class="travelogue-approved-draft-image" :src="previewImage" mode="aspectFill" />
-				<view class="travelogue-approved-draft-copy">
-					<view class="travelogue-approved-draft-title-row">
-						<text class="travelogue-approved-draft-title">{{ previewTitle }}</text>
-						<text class="travelogue-approved-draft-status">{{ hasEvidence ? '草稿' : '待补充' }}</text>
-					</view>
-					<text class="travelogue-approved-draft-excerpt">{{ previewText }}</text>
-					<text class="travelogue-approved-draft-meta">来自：白塔寺识别 · 什刹海路线 · {{ photoCount }} 张照片 · {{ qaCount }} 次问答</text>
-					<button class="travelogue-approved-preview-button" @click="$emit('open-reader')">
-						<xicheng-icon name="play" variant="primary" active :size="18" />
-						<text>预览草稿</text>
-					</button>
-				</view>
-			</view>
-		</view>
+		<xicheng-travelogue-material-draft-card
+			:preview-image="previewImage"
+			:preview-title="previewTitle"
+			:preview-text="previewText"
+			:material-count="materialCount"
+			:route-count="routeCount"
+			:photo-count="photoCount"
+			:qa-count="qaCount"
+			:has-evidence="hasEvidence"
+			@scroll-draft="$emit('scroll-draft')"
+			@open-reader="$emit('open-reader')"
+		/>
 		<view class="travelogue-approved-card xicheng-paper-card">
 			<view class="travelogue-approved-section-head">
 				<text class="travelogue-approved-section-title">生成风格</text>
@@ -111,11 +76,12 @@
 
 <script>
 import XichengTravelogueActionGrid from '@/components/xicheng/XichengTravelogueActionGrid.vue'
+import XichengTravelogueMaterialDraftCard from '@/components/xicheng/XichengTravelogueMaterialDraftCard.vue'
 import XichengTravelogueRecordHeroCard from '@/components/xicheng/XichengTravelogueRecordHeroCard.vue'
 
 export default {
 	name: 'XichengTravelogueRecordShell',
-	components: { XichengTravelogueActionGrid, XichengTravelogueRecordHeroCard },
+	components: { XichengTravelogueActionGrid, XichengTravelogueMaterialDraftCard, XichengTravelogueRecordHeroCard },
 	props: {
 		region: { type: Object, default: () => ({}) },
 		previewImage: { type: String, default: '' },
@@ -280,135 +246,6 @@ export default {
 .travelogue-approved-section-link {
 	font-size: 24rpx;
 	color: #746F68;
-}
-
-.travelogue-approved-material-grid {
-	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 14rpx;
-	margin-top: 24rpx;
-}
-
-.travelogue-approved-material-card {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	min-width: 0;
-	min-height: 142rpx;
-	padding: 18rpx 10rpx;
-	border-radius: 22rpx;
-	background: rgba(255, 252, 246, 0.82);
-	border: 1rpx solid rgba(181, 148, 94, 0.14);
-	box-sizing: border-box;
-}
-
-.material-label {
-	margin-top: 10rpx;
-	font-size: 22rpx;
-	color: #746F68;
-	white-space: nowrap;
-}
-
-.material-value {
-	margin-top: 6rpx;
-	font-size: 31rpx;
-	font-weight: 900;
-	color: #102F29;
-}
-
-.travelogue-approved-ready-line {
-	display: flex;
-	align-items: center;
-	gap: 12rpx;
-	margin-top: 18rpx;
-	padding: 18rpx 20rpx;
-	border-radius: 20rpx;
-	background: rgba(181, 148, 94, 0.10);
-	color: #8A5B1E;
-	font-size: 24rpx;
-	font-weight: 800;
-}
-
-.ready-line-active {
-	background: rgba(31, 110, 90, 0.10);
-	color: #173F35;
-}
-
-.travelogue-approved-draft-card {
-	display: grid;
-	grid-template-columns: 178rpx minmax(0, 1fr);
-	gap: 20rpx;
-	margin-top: 22rpx;
-	padding: 18rpx;
-	border-radius: 26rpx;
-	background: #FFFFFF;
-	border: 1rpx solid rgba(181, 148, 94, 0.14);
-	box-shadow: 0 8rpx 22rpx rgba(35, 42, 34, 0.06);
-}
-
-.travelogue-approved-draft-image {
-	width: 178rpx;
-	height: 200rpx;
-	border-radius: 22rpx;
-	object-fit: cover;
-}
-
-.travelogue-approved-draft-copy {
-	min-width: 0;
-}
-
-.travelogue-approved-draft-title-row {
-	display: flex;
-	align-items: center;
-	gap: 12rpx;
-}
-
-.travelogue-approved-draft-title {
-	min-width: 0;
-	flex: 1;
-	font-size: 30rpx;
-	line-height: 1.25;
-	font-weight: 900;
-	color: #102F29;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.travelogue-approved-draft-status {
-	padding: 6rpx 12rpx;
-	border-radius: 999rpx;
-	background: rgba(181, 148, 94, 0.14);
-	color: #8A5B1E;
-	font-size: 20rpx;
-	font-weight: 800;
-}
-
-.travelogue-approved-draft-excerpt {
-	margin-top: 12rpx;
-	font-size: 24rpx;
-	line-height: 1.52;
-	color: rgba(16, 47, 41, 0.72);
-	display: -webkit-box;
-	-webkit-line-clamp: 3;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
-}
-
-.travelogue-approved-draft-meta {
-	margin-top: 12rpx;
-	font-size: 22rpx;
-	line-height: 1.4;
-	color: #746F68;
-}
-
-.travelogue-approved-preview-button {
-	width: 196rpx;
-	height: 56rpx;
-	margin-top: 14rpx;
-	background: linear-gradient(135deg, #173F35, #0F332D);
-	color: #FFFFFF;
-	font-size: 23rpx;
 }
 
 .travelogue-approved-style-row {

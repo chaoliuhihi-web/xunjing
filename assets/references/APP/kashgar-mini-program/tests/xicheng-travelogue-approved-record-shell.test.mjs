@@ -6,9 +6,10 @@ const root = process.cwd()
 const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
 const recordShell = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengTravelogueRecordShell.vue'), 'utf8')
 const recordHeroCard = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengTravelogueRecordHeroCard.vue'), 'utf8')
+const materialDraftCard = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengTravelogueMaterialDraftCard.vue'), 'utf8')
 const css = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.css'), 'utf8')
-const combinedSource = `${travelogue}\n${recordShell}\n${recordHeroCard}`
-const combinedStyle = `${css}\n${recordShell}\n${recordHeroCard}`
+const combinedSource = `${travelogue}\n${recordShell}\n${recordHeroCard}\n${materialDraftCard}`
+const combinedStyle = `${css}\n${recordShell}\n${recordHeroCard}\n${materialDraftCard}`
 
 for (const required of [
   'travelogue-approved-record-shell',
