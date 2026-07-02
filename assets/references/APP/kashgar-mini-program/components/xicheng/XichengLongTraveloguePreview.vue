@@ -284,15 +284,18 @@ export default {
 					{ title: '保留编辑入口', text: '素材准备好后，可以选择模板、定制封面和排版，再生成可分享的游记。', image: '' }
 				]
 			}
-			if (Array.isArray(this.chapters) && this.chapters.length > 0) {
-				return this.chapters.slice(0, 6)
-			}
-			return this.safeRouteItems.map((item, index) => ({
+			const fallbackChapters = this.safeRouteItems.map((item, index) => ({
 				title: item.title,
 				text: item.desc || '这一站不只是一个地名，也是今天被认真保存下来的一段。',
 				quote: index % 2 === 0 ? '慢下来，才看见细节。' : '把时间留给真正喜欢的地方。',
 				image: item.image || this.coverImage
 			}))
+			if (Array.isArray(this.chapters) && this.chapters.length > 0) {
+				const customChapters = this.chapters.slice(0, 6)
+				const missingChapters = fallbackChapters.slice(customChapters.length, 6)
+				return [...customChapters, ...missingChapters].slice(0, 6)
+			}
+			return fallbackChapters
 		},
 		dailySections() {
 			const chapters = this.safeChapters

@@ -18,7 +18,6 @@ assert.match(
 )
 
 for (const required of [
-  'AI识境',
   '扫一扫',
   '拍照识别 · 文字识别 · 附近触发',
   'home-scan-card',

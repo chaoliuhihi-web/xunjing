@@ -37,6 +37,18 @@ assert.ok(
 
 assert.match(
   home,
+  /xichengHomeNavItems:\s*\[[\s\S]*\{ key: 'explore', title: '探索', icon: 'explore' \}[\s\S]*\{ key: 'routes', title: '地图', icon: 'routes' \}[\s\S]*\{ key: 'record', title: '记录', icon: 'record' \}[\s\S]*\{ key: 'mine', title: '我的', icon: 'mine' \}[\s\S]*\]/,
+  'Xicheng home bottom navigation should keep the approved four top-level tabs'
+)
+
+assert.doesNotMatch(
+  home,
+  /xichengHomeNavItems:\s*\[[\s\S]*key:\s*'vision'[\s\S]*\]|title:\s*'AI识境'[\s\S]*icon:\s*'scan'/,
+  'AI识境 should not be a fifth bottom-nav tab; it stays behind the approved scan card entry'
+)
+
+assert.match(
+  home,
   /handleXichengHomeNav\(key = 'explore'\)[\s\S]*case 'explore':[\s\S]*scrollTop:\s*0/,
   'Explore bottom nav item should return to the first-viewport home surface'
 )
@@ -67,6 +79,6 @@ assert.match(
 
 assert.doesNotMatch(
   home,
-  /<tab-bar|@\/components\/tab-bar\/tab-bar\.vue|\/subPackages\/user\/my\/my|xicheng-home-bottom-nav|title: '收藏'|key: 'footprint'/,
-  'Xicheng home should not reuse the Kashgar tab-bar, jump to old account pages, or keep 收藏 as a top-level bottom tab'
+  /<tab-bar|@\/components\/tab-bar\/tab-bar\.vue|\/subPackages\/user\/my\/my|xicheng-home-bottom-nav|title: '收藏'|key: 'footprint'|case 'vision':/,
+  'Xicheng home should not reuse the Kashgar tab-bar, jump to old account pages, keep 收藏, or promote AI识境 as a top-level bottom tab'
 )

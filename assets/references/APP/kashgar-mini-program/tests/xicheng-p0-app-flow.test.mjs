@@ -88,7 +88,6 @@ for (const required of [
 
 for (const required of [
   '小京',
-  'AI识境',
   '西城 AI 旅伴',
   '扫一扫',
   '最近识别',
@@ -104,6 +103,12 @@ for (const required of [
 ]) {
   assert.ok(home.includes(required), `Xicheng home should include ${required}`)
 }
+
+assert.match(
+  pagesJson,
+  /"path":\s*"pages\/xicheng\/scan\/scan"[\s\S]*"navigationBarTitleText":\s*"AI识境"/,
+  'Xicheng P0 should keep AI识境 as the registered single scan entry while the home page exposes it through 扫一扫'
+)
 
 assert.doesNotMatch(
   home,

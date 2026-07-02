@@ -8,6 +8,8 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 const regionConfig = read('config', 'regions', 'xicheng.js')
 const home = read('pages', 'xicheng', 'home', 'home.vue')
 const companionAsset = path.join(root, 'static', 'xicheng', 'xiaojing-companion.png')
+const homeCompanionAsset = path.join(root, 'static', 'xicheng', 'xiaojing-companion-cutout-v2.png')
+const heroPaperAsset = path.join(root, 'static', 'xicheng', 'home-hero-xicheng-approved-v3.jpg')
 const heroLandmarkAsset = path.join(root, 'static', 'xicheng', 'scene-baitasi-waterfront.jpg')
 const routeAssets = [
   'route-baitasi-culture.jpg',
@@ -27,13 +29,33 @@ assert.ok(
 )
 
 assert.ok(
+  fs.existsSync(homeCompanionAsset),
+  'Xicheng APP should ship a home-specific Xiaojing cutout so the hero does not show a rectangular image block'
+)
+
+assert.ok(
+  fs.statSync(homeCompanionAsset).size < 360 * 1024,
+  'Xicheng Xiaojing home cutout should stay compact enough for APP startup'
+)
+
+assert.ok(
   fs.existsSync(heroLandmarkAsset),
   'Xicheng APP should ship a compact scenic landmark image for the home hero'
 )
 
 assert.ok(
+  fs.existsSync(heroPaperAsset),
+  'Xicheng APP should ship a refined paper-style West City hero background for the approved home layout'
+)
+
+assert.ok(
   fs.statSync(heroLandmarkAsset).size < 300 * 1024,
   'Xicheng scenic landmark image should stay compact instead of shipping a full-page mockup'
+)
+
+assert.ok(
+  fs.statSync(heroPaperAsset).size < 220 * 1024,
+  'Xicheng paper hero background should stay compact for APP startup'
 )
 
 for (const asset of routeAssets) {
@@ -48,20 +70,20 @@ assert.ok(
 
 assert.match(
   regionConfig,
-  /visualAssets:\s*\{[\s\S]*heroLandmark:\s*'\/static\/xicheng\/scene-baitasi-waterfront\.jpg'[\s\S]*routeThumbnails:\s*\{[\s\S]*['"]baitasi-imperial-shichahai['"]:\s*'\/static\/xicheng\/route-baitasi-culture\.jpg'[\s\S]*['"]beihai-shichahai-waterfront['"]:\s*'\/static\/xicheng\/route-shichahai-waterfront\.jpg'[\s\S]*['"]dashilar-old-brand-walk['"]:\s*'\/static\/xicheng\/route-hutong-life\.jpg'/,
+  /visualAssets:\s*\{[\s\S]*homeHeroBackground:\s*'\/static\/xicheng\/home-hero-xicheng-approved-v3\.jpg'[\s\S]*homeCompanion:\s*'\/static\/xicheng\/xiaojing-companion-cutout-v2\.png'[\s\S]*heroLandmark:\s*'\/static\/xicheng\/scene-baitasi-waterfront\.jpg'[\s\S]*routeThumbnails:\s*\{[\s\S]*['"]baitasi-imperial-shichahai['"]:\s*'\/static\/xicheng\/route-baitasi-culture\.jpg'[\s\S]*['"]beihai-shichahai-waterfront['"]:\s*'\/static\/xicheng\/route-shichahai-waterfront\.jpg'[\s\S]*['"]dashilar-old-brand-walk['"]:\s*'\/static\/xicheng\/route-hutong-life\.jpg'/,
   'Xicheng region config should expose compact reusable visual assets instead of page-local image paths'
 )
 
 for (const required of [
   'class="home-location-row"',
   'class="hero-landmark-image"',
-  ':src="region.visualAssets.heroLandmark"',
+  ':src="region.visualAssets.homeHeroBackground || region.visualAssets.heroLandmark"',
   'class="hero xicheng-reference-hero"',
   'class="hero-atmosphere"',
   'class="hero-main"',
   'class="companion-visual"',
   'class="xiaojing-avatar"',
-  ':src="region.companionAvatar"',
+  ':src="(region.visualAssets && region.visualAssets.homeCompanion) || region.companionAvatar"',
   'mode="aspectFit"',
   'class="home-action-duo"',
   'home-scan-card',
@@ -80,8 +102,8 @@ for (const required of [
 
 assert.match(
   home,
-  /<image[\s\S]*class="xiaojing-avatar"[\s\S]*:src="region\.companionAvatar"[\s\S]*mode="aspectFit"/,
-  'Xicheng home should render Xiaojing as an image in the hero, not as text-only copy'
+  /<image[\s\S]*class="xiaojing-avatar"[\s\S]*:src="\(\s*region\.visualAssets && region\.visualAssets\.homeCompanion\s*\) \|\| region\.companionAvatar"[\s\S]*mode="aspectFit"/,
+  'Xicheng home should render Xiaojing through the home-specific cutout asset, not as text-only copy or a rectangular source image'
 )
 
 assert.match(
@@ -104,8 +126,8 @@ assert.match(
 
 assert.match(
   styleBlock,
-  /\.xicheng-reference-hero\s*\{[\s\S]*min-height:\s*640rpx[\s\S]*overflow:\s*hidden/,
-  'Xicheng home hero should use an immersive first-screen hero treatment aligned with the visual reference'
+  /\.xicheng-reference-hero\s*\{[\s\S]*min-height:\s*430rpx[\s\S]*overflow:\s*hidden/,
+  'Xicheng home hero should use a compact paper-hero treatment that leaves first-screen room for the primary function cards'
 )
 
 assert.match(
@@ -122,8 +144,8 @@ assert.match(
 
 assert.match(
   styleBlock,
-  /\.xicheng-reference-hero \.xiaojing-avatar\s*\{[\s\S]*width:\s*386rpx[\s\S]*height:\s*462rpx/,
-  'Xicheng home Xiaojing visual should be large enough to anchor the first viewport instead of reading as a small avatar'
+  /\.xicheng-reference-hero \.xiaojing-avatar\s*\{[\s\S]*width:\s*314rpx[\s\S]*height:\s*390rpx/,
+  'Xicheng home Xiaojing visual should anchor the compact paper hero without pushing function cards below the first viewport'
 )
 
 assert.match(

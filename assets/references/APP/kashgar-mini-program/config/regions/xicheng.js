@@ -12,6 +12,8 @@ const XICHENG_REGION_BASE_CONFIG = {
 	companionName: '小京',
 	companionAvatar: '/static/xicheng/xiaojing-companion.png',
 	visualAssets: {
+		homeHeroBackground: '/static/xicheng/home-hero-xicheng-approved-v3.jpg',
+		homeCompanion: '/static/xicheng/xiaojing-companion-cutout-v2.png',
 		heroLandmark: '/static/xicheng/scene-baitasi-waterfront.jpg',
 		poiCards: {
 			'xicheng-baitasi': '/static/xicheng/poi-baitasi-card.jpg'

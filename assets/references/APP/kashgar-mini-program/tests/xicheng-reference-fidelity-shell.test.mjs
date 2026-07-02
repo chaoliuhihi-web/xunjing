@@ -30,8 +30,8 @@ assert.match(
 
 assert.match(
   homeStyle,
-  /\.xicheng-reference-hero\s*\{[\s\S]*min-height:\s*640rpx[\s\S]*border-radius:\s*38rpx/,
-  'Xicheng home styles should preserve the tall approved hero proportions'
+  /\.xicheng-reference-hero\s*\{[\s\S]*min-height:\s*430rpx[\s\S]*border-radius:\s*38rpx/,
+  'Xicheng home styles should preserve the approved compact paper-hero proportions'
 )
 
 assert.match(

@@ -15,7 +15,7 @@
 			<image
 				v-if="region.visualAssets && region.visualAssets.heroLandmark"
 				class="hero-landmark-image"
-				:src="region.visualAssets.heroLandmark"
+				:src="region.visualAssets.homeHeroBackground || region.visualAssets.heroLandmark"
 				mode="aspectFill"
 			/>
 			<view class="hero-atmosphere"></view>
@@ -26,7 +26,11 @@
 					<text class="subtitle">星河寻境 · 知识随行</text>
 				</view>
 				<view class="companion-visual">
-					<image class="xiaojing-avatar" :src="region.companionAvatar" mode="aspectFit" />
+					<image
+						class="xiaojing-avatar"
+						:src="(region.visualAssets && region.visualAssets.homeCompanion) || region.companionAvatar"
+						mode="aspectFit"
+					/>
 					<view class="hero-ask-card xicheng-companion-bubble" :class="{ 'home-action-disabled': recognizing }" @click="askXiaojing">
 						<view class="hero-ask-icon">
 							<xicheng-icon name="qa" variant="plain" :size="24" />
@@ -198,7 +202,6 @@ export default {
 			region: XICHENG_REGION_CONFIG,
 			xichengHomeNavItems: [
 				{ key: 'explore', title: '探索', icon: 'explore' },
-				{ key: 'vision', title: 'AI识境', icon: 'scan' },
 				{ key: 'routes', title: '地图', icon: 'routes' },
 				{ key: 'record', title: '记录', icon: 'record' },
 				{ key: 'mine', title: '我的', icon: 'mine' }
@@ -786,9 +789,6 @@ export default {
 						scrollTop: 0,
 						duration: 220
 					})
-					break
-				case 'vision':
-					this.startSceneVisionAgent()
 					break
 				case 'routes':
 					this.openXichengRoutes()
@@ -1557,30 +1557,31 @@ export default {
 }
 
 .xicheng-reference-hero {
-	min-height: 640rpx;
-	padding: 44rpx 40rpx 28rpx;
+	min-height: 430rpx;
+	padding: 34rpx 34rpx 26rpx;
 	border-radius: 38rpx;
 	overflow: hidden;
 	background:
-		linear-gradient(180deg, rgba(255, 253, 247, 0.10) 0%, rgba(255, 250, 241, 0.36) 54%, rgba(255, 250, 241, 0.96) 100%),
+		linear-gradient(90deg, rgba(255, 253, 247, 0.92) 0%, rgba(255, 250, 241, 0.58) 48%, rgba(255, 250, 241, 0.18) 100%),
+		linear-gradient(180deg, rgba(255, 253, 247, 0.04) 0%, rgba(255, 250, 241, 0.24) 64%, rgba(255, 250, 241, 0.92) 100%),
 		#F8F2E8;
 	box-shadow: 0 24rpx 56rpx rgba(35, 42, 34, 0.12);
 }
 
 .xicheng-reference-hero .hero-landmark-image {
-	opacity: 0.72;
-	filter: saturate(0.98) contrast(1.04);
+	opacity: 0.94;
+	filter: saturate(1) contrast(1.02);
 }
 
 .xicheng-reference-hero .hero-atmosphere {
-	height: 46%;
+	height: 38%;
 	background:
-		linear-gradient(180deg, rgba(255, 250, 241, 0), rgba(255, 250, 241, 0.82));
+		linear-gradient(180deg, rgba(255, 250, 241, 0), rgba(255, 250, 241, 0.76));
 }
 
 .xicheng-reference-hero .hero-copy {
-	max-width: 460rpx;
-	padding-top: 42rpx;
+	max-width: 390rpx;
+	padding-top: 20rpx;
 }
 
 .xicheng-reference-hero .eyebrow {
@@ -1589,27 +1590,27 @@ export default {
 }
 
 .xicheng-reference-hero .title {
-	margin-top: 24rpx;
-	font-size: 66rpx;
+	margin-top: 14rpx;
+	font-size: 56rpx;
 	letter-spacing: 0;
 }
 
 .xicheng-reference-hero .subtitle {
-	margin-top: 24rpx;
-	font-size: 30rpx;
-	letter-spacing: 6rpx;
+	margin-top: 14rpx;
+	font-size: 27rpx;
+	letter-spacing: 3rpx;
 	color: rgba(16, 47, 41, 0.78);
 }
 
 .xicheng-reference-hero .companion-visual {
-	right: -8rpx;
-	bottom: 18rpx;
-	width: 386rpx;
+	right: -2rpx;
+	bottom: 0;
+	width: 314rpx;
 }
 
 .xicheng-reference-hero .xiaojing-avatar {
-	width: 386rpx;
-	height: 462rpx;
+	width: 314rpx;
+	height: 390rpx;
 	border-radius: 0;
 	background: transparent;
 	box-shadow: none;
@@ -1625,8 +1626,8 @@ export default {
 }
 
 .xicheng-reference-hero .hero-ask-card {
-	left: -230rpx;
-	bottom: 136rpx;
+	left: -252rpx;
+	bottom: 118rpx;
 	width: 300rpx;
 }
 
@@ -1789,8 +1790,8 @@ export default {
 }
 
 .xicheng-home-first-screen-density .xicheng-reference-hero {
-	min-height: 640rpx;
-	padding-top: 30rpx;
+	min-height: 430rpx;
+	padding-top: 28rpx;
 }
 
 .xicheng-home-first-screen-density {
@@ -1802,35 +1803,35 @@ export default {
 }
 
 .xicheng-home-first-screen-density .xicheng-reference-hero .hero-copy {
-	padding-top: 28rpx;
+	padding-top: 18rpx;
 }
 
 .xicheng-home-first-screen-density .xicheng-reference-hero .title {
-	margin-top: 18rpx;
-	font-size: 62rpx;
+	margin-top: 12rpx;
+	font-size: 54rpx;
 }
 
 .xicheng-home-first-screen-density .xicheng-reference-hero .subtitle {
-	margin-top: 18rpx;
-	font-size: 28rpx;
+	margin-top: 12rpx;
+	font-size: 26rpx;
 }
 
 .xicheng-home-first-screen-density .xicheng-reference-hero .companion-visual {
-	right: -10rpx;
-	bottom: 10rpx;
-	width: 370rpx;
+	right: -8rpx;
+	bottom: 0;
+	width: 312rpx;
 }
 
 .xicheng-home-first-screen-density .xicheng-reference-hero .xiaojing-avatar {
-	width: 370rpx;
-	height: 440rpx;
+	width: 312rpx;
+	height: 388rpx;
 }
 
 .xicheng-home-first-screen-density .xicheng-reference-hero .hero-ask-card {
-	left: -214rpx;
-	bottom: 126rpx;
-	width: 288rpx;
-	min-height: 104rpx;
+	left: -246rpx;
+	bottom: 112rpx;
+	width: 292rpx;
+	min-height: 100rpx;
 }
 
 .xicheng-home-first-screen-density .home-action-duo {
