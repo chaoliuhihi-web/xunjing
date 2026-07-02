@@ -24,6 +24,11 @@ for (const required of [
   assert.ok(buildPayloadBlock.includes(required), `Xicheng chat payload should include ${required}`)
 }
 
+assert.ok(
+  buildPayloadBlock.includes('...createXichengServiceHandoffEvidenceFields(context)'),
+  'Xicheng chat payload should reuse the shared service handoff evidence helper so backend AI routing receives scene-service intent'
+)
+
 assert.match(
   chatRequest,
   /const XICHENG_BLOCKED_ANSWER\s*=\s*'无已审核来源，不能回答'/,
@@ -94,6 +99,22 @@ const isXichengUnsafeSafetyStatus = (safetyStatus = '') => ['BLOCKED', 'UNAVAILA
   .replace(
     /import \{ normalizeXichengReviewedSources \} from '@\/request\/xunjing\/sources\.js'/,
     `const normalizeXichengReviewedSources = (sources = []) => Array.isArray(sources) ? sources : []`
+  )
+  .replace(
+    /import \{ createXichengServiceHandoffEvidenceFields \} from '@\/request\/xunjing\/serviceHandoff\.js'/,
+    `const createXichengServiceHandoffEvidenceFields = (context = {}) => {
+  const serviceHandoffContext = context.serviceHandoffContext || {}
+  if (!serviceHandoffContext || !context.serviceHandoffTitle) return {}
+  return {
+    serviceHandoffActionKey: serviceHandoffContext.actionKey || '',
+    serviceHandoffTaskType: serviceHandoffContext.taskType || '',
+    serviceHandoffIntent: serviceHandoffContext.serviceIntent || '',
+    serviceHandoffIntentText: context.serviceHandoffIntentText || serviceHandoffContext.serviceIntentText || '',
+    serviceHandoffStepText: context.serviceHandoffStepText || '',
+    serviceHandoffSummary: context.serviceHandoffSummary || serviceHandoffContext.handoffSummary || '',
+    serviceHandoffRequiresRealSystem: Boolean(serviceHandoffContext.serviceIntent || serviceHandoffContext.taskType)
+  }
+}`
   )
   .replace(
     /import \{ XICHENG_REGION_CONFIG \} from '@\/config\/regions\/xicheng\.js'/,
@@ -189,7 +210,21 @@ installChatRequestMock((options) => options.success?.({ statusCode: 503, data: {
 await assert.rejects(
   () => requestXichengAiChat({
     question: '讲讲白塔寺',
-    context: { poiCode: 'xicheng-baitasi', poiName: '妙应寺白塔', safetyStatus: 'PASSED' }
+    context: {
+      poiCode: 'xicheng-baitasi',
+      poiName: '妙应寺白塔',
+      safetyStatus: 'PASSED',
+      serviceHandoffTitle: '推荐菜/点单',
+      serviceHandoffIntentText: '点餐',
+      serviceHandoffStepText: '推荐菜/点单、优惠券、预约/排队',
+      serviceHandoffSummary: '把菜单识别转成点单建议',
+      serviceHandoffContext: {
+        actionKey: 'nearby-food',
+        taskType: 'merchant',
+        serviceIntent: 'order',
+        handoffSummary: '把菜单识别转成点单建议'
+      }
+    }
   }),
   (error) => {
     assert.match(error.message, /西城小京接口异常:503/)
@@ -200,6 +235,10 @@ await assert.rejects(
 )
 assert.equal(lastRequestOptions.header['tenant-id'], '1')
 assert.equal(lastRequestOptions.data.poiCode, 'xicheng-baitasi')
+assert.equal(lastRequestOptions.data.serviceHandoffActionKey, 'nearby-food')
+assert.equal(lastRequestOptions.data.serviceHandoffTaskType, 'merchant')
+assert.equal(lastRequestOptions.data.serviceHandoffIntent, 'order')
+assert.equal(lastRequestOptions.data.serviceHandoffRequiresRealSystem, true)
 
 installChatRequestMock((options) => options.success?.({ statusCode: 200, data: { code: 401, msg: '账号未登录' } }))
 await assert.rejects(

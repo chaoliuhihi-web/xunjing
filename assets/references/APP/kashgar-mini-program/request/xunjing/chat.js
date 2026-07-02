@@ -5,6 +5,7 @@ import {
 } from '@/request/xunjingMultimodal.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { normalizeXichengReviewedSources } from '@/request/xunjing/sources.js'
+import { createXichengServiceHandoffEvidenceFields } from '@/request/xunjing/serviceHandoff.js'
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 
 export const XICHENG_AI_CHAT_API_PATH = 'app-api/xunjing/ai/chat'
@@ -22,7 +23,8 @@ export const buildXichengAiChatPayload = ({ question = '', context = {} } = {}) 
 	poiName: context.poiName || '',
 	companionName: context.companionName || XICHENG_REGION_CONFIG.companionName,
 	recognitionConfidence: context.confidence || null,
-	safetyStatus: normalizeXichengSafetyStatus(context.safetyStatus)
+	safetyStatus: normalizeXichengSafetyStatus(context.safetyStatus),
+	...createXichengServiceHandoffEvidenceFields(context)
 })
 
 export const normalizeXichengAiChatResponse = (payload = {}) => {
