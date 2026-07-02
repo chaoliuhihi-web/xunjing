@@ -65,6 +65,24 @@ assert.match(
   'Inspiration page should build the route from backend extracted link content, not from the URL string'
 )
 
+assert.match(
+  inspiration,
+  /:disabled="isLinkImporting"[\s\S]*\{\{\s*isLinkImporting \? '解析链接中' : 'AI提取地点'\s*\}\}/,
+  'Inspiration page should show a disabled parsing state while a strategy link is being imported'
+)
+
+assert.match(
+  inspiration,
+  /class="source-platform-strip"[\s\S]*v-for="\(\s*platform,\s*index\s*\) in sourcePlatforms"[\s\S]*platform\.title/,
+  'Inspiration page should surface imported source platforms before the official POI match result'
+)
+
+assert.match(
+  inspiration,
+  /class="unmatched-place-panel"[\s\S]*unmatchedPlaceNames\.length[\s\S]*v-for="\(\s*place,\s*index\s*\) in unmatchedPlaceNames"/,
+  'Inspiration page should surface unmatched extracted places for manual review instead of hiding them'
+)
+
 assert.doesNotMatch(
   linkImport,
   /fetch\(|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,

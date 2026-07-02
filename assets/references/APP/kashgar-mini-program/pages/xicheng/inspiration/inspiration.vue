@@ -32,7 +32,22 @@
 				<text class="upload-title">上传攻略图片</text>
 				<text class="upload-desc">{{ imagePath ? '已添加图片素材' : '图片进入素材盒，地点以文字匹配结果为准' }}</text>
 			</view>
-			<button class="primary-button xicheng-primary-action" @click="runExtraction">AI提取地点</button>
+			<view v-if="sourcePlatforms.length > 0" class="source-platform-strip">
+				<text class="source-label">来源：</text>
+				<text
+					v-for="(platform, index) in sourcePlatforms"
+					:key="platform.sourceKey || platform.title || index"
+					class="source-platform-pill"
+				>
+					{{ platform.title }}
+				</text>
+				<text class="source-policy">仅保留已匹配官方 POI</text>
+			</view>
+			<button
+				class="primary-button xicheng-primary-action"
+				:disabled="isLinkImporting"
+				@click="runExtraction"
+			>{{ isLinkImporting ? '解析链接中' : 'AI提取地点' }}</button>
 		</view>
 
 		<view class="section-card xicheng-paper-card">
@@ -54,6 +69,19 @@
 				</view>
 			</view>
 			<text v-else class="empty-copy">请输入白塔寺、历代帝王庙、什刹海、北海或大栅栏等西城官方 POI。</text>
+			<view class="unmatched-place-panel" v-if="unmatchedPlaceNames.length > 0">
+				<text class="unmatched-title">待确认地点</text>
+				<view class="unmatched-place-list">
+					<text
+						v-for="(place, index) in unmatchedPlaceNames"
+						:key="`${place}-${index}`"
+						class="unmatched-place-pill"
+					>
+						{{ place }}
+					</text>
+				</view>
+				<text class="unmatched-note">未匹配地点不会直接进入路线，可补充官方名称后重新提取。</text>
+			</view>
 		</view>
 
 		<view class="section-card xicheng-paper-card">
@@ -515,6 +543,42 @@ export default {
 	color: #1F2933;
 }
 
+.source-platform-strip {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 12rpx;
+	margin-top: 18rpx;
+	padding: 16rpx 18rpx;
+	border-radius: 22rpx;
+	background: rgba(248, 243, 233, 0.86);
+}
+
+.source-label,
+.source-policy,
+.unmatched-note {
+	font-size: 22rpx;
+	line-height: 1.5;
+	color: #746F68;
+}
+
+.source-platform-pill,
+.unmatched-place-pill {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 44rpx;
+	padding: 0 16rpx;
+	border-radius: 999rpx;
+	background: rgba(31, 110, 90, 0.10);
+	font-size: 22rpx;
+	color: #173F35;
+}
+
+.source-policy {
+	color: #1F6E5A;
+}
+
 .route-title {
 	margin-top: 18rpx;
 }
@@ -537,6 +601,37 @@ export default {
 	color: #344054;
 }
 
+.unmatched-place-panel {
+	margin-top: 18rpx;
+	padding: 18rpx;
+	border-radius: 22rpx;
+	background: rgba(181, 148, 94, 0.10);
+}
+
+.unmatched-title {
+	display: block;
+	font-size: 24rpx;
+	font-weight: 700;
+	color: #7A5728;
+}
+
+.unmatched-place-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10rpx;
+	margin-top: 12rpx;
+}
+
+.unmatched-place-pill {
+	background: rgba(181, 148, 94, 0.14);
+	color: #7A5728;
+}
+
+.unmatched-note {
+	display: block;
+	margin-top: 12rpx;
+}
+
 .action-row {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -556,6 +651,12 @@ export default {
 	margin-top: 22rpx;
 	background: #1F6E5A;
 	color: #FFFFFF;
+}
+
+.primary-button[disabled] {
+	opacity: 0.72;
+	background: #557C70;
+	color: rgba(255, 255, 255, 0.88);
 }
 
 .ghost-button {
