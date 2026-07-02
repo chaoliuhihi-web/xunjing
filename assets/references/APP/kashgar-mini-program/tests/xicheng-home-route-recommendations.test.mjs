@@ -29,7 +29,7 @@ for (const required of [
 for (const required of [
   'hero-ask-card',
   '问问小京',
-  '我陪你看懂西城',
+  '故事、路线和建筑',
   '@click="askXiaojing"'
 ]) {
   assert.ok(home.includes(required), `Xicheng home should place Xiaojing ask entry in the hero ${required}`)

@@ -34,7 +34,7 @@
 						</view>
 						<view class="hero-ask-copy">
 							<text class="hero-ask-title">问问小京</text>
-							<text class="hero-ask-desc">我陪你看懂西城</text>
+							<text class="hero-ask-desc">故事、路线和建筑</text>
 						</view>
 						<xicheng-icon name="next" variant="plain" :size="18" />
 					</view>
@@ -1051,9 +1051,9 @@ export default {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 48rpx;
-	height: 48rpx;
-	border-radius: 16rpx;
+	width: 58rpx;
+	height: 58rpx;
+	border-radius: 20rpx;
 	background: rgba(231, 239, 232, 0.92);
 }
 
@@ -1067,7 +1067,7 @@ export default {
 }
 
 .hero-ask-title {
-	font-size: 28rpx;
+	font-size: 34rpx;
 	line-height: 1.25;
 	font-weight: 800;
 	color: #102F29;
@@ -1075,7 +1075,7 @@ export default {
 
 .hero-ask-desc {
 	margin-top: 6rpx;
-	font-size: 21rpx;
+	font-size: 24rpx;
 	line-height: 1.35;
 	color: #746F68;
 }
@@ -1112,7 +1112,8 @@ export default {
 	display: block;
 	margin-top: 18rpx;
 	font-size: 60rpx;
-	font-weight: 700;
+	font-family: "Songti SC", "STSong", "Noto Serif CJK SC", "Noto Serif SC", serif;
+	font-weight: 800;
 	line-height: 1.12;
 	color: #102F29;
 }
@@ -1194,9 +1195,30 @@ export default {
 	box-sizing: border-box;
 }
 
+.home-light-entry::after {
+	content: '';
+	position: absolute;
+	right: -18rpx;
+	bottom: -18rpx;
+	width: 168rpx;
+	height: 112rpx;
+	opacity: 0.22;
+	pointer-events: none;
+	background:
+		linear-gradient(90deg, rgba(23, 63, 53, 0.32) 0 3rpx, transparent 3rpx),
+		linear-gradient(0deg, rgba(23, 63, 53, 0.22) 0 3rpx, transparent 3rpx),
+		radial-gradient(circle at 24% 74%, transparent 0 22rpx, rgba(23, 63, 53, 0.22) 23rpx 26rpx, transparent 27rpx);
+	background-size: 42rpx 42rpx, 42rpx 42rpx, 100% 100%;
+}
+
 .home-map-entry {
 	background:
 		linear-gradient(135deg, rgba(255, 253, 248, 0.96), rgba(226, 239, 230, 0.88));
+}
+
+.home-map-entry::after {
+	border-radius: 32rpx;
+	transform: rotate(-8deg);
 }
 
 .home-record-entry {
@@ -1209,7 +1231,17 @@ export default {
 		linear-gradient(135deg, rgba(255, 253, 248, 0.96), rgba(239, 233, 219, 0.90));
 }
 
+.home-travelogue-entry::after {
+	background:
+		linear-gradient(180deg, transparent 0 20rpx, rgba(181, 148, 94, 0.24) 21rpx 24rpx, transparent 25rpx 100%),
+		linear-gradient(90deg, transparent 0 38rpx, rgba(181, 148, 94, 0.26) 39rpx 42rpx, transparent 43rpx 100%),
+		radial-gradient(circle at 50% 100%, transparent 0 46rpx, rgba(181, 148, 94, 0.22) 47rpx 50rpx, transparent 51rpx);
+	background-size: 100% 34rpx, 84rpx 100%, 100% 100%;
+}
+
 .home-travelogue-actions {
+	position: relative;
+	z-index: 1;
 	display: flex;
 	flex-wrap: wrap;
 	gap: 12rpx;
@@ -1242,6 +1274,8 @@ export default {
 }
 
 .home-light-entry-icon {
+	position: relative;
+	z-index: 1;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -1253,6 +1287,8 @@ export default {
 
 .home-light-entry-title,
 .home-light-entry-copy {
+	position: relative;
+	z-index: 1;
 	display: block;
 }
 
@@ -1286,31 +1322,47 @@ export default {
 }
 
 .recent-panel {
+	position: relative;
 	display: grid;
 	grid-template-columns: 114rpx minmax(0, 1fr);
 	gap: 18rpx;
 	align-items: center;
+	overflow: hidden;
 	background:
 		linear-gradient(135deg, rgba(255, 249, 238, 0.98), rgba(239, 222, 190, 0.52));
 }
 
+.recent-panel::after {
+	content: "";
+	position: absolute;
+	right: -26rpx;
+	bottom: -30rpx;
+	width: 154rpx;
+	height: 118rpx;
+	border: 4rpx solid rgba(181, 148, 94, 0.16);
+	border-radius: 999rpx 999rpx 24rpx 24rpx;
+	opacity: 0.78;
+	pointer-events: none;
+}
+
 .home-action-duo .recent-panel {
 	min-height: 158rpx;
-	padding: 20rpx 18rpx;
+	padding: 20rpx;
 	border-radius: 30rpx;
 }
 
 .home-action-duo .recent-compact-image {
-	width: 104rpx;
-	height: 126rpx;
+	width: 118rpx;
+	height: 134rpx;
 }
 
 .home-action-duo .recent-title {
-	font-size: 30rpx;
+	font-size: 34rpx;
+	font-weight: 800;
 }
 
 .home-action-duo .recent-desc {
-	font-size: 22rpx;
+	font-size: 23rpx;
 	line-height: 1.42;
 }
 
@@ -1319,18 +1371,22 @@ export default {
 }
 
 .home-action-duo .recent-compact-action {
-	width: 148rpx;
-	min-height: 52rpx;
-	margin-top: 14rpx;
+	width: 166rpx;
+	min-height: 56rpx;
+	margin-top: 12rpx;
 	padding: 0 14rpx;
-	font-size: 21rpx;
+	font-size: 23rpx;
 }
 
 .recent-copy {
+	position: relative;
+	z-index: 1;
 	min-width: 0;
 }
 
 .recent-compact-image {
+	position: relative;
+	z-index: 1;
 	width: 114rpx;
 	height: 146rpx;
 	border-radius: 22rpx;
@@ -1407,7 +1463,7 @@ export default {
 }
 
 .home-route-recommendation-section {
-	margin-top: 28rpx;
+	margin-top: 18rpx;
 }
 
 .home-route-head {
@@ -1415,7 +1471,7 @@ export default {
 	align-items: center;
 	justify-content: space-between;
 	gap: 18rpx;
-	margin-bottom: 18rpx;
+	margin-bottom: 12rpx;
 }
 
 .home-route-kicker,
@@ -1433,8 +1489,8 @@ export default {
 }
 
 .home-route-title {
-	margin-top: 8rpx;
-	font-size: 36rpx;
+	margin-top: 6rpx;
+	font-size: 38rpx;
 	line-height: 1.2;
 	font-weight: 800;
 	color: #102F29;
@@ -1442,10 +1498,10 @@ export default {
 
 .home-route-more {
 	flex-shrink: 0;
-	min-width: 152rpx;
-	height: 62rpx;
-	line-height: 62rpx;
-	padding: 0 20rpx;
+	min-width: 170rpx;
+	height: 58rpx;
+	line-height: 58rpx;
+	padding: 0 18rpx;
 	border-radius: 999rpx;
 	font-size: 24rpx;
 	font-weight: 800;
@@ -1454,23 +1510,23 @@ export default {
 .home-route-list {
 	display: flex;
 	flex-direction: column;
-	gap: 18rpx;
+	gap: 14rpx;
 }
 
 .home-route-card {
 	display: grid;
-	grid-template-columns: 170rpx minmax(0, 1fr);
-	gap: 20rpx;
+	grid-template-columns: 156rpx minmax(0, 1fr);
+	gap: 16rpx;
 	align-items: center;
-	padding: 20rpx;
+	padding: 16rpx;
 	border-radius: 34rpx;
 	box-sizing: border-box;
 }
 
 .home-route-cover {
-	width: 170rpx;
-	height: 170rpx;
-	border-radius: 26rpx;
+	width: 156rpx;
+	height: 156rpx;
+	border-radius: 24rpx;
 	object-fit: cover;
 	box-shadow: 0 12rpx 26rpx rgba(16, 47, 41, 0.12);
 }
@@ -1480,15 +1536,15 @@ export default {
 }
 
 .home-route-card-title {
-	font-size: 32rpx;
+	font-size: 31rpx;
 	line-height: 1.25;
 	font-weight: 800;
 	color: #102F29;
 }
 
 .home-route-card-desc {
-	margin-top: 10rpx;
-	font-size: 24rpx;
+	margin-top: 8rpx;
+	font-size: 23rpx;
 	line-height: 1.45;
 	color: #746F68;
 }
@@ -1497,7 +1553,7 @@ export default {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 10rpx;
-	margin-top: 14rpx;
+	margin-top: 12rpx;
 }
 
 .home-route-meta text {
@@ -1512,9 +1568,9 @@ export default {
 
 .home-route-button {
 	width: 168rpx;
-	height: 58rpx;
-	line-height: 58rpx;
-	margin: 18rpx 0 0;
+	height: 56rpx;
+	line-height: 56rpx;
+	margin: 14rpx 0 0;
 	border-radius: 999rpx;
 	font-size: 23rpx;
 	font-weight: 800;
@@ -1526,8 +1582,8 @@ export default {
 }
 
 .xicheng-reference-hero {
-	min-height: 430rpx;
-	padding: 34rpx 34rpx 26rpx;
+	min-height: 468rpx;
+	padding: 36rpx 36rpx 28rpx;
 	border-radius: 38rpx;
 	overflow: hidden;
 	background:
@@ -1538,19 +1594,19 @@ export default {
 }
 
 .xicheng-reference-hero .hero-landmark-image {
-	opacity: 0.94;
-	filter: saturate(1) contrast(1.02);
+	opacity: 1;
+	filter: saturate(1.08) contrast(1.04);
 }
 
 .xicheng-reference-hero .hero-atmosphere {
-	height: 38%;
+	height: 42%;
 	background:
-		linear-gradient(180deg, rgba(255, 250, 241, 0), rgba(255, 250, 241, 0.76));
+		linear-gradient(180deg, rgba(255, 250, 241, 0), rgba(255, 250, 241, 0.70));
 }
 
 .xicheng-reference-hero .hero-copy {
-	max-width: 390rpx;
-	padding-top: 20rpx;
+	max-width: 430rpx;
+	padding-top: 22rpx;
 }
 
 .xicheng-reference-hero .eyebrow {
@@ -1559,45 +1615,49 @@ export default {
 }
 
 .xicheng-reference-hero .title {
-	margin-top: 14rpx;
-	font-size: 56rpx;
+	margin-top: 16rpx;
+	font-size: 66rpx;
 	letter-spacing: 0;
 }
 
 .xicheng-reference-hero .subtitle {
-	margin-top: 14rpx;
-	font-size: 27rpx;
-	letter-spacing: 3rpx;
+	margin-top: 16rpx;
+	font-size: 28rpx;
+	letter-spacing: 2rpx;
 	color: rgba(16, 47, 41, 0.78);
 }
 
 .xicheng-reference-hero .companion-visual {
-	right: -2rpx;
-	bottom: 0;
-	width: 314rpx;
+	right: -14rpx;
+	bottom: -10rpx;
+	width: 356rpx;
 }
 
 .xicheng-reference-hero .xiaojing-avatar {
-	width: 314rpx;
-	height: 390rpx;
+	width: 356rpx;
+	height: 440rpx;
 	border-radius: 0;
 	background: transparent;
 	box-shadow: none;
 }
 
 .xicheng-reference-hero .companion-bubble {
-	left: -230rpx;
-	bottom: 136rpx;
-	width: 278rpx;
-	padding: 24rpx 22rpx;
-	border-radius: 34rpx;
+	left: -286rpx;
+	bottom: 138rpx;
+	width: 340rpx;
+	padding: 26rpx 24rpx;
+	border-radius: 38rpx;
 	background: rgba(255, 253, 248, 0.94);
 }
 
 .xicheng-reference-hero .hero-ask-card {
-	left: -252rpx;
-	bottom: 118rpx;
-	width: 300rpx;
+	left: -304rpx;
+	bottom: 122rpx;
+	width: 356rpx;
+	min-height: 124rpx;
+	grid-template-columns: 58rpx minmax(0, 1fr) 28rpx;
+	gap: 16rpx;
+	padding: 22rpx 20rpx;
 }
 
 .home-world-entry {
@@ -1698,11 +1758,29 @@ export default {
 }
 
 .home-action-card {
+	position: relative;
 	min-height: 158rpx;
 	padding: 20rpx 22rpx;
 	border-radius: 30rpx;
 	box-sizing: border-box;
+	overflow: hidden;
 	box-shadow: 0 16rpx 34rpx rgba(35, 42, 34, 0.10);
+}
+
+.home-action-card::after {
+	content: "";
+	position: absolute;
+	right: -28rpx;
+	bottom: -32rpx;
+	width: 154rpx;
+	height: 118rpx;
+	opacity: 0.34;
+	pointer-events: none;
+	background:
+		linear-gradient(90deg, currentColor 0 3rpx, transparent 3rpx),
+		linear-gradient(0deg, currentColor 0 3rpx, transparent 3rpx),
+		radial-gradient(circle at 30% 70%, transparent 0 26rpx, currentColor 27rpx 30rpx, transparent 31rpx);
+	background-size: 38rpx 38rpx, 38rpx 38rpx, 100% 100%;
 }
 
 .home-action-disabled {
@@ -1715,7 +1793,10 @@ export default {
 	grid-template-columns: 58rpx 1fr 38rpx;
 	align-items: center;
 	gap: 18rpx;
-	background: linear-gradient(135deg, #173F35, #0F332D);
+	background:
+		radial-gradient(circle at 82% 18%, rgba(241, 199, 106, 0.20), transparent 40%),
+		radial-gradient(circle at 0% 100%, rgba(255, 249, 236, 0.10), transparent 42%),
+		linear-gradient(135deg, #173F35, #0F332D);
 	color: #FFF9EC;
 }
 
@@ -1730,13 +1811,22 @@ export default {
 }
 
 .home-action-icon {
+	position: relative;
+	z-index: 1;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 }
 
 .home-action-copy {
+	position: relative;
+	z-index: 1;
 	min-width: 0;
+}
+
+.home-action-card > .xicheng-icon {
+	position: relative;
+	z-index: 1;
 }
 
 .home-action-title,
@@ -1759,8 +1849,8 @@ export default {
 }
 
 .xicheng-home-first-screen-density .xicheng-reference-hero {
-	min-height: 430rpx;
-	padding-top: 28rpx;
+	min-height: 448rpx;
+	padding-top: 30rpx;
 }
 
 .xicheng-home-first-screen-density {
@@ -1776,85 +1866,142 @@ export default {
 }
 
 .xicheng-home-first-screen-density .xicheng-reference-hero .title {
-	margin-top: 12rpx;
-	font-size: 54rpx;
+	margin-top: 14rpx;
+	font-size: 60rpx;
 }
 
 .xicheng-home-first-screen-density .xicheng-reference-hero .subtitle {
-	margin-top: 12rpx;
-	font-size: 26rpx;
+	margin-top: 14rpx;
+	font-size: 27rpx;
 }
 
 .xicheng-home-first-screen-density .xicheng-reference-hero .companion-visual {
-	right: -8rpx;
-	bottom: 0;
-	width: 312rpx;
+	right: -16rpx;
+	bottom: -8rpx;
+	width: 338rpx;
 }
 
 .xicheng-home-first-screen-density .xicheng-reference-hero .xiaojing-avatar {
-	width: 312rpx;
-	height: 388rpx;
+	width: 338rpx;
+	height: 418rpx;
 }
 
 .xicheng-home-first-screen-density .xicheng-reference-hero .hero-ask-card {
-	left: -246rpx;
+	left: -302rpx;
 	bottom: 112rpx;
-	width: 292rpx;
-	min-height: 100rpx;
+	width: 360rpx;
+	min-height: 108rpx;
+	grid-template-columns: 52rpx minmax(0, 1fr) 24rpx;
+	gap: 12rpx;
+	padding: 18rpx 18rpx;
+}
+
+.xicheng-home-first-screen-density .hero-ask-icon {
+	width: 52rpx;
+	height: 52rpx;
 }
 
 .xicheng-home-first-screen-density .home-action-duo {
-	gap: 14rpx;
-	margin-top: 14rpx;
+	gap: 12rpx;
+	margin-top: 12rpx;
 }
 
 .xicheng-home-first-screen-density .home-action-card,
 .xicheng-home-first-screen-density .home-action-duo .recent-panel {
-	min-height: 136rpx;
+	min-height: 118rpx;
 }
 
 .xicheng-home-first-screen-density .home-action-card {
-	padding: 18rpx 20rpx;
+	padding: 14rpx 18rpx;
+}
+
+.xicheng-home-first-screen-density .home-action-title {
+	font-size: 32rpx;
+}
+
+.xicheng-home-first-screen-density .home-action-desc {
+	margin-top: 8rpx;
+	font-size: 22rpx;
+	line-height: 1.28;
 }
 
 .xicheng-home-first-screen-density .home-action-duo .recent-panel {
-	padding: 16rpx;
+	grid-template-columns: 82rpx minmax(0, 1fr);
+	gap: 10rpx;
+	padding: 14rpx;
 }
 
 .xicheng-home-first-screen-density .home-action-duo .recent-compact-image {
-	width: 92rpx;
-	height: 112rpx;
+	width: 82rpx;
+	height: 94rpx;
+	border-radius: 18rpx;
+}
+
+.xicheng-home-first-screen-density .home-action-duo .recent-title {
+	font-size: 30rpx;
+}
+
+.xicheng-home-first-screen-density .home-action-duo .recent-desc {
+	margin-top: 4rpx;
+	font-size: 20rpx;
+	line-height: 1.25;
+}
+
+.xicheng-home-first-screen-density .home-action-duo .recent-status {
+	margin-top: 4rpx;
+	font-size: 19rpx;
+	line-height: 1.25;
 }
 
 .xicheng-home-first-screen-density .home-action-duo .recent-compact-action {
-	min-height: 46rpx;
-	margin-top: 10rpx;
+	width: 132rpx;
+	min-height: 42rpx;
+	margin-top: 8rpx;
+	font-size: 20rpx;
 }
 
 .xicheng-home-first-screen-density .home-light-entry-grid {
-	gap: 14rpx;
-	margin-top: 14rpx;
+	gap: 12rpx;
+	margin-top: 12rpx;
 }
 
 .xicheng-home-first-screen-density .home-light-entry {
-	min-height: 138rpx;
-	padding: 18rpx 20rpx;
+	min-height: 118rpx;
+	padding: 14rpx 18rpx;
+}
+
+.xicheng-home-first-screen-density .home-light-entry-icon {
+	width: 48rpx;
+	height: 48rpx;
+	border-radius: 16rpx;
 }
 
 .xicheng-home-first-screen-density .home-light-entry-title {
-	margin-top: 14rpx;
+	margin-top: 8rpx;
+	font-size: 29rpx;
 }
 
 .xicheng-home-first-screen-density .home-light-entry-copy {
-	margin-top: 8rpx;
+	margin-top: 6rpx;
+	font-size: 21rpx;
+	line-height: 1.34;
 }
 
 .xicheng-home-first-screen-density .home-travelogue-actions {
-	margin-top: 10rpx;
+	margin-top: 6rpx;
+	gap: 8rpx;
+}
+
+.xicheng-home-first-screen-density .home-start-record-button,
+.xicheng-home-first-screen-density .home-draft-button {
+	min-width: 104rpx;
+	min-height: 40rpx;
+	padding: 0 14rpx;
+	font-size: 20rpx;
 }
 
 .xicheng-home-first-screen-density .home-route-recommendation-section {
-	margin-top: 12rpx;
+	margin-top: 8rpx;
 }
 
 </style>

@@ -96,7 +96,7 @@ for (const required of [
   '游记生成',
   '开始记录',
   '小京',
-  '我陪你看懂西城'
+  '故事、路线和建筑'
 ]) {
   assert.ok(home.includes(required), `Xicheng home hero should render Xiaojing visual cue ${required}`)
 }
@@ -127,8 +127,8 @@ assert.doesNotMatch(
 
 assert.match(
   styleBlock,
-  /\.xicheng-reference-hero\s*\{[\s\S]*min-height:\s*430rpx[\s\S]*overflow:\s*hidden/,
-  'Xicheng home hero should use a compact paper-hero treatment that leaves first-screen room for the primary function cards'
+  /\.xicheng-reference-hero\s*\{[\s\S]*min-height:\s*468rpx[\s\S]*overflow:\s*hidden/,
+  'Xicheng home hero should use an immersive paper-hero treatment while leaving first-screen room for the primary function cards'
 )
 
 assert.match(
@@ -151,8 +151,8 @@ assert.match(
 
 assert.match(
   styleBlock,
-  /\.xicheng-reference-hero \.xiaojing-avatar\s*\{[\s\S]*width:\s*314rpx[\s\S]*height:\s*390rpx/,
-  'Xicheng home Xiaojing visual should anchor the compact paper hero without pushing function cards below the first viewport'
+  /\.xicheng-reference-hero \.xiaojing-avatar\s*\{[\s\S]*width:\s*356rpx[\s\S]*height:\s*440rpx/,
+  'Xicheng home Xiaojing visual should anchor the richer paper hero without becoming a small decorative avatar'
 )
 
 assert.match(
@@ -163,8 +163,20 @@ assert.match(
 
 assert.match(
   styleBlock,
-  /\.home-scan-card\s*\{[\s\S]*background:\s*linear-gradient/,
-  'Xicheng home should keep the scan entry visually primary'
+  /\.home-scan-card\s*\{[\s\S]*background:\s*[\s\S]*radial-gradient[\s\S]*linear-gradient/,
+  'Xicheng home should keep the scan entry visually primary with richer approved-card texture'
+)
+
+assert.match(
+  styleBlock,
+  /\.home-action-card::after\s*\{[\s\S]*radial-gradient/,
+  'Xicheng home primary action cards should use one unified decorative visual language instead of plain flat panels'
+)
+
+assert.match(
+  styleBlock,
+  /\.recent-panel::after\s*\{[\s\S]*border:\s*4rpx solid rgba\(181,\s*148,\s*94,\s*0\.16\)/,
+  'Xicheng home first-screen cards should use one unified decorative visual language instead of plain flat panels'
 )
 
 assert.match(
