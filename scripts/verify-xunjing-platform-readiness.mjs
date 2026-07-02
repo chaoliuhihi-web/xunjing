@@ -550,7 +550,7 @@ async function checkXichengAppEventBackend(rootDir) {
     'buildAgentActionEventPayload',
     'sanitizeAgentActionClientPayload',
     'payload.put("agentAction", buildAgentActionEventPayload(clientPayloadObject))',
-    'hydrateVisionAgentContextFromPreviousAgentAction(resourcePackage, reqVO)',
+    'hydrateVisionAgentContextFromPreviousAgentAction(resourcePackage, reqVO, explicitChatTargetContext)',
     'shouldUsePreviousAgentActionForChatContext(previousAgentActionEvent, previousAskEvent, previousTriggerEvent)',
     'hasExplicitChatTargetContext(reqVO)',
     'EventType.AGENT_ACTION.getType()',

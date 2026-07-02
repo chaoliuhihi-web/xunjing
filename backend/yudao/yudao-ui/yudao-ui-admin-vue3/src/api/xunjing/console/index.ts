@@ -53,6 +53,17 @@ export interface KnowledgeDocumentRespVO {
   vectorStatus: string
 }
 
+export interface KnowledgeDocumentCreateReqVO {
+  packageId: number
+  title: string
+  sourceType: string
+  sourceUrl?: string
+  contentDigest?: string
+  authorityLevel?: string
+  reviewStatus?: string
+  vectorStatus?: string
+}
+
 export interface KnowledgeDocumentReviewReqVO {
   id: number
   authorityLevel?: string
@@ -344,6 +355,10 @@ export const getResourcePackagePage = (params: ConsolePageReqVO) => {
 
 export const updateResourcePackage = (data: ResourcePackageUpdateReqVO) => {
   return request.put<boolean>({ url: `${baseUrl}/resource-packages`, data })
+}
+
+export const createKnowledgeDocument = (data: KnowledgeDocumentCreateReqVO) => {
+  return request.post<number>({ url: `${baseUrl}/knowledge-documents`, data })
 }
 
 export const getKnowledgeDocumentPage = (params: ConsolePageReqVO) => {

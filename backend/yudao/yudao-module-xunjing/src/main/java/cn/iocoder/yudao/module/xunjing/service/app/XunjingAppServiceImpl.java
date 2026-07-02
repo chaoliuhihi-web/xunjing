@@ -275,9 +275,10 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         XunjingResourcePackageDO resourcePackage = validatePublicPackage(reqVO.getPackageCode());
         validateExpectedResourceType(resourcePackage, expectedResourceType);
         XunjingQrCodeDO qrCode = resolveAnswerQrCode(reqVO, resourcePackage);
-        hydrateVisionAgentMemoryFromPreviousAsk(resourcePackage, reqVO);
-        hydrateVisionAgentContextFromPreviousTrigger(resourcePackage, reqVO);
-        hydrateVisionAgentContextFromPreviousAgentAction(resourcePackage, reqVO);
+        boolean explicitChatTargetContext = hasExplicitChatTargetContext(reqVO);
+        hydrateVisionAgentMemoryFromPreviousAsk(resourcePackage, reqVO, explicitChatTargetContext);
+        hydrateVisionAgentContextFromPreviousTrigger(resourcePackage, reqVO, explicitChatTargetContext);
+        hydrateVisionAgentContextFromPreviousAgentAction(resourcePackage, reqVO, explicitChatTargetContext);
         recordAskEvent(resourcePackage, reqVO);
 
         RagChatRespVO quotaBlocked = buildQuotaBlockedIfNeeded(resourcePackage, qrCode, reqVO);
@@ -1032,9 +1033,10 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         return JsonUtils.toJsonString(payload);
     }
 
-    private void hydrateVisionAgentMemoryFromPreviousAsk(XunjingResourcePackageDO resourcePackage, RagChatReqVO reqVO) {
+    private void hydrateVisionAgentMemoryFromPreviousAsk(
+            XunjingResourcePackageDO resourcePackage, RagChatReqVO reqVO, boolean explicitChatTargetContext) {
         if (hasText(reqVO.getVisionAgentMemorySessionText()) || !hasText(reqVO.getUserTraceId())
-                || hasExplicitChatTargetContext(reqVO)) {
+                || explicitChatTargetContext) {
             return;
         }
         XunjingInteractionEventDO previousEvent =
@@ -1066,9 +1068,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     }
 
     private void hydrateVisionAgentContextFromPreviousTrigger(
-            XunjingResourcePackageDO resourcePackage, RagChatReqVO reqVO) {
+            XunjingResourcePackageDO resourcePackage, RagChatReqVO reqVO, boolean explicitChatTargetContext) {
         if (!hasText(reqVO.getUserTraceId()) || hasCompleteSceneContext(reqVO)
-                || hasExplicitChatTargetContext(reqVO)) {
+                || explicitChatTargetContext) {
             return;
         }
         XunjingInteractionEventDO previousEvent =
@@ -1108,8 +1110,8 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     }
 
     private void hydrateVisionAgentContextFromPreviousAgentAction(
-            XunjingResourcePackageDO resourcePackage, RagChatReqVO reqVO) {
-        if (!hasText(reqVO.getUserTraceId()) || hasExplicitChatTargetContext(reqVO)) {
+            XunjingResourcePackageDO resourcePackage, RagChatReqVO reqVO, boolean explicitChatTargetContext) {
+        if (!hasText(reqVO.getUserTraceId()) || explicitChatTargetContext) {
             return;
         }
         XunjingInteractionEventDO previousAgentActionEvent =

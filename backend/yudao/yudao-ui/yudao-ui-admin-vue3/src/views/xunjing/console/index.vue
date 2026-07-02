@@ -232,6 +232,13 @@
             <el-button @click="resetKnowledgeQuery">
               <Icon icon="ep:refresh" class="mr-5px" /> 重置
             </el-button>
+            <el-button
+              type="primary"
+              @click="openKnowledgeCreateDialog"
+              v-hasPermi="['xunjing:knowledge:create']"
+            >
+              <Icon icon="ep:plus" class="mr-5px" /> 新增文旅资料
+            </el-button>
           </el-form-item>
         </el-form>
 
@@ -359,6 +366,13 @@
             </el-button>
             <el-button @click="resetMediaQuery">
               <Icon icon="ep:refresh" class="mr-5px" /> 重置
+            </el-button>
+            <el-button
+              type="primary"
+              @click="openMediaCreateDialog"
+              v-hasPermi="['xunjing:media:create']"
+            >
+              <Icon icon="ep:plus" class="mr-5px" /> 新增图片素材
             </el-button>
           </el-form-item>
         </el-form>
@@ -754,6 +768,171 @@
     </template>
   </Dialog>
 
+  <Dialog v-model="knowledgeCreateDialogVisible" title="新增文旅资料" width="640px">
+    <el-form :model="knowledgeCreateForm" label-width="110px">
+      <el-form-item label="文旅集合 ID">
+        <el-input-number
+          v-model="knowledgeCreateForm.packageId"
+          :min="1"
+          :controls="false"
+          class="!w-240px"
+        />
+      </el-form-item>
+      <el-form-item label="标题">
+        <el-input v-model="knowledgeCreateForm.title" placeholder="如 恭王府官方简介" />
+      </el-form-item>
+      <el-form-item label="来源类型">
+        <el-select v-model="knowledgeCreateForm.sourceType" class="!w-240px">
+          <el-option
+            v-for="item in sourceTypeOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="来源地址">
+        <el-input v-model="knowledgeCreateForm.sourceUrl" placeholder="官网、资料页或内部文件地址" />
+      </el-form-item>
+      <el-form-item label="资料摘要">
+        <el-input
+          v-model="knowledgeCreateForm.contentDigest"
+          type="textarea"
+          :rows="4"
+          placeholder="录入可用于 AI 讲解、问答检索的文旅资料摘要"
+        />
+      </el-form-item>
+      <el-form-item label="权威等级">
+        <el-select v-model="knowledgeCreateForm.authorityLevel" class="!w-240px">
+          <el-option
+            v-for="item in authorityLevelOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="审核状态">
+        <el-select v-model="knowledgeCreateForm.reviewStatus" class="!w-240px">
+          <el-option
+            v-for="item in reviewStatusOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="向量状态">
+        <el-select v-model="knowledgeCreateForm.vectorStatus" class="!w-240px">
+          <el-option
+            v-for="item in vectorStatusOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button
+        :disabled="knowledgeCreateSubmitLoading"
+        @click="knowledgeCreateDialogVisible = false"
+      >
+        取 消
+      </el-button>
+      <el-button
+        type="primary"
+        :loading="knowledgeCreateSubmitLoading"
+        @click="submitKnowledgeCreate"
+      >
+        确 定
+      </el-button>
+    </template>
+  </Dialog>
+
+  <Dialog v-model="mediaCreateDialogVisible" title="新增图片素材" width="640px">
+    <el-form :model="mediaCreateForm" label-width="110px">
+      <el-form-item label="文旅集合 ID">
+        <el-input-number
+          v-model="mediaCreateForm.packageId"
+          :min="1"
+          :controls="false"
+          class="!w-240px"
+        />
+      </el-form-item>
+      <el-form-item label="标题">
+        <el-input v-model="mediaCreateForm.title" placeholder="如 恭王府入口授权图片" />
+      </el-form-item>
+      <el-form-item label="素材类型">
+        <el-select v-model="mediaCreateForm.mediaType" class="!w-240px">
+          <el-option
+            v-for="item in mediaTypeOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="文件地址">
+        <el-input v-model="mediaCreateForm.fileUrl" placeholder="图片 URL 或对象存储访问地址" />
+      </el-form-item>
+      <el-form-item label="对象 Key">
+        <el-input v-model="mediaCreateForm.objectKey" placeholder="对象存储 Key，可选" />
+      </el-form-item>
+      <el-form-item label="来源方">
+        <el-input v-model="mediaCreateForm.sourceProvider" placeholder="如 文旅局、景区、项目方" />
+      </el-form-item>
+      <el-form-item label="来源地址">
+        <el-input v-model="mediaCreateForm.sourceUrl" placeholder="授权来源页或原始素材地址" />
+      </el-form-item>
+      <el-form-item label="图片标签">
+        <el-input
+          v-model="mediaCreateForm.imageTags"
+          type="textarea"
+          :rows="3"
+          placeholder="如 入口, 王府, 北京西城"
+        />
+      </el-form-item>
+      <el-form-item label="版权状态">
+        <el-select v-model="mediaCreateForm.copyrightStatus" class="!w-240px">
+          <el-option
+            v-for="item in copyrightStatusOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="审核状态">
+        <el-select v-model="mediaCreateForm.reviewStatus" class="!w-240px">
+          <el-option
+            v-for="item in reviewStatusOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="公开展示">
+        <el-switch v-model="mediaCreateForm.canPublic" />
+      </el-form-item>
+      <el-form-item label="AI 使用">
+        <el-switch v-model="mediaCreateForm.canAiUse" />
+      </el-form-item>
+      <el-form-item label="宣传使用">
+        <el-switch v-model="mediaCreateForm.canPromotionUse" />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button :disabled="mediaCreateSubmitLoading" @click="mediaCreateDialogVisible = false">
+        取 消
+      </el-button>
+      <el-button type="primary" :loading="mediaCreateSubmitLoading" @click="submitMediaCreate">
+        确 定
+      </el-button>
+    </template>
+  </Dialog>
+
   <Dialog v-model="reviewDialogVisible" :title="reviewDialogTitle" width="560px">
     <el-form :model="reviewForm" label-width="110px">
       <el-form-item label="审核状态">
@@ -1021,6 +1200,37 @@ const resourcePackageForm = reactive<XunjingConsoleApi.ResourcePackageUpdateReqV
   versionNo: undefined,
   aiKnowledgeId: undefined,
   status: undefined
+})
+
+const knowledgeCreateDialogVisible = ref(false)
+const knowledgeCreateSubmitLoading = ref(false)
+const knowledgeCreateForm = reactive<XunjingConsoleApi.KnowledgeDocumentCreateReqVO>({
+  packageId: 1,
+  title: '',
+  sourceType: 'MANUAL',
+  sourceUrl: '',
+  contentDigest: '',
+  authorityLevel: 'OFFICIAL',
+  reviewStatus: 'PENDING',
+  vectorStatus: 'PENDING'
+})
+
+const mediaCreateDialogVisible = ref(false)
+const mediaCreateSubmitLoading = ref(false)
+const mediaCreateForm = reactive<XunjingConsoleApi.MediaAssetCreateReqVO>({
+  packageId: 1,
+  title: '',
+  mediaType: 'IMAGE',
+  fileUrl: '',
+  objectKey: '',
+  sourceProvider: '',
+  sourceUrl: '',
+  copyrightStatus: 'PENDING',
+  reviewStatus: 'PENDING',
+  imageTags: '',
+  canPublic: true,
+  canAiUse: true,
+  canPromotionUse: false
 })
 
 const reviewDialogVisible = ref(false)
@@ -1319,6 +1529,102 @@ const submitResourcePackage = async () => {
     await Promise.all([getResourcePackages(), loadOverview()])
   } finally {
     resourcePackageSubmitLoading.value = false
+  }
+}
+
+const resolveDefaultPackageId = (preferredPackageId?: number) => {
+  return preferredPackageId || resourcePackageList.value[0]?.id || 1
+}
+
+const openKnowledgeCreateDialog = () => {
+  Object.assign(knowledgeCreateForm, {
+    packageId: resolveDefaultPackageId(knowledgeQuery.packageId),
+    title: '',
+    sourceType: 'MANUAL',
+    sourceUrl: '',
+    contentDigest: '',
+    authorityLevel: 'OFFICIAL',
+    reviewStatus: 'PENDING',
+    vectorStatus: 'PENDING'
+  })
+  knowledgeCreateDialogVisible.value = true
+}
+
+const submitKnowledgeCreate = async () => {
+  if (!knowledgeCreateForm.packageId) {
+    message.warning('请输入文旅集合 ID')
+    return
+  }
+  if (!knowledgeCreateForm.title?.trim()) {
+    message.warning('请输入资料标题')
+    return
+  }
+  knowledgeCreateSubmitLoading.value = true
+  try {
+    await XunjingConsoleApi.createKnowledgeDocument({
+      ...knowledgeCreateForm,
+      title: knowledgeCreateForm.title.trim(),
+      sourceUrl: knowledgeCreateForm.sourceUrl?.trim() || undefined,
+      contentDigest: knowledgeCreateForm.contentDigest?.trim() || undefined
+    })
+    message.success('文旅资料已入库')
+    knowledgeCreateDialogVisible.value = false
+    knowledgeQuery.packageId = knowledgeCreateForm.packageId
+    await Promise.all([getKnowledgeDocuments(), loadOverview()])
+  } finally {
+    knowledgeCreateSubmitLoading.value = false
+  }
+}
+
+const openMediaCreateDialog = () => {
+  Object.assign(mediaCreateForm, {
+    packageId: resolveDefaultPackageId(mediaQuery.packageId),
+    title: '',
+    mediaType: 'IMAGE',
+    fileUrl: '',
+    objectKey: '',
+    sourceProvider: '',
+    sourceUrl: '',
+    copyrightStatus: 'PENDING',
+    reviewStatus: 'PENDING',
+    imageTags: '',
+    canPublic: true,
+    canAiUse: true,
+    canPromotionUse: false
+  })
+  mediaCreateDialogVisible.value = true
+}
+
+const submitMediaCreate = async () => {
+  if (!mediaCreateForm.packageId) {
+    message.warning('请输入文旅集合 ID')
+    return
+  }
+  if (!mediaCreateForm.title?.trim()) {
+    message.warning('请输入素材标题')
+    return
+  }
+  if (!mediaCreateForm.fileUrl?.trim() && !mediaCreateForm.objectKey?.trim()) {
+    message.warning('请输入文件地址或对象 Key')
+    return
+  }
+  mediaCreateSubmitLoading.value = true
+  try {
+    await XunjingConsoleApi.createMediaAsset({
+      ...mediaCreateForm,
+      title: mediaCreateForm.title.trim(),
+      fileUrl: mediaCreateForm.fileUrl?.trim() || undefined,
+      objectKey: mediaCreateForm.objectKey?.trim() || undefined,
+      sourceProvider: mediaCreateForm.sourceProvider?.trim() || undefined,
+      sourceUrl: mediaCreateForm.sourceUrl?.trim() || undefined,
+      imageTags: mediaCreateForm.imageTags?.trim() || undefined
+    })
+    message.success('图片素材已入库')
+    mediaCreateDialogVisible.value = false
+    mediaQuery.packageId = mediaCreateForm.packageId
+    await Promise.all([getMediaAssets(), loadOverview()])
+  } finally {
+    mediaCreateSubmitLoading.value = false
   }
 }
 

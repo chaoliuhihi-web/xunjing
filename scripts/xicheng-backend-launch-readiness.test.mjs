@@ -417,7 +417,7 @@ describe('xicheng backend launch readiness', () => {
     expect(appService).toContain('buildAgentActionEventPayload')
     expect(appService).toContain('sanitizeAgentActionClientPayload')
     expect(appService).toContain('payload.put("agentAction", buildAgentActionEventPayload(clientPayloadObject))')
-    expect(appService).toContain('hydrateVisionAgentContextFromPreviousAgentAction(resourcePackage, reqVO)')
+    expect(appService).toContain('hydrateVisionAgentContextFromPreviousAgentAction(resourcePackage, reqVO, explicitChatTargetContext)')
     expect(appService).toContain('shouldUsePreviousAgentActionForChatContext(previousAgentActionEvent, previousAskEvent, previousTriggerEvent)')
     expect(appService).toContain('hasExplicitChatTargetContext(reqVO)')
     expect(appService).toContain('EventType.AGENT_ACTION.getType()')
