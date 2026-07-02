@@ -274,9 +274,133 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public MultimodalTriggerRespVO resolveMultimodalTrigger(MultimodalTriggerReqVO reqVO) {
-        MultimodalTriggerRespVO respVO = multimodalTriggerEngine.resolve(reqVO);
-        recordTriggerResolveEventIfPossible(reqVO, respVO);
+        hydrateMultimodalTriggerMemoryFromPreviousResolve(reqVO);
+        MultimodalTriggerReqVO safeReqVO = reqVO == null ? new MultimodalTriggerReqVO() : reqVO;
+        MultimodalTriggerRespVO respVO = multimodalTriggerEngine.resolve(safeReqVO);
+        recordTriggerResolveEventIfPossible(safeReqVO, respVO);
         return respVO;
+    }
+
+    private void hydrateMultimodalTriggerMemoryFromPreviousResolve(MultimodalTriggerReqVO reqVO) {
+        if (reqVO == null || !hasText(reqVO.getPackageCode()) || !hasText(reqVO.getUserTraceId())) {
+            return;
+        }
+        XunjingResourcePackageDO resourcePackage = resourcePackageMapper.selectByPackageCodeAndStatus(
+                reqVO.getPackageCode(), PackageStatus.PUBLISHED.getStatus());
+        if (resourcePackage == null || resourcePackage.getId() == null) {
+            return;
+        }
+        XunjingInteractionEventDO previousEvent =
+                interactionEventMapper.selectLatestByPackageIdAndUserTraceIdAndEventType(
+                        resourcePackage.getId(), reqVO.getUserTraceId(), EventType.TRIGGER_RESOLVE.getType());
+        if (previousEvent == null || !hasText(previousEvent.getPayloadJson())) {
+            return;
+        }
+        try {
+            JsonNode root = JsonUtils.parseTree(previousEvent.getPayloadJson());
+            if (root == null || root.isNull() || root.isMissingNode()) {
+                return;
+            }
+            String poiCode = visionAgentContextText(root, "poiCode");
+            String poiName = visionAgentContextText(root, "poiName");
+            if (!hasText(poiCode) && !hasText(poiName)) {
+                return;
+            }
+            hydratePreviousTriggerRecentPoi(reqVO, poiCode);
+            if (!hasFreshMultimodalTriggerSignal(reqVO)) {
+                hydratePreviousTriggerSceneSignals(reqVO, root);
+            }
+        } catch (RuntimeException ex) {
+            log.warn("[hydrateMultimodalTriggerMemoryFromPreviousResolve][eventId({}) parse failed]",
+                    previousEvent.getId(), ex);
+        }
+    }
+
+    private boolean hasFreshMultimodalTriggerSignal(MultimodalTriggerReqVO reqVO) {
+        return hasText(reqVO.getOcrText())
+                || hasTriggerCoordinate(reqVO.getLocation())
+                || (reqVO.getPhotoMeta() != null && hasTriggerCoordinate(reqVO.getPhotoMeta().getExifLocation()));
+    }
+
+    private boolean hasTriggerCoordinate(LocationPointReqVO location) {
+        return location != null && location.getLatitude() != null && location.getLongitude() != null;
+    }
+
+    private void hydratePreviousTriggerRecentPoi(MultimodalTriggerReqVO reqVO, String poiCode) {
+        if (!hasText(poiCode)) {
+            return;
+        }
+        List<String> recentPoiCodes = new ArrayList<>();
+        if (reqVO.getRecentPoiCodes() != null) {
+            recentPoiCodes.addAll(reqVO.getRecentPoiCodes());
+        }
+        if (!recentPoiCodes.contains(poiCode)) {
+            recentPoiCodes.add(0, poiCode);
+        }
+        reqVO.setRecentPoiCodes(recentPoiCodes);
+    }
+
+    private void hydratePreviousTriggerSceneSignals(MultimodalTriggerReqVO reqVO, JsonNode root) {
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        if (reqVO.getSceneSignals() != null) {
+            sceneSignals.putAll(reqVO.getSceneSignals());
+        }
+        JsonNode previousSignals = root.path("sceneSignals");
+        putSceneSignalIfAbsent(sceneSignals, "sceneFusionSummary",
+                buildContinuousTriggerSceneFusionSummary(root));
+        putSceneSignalIfAbsent(sceneSignals, "worldInterfaceSummary",
+                buildContinuousTriggerWorldInterfaceSummary(previousSignals));
+        putSceneSignalIfAbsent(sceneSignals, "sceneDomainIntentKey",
+                visionAgentContextText(previousSignals, "sceneDomainIntentKey"));
+        putSceneSignalIfAbsent(sceneSignals, "sceneDomainIntentLabel",
+                visionAgentContextText(previousSignals, "sceneDomainIntentLabel"));
+        putSceneSignalIfAbsent(sceneSignals, "agentDecisionReasonSummary",
+                buildContinuousTriggerDecisionReasonSummary(root, previousSignals));
+        if (!sceneSignals.containsKey("memorySessionSceneCount")) {
+            int previousCount = previousSignals.path("memorySessionSceneCount").asInt(1);
+            sceneSignals.put("memorySessionSceneCount", Math.max(previousCount, 1) + 1);
+        }
+        reqVO.setSceneSignals(sceneSignals);
+    }
+
+    private String buildContinuousTriggerSceneFusionSummary(JsonNode root) {
+        String poiName = visionAgentContextText(root, "poiName");
+        String poiCode = visionAgentContextText(root, "poiCode");
+        String reason = visionAgentContextText(root, "reason");
+        List<String> parts = new ArrayList<>();
+        if (hasText(poiName)) {
+            parts.add("上一轮识别到" + poiName);
+        } else if (hasText(poiCode)) {
+            parts.add("上一轮识别到" + poiCode);
+        }
+        if (hasText(reason)) {
+            parts.add(reason);
+        }
+        return parts.isEmpty() ? "" : truncateForEvent("连续识境：" + String.join("；", parts),
+                TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+    }
+
+    private String buildContinuousTriggerWorldInterfaceSummary(JsonNode previousSignals) {
+        String previousWorld = visionAgentContextText(previousSignals, "worldInterfaceSummary");
+        if (hasText(previousWorld)) {
+            return truncateForEvent("连续识境：" + previousWorld, TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+        }
+        return "相机沿用上一轮识境上下文，等待用户确认是否继续当前场景。";
+    }
+
+    private String buildContinuousTriggerDecisionReasonSummary(JsonNode root, JsonNode previousSignals) {
+        String previousReason = visionAgentContextText(previousSignals, "agentDecisionReasonSummary");
+        if (hasText(previousReason)) {
+            return previousReason;
+        }
+        String reason = visionAgentContextText(root, "reason");
+        return hasText(reason) ? "上一轮触发理由：" + reason : "";
+    }
+
+    private void putSceneSignalIfAbsent(Map<String, Object> sceneSignals, String key, String value) {
+        if (!sceneSignals.containsKey(key) && hasText(value)) {
+            sceneSignals.put(key, truncateForEvent(value.trim(), TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH));
+        }
     }
 
     @Override

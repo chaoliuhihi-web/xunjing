@@ -75,6 +75,8 @@ describe('xicheng backend launch readiness', () => {
     expect(appService).toContain('buildTriggerResolveEventPayload')
     expect(appService).toContain('TRIGGER_SCENE_SIGNAL_TEXT_KEYS')
     expect(appService).toContain('buildTriggerSceneSignalsPayload(reqVO.getSceneSignals())')
+    expect(appService).toContain('hydrateMultimodalTriggerMemoryFromPreviousResolve(reqVO)')
+    expect(appService).toContain('hasFreshMultimodalTriggerSignal(reqVO)')
     expect(appService).not.toContain('payload.put("sceneSignals", reqVO.getSceneSignals())')
     expect(appService).toContain('EventType.TRIGGER_RESOLVE')
     expect(appService).toContain('resolveAppEventQrCode(reqVO, hasText(reqVO.getPackageCode()))')
@@ -87,6 +89,8 @@ describe('xicheng backend launch readiness', () => {
     expect(appTest).toContain('testResolveMultimodalTriggerDoesNotTreatPhotoAdviceSceneSignalAsRecordIntent')
     expect(appTest).toContain('testResolveMultimodalTriggerRecordsRecognitionEventWhenPackageProvided')
     expect(appTest).toContain('testResolveMultimodalTriggerRecordsSceneSignalsWithoutRawRecognitionContext')
+    expect(appTest).toContain('testResolveMultimodalTriggerHydratesContinuousContextFromPreviousTriggerEvent')
+    expect(appTest).toContain('testResolveMultimodalTriggerDoesNotReusePreviousSceneIntentWhenFreshOcrExists')
     expect(appTest).toContain('testRecordAppErrorFeedbackEventKeepsXichengContext')
     expect(appTest).toContain('testAnswerBlocksWhenReviewedSourcesDoNotMatchXichengPoiContext')
 
