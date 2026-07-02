@@ -84,10 +84,10 @@
 		</view>
 
 		<view class="account-shortcut-grid xicheng-paper-card">
-			<view class="personal-entry-card account-shortcut" @click="openFootprint">
+			<view class="personal-entry-card account-shortcut" @click="openTravelogueMaterials">
 				<xicheng-icon name="location" variant="plain" :size="28" />
-				<text class="account-shortcut-title">西城足迹</text>
-				<text class="account-shortcut-desc">素材时间线</text>
+				<text class="account-shortcut-title">游记素材</text>
+				<text class="account-shortcut-desc">路线/照片/问答</text>
 			</view>
 			<view class="account-shortcut" @click="openLogin">
 				<xicheng-icon name="mine" variant="plain" :size="28" />
@@ -270,8 +270,8 @@ export default {
 				icon: 'none'
 			})
 		},
-		openFootprint() {
-			uni.navigateTo({ url: '/pages/xicheng/footprint/footprint' })
+		openTravelogueMaterials() {
+			uni.navigateTo({ url: '/pages/xicheng/footprint/footprint?mode=travelogueMaterial' })
 		},
 		selectLibraryFilter(key = 'all') {
 			this.selectedLibraryFilter = key
