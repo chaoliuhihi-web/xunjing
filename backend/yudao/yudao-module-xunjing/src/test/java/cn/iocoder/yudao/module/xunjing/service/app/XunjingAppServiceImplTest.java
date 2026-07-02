@@ -836,6 +836,15 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertEquals("confirm_travel_note", respVO.getAction());
         assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
         assertTrue(respVO.getCandidates().get(0).getMatchedSignals().contains("scene_context_alias"));
+        assertTrue(respVO.getAgentActions().stream()
+                .anyMatch(action -> "complete_check_in".equals(action.getActionKey())
+                        && "完成打卡".equals(action.getTitle())));
+        assertTrue(respVO.getAgentActions().stream()
+                .anyMatch(action -> "add_to_travel_map".equals(action.getActionKey())
+                        && "加入旅行地图".equals(action.getTitle())));
+        assertTrue(respVO.getAgentActions().stream()
+                .anyMatch(action -> "generate_travelogue".equals(action.getActionKey())
+                        && "生成游记".equals(action.getTitle())));
     }
 
     @Test

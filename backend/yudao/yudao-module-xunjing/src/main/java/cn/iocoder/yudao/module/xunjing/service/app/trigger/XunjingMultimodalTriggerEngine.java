@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.xunjing.service.app.trigger;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.LocationPointReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalAgentActionRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalCandidateRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerRespVO;
@@ -198,6 +199,8 @@ public class XunjingMultimodalTriggerEngine {
         respVO.setTargetPath(buildTargetPath(intent, regionCode, best.poi().code(), safeReqVO.getPackageCode(), !autoTrigger));
         respVO.setSuggestedQuestions(best.poi().suggestedQuestions());
         respVO.setSources(toSources(best.poi()));
+        respVO.setAgentActions(buildAgentActions(intent, respVO.getAction(), regionCode, best.poi().code(),
+                safeReqVO.getPackageCode(), !autoTrigger, safeReqVO.getSceneSignals()));
         respVO.setCandidates(matches.stream()
                 .map(match -> toCandidate(match, intent, regionCode, safeReqVO.getPackageCode()))
                 .toList());
@@ -342,6 +345,8 @@ public class XunjingMultimodalTriggerEngine {
         respVO.setTargetPath("/pages/ai-chat/index" + buildContextQuery(regionCode, null, packageCode, false));
         respVO.setSuggestedQuestions(List.of("我在西城附近，有什么值得看的地方？", "我可以拍什么让小京识别？"));
         respVO.setSources(List.of());
+        respVO.setAgentActions(buildAgentActions("ask", "ask_ai_companion", regionCode, null, packageCode,
+                true, Map.of()));
         respVO.setCandidates(List.of());
         return respVO;
     }
@@ -357,6 +362,119 @@ public class XunjingMultimodalTriggerEngine {
                 stringValue(source.get("sourceType"), "OFFICIAL_PUBLIC"),
                 sourceUrl,
                 contentDigest));
+    }
+
+    private List<MultimodalAgentActionRespVO> buildAgentActions(
+            String intent, String primaryAction, String regionCode, String poiCode, String packageCode,
+            boolean confirm, Map<String, Object> sceneSignals) {
+        List<MultimodalAgentActionRespVO> actions = new ArrayList<>();
+        addAgentAction(actions, primaryAction, agentActionTitle(primaryAction, intent), intent,
+                buildAgentActionTargetPath(intent, regionCode, poiCode, packageCode, confirm),
+                confirm, agentActionRequiresRealSystem(primaryAction, intent), "primary");
+        addAgentAction(actions, "ask_follow_up", "继续问", "ask",
+                "/pages/ai-chat/index" + buildContextQuery(regionCode, poiCode, packageCode, false),
+                false, false, "conversation");
+        if ("record".equals(intent) || hasAnySceneSignal(sceneSignals, List.of(
+                "checkInTaskSummary", "badgeRewardName", "travelMapUpdateSummary",
+                "travelogueMaterialSummary", "photoMomentSummary", "socialShareDraftHint"))) {
+            String recordTargetPath = "/pages/travel-note/edit" + buildContextQuery(regionCode, poiCode, packageCode, true);
+            addAgentAction(actions, "complete_check_in", "完成打卡", "record",
+                    recordTargetPath, true, false, sceneSignalValue(sceneSignals, "checkInTaskSummary"));
+            addAgentAction(actions, "add_to_travel_map", "加入旅行地图", "record",
+                    recordTargetPath, true, false, sceneSignalValue(sceneSignals, "travelMapUpdateSummary"));
+            addAgentAction(actions, "generate_travelogue", "生成游记", "record",
+                    recordTargetPath, true, false, sceneSignalValue(sceneSignals, "travelogueMaterialSummary"));
+        }
+        if ("route".equals(intent) || hasAnySceneSignal(sceneSignals, List.of("routeRecommendationSummary"))) {
+            addAgentAction(actions, "recommend_next_stop", "推荐下一站", "route",
+                    "/pages/routes/recommend" + buildContextQuery(regionCode, poiCode, packageCode, true),
+                    true, false, sceneSignalValue(sceneSignals, "routeRecommendationSummary"));
+        }
+        if ("food".equals(intent) || hasAnySceneSignal(sceneSignals, List.of(
+                "merchantServiceSummary", "menuItemNames", "dishRecommendationSummary", "nearbyFoodRecommendationSummary"))) {
+            addAgentAction(actions, "nearby_food", "附近美食", "food",
+                    "/pages/food/recommend" + buildContextQuery(regionCode, poiCode, packageCode, true),
+                    true, true, sceneSignalValue(sceneSignals, "merchantServiceSummary"));
+        }
+        if ("activity".equals(intent) || hasAnySceneSignal(sceneSignals, List.of(
+                "nearbyActivitySummary", "activityName", "ticketingHint", "venueNavigationHint"))) {
+            addAgentAction(actions, "activity_ticketing", "活动票务", "activity",
+                    "/pages/activity/recommend" + buildContextQuery(regionCode, poiCode, packageCode, true),
+                    true, true, sceneSignalValue(sceneSignals, "ticketingHint"));
+        }
+        return List.copyOf(actions);
+    }
+
+    private void addAgentAction(
+            List<MultimodalAgentActionRespVO> actions, String actionKey, String title, String intent,
+            String targetPath, boolean requiresUserConfirm, boolean requiresRealSystem, String reason) {
+        if (!hasText(actionKey) || actions.stream().anyMatch(action -> actionKey.equals(action.getActionKey()))) {
+            return;
+        }
+        MultimodalAgentActionRespVO action = new MultimodalAgentActionRespVO();
+        action.setActionKey(actionKey);
+        action.setTitle(title);
+        action.setIntent(intent);
+        action.setTargetPath(targetPath);
+        action.setRequiresUserConfirm(requiresUserConfirm);
+        action.setRequiresRealSystem(requiresRealSystem);
+        action.setReason(defaultIfBlank(reason, ""));
+        actions.add(action);
+    }
+
+    private String buildAgentActionTargetPath(
+            String intent, String regionCode, String poiCode, String packageCode, boolean confirm) {
+        if ("ask".equals(intent)) {
+            return "/pages/ai-chat/index" + buildContextQuery(regionCode, poiCode, packageCode, false);
+        }
+        return buildTargetPath(intent, regionCode, poiCode, packageCode, confirm);
+    }
+
+    private String agentActionTitle(String action, String intent) {
+        if ("open_route_recommendation".equals(action) || "confirm_route_recommendation".equals(action)) {
+            return "推荐下一站";
+        }
+        if ("open_food_recommendation".equals(action) || "confirm_food_recommendation".equals(action)) {
+            return "附近美食";
+        }
+        if ("start_travel_note".equals(action) || "confirm_travel_note".equals(action)) {
+            return "生成游记";
+        }
+        if ("open_activity_handoff".equals(action) || "confirm_activity_handoff".equals(action)) {
+            return "活动票务";
+        }
+        if ("start_sign_translation".equals(action) || "confirm_sign_translation".equals(action)) {
+            return "路牌翻译";
+        }
+        if ("start_safety_advisory".equals(action) || "confirm_safety_advisory".equals(action)) {
+            return "安全提醒";
+        }
+        if ("start_scene_interpretation".equals(action) || "confirm_scene_interpretation".equals(action)) {
+            return "深度识境";
+        }
+        if ("start_photo_advice".equals(action) || "confirm_photo_advice".equals(action)) {
+            return "拍照建议";
+        }
+        if ("ask_ai_companion".equals(action)) {
+            return "继续问";
+        }
+        return hasText(intent) ? intent : action;
+    }
+
+    private boolean agentActionRequiresRealSystem(String action, String intent) {
+        return "food".equals(intent)
+                || "activity".equals(intent)
+                || "open_food_recommendation".equals(action)
+                || "confirm_food_recommendation".equals(action)
+                || "open_activity_handoff".equals(action)
+                || "confirm_activity_handoff".equals(action);
+    }
+
+    private boolean hasAnySceneSignal(Map<String, Object> sceneSignals, List<String> keys) {
+        if (sceneSignals == null || sceneSignals.isEmpty()) {
+            return false;
+        }
+        return keys.stream().anyMatch(key -> hasText(sceneSignalValue(sceneSignals, key)));
     }
 
     private List<SourceRespVO> toSources(PoiProfile poi) {
@@ -688,6 +806,9 @@ public class XunjingMultimodalTriggerEngine {
     }
 
     private String sceneSignalValue(Map<String, Object> sceneSignals, String key) {
+        if (sceneSignals == null) {
+            return "";
+        }
         Object value = sceneSignals.get(key);
         return value == null ? "" : value.toString();
     }

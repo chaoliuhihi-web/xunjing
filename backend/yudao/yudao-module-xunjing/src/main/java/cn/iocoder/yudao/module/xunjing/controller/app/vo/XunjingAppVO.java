@@ -122,7 +122,19 @@ public class XunjingAppVO {
         private String targetPath;
         private List<String> suggestedQuestions;
         private List<SourceRespVO> sources;
+        private List<MultimodalAgentActionRespVO> agentActions;
         private List<MultimodalCandidateRespVO> candidates;
+    }
+
+    @Data
+    public static class MultimodalAgentActionRespVO {
+        private String actionKey;
+        private String title;
+        private String intent;
+        private String targetPath;
+        private Boolean requiresUserConfirm;
+        private Boolean requiresRealSystem;
+        private String reason;
     }
 
     @Data
