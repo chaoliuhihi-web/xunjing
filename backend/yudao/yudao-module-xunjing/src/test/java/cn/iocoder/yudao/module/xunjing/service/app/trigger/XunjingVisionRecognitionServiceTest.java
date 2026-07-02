@@ -143,9 +143,23 @@ public class XunjingVisionRecognitionServiceTest {
             assertEquals("success", enrichedReqVO.getSceneSignals().get("visionRecognitionStatus"));
             assertEquals("qwen-vl-max", enrichedReqVO.getSceneSignals().get("visionRecognitionModel"));
             assertEquals("1", enrichedReqVO.getSceneSignals().get("visionRecognitionLabelCount"));
+            assertTrue(enrichedReqVO.getSceneSignals().get("recognitionEvidence") instanceof Map);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> recognitionEvidence =
+                    (Map<String, Object>) enrichedReqVO.getSceneSignals().get("recognitionEvidence");
+            assertEquals("success", recognitionEvidence.get("status"));
+            assertEquals("qwen-vl-max", recognitionEvidence.get("model"));
+            assertEquals(1, recognitionEvidence.get("labelCount"));
+            assertEquals(List.of("palace"), recognitionEvidence.get("labels"));
+            assertEquals("恭王府博物馆入口", recognitionEvidence.get("ocrText"));
+            assertEquals("镜头里是恭王府博物馆入口牌匾", recognitionEvidence.get("caption"));
+            assertEquals("photo-001", recognitionEvidence.get("imageId"));
+            assertEquals("image/jpeg", recognitionEvidence.get("imageMimeType"));
+            assertEquals(true, recognitionEvidence.get("providerConfigured"));
             assertFalse(enrichedReqVO.getSceneSignals().containsKey("sourceRecognitionContext"));
             assertFalse(enrichedReqVO.getSceneSignals().toString().contains("test-key"));
             assertFalse(enrichedReqVO.getSceneSignals().toString().contains("/vision/v1"));
+            assertFalse(enrichedReqVO.getSceneSignals().toString().contains("photo-base64"));
         } finally {
             server.stop(0);
         }

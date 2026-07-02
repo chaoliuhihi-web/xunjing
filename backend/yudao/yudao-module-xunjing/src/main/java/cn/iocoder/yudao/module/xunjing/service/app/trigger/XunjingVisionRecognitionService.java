@@ -155,11 +155,13 @@ public class XunjingVisionRecognitionService {
             return VisionRecognitionResult.empty();
         }
         if (!isConfigured()) {
-            return VisionRecognitionResult.evidenceOnly(buildVisionRecognitionEvidence("provider_not_configured", 0));
+            return VisionRecognitionResult.evidenceOnly(buildVisionRecognitionEvidence(
+                    "provider_not_configured", VisionRecognitionResult.empty(), photoMeta, false));
         }
         if (imageBase64.length() > MAX_IMAGE_BASE64_CHARS) {
             log.warn("[recognizeImage][图片 base64 超过服务端上限，跳过视觉识别 imageId={}]", photoMeta.getImageId());
-            return VisionRecognitionResult.evidenceOnly(buildVisionRecognitionEvidence("skipped_oversized_image", 0));
+            return VisionRecognitionResult.evidenceOnly(buildVisionRecognitionEvidence(
+                    "skipped_oversized_image", VisionRecognitionResult.empty(), photoMeta, true));
         }
         try {
             HttpRequest request = HttpRequest.newBuilder(URI.create(resolveChatCompletionsUrl(visionApiUrl)))
@@ -172,13 +174,15 @@ public class XunjingVisionRecognitionService {
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 log.warn("[recognizeImage][视觉识别调用失败 status={} imageId={}]", response.statusCode(),
                         photoMeta.getImageId());
-                return VisionRecognitionResult.evidenceOnly(buildVisionRecognitionEvidence("provider_http_error", 0));
+                return VisionRecognitionResult.evidenceOnly(buildVisionRecognitionEvidence(
+                        "provider_http_error", VisionRecognitionResult.empty(), photoMeta, true));
             }
             VisionRecognitionResult recognition = extractVisionResult(extractChatContent(response.body()));
-            return recognition.withEvidence(buildVisionRecognitionEvidence("success", recognition.labels().size()));
+            return recognition.withEvidence(buildVisionRecognitionEvidence("success", recognition, photoMeta, true));
         } catch (Exception ex) {
             log.warn("[recognizeImage][视觉识别异常 imageId={} message={}]", photoMeta.getImageId(), ex.getMessage());
-            return VisionRecognitionResult.evidenceOnly(buildVisionRecognitionEvidence("provider_error", 0));
+            return VisionRecognitionResult.evidenceOnly(buildVisionRecognitionEvidence(
+                    "provider_error", VisionRecognitionResult.empty(), photoMeta, true));
         }
     }
 
@@ -279,7 +283,7 @@ public class XunjingVisionRecognitionService {
         String json = unwrapJson(content);
         String ocrText = "";
         String caption = "";
-        Map<String, String> sceneSignals = new LinkedHashMap<>();
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
         try {
             JsonNode root = JsonUtils.getObjectMapper().readTree(json);
             appendLabels(root.path("labels"), labels);
@@ -295,7 +299,7 @@ public class XunjingVisionRecognitionService {
             caption = content;
         }
         inferVisionSceneDomain(labels, caption, ocrText, sceneSignals);
-        return new VisionRecognitionResult(new ArrayList<>(labels), ocrText, sceneSignals);
+        return new VisionRecognitionResult(new ArrayList<>(labels), ocrText, caption, sceneSignals);
     }
 
     private void mergeVisionLabels(MultimodalTriggerReqVO reqVO, List<String> labels) {
@@ -318,17 +322,20 @@ public class XunjingVisionRecognitionService {
         if (reqVO.getSceneSignals() != null) {
             mergedSceneSignals.putAll(reqVO.getSceneSignals());
         }
-        for (Map.Entry<String, String> entry : recognition.sceneSignals().entrySet()) {
+        for (Map.Entry<String, Object> entry : recognition.sceneSignals().entrySet()) {
             mergedSceneSignals.putIfAbsent(entry.getKey(), entry.getValue());
         }
         reqVO.setSceneSignals(mergedSceneSignals);
     }
 
-    private Map<String, String> buildVisionRecognitionEvidence(String status, int labelCount) {
-        Map<String, String> evidence = new LinkedHashMap<>();
+    private Map<String, Object> buildVisionRecognitionEvidence(
+            String status, VisionRecognitionResult recognition, PhotoMetaReqVO photoMeta, boolean providerConfigured) {
+        Map<String, Object> evidence = new LinkedHashMap<>();
         evidence.put("visionRecognitionStatus", status);
         evidence.put("visionRecognitionModel", resolvedVisionModel());
-        evidence.put("visionRecognitionLabelCount", String.valueOf(Math.max(labelCount, 0)));
+        evidence.put("visionRecognitionLabelCount", String.valueOf(Math.max(recognition.labels().size(), 0)));
+        evidence.put("recognitionEvidence",
+                buildVisionRecognitionEvidencePayload(status, recognition, photoMeta, providerConfigured));
         return evidence;
     }
 
@@ -336,8 +343,35 @@ public class XunjingVisionRecognitionService {
         return hasText(visionModel) ? visionModel : DEFAULT_MODEL;
     }
 
-    private Map<String, String> extractVisionSceneSignals(JsonNode root, String caption) {
-        Map<String, String> sceneSignals = new LinkedHashMap<>();
+    private Map<String, Object> buildVisionRecognitionEvidencePayload(
+            String status, VisionRecognitionResult recognition, PhotoMetaReqVO photoMeta, boolean providerConfigured) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("status", status);
+        payload.put("model", resolvedVisionModel());
+        payload.put("labelCount", Math.max(recognition.labels().size(), 0));
+        payload.put("labels", recognition.labels().stream()
+                .filter(this::hasText)
+                .distinct()
+                .limit(20)
+                .toList());
+        if (hasText(recognition.ocrText())) {
+            payload.put("ocrText", recognition.ocrText().trim());
+        }
+        if (hasText(recognition.caption())) {
+            payload.put("caption", recognition.caption().trim());
+        }
+        if (photoMeta != null && hasText(photoMeta.getImageId())) {
+            payload.put("imageId", photoMeta.getImageId().trim());
+        }
+        if (photoMeta != null && hasText(photoMeta.getImageMimeType())) {
+            payload.put("imageMimeType", photoMeta.getImageMimeType().trim());
+        }
+        payload.put("providerConfigured", providerConfigured);
+        return payload;
+    }
+
+    private Map<String, Object> extractVisionSceneSignals(JsonNode root, String caption) {
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
         JsonNode node = root.path("sceneSignals");
         for (String key : VISION_SCENE_SIGNAL_TEXT_KEYS) {
             putVisionSceneSignal(sceneSignals, node, key);
@@ -350,7 +384,7 @@ public class XunjingVisionRecognitionService {
     }
 
     private void inferVisionSceneDomain(
-            Set<String> labels, String caption, String ocrText, Map<String, String> sceneSignals) {
+            Set<String> labels, String caption, String ocrText, Map<String, Object> sceneSignals) {
         if (sceneSignals.containsKey("sceneDomainIntentKey")) {
             return;
         }
@@ -380,7 +414,7 @@ public class XunjingVisionRecognitionService {
         return String.join(" ", parts).toLowerCase(Locale.ROOT);
     }
 
-    private void putVisionSceneSignal(Map<String, String> sceneSignals, JsonNode node, String key) {
+    private void putVisionSceneSignal(Map<String, Object> sceneSignals, JsonNode node, String key) {
         if (node == null || node.isMissingNode() || node.isNull() || sceneSignals.containsKey(key)) {
             return;
         }
@@ -473,24 +507,25 @@ public class XunjingVisionRecognitionService {
         return value != null && !value.isBlank();
     }
 
-    private record VisionRecognitionResult(List<String> labels, String ocrText, Map<String, String> sceneSignals) {
+    private record VisionRecognitionResult(
+            List<String> labels, String ocrText, String caption, Map<String, Object> sceneSignals) {
 
         private boolean isEmpty() {
             return labels.isEmpty() && !hasText(ocrText) && sceneSignals.isEmpty();
         }
 
         private static VisionRecognitionResult empty() {
-            return new VisionRecognitionResult(List.of(), "", Map.of());
+            return new VisionRecognitionResult(List.of(), "", "", Map.of());
         }
 
-        private static VisionRecognitionResult evidenceOnly(Map<String, String> evidence) {
-            return new VisionRecognitionResult(List.of(), "", evidence);
+        private static VisionRecognitionResult evidenceOnly(Map<String, Object> evidence) {
+            return new VisionRecognitionResult(List.of(), "", "", evidence);
         }
 
-        private VisionRecognitionResult withEvidence(Map<String, String> evidence) {
-            Map<String, String> mergedSceneSignals = new LinkedHashMap<>(sceneSignals);
+        private VisionRecognitionResult withEvidence(Map<String, Object> evidence) {
+            Map<String, Object> mergedSceneSignals = new LinkedHashMap<>(sceneSignals);
             mergedSceneSignals.putAll(evidence);
-            return new VisionRecognitionResult(labels, ocrText, mergedSceneSignals);
+            return new VisionRecognitionResult(labels, ocrText, caption, mergedSceneSignals);
         }
 
         private static boolean hasText(String value) {

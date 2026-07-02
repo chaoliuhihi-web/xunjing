@@ -60,6 +60,9 @@ describe('xunjing app API contract', () => {
     const appService = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppService.java'
     )
+    const appServiceImpl = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java'
+    )
     const triggerEngine = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/trigger/XunjingMultimodalTriggerEngine.java'
     )
@@ -106,6 +109,9 @@ describe('xunjing app API contract', () => {
     expect(visionService).toContain('imageBase64')
     expect(visionService).toContain('chat/completions')
     expect(visionService).toContain('extractVisionLabels')
+    expect(visionService).toContain('"recognitionEvidence"')
+    expect(visionService).toContain('"providerConfigured"')
+    expect(appServiceImpl).toContain('payload.put("recognitionEvidence", buildTriggerRecognitionEvidencePayload(reqVO))')
   })
 
   test('agent action app event contract is backend telemetry and sanitizes raw media payloads', async () => {

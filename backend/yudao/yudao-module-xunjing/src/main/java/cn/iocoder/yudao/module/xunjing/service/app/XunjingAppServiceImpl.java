@@ -1689,6 +1689,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         payload.put("imageLabelCount", reqVO.getImageLabels() == null ? 0 : reqVO.getImageLabels().size());
         payload.put("recentPoiCount", reqVO.getRecentPoiCodes() == null ? 0 : reqVO.getRecentPoiCodes().size());
         payload.put("sceneSignals", buildTriggerSceneSignalsPayload(reqVO.getSceneSignals()));
+        payload.put("recognitionEvidence", buildTriggerRecognitionEvidencePayload(reqVO));
         payload.put("sceneUnderstanding", buildTriggerSceneUnderstandingPayload(respVO));
         payload.put("serviceHandoff", buildTriggerServiceHandoffPayload(reqVO, respVO));
         payload.put("agentActions", buildTriggerAgentActionsPayload(respVO));
@@ -1937,6 +1938,78 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             }
         }
         return null;
+    }
+
+    private Map<String, Object> buildTriggerRecognitionEvidencePayload(MultimodalTriggerReqVO reqVO) {
+        if (reqVO == null || reqVO.getSceneSignals() == null || reqVO.getSceneSignals().isEmpty()) {
+            return Map.of();
+        }
+        Object value = reqVO.getSceneSignals().get("recognitionEvidence");
+        if (!(value instanceof Map<?, ?> recognitionEvidence)) {
+            return Map.of();
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        putTriggerRecognitionEvidenceText(payload, recognitionEvidence, "status", 50);
+        putTriggerRecognitionEvidenceText(payload, recognitionEvidence, "model", 80);
+        putTriggerRecognitionEvidenceNumber(payload, recognitionEvidence, "labelCount");
+        List<String> labels = buildTriggerRecognitionEvidenceLabels(recognitionEvidence);
+        if (!labels.isEmpty()) {
+            payload.put("labels", labels);
+        }
+        putTriggerRecognitionEvidenceText(payload, recognitionEvidence, "ocrText", TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+        putTriggerRecognitionEvidenceText(payload, recognitionEvidence, "caption", TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+        putTriggerRecognitionEvidenceText(payload, recognitionEvidence, "imageId", 100);
+        putTriggerRecognitionEvidenceText(payload, recognitionEvidence, "imageMimeType", 50);
+        putTriggerRecognitionEvidenceBoolean(payload, recognitionEvidence, "providerConfigured");
+        return payload;
+    }
+
+    private void putTriggerRecognitionEvidenceText(
+            Map<String, Object> payload, Map<?, ?> source, String key, int maxLength) {
+        Object value = source.get(key);
+        if (value == null) {
+            return;
+        }
+        String text = String.valueOf(value).trim();
+        if (hasText(text)) {
+            payload.put(key, truncateForEvent(text, maxLength));
+        }
+    }
+
+    private void putTriggerRecognitionEvidenceNumber(Map<String, Object> payload, Map<?, ?> source, String key) {
+        Double value = triggerSceneSignalNumber(source.get(key));
+        if (value == null || !Double.isFinite(value)) {
+            return;
+        }
+        long rounded = Math.round(value);
+        if (rounded >= 0) {
+            payload.put(key, rounded);
+        }
+    }
+
+    private void putTriggerRecognitionEvidenceBoolean(Map<String, Object> payload, Map<?, ?> source, String key) {
+        Object value = source.get(key);
+        if (value instanceof Boolean booleanValue) {
+            payload.put(key, booleanValue);
+            return;
+        }
+        if (value instanceof String text && hasText(text)) {
+            payload.put(key, Boolean.parseBoolean(text.trim()));
+        }
+    }
+
+    private List<String> buildTriggerRecognitionEvidenceLabels(Map<?, ?> source) {
+        Object value = source.get("labels");
+        if (!(value instanceof List<?> labels)) {
+            return List.of();
+        }
+        return labels.stream()
+                .map(label -> label == null ? "" : String.valueOf(label).trim())
+                .filter(this::hasText)
+                .map(label -> truncateForEvent(label, 80))
+                .distinct()
+                .limit(20)
+                .toList();
     }
 
     private Map<String, Object> buildTriggerLocationPayload(LocationPointReqVO location) {

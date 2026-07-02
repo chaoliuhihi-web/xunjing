@@ -1197,7 +1197,7 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/vision/v1/chat/completions", exchange -> {
             String response = """
-                    {"choices":[{"message":{"content":"{\\"labels\\":[],\\"ocrText\\":\\"恭王府博物馆入口\\",\\"caption\\":\\"镜头里是恭王府博物馆入口牌匾\\",\\"sceneSignals\\":{\\"sceneFusionSummary\\":\\"视觉识别到恭王府入口牌匾。\\",\\"worldInterfaceSummary\\":\\"视觉模型读取画面文字后交给场景引擎。\\",\\"sceneDomainIntentKey\\":\\"architecture\\",\\"sceneDomainIntentLabel\\":\\"建筑\\",\\"sourceRecognitionContext\\":{\\"raw\\":\\"blocked\\"}}}"}}]}
+                    {"choices":[{"message":{"content":"{\\"labels\\":[\\"palace\\",\\"courtyard\\"],\\"ocrText\\":\\"恭王府博物馆入口\\",\\"caption\\":\\"镜头里是恭王府博物馆入口牌匾\\",\\"sceneSignals\\":{\\"sceneFusionSummary\\":\\"视觉识别到恭王府入口牌匾。\\",\\"worldInterfaceSummary\\":\\"视觉模型读取画面文字后交给场景引擎。\\",\\"sceneDomainIntentKey\\":\\"architecture\\",\\"sceneDomainIntentLabel\\":\\"建筑\\",\\"sourceRecognitionContext\\":{\\"raw\\":\\"blocked\\"}}}"}}]}
                     """;
             byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(200, responseBytes.length);
@@ -1242,7 +1242,18 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
             assertEquals("architecture", sceneSignals.get("sceneDomainIntentKey").asText());
             assertEquals("success", sceneSignals.get("visionRecognitionStatus").asText());
             assertEquals("qwen-vl-max", sceneSignals.get("visionRecognitionModel").asText());
-            assertEquals(0, sceneSignals.get("visionRecognitionLabelCount").asInt());
+            assertEquals(2, sceneSignals.get("visionRecognitionLabelCount").asInt());
+            JsonNode recognitionEvidence = payload.get("recognitionEvidence");
+            assertEquals("success", recognitionEvidence.get("status").asText());
+            assertEquals("qwen-vl-max", recognitionEvidence.get("model").asText());
+            assertEquals(2, recognitionEvidence.get("labelCount").asInt());
+            assertTrue(recognitionEvidence.get("labels").toString().contains("palace"));
+            assertTrue(recognitionEvidence.get("labels").toString().contains("courtyard"));
+            assertEquals("恭王府博物馆入口", recognitionEvidence.get("ocrText").asText());
+            assertEquals("镜头里是恭王府博物馆入口牌匾", recognitionEvidence.get("caption").asText());
+            assertEquals("photo-vision-ocr-001", recognitionEvidence.get("imageId").asText());
+            assertEquals("image/jpeg", recognitionEvidence.get("imageMimeType").asText());
+            assertTrue(recognitionEvidence.get("providerConfigured").asBoolean());
             assertFalse(sceneSignals.has("sourceRecognitionContext"));
             assertFalse(events.get(0).getPayloadJson().contains("test-key"));
             assertFalse(events.get(0).getPayloadJson().contains("/vision/v1"));
@@ -1300,6 +1311,12 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
                 sceneUnderstanding.get("visionRecognitionStatus").asText());
         assertEquals("qwen-vl-max", sceneUnderstanding.get("visionRecognitionModel").asText());
         assertEquals(0, sceneUnderstanding.get("visionRecognitionLabelCount").asInt());
+        JsonNode recognitionEvidence = payload.get("recognitionEvidence");
+        assertEquals("provider_not_configured", recognitionEvidence.get("status").asText());
+        assertEquals("qwen-vl-max", recognitionEvidence.get("model").asText());
+        assertEquals(0, recognitionEvidence.get("labelCount").asInt());
+        assertFalse(recognitionEvidence.get("providerConfigured").asBoolean());
+        assertEquals("photo-provider-missing-001", recognitionEvidence.get("imageId").asText());
         assertFalse(events.get(0).getPayloadJson().contains("imageBase64"));
         assertFalse(events.get(0).getPayloadJson().contains("photo-base64"));
     }
