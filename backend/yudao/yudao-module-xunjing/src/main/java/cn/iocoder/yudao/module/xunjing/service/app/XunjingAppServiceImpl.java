@@ -22,6 +22,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppMapPoin
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppMediaAssetRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.AppPackageDetailRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.LocationPointReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalAgentActionRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PhotoMetaReqVO;
@@ -1086,8 +1087,38 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         putPreviousJsonMemoryPart(parts, "游记素材", sceneSignals, "travelogueMaterialSummary");
         putPreviousJsonMemoryPart(parts, "照片时刻", sceneSignals, "photoMomentSummary");
         putPreviousJsonMemoryPart(parts, "分享文案", sceneSignals, "socialShareDraftHint");
+        putPreviousAgentActionsMemoryPart(parts, root.get("agentActions"));
         putPreviousJsonMemoryPart(parts, "OCR", root, "ocrText");
         return String.join("；", parts);
+    }
+
+    private void putPreviousAgentActionsMemoryPart(List<String> parts, JsonNode agentActions) {
+        if (agentActions == null || !agentActions.isArray() || agentActions.size() == 0) {
+            return;
+        }
+        List<String> actionParts = new ArrayList<>();
+        for (JsonNode action : agentActions) {
+            String actionKey = visionAgentContextText(action, "actionKey");
+            String title = visionAgentContextText(action, "title");
+            String intent = visionAgentContextText(action, "intent");
+            if (!hasText(actionKey) && !hasText(title)) {
+                continue;
+            }
+            String actionText = hasText(title) ? title : actionKey;
+            if (hasText(actionKey)) {
+                actionText += "(" + actionKey + ")";
+            }
+            if (hasText(intent)) {
+                actionText += "/" + intent;
+            }
+            if (action.path("requiresRealSystem").asBoolean(false)) {
+                actionText += "/需真实系统";
+            }
+            actionParts.add(actionText);
+        }
+        if (!actionParts.isEmpty()) {
+            parts.add("推荐动作=" + String.join(",", actionParts));
+        }
     }
 
     private void hydrateTriggerSceneSignalText(RagChatReqVO reqVO, JsonNode sceneSignals) {
@@ -1370,12 +1401,34 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         payload.put("recentPoiCount", reqVO.getRecentPoiCodes() == null ? 0 : reqVO.getRecentPoiCodes().size());
         payload.put("sceneSignals", buildTriggerSceneSignalsPayload(reqVO.getSceneSignals()));
         payload.put("serviceHandoff", buildTriggerServiceHandoffPayload(reqVO, respVO));
+        payload.put("agentActions", buildTriggerAgentActionsPayload(respVO));
         payload.put("location", buildTriggerLocationPayload(reqVO.getLocation()));
         payload.put("photoMeta", buildTriggerPhotoMetaPayload(reqVO.getPhotoMeta()));
         payload.put("matchedSignals", buildTriggerMatchedSignalsPayload(respVO));
         payload.put("candidateCount", respVO.getCandidates() == null ? 0 : respVO.getCandidates().size());
         payload.put("sourceCount", respVO.getSources() == null ? 0 : respVO.getSources().size());
         return JsonUtils.toJsonString(payload);
+    }
+
+    private List<Map<String, Object>> buildTriggerAgentActionsPayload(MultimodalTriggerRespVO respVO) {
+        if (respVO == null || respVO.getAgentActions() == null || respVO.getAgentActions().isEmpty()) {
+            return List.of();
+        }
+        return respVO.getAgentActions().stream()
+                .map(this::buildTriggerAgentActionPayload)
+                .toList();
+    }
+
+    private Map<String, Object> buildTriggerAgentActionPayload(MultimodalAgentActionRespVO action) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("actionKey", truncateForEvent(action.getActionKey(), 80));
+        payload.put("title", truncateForEvent(action.getTitle(), 80));
+        payload.put("intent", truncateForEvent(action.getIntent(), 50));
+        payload.put("targetPath", truncateForEvent(action.getTargetPath(), 200));
+        payload.put("requiresUserConfirm", Boolean.TRUE.equals(action.getRequiresUserConfirm()));
+        payload.put("requiresRealSystem", Boolean.TRUE.equals(action.getRequiresRealSystem()));
+        payload.put("reason", truncateForEvent(action.getReason(), TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH));
+        return payload;
     }
 
     private Map<String, Object> buildTriggerServiceHandoffPayload(

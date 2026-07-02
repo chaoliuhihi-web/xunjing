@@ -507,6 +507,8 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
 
         MultimodalTriggerReqVO reqVO = multimodalReq();
         reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-multimodal-trigger");
+        reqVO.setUserTraceId("trace-xicheng-travel-record-actions-001");
         reqVO.setText("");
         reqVO.setOcrText("");
         reqVO.setImageLabels(List.of());
@@ -845,6 +847,20 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertTrue(respVO.getAgentActions().stream()
                 .anyMatch(action -> "generate_travelogue".equals(action.getActionKey())
                         && "生成游记".equals(action.getTitle())));
+
+        List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.TRIGGER_RESOLVE.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId,
+                                "trace-xicheng-travel-record-actions-001"));
+        assertEquals(1, events.size());
+        JsonNode payload = JsonUtils.parseTree(events.get(0).getPayloadJson());
+        JsonNode agentActions = payload.get("agentActions");
+        assertTrue(agentActions.toString().contains("complete_check_in"));
+        assertTrue(agentActions.toString().contains("add_to_travel_map"));
+        assertTrue(agentActions.toString().contains("generate_travelogue"));
+        assertFalse(events.get(0).getPayloadJson().contains("imageBase64"));
     }
 
     @Test
