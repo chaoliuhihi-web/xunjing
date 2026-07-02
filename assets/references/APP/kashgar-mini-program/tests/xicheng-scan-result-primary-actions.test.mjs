@@ -9,6 +9,7 @@ const visionAgentPanel = fs.readFileSync(path.join(root, 'components', 'xicheng'
 const candidateCard = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengScanResultCandidateCard.vue'), 'utf8')
 const routeCard = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengScanResultRouteCard.vue'), 'utf8')
 const feedbackCard = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengScanResultFeedbackCard.vue'), 'utf8')
+const poiDetailEntry = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengScanResultPoiDetailEntry.vue'), 'utf8')
 
 const template = scanResult.match(/<template>[\s\S]*?<\/template>/)?.[0] || ''
 
@@ -24,7 +25,7 @@ const sourceCardIndex = template.indexOf('<xicheng-scan-result-sources-card')
 const feedbackCardIndex = template.indexOf('<xicheng-scan-result-feedback-card')
 const memoryPanelIndex = template.indexOf('<xicheng-scan-result-memory-panel')
 const agentPanelIndex = template.indexOf('<xicheng-scan-result-vision-agent-panel')
-const poiDetailEntryIndex = template.indexOf('class="poi-detail-entry xicheng-paper-card"')
+const poiDetailEntryIndex = template.indexOf('<xicheng-scan-result-poi-detail-entry')
 
 assert.ok(summaryHeroIndex >= 0, 'Recognition result should render the split summary hero component')
 assert.ok(resultCardIndex >= 0, 'Recognition result should render the result summary card')
@@ -83,6 +84,11 @@ assert.ok(
 assert.ok(
   feedbackCard.includes('class="feedback-card xicheng-paper-card"'),
   'Split recognition feedback component should keep the feedback card section available'
+)
+
+assert.ok(
+  poiDetailEntry.includes('class="poi-detail-entry xicheng-paper-card"'),
+  'Split POI detail entry component should keep the POI detail entry section available'
 )
 
 assert.ok(

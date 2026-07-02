@@ -12,6 +12,7 @@ const readOptional = (...segments) => {
 const pagesJson = read('pages.json')
 const app = read('App.vue')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
+const poiDetailEntry = read('components', 'xicheng', 'XichengScanResultPoiDetailEntry.vue')
 const poi = readOptional('pages', 'xicheng', 'poi', 'poi.vue')
 
 assert.ok(
@@ -32,8 +33,14 @@ assert.match(
 
 assert.match(
   scanResult,
-  /class="poi-detail-entry xicheng-paper-card"[\s\S]*:class="\{ 'poi-detail-entry-disabled': recognitionActionBlocked \}"[\s\S]*@click="openPoiDetail"[\s\S]*建筑看点[\s\S]*地点详情/,
-  'Recognition result should expose a visible POI detail entry without restoring the old three-button action bar'
+  /<xicheng-scan-result-poi-detail-entry[\s\S]*:poi-name="result\.poiName"[\s\S]*:recognition-action-blocked="recognitionActionBlocked"[\s\S]*@open-poi-detail="openPoiDetail"[\s\S]*\/>/,
+  'Recognition result should expose a visible POI detail component without restoring the old three-button action bar'
+)
+
+assert.match(
+  poiDetailEntry,
+  /class="poi-detail-entry xicheng-paper-card"[\s\S]*:class="\{ 'poi-detail-entry-disabled': recognitionActionBlocked \}"[\s\S]*@click="\$emit\('open-poi-detail'\)"[\s\S]*建筑看点[\s\S]*地点详情/,
+  'POI detail entry component should keep the approved visible entry and delegate navigation to the page shell'
 )
 
 assert.match(

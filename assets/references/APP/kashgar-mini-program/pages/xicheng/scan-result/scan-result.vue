@@ -88,21 +88,11 @@
 			@open-knowledge-graph-node="openKnowledgeGraphNode"
 		/>
 
-		<view
-			class="poi-detail-entry xicheng-paper-card"
-			:class="{ 'poi-detail-entry-disabled': recognitionActionBlocked }"
-			@click="openPoiDetail"
-		>
-			<view class="poi-detail-entry-icon">
-				<xicheng-icon name="layer" variant="primary" :size="24" />
-			</view>
-			<view class="poi-detail-entry-copy">
-				<text class="poi-detail-entry-title">建筑看点</text>
-				<text class="poi-detail-entry-desc">{{ result.poiName }}官方地点详情</text>
-			</view>
-			<text class="poi-detail-entry-label">地点详情</text>
-			<xicheng-icon name="next" variant="plain" :size="20" />
-		</view>
+		<xicheng-scan-result-poi-detail-entry
+			:poi-name="result.poiName"
+			:recognition-action-blocked="recognitionActionBlocked"
+			@open-poi-detail="openPoiDetail"
+		/>
 
 	</view>
 </template>
@@ -136,6 +126,7 @@ import XichengScanResultSummaryHero from '@/components/xicheng/XichengScanResult
 import XichengScanResultSourcesCard from '@/components/xicheng/XichengScanResultSourcesCard.vue'
 import XichengScanResultRouteCard from '@/components/xicheng/XichengScanResultRouteCard.vue'
 import XichengScanResultFeedbackCard from '@/components/xicheng/XichengScanResultFeedbackCard.vue'
+import XichengScanResultPoiDetailEntry from '@/components/xicheng/XichengScanResultPoiDetailEntry.vue'
 
 const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
 	regionCode: XICHENG_REGION_CONFIG.regionCode,
@@ -406,7 +397,7 @@ const normalizeResult = (result = {}) => ({
 })
 
 export default {
-	components: { XichengScanResultMemoryPanel, XichengScanResultCandidateCard, XichengScanResultQuestionsCard, XichengScanResultVisionAgentPanel, XichengScanResultSummaryHero, XichengScanResultSourcesCard, XichengScanResultRouteCard, XichengScanResultFeedbackCard },
+	components: { XichengScanResultMemoryPanel, XichengScanResultCandidateCard, XichengScanResultQuestionsCard, XichengScanResultVisionAgentPanel, XichengScanResultSummaryHero, XichengScanResultSourcesCard, XichengScanResultRouteCard, XichengScanResultFeedbackCard, XichengScanResultPoiDetailEntry },
 	data() {
 		return {
 			region: XICHENG_REGION_CONFIG,
@@ -1787,62 +1778,4 @@ export default {
 	color: #173F35;
 }
 
-.poi-detail-entry {
-	display: grid;
-	grid-template-columns: 76rpx 1fr auto 34rpx;
-	align-items: center;
-	gap: 18rpx;
-	margin-top: 28rpx;
-	padding: 24rpx 28rpx;
-	border-radius: 30rpx;
-	background: rgba(255, 253, 248, 0.94);
-}
-
-.poi-detail-entry-disabled {
-	opacity: 0.56;
-}
-
-.poi-detail-entry-icon {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 76rpx;
-	height: 76rpx;
-	border-radius: 999rpx;
-	background: #173F35;
-	box-shadow: 0 12rpx 26rpx rgba(16, 47, 41, 0.16);
-}
-
-.poi-detail-entry-copy {
-	min-width: 0;
-}
-
-.poi-detail-entry-title,
-.poi-detail-entry-desc {
-	display: block;
-}
-
-.poi-detail-entry-title {
-	font-size: 32rpx;
-	font-weight: 700;
-	line-height: 1.25;
-	color: #102F29;
-}
-
-.poi-detail-entry-desc {
-	margin-top: 8rpx;
-	font-size: 24rpx;
-	line-height: 1.45;
-	color: #746F68;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.poi-detail-entry-label {
-	font-size: 24rpx;
-	font-weight: 700;
-	color: #173F35;
-	white-space: nowrap;
-}
 </style>
