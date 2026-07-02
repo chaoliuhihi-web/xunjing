@@ -2064,13 +2064,22 @@ async function checkXichengProductionSeedApplyEvidence({
     if (summary.packageCode !== expectedXichengPackageCode) {
       blockers.push('production seed apply evidence packageCode must be XICHENG-MAP-001')
     }
-    if (expectedSeedEvidenceFile && normalizeEvidencePath(rootDir, summary.seedEvidenceFile) !== expectedSeedEvidenceFile) {
+    if (
+      expectedSeedEvidenceFile &&
+      !evidencePathMatchesOrDeploymentPath(rootDir, summary.seedEvidenceFile, expectedSeedEvidenceFile)
+    ) {
       blockers.push('production seed apply evidence seedEvidenceFile must match --poi-seed-evidence')
     }
-    if (expectedRuntimeEvidenceFile && normalizeEvidencePath(rootDir, summary.runtimeEvidenceFile) !== expectedRuntimeEvidenceFile) {
+    if (
+      expectedRuntimeEvidenceFile &&
+      !evidencePathMatchesOrDeploymentPath(rootDir, summary.runtimeEvidenceFile, expectedRuntimeEvidenceFile)
+    ) {
       blockers.push('production seed apply evidence runtimeEvidenceFile must match --runtime-seed-evidence')
     }
-    if (ref.path && normalizeEvidencePath(rootDir, summary.applyEvidenceFile) !== ref.path) {
+    if (
+      ref.path &&
+      !evidencePathMatchesOrDeploymentPath(rootDir, summary.applyEvidenceFile, ref.path)
+    ) {
       blockers.push('production seed apply evidence applyEvidenceFile must match the evidence file path')
     }
     if (!/^[a-f0-9]{64}$/.test(String(summary.seedSqlSha256 || ''))) {
@@ -2139,6 +2148,27 @@ function normalizeEvidencePath(rootDir, filePath) {
   return path.isAbsolute(filePath)
     ? path.resolve(filePath)
     : path.resolve(resolvedRoot, filePath)
+}
+
+function isDeploymentServerEvidencePath(filePath) {
+  if (!hasValue(filePath) || !path.isAbsolute(filePath)) {
+    return false
+  }
+  const resolvedPath = path.resolve(filePath)
+  return resolvedPath === '/opt/xinghe-xunjing' || resolvedPath.startsWith('/opt/xinghe-xunjing/')
+}
+
+function evidencePathMatchesOrDeploymentPath(rootDir, actualPath, expectedPath) {
+  const normalizedExpectedPath = normalizeEvidencePath(rootDir, expectedPath)
+  const normalizedActualPath = normalizeEvidencePath(rootDir, actualPath)
+  if (!normalizedExpectedPath || !normalizedActualPath) {
+    return false
+  }
+  if (normalizedActualPath === normalizedExpectedPath) {
+    return true
+  }
+  return isDeploymentServerEvidencePath(actualPath) &&
+    path.basename(normalizedActualPath) === path.basename(normalizedExpectedPath)
 }
 
 function validatePoiEvidenceConsistency(rootDir, manifestEvidence, workbookEvidence, seedEvidence) {
@@ -2396,7 +2426,11 @@ async function checkXichengSourceLicense(rootDir, seedSqlPath) {
   if (unapprovedRows.length > 0) {
     blockers.push(`${unapprovedRows.length} Xicheng POI rows are not fully approved for review/geo/license/status`)
   }
-  if (!seed.includes('POI production source') && !seed.includes('POI 级已审核来源')) {
+  if (
+    !seed.includes('POI production source') &&
+    !seed.includes('POI 级已审核来源') &&
+    !seed.includes('POI 级生产来源')
+  ) {
     blockers.push('Xicheng seed must create POI-level approved source documents')
   }
 

@@ -410,7 +410,7 @@ function productionSeedSql() {
     'INSERT INTO `xunjing_poi` VALUES',
     `${poiRows};`,
     'INSERT INTO `xunjing_resource_package` (`readiness_json`) VALUES (\'{"p0Ready":true,"productionReady":true,"regionCode":"beijing-xicheng","packageCode":"XICHENG-MAP-001","poiSeedCount":80,"targetP0PoiCount":80}\');',
-    "INSERT INTO `xunjing_knowledge_document` (`title`, `source_url`, `review_status`, `index_status`) SELECT CONCAT(`name`, ' POI production source'), CONCAT(@xicheng_source_url, '#', `poi_code`), 'APPROVED', 'INDEXED' FROM `xunjing_poi`;"
+    "INSERT INTO `xunjing_knowledge_document` (`title`, `source_url`, `review_status`, `index_status`) SELECT CONCAT(`name`, ' POI 级生产来源'), CONCAT(@xicheng_source_url, '#', `poi_code`), 'APPROVED', 'INDEXED' FROM `xunjing_poi`;"
   ].join('\n')
 }
 
@@ -1639,6 +1639,45 @@ describe('xicheng Yudao release readiness gate', () => {
     expect(result.status).toBe('NOT_READY')
     expect(seedApplyCheck?.ok).toBe(false)
     expect(seedApplyCheck?.blockers.join('\n')).toContain('Yudao production seed apply evidence is required before production release')
+  })
+
+  test('accepts production seed apply evidence generated on the deployment server path', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
+    const qdrantEvidencePath = await writeQdrantEvidence(rootDir)
+    const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
+    const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath,
+      overrides: {
+        summary: {
+          seedEvidenceFile: '/opt/xinghe-xunjing/workbench/codex-seed-apply/qa/xicheng-poi-production-seed-evidence.json',
+          runtimeEvidenceFile: '/opt/xinghe-xunjing/workbench/codex-seed-apply/qa/xicheng-yudao-runtime-seed-production-evidence.json',
+          applyEvidenceFile: '/opt/xinghe-xunjing/workbench/codex-seed-apply/qa/xicheng-yudao-production-seed-apply-evidence.json'
+        }
+      }
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env: productionEnv(),
+      rootDir,
+      stage: 'production',
+      aiBootstrapEvidencePath,
+      qdrantEvidencePath,
+      visionOcrEvidencePath,
+      objectStorageEvidencePath,
+      runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.checks.find((check) => check.name === 'xicheng-production-seed-apply')?.ok).toBe(true)
   })
 
   test('fails closed when a git-backed release root has uncommitted changes', async () => {
