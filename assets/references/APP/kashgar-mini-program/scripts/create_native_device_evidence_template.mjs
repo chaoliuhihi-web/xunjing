@@ -201,7 +201,10 @@ assertMobileArchiveMatchesPlatform({
 const artifactBytes = fs.readFileSync(artifactPath)
 const artifactSha256 = crypto.createHash('sha256').update(artifactBytes).digest('hex')
 const currentCommit = runGit(['rev-parse', 'HEAD'])
-const branch = String(process.env.XUNJING_RELEASE_BRANCH || 'main').trim()
+const branch = runGit(['rev-parse', '--abbrev-ref', 'HEAD'])
+if (branch !== 'main') {
+  fail(`Native device evidence must be prepared from main, got ${branch || 'unknown'}`)
+}
 const firstPlatform = releaseTargets[0]
 
 const evidence = {

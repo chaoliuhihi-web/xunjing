@@ -36,6 +36,28 @@ const requiredSourceAssertionScenarioIds = [
   'xiaojing-blocked-answer'
 ]
 
+const makeGitRepositoryOnBranch = (branchName) => {
+  const tempRepo = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-native-template-git-branch-'))
+  let result = spawnSync('git', ['init'], { cwd: tempRepo, encoding: 'utf8' })
+  assert.equal(result.status, 0, `test fixture git repo should initialize: ${result.stderr || result.stdout}`)
+  result = spawnSync('git', ['checkout', '-b', branchName], { cwd: tempRepo, encoding: 'utf8' })
+  assert.equal(result.status, 0, `test fixture git repo should switch branch: ${result.stderr || result.stdout}`)
+  fs.writeFileSync(path.join(tempRepo, 'README.md'), '# native evidence branch fixture\n')
+  result = spawnSync('git', ['add', 'README.md'], { cwd: tempRepo, encoding: 'utf8' })
+  assert.equal(result.status, 0, `test fixture git repo should stage file: ${result.stderr || result.stdout}`)
+  result = spawnSync('git', [
+    '-c',
+    'user.email=native-evidence@example.test',
+    '-c',
+    'user.name=Native Evidence Fixture',
+    'commit',
+    '-m',
+    'fixture commit'
+  ], { cwd: tempRepo, encoding: 'utf8' })
+  assert.equal(result.status, 0, `test fixture git repo should commit file: ${result.stderr || result.stdout}`)
+  return tempRepo
+}
+
 assert.ok(
   fs.existsSync(scriptPath),
   'APP should provide scripts/create_native_device_evidence_template.mjs for release candidate evidence initialization'
@@ -188,6 +210,40 @@ assert.equal(blockedAnswerScenario.assertions.sourcesVisible, false)
 assert.equal(blockedAnswerScenario.assertions.sourceCount, 0)
 assert.equal(blockedAnswerScenario.assertions.blockedMessage, '无已审核来源，不能回答')
 assert.equal(blockedAnswerScenario.assertions.noLocalFabrication, true)
+
+const nonMainBranchRepo = makeGitRepositoryOnBranch('feature/xicheng-p0')
+const nonMainBranchOutputPath = path.join(tempDir, 'native-evidence-non-main-branch.json')
+const nonMainBranchResult = spawnSync(
+  process.execPath,
+  [
+    scriptPath,
+    '--artifact',
+    artifactPath,
+    '--output',
+    nonMainBranchOutputPath,
+    '--platform',
+    'android'
+  ],
+  {
+    cwd: nonMainBranchRepo,
+    env: {
+      ...process.env,
+      XUNJING_APP_API_BASE_URL: 'https://api.xingheai.net',
+      XUNJING_TENANT_ID: '1'
+    },
+    encoding: 'utf8'
+  }
+)
+assert.notEqual(
+  nonMainBranchResult.status,
+  0,
+  'native evidence template generator should reject non-main git branches'
+)
+assert.match(
+  `${nonMainBranchResult.stderr}\n${nonMainBranchResult.stdout}`,
+  /main|branch|feature\/xicheng-p0/i,
+  'native evidence template generator should explain that release evidence must be prepared from main'
+)
 
 const envFileOutputPath = path.join(tempDir, 'native-evidence-from-env-file.json')
 const releaseEnvFilePath = path.join(tempDir, 'native-evidence-release.env')
