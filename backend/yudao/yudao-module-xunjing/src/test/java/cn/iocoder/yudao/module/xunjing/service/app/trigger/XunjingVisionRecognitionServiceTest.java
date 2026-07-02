@@ -308,6 +308,47 @@ public class XunjingVisionRecognitionServiceTest {
     }
 
     @Test
+    public void testEnrichMergesAnimalSceneSignalsFromVisionProvider() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/vision/v1/chat/completions", exchange -> {
+            String response = """
+                    {"choices":[{"message":{"content":"{\\"labels\\":[\\"snow_leopard\\"],\\"ocrText\\":\\"雪豹\\",\\"caption\\":\\"画面里是雪豹保护展示。\\",\\"sceneSignals\\":{\\"sceneDomainIntentKey\\":\\"animal\\",\\"sceneDomainIntentLabel\\":\\"动物\\",\\"animalSpeciesName\\":\\"雪豹\\",\\"conservationStatusText\\":\\"国家一级保护野生动物\\",\\"habitatSummary\\":\\"高山岩地和雪线附近活动\\",\\"dangerAssessmentText\\":\\"野外近距离接触有风险\\",\\"safetyReminderText\\":\\"不要靠近、投喂或追赶\\",\\"arDisplayHint\\":\\"可展示雪豹体型和栖息地 AR 模型\\"}}"}}]}
+                    """;
+            byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, responseBytes.length);
+            exchange.getResponseBody().write(responseBytes);
+            exchange.close();
+        });
+        server.start();
+        try {
+            XunjingVisionRecognitionService configuredService = new XunjingVisionRecognitionService();
+            setField(configuredService, "visionApiUrl",
+                    "http://127.0.0.1:" + server.getAddress().getPort() + "/vision/v1");
+            setField(configuredService, "visionApiKey", "test-key");
+
+            MultimodalTriggerReqVO reqVO = new MultimodalTriggerReqVO();
+            reqVO.setPhotoMeta(photoMeta("image/jpeg", "photo-base64"));
+
+            MultimodalTriggerReqVO enrichedReqVO = configuredService.enrich(reqVO);
+
+            assertEquals("雪豹", enrichedReqVO.getOcrText());
+            assertEquals("animal", enrichedReqVO.getSceneSignals().get("sceneDomainIntentKey"));
+            assertEquals("动物", enrichedReqVO.getSceneSignals().get("sceneDomainIntentLabel"));
+            assertEquals("雪豹", enrichedReqVO.getSceneSignals().get("animalSpeciesName"));
+            assertEquals("国家一级保护野生动物",
+                    enrichedReqVO.getSceneSignals().get("conservationStatusText"));
+            assertEquals("高山岩地和雪线附近活动", enrichedReqVO.getSceneSignals().get("habitatSummary"));
+            assertEquals("野外近距离接触有风险",
+                    enrichedReqVO.getSceneSignals().get("dangerAssessmentText"));
+            assertEquals("不要靠近、投喂或追赶", enrichedReqVO.getSceneSignals().get("safetyReminderText"));
+            assertEquals("可展示雪豹体型和栖息地 AR 模型",
+                    enrichedReqVO.getSceneSignals().get("arDisplayHint"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     public void testEnrichMergesSignTranslationSceneSignalsFromVisionProvider() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/vision/v1/chat/completions", exchange -> {

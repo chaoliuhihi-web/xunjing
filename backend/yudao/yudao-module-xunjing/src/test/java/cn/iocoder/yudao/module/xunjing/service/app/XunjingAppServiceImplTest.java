@@ -696,6 +696,42 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerUsesAnimalSignalsForSafetyIntentAndContextMatch() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户拍到一块雪豹临时展板。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合动物识别、保护知识和城市知识库后等待场景引擎判断。");
+        sceneSignals.put("sceneDomainIntentKey", "animal");
+        sceneSignals.put("sceneDomainIntentLabel", "动物");
+        sceneSignals.put("agentDecisionReasonSummary", "先说明保护情况、栖息地和是否危险，提醒不要靠近或投喂。");
+        sceneSignals.put("animalSpeciesName", "雪豹");
+        sceneSignals.put("conservationStatusText", "国家一级保护野生动物");
+        sceneSignals.put("habitatSummary", "高山岩地和雪线附近活动，恭王府附近展板适合做保护教育。");
+        sceneSignals.put("dangerAssessmentText", "野外近距离接触有风险。");
+        sceneSignals.put("safetyReminderText", "不要靠近、投喂或追赶。");
+        sceneSignals.put("arDisplayHint", "可展示雪豹体型和栖息地 AR 模型。");
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setText("");
+        reqVO.setOcrText("");
+        reqVO.setImageLabels(List.of());
+        reqVO.setLocation(null);
+        reqVO.setSceneSignals(sceneSignals);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("safety", respVO.getIntent());
+        assertEquals("confirm_safety_advisory", respVO.getAction());
+        assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
+        assertTrue(respVO.getCandidates().get(0).getMatchedSignals().contains("scene_context_alias"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerUsesPhotoAdviceIntent() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -2355,6 +2391,66 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testAnswerUsesAnimalSignalsFromPreviousTriggerForSourceSearch() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        consoleService.addKnowledgeDocument(xichengUnrelatedKnowledgeReq(packageId));
+        consoleService.addKnowledgeDocument(xichengAnimalSafetyKnowledgeReq(packageId));
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户举起手机拍到雪豹保护展示。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合动物识别、保护知识和城市知识库后等待连续问答。");
+        sceneSignals.put("sceneDomainIntentKey", "animal");
+        sceneSignals.put("sceneDomainIntentLabel", "动物");
+        sceneSignals.put("agentDecisionReasonSummary", "先说明保护情况、栖息地和是否危险，提醒不要靠近或投喂。");
+        sceneSignals.put("animalSpeciesName", "雪豹");
+        sceneSignals.put("conservationStatusText", "国家一级保护野生动物");
+        sceneSignals.put("habitatSummary", "高山岩地和雪线附近活动。");
+        sceneSignals.put("dangerAssessmentText", "野外近距离接触有风险。");
+        sceneSignals.put("safetyReminderText", "不要靠近、投喂或追赶。");
+        sceneSignals.put("arDisplayHint", "可展示雪豹体型和栖息地 AR 模型。");
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-animal-search-001");
+        triggerReq.setText("先记住这个动物");
+        triggerReq.setOcrText("");
+        triggerReq.setImageLabels(List.of());
+        triggerReq.setLocation(null);
+        triggerReq.setSceneSignals(sceneSignals);
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("ask", triggerResp.getIntent());
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-animal-search-001");
+        followUpReq.setQuestion("它危险吗？");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO followUpAnswer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", followUpAnswer.getSafetyStatus());
+        assertFalse(followUpAnswer.getSources().isEmpty());
+        assertEquals("西城雪豹动物识境讲解稿", followUpAnswer.getSources().get(0).getTitle());
+        assertTrue(followUpAnswer.getAnswer().contains("雪豹")
+                || followUpAnswer.getAnswer().contains("国家一级保护")
+                || followUpAnswer.getAnswer().contains("不要靠近"));
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId, "trace-xicheng-animal-search-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("雪豹"));
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("国家一级保护"));
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("不要靠近"));
+    }
+
+    @Test
     public void testAnswerHydratesPhotoAdviceHandoffFromTrigger() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -3073,6 +3169,19 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
         reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/plant-populus");
         reqVO.setContentDigest("胡杨可讲约百年树龄、深根和减少蒸腾的耐旱机制，秋季金黄时最好看，新疆塔里木河流域分布较多。");
+        reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
+        reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
+        reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());
+        return reqVO;
+    }
+
+    private KnowledgeDocumentCreateReqVO xichengAnimalSafetyKnowledgeReq(Long packageId) {
+        KnowledgeDocumentCreateReqVO reqVO = new KnowledgeDocumentCreateReqVO();
+        reqVO.setPackageId(packageId);
+        reqVO.setTitle("西城雪豹动物识境讲解稿");
+        reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
+        reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/animal-snow-leopard");
+        reqVO.setContentDigest("雪豹是国家一级保护野生动物，常在高山岩地和雪线附近活动；野外近距离接触有风险，应保持距离，不要靠近、投喂或追赶。");
         reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
         reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
         reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());

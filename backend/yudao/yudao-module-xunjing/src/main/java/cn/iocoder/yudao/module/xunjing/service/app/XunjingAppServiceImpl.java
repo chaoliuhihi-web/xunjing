@@ -151,6 +151,12 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             "plantAdaptationSummary",
             "bestViewingSeasonText",
             "regionalDistributionSummary",
+            "animalSpeciesName",
+            "conservationStatusText",
+            "habitatSummary",
+            "dangerAssessmentText",
+            "safetyReminderText",
+            "arDisplayHint",
             "visionRecognitionStatus",
             "visionRecognitionModel"
     );
@@ -1040,6 +1046,12 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         putPreviousJsonMemoryPart(parts, "耐旱原因", sceneSignals, "plantAdaptationSummary");
         putPreviousJsonMemoryPart(parts, "最佳观赏季", sceneSignals, "bestViewingSeasonText");
         putPreviousJsonMemoryPart(parts, "分布范围", sceneSignals, "regionalDistributionSummary");
+        putPreviousJsonMemoryPart(parts, "动物名称", sceneSignals, "animalSpeciesName");
+        putPreviousJsonMemoryPart(parts, "保护情况", sceneSignals, "conservationStatusText");
+        putPreviousJsonMemoryPart(parts, "栖息地", sceneSignals, "habitatSummary");
+        putPreviousJsonMemoryPart(parts, "危险判断", sceneSignals, "dangerAssessmentText");
+        putPreviousJsonMemoryPart(parts, "安全提醒", sceneSignals, "safetyReminderText");
+        putPreviousJsonMemoryPart(parts, "AR展示", sceneSignals, "arDisplayHint");
         putPreviousJsonMemoryPart(parts, "OCR", root, "ocrText");
         return String.join("；", parts);
     }
