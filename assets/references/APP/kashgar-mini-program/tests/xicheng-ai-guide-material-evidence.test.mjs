@@ -53,6 +53,12 @@ assert.match(
   'Xiaojing answer material persistence should fail closed by clearing reviewed sources and follow-ups for BLOCKED or UNAVAILABLE results'
 )
 
+assert.match(
+  persistBlock,
+  /const material = \{[\s\S]*sourceLabel:\s*'小京讲解'[\s\S]*\.\.\.createXichengVisionAgentChatContextFields\(context\)[\s\S]*\.\.\.createXichengServiceHandoffEvidenceFields\(context\)[\s\S]*reviewStatus:\s*XICHENG_REGION_CONFIG\.reviewStatus\.pending/,
+  'Xiaojing answer material should preserve AI Scene Vision structured context before service handoff evidence and review status'
+)
+
 assert.doesNotMatch(
   persistBlock,
   /uni\.request|\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,

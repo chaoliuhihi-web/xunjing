@@ -729,6 +729,7 @@ const persistXichengAiGuideMaterial = ({ question = '', result = {}, assistantMe
 		suggestedQuestions,
 		safetyStatus: materialSafetyStatus,
 		fallback: Boolean(result.fallback),
+		...createXichengVisionAgentChatContextFields(context),
 		...createXichengServiceHandoffEvidenceFields(context),
 		reviewStatus: XICHENG_REGION_CONFIG.reviewStatus.pending,
 		publishStatus: 'private',
@@ -1319,6 +1320,7 @@ const buildXunjingResourceEventPayload = ({ payload = {}, context = {}, eventCon
 		sourceChannel: payload.sourceChannel || context.sourceChannel || eventConfig.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel,
 		poiCode: payload.poiCode || context.poiCode || '',
 		poiName: payload.poiName || context.poiName || '',
+		...createXichengVisionAgentChatContextFields(context),
 		...createXichengServiceHandoffEvidenceFields(context),
 		companionName: payload.companionName || context.companionName || XICHENG_REGION_CONFIG.companionName,
 		safetyStatus: normalizeXichengSafetyStatus(payload.safetyStatus || context.safetyStatus || '')

@@ -11,6 +11,7 @@ const askEventSource = aiGuide.match(/recordXunjingResourceEvent\(\{\s*eventType
 const viewEventSource = aiGuide.match(/recordXunjingResourceEvent\(\{\s*eventType:\s*'VIEW'[\s\S]*?\n\s*\}\)/)?.[0] || ''
 const sendMessageSource = aiGuide.match(/const sendMessage = async \(\) => \{[\s\S]*?\n\}\n\nconst sendInitialQuestion/)?.[0] || ''
 const sendFailureCatchSource = sendMessageSource.match(/catch \(error\) \{[\s\S]*?console\.error\('调用 AI 失败:', error\)[\s\S]*?uni\.showToast\(\{[\s\S]*?发送失败[\s\S]*?\n\s*\}/)?.[0] || ''
+const eventPayloadSource = aiGuide.match(/const buildXunjingResourceEventPayload\s*=\s*\(\{[\s\S]*?\n\}\nconst requestXunjingResourceEvent/)?.[0] || ''
 
 assert.match(
   aiGuide,
@@ -52,6 +53,19 @@ assert.match(
   aiGuide,
   /const buildXunjingResourceEventPayload\s*=\s*\(\{ payload = \{\}, context = \{\}, eventConfig = \{\} \} = \{\}\) => \{[\s\S]*hasXichengAiContext\(context\)[\s\S]*regionCode:\s*payload\.regionCode \|\| context\.regionCode \|\| XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*payload\.packageCode \|\| context\.packageCode \|\| eventConfig\.packageCode \|\| XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*payload\.sceneCode \|\| context\.sceneCode \|\| XICHENG_REGION_CONFIG\.aiSceneCode[\s\S]*sourceChannel:\s*payload\.sourceChannel \|\| context\.sourceChannel \|\| eventConfig\.sourceChannel \|\| XICHENG_REGION_CONFIG\.sourceChannel[\s\S]*poiCode:\s*payload\.poiCode \|\| context\.poiCode \|\| ''[\s\S]*poiName:\s*payload\.poiName \|\| context\.poiName \|\| ''[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus\(payload\.safetyStatus \|\| context\.safetyStatus \|\| ''\)/,
   'AI guide should centralize Xicheng resource event payload attribution before sending VIEW/ASK/MEDIA_USE/ERROR events'
+)
+
+assert.match(
+  aiGuide,
+  /const buildXunjingResourceEventPayload\s*=\s*\(\{ payload = \{\}, context = \{\}, eventConfig = \{\} \} = \{\}\) => \{[\s\S]*poiName:\s*payload\.poiName \|\| context\.poiName \|\| ''[\s\S]*\.\.\.createXichengVisionAgentChatContextFields\(context\)[\s\S]*\.\.\.createXichengServiceHandoffEvidenceFields\(context\)[\s\S]*safetyStatus:\s*normalizeXichengSafetyStatus/,
+  'AI guide resource event payload should preserve AI Scene Vision structured context before service handoff evidence'
+)
+
+assert.ok(eventPayloadSource, 'AI guide should expose buildXunjingResourceEventPayload')
+assert.doesNotMatch(
+  eventPayloadSource,
+  /sourceRecognitionContext|photoPath|latitude|longitude/,
+  'AI guide resource event payload should not copy raw recognition context, photo paths, or coordinates into analytics payloadJson'
 )
 
 assert.match(
