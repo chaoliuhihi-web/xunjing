@@ -2346,6 +2346,71 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testAnswerDoesNotLetOlderAgentActionOverrideNewerTriggerContext() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+        consoleService.addKnowledgeDocument(xichengGongwangfuKnowledgeReq(packageId));
+
+        AppInteractionEventReqVO oldActionReq = new AppInteractionEventReqVO();
+        oldActionReq.setPackageCode("XICHENG-MAP-001");
+        oldActionReq.setSceneCode("xicheng-agent-action");
+        oldActionReq.setEventType(XunjingEnums.EventType.AGENT_ACTION.getType());
+        oldActionReq.setSourceChannel("xicheng-app");
+        oldActionReq.setUserTraceId("trace-xicheng-chat-latest-trigger-001");
+        oldActionReq.setPayloadJson("""
+                {
+                  "actionKey":"generate_travelogue",
+                  "title":"生成游记",
+                  "intent":"record",
+                  "executionStatus":"clicked",
+                  "poiCode":"xicheng-gongwangfu",
+                  "poiName":"恭王府",
+                  "requiresUserConfirm":true,
+                  "requiresRealSystem":false,
+                  "reason":"这是较早的一次游记动作，不应覆盖后续识境。"
+                }
+                """);
+        appService.recordEvent(oldActionReq);
+
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-chat-latest-trigger-001");
+        triggerReq.setOcrText("恭王府博物馆入口");
+        triggerReq.setImageLabels(List.of("palace", "courtyard"));
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("start_ai_guide", triggerResp.getAction());
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-chat-latest-trigger-001");
+        followUpReq.setQuestion("继续讲这个入口。");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO followUpAnswer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", followUpAnswer.getSafetyStatus());
+        assertEquals("xicheng-gongwangfu", followUpAnswer.getPoiCode());
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId,
+                                "trace-xicheng-chat-latest-trigger-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertEquals("start_ai_guide", visionAgentContext.get("serviceHandoffActionKey").asText());
+        assertEquals("guide", visionAgentContext.get("serviceHandoffIntent").asText());
+        assertEquals("开始 AI 讲解", visionAgentContext.get("decisionActionTitle").asText());
+        assertFalse(visionAgentContext.get("serviceHandoffSummary").asText().contains("generate_travelogue"));
+        assertFalse(visionAgentContext.get("serviceHandoffSummary").asText().contains("较早的一次游记动作"));
+    }
+
+    @Test
     public void testAnswerHydratesSceneUnderstandingFromPreviousTriggerEvent() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());

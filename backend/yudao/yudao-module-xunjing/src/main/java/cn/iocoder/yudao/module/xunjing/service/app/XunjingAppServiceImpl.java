@@ -1110,14 +1110,23 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         if (!hasText(reqVO.getUserTraceId())) {
             return;
         }
-        XunjingInteractionEventDO previousEvent =
+        XunjingInteractionEventDO previousAgentActionEvent =
                 interactionEventMapper.selectLatestByPackageIdAndUserTraceIdAndEventType(
                         resourcePackage.getId(), reqVO.getUserTraceId(), EventType.AGENT_ACTION.getType());
-        if (previousEvent == null || !hasText(previousEvent.getPayloadJson())) {
+        XunjingInteractionEventDO previousAskEvent =
+                interactionEventMapper.selectLatestByPackageIdAndUserTraceIdAndEventType(
+                        resourcePackage.getId(), reqVO.getUserTraceId(), EventType.ASK.getType());
+        XunjingInteractionEventDO previousTriggerEvent =
+                interactionEventMapper.selectLatestByPackageIdAndUserTraceIdAndEventType(
+                        resourcePackage.getId(), reqVO.getUserTraceId(), EventType.TRIGGER_RESOLVE.getType());
+        if (!shouldUsePreviousAgentActionForChatContext(previousAgentActionEvent, previousAskEvent, previousTriggerEvent)) {
+            return;
+        }
+        if (!hasText(previousAgentActionEvent.getPayloadJson())) {
             return;
         }
         try {
-            JsonNode root = JsonUtils.parseTree(previousEvent.getPayloadJson());
+            JsonNode root = JsonUtils.parseTree(previousAgentActionEvent.getPayloadJson());
             if (root == null || root.isNull() || root.isMissingNode()) {
                 return;
             }
@@ -1129,8 +1138,16 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             hydrateAgentActionServiceHandoff(reqVO, agentAction);
         } catch (RuntimeException ex) {
             log.warn("[hydrateVisionAgentContextFromPreviousAgentAction][eventId({}) parse failed]",
-                    previousEvent.getId(), ex);
+                    previousAgentActionEvent.getId(), ex);
         }
+    }
+
+    private boolean shouldUsePreviousAgentActionForChatContext(
+            XunjingInteractionEventDO previousAgentActionEvent,
+            XunjingInteractionEventDO previousAskEvent,
+            XunjingInteractionEventDO previousTriggerEvent) {
+        return shouldUsePreviousAgentActionForTriggerMemory(previousAgentActionEvent, previousAskEvent,
+                previousTriggerEvent);
     }
 
     private void hydrateAgentActionPoiContext(RagChatReqVO reqVO, JsonNode agentAction) {

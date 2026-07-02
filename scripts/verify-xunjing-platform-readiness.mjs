@@ -551,6 +551,7 @@ async function checkXichengAppEventBackend(rootDir) {
     'sanitizeAgentActionClientPayload',
     'payload.put("agentAction", buildAgentActionEventPayload(clientPayloadObject))',
     'hydrateVisionAgentContextFromPreviousAgentAction(resourcePackage, reqVO)',
+    'shouldUsePreviousAgentActionForChatContext(previousAgentActionEvent, previousAskEvent, previousTriggerEvent)',
     'EventType.AGENT_ACTION.getType()',
     'JsonNode agentAction = root.path("agentAction")',
     'buildAgentActionServiceHandoffSummary(agentAction)'
@@ -607,6 +608,11 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(
     appTest,
     'testAnswerHydratesExecutedAgentActionFromPreviousAgentActionEvent',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'testAnswerDoesNotLetOlderAgentActionOverrideNewerTriggerContext',
     'XunjingAppServiceImplTest.java'
   )
   assertContains(
