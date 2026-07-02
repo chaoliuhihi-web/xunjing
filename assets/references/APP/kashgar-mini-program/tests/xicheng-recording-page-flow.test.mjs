@@ -123,6 +123,18 @@ assert.match(
   'Recording page should hand recorded route evidence into travelogue generation'
 )
 
+assert.match(
+  recording,
+  /currentStudyTask\(\)[\s\S]*完成路线后生成西城游记。/,
+  'Recording page fallback task copy should keep the flow focused on travelogue generation'
+)
+
+assert.doesNotMatch(
+  recording,
+  /完成路线后生成亲子研学报告。/,
+  'Recording page should not fall back to a parent-child study report after the product focus moved to travelogue generation'
+)
+
 assert.doesNotMatch(
   recording,
   /background-location|startLocationUpdateBackground|\/app-api\/xunjing|Authorization|Bearer|sk-[A-Za-z0-9]{20,}|pat_[A-Za-z0-9]{20,}/,

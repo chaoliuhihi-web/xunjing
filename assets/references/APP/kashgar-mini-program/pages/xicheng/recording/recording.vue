@@ -134,7 +134,7 @@ export default {
 			return Math.max(this.studyTasks.length, 1)
 		},
 		currentStudyTask() {
-			return this.studyTasks[this.studyTaskDoneCount] || '完成路线后生成亲子研学报告。'
+			return this.studyTasks[this.studyTaskDoneCount] || '完成路线后生成西城游记。'
 		},
 		companionAvatar() {
 			return this.region.companionAvatar || ''
