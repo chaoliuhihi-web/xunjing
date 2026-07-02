@@ -228,6 +228,47 @@ public class XunjingVisionRecognitionServiceTest {
     }
 
     @Test
+    public void testEnrichMergesHeritageSceneSignalsFromVisionProvider() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/vision/v1/chat/completions", exchange -> {
+            String response = """
+                    {"choices":[{"message":{"content":"{\\"labels\\":[\\"instrument\\"],\\"ocrText\\":\\"热瓦普\\",\\"caption\\":\\"画面里是一把新疆弹拨乐器。\\",\\"sceneSignals\\":{\\"sceneDomainIntentKey\\":\\"intangible_heritage\\",\\"sceneDomainIntentLabel\\":\\"非遗\\",\\"heritageItemName\\":\\"热瓦普\\",\\"heritageCategoryText\\":\\"民族弹拨乐器\\",\\"craftProcessSummary\\":\\"木质琴身和皮面共鸣箱制作\\",\\"performanceMethodSummary\\":\\"右手拨弦、左手按弦演奏\\",\\"soundAssetHint\\":\\"可播放热瓦普音色样例\\",\\"nearbyExperienceSummary\\":\\"附近可推荐非遗乐器体验\\"}}"}}]}
+                    """;
+            byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, responseBytes.length);
+            exchange.getResponseBody().write(responseBytes);
+            exchange.close();
+        });
+        server.start();
+        try {
+            XunjingVisionRecognitionService configuredService = new XunjingVisionRecognitionService();
+            setField(configuredService, "visionApiUrl",
+                    "http://127.0.0.1:" + server.getAddress().getPort() + "/vision/v1");
+            setField(configuredService, "visionApiKey", "test-key");
+
+            MultimodalTriggerReqVO reqVO = new MultimodalTriggerReqVO();
+            reqVO.setPhotoMeta(photoMeta("image/jpeg", "photo-base64"));
+
+            MultimodalTriggerReqVO enrichedReqVO = configuredService.enrich(reqVO);
+
+            assertEquals("热瓦普", enrichedReqVO.getOcrText());
+            assertEquals("intangible_heritage", enrichedReqVO.getSceneSignals().get("sceneDomainIntentKey"));
+            assertEquals("非遗", enrichedReqVO.getSceneSignals().get("sceneDomainIntentLabel"));
+            assertEquals("热瓦普", enrichedReqVO.getSceneSignals().get("heritageItemName"));
+            assertEquals("民族弹拨乐器", enrichedReqVO.getSceneSignals().get("heritageCategoryText"));
+            assertEquals("木质琴身和皮面共鸣箱制作",
+                    enrichedReqVO.getSceneSignals().get("craftProcessSummary"));
+            assertEquals("右手拨弦、左手按弦演奏",
+                    enrichedReqVO.getSceneSignals().get("performanceMethodSummary"));
+            assertEquals("可播放热瓦普音色样例", enrichedReqVO.getSceneSignals().get("soundAssetHint"));
+            assertEquals("附近可推荐非遗乐器体验",
+                    enrichedReqVO.getSceneSignals().get("nearbyExperienceSummary"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     public void testEnrichMergesSignTranslationSceneSignalsFromVisionProvider() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/vision/v1/chat/completions", exchange -> {

@@ -66,7 +66,13 @@ public class XunjingMultimodalTriggerEngine {
             "eraOrPeriodText",
             "structureOrCraftSummary",
             "historicalStorySummary",
-            "hiddenDetailSummary"
+            "hiddenDetailSummary",
+            "heritageItemName",
+            "heritageCategoryText",
+            "craftProcessSummary",
+            "performanceMethodSummary",
+            "soundAssetHint",
+            "nearbyExperienceSummary"
     );
 
     private static final List<PoiProfile> XICHENG_POIS = List.of(

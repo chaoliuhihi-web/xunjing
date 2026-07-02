@@ -140,6 +140,12 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             "structureOrCraftSummary",
             "historicalStorySummary",
             "hiddenDetailSummary",
+            "heritageItemName",
+            "heritageCategoryText",
+            "craftProcessSummary",
+            "performanceMethodSummary",
+            "soundAssetHint",
+            "nearbyExperienceSummary",
             "visionRecognitionStatus",
             "visionRecognitionModel"
     );
@@ -1018,6 +1024,12 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         putPreviousJsonMemoryPart(parts, "结构工艺", sceneSignals, "structureOrCraftSummary");
         putPreviousJsonMemoryPart(parts, "历史故事", sceneSignals, "historicalStorySummary");
         putPreviousJsonMemoryPart(parts, "隐藏细节", sceneSignals, "hiddenDetailSummary");
+        putPreviousJsonMemoryPart(parts, "非遗名称", sceneSignals, "heritageItemName");
+        putPreviousJsonMemoryPart(parts, "非遗类别", sceneSignals, "heritageCategoryText");
+        putPreviousJsonMemoryPart(parts, "制作过程", sceneSignals, "craftProcessSummary");
+        putPreviousJsonMemoryPart(parts, "演奏方式", sceneSignals, "performanceMethodSummary");
+        putPreviousJsonMemoryPart(parts, "声音线索", sceneSignals, "soundAssetHint");
+        putPreviousJsonMemoryPart(parts, "附近体验", sceneSignals, "nearbyExperienceSummary");
         putPreviousJsonMemoryPart(parts, "OCR", root, "ocrText");
         return String.join("；", parts);
     }

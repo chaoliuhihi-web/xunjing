@@ -625,6 +625,42 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerUsesHeritageSignalsForIntentAndContextMatch() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户举起手机拍到一把民族弹拨乐器。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合非遗乐器识别和城市知识库后等待场景引擎判断。");
+        sceneSignals.put("sceneDomainIntentKey", "intangible_heritage");
+        sceneSignals.put("sceneDomainIntentLabel", "非遗");
+        sceneSignals.put("agentDecisionReasonSummary", "适合讲制作过程、演奏方式、声音线索和附近体验。");
+        sceneSignals.put("heritageItemName", "热瓦普");
+        sceneSignals.put("heritageCategoryText", "民族弹拨乐器");
+        sceneSignals.put("craftProcessSummary", "木质琴身和皮面共鸣箱制作。");
+        sceneSignals.put("performanceMethodSummary", "右手拨弦、左手按弦演奏。");
+        sceneSignals.put("soundAssetHint", "可播放热瓦普音色样例。");
+        sceneSignals.put("nearbyExperienceSummary", "恭王府附近可推荐非遗乐器体验。");
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setText("");
+        reqVO.setOcrText("");
+        reqVO.setImageLabels(List.of());
+        reqVO.setLocation(null);
+        reqVO.setSceneSignals(sceneSignals);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("interpret", respVO.getIntent());
+        assertEquals("confirm_scene_interpretation", respVO.getAction());
+        assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
+        assertTrue(respVO.getCandidates().get(0).getMatchedSignals().contains("scene_context_alias"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerUsesPhotoAdviceIntent() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -2165,6 +2201,66 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testAnswerUsesHeritageSignalsFromPreviousTriggerForSourceSearch() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        consoleService.addKnowledgeDocument(xichengUnrelatedKnowledgeReq(packageId));
+        consoleService.addKnowledgeDocument(xichengHeritageInstrumentKnowledgeReq(packageId));
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户举起手机拍到一把民族弹拨乐器。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合非遗乐器识别和城市知识库后等待连续问答。");
+        sceneSignals.put("sceneDomainIntentKey", "intangible_heritage");
+        sceneSignals.put("sceneDomainIntentLabel", "非遗");
+        sceneSignals.put("agentDecisionReasonSummary", "适合讲制作、演奏、声音和附近体验。");
+        sceneSignals.put("heritageItemName", "热瓦普");
+        sceneSignals.put("heritageCategoryText", "民族弹拨乐器");
+        sceneSignals.put("craftProcessSummary", "木质琴身和皮面共鸣箱制作。");
+        sceneSignals.put("performanceMethodSummary", "右手拨弦、左手按弦演奏。");
+        sceneSignals.put("soundAssetHint", "可播放热瓦普音色样例。");
+        sceneSignals.put("nearbyExperienceSummary", "附近可推荐非遗乐器体验。");
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-heritage-search-001");
+        triggerReq.setText("先记住这个非遗乐器线索");
+        triggerReq.setOcrText("");
+        triggerReq.setImageLabels(List.of());
+        triggerReq.setLocation(null);
+        triggerReq.setSceneSignals(sceneSignals);
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("ask", triggerResp.getIntent());
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-heritage-search-001");
+        followUpReq.setQuestion("这个乐器怎么体验？");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO followUpAnswer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", followUpAnswer.getSafetyStatus());
+        assertFalse(followUpAnswer.getSources().isEmpty());
+        assertEquals("西城非遗乐器体验讲解稿", followUpAnswer.getSources().get(0).getTitle());
+        assertTrue(followUpAnswer.getAnswer().contains("热瓦普")
+                || followUpAnswer.getAnswer().contains("拨弦")
+                || followUpAnswer.getAnswer().contains("非遗乐器体验"));
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId, "trace-xicheng-heritage-search-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("热瓦普"));
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("右手拨弦"));
+        assertTrue(visionAgentContext.get("memorySessionText").asText().contains("热瓦普音色样例"));
+    }
+
+    @Test
     public void testAnswerHydratesPhotoAdviceHandoffFromTrigger() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -2857,6 +2953,19 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
         reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/architecture-detail");
         reqVO.setContentDigest("无钉木梁常通过榫卯木梁结构完成受力和咬合，抬头可观察不用钉子的咬合节点。");
+        reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
+        reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
+        reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());
+        return reqVO;
+    }
+
+    private KnowledgeDocumentCreateReqVO xichengHeritageInstrumentKnowledgeReq(Long packageId) {
+        KnowledgeDocumentCreateReqVO reqVO = new KnowledgeDocumentCreateReqVO();
+        reqVO.setPackageId(packageId);
+        reqVO.setTitle("西城非遗乐器体验讲解稿");
+        reqVO.setSourceType(XunjingEnums.SourceType.MANUAL.getType());
+        reqVO.setSourceUrl("https://www.bjxch.gov.cn/example/heritage-instrument");
+        reqVO.setContentDigest("热瓦普是民族弹拨乐器，可讲木质琴身和皮面共鸣箱制作，右手拨弦、左手按弦演奏，并推荐非遗乐器体验。");
         reqVO.setAuthorityLevel(XunjingEnums.AuthorityLevel.OFFICIAL.getLevel());
         reqVO.setReviewStatus(XunjingEnums.ReviewStatus.APPROVED.getStatus());
         reqVO.setVectorStatus(XunjingEnums.VectorStatus.INDEXED.getStatus());

@@ -57,7 +57,13 @@ public class XunjingVisionRecognitionService {
             "eraOrPeriodText",
             "structureOrCraftSummary",
             "historicalStorySummary",
-            "hiddenDetailSummary"
+            "hiddenDetailSummary",
+            "heritageItemName",
+            "heritageCategoryText",
+            "craftProcessSummary",
+            "performanceMethodSummary",
+            "soundAssetHint",
+            "nearbyExperienceSummary"
     );
     private static final List<SceneDomainRule> VISION_SCENE_DOMAIN_RULES = List.of(
             new SceneDomainRule("architecture", "建筑", "建筑识境", "讲解年代、结构、故事和拍照角度",
@@ -185,7 +191,13 @@ public class XunjingVisionRecognitionService {
                                                 + "\"eraOrPeriodText\":\"年代或时期\","
                                                 + "\"structureOrCraftSummary\":\"结构或工艺\","
                                                 + "\"historicalStorySummary\":\"历史故事\","
-                                                + "\"hiddenDetailSummary\":\"隐藏细节\"}}。"
+                                                + "\"hiddenDetailSummary\":\"隐藏细节\","
+                                                + "\"heritageItemName\":\"非遗名称\","
+                                                + "\"heritageCategoryText\":\"非遗类别\","
+                                                + "\"craftProcessSummary\":\"制作过程\","
+                                                + "\"performanceMethodSummary\":\"演奏或表演方式\","
+                                                + "\"soundAssetHint\":\"声音线索\","
+                                                + "\"nearbyExperienceSummary\":\"附近体验\"}}。"
                                                 + "sceneDomainIntentKey 可选 architecture, artifact, menu, food, sign, "
                                                 + "intangible_heritage, plant, animal, person, activity。"
                                                 + "可用 labels 包括 white_pagoda, pagoda, temple, temple_gate, "
