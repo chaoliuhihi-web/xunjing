@@ -272,9 +272,37 @@ const runAudit = (args = [], env = {}) => spawnSync(process.execPath, [scriptPat
   encoding: 'utf8'
 })
 
+const runAuditFrom = (cwd, args = [], env = {}) => spawnSync(process.execPath, [scriptPath, ...args], {
+  cwd,
+  env: { ...process.env, ...env },
+  encoding: 'utf8'
+})
+
 const parseAuditJson = (result) => {
   assert.ok(result.stdout.trim(), `audit should print JSON output: ${result.stderr}`)
   return JSON.parse(result.stdout)
+}
+
+const makeGitRepositoryOnBranch = (branchName) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-audit-git-branch-'))
+  let result = spawnSync('git', ['init'], { cwd: tempDir, encoding: 'utf8' })
+  assert.equal(result.status, 0, `test fixture git repo should initialize: ${result.stderr || result.stdout}`)
+  result = spawnSync('git', ['checkout', '-b', branchName], { cwd: tempDir, encoding: 'utf8' })
+  assert.equal(result.status, 0, `test fixture git repo should switch branch: ${result.stderr || result.stdout}`)
+  fs.writeFileSync(path.join(tempDir, 'README.md'), '# release branch fixture\n')
+  result = spawnSync('git', ['add', 'README.md'], { cwd: tempDir, encoding: 'utf8' })
+  assert.equal(result.status, 0, `test fixture git repo should stage file: ${result.stderr || result.stdout}`)
+  result = spawnSync('git', [
+    '-c',
+    'user.email=release-audit@example.test',
+    '-c',
+    'user.name=Release Audit Fixture',
+    'commit',
+    '-m',
+    'fixture commit'
+  ], { cwd: tempDir, encoding: 'utf8' })
+  assert.equal(result.status, 0, `test fixture git repo should commit file: ${result.stderr || result.stdout}`)
+  return tempDir
 }
 
 const missingTempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xicheng-audit-missing-'))
@@ -325,6 +353,31 @@ assert.ok(
 assert.ok(
   missingRefAudit.blockers.some((blocker) => blocker.code.startsWith('git-remote-not-in-sync-')),
   'release candidate audit should include a git remote blocker when any configured remote ref is missing or out of sync'
+)
+const nonMainBranchRepo = makeGitRepositoryOnBranch('feature/xicheng-p0')
+const nonMainBranchResult = runAuditFrom(nonMainBranchRepo, [
+  '--preprod-evidence',
+  path.join(missingTempDir, 'missing-preprod.json'),
+  '--native-evidence',
+  path.join(missingTempDir, 'missing-native.json'),
+  '--release-artifact',
+  path.join(missingTempDir, 'missing-release.apk')
+], {
+  XUNJING_RELEASE_AUDIT_REMOTE_REFS: 'HEAD'
+})
+assert.notEqual(
+  nonMainBranchResult.status,
+  0,
+  'release candidate audit should fail when run from a non-main branch'
+)
+const nonMainBranchAudit = parseAuditJson(nonMainBranchResult)
+assert.equal(nonMainBranchAudit.gates.git.branch, 'feature/xicheng-p0')
+assert.equal(nonMainBranchAudit.gates.git.requiredBranch, 'main')
+assert.equal(nonMainBranchAudit.gates.git.onRequiredBranch, false)
+assert.equal(nonMainBranchAudit.gates.git.ok, false)
+assert.ok(
+  nonMainBranchAudit.blockers.some((blocker) => blocker.code === 'git-release-branch-not-main'),
+  'release candidate audit should name non-main release branch as a launch blocker'
 )
 assert.ok(
   missingAudit.blockers.some((blocker) => blocker.code === 'native-package-readiness-not-passing'),

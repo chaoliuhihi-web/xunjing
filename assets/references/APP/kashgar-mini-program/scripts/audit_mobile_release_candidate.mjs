@@ -31,6 +31,7 @@ const readGit = (gitArgs, fallback = '') => {
 const repoRoot = readGit(['rev-parse', '--show-toplevel'], process.cwd())
 const currentHead = readGit(['rev-parse', 'HEAD'])
 const currentBranch = readGit(['rev-parse', '--abbrev-ref', 'HEAD'], 'HEAD')
+const requiredReleaseBranch = 'main'
 
 const resolveInputPath = (inputPath) => {
   if (!String(inputPath || '').trim()) return ''
@@ -293,6 +294,7 @@ const gitStatusPorcelain = readGit(['status', '--porcelain', '--untracked-files=
 const dirtyEntries = gitStatusPorcelain ? gitStatusPorcelain.split('\n').filter(Boolean) : []
 const worktreeClean = dirtyEntries.length === 0
 const worktreeDirtyWithoutBypass = !worktreeClean && !allowTestBypass
+const onRequiredBranch = currentBranch === requiredReleaseBranch
 const remoteRefs = String(process.env.XUNJING_RELEASE_AUDIT_REMOTE_REFS || 'github/main,origin/main')
   .split(',')
   .map((remoteRef) => remoteRef.trim())
@@ -301,10 +303,13 @@ const remoteParityResults = remoteRefs.map((remoteRef) => remoteParity(remoteRef
 
 gates.git = {
   ok: Boolean(currentHead) &&
+    onRequiredBranch &&
     !remoteParitySkippedWithoutBypass &&
     !worktreeDirtyWithoutBypass &&
     (skipRemoteParity || remoteParityResults.every((remote) => remote.ok)),
   branch: currentBranch,
+  requiredBranch: requiredReleaseBranch,
+  onRequiredBranch,
   commit: currentHead,
   worktreeClean,
   dirtyEntryCount: dirtyEntries.length,
@@ -321,6 +326,14 @@ if (unsafeTestBypassWithoutTestMode) {
     'release-audit-test-bypass-without-test-mode',
     'Release audit test bypass was requested without explicit test mode, so it cannot affect a release candidate',
     'Unset XUNJING_RELEASE_AUDIT_ALLOW_TEST_BYPASS and run npm run audit:release:candidate normally for release'
+  )
+}
+if (!onRequiredBranch) {
+  addBlocker(
+    blockers,
+    'git-release-branch-not-main',
+    `Release candidate audit must run from ${requiredReleaseBranch}, got ${currentBranch || 'unknown'}`,
+    `Run git fetch --all --prune && git checkout ${requiredReleaseBranch} && git merge --ff-only github/${requiredReleaseBranch}, then rerun npm run audit:release:candidate`
   )
 }
 if (worktreeDirtyWithoutBypass) {
