@@ -78,6 +78,7 @@ describe('xicheng backend launch readiness', () => {
     expect(appService).toContain('hydrateMultimodalTriggerMemoryFromPreviousResolve(reqVO)')
     expect(appService).toContain('hydrateMultimodalTriggerMemoryFromPreviousAsk(resourcePackage, reqVO)')
     expect(appService).toContain('shouldUsePreviousAskForTriggerMemory(previousAskEvent, previousResolveEvent)')
+    expect(appService).toContain('triggerRequiresRealSystem(action, intent)')
     expect(appService).toContain('hasFreshMultimodalTriggerSignal(reqVO)')
     expect(appService).not.toContain('payload.put("sceneSignals", reqVO.getSceneSignals())')
     expect(appService).toContain('EventType.TRIGGER_RESOLVE')
@@ -95,6 +96,7 @@ describe('xicheng backend launch readiness', () => {
     expect(appTest).toContain('testResolveMultimodalTriggerDoesNotReusePreviousSceneIntentWhenFreshOcrExists')
     expect(appTest).toContain('testResolveMultimodalTriggerHydratesContinuousContextFromPreviousAskEvent')
     expect(appTest).toContain('testResolveMultimodalTriggerUsesLatestAskWhenItIsNewerThanPreviousTrigger')
+    expect(appTest).toContain('testAnswerMarksMerchantTriggerHandoffAsRealSystemRequired')
     expect(appTest).toContain('testRecordAppErrorFeedbackEventKeepsXichengContext')
     expect(appTest).toContain('testAnswerBlocksWhenReviewedSourcesDoNotMatchXichengPoiContext')
 
