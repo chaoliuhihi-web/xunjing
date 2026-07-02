@@ -479,6 +479,48 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerBuildsCoreAgentActionPackForRecognizedPoi() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-multimodal-trigger");
+        reqVO.setOcrText("恭王府博物馆入口");
+        reqVO.setImageLabels(List.of("palace", "courtyard"));
+        reqVO.setLocation(location("39.937050", "116.386770", 20));
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
+        assertTrue(respVO.getAgentActions().stream()
+                .anyMatch(action -> "start_ai_guide".equals(action.getActionKey())
+                        && "开始 AI 讲解".equals(action.getTitle())));
+        assertTrue(respVO.getAgentActions().stream()
+                .anyMatch(action -> "recommend_next_stop".equals(action.getActionKey())
+                        && "推荐下一站".equals(action.getTitle())
+                        && Boolean.FALSE.equals(action.getRequiresRealSystem())));
+        assertTrue(respVO.getAgentActions().stream()
+                .anyMatch(action -> "nearby_food".equals(action.getActionKey())
+                        && "附近美食".equals(action.getTitle())
+                        && Boolean.TRUE.equals(action.getRequiresRealSystem())));
+        assertTrue(respVO.getAgentActions().stream()
+                .anyMatch(action -> "complete_check_in".equals(action.getActionKey())
+                        && "完成打卡".equals(action.getTitle())));
+        assertTrue(respVO.getAgentActions().stream()
+                .anyMatch(action -> "claim_badge".equals(action.getActionKey())
+                        && "领取徽章".equals(action.getTitle())));
+        assertTrue(respVO.getAgentActions().stream()
+                .anyMatch(action -> "add_to_travel_map".equals(action.getActionKey())
+                        && "加入旅行地图".equals(action.getTitle())));
+        assertTrue(respVO.getAgentActions().stream()
+                .anyMatch(action -> "generate_travelogue".equals(action.getActionKey())
+                        && "生成游记".equals(action.getTitle())));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerUsesSceneSignalsForIntentAndContextMatch() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());

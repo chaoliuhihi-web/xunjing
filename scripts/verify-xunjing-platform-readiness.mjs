@@ -410,6 +410,8 @@ async function checkXichengTriggerBackend(rootDir) {
     'buildFallbackSceneFusionSummary(respVO, evidenceSignals)',
     'buildFallbackWorldInterfaceSummary(respVO, evidenceSignals)',
     'sceneDomainLabel(respVO.getIntent())',
+    'buildCoreAgentActionPack(actions, regionCode, poiCode, packageCode)',
+    '"claim_badge"',
     '"start_ai_guide".equals(action) || "confirm_ai_guide".equals(action)',
     '"开始 AI 讲解"',
     'return noMatch(regionCode, safeReqVO.getPackageCode(), safeReqVO)',
@@ -456,6 +458,11 @@ async function checkXichengTriggerBackend(rootDir) {
   }
   assertContains(enums, 'TRIGGER_RESOLVE("TRIGGER_RESOLVE")', 'XunjingEnums.java')
   assertContains(appTest, 'testResolveMultimodalTriggerUsesPublishedPoiFromDatabase', 'XunjingAppServiceImplTest.java')
+  assertContains(
+    appTest,
+    'testResolveMultimodalTriggerBuildsCoreAgentActionPackForRecognizedPoi',
+    'XunjingAppServiceImplTest.java'
+  )
   assertContains(
     appTest,
     'testResolveMultimodalTriggerDoesNotUsePoiFromAnotherPackage',

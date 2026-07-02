@@ -499,6 +499,7 @@ public class XunjingMultimodalTriggerEngine {
         addAgentAction(actions, "ask_follow_up", "继续问", "ask",
                 "/pages/ai-chat/index" + buildContextQuery(regionCode, poiCode, packageCode, false),
                 false, false, "conversation");
+        buildCoreAgentActionPack(actions, regionCode, poiCode, packageCode);
         if ("record".equals(intent) || hasAnySceneSignal(sceneSignals, List.of(
                 "checkInTaskSummary", "badgeRewardName", "travelMapUpdateSummary",
                 "travelogueMaterialSummary", "photoMomentSummary", "socialShareDraftHint"))) {
@@ -528,6 +529,29 @@ public class XunjingMultimodalTriggerEngine {
                     true, true, sceneSignalValue(sceneSignals, "ticketingHint"));
         }
         return List.copyOf(actions);
+    }
+
+    private void buildCoreAgentActionPack(
+            List<MultimodalAgentActionRespVO> actions, String regionCode, String poiCode, String packageCode) {
+        if (!hasText(poiCode)) {
+            return;
+        }
+        String contextQuery = buildContextQuery(regionCode, poiCode, packageCode, true);
+        String recordTargetPath = "/pages/travel-note/edit" + contextQuery;
+        addAgentAction(actions, "recommend_next_stop", "推荐下一站", "route",
+                "/pages/routes/recommend" + contextQuery, true, false,
+                "基于当前点位继续规划附近下一站。");
+        addAgentAction(actions, "nearby_food", "附近美食", "food",
+                "/pages/food/recommend" + contextQuery, true, true,
+                "需要真实商家系统确认营业、优惠、排队和清真信息。");
+        addAgentAction(actions, "complete_check_in", "完成打卡", "record",
+                recordTargetPath, true, false, "识别到当前点位，可完成打卡。");
+        addAgentAction(actions, "claim_badge", "领取徽章", "record",
+                recordTargetPath, true, false, "识别到当前点位，可领取探索徽章。");
+        addAgentAction(actions, "add_to_travel_map", "加入旅行地图", "record",
+                recordTargetPath, true, false, "将当前点位加入今天的旅行地图。");
+        addAgentAction(actions, "generate_travelogue", "生成游记", "record",
+                recordTargetPath, true, false, "用当前识境结果接力生成旅行记录。");
     }
 
     private void addAgentAction(
