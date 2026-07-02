@@ -152,6 +152,43 @@ public class XunjingVisionRecognitionServiceTest {
     }
 
     @Test
+    public void testEnrichMergesMenuSceneSignalsFromVisionProvider() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/vision/v1/chat/completions", exchange -> {
+            String response = """
+                    {"choices":[{"message":{"content":"{\\"labels\\":[\\"dish_menu\\"],\\"ocrText\\":\\"拉条子 烤包子\\",\\"caption\\":\\"画面里是餐厅菜单。\\",\\"sceneSignals\\":{\\"sceneDomainIntentKey\\":\\"menu\\",\\"sceneDomainIntentLabel\\":\\"菜单\\",\\"menuItemNames\\":\\"拉条子 烤包子\\",\\"spiceLevelSummary\\":\\"中辣\\",\\"halalSuitabilityText\\":\\"清真友好\\",\\"dishRecommendationSummary\\":\\"第一次来建议点拉条子和烤包子\\"}}"}}]}
+                    """;
+            byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, responseBytes.length);
+            exchange.getResponseBody().write(responseBytes);
+            exchange.close();
+        });
+        server.start();
+        try {
+            XunjingVisionRecognitionService configuredService = new XunjingVisionRecognitionService();
+            setField(configuredService, "visionApiUrl",
+                    "http://127.0.0.1:" + server.getAddress().getPort() + "/vision/v1");
+            setField(configuredService, "visionApiKey", "test-key");
+
+            MultimodalTriggerReqVO reqVO = new MultimodalTriggerReqVO();
+            reqVO.setPhotoMeta(photoMeta("image/jpeg", "photo-base64"));
+
+            MultimodalTriggerReqVO enrichedReqVO = configuredService.enrich(reqVO);
+
+            assertEquals("拉条子 烤包子", enrichedReqVO.getOcrText());
+            assertEquals("menu", enrichedReqVO.getSceneSignals().get("sceneDomainIntentKey"));
+            assertEquals("菜单", enrichedReqVO.getSceneSignals().get("sceneDomainIntentLabel"));
+            assertEquals("拉条子 烤包子", enrichedReqVO.getSceneSignals().get("menuItemNames"));
+            assertEquals("中辣", enrichedReqVO.getSceneSignals().get("spiceLevelSummary"));
+            assertEquals("清真友好", enrichedReqVO.getSceneSignals().get("halalSuitabilityText"));
+            assertEquals("第一次来建议点拉条子和烤包子",
+                    enrichedReqVO.getSceneSignals().get("dishRecommendationSummary"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     public void testEnrichInfersSceneDomainWhenProviderOnlyReturnsCaptionAndLabels() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/vision/v1/chat/completions", exchange -> {

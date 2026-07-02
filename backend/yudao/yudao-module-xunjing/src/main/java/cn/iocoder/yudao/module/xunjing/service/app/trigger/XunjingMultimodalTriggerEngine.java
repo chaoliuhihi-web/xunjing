@@ -47,7 +47,11 @@ public class XunjingMultimodalTriggerEngine {
             "relatedTopicKeywords",
             "nearbyActivitySummary",
             "merchantServiceSummary",
-            "routeRecommendationSummary"
+            "routeRecommendationSummary",
+            "menuItemNames",
+            "spiceLevelSummary",
+            "halalSuitabilityText",
+            "dishRecommendationSummary"
     );
 
     private static final List<PoiProfile> XICHENG_POIS = List.of(
