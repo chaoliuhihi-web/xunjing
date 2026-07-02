@@ -4,6 +4,8 @@ import path from 'node:path'
 
 const root = process.cwd()
 const scan = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan', 'scan.vue'), 'utf8')
+const advancedPanel = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengScanAdvancedContextPanel.vue'), 'utf8')
+const scanDecisionSurface = `${scan}\n${advancedPanel}`
 
 for (const required of [
   'scan-agent-preview-panel',
@@ -17,7 +19,7 @@ for (const required of [
   'buildAgentDecisionSnapshot',
   'scan-agent-action-active'
 ]) {
-  assert.ok(scan.includes(required), `Scan page should expose Scene Vision Agent decision preview: ${required}`)
+  assert.ok(scanDecisionSurface.includes(required), `Scan page should expose Scene Vision Agent decision preview: ${required}`)
 }
 
 assert.match(
@@ -33,8 +35,8 @@ assert.match(
 )
 
 assert.match(
-  scan,
-  /<view[^>]*class="scan-agent-action"[\s\S]*v-for="action in sceneAgentActionPreviews"[\s\S]*:class="\{ 'scan-agent-action-active': selectedSceneAgentActionKey === action\.key \}"[\s\S]*@click="selectSceneAgentAction\(action\)"/,
+  advancedPanel,
+  /<view[^>]*class="scan-agent-action"[\s\S]*v-for="action in sceneAgentActionPreviews"[\s\S]*:class="\{ 'scan-agent-action-active': selectedSceneAgentActionKey === action\.key \}"[\s\S]*@click="\$emit\('select-scene-agent-action', action\)"/,
   'Decision preview actions should be selectable without adding separate recognition mode buttons'
 )
 

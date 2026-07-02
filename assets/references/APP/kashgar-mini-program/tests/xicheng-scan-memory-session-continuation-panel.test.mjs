@@ -4,6 +4,8 @@ import path from 'node:path'
 
 const root = process.cwd()
 const scan = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan', 'scan.vue'), 'utf8')
+const advancedPanel = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengScanAdvancedContextPanel.vue'), 'utf8')
+const scanMemorySurface = `${scan}\n${advancedPanel}`
 
 const getBlock = (source, pattern, label) => {
   const block = source.match(pattern)?.[0] || ''
@@ -21,11 +23,11 @@ for (const required of [
   '继续问小京',
   '生成今日游记'
 ]) {
-  assert.ok(scan.includes(required), `Scan entry should expose continuous memory continuation: ${required}`)
+  assert.ok(scanMemorySurface.includes(required), `Scan entry should expose continuous memory continuation: ${required}`)
 }
 
 assert.match(
-  scan,
+  advancedPanel,
   /<view v-if="memorySessionContinuation" class="scan-memory-session-panel xicheng-paper-card">[\s\S]*memorySessionContinuation\.sceneCount[\s\S]*memorySessionContinuation\.poiTrailText[\s\S]*memorySessionActionItems/,
   'Scan page should show the continuous session package before the next capture'
 )

@@ -6,6 +6,8 @@ const root = process.cwd()
 const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf8')
 
 const scan = read('pages', 'xicheng', 'scan', 'scan.vue')
+const advancedPanel = read('components', 'xicheng', 'XichengScanAdvancedContextPanel.vue')
+const scanFusionSurface = `${scan}\n${advancedPanel}`
 
 for (const required of [
   'scan-fusion-panel',
@@ -24,7 +26,7 @@ for (const required of [
   'readVisionAgentMemoryTrail',
   'parseVisionAgentSourceContext'
 ]) {
-  assert.ok(scan.includes(required), `AI识境 scan page should expose live scene fusion signal: ${required}`)
+  assert.ok(scanFusionSurface.includes(required), `AI识境 scan page should expose live scene fusion signal: ${required}`)
 }
 
 assert.match(

@@ -4,6 +4,8 @@ import path from 'node:path'
 
 const root = process.cwd()
 const scan = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan', 'scan.vue'), 'utf8')
+const advancedPanel = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengScanAdvancedContextPanel.vue'), 'utf8')
+const scanWorldSurface = `${scan}\n${advancedPanel}`
 
 for (const required of [
   'scan-world-interface-hud',
@@ -22,11 +24,11 @@ for (const required of [
   '城市知识库',
   '实时环境'
 ]) {
-  assert.ok(scan.includes(required), `AI识境 scan page should expose world-interface HUD capability: ${required}`)
+  assert.ok(scanWorldSurface.includes(required), `AI识境 scan page should expose world-interface HUD capability: ${required}`)
 }
 
 assert.match(
-  scan,
+  advancedPanel,
   /<view class="scan-world-interface-hud xicheng-paper-card">[\s\S]*v-for="signal in worldInterfaceSignals"[\s\S]*worldInterfaceSummary/,
   'World interface HUD should render a compact live signal list and summary on the scan page'
 )

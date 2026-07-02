@@ -8,6 +8,8 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 const pagesJson = read('pages.json')
 const home = read('pages', 'xicheng', 'home', 'home.vue')
 const scan = read('pages', 'xicheng', 'scan', 'scan.vue')
+const scanAdvancedPanel = read('components', 'xicheng', 'XichengScanAdvancedContextPanel.vue')
+const scanSceneSurface = `${scan}\n${scanAdvancedPanel}`
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
 const regionConfig = read('config', 'regions', 'xicheng.js')
 
@@ -68,7 +70,7 @@ for (const required of [
   '路牌/OCR',
   '非遗/活动'
 ]) {
-  assert.ok(scan.includes(required), `AI识境 scan page should carry scene understanding signal: ${required}`)
+  assert.ok(scanSceneSurface.includes(required), `AI识境 scan page should carry scene understanding signal: ${required}`)
 }
 
 assert.match(

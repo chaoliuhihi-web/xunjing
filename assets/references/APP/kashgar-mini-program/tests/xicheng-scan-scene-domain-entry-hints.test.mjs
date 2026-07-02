@@ -4,6 +4,8 @@ import path from 'node:path'
 
 const root = process.cwd()
 const scan = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'scan', 'scan.vue'), 'utf8')
+const advancedPanel = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengScanAdvancedContextPanel.vue'), 'utf8')
+const scanSceneDomainSurface = `${scan}\n${advancedPanel}`
 
 for (const required of [
   'scan-scene-domain-panel',
@@ -21,11 +23,11 @@ for (const required of [
   '人物',
   '活动'
 ]) {
-  assert.ok(scan.includes(required), `AI识境 scan entry should expose scene-domain hint: ${required}`)
+  assert.ok(scanSceneDomainSurface.includes(required), `AI识境 scan entry should expose scene-domain hint: ${required}`)
 }
 
 assert.match(
-  scan,
+  advancedPanel,
   /<view class="scan-scene-domain-panel xicheng-paper-card">[\s\S]*v-for="domain in sceneDomainCapabilities"[\s\S]*domain\.label[\s\S]*domain\.copy/,
   'Scan page should render a pre-capture scene-domain panel from the same domain list used by the Agent'
 )
