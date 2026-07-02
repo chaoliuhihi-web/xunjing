@@ -159,17 +159,50 @@ const makePreprodEvidence = (overrides = {}) => {
       {
         name: 'live-xicheng-trigger-baitasi',
         ok: true,
-        summary: { poiCode: 'xicheng-baitasi', sourceCount: 1 }
+        summary: {
+          endpoint: '/app-api/xunjing/triggers/resolve',
+          tenantId: '1',
+          packageCode: 'XICHENG-MAP-001',
+          regionCode: 'beijing-xicheng',
+          poiCode: 'xicheng-baitasi',
+          poiName: '妙应寺白塔',
+          confidence: 0.95,
+          requiresUserConfirm: false,
+          sourceCount: 1,
+          targetPath: '/pages/map/detail?packageCode=XICHENG-MAP-001&poiCode=xicheng-baitasi'
+        }
       },
       {
         name: 'live-xicheng-trigger-gongwangfu',
         ok: true,
-        summary: { poiCode: 'xicheng-gongwangfu', sourceCount: 1 }
+        summary: {
+          endpoint: '/app-api/xunjing/triggers/resolve',
+          tenantId: '1',
+          packageCode: 'XICHENG-MAP-001',
+          regionCode: 'beijing-xicheng',
+          poiCode: 'xicheng-gongwangfu',
+          poiName: '恭王府',
+          confidence: 0.94,
+          requiresUserConfirm: false,
+          sourceCount: 1,
+          targetPath: '/pages/map/detail?packageCode=XICHENG-MAP-001&poiCode=xicheng-gongwangfu'
+        }
       },
       {
         name: 'live-xicheng-trigger-planetarium',
         ok: true,
-        summary: { poiCode: 'xicheng-planetarium', sourceCount: 1 }
+        summary: {
+          endpoint: '/app-api/xunjing/triggers/resolve',
+          tenantId: '1',
+          packageCode: 'XICHENG-MAP-001',
+          regionCode: 'beijing-xicheng',
+          poiCode: 'xicheng-planetarium',
+          poiName: '北京天文馆',
+          confidence: 0.93,
+          requiresUserConfirm: false,
+          sourceCount: 1,
+          targetPath: '/pages/map/detail?packageCode=XICHENG-MAP-001&poiCode=xicheng-planetarium'
+        }
       },
       {
         name: 'live-xicheng-scan-resolve',
@@ -457,6 +490,34 @@ assert.match(
   `${wrongScanTargetResult.stderr}\n${wrongScanTargetResult.stdout}`,
   /targetPath|\/pages\/map\/detail/,
   'launch evidence bundle validator should explain the scan targetPath requirement'
+)
+
+const malformedTriggerResult = runBundleGate(
+  {
+    ...makePreprodEvidence(),
+    checks: makePreprodEvidence().checks.map((check) => (
+      check.name === 'live-xicheng-trigger-baitasi'
+        ? {
+            ...check,
+            summary: {
+              poiCode: 'xicheng-baitasi',
+              sourceCount: 1
+            }
+          }
+        : check
+    ))
+  },
+  makeNativeEvidence()
+)
+assert.notEqual(
+  malformedTriggerResult.status,
+  0,
+  'launch evidence bundle validator should reject trigger evidence without endpoint, tenant, confidence, and targetPath details'
+)
+assert.match(
+  `${malformedTriggerResult.stderr}\n${malformedTriggerResult.stdout}`,
+  /live-xicheng-trigger-baitasi|targetPath|confidence|\/app-api\/xunjing\/triggers\/resolve/i,
+  'launch evidence bundle validator should explain the required trigger smoke evidence fields'
 )
 
 const stalePreprodResult = runBundleGate(

@@ -168,9 +168,54 @@ const makePreprodEvidence = (overrides = {}) => {
         logId: 121
       }
     },
-    { name: 'live-xicheng-trigger-baitasi', ok: true, summary: { poiCode: 'xicheng-baitasi', sourceCount: 1 } },
-    { name: 'live-xicheng-trigger-gongwangfu', ok: true, summary: { poiCode: 'xicheng-gongwangfu', sourceCount: 1 } },
-    { name: 'live-xicheng-trigger-planetarium', ok: true, summary: { poiCode: 'xicheng-planetarium', sourceCount: 1 } },
+    {
+      name: 'live-xicheng-trigger-baitasi',
+      ok: true,
+      summary: {
+        endpoint: '/app-api/xunjing/triggers/resolve',
+        tenantId: '1',
+        packageCode: 'XICHENG-MAP-001',
+        regionCode: 'beijing-xicheng',
+        poiCode: 'xicheng-baitasi',
+        poiName: '妙应寺白塔',
+        confidence: 0.95,
+        requiresUserConfirm: false,
+        sourceCount: 1,
+        targetPath: '/pages/map/detail?packageCode=XICHENG-MAP-001&poiCode=xicheng-baitasi'
+      }
+    },
+    {
+      name: 'live-xicheng-trigger-gongwangfu',
+      ok: true,
+      summary: {
+        endpoint: '/app-api/xunjing/triggers/resolve',
+        tenantId: '1',
+        packageCode: 'XICHENG-MAP-001',
+        regionCode: 'beijing-xicheng',
+        poiCode: 'xicheng-gongwangfu',
+        poiName: '恭王府',
+        confidence: 0.94,
+        requiresUserConfirm: false,
+        sourceCount: 1,
+        targetPath: '/pages/map/detail?packageCode=XICHENG-MAP-001&poiCode=xicheng-gongwangfu'
+      }
+    },
+    {
+      name: 'live-xicheng-trigger-planetarium',
+      ok: true,
+      summary: {
+        endpoint: '/app-api/xunjing/triggers/resolve',
+        tenantId: '1',
+        packageCode: 'XICHENG-MAP-001',
+        regionCode: 'beijing-xicheng',
+        poiCode: 'xicheng-planetarium',
+        poiName: '北京天文馆',
+        confidence: 0.93,
+        requiresUserConfirm: false,
+        sourceCount: 1,
+        targetPath: '/pages/map/detail?packageCode=XICHENG-MAP-001&poiCode=xicheng-planetarium'
+      }
+    },
     {
       name: 'live-xicheng-scan-resolve',
       ok: true,
@@ -495,13 +540,57 @@ assert.equal(
   'release candidate audit preprod gate should fail when sourced AI chat evidence lacks required route context'
 )
 assert.ok(
-  malformedAiContextPreprodAudit.blockers.some((blocker) => blocker.code === 'preprod-evidence-invalid-xicheng-ai-chat-summary'),
+  malformedAiContextPreprodAudit.blockers.some((blocker) => blocker.code === 'preprod-evidence-invalid-xicheng-live-summary'),
   'release candidate audit should name invalid sourced AI chat summary fields as launch blockers'
 )
 assert.match(
   `${malformedAiContextPreprodResult.stderr}\n${malformedAiContextPreprodResult.stdout}`,
   /contextEcho|poiCode|poiName|logId|\/app-api\/xunjing\/ai\/chat/i,
   'release candidate audit should explain the required sourced AI chat evidence fields'
+)
+
+const malformedTriggerPreprodPath = path.join(missingTempDir, 'malformed-trigger-preprod.json')
+fs.writeFileSync(malformedTriggerPreprodPath, `${JSON.stringify({
+  ...makePreprodEvidence(),
+  checks: makePreprodEvidence().checks.map((check) => (
+    check.name === 'live-xicheng-trigger-baitasi'
+      ? {
+          ...check,
+          summary: {
+            poiCode: 'xicheng-baitasi',
+            sourceCount: 1
+          }
+        }
+      : check
+  ))
+}, null, 2)}\n`)
+const malformedTriggerPreprodResult = runAudit([
+  '--preprod-evidence',
+  malformedTriggerPreprodPath,
+  '--native-evidence',
+  path.join(missingTempDir, 'missing-native.json'),
+  '--release-artifact',
+  path.join(missingTempDir, 'missing-release.apk')
+])
+assert.notEqual(
+  malformedTriggerPreprodResult.status,
+  0,
+  'release candidate audit should reject trigger smoke evidence without endpoint, tenant, confidence, and targetPath details'
+)
+const malformedTriggerPreprodAudit = parseAuditJson(malformedTriggerPreprodResult)
+assert.equal(
+  malformedTriggerPreprodAudit.gates.preprodEvidence.ok,
+  false,
+  'release candidate audit preprod gate should fail when trigger evidence lacks required target context'
+)
+assert.ok(
+  malformedTriggerPreprodAudit.blockers.some((blocker) => blocker.code === 'preprod-evidence-invalid-xicheng-live-summary'),
+  'release candidate audit should name invalid trigger summary fields as launch blockers'
+)
+assert.match(
+  `${malformedTriggerPreprodResult.stderr}\n${malformedTriggerPreprodResult.stdout}`,
+  /live-xicheng-trigger-baitasi|targetPath|confidence|\/app-api\/xunjing\/triggers\/resolve/i,
+  'release candidate audit should explain the required trigger smoke evidence fields'
 )
 
 const keystorePath = path.join(missingTempDir, 'xicheng-release.keystore')

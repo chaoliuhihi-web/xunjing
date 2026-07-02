@@ -196,6 +196,12 @@ const assertSummaryPositiveNumber = (summary, field, label) => {
   }
 }
 
+const assertSummaryContains = (summary, field, expectedFragment, label) => {
+  if (!String(summary?.[field] || '').includes(expectedFragment)) {
+    fail(`APP readiness evidence ${label} summary.${field} must include ${expectedFragment}`)
+  }
+}
+
 for (const checkName of requiredPreprodChecks) {
   const check = preprodCheckByName.get(checkName)
   if (!check || check.ok !== true) {
@@ -245,6 +251,26 @@ if (String(scanResolveSummary.packageCode || '').trim() !== expectedXichengPacka
 
 if (!String(scanResolveSummary.targetPath || '').includes('/pages/map/detail')) {
   fail('APP readiness evidence live-xicheng-scan-resolve targetPath must include /pages/map/detail')
+}
+
+for (const [name, poiCode] of [
+  ['live-xicheng-trigger-baitasi', 'xicheng-baitasi'],
+  ['live-xicheng-trigger-gongwangfu', 'xicheng-gongwangfu'],
+  ['live-xicheng-trigger-planetarium', 'xicheng-planetarium']
+]) {
+  const triggerSummary = preprodCheckByName.get(name)?.summary || {}
+  assertSummaryEquals(triggerSummary, 'endpoint', '/app-api/xunjing/triggers/resolve', name)
+  assertSummaryEquals(triggerSummary, 'tenantId', preprodSummary.tenantId, name)
+  assertSummaryEquals(triggerSummary, 'packageCode', expectedXichengPackageCode, name)
+  assertSummaryEquals(triggerSummary, 'regionCode', expectedXichengRegionCode, name)
+  assertSummaryEquals(triggerSummary, 'poiCode', poiCode, name)
+  assertSummaryEquals(triggerSummary, 'requiresUserConfirm', false, name)
+  assertSummaryContains(triggerSummary, 'targetPath', `poiCode=${poiCode}`, name)
+  assertSummaryContains(triggerSummary, 'targetPath', `packageCode=${expectedXichengPackageCode}`, name)
+  if (!Number.isFinite(Number(triggerSummary.confidence)) || Number(triggerSummary.confidence) < 0.85) {
+    fail(`APP readiness evidence ${name} summary.confidence must be at least 0.85`)
+  }
+  assertSummaryPositiveNumber(triggerSummary, 'sourceCount', name)
 }
 
 verifyNativeEvidenceWithExistingGate(nativeEvidence.path)

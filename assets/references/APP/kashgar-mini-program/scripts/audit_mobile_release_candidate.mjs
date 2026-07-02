@@ -167,6 +167,12 @@ const addSummaryPositiveNumberError = (errors, summary, field, label) => {
   }
 }
 
+const addSummaryContainsError = (errors, summary, field, expectedFragment, label) => {
+  if (!String(summary?.[field] || '').includes(expectedFragment)) {
+    errors.push(`${label} summary.${field} must include ${expectedFragment}`)
+  }
+}
+
 const collectPreprodSummaryErrors = ({ preprodCheckByName, preprodTenantId }) => {
   const errors = []
   const sourcedLabel = 'live-xicheng-ai-chat-sourced'
@@ -205,6 +211,26 @@ const collectPreprodSummaryErrors = ({ preprodCheckByName, preprodTenantId }) =>
   addSummaryEqualsError(errors, scanResolveSummary, 'packageCode', expectedXichengPackageCode, scanResolveLabel)
   if (!String(scanResolveSummary.targetPath || '').includes('/pages/map/detail')) {
     errors.push(`${scanResolveLabel} summary.targetPath must include /pages/map/detail`)
+  }
+
+  for (const [triggerLabel, poiCode] of [
+    ['live-xicheng-trigger-baitasi', 'xicheng-baitasi'],
+    ['live-xicheng-trigger-gongwangfu', 'xicheng-gongwangfu'],
+    ['live-xicheng-trigger-planetarium', 'xicheng-planetarium']
+  ]) {
+    const triggerSummary = preprodCheckByName.get(triggerLabel)?.summary || {}
+    addSummaryEqualsError(errors, triggerSummary, 'endpoint', '/app-api/xunjing/triggers/resolve', triggerLabel)
+    addSummaryEqualsError(errors, triggerSummary, 'tenantId', preprodTenantId, triggerLabel)
+    addSummaryEqualsError(errors, triggerSummary, 'packageCode', expectedXichengPackageCode, triggerLabel)
+    addSummaryEqualsError(errors, triggerSummary, 'regionCode', expectedXichengRegionCode, triggerLabel)
+    addSummaryEqualsError(errors, triggerSummary, 'poiCode', poiCode, triggerLabel)
+    addSummaryEqualsError(errors, triggerSummary, 'requiresUserConfirm', false, triggerLabel)
+    addSummaryContainsError(errors, triggerSummary, 'targetPath', `poiCode=${poiCode}`, triggerLabel)
+    addSummaryContainsError(errors, triggerSummary, 'targetPath', `packageCode=${expectedXichengPackageCode}`, triggerLabel)
+    if (!Number.isFinite(Number(triggerSummary.confidence)) || Number(triggerSummary.confidence) < 0.85) {
+      errors.push(`${triggerLabel} summary.confidence must be at least 0.85`)
+    }
+    addSummaryPositiveNumberError(errors, triggerSummary, 'sourceCount', triggerLabel)
   }
 
   return errors
@@ -452,9 +478,9 @@ if (!preprodEvidence.exists) {
   if (invalidRequiredPreprodSummaryErrors.length > 0) {
     addBlocker(
       blockers,
-      'preprod-evidence-invalid-xicheng-ai-chat-summary',
+      'preprod-evidence-invalid-xicheng-live-summary',
       `APP readiness evidence has invalid Xicheng live check summary fields: ${invalidRequiredPreprodSummaryErrors.join('; ')}`,
-      'Regenerate preprod readiness evidence and confirm sourced AI, BLOCKED AI, and scan resolve checks carry tenant, route context, POI attribution, sourceCount, and logId'
+      'Regenerate preprod readiness evidence and confirm sourced AI, BLOCKED AI, trigger, and scan resolve checks carry tenant, route context, POI attribution, sourceCount, targetPath, confidence, and logId'
     )
   }
 }
