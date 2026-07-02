@@ -460,7 +460,7 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
-    public void testResolveMultimodalTriggerDoesNotTreatPhotoAdviceSceneSignalAsRecordIntent() {
+    public void testResolveMultimodalTriggerUsesPhotoAdviceIntent() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
         Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
@@ -480,8 +480,8 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
 
         MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
 
-        assertEquals("guide", respVO.getIntent());
-        assertEquals("confirm_ai_guide", respVO.getAction());
+        assertEquals("photo", respVO.getIntent());
+        assertEquals("confirm_photo_advice", respVO.getAction());
         assertTrue(respVO.getTargetPath().contains("/pages/ai-guide/detail"));
         assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
         assertTrue(respVO.getCandidates().get(0).getMatchedSignals().contains("scene_context_alias"));
@@ -1592,6 +1592,61 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         JsonNode visionAgentContext = askPayload.get("visionAgentContext");
         assertTrue(visionAgentContext.get("memorySessionText").asText().contains("乾隆"));
         assertTrue(visionAgentContext.get("memorySessionText").asText().contains("丝绸之路"));
+    }
+
+    @Test
+    public void testAnswerHydratesPhotoAdviceHandoffFromTrigger() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+        consoleService.addKnowledgeDocument(xichengGongwangfuKnowledgeReq(packageId));
+        ChatModel chatModel = mock(ChatModel.class);
+        when(aiModelService.getRequiredDefaultModel(AiModelTypeEnum.CHAT.getType())).thenReturn(defaultChatModel());
+        when(aiModelService.getChatModel(6601L)).thenReturn(chatModel);
+        when(chatModel.call(any(Prompt.class))).thenReturn(chatResponse("模型生成：现在先拍门楼，之后再讲历史。"));
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneDomainIntentKey", "architecture");
+        sceneSignals.put("sceneDomainIntentLabel", "建筑");
+        sceneSignals.put("sceneFusionSummary", "恭王府当前接近日落，建议先拍照再听历史讲解。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合时间、天气、方向和城市知识库后判断为最佳拍摄时间。");
+        sceneSignals.put("agentDecisionActionTitle", "先拍照");
+        sceneSignals.put("agentDecisionReasonSummary", "夕阳适合拍门楼，先给机位和构图建议。");
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-photo-advice-001");
+        triggerReq.setSceneSignals(sceneSignals);
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("photo", triggerResp.getIntent());
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-photo-advice-001");
+        followUpReq.setQuestion("我应该从哪里拍？");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO answer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", answer.getSafetyStatus());
+        ArgumentCaptor<Prompt> promptCaptor = ArgumentCaptor.forClass(Prompt.class);
+        verify(chatModel).call(promptCaptor.capture());
+        String prompt = promptCaptor.getValue().getContents();
+        assertTrue(prompt.contains("服务意图=photo/拍照建议"));
+        assertTrue(prompt.contains("真实系统确认=false"));
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId, "trace-xicheng-photo-advice-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertEquals("photo", visionAgentContext.get("serviceHandoffIntent").asText());
+        assertFalse(visionAgentContext.get("serviceHandoffRequiresRealSystem").asBoolean());
     }
 
     @Test

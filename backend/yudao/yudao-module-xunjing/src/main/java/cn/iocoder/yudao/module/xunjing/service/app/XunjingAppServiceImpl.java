@@ -1046,6 +1046,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         if ("start_scene_interpretation".equals(action) || "confirm_scene_interpretation".equals(action)) {
             return "深度识境";
         }
+        if ("start_photo_advice".equals(action) || "confirm_photo_advice".equals(action)) {
+            return "拍照建议";
+        }
         if ("start_ai_guide".equals(action) || "confirm_ai_guide".equals(action)) {
             return "开始 AI 讲解";
         }
@@ -1072,6 +1075,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         }
         if ("interpret".equals(intent)) {
             return "深度识境";
+        }
+        if ("photo".equals(intent)) {
+            return "拍照建议";
         }
         return hasText(action) ? action : intent;
     }
@@ -1106,6 +1112,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         }
         if ("interpret".equals(intent)) {
             return "深度识境";
+        }
+        if ("photo".equals(intent)) {
+            return "拍照建议";
         }
         if ("guide".equals(intent)) {
             return "AI 讲解";
