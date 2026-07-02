@@ -75,18 +75,24 @@ function normalizeBuilder(builder) {
   throw new Error('--builder must be one of: auto, mvn, docker')
 }
 
-function dockerArgsForMaven({ backendDir, mavenArgs, mavenImage }) {
-  return [
+function dockerArgsForMaven({ backendDir, mavenArgs, mavenImage, mavenCacheDir }) {
+  const args = [
     'run',
     '--rm',
     '-v',
-    `${backendDir}:/workspace`,
+    `${backendDir}:/workspace`
+  ]
+  if (mavenCacheDir) {
+    args.push('-v', `${mavenCacheDir}:/root/.m2`)
+  }
+  args.push(
     '-w',
     '/workspace',
     mavenImage,
     'mvn',
     ...mavenArgs
-  ]
+  )
+  return args
 }
 
 function commandFailed(result) {
@@ -135,6 +141,7 @@ export async function buildYudaoServer({
   mvnCommand = 'mvn',
   dockerCommand = 'docker',
   mavenImage = defaultMavenImage,
+  mavenCacheDir,
   jarPath,
   evidenceFile,
   includeTests = false,
@@ -147,6 +154,7 @@ export async function buildYudaoServer({
     resolvedRoot,
     jarPath || 'backend/yudao/yudao-server/target/yudao-server.jar'
   )
+  const resolvedMavenCacheDir = resolveRootPath(resolvedRoot, mavenCacheDir)
   const sourceRevision = collectGitSourceRevision(resolvedRoot)
   const mavenArgs = buildMavenArgs({ includeTests })
   const normalizedBuilder = normalizeBuilder(builder)
@@ -168,7 +176,12 @@ export async function buildYudaoServer({
 
   if (normalizedBuilder === 'docker' || result?.error?.code === 'ENOENT') {
     buildMethod = 'docker'
-    dockerRunArgs = dockerArgsForMaven({ backendDir, mavenArgs, mavenImage })
+    dockerRunArgs = dockerArgsForMaven({
+      backendDir,
+      mavenArgs,
+      mavenImage,
+      mavenCacheDir: resolvedMavenCacheDir
+    })
     result = spawnImpl(dockerCommand, dockerRunArgs, {
       cwd: resolvedRoot,
       encoding: 'utf8',
@@ -206,6 +219,7 @@ export async function buildYudaoServer({
       mavenArgs,
       dockerCommand: buildMethod === 'docker' ? dockerCommand : undefined,
       dockerImage: buildMethod === 'docker' ? mavenImage : undefined,
+      dockerMavenCacheDir: buildMethod === 'docker' ? resolvedMavenCacheDir : undefined,
       dockerArgs: buildMethod === 'docker' ? dockerRunArgs : undefined,
       testsIncluded: includeTests,
       ...sourceRevision,
@@ -244,6 +258,7 @@ async function runCli() {
     mvnCommand: readArgValue(args, '--mvn') || process.env.MVN || 'mvn',
     dockerCommand: readArgValue(args, '--docker') || process.env.DOCKER || 'docker',
     mavenImage: readArgValue(args, '--maven-image') || process.env.YUDAO_MAVEN_IMAGE || defaultMavenImage,
+    mavenCacheDir: readArgValue(args, '--maven-cache-dir') || process.env.YUDAO_MAVEN_CACHE_DIR,
     jarPath: readArgValue(args, '--jar-file') || readArgValue(args, '--yudao-server-jar'),
     evidenceFile: readArgValue(args, '--evidence-file'),
     includeTests: readFlag(args, '--include-tests')

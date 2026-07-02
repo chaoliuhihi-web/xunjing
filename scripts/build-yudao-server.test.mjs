@@ -173,6 +173,55 @@ describe('Yudao server build wrapper', () => {
     })
   })
 
+  test('mounts an explicit Maven cache directory for Docker builds', async () => {
+    const rootDir = await createTempRoot()
+    const jarFile = path.join(rootDir, 'backend/yudao/yudao-server/target/yudao-server.jar')
+    const jarContent = 'docker-built-yudao-jar-with-cache'
+    const mavenCacheDir = path.join(rootDir, '.m2')
+    const spawnCalls = []
+
+    const report = await buildYudaoServer({
+      rootDir,
+      builder: 'docker',
+      mavenCacheDir,
+      spawnImpl: (command, args, options) => {
+        spawnCalls.push({ command, args, cwd: options.cwd, maxBuffer: options.maxBuffer })
+        mkdirSync(path.dirname(jarFile), { recursive: true })
+        writeFileSync(jarFile, jarContent)
+        return { status: 0, stdout: 'BUILD SUCCESS', stderr: '' }
+      },
+      checkedAt: '2026-06-28T12:00:00.000Z'
+    })
+
+    expect(spawnCalls).toEqual([
+      {
+        command: 'docker',
+        args: [
+          'run',
+          '--rm',
+          '-v',
+          `${path.join(rootDir, 'backend/yudao')}:/workspace`,
+          '-v',
+          `${mavenCacheDir}:/root/.m2`,
+          '-w',
+          '/workspace',
+          'maven:3.9.9-eclipse-temurin-17',
+          'mvn',
+          '--batch-mode',
+          '--no-transfer-progress',
+          '-pl',
+          'yudao-server',
+          '-am',
+          '-DskipTests',
+          'package'
+        ],
+        cwd: rootDir,
+        maxBuffer: 128 * 1024 * 1024
+      }
+    ])
+    expect(report.summary.dockerMavenCacheDir).toBe(mavenCacheDir)
+  })
+
   test('fails closed when Maven does not produce a non-empty jar', async () => {
     const rootDir = await createTempRoot()
 
