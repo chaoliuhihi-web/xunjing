@@ -913,6 +913,48 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerUsesArtifactSceneForInterpretIntent() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "用户拍到展柜里的文物，想了解年代、工艺和用途。");
+        sceneSignals.put("sceneDomainIntentKey", "artifact");
+        sceneSignals.put("sceneDomainIntentLabel", "文物");
+        sceneSignals.put("sceneDomainIntentTitle", "文物识境");
+        sceneSignals.put("agentDecisionActionTitle", "深入讲解");
+        sceneSignals.put("agentDecisionReasonSummary", "先讲年代、工艺、用途和同时代背景，再引导继续比较。");
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-multimodal-trigger");
+        reqVO.setText("这件文物是什么年代的？");
+        reqVO.setOcrText("恭王府博物馆入口");
+        reqVO.setLocation(location("39.937050", "116.386770", 20));
+        reqVO.setSceneSignals(sceneSignals);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("interpret", respVO.getIntent());
+        assertEquals("confirm_scene_interpretation", respVO.getAction());
+        assertTrue(respVO.getTargetPath().startsWith("/pages/ai-guide/detail"));
+        assertTrue(respVO.getReason().contains("Agent决策"));
+
+        List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.TRIGGER_RESOLVE.getType()));
+        assertEquals(1, events.size());
+        JsonNode payload = JsonUtils.parseTree(events.get(0).getPayloadJson());
+        assertEquals("interpret", payload.get("intent").asText());
+        JsonNode persistedSignals = payload.get("sceneSignals");
+        assertEquals("artifact", persistedSignals.get("sceneDomainIntentKey").asText());
+        assertEquals("深入讲解", persistedSignals.get("agentDecisionActionTitle").asText());
+    }
+
+    @Test
     public void testResolveMultimodalTriggerHydratesContinuousContextFromPreviousTriggerEvent() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
@@ -1718,6 +1760,63 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
         JsonNode visionAgentContext = askPayload.get("visionAgentContext");
         assertEquals("safety", visionAgentContext.get("serviceHandoffIntent").asText());
+        assertFalse(visionAgentContext.get("serviceHandoffRequiresRealSystem").asBoolean());
+    }
+
+    @Test
+    public void testAnswerHydratesArtifactInterpretHandoffFromTrigger() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+        consoleService.addKnowledgeDocument(xichengGongwangfuKnowledgeReq(packageId));
+        ChatModel chatModel = mock(ChatModel.class);
+        when(aiModelService.getRequiredDefaultModel(AiModelTypeEnum.CHAT.getType())).thenReturn(defaultChatModel());
+        when(aiModelService.getChatModel(6601L)).thenReturn(chatModel);
+        when(chatModel.call(any(Prompt.class))).thenReturn(chatResponse("模型生成：先讲年代、工艺和用途。"));
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneDomainIntentKey", "artifact");
+        sceneSignals.put("sceneDomainIntentLabel", "文物");
+        sceneSignals.put("sceneFusionSummary", "用户拍到展柜里的文物，想了解年代、工艺和用途。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合视觉识别和城市知识库后判断为文物深度识境场景。");
+        sceneSignals.put("agentDecisionActionTitle", "深入讲解");
+        sceneSignals.put("agentDecisionReasonSummary", "先讲年代、工艺、用途和同时代背景，再引导继续比较。");
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-artifact-interpret-001");
+        triggerReq.setText("这件文物是什么年代的？");
+        triggerReq.setOcrText("恭王府博物馆入口");
+        triggerReq.setSceneSignals(sceneSignals);
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        MultimodalTriggerRespVO triggerResp = appService.resolveMultimodalTrigger(triggerReq);
+        assertEquals("interpret", triggerResp.getIntent());
+
+        RagChatReqVO followUpReq = xichengRagReq();
+        followUpReq.setUserTraceId("trace-xicheng-artifact-interpret-001");
+        followUpReq.setQuestion("和同时代其他器物有什么区别？");
+        followUpReq.setRegionCode("");
+        followUpReq.setPoiCode("");
+        followUpReq.setPoiName("");
+        RagChatRespVO answer = appService.answer(followUpReq);
+
+        assertEquals("PASSED", answer.getSafetyStatus());
+        ArgumentCaptor<Prompt> promptCaptor = ArgumentCaptor.forClass(Prompt.class);
+        verify(chatModel).call(promptCaptor.capture());
+        String prompt = promptCaptor.getValue().getContents();
+        assertTrue(prompt.contains("服务意图=interpret/深度识境"));
+        assertTrue(prompt.contains("真实系统确认=false"));
+
+        List<XunjingInteractionEventDO> askEvents = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.ASK.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId, "trace-xicheng-artifact-interpret-001"));
+        assertEquals(1, askEvents.size());
+        JsonNode askPayload = JsonUtils.parseTree(askEvents.get(0).getPayloadJson());
+        JsonNode visionAgentContext = askPayload.get("visionAgentContext");
+        assertEquals("interpret", visionAgentContext.get("serviceHandoffIntent").asText());
         assertFalse(visionAgentContext.get("serviceHandoffRequiresRealSystem").asBoolean());
     }
 

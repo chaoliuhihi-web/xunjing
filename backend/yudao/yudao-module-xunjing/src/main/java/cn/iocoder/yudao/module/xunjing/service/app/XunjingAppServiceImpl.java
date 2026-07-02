@@ -1039,6 +1039,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         if ("start_safety_advisory".equals(action) || "confirm_safety_advisory".equals(action)) {
             return "安全提醒";
         }
+        if ("start_scene_interpretation".equals(action) || "confirm_scene_interpretation".equals(action)) {
+            return "深度识境";
+        }
         if ("start_ai_guide".equals(action) || "confirm_ai_guide".equals(action)) {
             return "开始 AI 讲解";
         }
@@ -1062,6 +1065,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         }
         if ("safety".equals(intent)) {
             return "安全提醒";
+        }
+        if ("interpret".equals(intent)) {
+            return "深度识境";
         }
         return hasText(action) ? action : intent;
     }
@@ -1093,6 +1099,9 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         }
         if ("safety".equals(intent)) {
             return "安全提醒";
+        }
+        if ("interpret".equals(intent)) {
+            return "深度识境";
         }
         if ("guide".equals(intent)) {
             return "AI 讲解";

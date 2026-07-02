@@ -332,6 +332,11 @@ public class XunjingMultimodalTriggerEngine {
                 "动物", "野生动物", "雪豹", "会不会危险", "是否危险", "保持距离", "不要靠近", "不要投喂"))) {
             return "safety";
         }
+        if (containsAny(fusedText, List.of("artifact", "relic", "intangibleheritage", "intangible_heritage",
+                "plant", "person", "文物", "青铜", "器物", "古剑", "非遗", "乐器", "热瓦普", "工艺",
+                "植物", "胡杨", "树龄", "人物", "雕像", "塑像", "画像", "年代", "用途", "同时代"))) {
+            return "interpret";
+        }
         if (containsAny(explicitText, List.of("游记", "记录", "拍照", "生成"))) {
             return "record";
         }
@@ -346,6 +351,7 @@ public class XunjingMultimodalTriggerEngine {
             case "activity" -> autoTrigger ? "open_activity_handoff" : "confirm_activity_handoff";
             case "translate" -> autoTrigger ? "start_sign_translation" : "confirm_sign_translation";
             case "safety" -> autoTrigger ? "start_safety_advisory" : "confirm_safety_advisory";
+            case "interpret" -> autoTrigger ? "start_scene_interpretation" : "confirm_scene_interpretation";
             default -> autoTrigger ? "start_ai_guide" : "confirm_ai_guide";
         };
     }
@@ -359,6 +365,7 @@ public class XunjingMultimodalTriggerEngine {
             case "activity" -> "/pages/activity/recommend" + query;
             case "translate" -> "/pages/ai-guide/detail" + query;
             case "safety" -> "/pages/ai-guide/detail" + query;
+            case "interpret" -> "/pages/ai-guide/detail" + query;
             default -> "/pages/ai-guide/detail" + query;
         };
     }
@@ -502,6 +509,12 @@ public class XunjingMultimodalTriggerEngine {
                 "动物", "野生动物", "雪豹", "安全提醒", "危险提醒"))) {
             return "safety";
         }
+        if (containsAny(text, List.of("artifact", "relic", "bronze", "intangibleheritage",
+                "intangible_heritage", "heritagecraft", "plant", "person", "statue", "portrait",
+                "文物", "青铜", "器物", "古剑", "非遗", "乐器", "热瓦普", "工艺", "传承",
+                "植物", "胡杨", "树", "花", "人物", "雕像", "塑像", "画像"))) {
+            return "interpret";
+        }
         String agentIntent = detectAgentDecisionIntent(sceneSignals);
         if (hasText(agentIntent)) {
             return agentIntent;
@@ -525,6 +538,10 @@ public class XunjingMultimodalTriggerEngine {
         if (containsAny(text, List.of("安全提醒", "是否危险", "会不会危险", "保持距离", "不要靠近", "不要投喂",
                 "野生动物", "雪豹"))) {
             return "safety";
+        }
+        if (containsAny(text, List.of("深入讲解", "深度讲解", "深度识境", "年代", "工艺", "用途",
+                "同时代", "比较", "人物故事", "贡献", "制作过程", "传承", "树龄", "分布", "最佳观赏季"))) {
+            return "interpret";
         }
         if (containsAny(text, List.of("推荐菜", "附近美食", "餐厅", "点餐", "优惠券", "排队", "预约", "清真"))) {
             return "food";
