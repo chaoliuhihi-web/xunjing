@@ -1211,6 +1211,96 @@ describe('xicheng Yudao release readiness gate', () => {
     ])
   })
 
+  test('returns API trial candidate for backend and H5/API when WeChat env is still placeholder', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
+    const qdrantEvidencePath = await writeQdrantEvidence(rootDir)
+    const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
+    const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
+
+    const env = productionEnv({
+      SPRING_PROFILES_ACTIVE: 'prod',
+      WX_MP_APP_ID: 'replace-with-wechat-mp-appid',
+      WX_MP_SECRET: 'replace-with-wechat-mp-secret',
+      WX_MINIAPP_APPID: 'replace-with-wechat-miniapp-appid',
+      WX_MINIAPP_SECRET: 'replace-with-wechat-miniapp-secret'
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env,
+      rootDir,
+      stage: 'api-trial',
+      aiBootstrapEvidencePath,
+      qdrantEvidencePath,
+      visionOcrEvidencePath,
+      objectStorageEvidencePath,
+      runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.status).toBe('API_TRIAL_READY_CANDIDATE')
+    expect(result.stage).toBe('api-trial')
+    expect(result.blockers).toEqual([])
+    expect(result.runtimeEnvSummary).toMatchObject({
+      runtimeEnvRequiredKeyCount: 36,
+      runtimeEnvPlaceholderKeyCount: 0
+    })
+    expect(result.checks.map((check) => check.name)).not.toContain('real-wechat-app')
+    expect(result.checks.find((check) => check.name === 'runtime-env')?.ok).toBe(true)
+  })
+
+  test('keeps production blocked when WeChat env is still placeholder', async () => {
+    const rootDir = await createProductionReadyFixture()
+    const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)
+    const aiBootstrapEvidencePath = await writeAiBootstrapEvidence(rootDir)
+    const qdrantEvidencePath = await writeQdrantEvidence(rootDir)
+    const visionOcrEvidencePath = await writeVisionOcrEvidence(rootDir)
+    const objectStorageEvidencePath = await writeObjectStorageEvidence(rootDir)
+    const runtimeSeedEvidencePath = await writeRuntimeSeedEvidence(rootDir)
+    const productionSeedApplyEvidencePath = await writeProductionSeedApplyEvidence(rootDir, {
+      seedEvidencePath,
+      runtimeSeedEvidencePath
+    })
+
+    const env = productionEnv({
+      WX_MP_APP_ID: 'replace-with-wechat-mp-appid',
+      WX_MP_SECRET: 'replace-with-wechat-mp-secret',
+      WX_MINIAPP_APPID: 'replace-with-wechat-miniapp-appid',
+      WX_MINIAPP_SECRET: 'replace-with-wechat-miniapp-secret'
+    })
+
+    const result = await verifyXichengYudaoReleaseReadiness({
+      env,
+      rootDir,
+      stage: 'production',
+      aiBootstrapEvidencePath,
+      qdrantEvidencePath,
+      visionOcrEvidencePath,
+      objectStorageEvidencePath,
+      runtimeSeedEvidencePath,
+      productionSeedApplyEvidencePath,
+      poiManifestEvidencePath: manifestEvidencePath,
+      poiWorkbookEvidencePath: workbookEvidencePath,
+      poiSeedEvidencePath: seedEvidencePath
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe('NOT_READY')
+    expect(result.checks.map((check) => check.name)).toContain('real-wechat-app')
+    expect(result.blockers.join('\n')).toContain('WX_MP_APP_ID must be configured with a real value')
+    expect(result.blockers.join('\n')).toContain('WX_MINIAPP_SECRET must be configured with a real value')
+  })
+
   test('accepts text-only Qdrant smoke evidence because image vectors are P2', async () => {
     const rootDir = await createProductionReadyFixture()
     const { manifestEvidencePath, workbookEvidencePath, seedEvidencePath } = await writeProductionPoiEvidence(rootDir)

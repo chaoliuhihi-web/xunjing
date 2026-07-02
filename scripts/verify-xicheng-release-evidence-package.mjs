@@ -10,6 +10,12 @@ const allowedEvidenceDirs = new Set(['qa', 'tmp', 'workbench'])
 const productionPoiTarget = 80
 const defaultMaxEvidenceAgeHours = 24
 const allowedClockSkewMs = 5 * 60 * 1000
+const allowedStages = ['production', 'staging', 'api-trial']
+const stageReadyStatus = {
+  production: 'PRODUCTION_READY_CANDIDATE',
+  staging: 'PREPROD_READY_CANDIDATE',
+  'api-trial': 'API_TRIAL_READY_CANDIDATE'
+}
 
 const requiredReleaseChecks = [
   'release-source-revision',
@@ -33,6 +39,13 @@ const requiredReleaseChecks = [
   'xicheng-production-poi',
   'xicheng-source-license'
 ]
+
+function requiredReleaseChecksForStage(stage) {
+  if (stage === 'api-trial') {
+    return requiredReleaseChecks.filter((name) => name !== 'real-wechat-app')
+  }
+  return requiredReleaseChecks
+}
 
 const requiredYudaoServerBuildEvidenceChecks = [
   'maven-package',
@@ -1436,9 +1449,7 @@ async function checkReleaseEvidence(ref, stage, freshnessOptions, rootDir) {
   }
   const evidence = ref.data || {}
   const summary = summaryOf(evidence)
-  const expectedStatus = stage === 'production'
-    ? 'PRODUCTION_READY_CANDIDATE'
-    : 'PREPROD_READY_CANDIDATE'
+  const expectedStatus = stageReadyStatus[stage] || stageReadyStatus.production
 
   if (evidence.artifactType !== 'xicheng-yudao-release-readiness') {
     blockers.push('release evidence artifactType must be xicheng-yudao-release-readiness')
@@ -1470,7 +1481,7 @@ async function checkReleaseEvidence(ref, stage, freshnessOptions, rootDir) {
   blockers.push(...await checkReleaseServerArtifactHash(evidence))
   blockers.push(...checkReleaseServerBuildSummary(evidence))
   blockers.push(...checkReleaseYudaoServerSmokeSummary(evidence, rootDir))
-  blockers.push(...checkEvidenceChecks(evidence, requiredReleaseChecks, 'release'))
+  blockers.push(...checkEvidenceChecks(evidence, requiredReleaseChecksForStage(stage), 'release'))
   if (blockersOf(evidence).length > 0) {
     blockers.push(`release evidence contains blockers: ${blockersOf(evidence).join('; ')}`)
   }
@@ -2212,8 +2223,8 @@ export async function verifyXichengReleaseEvidencePackage({
   now = new Date()
 } = {}) {
   const normalizedStage = String(stage || 'production').toLowerCase()
-  if (!['production', 'staging'].includes(normalizedStage)) {
-    throw new Error('stage must be production or staging')
+  if (!allowedStages.includes(normalizedStage)) {
+    throw new Error(`stage must be ${allowedStages.join(', ')}`)
   }
   const releaseRef = await loadJsonFile(rootDir, releaseEvidencePath, 'release')
   const resolvedYudaoServerBuildEvidencePath = yudaoServerBuildEvidencePath ||

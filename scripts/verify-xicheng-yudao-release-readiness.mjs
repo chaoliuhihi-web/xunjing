@@ -17,6 +17,12 @@ const defaultPoiSourceCoverageEvidencePath = 'qa/xicheng-poi-source-coverage-evi
 const defaultPoiSourceReviewApplyEvidencePath = 'qa/xicheng-poi-source-review-apply-evidence.json'
 const defaultPoiProductionReviewApplyEvidencePath = 'qa/xicheng-poi-production-review-apply-evidence.json'
 const defaultAdminUiDir = 'backend/yudao/yudao-ui/yudao-ui-admin-vue3/dist'
+const allowedStages = ['production', 'staging', 'api-trial']
+const stageReadyStatus = {
+  production: 'PRODUCTION_READY_CANDIDATE',
+  staging: 'PREPROD_READY_CANDIDATE',
+  'api-trial': 'API_TRIAL_READY_CANDIDATE'
+}
 
 const requiredManifestEvidenceChecks = [
   'manifest-shape',
@@ -186,14 +192,43 @@ const requiredProductionEnvKeys = [
   'INTERNAL_AUTH_TOKEN'
 ]
 
+const wechatRuntimeEnvKeys = [
+  'WX_MP_APP_ID',
+  'WX_MP_SECRET',
+  'WX_MINIAPP_APPID',
+  'WX_MINIAPP_SECRET'
+]
+
 const runtimeEnvFingerprintMode = 'redacted-runtime-env-v1'
 
 function isSensitiveRuntimeEnvKey(key) {
   return /(PASSWORD|SECRET|TOKEN|API_?KEY|ACCESS_?KEY|APP_ID|APPID)/i.test(String(key || ''))
 }
 
-function buildRuntimeEnvSummary(env) {
-  const requiredKeys = [...requiredProductionEnvKeys].sort()
+function requiredRuntimeEnvKeysForStage(stage) {
+  const normalizedStage = String(stage || 'production').toLowerCase()
+  if (normalizedStage === 'api-trial') {
+    return requiredProductionEnvKeys.filter((key) => !wechatRuntimeEnvKeys.includes(key))
+  }
+  return requiredProductionEnvKeys
+}
+
+function acceptedProfilesForStage(stage) {
+  if (stage === 'production') {
+    return ['production', 'prod']
+  }
+  if (stage === 'api-trial') {
+    return ['production', 'prod', 'staging', 'preprod', 'preview']
+  }
+  return ['staging', 'preprod', 'preview']
+}
+
+function readyStatusForStage(stage) {
+  return stageReadyStatus[stage] || stageReadyStatus.production
+}
+
+function buildRuntimeEnvSummary(env, stage = 'production') {
+  const requiredKeys = [...requiredRuntimeEnvKeysForStage(stage)].sort()
   const presentKeys = requiredKeys.filter((key) => hasValue(env[key]))
   const placeholderKeys = requiredKeys.filter((key) => isPlaceholder(env[key]))
   const nonSensitivePairs = requiredKeys
@@ -357,20 +392,22 @@ function requireRealEnv(env, keys) {
 
 function checkRuntimeEnv(env, stage) {
   const blockers = []
-  const missingOrPlaceholder = requireRealEnv(env, requiredProductionEnvKeys)
+  const requiredKeys = requiredRuntimeEnvKeysForStage(stage)
+  const missingOrPlaceholder = requireRealEnv(env, requiredKeys)
   if (missingOrPlaceholder.length > 0) {
-    blockers.push(`Missing or placeholder production env: ${missingOrPlaceholder.join(', ')}`)
+    const envLabel = stage === 'api-trial' ? 'API trial env' : 'production env'
+    blockers.push(`Missing or placeholder ${envLabel}: ${missingOrPlaceholder.join(', ')}`)
   }
 
   const profile = String(env.SPRING_PROFILES_ACTIVE || '').trim().toLowerCase()
-  const acceptedProfiles = stage === 'production' ? ['production', 'prod'] : ['staging', 'preprod', 'preview']
+  const acceptedProfiles = acceptedProfilesForStage(stage)
   if (!acceptedProfiles.includes(profile)) {
     blockers.push(`SPRING_PROFILES_ACTIVE must be ${acceptedProfiles.join(' or ')} for ${stage}`)
   }
 
   for (const key of ['MYSQL_HOST', 'REDIS_HOST', 'QDRANT_HOST']) {
-    if (stage === 'production' && isLoopback(env[key])) {
-      blockers.push(`${key} must not point to a local host for production`)
+    if (['production', 'api-trial'].includes(stage) && isLoopback(env[key])) {
+      blockers.push(`${key} must not point to a local host for ${stage}`)
     }
   }
 
@@ -2480,8 +2517,8 @@ export async function verifyXichengYudaoReleaseReadiness({
   now = new Date()
 } = {}) {
   const normalizedStage = String(stage || 'production').toLowerCase()
-  if (!['production', 'staging'].includes(normalizedStage)) {
-    throw new Error('stage must be production or staging')
+  if (!allowedStages.includes(normalizedStage)) {
+    throw new Error(`stage must be ${allowedStages.join(', ')}`)
   }
 
   const freshnessOptions = {
@@ -2525,7 +2562,7 @@ export async function verifyXichengYudaoReleaseReadiness({
       freshnessOptions
     }),
     checkHttpsAppApiDomain(env),
-    checkRealWechatApp(env),
+    ...(normalizedStage === 'api-trial' ? [] : [checkRealWechatApp(env)]),
     checkRealAiProvider(env),
     await checkYudaoAiBootstrapEvidence({
       rootDir,
@@ -2585,13 +2622,11 @@ export async function verifyXichengYudaoReleaseReadiness({
 
   return {
     ok,
-    status: ok
-      ? (normalizedStage === 'production' ? 'PRODUCTION_READY_CANDIDATE' : 'PREPROD_READY_CANDIDATE')
-      : 'NOT_READY',
+    status: ok ? readyStatusForStage(normalizedStage) : 'NOT_READY',
     stage: normalizedStage,
     maxEvidenceAgeHours,
     checkedAt: new Date().toISOString(),
-    runtimeEnvSummary: buildRuntimeEnvSummary(env),
+    runtimeEnvSummary: buildRuntimeEnvSummary(env, normalizedStage),
     checks,
     blockers
   }

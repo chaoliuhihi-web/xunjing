@@ -1076,6 +1076,63 @@ describe('xicheng release evidence package gate', () => {
     expect(evidence.status).toBe('XICHENG_RELEASE_EVIDENCE_PACKAGE_READY')
   })
 
+  test('accepts an API trial release evidence package without WeChat production readiness', async () => {
+    const rootDir = await createTempRoot()
+    const apiTrialReleaseChecks = releaseEvidence().checks
+      .filter((check) => check.name !== 'real-wechat-app')
+    const releasePath = await writeReleaseEvidenceFile(rootDir, {
+      status: 'API_TRIAL_READY_CANDIDATE',
+      stage: 'api-trial',
+      summary: {
+        stage: 'api-trial',
+        status: 'API_TRIAL_READY_CANDIDATE',
+        totalChecks: apiTrialReleaseChecks.length,
+        passedChecks: apiTrialReleaseChecks.length,
+        runtimeEnvRequiredKeyCount: 36,
+        runtimeEnvPresentKeyCount: 36
+      },
+      checks: apiTrialReleaseChecks
+    })
+    const manifestPath = await writeManifestEvidenceFile(rootDir)
+    const workbookPath = path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json')
+    const seedPath = await writeSeedEvidenceFile(rootDir)
+    const sourceCoveragePath = await writeSourceCoverageEvidenceFile(rootDir)
+    const sourceReviewApplyPath = await writeSourceReviewApplyEvidenceFile(rootDir)
+    const productionReviewApplyPath = await writeProductionReviewApplyEvidenceFile(rootDir)
+    const yudaoServerSmokePath = path.join(rootDir, 'qa/xicheng-yudao-server-smoke-evidence.json')
+    const runtimeSeedPath = path.join(rootDir, 'qa/xicheng-yudao-runtime-seed-production-evidence.json')
+    const productionSeedApplyPath = path.join(rootDir, 'qa/xicheng-yudao-production-seed-apply-evidence.json')
+    const appPath = await writeJson(rootDir, 'qa/xicheng-app-readiness-evidence.json', appReadinessEvidence())
+
+    const result = runPackageGate([
+      '--root', rootDir,
+      '--stage', 'api-trial',
+      '--release-evidence', releasePath,
+      '--yudao-server-smoke-evidence', yudaoServerSmokePath,
+      '--runtime-seed-evidence', runtimeSeedPath,
+      '--production-seed-apply-evidence', productionSeedApplyPath,
+      '--poi-manifest-evidence', manifestPath,
+      '--poi-workbook-evidence', workbookPath,
+      '--poi-seed-evidence', seedPath,
+      '--poi-source-coverage-evidence', sourceCoveragePath,
+      '--poi-source-review-apply-evidence', sourceReviewApplyPath,
+      '--poi-production-review-apply-evidence', productionReviewApplyPath,
+      '--app-readiness-evidence', appPath,
+      '--evidence-file', 'qa/xicheng-api-trial-release-evidence-package.json'
+    ])
+
+    expect(result.status).toBe(0)
+    const report = JSON.parse(result.stdout)
+    expect(report.status).toBe('XICHENG_RELEASE_EVIDENCE_PACKAGE_READY')
+    expect(report.summary).toMatchObject({
+      stage: 'api-trial',
+      releaseStatus: 'API_TRIAL_READY_CANDIDATE',
+      releaseEvidenceFile: releasePath,
+      appReadinessCheckCount: 7,
+      blockerCount: 0
+    })
+  })
+
   test('accepts text-only Qdrant release evidence because image vectors are P2', async () => {
     const rootDir = await createTempRoot()
     const releasePath = await writeReleaseEvidenceFile(rootDir, {
