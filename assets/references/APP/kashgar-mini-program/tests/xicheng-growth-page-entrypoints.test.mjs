@@ -76,16 +76,14 @@ assert.doesNotMatch(
 for (const required of [
   'openSharePage',
   'openWorksPage',
-  'openOpsReportPage',
-  "url: '/pages/xicheng/share/share'",
+  '/pages/xicheng/share/share?channel=${publishChannel}',
   "url: '/pages/xicheng/works/works'",
-  "url: '/pages/xicheng/ops-report/ops-report'",
   '@open-share="openSharePage"',
   '@open-works="openWorksPage"',
-  '@open-ops-report="openOpsReportPage"',
-  "label: '分享纪念'",
-  "label: '我的游记'",
-  "label: '运营报告'"
+  "label: '发朋友圈'",
+  "label: '发布小红书'",
+  "label: 'PDF 打印'",
+  "label: '我的游记'"
 ]) {
   assert.ok(travelogueShell.includes(required), `Travelogue should link split secondary growth page ${required}`)
 }

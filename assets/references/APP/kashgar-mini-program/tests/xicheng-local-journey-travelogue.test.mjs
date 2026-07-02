@@ -16,6 +16,8 @@ const regionConfig = read('config', 'regions', 'xicheng.js')
 const home = read('pages', 'xicheng', 'home', 'home.vue')
 const scanResult = read('pages', 'xicheng', 'scan-result', 'scan-result.vue')
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
+const travelogueActionGrid = read('components', 'xicheng', 'XichengTravelogueActionGrid.vue')
+const travelogueShell = `${travelogue}\n${travelogueActionGrid}`
 
 assert.match(
   pagesJson,
@@ -67,17 +69,16 @@ for (const required of [
   '游记草稿',
   '亲子研学任务',
   '西城印章',
-  '分享海报',
-  'PDF纪念册',
-  '作品审核',
-  '城市运营报告',
+  '发朋友圈',
+  '发布小红书',
+  'PDF 打印',
+  '我的游记',
   'createXichengTravelogueDraft',
   'saveDraft',
-  'generatePoster',
   'exportMemorialPdf',
-  'submitReview'
+  'openSharePage'
 ]) {
-  assert.ok(travelogue.includes(required), `Xicheng travelogue page should include ${required}`)
+  assert.ok(travelogueShell.includes(required), `Xicheng travelogue page should include ${required}`)
 }
 
 assert.match(

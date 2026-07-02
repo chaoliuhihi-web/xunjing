@@ -23,18 +23,16 @@ export default {
 	data() {
 		return {
 			actionItems: [
-				{ key: 'poster', label: '分享海报', event: 'generate-poster', requiresEvidence: true },
-				{ key: 'pdf', label: 'PDF纪念册', event: 'export-pdf', requiresEvidence: true },
-				{ key: 'review', label: '作品审核', event: 'submit-review', requiresEvidence: true },
-				{ key: 'share', label: '分享纪念', event: 'open-share', requiresEvidence: false },
-				{ key: 'works', label: '我的游记', event: 'open-works', requiresEvidence: false },
-				{ key: 'ops', label: '运营报告', event: 'open-ops-report', requiresEvidence: false }
+				{ key: 'moments', channel: 'moments', label: '发朋友圈', event: 'open-share', requiresEvidence: true },
+				{ key: 'xiaohongshu', channel: 'xiaohongshu', label: '发布小红书', event: 'open-share', requiresEvidence: true },
+				{ key: 'pdf', channel: 'pdf', label: 'PDF 打印', event: 'export-pdf', requiresEvidence: true },
+				{ key: 'works', label: '我的游记', event: 'open-works', requiresEvidence: false }
 			]
 		}
 	},
 	methods: {
 		emitAction(action) {
-			this.$emit(action.event)
+			this.$emit(action.event, action.channel || action.key)
 		}
 	}
 }
@@ -43,7 +41,7 @@ export default {
 <style scoped>
 .action-grid {
 	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
+	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 16rpx;
 	margin-top: 24rpx;
 }

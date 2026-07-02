@@ -28,12 +28,9 @@
 			@scroll-draft="scrollToDraftEditor"
 			@open-reader="openTravelogueReaderPage"
 			@apply-template="applyTravelogueTemplate"
-			@generate-poster="generatePoster"
 			@export-pdf="exportMemorialPdf"
-			@submit-review="submitReview"
 			@open-share="openSharePage"
 			@open-works="openWorksPage"
-			@open-ops-report="openOpsReportPage"
 		/>
 		<view v-if="!isTravelogueEditMode && showLegacyTravelogueHero" :class="['hero', 'xicheng-paper-card', 'xicheng-travelogue-hero']">
 			<view class="travelogue-hero-main">
@@ -479,6 +476,7 @@ import {
 	normalizeXichengRouteCode
 } from '@/config/regions/xicheng.js'
 import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
+import { createXichengRouteOutputValue } from '@/request/xunjing/routeParams.js'
 import { requestCurrentLocationForTrigger } from '@/request/xunjing/trigger.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { createXichengOfficialPoiSources } from '@/request/xunjing/officialPoi.js'
@@ -727,6 +725,7 @@ const calculateTrackPointDistanceMeters = (left = {}, right = {}) => {
 	return Math.round(earthRadiusMeters * c)
 }
 const decodeJourneyRouteValue = decodeXichengRouteValue
+const encodeRouteValue = (value = '') => createXichengRouteOutputValue(value, { platform: process.env.UNI_PLATFORM })
 const resolveRouteByCode = (routeCode = '') => {
 	const normalizedRouteCode = normalizeXichengRouteCode(routeCode)
 	return XICHENG_RECOMMENDED_ROUTES.find(route => route.routeCode === normalizedRouteCode) || null
@@ -2129,8 +2128,9 @@ export default {
 			})
 			this.openWorksPage()
 		},
-		openSharePage() {
-			uni.navigateTo({ url: '/pages/xicheng/share/share' })
+		openSharePage(channel = 'xinghe') {
+			const publishChannel = encodeRouteValue(channel || 'xinghe')
+			uni.navigateTo({ url: `/pages/xicheng/share/share?channel=${publishChannel}` })
 		},
 		openTravelogueReaderPage() {
 			uni.navigateTo({ url: '/pages/xicheng/travelogue-reader/travelogue-reader' })

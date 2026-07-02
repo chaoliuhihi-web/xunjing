@@ -145,6 +145,7 @@
 <script>
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
+import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
 import { getXichengShareChannelAssetLabel, getXichengShareChannelAssetType, getXichengShareChannelTemplateCode, normalizeXichengSharePublishChannel } from '@/request/xunjing/shareAssets.js'
 import XichengPublishChannelGrid from '@/components/xicheng/XichengPublishChannelGrid.vue'
 import XichengPublishPreflightPanel from '@/components/xicheng/XichengPublishPreflightPanel.vue'
@@ -278,8 +279,14 @@ export default {
 			return journeyDraft.visionAgentRealSystemBoundary || safeObject(journeyDraft.visionAgentAutoTraveloguePackage).realSystemBoundaryText || ''
 		}
 	},
+	onLoad(options = {}) {
+		const routeChannel = normalizeXichengSharePublishChannel(decodeXichengRouteValue(options.channel))
+		this.selectedPublishChannel = routeChannel
+		this.selectedPublishChannels = Array.from(new Set([routeChannel, ...this.selectedPublishChannels]))
+	},
 	onShow() {
 		this.restoreShareSettings()
+		this.selectedPublishChannels = Array.from(new Set([this.selectedPublishChannel, ...this.selectedPublishChannels]))
 		this.shareArtifacts = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey))
 		this.reviewSubmissions = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.reviewStorageKey))
 	},

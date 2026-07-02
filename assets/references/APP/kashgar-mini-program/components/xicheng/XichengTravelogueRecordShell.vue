@@ -100,12 +100,9 @@
 		</view>
 		<xicheng-travelogue-action-grid
 			:has-reviewable-evidence="hasReviewableEvidence"
-			@generate-poster="$emit('generate-poster')"
 			@export-pdf="$emit('export-pdf')"
-			@submit-review="$emit('submit-review')"
-			@open-share="$emit('open-share')"
+			@open-share="$emit('open-share', $event)"
 			@open-works="$emit('open-works')"
-			@open-ops-report="$emit('open-ops-report')"
 		/>
 		<view class="travelogue-approved-card xicheng-paper-card">
 			<view class="travelogue-approved-section-head">
@@ -151,7 +148,7 @@ export default {
 		styleOptions: { type: Array, default: () => [] },
 		activeStyle: { type: String, default: 'citywalk' }
 	},
-	emits: ['open-works', 'generate', 'add-photo', 'scroll-draft', 'open-reader', 'apply-template', 'generate-poster', 'export-pdf', 'submit-review', 'open-share', 'open-ops-report'],
+	emits: ['open-works', 'generate', 'add-photo', 'scroll-draft', 'open-reader', 'apply-template', 'export-pdf', 'open-share'],
 	computed: {
 		visibleStyleOptions() {
 			return this.styleOptions.slice(0, 3)
