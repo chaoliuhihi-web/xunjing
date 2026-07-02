@@ -29,6 +29,11 @@ assert.ok(
   'Xicheng chat payload should reuse the shared service handoff evidence helper so backend AI routing receives scene-service intent'
 )
 
+assert.ok(
+  buildPayloadBlock.includes('...createXichengVisionAgentChatContextFields(context)'),
+  'Xicheng chat payload should carry structured Vision Agent context fields for backend scene routing and operations analysis'
+)
+
 assert.match(
   chatRequest,
   /const XICHENG_BLOCKED_ANSWER\s*=\s*'无已审核来源，不能回答'/,
@@ -128,8 +133,44 @@ const isXichengUnsafeSafetyStatus = (safetyStatus = '') => ['BLOCKED', 'UNAVAILA
 })`
   )
 
-const { normalizeXichengAiChatResponse, requestXichengAiChat } = await import(
+const { createXichengVisionAgentChatContextFields, normalizeXichengAiChatResponse, requestXichengAiChat } = await import(
   `data:text/javascript;base64,${Buffer.from(runtimeChatSource).toString('base64')}`
+)
+
+const visionAgentChatContextFields = createXichengVisionAgentChatContextFields({
+  visionAgentContext: { sourceRecognitionContext: '{"photoPath":"/tmp/raw.jpg","latitude":39.9}' },
+  sceneFusionSummary: '18:40 晴天，适合先拍照',
+  worldInterfaceSummary: '当前位置、时间、天气和知识库已融合',
+  visionAgentMemorySessionText: '连续识境路线：白塔寺 → 胡同',
+  memorySessionSceneCount: '3',
+  primarySceneDomainKey: 'architecture',
+  primarySceneDomainLabel: '建筑',
+  sceneUnderstandingSummary: '镜头判断为古建门楼和城市街区',
+  agentDecisionActionTitle: '拍照建议',
+  agentDecisionReasonSummary: '日落光线优先',
+  localTimeText: '18:40',
+  weatherText: '晴',
+  headingText: '朝西'
+})
+
+assert.deepEqual(
+  visionAgentChatContextFields,
+  {
+    visionAgentContextAvailable: true,
+    visionAgentSceneFusionSummary: '18:40 晴天，适合先拍照',
+    visionAgentWorldInterfaceSummary: '当前位置、时间、天气和知识库已融合',
+    visionAgentMemorySessionText: '连续识境路线：白塔寺 → 胡同',
+    visionAgentMemorySessionSceneCount: 3,
+    visionAgentPrimarySceneDomainKey: 'architecture',
+    visionAgentPrimarySceneDomainLabel: '建筑',
+    visionAgentSceneUnderstandingSummary: '镜头判断为古建门楼和城市街区',
+    visionAgentDecisionActionTitle: '拍照建议',
+    visionAgentDecisionReasonSummary: '日落光线优先',
+    visionAgentLocalTimeText: '18:40',
+    visionAgentWeatherText: '晴',
+    visionAgentHeadingText: '朝西'
+  },
+  'Xicheng chat facade should expose bounded structured Vision Agent context fields without raw photo paths or coordinates'
 )
 
 let lastRequestOptions = null
@@ -218,6 +259,14 @@ await assert.rejects(
       serviceHandoffIntentText: '点餐',
       serviceHandoffStepText: '推荐菜/点单、优惠券、预约/排队',
       serviceHandoffSummary: '把菜单识别转成点单建议',
+      visionAgentContext: {},
+      sceneFusionSummary: '18:40 晴天，适合先拍照',
+      worldInterfaceSummary: '当前位置、时间、天气和知识库已融合',
+      visionAgentMemorySessionText: '连续识境路线：白塔寺 → 胡同',
+      memorySessionSceneCount: '3',
+      primarySceneDomainKey: 'architecture',
+      primarySceneDomainLabel: '建筑',
+      agentDecisionReasonSummary: '日落光线优先',
       serviceHandoffContext: {
         actionKey: 'nearby-food',
         taskType: 'merchant',
@@ -239,6 +288,12 @@ assert.equal(lastRequestOptions.data.serviceHandoffActionKey, 'nearby-food')
 assert.equal(lastRequestOptions.data.serviceHandoffTaskType, 'merchant')
 assert.equal(lastRequestOptions.data.serviceHandoffIntent, 'order')
 assert.equal(lastRequestOptions.data.serviceHandoffRequiresRealSystem, true)
+assert.equal(lastRequestOptions.data.visionAgentContextAvailable, true)
+assert.equal(lastRequestOptions.data.visionAgentSceneFusionSummary, '18:40 晴天，适合先拍照')
+assert.equal(lastRequestOptions.data.visionAgentWorldInterfaceSummary, '当前位置、时间、天气和知识库已融合')
+assert.equal(lastRequestOptions.data.visionAgentMemorySessionSceneCount, 3)
+assert.equal(lastRequestOptions.data.visionAgentPrimarySceneDomainKey, 'architecture')
+assert.equal(lastRequestOptions.data.visionAgentDecisionReasonSummary, '日落光线优先')
 
 installChatRequestMock((options) => options.success?.({ statusCode: 200, data: { code: 401, msg: '账号未登录' } }))
 await assert.rejects(

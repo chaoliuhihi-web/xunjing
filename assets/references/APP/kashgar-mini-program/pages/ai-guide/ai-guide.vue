@@ -412,7 +412,7 @@ import CustomNav from '@/components/custom-nav/custom-nav.vue'
 import TabBar from '@/components/tab-bar/tab-bar.vue'
 import config from '@/request/config.js'
 import { resolveXichengPhotoTrigger } from '@/request/xunjing/trigger.js'
-import { normalizeXichengAiChatResponse } from '@/request/xunjing/chat.js'
+import { createXichengVisionAgentChatContextFields, normalizeXichengAiChatResponse } from '@/request/xunjing/chat.js'
 import { normalizeXichengCachedMessages } from '@/request/xunjing/messageCache.js'
 import {
 	hasCompletedInitialQuestionInMessages as hasCompletedInitialQuestionInMessageList,
@@ -1583,6 +1583,7 @@ const requestXunjingAiChat = (question) => {
 		requestPayload.companionName = context.companionName || XICHENG_REGION_CONFIG.companionName
 		requestPayload.recognitionConfidence = context.confidence || ''
 		requestPayload.safetyStatus = normalizeXichengSafetyStatus(context.safetyStatus)
+		Object.assign(requestPayload, createXichengVisionAgentChatContextFields(context))
 		Object.assign(requestPayload, createXichengServiceHandoffEvidenceFields(context))
 	}
 	const pendingRequest = new Promise((resolve, reject) => {

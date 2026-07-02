@@ -12,13 +12,16 @@ const normalizeContextBlock = aiGuide.match(/const normalizeXichengAiContext\s*=
 const applyContextBlock = aiGuide.match(/const applyXichengAiContext\s*=\s*\(options = \{\}\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const contextQuestionBlock = aiGuide.match(/const buildXichengContextQuestion\s*=\s*\(question = '', context = xichengAiContext\.value\) => \{[\s\S]*?\n\}/)?.[0] || ''
 const heroSubtitleBlock = aiGuide.match(/const xichengHeroSubtitle\s*=\s*computed\(\(\) => \{[\s\S]*?\n\}\)/)?.[0] || ''
+const requestChatBlock = aiGuide.match(/const requestXunjingAiChat\s*=\s*\(question\) => \{[\s\S]*?\n\}\n\nconst escapeHtml/)?.[0] || ''
 
 assert.ok(normalizeContextBlock, 'AI guide should expose Xicheng context normalization')
 assert.ok(applyContextBlock, 'AI guide should expose Xicheng context application')
 assert.ok(contextQuestionBlock, 'AI guide should expose Xicheng prompt context builder')
 assert.ok(heroSubtitleBlock, 'AI guide should expose Xicheng hero subtitle')
+assert.ok(requestChatBlock, 'AI guide should expose Xicheng request block')
 
 for (const required of [
+  'createXichengVisionAgentChatContextFields',
   'parseXichengVisionAgentContext',
   'visionAgentContext: parseXichengVisionAgentContext(options.visionAgentContext)',
   'sourceRecognitionContext',
@@ -39,6 +42,12 @@ for (const required of [
 ]) {
   assert.ok(aiGuide.includes(required), `AI guide should carry Vision Agent context token ${required}`)
 }
+
+assert.match(
+  requestChatBlock,
+  /requestPayload\.safetyStatus[\s\S]*Object\.assign\(requestPayload,\s*createXichengVisionAgentChatContextFields\(context\)\)[\s\S]*Object\.assign\(requestPayload,\s*createXichengServiceHandoffEvidenceFields\(context\)\)/,
+  'Xiaojing backend request payload should send structured Vision Agent context fields before service handoff evidence'
+)
 
 assert.match(
   aiGuide,

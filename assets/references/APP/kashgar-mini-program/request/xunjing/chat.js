@@ -12,6 +12,39 @@ export const XICHENG_AI_CHAT_API_PATH = 'app-api/xunjing/ai/chat'
 const XICHENG_BLOCKED_ANSWER = '无已审核来源，不能回答'
 const XICHENG_UNAVAILABLE_ANSWER = '小京暂时无法获取已审核来源，请稍后再试'
 
+const normalizeVisionAgentText = (value = '', limit = 120) => String(value || '').trim().slice(0, limit)
+const normalizeVisionAgentCount = (value = 0) => {
+	const count = Number(value || 0)
+	return Number.isFinite(count) && count > 0 ? count : 0
+}
+
+export const createXichengVisionAgentChatContextFields = (context = {}) => {
+	const hasVisionAgentContext = Boolean(
+		(context.visionAgentContext && typeof context.visionAgentContext === 'object')
+		|| context.sceneFusionSummary
+		|| context.worldInterfaceSummary
+		|| context.visionAgentMemorySessionText
+		|| context.primarySceneDomainKey
+		|| context.agentDecisionReasonSummary
+	)
+	if (!hasVisionAgentContext) return {}
+	return {
+		visionAgentContextAvailable: true,
+		visionAgentSceneFusionSummary: normalizeVisionAgentText(context.sceneFusionSummary),
+		visionAgentWorldInterfaceSummary: normalizeVisionAgentText(context.worldInterfaceSummary),
+		visionAgentMemorySessionText: normalizeVisionAgentText(context.visionAgentMemorySessionText, 160),
+		visionAgentMemorySessionSceneCount: normalizeVisionAgentCount(context.memorySessionSceneCount),
+		visionAgentPrimarySceneDomainKey: normalizeVisionAgentText(context.primarySceneDomainKey, 48),
+		visionAgentPrimarySceneDomainLabel: normalizeVisionAgentText(context.primarySceneDomainLabel, 48),
+		visionAgentSceneUnderstandingSummary: normalizeVisionAgentText(context.sceneUnderstandingSummary),
+		visionAgentDecisionActionTitle: normalizeVisionAgentText(context.agentDecisionActionTitle, 64),
+		visionAgentDecisionReasonSummary: normalizeVisionAgentText(context.agentDecisionReasonSummary),
+		visionAgentLocalTimeText: normalizeVisionAgentText(context.localTimeText, 40),
+		visionAgentWeatherText: normalizeVisionAgentText(context.weatherText, 40),
+		visionAgentHeadingText: normalizeVisionAgentText(context.headingText, 40)
+	}
+}
+
 export const buildXichengAiChatPayload = ({ question = '', context = {} } = {}) => ({
 	packageCode: context.packageCode || XICHENG_REGION_CONFIG.packageCode,
 	regionCode: context.regionCode || XICHENG_REGION_CONFIG.regionCode,
@@ -24,6 +57,7 @@ export const buildXichengAiChatPayload = ({ question = '', context = {} } = {}) 
 	companionName: context.companionName || XICHENG_REGION_CONFIG.companionName,
 	recognitionConfidence: context.confidence || null,
 	safetyStatus: normalizeXichengSafetyStatus(context.safetyStatus),
+	...createXichengVisionAgentChatContextFields(context),
 	...createXichengServiceHandoffEvidenceFields(context)
 })
 
