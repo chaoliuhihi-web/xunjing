@@ -43,6 +43,7 @@ for (const required of [
   '完成进度',
   'recording-map-canvas',
   'recording-route-path',
+  'recording-route-segment',
   'recording-live-pin',
   'recording-progress-card',
   '下一站',
@@ -74,6 +75,30 @@ assert.match(
 
 assert.match(
   panel,
+  /v-for="segment in routeSegments"[\s\S]*class="recording-path-segment recording-route-segment"[\s\S]*:style="getRouteSegmentStyle\(segment\)"/,
+  'Recording route line should be rendered from dynamic route-stop segments instead of fixed decorative CSS segments'
+)
+
+assert.match(
+  panel,
+  /routeSegments\(\)[\s\S]*this\.routeStopItems[\s\S]*slice\(0,\s*-1\)[\s\S]*Math\.hypot[\s\S]*Math\.atan2/,
+  'Recording route segments should be calculated from adjacent route-stop coordinates'
+)
+
+assert.match(
+  panel,
+  /getRouteSegmentStyle\(segment = \{\}\)[\s\S]*left:\$\{segment\.left\}%[\s\S]*top:\$\{segment\.top\}%[\s\S]*width:\$\{segment\.width\}%[\s\S]*rotate\(\$\{segment\.angle\}deg\)/,
+  'Recording route segment style should use percentage position, length, and rotation'
+)
+
+assert.doesNotMatch(
+  panel,
+  /recording-path-segment-1|recording-path-segment-2|recording-path-segment-3|recording-path-segment-4/,
+  'Recording route should not keep fixed segment classes after switching to route-stop-driven geometry'
+)
+
+assert.match(
+  panel,
   /\.recording-paused-actions\s*\{[\s\S]*position:\s*sticky[\s\S]*bottom:\s*168rpx[\s\S]*z-index:\s*12/,
   'Paused recording actions should stay above the four-tab bottom nav in the target mobile viewport'
 )
@@ -96,7 +121,7 @@ for (const eventName of ['pause', 'resume', 'arrive', 'finish', 'ask', 'locate',
 
 assert.doesNotMatch(
   panel,
-  /路线护照|我的足迹|结束并生成游记素材|亲子研学任务/,
+  /路线护照|我的足迹|保存足迹|结束并生成游记素材|亲子研学任务/,
   'Recording panel should keep the record flow focused on travelogue materials instead of older passport/footprint/study-growth entries'
 )
 

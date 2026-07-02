@@ -60,10 +60,12 @@
 			</view>
 
 			<view class="recording-route-path">
-				<view class="recording-path-segment recording-path-segment-1"></view>
-				<view class="recording-path-segment recording-path-segment-2"></view>
-				<view class="recording-path-segment recording-path-segment-3"></view>
-				<view class="recording-path-segment recording-path-segment-4"></view>
+				<view
+					v-for="segment in routeSegments"
+					:key="segment.key"
+					class="recording-path-segment recording-route-segment"
+					:style="getRouteSegmentStyle(segment)"
+				></view>
 			</view>
 
 			<view
@@ -187,7 +189,7 @@
 		<view v-if="isPaused" class="recording-xiaojing-card xicheng-paper-card">
 			<image v-if="companionAvatar" class="recording-xiaojing-avatar" :src="companionAvatar" mode="aspectFit" />
 			<view class="recording-xiaojing-bubble">
-				<text>记录已暂停，继续后会接着保存足迹。</text>
+				<text>记录已暂停，继续后会接着保存路线记录。</text>
 			</view>
 		</view>
 		<view v-else class="recording-study-card xicheng-paper-card">
@@ -314,6 +316,21 @@ export default {
 			const pointCount = this.session && Array.isArray(this.session.trackPoints) ? this.session.trackPoints.length : 0
 			return Math.max(this.completedStopCount, Math.min(pointCount + this.completedStopCount, 9))
 		},
+		routeSegments() {
+			return this.routeStopItems.slice(0, -1).map((stop, index) => {
+				const start = this.getStopPosition(index)
+				const end = this.getStopPosition(index + 1)
+				const deltaLeft = Number(end.left) - Number(start.left)
+				const deltaTop = Number(end.top) - Number(start.top)
+				return {
+					key: `recording-segment-${stop.poiCode || stop.poiName || index}`,
+					left: Number(start.left),
+					top: Number(start.top),
+					width: Math.hypot(deltaLeft, deltaTop),
+					angle: Math.atan2(deltaTop, deltaLeft) * 180 / Math.PI
+				}
+			})
+		},
 		categories() {
 			return [
 				{ label: '文化建筑', color: '#16805F' },
@@ -325,6 +342,10 @@ export default {
 		}
 	},
 	methods: {
+		getStopPosition(index = 0) {
+			const layouts = this.isPaused ? PAUSED_STOP_LAYOUT : LIVE_STOP_LAYOUT
+			return layouts[index % layouts.length] || layouts[0]
+		},
 		isStopCompleted(stop = {}) {
 			const completedCodes = this.session && Array.isArray(this.session.completedStopPoiCodes)
 				? this.session.completedStopPoiCodes
@@ -332,9 +353,11 @@ export default {
 			return completedCodes.includes(stop.poiCode)
 		},
 		getStopStyle(index = 0) {
-			const layouts = this.isPaused ? PAUSED_STOP_LAYOUT : LIVE_STOP_LAYOUT
-			const layout = layouts[index % layouts.length] || layouts[0]
+			const layout = this.getStopPosition(index)
 			return `left:${layout.left}%;top:${layout.top}%;`
+		},
+		getRouteSegmentStyle(segment = {}) {
+			return `left:${segment.left}%;top:${segment.top}%;width:${segment.width}%;transform:rotate(${segment.angle}deg);`
 		}
 	}
 }
@@ -612,47 +635,31 @@ export default {
 }
 
 .recording-route-path {
-	left: 120rpx;
-	right: 136rpx;
-	top: 170rpx;
-	bottom: 122rpx;
+	inset: 0;
 	z-index: 2;
 }
 
 .recording-path-segment {
+	position: absolute;
 	height: 14rpx;
 	border-radius: 999rpx;
 	background: #1C604F;
 	box-shadow: 0 0 0 8rpx rgba(255, 252, 246, 0.65);
 	transform-origin: left center;
+	pointer-events: none;
 }
 
-.recording-path-segment-1 {
-	left: 0;
-	bottom: 26rpx;
-	width: 220rpx;
-	transform: rotate(-18deg);
-}
-
-.recording-path-segment-2 {
-	left: 190rpx;
-	bottom: 92rpx;
-	width: 190rpx;
-	transform: rotate(-2deg);
-}
-
-.recording-path-segment-3 {
-	right: 36rpx;
-	bottom: 118rpx;
-	width: 240rpx;
-	transform: rotate(-64deg);
-}
-
-.recording-path-segment-4 {
-	right: 66rpx;
-	top: 78rpx;
-	width: 170rpx;
-	transform: rotate(-70deg);
+.recording-route-segment::after {
+	content: '';
+	position: absolute;
+	right: -7rpx;
+	top: 50%;
+	width: 14rpx;
+	height: 14rpx;
+	border-radius: 999rpx;
+	background: #1C604F;
+	transform: translateY(-50%);
+	box-shadow: 0 0 0 6rpx rgba(255, 252, 246, 0.72);
 }
 
 .recording-stop-marker {
