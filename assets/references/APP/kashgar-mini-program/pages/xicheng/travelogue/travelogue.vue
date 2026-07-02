@@ -100,28 +100,11 @@
 			@publish="publishTravelogue"
 			@add-photo="addPhotoMaterial"
 		/>
-		<view v-if="isTravelogueEditMode" class="travelogue-secondary-directory xicheng-paper-card">
-			<view class="section-head">
-				<text class="section-title">二级功能</text>
-				<text class="section-badge">按需进入</text>
-			</view>
-			<text class="section-desc">记录、护照、分享审核和运营数据不在编辑页展开，避免主编辑流程过长。</text>
-			<view class="travelogue-secondary-entry-grid">
-				<view
-					v-for="entry in travelogueSecondaryEntries"
-					:key="entry.key"
-					class="travelogue-secondary-entry"
-					@click="openTravelogueSecondaryEntry(entry)"
-				>
-					<view class="travelogue-secondary-entry-head">
-						<xicheng-icon :name="entry.icon" variant="plain" :size="21" />
-						<text class="travelogue-secondary-entry-title">{{ entry.title }}</text>
-					</view>
-					<text class="travelogue-secondary-entry-copy">{{ entry.copy }}</text>
-					<text class="travelogue-secondary-entry-meta">{{ entry.meta }}</text>
-				</view>
-			</view>
-		</view>
+		<xicheng-travelogue-secondary-directory
+			v-if="isTravelogueEditMode"
+			:entries="travelogueSecondaryEntries"
+			@open="openTravelogueSecondaryEntry"
+		/>
 		<template v-if="!isTravelogueEditMode && showTravelogueOpsDetails">
 			<view class="stats-grid">
 				<view class="stat-card xicheng-paper-card">
@@ -508,6 +491,7 @@ import XichengTravelogueTemplateSettings from '@/components/xicheng/XichengTrave
 import XichengTravelogueGenerationStatePanel from '@/components/xicheng/XichengTravelogueGenerationStatePanel.vue'
 import XichengTravelogueEditorShare from '@/components/xicheng/travelogue-editor-share.vue'
 import XichengTravelogueRecordShell from '@/components/xicheng/XichengTravelogueRecordShell.vue'
+import XichengTravelogueSecondaryDirectory from '@/components/xicheng/XichengTravelogueSecondaryDirectory.vue'
 import { createXichengTravelogueGenerationStateMixin } from '@/components/xicheng/travelogueGenerationState.js'
 import { createXichengTravelogueSecondaryEntries } from '@/components/xicheng/travelogueSecondaryEntries.js'
 import {
@@ -819,7 +803,7 @@ export const resolvePhotoEvidenceFileMeta = (chooseImageResult = {}) => {
 	}
 }
 export default {
-	components: { XichengLongTraveloguePreview, XichengTravelogueTemplateGallery, XichengTravelogueTemplateSettings, XichengTravelogueGenerationStatePanel, XichengTravelogueEditorShare, XichengTravelogueRecordShell },
+	components: { XichengLongTraveloguePreview, XichengTravelogueTemplateGallery, XichengTravelogueTemplateSettings, XichengTravelogueGenerationStatePanel, XichengTravelogueEditorShare, XichengTravelogueRecordShell, XichengTravelogueSecondaryDirectory },
 	mixins: [createXichengTravelogueGenerationStateMixin()],
 	data() {
 		return {

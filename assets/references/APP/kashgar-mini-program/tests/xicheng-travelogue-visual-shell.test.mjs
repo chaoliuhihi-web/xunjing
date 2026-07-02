@@ -5,10 +5,17 @@ import path from 'node:path'
 const root = process.cwd()
 const travelogue = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.vue'), 'utf8')
 const secondaryEntries = fs.readFileSync(path.join(root, 'components', 'xicheng', 'travelogueSecondaryEntries.js'), 'utf8')
-const travelogueSource = `${travelogue}\n${secondaryEntries}`
+const secondaryDirectoryPath = path.join(root, 'components', 'xicheng', 'XichengTravelogueSecondaryDirectory.vue')
+assert.ok(
+  fs.existsSync(secondaryDirectoryPath),
+  'Travelogue secondary directory should be split into XichengTravelogueSecondaryDirectory.vue instead of growing travelogue.vue'
+)
+const secondaryDirectory = fs.readFileSync(secondaryDirectoryPath, 'utf8')
+const travelogueSource = `${travelogue}\n${secondaryEntries}\n${secondaryDirectory}`
 const travelogueCss = fs.existsSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.css'))
   ? fs.readFileSync(path.join(root, 'pages', 'xicheng', 'travelogue', 'travelogue.css'), 'utf8')
   : travelogue
+const travelogueStyleSurface = `${travelogueCss}\n${secondaryDirectory}`
 const longTraveloguePreview = fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengLongTraveloguePreview.vue'), 'utf8')
 const longTraveloguePreviewCss = fs.existsSync(path.join(root, 'components', 'xicheng', 'XichengLongTraveloguePreview.css'))
   ? fs.readFileSync(path.join(root, 'components', 'xicheng', 'XichengLongTraveloguePreview.css'), 'utf8')
@@ -91,12 +98,18 @@ assert.doesNotMatch(
 
 assert.match(
   travelogue,
-  /<view v-if="isTravelogueEditMode" class="travelogue-secondary-directory[\s\S]*v-for="entry in travelogueSecondaryEntries"[\s\S]*@click="openTravelogueSecondaryEntry\(entry\)"/,
-  'Travelogue edit mode should collapse secondary workflows into a compact directory instead of rendering one long page'
+  /import XichengTravelogueSecondaryDirectory from '@\/components\/xicheng\/XichengTravelogueSecondaryDirectory\.vue'[\s\S]*components:[\s\S]*XichengTravelogueSecondaryDirectory/,
+  'Travelogue page should import and register the split secondary directory component'
 )
 
 assert.match(
   travelogue,
+  /<xicheng-travelogue-secondary-directory[\s\S]*v-if="isTravelogueEditMode"[\s\S]*:entries="travelogueSecondaryEntries"[\s\S]*@open="openTravelogueSecondaryEntry"/,
+  'Travelogue edit mode should collapse secondary workflows into a compact directory instead of rendering one long page'
+)
+
+assert.match(
+  secondaryDirectory,
   /class="travelogue-secondary-entry-head"[\s\S]*<xicheng-icon[\s\S]*:name="entry\.icon"/,
   'Travelogue secondary entry cards should use shared Xicheng icons for a consistent approved visual style'
 )
@@ -138,7 +151,7 @@ assert.match(
 )
 
 assert.match(
-  travelogueCss,
+  travelogueStyleSurface,
   /\.travelogue-secondary-directory\s*\{[\s\S]*margin-top:\s*24rpx[\s\S]*\.travelogue-secondary-entry-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/,
   'Travelogue secondary directory should render as a compact two-column mobile grid'
 )
