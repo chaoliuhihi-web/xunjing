@@ -42,6 +42,7 @@ const XICHENG_INSPIRATION_IMAGE_SOURCE = Object.freeze({
 const normalizeText = (value = '') => String(value || '').replace(/\s+/g, ' ').trim()
 const normalizeComparableText = (value = '') => normalizeText(value).toLowerCase()
 const safeArray = value => Array.isArray(value) ? value : []
+const safeObject = value => value && typeof value === 'object' ? value : {}
 const uniqueBy = (items = [], getKey = item => item) => {
 	const seen = new Set()
 	return safeArray(items).filter(item => {
@@ -52,9 +53,26 @@ const uniqueBy = (items = [], getKey = item => item) => {
 	})
 }
 
+export const extractXichengInspirationLinks = (rawText = '') => {
+	const links = normalizeText(rawText).match(/https?:\/\/[^\s，。；、)）]+/g) || []
+	return uniqueBy(links.map(link => link.trim().replace(/[，。；、)）]+$/, '')))
+}
+
+export const extractXichengPrimaryInspirationLink = (rawText = '') => {
+	const links = extractXichengInspirationLinks(rawText)
+	return links.find(link => detectXichengInspirationSourcePlatforms({ rawText: link }).length > 0) || ''
+}
+
+export const stripXichengInspirationLinks = (rawText = '') => normalizeText(rawText).replace(/https?:\/\/[^\s，。；、)）]+/g, ' ').trim()
+
+export const isXichengLinkOnlyInspirationInput = (rawText = '') => {
+	const normalizedText = normalizeText(rawText)
+	return Boolean(extractXichengPrimaryInspirationLink(normalizedText)) && !stripXichengInspirationLinks(normalizedText)
+}
+
 export const extractXichengGuideInput = ({ rawText = '', imagePath = '' } = {}) => {
 	const normalizedText = normalizeText(rawText)
-	const links = normalizedText.match(/https?:\/\/[^\s，。；、)）]+/g) || []
+	const links = extractXichengInspirationLinks(normalizedText)
 	return {
 		normalizedText,
 		rawTextLength: String(rawText || '').length,
@@ -62,6 +80,19 @@ export const extractXichengGuideInput = ({ rawText = '', imagePath = '' } = {}) 
 		hasImage: Boolean(imagePath),
 		imagePath,
 		links
+	}
+}
+
+const normalizeLinkImportMetadata = (linkImportResult = null) => {
+	const result = safeObject(linkImportResult)
+	if (!result.sourceUrl && !result.linkUrl && !result.url) return null
+	return {
+		sourceUrl: result.sourceUrl || result.linkUrl || result.url || '',
+		sourceTitle: result.sourceTitle || result.title || '',
+		sourcePlatform: result.sourcePlatform || '',
+		sourcePlatforms: safeArray(result.sourcePlatforms),
+		fetchedAt: result.fetchedAt || result.importedAt || '',
+		sourcePolicy: result.sourcePolicy || '不保存第三方平台原文；不抓取未授权内容'
 	}
 }
 
@@ -204,6 +235,9 @@ export const createXichengInspirationImportRecord = (importPackage = {}) => ({
 	packageCode: XICHENG_REGION_CONFIG.packageCode,
 	sceneCode: XICHENG_REGION_CONFIG.sceneCode,
 	sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
+	linkImported: Boolean(importPackage.linkImported),
+	sourceUrl: importPackage.sourceUrl || '',
+	sourceTitle: importPackage.sourceTitle || '',
 	rawTextExcerpt: importPackage.includeImageOnly ? '' : importPackage.rawTextExcerpt,
 	rawTextLength: importPackage.includeImageOnly ? 0 : importPackage.rawTextLength,
 	sourcePlatforms: importPackage.sourcePlatforms,
@@ -226,12 +260,17 @@ export const createXichengInspirationImportPackage = ({
 	rawText = '',
 	imagePath = '',
 	target = '',
+	linkImportResult = null,
 	includeImageOnly = false,
 	importedAt = new Date().toISOString(),
 	importId = `inspiration-${Date.now()}`
 } = {}) => {
 	const guideInput = extractXichengGuideInput({ rawText, imagePath })
-	const sourcePlatforms = detectXichengInspirationSourcePlatforms({ rawText, imagePath })
+	const linkImportMetadata = normalizeLinkImportMetadata(linkImportResult)
+	const sourcePlatforms = uniqueBy([
+		...safeArray(linkImportMetadata && linkImportMetadata.sourcePlatforms),
+		...detectXichengInspirationSourcePlatforms({ rawText, imagePath })
+	], source => source.sourceKey)
 	const matchedPois = includeImageOnly ? [] : extractXichengPoiMatches(guideInput.normalizedText)
 	const unmatchedPlaceNames = includeImageOnly ? [] : extractXichengUnmatchedPlaceNames(guideInput.normalizedText, matchedPois)
 	const route = buildXichengWalkRoute(matchedPois, { sourcePlatforms })
@@ -244,6 +283,10 @@ export const createXichengInspirationImportPackage = ({
 		rawTextLength: guideInput.rawTextLength,
 		imagePath,
 		includeImageOnly,
+		linkImported: Boolean(linkImportMetadata),
+		linkImportResult: linkImportMetadata,
+		sourceUrl: linkImportMetadata ? linkImportMetadata.sourceUrl : '',
+		sourceTitle: linkImportMetadata ? linkImportMetadata.sourceTitle : '',
 		sourcePlatforms,
 		matchedPois,
 		unmatchedPlaceNames,

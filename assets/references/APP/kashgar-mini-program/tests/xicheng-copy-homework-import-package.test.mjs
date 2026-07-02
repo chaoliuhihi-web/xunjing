@@ -87,7 +87,7 @@ assert.match(
 
 assert.match(
   inspiration,
-  /refreshInspirationImportPackage\(\{ includeImageOnly = false \} = \{\}\)[\s\S]*this\.importPackage = createXichengInspirationImportPackage\(\{[\s\S]*rawText:\s*this\.rawText[\s\S]*imagePath:\s*this\.imagePath[\s\S]*target:\s*this\.target/,
+  /refreshInspirationImportPackage\(\{ includeImageOnly = false, linkImportResult = this\.linkImportResult \} = \{\}\)[\s\S]*const effectiveRawText = linkImportResult && linkImportResult\.extractedText[\s\S]*this\.importPackage = createXichengInspirationImportPackage\(\{[\s\S]*rawText:\s*effectiveRawText[\s\S]*imagePath:\s*this\.imagePath[\s\S]*target:\s*this\.target/,
   'Inspiration page should refresh one authoritative import package from the current input'
 )
 

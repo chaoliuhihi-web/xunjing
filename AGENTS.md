@@ -42,6 +42,7 @@
 ## 验证要求
 
 - 改前端 APP：在 `assets/references/APP/kashgar-mini-program/` 运行相关 `tests/*.test.mjs` 和 `npm run build`。
+- 改前端功能：必须至少补一条 Playwright 或 Computer Use 用户操作验收，模拟真实用户点击、输入、上传、导航或分享链路；不得只用静态正则/文件扫描测试宣称功能完成。静态测试只能作为补充门禁。
 - 改 APP 页面结构：必须确认 `pages/index/index.vue` 和 `pages/ai-guide/ai-guide.vue` 不超过 3500 行，相关门禁在 APP `tests/app-production-readiness.test.mjs`。
 - 改根项目：运行 `npm run test:run`。
 - 改 Yudao/部署门禁：运行相关 `scripts/*.test.mjs` 和 `npm run xunjing:platform:verify:static`。

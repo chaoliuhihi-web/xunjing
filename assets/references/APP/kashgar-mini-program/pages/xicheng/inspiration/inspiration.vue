@@ -94,6 +94,11 @@ import {
 	createXichengInspirationImportRecord,
 	extractXichengPoiMatches as extractXichengPoiMatchesFromImportPackage
 } from '@/request/xunjing/inspirationImport.js'
+import {
+	extractXichengPrimaryInspirationLink,
+	isXichengLinkOnlyInspirationInput,
+	requestXichengInspirationLinkImport
+} from '@/request/xunjing/inspirationLinkImport.js'
 
 const encodeRouteValue = (value = '') => createXichengRouteOutputValue(value, { platform: process.env.UNI_PLATFORM })
 
@@ -109,6 +114,8 @@ export default {
 			region: XICHENG_REGION_CONFIG,
 			rawText,
 			imagePath: '',
+			isLinkImporting: false,
+			linkImportResult: null,
 			inspirationImports: [],
 			importPackage: createXichengInspirationImportPackage({ rawText, target: '' }),
 			sourcePlatforms: [],
@@ -125,20 +132,59 @@ export default {
 	},
 	onLoad(options = {}) {
 		this.target = options.target === 'map' ? 'map' : ''
+		const sharedLink = decodeURIComponent(options.linkUrl || options.url || '')
+		if (sharedLink) {
+			this.rawText = sharedLink
+			this.runExtraction()
+		}
 	},
 	methods: {
 		fillExample() {
 			this.rawText = '白塔寺看建筑，历代帝王庙听礼制故事，最后去什刹海散步。'
 			this.runExtraction()
 		},
-		runExtraction() {
+		async runExtraction() {
+			const linkUrl = extractXichengPrimaryInspirationLink(this.rawText)
+			if (linkUrl) {
+				const imported = await this.importInspirationLink(linkUrl)
+				if (imported) return
+				if (this.isLinkOnlyInput(this.rawText)) return
+			}
 			this.refreshInspirationImportPackage()
 		},
-		refreshInspirationImportPackage({ includeImageOnly = false } = {}) {
+		isLinkOnlyInput(rawText = '') {
+			return isXichengLinkOnlyInspirationInput(rawText)
+		},
+		async importInspirationLink(linkUrl = '') {
+			this.isLinkImporting = true
+			try {
+				const linkImportResult = await requestXichengInspirationLinkImport({
+					linkUrl,
+					target: this.target
+				})
+				if (!linkImportResult.extractedText) {
+					this.showInspirationLinkUnavailable()
+					return false
+				}
+				this.linkImportResult = linkImportResult
+				this.refreshInspirationImportPackage({ linkImportResult })
+				return true
+			} catch (error) {
+				this.showInspirationLinkUnavailable(error)
+				return false
+			} finally {
+				this.isLinkImporting = false
+			}
+		},
+		refreshInspirationImportPackage({ includeImageOnly = false, linkImportResult = this.linkImportResult } = {}) {
+			const effectiveRawText = linkImportResult && linkImportResult.extractedText
+				? linkImportResult.extractedText
+				: this.rawText
 			this.importPackage = createXichengInspirationImportPackage({
-				rawText: this.rawText,
+				rawText: effectiveRawText,
 				imagePath: this.imagePath,
 				target: this.target,
+				linkImportResult,
 				includeImageOnly
 			})
 			this.matchedPois = this.importPackage.matchedPois
@@ -168,6 +214,12 @@ export default {
 		showInspirationRouteUnavailable() {
 			uni.showToast({
 				title: '请先输入并匹配官方 POI',
+				icon: 'none'
+			})
+		},
+		showInspirationLinkUnavailable() {
+			uni.showToast({
+				title: '链接解析暂不可用，请换链接或稍后再试',
 				icon: 'none'
 			})
 		},
@@ -204,13 +256,16 @@ export default {
 			}
 			const route = {
 				...importPackage.route,
-				rawTextExcerpt: this.createInspirationTextExcerpt(this.rawText),
+				rawTextExcerpt: importPackage.rawTextExcerpt || this.createInspirationTextExcerpt(this.rawText),
 				imagePath: this.imagePath,
 				regionCode: XICHENG_REGION_CONFIG.regionCode,
 				packageCode: XICHENG_REGION_CONFIG.packageCode,
 				sceneCode: XICHENG_REGION_CONFIG.sceneCode,
 				sourceChannel: XICHENG_REGION_CONFIG.sourceChannel,
 				sourceLabel: '一键抄作业导入',
+				sourceUrl: importPackage.sourceUrl,
+				sourceTitle: importPackage.sourceTitle,
+				linkImported: importPackage.linkImported,
 				sourcePlatforms: importPackage.sourcePlatforms,
 				unmatchedPlaceNames: importPackage.unmatchedPlaceNames,
 				updatedAt: new Date().toISOString()
