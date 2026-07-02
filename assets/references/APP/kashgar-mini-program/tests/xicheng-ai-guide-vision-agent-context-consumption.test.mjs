@@ -53,6 +53,12 @@ assert.match(
 )
 
 assert.match(
+  normalizeContextBlock,
+  /memorySessionSceneCount:\s*parseXichengVisionAgentContext\(options\.visionAgentContext\)\.memorySessionSceneCount\s*\|\|\s*decodeRouteValue\(options\.memorySessionSceneCount\)\s*\|\|\s*''/,
+  'AI guide should recover the continuous AI识境 scene count from the standalone route param when the full Vision Agent JSON is missing or trimmed'
+)
+
+assert.match(
   contextQuestionBlock,
   /worldInterfaceSummary[\s\S]*世界交互入口[\s\S]*sceneFusionSummary[\s\S]*AI识境现场判断[\s\S]*agentDecisionReasonSummary[\s\S]*Agent决策依据[\s\S]*visionAgentMemorySessionText[\s\S]*连续识境[\s\S]*localTimeText[\s\S]*weatherText[\s\S]*headingText/,
   'Xiaojing request prompt should include World Interface, AI识境 scene decision, Agent decision reasons, memory continuity, and live environment signals'

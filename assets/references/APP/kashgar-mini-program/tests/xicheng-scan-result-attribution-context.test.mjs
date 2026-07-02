@@ -99,7 +99,8 @@ for (const required of [
 
 for (const required of [
   'sceneCode=${encodeRouteValue(this.recentRecognition.sceneCode || this.region.sceneCode)}',
-  'sourceChannel=${encodeRouteValue(this.recentRecognition.sourceChannel || this.region.sourceChannel)}'
+  'sourceChannel=${encodeRouteValue(this.recentRecognition.sourceChannel || this.region.sourceChannel)}',
+  'memorySessionSceneCount=${encodeRouteValue(visionAgentContext.memorySessionSceneCount || \'\')}'
 ]) {
   assert.ok(continueRecentRecognitionBlock.includes(required), `Recent recognition Xiaojing query should carry ${required}`)
 }
@@ -179,7 +180,8 @@ for (const required of [
   'poiName=${encodeRouteValue(this.result.poiName || \'\')}',
   'companionName=${encodeRouteValue(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}',
   'visionAgentContext=${encodeRouteValue(JSON.stringify(visionAgentContext))}',
-  'sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || \'\')}'
+  'sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || \'\')}',
+  'memorySessionSceneCount=${encodeRouteValue(visionAgentContext.memorySessionSceneCount || \'\')}'
 ]) {
   assert.ok(scanAskXiaojingBlock.includes(required), `Scan result Xiaojing query should avoid double encoding ${required}`)
 }

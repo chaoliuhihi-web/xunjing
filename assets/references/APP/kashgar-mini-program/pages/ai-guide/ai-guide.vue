@@ -859,7 +859,7 @@ const normalizeXichengAiContext = (options = {}) => ({
 			? parseXichengVisionAgentContext(options.visionAgentContext).worldInterfaceSnapshot.signals
 			: [],
 	visionAgentMemorySessionText: parseXichengVisionAgentContext(options.visionAgentContext).visionAgentMemorySessionText || parseXichengVisionAgentContext(options.visionAgentContext).memorySessionText || '',
-	memorySessionSceneCount: parseXichengVisionAgentContext(options.visionAgentContext).memorySessionSceneCount || '',
+	memorySessionSceneCount: parseXichengVisionAgentContext(options.visionAgentContext).memorySessionSceneCount || decodeRouteValue(options.memorySessionSceneCount) || '',
 	localTimeText: parseXichengVisionAgentContext(options.visionAgentContext).localTimeText || '',
 	weatherText: parseXichengVisionAgentContext(options.visionAgentContext).weatherText || '',
 	headingText: parseXichengVisionAgentContext(options.visionAgentContext).headingText || '',

@@ -710,7 +710,8 @@ export default {
 				`confidence=${encodeRouteValue(String(this.recentRecognition.confidence || ''))}`,
 				`safetyStatus=${encodeRouteValue(this.recentRecognition.safetyStatus || '')}`,
 				`visionAgentContext=${encodeRouteValue(JSON.stringify(visionAgentContext))}`,
-				`sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || '')}`
+				`sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || '')}`,
+				`memorySessionSceneCount=${encodeRouteValue(visionAgentContext.memorySessionSceneCount || '')}`
 			].join('&')
 			uni.navigateTo({
 				url: `/pages/ai-guide/ai-guide?${query}`

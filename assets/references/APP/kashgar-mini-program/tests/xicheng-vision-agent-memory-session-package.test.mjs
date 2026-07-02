@@ -58,6 +58,12 @@ assert.match(
   'Service task packages should carry the continuous memory session package into downstream actions'
 )
 
+assert.match(
+  scanResult,
+  /enrichedVisionAgentContext\(\)[\s\S]*const memorySessionPackage = this\.visionAgentMemorySessionPackage[\s\S]*visionAgentMemorySessionPackage:\s*memorySessionPackage[\s\S]*visionAgentMemorySessionText:[\s\S]*memorySessionSceneCount:/,
+  'Scan result should merge the current continuous memory session package into the route-carried Vision Agent context before entering Xiaojing or travelogue'
+)
+
 for (const required of [
   'visionAgentMemorySessionPackage',
   'loadVisionAgentMemorySessionPackage',

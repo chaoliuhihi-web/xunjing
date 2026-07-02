@@ -823,8 +823,21 @@ export default {
 			})
 		},
 		enrichedVisionAgentContext() {
+			const memorySessionPackage = this.visionAgentMemorySessionPackage
+			const fallbackVisionContext = this.result.visionAgentContext || {}
+			const visionAgentMemorySessionText = memorySessionPackage
+				? [
+					memorySessionPackage.poiTrailText,
+					memorySessionPackage.continuityCueText
+				].filter(Boolean).join(' ')
+				: fallbackVisionContext.visionAgentMemorySessionText || fallbackVisionContext.memorySessionText || ''
 			return {
-				...(this.result.visionAgentContext || {}),
+				...fallbackVisionContext,
+				visionAgentMemorySessionPackage: memorySessionPackage,
+				visionAgentMemorySessionText: visionAgentMemorySessionText,
+				memorySessionSceneCount: memorySessionPackage
+					? memorySessionPackage.sceneCount
+					: fallbackVisionContext.memorySessionSceneCount || '',
 				sceneUnderstandingPackage: this.visionAgentSceneUnderstandingPackage,
 				primarySceneDomainKey: this.visionAgentSceneUnderstandingPackage.primaryDomainKey,
 				primarySceneDomainLabel: this.visionAgentSceneUnderstandingPackage.primaryDomainLabel,
@@ -1475,7 +1488,8 @@ export default {
 				`confidence=${encodeURIComponent(String(this.result.confidence || ''))}`,
 				`safetyStatus=${encodeURIComponent(this.result.safetyStatus || '')}`,
 				`visionAgentContext=${encodeRouteValue(JSON.stringify(visionAgentContext))}`,
-				`sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || '')}`
+				`sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || '')}`,
+				`memorySessionSceneCount=${encodeRouteValue(visionAgentContext.memorySessionSceneCount || '')}`
 			]
 			if (serviceHandoffContext) {
 				query.push(`serviceHandoffContext=${encodeRouteValue(JSON.stringify(serviceHandoffContext))}`)
