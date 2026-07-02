@@ -442,6 +442,9 @@ async function checkXichengTriggerBackend(rootDir) {
     'JsonNode sceneUnderstanding = root.path("sceneUnderstanding")',
     'hydrateTriggerSceneUnderstandingText',
     'hydrateTriggerSceneCount(reqVO, sceneUnderstanding, sceneSignals)',
+    'hydrateMultimodalTriggerMemoryFromPreviousAgentAction(resourcePackage, reqVO)',
+    'shouldUsePreviousAgentActionForTriggerMemory(previousAgentActionEvent, previousAskEvent, previousResolveEvent)',
+    'buildContinuousAgentActionSceneFusionSummary(agentAction)',
     'EventType.TRIGGER_RESOLVE'
   ]) {
     assertContains(appService, snippet, 'XunjingAppServiceImpl.java')
@@ -461,6 +464,11 @@ async function checkXichengTriggerBackend(rootDir) {
   assertContains(
     appTest,
     'testResolveMultimodalTriggerNoMatchKeepsVisionEvidenceInSceneUnderstanding',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'testResolveMultimodalTriggerHydratesExecutedAgentActionIntoContinuousContext',
     'XunjingAppServiceImplTest.java'
   )
   assertContains(

@@ -361,6 +361,12 @@ public class XunjingAppServiceImpl implements XunjingAppService {
                 selectLatestVisionAgentMemoryEvent(resourcePackage, reqVO, EventType.TRIGGER_RESOLVE.getType());
         XunjingInteractionEventDO previousAskEvent =
                 selectLatestVisionAgentMemoryEvent(resourcePackage, reqVO, EventType.ASK.getType());
+        XunjingInteractionEventDO previousAgentActionEvent =
+                selectLatestVisionAgentMemoryEvent(resourcePackage, reqVO, EventType.AGENT_ACTION.getType());
+        if (shouldUsePreviousAgentActionForTriggerMemory(previousAgentActionEvent, previousAskEvent, previousResolveEvent)
+                && hydrateMultimodalTriggerMemoryFromPreviousAgentAction(resourcePackage, reqVO)) {
+            return;
+        }
         if (shouldUsePreviousAskForTriggerMemory(previousAskEvent, previousResolveEvent)
                 && hydrateMultimodalTriggerMemoryFromPreviousAsk(reqVO, previousAskEvent)) {
             return;
@@ -384,6 +390,53 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         }
         return previousResolveEvent == null || previousResolveEvent.getId() == null
                 || previousAskEvent.getId() > previousResolveEvent.getId();
+    }
+
+    private boolean shouldUsePreviousAgentActionForTriggerMemory(
+            XunjingInteractionEventDO previousAgentActionEvent,
+            XunjingInteractionEventDO previousAskEvent,
+            XunjingInteractionEventDO previousResolveEvent) {
+        if (previousAgentActionEvent == null || previousAgentActionEvent.getId() == null) {
+            return false;
+        }
+        Long agentActionEventId = previousAgentActionEvent.getId();
+        return (previousAskEvent == null || previousAskEvent.getId() == null
+                || agentActionEventId > previousAskEvent.getId())
+                && (previousResolveEvent == null || previousResolveEvent.getId() == null
+                || agentActionEventId > previousResolveEvent.getId());
+    }
+
+    private boolean hydrateMultimodalTriggerMemoryFromPreviousAgentAction(
+            XunjingResourcePackageDO resourcePackage, MultimodalTriggerReqVO reqVO) {
+        XunjingInteractionEventDO previousEvent =
+                selectLatestVisionAgentMemoryEvent(resourcePackage, reqVO, EventType.AGENT_ACTION.getType());
+        if (previousEvent == null || !hasText(previousEvent.getPayloadJson())) {
+            return false;
+        }
+        try {
+            JsonNode root = JsonUtils.parseTree(previousEvent.getPayloadJson());
+            if (root == null || root.isNull() || root.isMissingNode()) {
+                return false;
+            }
+            JsonNode agentAction = root.path("agentAction");
+            if (agentAction == null || agentAction.isMissingNode() || agentAction.isNull()) {
+                return false;
+            }
+            String poiCode = visionAgentContextText(agentAction, "poiCode");
+            String poiName = visionAgentContextText(agentAction, "poiName");
+            if (!hasText(poiCode) && !hasText(poiName)) {
+                return false;
+            }
+            hydratePreviousTriggerRecentPoi(reqVO, poiCode);
+            if (!hasFreshMultimodalTriggerSignal(reqVO)) {
+                hydratePreviousAgentActionSceneSignals(reqVO, agentAction);
+            }
+            return true;
+        } catch (RuntimeException ex) {
+            log.warn("[hydrateMultimodalTriggerMemoryFromPreviousAgentAction][eventId({}) parse failed]",
+                    previousEvent.getId(), ex);
+            return false;
+        }
     }
 
     private boolean hydrateMultimodalTriggerMemoryFromPreviousResolve(
@@ -520,6 +573,28 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         reqVO.setSceneSignals(sceneSignals);
     }
 
+    private void hydratePreviousAgentActionSceneSignals(MultimodalTriggerReqVO reqVO, JsonNode agentAction) {
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        if (reqVO.getSceneSignals() != null) {
+            sceneSignals.putAll(reqVO.getSceneSignals());
+        }
+        String intent = visionAgentContextText(agentAction, "intent");
+        putSceneSignalIfAbsent(sceneSignals, "sceneFusionSummary",
+                buildContinuousAgentActionSceneFusionSummary(agentAction));
+        putSceneSignalIfAbsent(sceneSignals, "worldInterfaceSummary",
+                "相机沿用上一轮已执行 Agent 动作，继续承接当前文旅服务。");
+        putSceneSignalIfAbsent(sceneSignals, "sceneDomainIntentKey", intent);
+        putSceneSignalIfAbsent(sceneSignals, "sceneDomainIntentLabel", triggerIntentText(intent));
+        putSceneSignalIfAbsent(sceneSignals, "agentDecisionActionTitle",
+                buildAgentActionDecisionActionTitle(agentAction));
+        putSceneSignalIfAbsent(sceneSignals, "agentDecisionReasonSummary",
+                buildContinuousAgentActionDecisionReasonSummary(agentAction));
+        if (!sceneSignals.containsKey("memorySessionSceneCount")) {
+            sceneSignals.put("memorySessionSceneCount", 2);
+        }
+        reqVO.setSceneSignals(sceneSignals);
+    }
+
     private String buildContinuousTriggerSceneFusionSummary(JsonNode root) {
         String poiName = visionAgentContextText(root, "poiName");
         String poiCode = visionAgentContextText(root, "poiCode");
@@ -535,6 +610,11 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         }
         return parts.isEmpty() ? "" : truncateForEvent("连续识境：" + String.join("；", parts),
                 TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH);
+    }
+
+    private String buildContinuousAgentActionSceneFusionSummary(JsonNode agentAction) {
+        String summary = buildAgentActionServiceHandoffSummary(agentAction);
+        return hasText(summary) ? truncateForEvent("连续识境：" + summary, TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH) : "";
     }
 
     private String buildContinuousAskSceneFusionSummary(JsonNode root, JsonNode visionAgentContext) {
@@ -587,6 +667,27 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         }
         String previousAction = visionAgentContextText(visionAgentContext, "decisionActionTitle");
         return hasText(previousAction) ? "上一轮 Agent 建议：" + previousAction : "";
+    }
+
+    private String buildContinuousAgentActionDecisionReasonSummary(JsonNode agentAction) {
+        String reason = visionAgentContextText(agentAction, "reason");
+        String executionStatus = visionAgentContextText(agentAction, "executionStatus");
+        List<String> parts = new ArrayList<>();
+        if (hasText(reason)) {
+            parts.add(reason);
+        }
+        if (hasText(executionStatus)) {
+            parts.add("执行状态=" + executionStatus);
+        }
+        return String.join("；", parts);
+    }
+
+    private String buildAgentActionDecisionActionTitle(JsonNode agentAction) {
+        String title = visionAgentContextText(agentAction, "title");
+        if (hasText(title)) {
+            return title;
+        }
+        return visionAgentContextText(agentAction, "actionKey");
     }
 
     private void putSceneSignalIfAbsent(Map<String, Object> sceneSignals, String key, String value) {
@@ -1080,10 +1181,17 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         String executionStatus = visionAgentContextText(agentAction, "executionStatus");
         String sourceTriggerTraceId = visionAgentContextText(agentAction, "sourceTriggerTraceId");
         String reason = visionAgentContextText(agentAction, "reason");
+        String poiName = visionAgentContextText(agentAction, "poiName");
+        String poiCode = visionAgentContextText(agentAction, "poiCode");
         if (hasText(title)) {
             parts.add("已执行Agent动作=" + title);
         } else if (hasText(actionKey)) {
             parts.add("已执行Agent动作=" + actionKey);
+        }
+        if (hasText(poiName)) {
+            parts.add("对象=" + poiName);
+        } else if (hasText(poiCode)) {
+            parts.add("对象=" + poiCode);
         }
         if (hasText(actionKey)) {
             parts.add("actionKey=" + actionKey);
