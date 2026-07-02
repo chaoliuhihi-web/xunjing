@@ -36,6 +36,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolv
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.LocationPointReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PhotoMetaReqVO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.media.XunjingMediaUsageLogDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.event.XunjingInteractionEventDO;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.event.XunjingInteractionEventMapper;
@@ -60,7 +61,11 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
+import com.sun.net.httpserver.HttpServer;
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,6 +97,8 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     private XunjingMediaUsageLogMapper mediaUsageLogMapper;
     @Resource
     private DataSource dataSource;
+    @Resource
+    private XunjingVisionRecognitionService visionRecognitionService;
     @MockBean
     private AiKnowledgeSegmentService aiKnowledgeSegmentService;
     @MockBean
@@ -574,6 +581,68 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertTrue(event.getPayloadJson().contains("\"ocrText\":\"恭王府博物馆入口\""));
         assertTrue(event.getPayloadJson().contains("\"imageLabelCount\":2"));
         assertFalse(event.getPayloadJson().contains("imageBase64"));
+    }
+
+    @Test
+    public void testResolveMultimodalTriggerUsesVisionProviderOcrWhenClientOnlySendsPhoto() throws Exception {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/vision/v1/chat/completions", exchange -> {
+            String response = """
+                    {"choices":[{"message":{"content":"{\\"labels\\":[],\\"ocrText\\":\\"恭王府博物馆入口\\",\\"caption\\":\\"镜头里是恭王府博物馆入口牌匾\\",\\"sceneSignals\\":{\\"sceneFusionSummary\\":\\"视觉识别到恭王府入口牌匾。\\",\\"worldInterfaceSummary\\":\\"视觉模型读取画面文字后交给场景引擎。\\",\\"sceneDomainIntentKey\\":\\"architecture\\",\\"sceneDomainIntentLabel\\":\\"建筑\\",\\"sourceRecognitionContext\\":{\\"raw\\":\\"blocked\\"}}}"}}]}
+                    """;
+            byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, responseBytes.length);
+            exchange.getResponseBody().write(responseBytes);
+            exchange.close();
+        });
+        server.start();
+        try {
+            setField(visionRecognitionService, "visionApiUrl",
+                    "http://127.0.0.1:" + server.getAddress().getPort() + "/vision/v1");
+            setField(visionRecognitionService, "visionApiKey", "test-key");
+
+            MultimodalTriggerReqVO reqVO = multimodalReq();
+            reqVO.setPackageCode("XICHENG-MAP-001");
+            reqVO.setSceneCode("xicheng-multimodal-trigger");
+            reqVO.setOcrText("");
+            reqVO.setImageLabels(List.of());
+            PhotoMetaReqVO photoMeta = new PhotoMetaReqVO();
+            photoMeta.setImageId("photo-vision-ocr-001");
+            photoMeta.setImageMimeType("image/jpeg");
+            photoMeta.setImageBase64("photo-base64");
+            reqVO.setPhotoMeta(photoMeta);
+
+            MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+            assertEquals("xicheng-gongwangfu", respVO.getPoiCode());
+            assertEquals("恭王府", respVO.getPoiName());
+            assertEquals("confirm_ai_guide", respVO.getAction());
+            assertTrue(respVO.getCandidates().get(0).getMatchedSignals().contains("ocr_alias"));
+
+            List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                    new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                            .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                            .eq(XunjingInteractionEventDO::getEventType,
+                                    XunjingEnums.EventType.TRIGGER_RESOLVE.getType()));
+            assertEquals(1, events.size());
+            JsonNode payload = JsonUtils.parseTree(events.get(0).getPayloadJson());
+            assertEquals("恭王府博物馆入口", payload.get("ocrText").asText());
+            JsonNode sceneSignals = payload.get("sceneSignals");
+            assertEquals("视觉识别到恭王府入口牌匾。", sceneSignals.get("sceneFusionSummary").asText());
+            assertEquals("视觉模型读取画面文字后交给场景引擎。", sceneSignals.get("worldInterfaceSummary").asText());
+            assertEquals("architecture", sceneSignals.get("sceneDomainIntentKey").asText());
+            assertFalse(sceneSignals.has("sourceRecognitionContext"));
+            assertFalse(events.get(0).getPayloadJson().contains("imageBase64"));
+        } finally {
+            setField(visionRecognitionService, "visionApiUrl", "");
+            setField(visionRecognitionService, "visionApiKey", "");
+            server.stop(0);
+        }
     }
 
     @Test
@@ -1775,6 +1844,12 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         reqVO.setReportPeriod("2026-Q2");
         reqVO.setTitle(title);
         return reqVO;
+    }
+
+    private void setField(Object target, String name, Object value) throws Exception {
+        Field field = target.getClass().getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(target, value);
     }
 
 }

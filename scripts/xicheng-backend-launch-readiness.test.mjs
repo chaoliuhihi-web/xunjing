@@ -28,6 +28,9 @@ describe('xicheng backend launch readiness', () => {
     const triggerEngine = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/trigger/XunjingMultimodalTriggerEngine.java'
     )
+    const visionService = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/trigger/XunjingVisionRecognitionService.java'
+    )
     const appService = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java'
     )
@@ -71,6 +74,9 @@ describe('xicheng backend launch readiness', () => {
     expect(triggerEngine).toContain('detectSceneSignalIntent')
     expect(triggerEngine).toContain('scene_context_alias')
     expect(triggerEngine).toContain('containsAny(explicitText, List.of("游记", "记录", "拍照", "生成"))')
+    expect(visionService).toContain('recognizeImage(reqVO)')
+    expect(visionService).toContain('mergeVisionSceneSignals(reqVO, recognition)')
+    expect(visionService).toContain('VISION_SCENE_SIGNAL_TEXT_KEYS')
     expect(appService).toContain('recordTriggerResolveEventIfPossible')
     expect(appService).toContain('buildTriggerResolveEventPayload')
     expect(appService).toContain('TRIGGER_SCENE_SIGNAL_TEXT_KEYS')
@@ -91,6 +97,7 @@ describe('xicheng backend launch readiness', () => {
     expect(appTest).toContain('testResolveMultimodalTriggerUsesSceneSignalsForIntentAndContextMatch')
     expect(appTest).toContain('testResolveMultimodalTriggerDoesNotTreatPhotoAdviceSceneSignalAsRecordIntent')
     expect(appTest).toContain('testResolveMultimodalTriggerRecordsRecognitionEventWhenPackageProvided')
+    expect(appTest).toContain('testResolveMultimodalTriggerUsesVisionProviderOcrWhenClientOnlySendsPhoto')
     expect(appTest).toContain('testResolveMultimodalTriggerRecordsSceneSignalsWithoutRawRecognitionContext')
     expect(appTest).toContain('testResolveMultimodalTriggerHydratesContinuousContextFromPreviousTriggerEvent')
     expect(appTest).toContain('testResolveMultimodalTriggerDoesNotReusePreviousSceneIntentWhenFreshOcrExists')

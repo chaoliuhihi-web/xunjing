@@ -9,9 +9,11 @@ import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class XunjingVisionRecognitionServiceTest {
@@ -94,6 +96,50 @@ public class XunjingVisionRecognitionServiceTest {
             assertTrue(enrichedReqVO.getImageLabels().contains("imperial_temple"));
             assertTrue(enrichedReqVO.getImageLabels().contains("paifang"));
             assertTrue(enrichedReqVO.getImageLabels().contains("temple"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    public void testEnrichMergesProviderOcrAndSceneSignals() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/vision/v1/chat/completions", exchange -> {
+            String response = """
+                    {"choices":[{"message":{"content":"{\\"labels\\":[\\"palace\\"],\\"ocrText\\":\\"恭王府博物馆入口\\",\\"caption\\":\\"镜头里是恭王府博物馆入口牌匾\\",\\"sceneSignals\\":{\\"sceneFusionSummary\\":\\"视觉识别到恭王府入口牌匾。\\",\\"worldInterfaceSummary\\":\\"视觉模型读取画面文字后交给场景引擎。\\",\\"sceneDomainIntentKey\\":\\"architecture\\",\\"sceneDomainIntentLabel\\":\\"建筑\\",\\"agentDecisionReasonSummary\\":\\"先讲建筑格局，再推荐参观路线。\\",\\"sourceRecognitionContext\\":{\\"raw\\":\\"blocked\\"}}}"}}]}
+                    """;
+            byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, responseBytes.length);
+            exchange.getResponseBody().write(responseBytes);
+            exchange.close();
+        });
+        server.start();
+        try {
+            XunjingVisionRecognitionService configuredService = new XunjingVisionRecognitionService();
+            setField(configuredService, "visionApiUrl",
+                    "http://127.0.0.1:" + server.getAddress().getPort() + "/vision/v1");
+            setField(configuredService, "visionApiKey", "test-key");
+
+            MultimodalTriggerReqVO reqVO = new MultimodalTriggerReqVO();
+            reqVO.setOcrText("");
+            reqVO.setImageLabels(List.of("existing_label"));
+            reqVO.setSceneSignals(new java.util.LinkedHashMap<>(Map.of(
+                    "weatherText", "晴",
+                    "agentDecisionReasonSummary", "客户端已有理由")));
+            reqVO.setPhotoMeta(photoMeta("image/jpeg", "photo-base64"));
+
+            MultimodalTriggerReqVO enrichedReqVO = configuredService.enrich(reqVO);
+
+            assertEquals("恭王府博物馆入口", enrichedReqVO.getOcrText());
+            assertTrue(enrichedReqVO.getImageLabels().contains("existing_label"));
+            assertTrue(enrichedReqVO.getImageLabels().contains("palace"));
+            assertEquals("晴", enrichedReqVO.getSceneSignals().get("weatherText"));
+            assertEquals("客户端已有理由", enrichedReqVO.getSceneSignals().get("agentDecisionReasonSummary"));
+            assertEquals("视觉识别到恭王府入口牌匾。", enrichedReqVO.getSceneSignals().get("sceneFusionSummary"));
+            assertEquals("视觉模型读取画面文字后交给场景引擎。", enrichedReqVO.getSceneSignals().get("worldInterfaceSummary"));
+            assertEquals("architecture", enrichedReqVO.getSceneSignals().get("sceneDomainIntentKey"));
+            assertEquals("建筑", enrichedReqVO.getSceneSignals().get("sceneDomainIntentLabel"));
+            assertFalse(enrichedReqVO.getSceneSignals().containsKey("sourceRecognitionContext"));
         } finally {
             server.stop(0);
         }

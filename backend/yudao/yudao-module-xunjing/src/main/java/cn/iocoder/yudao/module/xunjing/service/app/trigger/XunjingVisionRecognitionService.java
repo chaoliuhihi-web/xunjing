@@ -15,6 +15,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -27,6 +28,16 @@ public class XunjingVisionRecognitionService {
 
     private static final int MAX_IMAGE_BASE64_CHARS = 4_000_000;
     private static final String DEFAULT_MODEL = "qwen-vl-max";
+    private static final List<String> VISION_SCENE_SIGNAL_TEXT_KEYS = List.of(
+            "sceneFusionSummary",
+            "worldInterfaceSummary",
+            "sceneDomainIntentKey",
+            "sceneDomainIntentLabel",
+            "sceneDomainIntentTitle",
+            "sceneDomainIntentCopy",
+            "agentDecisionActionTitle",
+            "agentDecisionReasonSummary"
+    );
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(3))
@@ -43,28 +54,27 @@ public class XunjingVisionRecognitionService {
         if (reqVO == null) {
             return new MultimodalTriggerReqVO();
         }
-        List<String> labels = recognizeImageLabels(reqVO);
-        if (labels.isEmpty()) {
+        VisionRecognitionResult recognition = recognizeImage(reqVO);
+        if (recognition.isEmpty()) {
             return reqVO;
         }
-        Set<String> mergedLabels = new LinkedHashSet<>();
-        if (reqVO.getImageLabels() != null) {
-            mergedLabels.addAll(reqVO.getImageLabels());
+        mergeVisionLabels(reqVO, recognition.labels());
+        if (!hasText(reqVO.getOcrText()) && hasText(recognition.ocrText())) {
+            reqVO.setOcrText(recognition.ocrText());
         }
-        mergedLabels.addAll(labels);
-        reqVO.setImageLabels(new ArrayList<>(mergedLabels));
+        mergeVisionSceneSignals(reqVO, recognition);
         return reqVO;
     }
 
-    private List<String> recognizeImageLabels(MultimodalTriggerReqVO reqVO) {
+    private VisionRecognitionResult recognizeImage(MultimodalTriggerReqVO reqVO) {
         PhotoMetaReqVO photoMeta = reqVO.getPhotoMeta();
         String imageBase64 = photoMeta == null ? "" : photoMeta.getImageBase64();
         if (photoMeta == null || !hasText(imageBase64) || !isConfigured()) {
-            return List.of();
+            return VisionRecognitionResult.empty();
         }
         if (imageBase64.length() > MAX_IMAGE_BASE64_CHARS) {
-            log.warn("[recognizeImageLabels][图片 base64 超过服务端上限，跳过视觉识别 imageId={}]", photoMeta.getImageId());
-            return List.of();
+            log.warn("[recognizeImage][图片 base64 超过服务端上限，跳过视觉识别 imageId={}]", photoMeta.getImageId());
+            return VisionRecognitionResult.empty();
         }
         try {
             HttpRequest request = HttpRequest.newBuilder(URI.create(resolveChatCompletionsUrl(visionApiUrl)))
@@ -75,14 +85,14 @@ public class XunjingVisionRecognitionService {
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                log.warn("[recognizeImageLabels][视觉识别调用失败 status={} imageId={}]", response.statusCode(),
+                log.warn("[recognizeImage][视觉识别调用失败 status={} imageId={}]", response.statusCode(),
                         photoMeta.getImageId());
-                return List.of();
+                return VisionRecognitionResult.empty();
             }
-            return extractVisionLabels(extractChatContent(response.body()));
+            return extractVisionResult(extractChatContent(response.body()));
         } catch (Exception ex) {
-            log.warn("[recognizeImageLabels][视觉识别异常 imageId={} message={}]", photoMeta.getImageId(), ex.getMessage());
-            return List.of();
+            log.warn("[recognizeImage][视觉识别异常 imageId={} message={}]", photoMeta.getImageId(), ex.getMessage());
+            return VisionRecognitionResult.empty();
         }
     }
 
@@ -98,7 +108,11 @@ public class XunjingVisionRecognitionService {
                         "content", List.of(
                                 Map.of("type", "text", "text",
                                         "你是北京西城区文旅图片识别器。只输出 JSON，不要解释。"
-                                                + "格式为 {\"labels\":[\"white_pagoda\"],\"caption\":\"一句中文描述\"}。"
+                                                + "格式为 {\"labels\":[\"white_pagoda\"],\"ocrText\":\"画面文字\","
+                                                + "\"caption\":\"一句中文描述\",\"sceneSignals\":{\"sceneFusionSummary\":\"场景摘要\","
+                                                + "\"worldInterfaceSummary\":\"视觉如何参与判断\","
+                                                + "\"sceneDomainIntentKey\":\"architecture\","
+                                                + "\"sceneDomainIntentLabel\":\"建筑\"}}。"
                                                 + "可用 labels 包括 white_pagoda, pagoda, temple, temple_gate, "
                                                 + "imperial_temple, paifang, beijing_architecture, lake, "
                                                 + "imperial_garden, white_tower, park, hutong, waterfront, "
@@ -111,26 +125,90 @@ public class XunjingVisionRecognitionService {
     }
 
     List<String> extractVisionLabels(String content) {
-        if (!hasText(content)) {
-            return List.of();
-        }
-        Set<String> labels = new LinkedHashSet<>();
-        extractJsonLabels(content, labels);
-        addKeywordLabels(content, labels);
-        return new ArrayList<>(labels);
+        return extractVisionResult(content).labels();
     }
 
-    private void extractJsonLabels(String content, Set<String> labels) {
+    private VisionRecognitionResult extractVisionResult(String content) {
+        if (!hasText(content)) {
+            return VisionRecognitionResult.empty();
+        }
+        Set<String> labels = new LinkedHashSet<>();
         String json = unwrapJson(content);
+        String ocrText = "";
+        Map<String, String> sceneSignals = new LinkedHashMap<>();
         try {
             JsonNode root = JsonUtils.getObjectMapper().readTree(json);
             appendLabels(root.path("labels"), labels);
             appendLabels(root.path("imageLabels"), labels);
             appendLabels(root.path("objects"), labels);
-            addKeywordLabels(root.path("caption").asText(""), labels);
+            String caption = firstText(root, "caption", "description", "summary");
+            ocrText = firstText(root, "ocrText", "ocr", "detectedText", "text");
+            addKeywordLabels(caption, labels);
+            addKeywordLabels(ocrText, labels);
+            sceneSignals.putAll(extractVisionSceneSignals(root, caption));
         } catch (IOException ignored) {
-            // 允许模型返回纯文本，继续走关键词兜底。
+            addKeywordLabels(content, labels);
         }
+        return new VisionRecognitionResult(new ArrayList<>(labels), ocrText, sceneSignals);
+    }
+
+    private void mergeVisionLabels(MultimodalTriggerReqVO reqVO, List<String> labels) {
+        if (labels == null || labels.isEmpty()) {
+            return;
+        }
+        Set<String> mergedLabels = new LinkedHashSet<>();
+        if (reqVO.getImageLabels() != null) {
+            mergedLabels.addAll(reqVO.getImageLabels());
+        }
+        mergedLabels.addAll(labels);
+        reqVO.setImageLabels(new ArrayList<>(mergedLabels));
+    }
+
+    private void mergeVisionSceneSignals(MultimodalTriggerReqVO reqVO, VisionRecognitionResult recognition) {
+        if (recognition.sceneSignals().isEmpty()) {
+            return;
+        }
+        Map<String, Object> mergedSceneSignals = new LinkedHashMap<>();
+        if (reqVO.getSceneSignals() != null) {
+            mergedSceneSignals.putAll(reqVO.getSceneSignals());
+        }
+        for (Map.Entry<String, String> entry : recognition.sceneSignals().entrySet()) {
+            mergedSceneSignals.putIfAbsent(entry.getKey(), entry.getValue());
+        }
+        reqVO.setSceneSignals(mergedSceneSignals);
+    }
+
+    private Map<String, String> extractVisionSceneSignals(JsonNode root, String caption) {
+        Map<String, String> sceneSignals = new LinkedHashMap<>();
+        JsonNode node = root.path("sceneSignals");
+        for (String key : VISION_SCENE_SIGNAL_TEXT_KEYS) {
+            putVisionSceneSignal(sceneSignals, node, key);
+            putVisionSceneSignal(sceneSignals, root, key);
+        }
+        if (!sceneSignals.containsKey("sceneFusionSummary") && hasText(caption)) {
+            sceneSignals.put("sceneFusionSummary", caption.trim());
+        }
+        return sceneSignals;
+    }
+
+    private void putVisionSceneSignal(Map<String, String> sceneSignals, JsonNode node, String key) {
+        if (node == null || node.isMissingNode() || node.isNull() || sceneSignals.containsKey(key)) {
+            return;
+        }
+        String text = node.path(key).asText("").trim();
+        if (hasText(text)) {
+            sceneSignals.put(key, text);
+        }
+    }
+
+    private String firstText(JsonNode root, String... keys) {
+        for (String key : keys) {
+            String text = root.path(key).asText("").trim();
+            if (hasText(text)) {
+                return text;
+            }
+        }
+        return "";
     }
 
     private void appendLabels(JsonNode node, Set<String> labels) {
@@ -204,6 +282,22 @@ public class XunjingVisionRecognitionService {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private record VisionRecognitionResult(List<String> labels, String ocrText, Map<String, String> sceneSignals) {
+
+        private boolean isEmpty() {
+            return labels.isEmpty() && !hasText(ocrText) && sceneSignals.isEmpty();
+        }
+
+        private static VisionRecognitionResult empty() {
+            return new VisionRecognitionResult(List.of(), "", Map.of());
+        }
+
+        private static boolean hasText(String value) {
+            return value != null && !value.isBlank();
+        }
+
     }
 
 }
