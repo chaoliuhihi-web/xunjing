@@ -567,6 +567,8 @@ async function checkXichengAppEventBackend(rootDir) {
     'buildAgentActionEventPayload',
     'sanitizeAgentActionClientPayload',
     'payload.put("agentAction", buildAgentActionEventPayload(clientPayloadObject))',
+    'buildTriggerAgentActionPayload(action, respVO)',
+    'payload.put("poiCode", truncateForEvent(respVO.getPoiCode(), 80))',
     'hydrateVisionAgentContextFromPreviousAgentAction(resourcePackage, reqVO, explicitChatTargetContext)',
     'shouldUsePreviousAgentActionForChatContext(previousAgentActionEvent, previousAskEvent, previousTriggerEvent)',
     'hasExplicitChatTargetContext(reqVO)',
@@ -621,6 +623,11 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(
     appTest,
     'testRecordAgentActionEventStoresStructuredTelemetryWithoutRawImagePayload',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'assertTrue(agentActions.toString().contains("\\"poiCode\\":\\"xicheng-gongwangfu\\""))',
     'XunjingAppServiceImplTest.java'
   )
   assertContains(

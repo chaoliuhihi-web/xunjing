@@ -953,6 +953,10 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertTrue(agentActions.toString().contains("complete_check_in"));
         assertTrue(agentActions.toString().contains("add_to_travel_map"));
         assertTrue(agentActions.toString().contains("generate_travelogue"));
+        assertTrue(agentActions.toString().contains("\"packageCode\":\"XICHENG-MAP-001\""));
+        assertTrue(agentActions.toString().contains("\"regionCode\":\"beijing-xicheng\""));
+        assertTrue(agentActions.toString().contains("\"poiCode\":\"xicheng-gongwangfu\""));
+        assertTrue(agentActions.toString().contains("\"poiName\":\"恭王府\""));
         assertFalse(events.get(0).getPayloadJson().contains("imageBase64"));
     }
 

@@ -1760,11 +1760,12 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             return List.of();
         }
         return respVO.getAgentActions().stream()
-                .map(this::buildTriggerAgentActionPayload)
+                .map(action -> buildTriggerAgentActionPayload(action, respVO))
                 .toList();
     }
 
-    private Map<String, Object> buildTriggerAgentActionPayload(MultimodalAgentActionRespVO action) {
+    private Map<String, Object> buildTriggerAgentActionPayload(
+            MultimodalAgentActionRespVO action, MultimodalTriggerRespVO respVO) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("actionKey", truncateForEvent(action.getActionKey(), 80));
         payload.put("title", truncateForEvent(action.getTitle(), 80));
@@ -1773,6 +1774,10 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         payload.put("requiresUserConfirm", Boolean.TRUE.equals(action.getRequiresUserConfirm()));
         payload.put("requiresRealSystem", Boolean.TRUE.equals(action.getRequiresRealSystem()));
         payload.put("reason", truncateForEvent(action.getReason(), TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH));
+        payload.put("packageCode", truncateForEvent(respVO.getPackageCode(), 80));
+        payload.put("regionCode", truncateForEvent(respVO.getRegionCode(), 80));
+        payload.put("poiCode", truncateForEvent(respVO.getPoiCode(), 80));
+        payload.put("poiName", truncateForEvent(respVO.getPoiName(), 80));
         return payload;
     }
 
