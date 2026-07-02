@@ -1369,12 +1369,103 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         payload.put("imageLabelCount", reqVO.getImageLabels() == null ? 0 : reqVO.getImageLabels().size());
         payload.put("recentPoiCount", reqVO.getRecentPoiCodes() == null ? 0 : reqVO.getRecentPoiCodes().size());
         payload.put("sceneSignals", buildTriggerSceneSignalsPayload(reqVO.getSceneSignals()));
+        payload.put("serviceHandoff", buildTriggerServiceHandoffPayload(reqVO, respVO));
         payload.put("location", buildTriggerLocationPayload(reqVO.getLocation()));
         payload.put("photoMeta", buildTriggerPhotoMetaPayload(reqVO.getPhotoMeta()));
         payload.put("matchedSignals", buildTriggerMatchedSignalsPayload(respVO));
         payload.put("candidateCount", respVO.getCandidates() == null ? 0 : respVO.getCandidates().size());
         payload.put("sourceCount", respVO.getSources() == null ? 0 : respVO.getSources().size());
         return JsonUtils.toJsonString(payload);
+    }
+
+    private Map<String, Object> buildTriggerServiceHandoffPayload(
+            MultimodalTriggerReqVO reqVO, MultimodalTriggerRespVO respVO) {
+        if (respVO == null) {
+            return Map.of();
+        }
+        String action = defaultIfBlank(respVO.getAction(), "");
+        String intent = defaultIfBlank(respVO.getIntent(), "");
+        if (!hasText(action) && !hasText(intent)) {
+            return Map.of();
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("actionKey", action);
+        payload.put("taskType", defaultIfBlank(respVO.getTriggerType(), ""));
+        payload.put("intent", intent);
+        payload.put("intentText", triggerIntentText(intent));
+        payload.put("stepText", triggerConfirmText(Boolean.TRUE.equals(respVO.getRequiresUserConfirm())));
+        payload.put("requiresRealSystem", triggerRequiresRealSystem(action, intent));
+        Map<String, Object> sceneSignals = reqVO == null ? Map.of() : reqVO.getSceneSignals();
+        putTriggerServiceHandoffText(payload, sceneSignals, "merchantServiceSummary");
+        putTriggerServiceHandoffText(payload, sceneSignals, "nearbyActivitySummary");
+        putTriggerServiceHandoffText(payload, sceneSignals, "ticketingHint");
+        putTriggerServiceHandoffText(payload, sceneSignals, "venueNavigationHint");
+        putTriggerServiceHandoffText(payload, sceneSignals, "routeRecommendationSummary");
+        putTriggerServiceHandoffText(payload, sceneSignals, "dishRecommendationSummary");
+        putTriggerServiceHandoffText(payload, sceneSignals, "halalSuitabilityText");
+        putTriggerServiceHandoffText(payload, sceneSignals, "nearbyFoodRecommendationSummary");
+        putTriggerServiceHandoffText(payload, sceneSignals, "checkInTaskSummary");
+        putTriggerServiceHandoffText(payload, sceneSignals, "badgeRewardName");
+        putTriggerServiceHandoffText(payload, sceneSignals, "travelMapUpdateSummary");
+        putTriggerServiceHandoffText(payload, sceneSignals, "travelogueMaterialSummary");
+        putTriggerServiceHandoffText(payload, sceneSignals, "photoMomentSummary");
+        putTriggerServiceHandoffText(payload, sceneSignals, "socialShareDraftHint");
+        payload.put("summary", buildTriggerServiceHandoffPayloadSummary(action, intent, respVO, payload));
+        return payload;
+    }
+
+    private void putTriggerServiceHandoffText(
+            Map<String, Object> payload, Map<String, Object> sceneSignals, String key) {
+        if (sceneSignals == null || sceneSignals.isEmpty()) {
+            return;
+        }
+        Object value = sceneSignals.get(key);
+        if (value == null) {
+            return;
+        }
+        String text = String.valueOf(value).trim();
+        if (hasText(text)) {
+            payload.put(key, truncateForEvent(text, TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH));
+        }
+    }
+
+    private String buildTriggerServiceHandoffPayloadSummary(
+            String action, String intent, MultimodalTriggerRespVO respVO, Map<String, Object> handoffPayload) {
+        List<String> parts = new ArrayList<>();
+        if (hasText(action)) {
+            parts.add("动作=" + action);
+        }
+        if (hasText(intent)) {
+            parts.add("意图=" + intent);
+        }
+        parts.add("需用户确认=" + Boolean.TRUE.equals(respVO.getRequiresUserConfirm()));
+        parts.add("真实系统确认=" + triggerRequiresRealSystem(action, intent));
+        if (hasText(respVO.getReason())) {
+            parts.add("触发理由=" + truncateForEvent(respVO.getReason(), TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH));
+        }
+        putTriggerServiceHandoffSummaryPart(parts, "商家服务", handoffPayload, "merchantServiceSummary");
+        putTriggerServiceHandoffSummaryPart(parts, "附近活动", handoffPayload, "nearbyActivitySummary");
+        putTriggerServiceHandoffSummaryPart(parts, "票务线索", handoffPayload, "ticketingHint");
+        putTriggerServiceHandoffSummaryPart(parts, "场地导航", handoffPayload, "venueNavigationHint");
+        putTriggerServiceHandoffSummaryPart(parts, "路线建议", handoffPayload, "routeRecommendationSummary");
+        putTriggerServiceHandoffSummaryPart(parts, "推荐点单", handoffPayload, "dishRecommendationSummary");
+        putTriggerServiceHandoffSummaryPart(parts, "清真信息", handoffPayload, "halalSuitabilityText");
+        putTriggerServiceHandoffSummaryPart(parts, "附近推荐", handoffPayload, "nearbyFoodRecommendationSummary");
+        putTriggerServiceHandoffSummaryPart(parts, "打卡任务", handoffPayload, "checkInTaskSummary");
+        putTriggerServiceHandoffSummaryPart(parts, "徽章奖励", handoffPayload, "badgeRewardName");
+        putTriggerServiceHandoffSummaryPart(parts, "旅行地图", handoffPayload, "travelMapUpdateSummary");
+        putTriggerServiceHandoffSummaryPart(parts, "游记素材", handoffPayload, "travelogueMaterialSummary");
+        putTriggerServiceHandoffSummaryPart(parts, "照片时刻", handoffPayload, "photoMomentSummary");
+        putTriggerServiceHandoffSummaryPart(parts, "分享文案", handoffPayload, "socialShareDraftHint");
+        return String.join("；", parts);
+    }
+
+    private void putTriggerServiceHandoffSummaryPart(
+            List<String> parts, String label, Map<String, Object> payload, String key) {
+        Object value = payload.get(key);
+        if (value != null && hasText(String.valueOf(value))) {
+            parts.add(label + "=" + value);
+        }
     }
 
     private List<String> buildTriggerMatchedSignalsPayload(MultimodalTriggerRespVO respVO) {

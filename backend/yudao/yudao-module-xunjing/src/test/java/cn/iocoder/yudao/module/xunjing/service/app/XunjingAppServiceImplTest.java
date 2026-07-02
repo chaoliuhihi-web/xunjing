@@ -970,6 +970,56 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerRecordsServiceHandoffContractForMerchantScene() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneDomainIntentKey", "menu");
+        sceneSignals.put("sceneDomainIntentLabel", "菜单");
+        sceneSignals.put("sceneFusionSummary", "用户正在恭王府附近拍菜单，想知道推荐菜、优惠和是否清真。");
+        sceneSignals.put("worldInterfaceSummary", "相机融合当前位置、时间和城市知识库后判断为餐饮服务场景。");
+        sceneSignals.put("merchantServiceSummary", "附近餐饮商户支持优惠券、排队和预约但必须由真实商家系统确认。");
+        sceneSignals.put("dishRecommendationSummary", "第一次来建议点招牌套餐。");
+        sceneSignals.put("halalSuitabilityText", "清真信息需要商家实时确认。");
+        sceneSignals.put("agentDecisionReasonSummary", "涉及商家推荐、优惠或排队时必须等待真实系统确认。");
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-multimodal-trigger");
+        reqVO.setUserTraceId("trace-xicheng-merchant-handoff-contract-001");
+        reqVO.setSceneSignals(sceneSignals);
+        reqVO.setLocation(location("39.937050", "116.386770", 20));
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("food", respVO.getIntent());
+        List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.TRIGGER_RESOLVE.getType())
+                        .eq(XunjingInteractionEventDO::getUserTraceId,
+                                "trace-xicheng-merchant-handoff-contract-001"));
+        assertEquals(1, events.size());
+        JsonNode payload = JsonUtils.parseTree(events.get(0).getPayloadJson());
+        assertTrue(payload.has("serviceHandoff"));
+        JsonNode handoff = payload.get("serviceHandoff");
+        assertEquals(respVO.getAction(), handoff.get("actionKey").asText());
+        assertEquals("food", handoff.get("intent").asText());
+        assertEquals("美食推荐", handoff.get("intentText").asText());
+        assertEquals("需要用户确认", handoff.get("stepText").asText());
+        assertTrue(handoff.get("requiresRealSystem").asBoolean());
+        assertEquals("附近餐饮商户支持优惠券、排队和预约但必须由真实商家系统确认。",
+                handoff.get("merchantServiceSummary").asText());
+        assertEquals("第一次来建议点招牌套餐。", handoff.get("dishRecommendationSummary").asText());
+        assertEquals("清真信息需要商家实时确认。", handoff.get("halalSuitabilityText").asText());
+        assertTrue(handoff.get("summary").asText().contains("优惠券"));
+        assertTrue(handoff.get("summary").asText().contains("真实系统确认=true"));
+        assertFalse(events.get(0).getPayloadJson().contains("imageBase64"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerUsesVisionProviderOcrWhenClientOnlySendsPhoto() throws Exception {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
