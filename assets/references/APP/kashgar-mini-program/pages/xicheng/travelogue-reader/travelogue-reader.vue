@@ -28,6 +28,9 @@
 			:photo-cards="photoMemoryCards"
 			:tags="readerTags"
 			:source-count="sourceCount"
+			:estimated-read-minutes="estimatedReadMinutes"
+			:print-page-count="printPageCount"
+			:privacy-summary="privacySummary"
 			:companion-avatar="region.companionAvatar"
 			@save="saveKeepsakeReader"
 			@edit="openTravelogueEditor"
@@ -76,6 +79,22 @@ export default {
 		},
 		sourceCount() {
 			return Number(this.journeyDraft.workSourceCount || this.journeyDraft.reviewedSourceCount || 0)
+		},
+		estimatedReadMinutes() {
+			const articleText = [
+				this.readerTitle,
+				this.readerSubtitle,
+				this.readerIntro,
+				...this.longArticleChapters.map(chapter => `${chapter.title || ''}${chapter.text || ''}${chapter.quote || ''}`),
+				...this.photoMemoryCards.map(photo => photo.label || '')
+			].join('')
+			return Math.max(3, Math.ceil(articleText.length / 420))
+		},
+		printPageCount() {
+			return Math.max(4, Math.ceil(2 + this.longArticleChapters.length * 0.72 + this.photoMemoryCards.length * 0.34))
+		},
+		privacySummary() {
+			return `${this.sourceCount > 0 ? `${this.sourceCount} 条来源已核对` : '来源可继续补充'} · 精确轨迹默认隐藏 · 发布前可检查公开范围`
 		},
 		readerTags() {
 			const tags = safeArray(this.journeyDraft.tags).filter(Boolean)
