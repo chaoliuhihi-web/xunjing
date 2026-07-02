@@ -146,6 +146,41 @@ public class XunjingVisionRecognitionServiceTest {
     }
 
     @Test
+    public void testEnrichInfersSceneDomainWhenProviderOnlyReturnsCaptionAndLabels() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/vision/v1/chat/completions", exchange -> {
+            String response = """
+                    {"choices":[{"message":{"content":"{\\"labels\\":[\\"road-sign\\",\\"street_name\\"],\\"ocrText\\":\\"买卖街路牌\\",\\"caption\\":\\"画面里是街道路牌，包含可翻译的文字。\\"}"}}]}
+                    """;
+            byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, responseBytes.length);
+            exchange.getResponseBody().write(responseBytes);
+            exchange.close();
+        });
+        server.start();
+        try {
+            XunjingVisionRecognitionService configuredService = new XunjingVisionRecognitionService();
+            setField(configuredService, "visionApiUrl",
+                    "http://127.0.0.1:" + server.getAddress().getPort() + "/vision/v1");
+            setField(configuredService, "visionApiKey", "test-key");
+
+            MultimodalTriggerReqVO reqVO = new MultimodalTriggerReqVO();
+            reqVO.setPhotoMeta(photoMeta("image/jpeg", "photo-base64"));
+
+            MultimodalTriggerReqVO enrichedReqVO = configuredService.enrich(reqVO);
+
+            assertEquals("买卖街路牌", enrichedReqVO.getOcrText());
+            assertEquals("sign", enrichedReqVO.getSceneSignals().get("sceneDomainIntentKey"));
+            assertEquals("路牌", enrichedReqVO.getSceneSignals().get("sceneDomainIntentLabel"));
+            assertEquals("路牌识境", enrichedReqVO.getSceneSignals().get("sceneDomainIntentTitle"));
+            assertEquals("翻译文字、讲发音并连接导航", enrichedReqVO.getSceneSignals().get("sceneDomainIntentCopy"));
+            assertEquals("画面里是街道路牌，包含可翻译的文字。", enrichedReqVO.getSceneSignals().get("sceneFusionSummary"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     public void testEnrichSkipsOversizedImagePayloadBeforeCallingProvider() throws Exception {
         XunjingVisionRecognitionService configuredService = new XunjingVisionRecognitionService();
         setField(configuredService, "visionApiUrl", "http://127.0.0.1:1/v1");

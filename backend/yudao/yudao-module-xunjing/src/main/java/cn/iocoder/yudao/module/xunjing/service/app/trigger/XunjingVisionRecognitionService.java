@@ -38,6 +38,33 @@ public class XunjingVisionRecognitionService {
             "agentDecisionActionTitle",
             "agentDecisionReasonSummary"
     );
+    private static final List<SceneDomainRule> VISION_SCENE_DOMAIN_RULES = List.of(
+            new SceneDomainRule("architecture", "建筑", "建筑识境", "讲解年代、结构、故事和拍照角度",
+                    List.of("architecture", "building", "palace", "courtyard", "temple", "pagoda", "tower",
+                            "gate", "bridge", "pavilion", "建筑", "古城门", "城门", "塔楼", "桥", "亭", "宫殿", "王府")),
+            new SceneDomainRule("artifact", "文物", "文物识境", "讲解年代、工艺、用途和同时代背景",
+                    List.of("artifact", "relic", "bronze", "museum_object", "vessel", "sword", "文物", "青铜",
+                            "博物馆藏品", "器物", "古剑")),
+            new SceneDomainRule("menu", "菜单", "菜单识境", "识别菜品、辣度、清真信息和推荐点单",
+                    List.of("menu", "dish_menu", "菜单", "菜品", "菜名", "价目")),
+            new SceneDomainRule("food", "美食", "美食识境", "讲来源、吃法、搭配和附近推荐",
+                    List.of("food", "dish", "snack", "restaurant", "cuisine", "美食", "餐厅", "小吃", "烤包子",
+                            "清真")),
+            new SceneDomainRule("sign", "路牌", "路牌识境", "翻译文字、讲发音并连接导航",
+                    List.of("sign", "road_sign", "street_name", "shop_sign", "路牌", "街牌", "指示牌", "招牌")),
+            new SceneDomainRule("intangible_heritage", "非遗", "非遗识境", "讲制作、演奏、传承和附近体验",
+                    List.of("intangible_heritage", "heritage_craft", "instrument", "music", "dance", "非遗",
+                            "乐器", "热瓦普", "工艺", "传承", "演奏")),
+            new SceneDomainRule("plant", "植物", "植物识境", "讲树龄、习性、分布和最佳观赏季",
+                    List.of("plant", "tree", "flower", "populus", "胡杨", "植物", "树", "花", "园林")),
+            new SceneDomainRule("animal", "动物", "动物识境", "讲保护情况、栖息地和安全提醒",
+                    List.of("animal", "wildlife", "bird", "snow_leopard", "动物", "鸟", "雪豹", "野生动物")),
+            new SceneDomainRule("person", "人物", "人物识境", "讲人物故事、贡献和同时期关系",
+                    List.of("person", "statue", "portrait", "人物", "雕像", "塑像", "画像", "名人")),
+            new SceneDomainRule("activity", "活动", "活动识境", "讲节目背景、时间、票务和参与方式",
+                    List.of("activity", "performance", "show", "festival", "event", "活动", "演出", "节目",
+                            "节庆", "表演"))
+    );
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(3))
@@ -113,6 +140,8 @@ public class XunjingVisionRecognitionService {
                                                 + "\"worldInterfaceSummary\":\"视觉如何参与判断\","
                                                 + "\"sceneDomainIntentKey\":\"architecture\","
                                                 + "\"sceneDomainIntentLabel\":\"建筑\"}}。"
+                                                + "sceneDomainIntentKey 可选 architecture, artifact, menu, food, sign, "
+                                                + "intangible_heritage, plant, animal, person, activity。"
                                                 + "可用 labels 包括 white_pagoda, pagoda, temple, temple_gate, "
                                                 + "imperial_temple, paifang, beijing_architecture, lake, "
                                                 + "imperial_garden, white_tower, park, hutong, waterfront, "
@@ -135,20 +164,23 @@ public class XunjingVisionRecognitionService {
         Set<String> labels = new LinkedHashSet<>();
         String json = unwrapJson(content);
         String ocrText = "";
+        String caption = "";
         Map<String, String> sceneSignals = new LinkedHashMap<>();
         try {
             JsonNode root = JsonUtils.getObjectMapper().readTree(json);
             appendLabels(root.path("labels"), labels);
             appendLabels(root.path("imageLabels"), labels);
             appendLabels(root.path("objects"), labels);
-            String caption = firstText(root, "caption", "description", "summary");
+            caption = firstText(root, "caption", "description", "summary");
             ocrText = firstText(root, "ocrText", "ocr", "detectedText", "text");
             addKeywordLabels(caption, labels);
             addKeywordLabels(ocrText, labels);
             sceneSignals.putAll(extractVisionSceneSignals(root, caption));
         } catch (IOException ignored) {
             addKeywordLabels(content, labels);
+            caption = content;
         }
+        inferVisionSceneDomain(labels, caption, ocrText, sceneSignals);
         return new VisionRecognitionResult(new ArrayList<>(labels), ocrText, sceneSignals);
     }
 
@@ -189,6 +221,37 @@ public class XunjingVisionRecognitionService {
             sceneSignals.put("sceneFusionSummary", caption.trim());
         }
         return sceneSignals;
+    }
+
+    private void inferVisionSceneDomain(
+            Set<String> labels, String caption, String ocrText, Map<String, String> sceneSignals) {
+        if (sceneSignals.containsKey("sceneDomainIntentKey")) {
+            return;
+        }
+        String text = normalizeDomainText(labels, caption, ocrText);
+        for (SceneDomainRule rule : VISION_SCENE_DOMAIN_RULES) {
+            if (containsAny(text, rule.keywords())) {
+                sceneSignals.put("sceneDomainIntentKey", rule.key());
+                sceneSignals.put("sceneDomainIntentLabel", rule.label());
+                sceneSignals.put("sceneDomainIntentTitle", rule.title());
+                sceneSignals.put("sceneDomainIntentCopy", rule.copy());
+                return;
+            }
+        }
+    }
+
+    private String normalizeDomainText(Set<String> labels, String caption, String ocrText) {
+        List<String> parts = new ArrayList<>();
+        if (labels != null) {
+            parts.addAll(labels);
+        }
+        if (hasText(caption)) {
+            parts.add(caption);
+        }
+        if (hasText(ocrText)) {
+            parts.add(ocrText);
+        }
+        return String.join(" ", parts).toLowerCase(Locale.ROOT);
     }
 
     private void putVisionSceneSignal(Map<String, String> sceneSignals, JsonNode node, String key) {
@@ -298,6 +361,9 @@ public class XunjingVisionRecognitionService {
             return value != null && !value.isBlank();
         }
 
+    }
+
+    private record SceneDomainRule(String key, String label, String title, String copy, List<String> keywords) {
     }
 
 }

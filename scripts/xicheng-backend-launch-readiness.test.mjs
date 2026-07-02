@@ -77,6 +77,21 @@ describe('xicheng backend launch readiness', () => {
     expect(visionService).toContain('recognizeImage(reqVO)')
     expect(visionService).toContain('mergeVisionSceneSignals(reqVO, recognition)')
     expect(visionService).toContain('VISION_SCENE_SIGNAL_TEXT_KEYS')
+    expect(visionService).toContain('inferVisionSceneDomain(labels, caption, ocrText, sceneSignals)')
+    for (const domain of [
+      'architecture',
+      'artifact',
+      'menu',
+      'food',
+      'sign',
+      'intangible_heritage',
+      'plant',
+      'animal',
+      'person',
+      'activity'
+    ]) {
+      expect(visionService).toContain(`new SceneDomainRule("${domain}"`)
+    }
     expect(appService).toContain('recordTriggerResolveEventIfPossible')
     expect(appService).toContain('buildTriggerResolveEventPayload')
     expect(appService).toContain('TRIGGER_SCENE_SIGNAL_TEXT_KEYS')
