@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -35,6 +36,153 @@ function productionReviewCsv(rows) {
     'poiCode,photoEvidenceStatus,triggerSmokeStatus,fieldEvidenceRefs,fieldVerifiedBy,fieldVerifiedAt,reviewStatus,geoStatus,auditLicenseStatus,status,reviewedBy,reviewedAt,nextAction',
     ...rows
   ].join('\n') + '\n'
+}
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex')
+}
+
+function passedChecks(names) {
+  return names.map((name) => ({ name, ok: true, detail: `${name} passed`, blockers: [] }))
+}
+
+function productionSeedSql() {
+  const rows = Array.from({ length: 80 }, (_, index) => {
+    const suffix = String(index + 1).padStart(3, '0')
+    return [
+      `(@map_package_id, 'xicheng-prod-poi-${suffix}', 'beijing-xicheng', 'Production POI ${suffix}', 'Production POI ${suffix}', '[]', 'museum', 'P0', 'Beijing Xicheng', 39.9000000, 116.3000000, 'GCJ02',`,
+      " JSON_OBJECT('licenseStatus','APPROVED'), '{}',",
+      ` '{"productionReady":true,"targetP0PoiCount":80,"regionCode":"beijing-xicheng","packageCode":"XICHENG-MAP-001"}',`,
+      " 'APPROVED', 'APPROVED', 'APPROVED', 'PUBLISHED', 'admin', NOW(), 'admin', NOW(), b'0', @tenant_id)"
+    ].join('')
+  }).join(',\n')
+
+  return [
+    'INSERT INTO `xunjing_poi` VALUES',
+    `${rows};`,
+    'INSERT INTO `xunjing_resource_package` (`readiness_json`) VALUES (\'{"productionReady":true,"regionCode":"beijing-xicheng","packageCode":"XICHENG-MAP-001","poiSeedCount":80,"targetP0PoiCount":80,"reviewBatchCode":"xicheng-p0-poi-review-20260702","reviewBatchEvidencePackageRef":"oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260702.zip"}\');'
+  ].join('\n')
+}
+
+async function writeDefaultPoiEvidenceFiles(rootDir) {
+  const manifestFile = path.join(rootDir, 'workbench/xicheng-production-pois.json')
+  const workbookFile = path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.production-applied.csv')
+  const seedFile = path.join(rootDir, 'workbench/xicheng-poi-production-seed.sql')
+  const manifestText = `${JSON.stringify({
+    regionCode: 'beijing-xicheng',
+    packageCode: 'XICHENG-MAP-001',
+    productionReady: true,
+    pois: Array.from({ length: 80 }, (_, index) => ({
+      poiCode: `xicheng-prod-poi-${String(index + 1).padStart(3, '0')}`
+    }))
+  }, null, 2)}\n`
+  const workbookText = [
+    'poiCode,name,licenseStatus,photoEvidenceStatus,triggerSmokeStatus,reviewStatus,geoStatus,status',
+    ...Array.from({ length: 80 }, (_, index) => {
+      const suffix = String(index + 1).padStart(3, '0')
+      return `xicheng-prod-poi-${suffix},Production POI ${suffix},APPROVED,APPROVED,PASSED,APPROVED,APPROVED,PUBLISHED`
+    })
+  ].join('\n') + '\n'
+  const seedText = productionSeedSql()
+  await mkdir(path.dirname(manifestFile), { recursive: true })
+  await writeFile(manifestFile, manifestText)
+  await writeFile(workbookFile, workbookText)
+  await writeFile(seedFile, seedText)
+  await writeJson(rootDir, 'qa/xicheng-poi-manifest-evidence.json', {
+    artifactType: 'xicheng-poi-production-manifest-readiness',
+    ok: true,
+    status: 'PRODUCTION_POI_MANIFEST_READY',
+    checkedAt: new Date().toISOString(),
+    summary: {
+      manifestFile,
+      manifestSha256: sha256(manifestText),
+      regionCode: 'beijing-xicheng',
+      packageCode: 'XICHENG-MAP-001',
+      totalPoiCount: 80,
+      targetPoiCount: 80,
+      productionReady: true,
+      reviewBatchCode: 'xicheng-p0-poi-review-20260702',
+      reviewBatchEvidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260702.zip',
+      sourceWorkbookFile: workbookFile,
+      sourceWorkbookSha256: sha256(workbookText)
+    },
+    checks: passedChecks([
+      'manifest-shape',
+      'manifest-production-flags',
+      'manifest-review-batch',
+      'poi-count',
+      'poi-identity',
+      'poi-coordinates',
+      'poi-triggers',
+      'poi-source-license',
+      'poi-field-evidence',
+      'poi-content',
+      'media-assets',
+      'poi-audit'
+    ]),
+    blockers: []
+  })
+  await writeJson(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json', {
+    artifactType: 'xicheng-poi-review-workbook-readiness',
+    ok: true,
+    status: 'XICHENG_POI_REVIEW_WORKBOOK_READY',
+    checkedAt: new Date().toISOString(),
+    summary: {
+      workbookFile,
+      workbookSha256: sha256(workbookText),
+      workbookRows: 80,
+      minPoiCount: 80,
+      categoryCount: 8,
+      placeholderCount: 0,
+      workbookReadyPoiCount: 80,
+      workbookPendingPoiCount: 0,
+      pendingPoiCodes: [],
+      pendingPoiTasks: []
+    },
+    checks: passedChecks([
+      'workbook-file',
+      'workbook-shape',
+      'poi-count',
+      'poi-identity',
+      'poi-source-license',
+      'poi-field-evidence',
+      'poi-content-audit',
+      'no-placeholder-cells'
+    ]),
+    blockers: []
+  })
+  await writeJson(rootDir, 'qa/xicheng-poi-production-seed-evidence.json', {
+    artifactType: 'xicheng-poi-production-seed-readiness',
+    ok: true,
+    status: 'PRODUCTION_POI_SEED_READY',
+    checkedAt: new Date().toISOString(),
+    summary: {
+      sqlFile: seedFile,
+      sqlSha256: sha256(seedText),
+      poiCount: 80,
+      minPoiCount: 80,
+      productionReady: true,
+      regionCode: 'beijing-xicheng',
+      packageCode: 'XICHENG-MAP-001',
+      targetP0PoiCount: 80,
+      reviewBatchCode: 'xicheng-p0-poi-review-20260702',
+      reviewBatchEvidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260702.zip'
+    },
+    checks: passedChecks([
+      'sql-file',
+      'seed-shape',
+      'seed-preconditions',
+      'poi-count',
+      'poi-approval',
+      'production-metrics',
+      'review-batch-metrics',
+      'field-evidence',
+      'source-license-evidence',
+      'media-assets',
+      'source-documents'
+    ]),
+    blockers: []
+  })
 }
 
 afterEach(async () => {
@@ -211,6 +359,39 @@ describe('xicheng Yudao release preflight', () => {
     expect(handoffMarkdown).toContain('--evidence-file qa/xicheng-app-readiness-evidence.json')
     expect(handoffMarkdown).toContain('npm run xunjing:xicheng:release:evidence:package')
     expect(handoffMarkdown).toContain('Do not mark production ready until')
+  })
+
+  test('passes default POI evidence paths into the release gate', async () => {
+    const rootDir = await createTempRoot()
+    await mkdir(path.join(rootDir, 'backend/yudao/sql/mysql'), { recursive: true })
+    await writeDefaultPoiEvidenceFiles(rootDir)
+
+    const result = runPreflight([
+      '--root', rootDir,
+      '--env-file', 'ops/xunjing-platform.env.example',
+      '--release-evidence', 'qa/xicheng-yudao-release-evidence.json',
+      '--tasks-output', 'workbench/xicheng-yudao-release-blocker-tasks.csv',
+      '--poi-tasks-output', 'workbench/xicheng-yudao-release-poi-blocker-tasks.csv',
+      '--handoff-output', 'workbench/xicheng-yudao-release-handoff.md'
+    ])
+
+    expect(result.status).toBe(1)
+    const releaseEvidence = JSON.parse(await readFile(
+      path.join(rootDir, 'qa/xicheng-yudao-release-evidence.json'),
+      'utf8'
+    ))
+    const poiEvidenceCheck = releaseEvidence.checks.find((check) => check.name === 'xicheng-production-poi-evidence')
+    expect(poiEvidenceCheck?.summary).toMatchObject({
+      poiManifestFile: path.join(rootDir, 'workbench/xicheng-production-pois.json'),
+      sourceWorkbookFile: path.join(rootDir, 'workbench/xicheng-production-pois.review-workbook.production-applied.csv'),
+      workbookEvidenceFile: path.join(rootDir, 'qa/xicheng-poi-review-workbook-evidence.json'),
+      productionPoiSeedSqlFile: path.join(rootDir, 'workbench/xicheng-poi-production-seed.sql')
+    })
+    expect(poiEvidenceCheck?.blockers).not.toEqual(expect.arrayContaining([
+      'POI manifest evidence is required before production release',
+      'POI workbook evidence is required before production release',
+      'POI seed SQL evidence is required before production release'
+    ]))
   })
 
   test('does not show POI evidence bootstrap when existing evidence already exports POI tasks', async () => {

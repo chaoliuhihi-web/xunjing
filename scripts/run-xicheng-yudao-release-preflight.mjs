@@ -26,8 +26,11 @@ const defaultProductionReviewOwnerLaneTaskDir = 'workbench/xicheng-poi-productio
 const defaultProductionReviewTasksEvidenceFile = 'qa/xicheng-poi-production-review-tasks-evidence.json'
 const defaultAppReadinessEvidenceFile = 'qa/xicheng-app-readiness-evidence.json'
 const defaultReleasePackageEvidenceFile = 'qa/xicheng-release-evidence-package.json'
+const defaultAiBootstrapEvidenceFile = 'qa/xicheng-yudao-ai-bootstrap-evidence.json'
 const defaultQdrantEvidenceFile = 'qa/xicheng-qdrant-smoke-evidence.json'
 const defaultEmbeddingEvidenceFile = 'qa/xicheng-embedding-smoke-evidence.json'
+const defaultVisionOcrEvidenceFile = 'qa/xicheng-vision-ocr-smoke-evidence.json'
+const defaultObjectStorageEvidenceFile = 'qa/xicheng-object-storage-smoke-evidence.json'
 const defaultYudaoServerBuildEvidenceFile = 'qa/xicheng-yudao-server-build-evidence.json'
 const defaultYudaoServerSmokeEvidenceFile = 'qa/xicheng-yudao-server-smoke-evidence.json'
 const defaultRuntimeSeedEvidenceFile = 'qa/xicheng-yudao-runtime-seed-production-evidence.json'
@@ -65,10 +68,21 @@ function buildReleaseGateArgs({
   envFile,
   expectedBranch,
   releaseEvidenceFile,
+  aiBootstrapEvidenceFile,
   qdrantEvidenceFile,
   embeddingEvidenceFile,
+  visionOcrEvidenceFile,
+  objectStorageEvidenceFile,
   yudaoServerBuildEvidenceFile,
-  yudaoServerSmokeEvidenceFile
+  yudaoServerSmokeEvidenceFile,
+  runtimeSeedEvidenceFile,
+  productionSeedApplyEvidenceFile,
+  poiWorkbookEvidenceFile,
+  poiManifestEvidenceFile,
+  poiSeedEvidenceFile,
+  poiSourceCoverageEvidenceFile,
+  poiSourceReviewApplyEvidenceFile,
+  poiProductionReviewApplyEvidenceFile
 }) {
   return [
     '--root', rootDir,
@@ -81,20 +95,19 @@ function buildReleaseGateArgs({
     '--yudao-server-build-evidence', yudaoServerBuildEvidenceFile,
     '--yudao-server-smoke-evidence', yudaoServerSmokeEvidenceFile,
     ...optionalArg(args, '--admin-ui-dir'),
-    ...optionalArg(args, '--ai-bootstrap-evidence'),
+    '--ai-bootstrap-evidence', aiBootstrapEvidenceFile,
     '--qdrant-evidence', qdrantEvidenceFile,
     '--embedding-evidence', embeddingEvidenceFile,
-    ...optionalArg(args, '--vision-ocr-evidence'),
-    ...optionalArg(args, '--object-storage-evidence'),
-    ...optionalArg(args, '--runtime-seed-evidence'),
-    ...optionalArg(args, '--production-seed-apply-evidence'),
-    ...optionalArg(args, '--seed-apply-evidence'),
-    ...optionalArg(args, '--poi-workbook-evidence'),
-    ...optionalArg(args, '--poi-manifest-evidence'),
-    ...optionalArg(args, '--poi-seed-evidence'),
-    ...optionalArg(args, '--poi-source-coverage-evidence'),
-    ...optionalArg(args, '--poi-source-review-apply-evidence'),
-    ...optionalArg(args, '--poi-production-review-apply-evidence'),
+    '--vision-ocr-evidence', visionOcrEvidenceFile,
+    '--object-storage-evidence', objectStorageEvidenceFile,
+    '--runtime-seed-evidence', runtimeSeedEvidenceFile,
+    '--production-seed-apply-evidence', productionSeedApplyEvidenceFile,
+    '--poi-workbook-evidence', poiWorkbookEvidenceFile,
+    '--poi-manifest-evidence', poiManifestEvidenceFile,
+    '--poi-seed-evidence', poiSeedEvidenceFile,
+    '--poi-source-coverage-evidence', poiSourceCoverageEvidenceFile,
+    '--poi-source-review-apply-evidence', poiSourceReviewApplyEvidenceFile,
+    '--poi-production-review-apply-evidence', poiProductionReviewApplyEvidenceFile,
     ...optionalArg(args, '--max-evidence-age-hours')
   ]
 }
@@ -650,8 +663,11 @@ export async function runXichengYudaoReleasePreflight({
   const productionReviewTasksEvidenceFile = readArgValue(args, '--production-review-tasks-evidence') ||
     defaultProductionReviewTasksEvidenceFile
   const appReadinessEvidenceFile = readArgValue(args, '--app-readiness-evidence') || defaultAppReadinessEvidenceFile
+  const aiBootstrapEvidenceFile = readArgValue(args, '--ai-bootstrap-evidence') || defaultAiBootstrapEvidenceFile
   const qdrantEvidenceFile = readArgValue(args, '--qdrant-evidence') || defaultQdrantEvidenceFile
   const embeddingEvidenceFile = readArgValue(args, '--embedding-evidence') || defaultEmbeddingEvidenceFile
+  const visionOcrEvidenceFile = readArgValue(args, '--vision-ocr-evidence') || defaultVisionOcrEvidenceFile
+  const objectStorageEvidenceFile = readArgValue(args, '--object-storage-evidence') || defaultObjectStorageEvidenceFile
   const yudaoServerBuildEvidenceFile = readArgValue(args, '--yudao-server-build-evidence') ||
     readArgValue(args, '--server-build-evidence') ||
     defaultYudaoServerBuildEvidenceFile
@@ -682,10 +698,21 @@ export async function runXichengYudaoReleasePreflight({
       envFile,
       expectedBranch,
       releaseEvidenceFile,
+      aiBootstrapEvidenceFile,
       qdrantEvidenceFile,
       embeddingEvidenceFile,
+      visionOcrEvidenceFile,
+      objectStorageEvidenceFile,
       yudaoServerBuildEvidenceFile,
-      yudaoServerSmokeEvidenceFile
+      yudaoServerSmokeEvidenceFile,
+      runtimeSeedEvidenceFile,
+      productionSeedApplyEvidenceFile,
+      poiWorkbookEvidenceFile,
+      poiManifestEvidenceFile,
+      poiSeedEvidenceFile,
+      poiSourceCoverageEvidenceFile,
+      poiSourceReviewApplyEvidenceFile,
+      poiProductionReviewApplyEvidenceFile
     })
   ], {
     cwd: process.cwd(),
