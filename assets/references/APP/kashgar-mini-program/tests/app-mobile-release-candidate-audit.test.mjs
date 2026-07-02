@@ -233,7 +233,7 @@ const makePreprodEvidence = (overrides = {}) => {
 const makeNativeEvidence = ({ artifact, artifactSha256, artifactSizeBytes, evidenceDir }) => ({
   artifactType: 'xicheng-native-device-evidence',
   createdAt: freshTimestamp,
-  branch: 'feature/xicheng-p0',
+  branch: 'main',
   commit: currentCommit,
   appApiBaseUrl: 'https://api.xingheai.net',
   tenantId: '1',

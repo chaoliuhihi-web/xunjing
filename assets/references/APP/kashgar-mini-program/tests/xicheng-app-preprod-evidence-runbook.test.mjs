@@ -36,7 +36,7 @@ for (const required of [
   'qa/xicheng-yudao-server-smoke-evidence.json',
   'qa/xicheng-app-readiness-local-evidence.json',
   'qa/xicheng-app-readiness-evidence.json',
-  'feature/xicheng-p0',
+  'main',
   'npm run xunjing:platform:verify --',
   'npm run verify:yudao:local',
   'npm run doctor:release:prereqs',

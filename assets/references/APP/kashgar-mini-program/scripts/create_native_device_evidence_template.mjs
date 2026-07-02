@@ -201,7 +201,7 @@ assertMobileArchiveMatchesPlatform({
 const artifactBytes = fs.readFileSync(artifactPath)
 const artifactSha256 = crypto.createHash('sha256').update(artifactBytes).digest('hex')
 const currentCommit = runGit(['rev-parse', 'HEAD'])
-const branch = String(process.env.XUNJING_RELEASE_BRANCH || 'feature/xicheng-p0').trim()
+const branch = String(process.env.XUNJING_RELEASE_BRANCH || 'main').trim()
 const firstPlatform = releaseTargets[0]
 
 const evidence = {

@@ -6,16 +6,16 @@
 
 ```bash
 git rev-parse --short HEAD
-git rev-list --left-right --count HEAD...github/feature/xicheng-p0
-git rev-list --left-right --count HEAD...origin/feature/xicheng-p0
+git rev-list --left-right --count HEAD...github/main
+git rev-list --left-right --count HEAD...origin/main
 ```
 
 两个 ahead/behind 结果必须都是 `0 0` 后再发布。
 
 ## 分支边界
 
-- 只在 `feature/xicheng-p0` 开发西城 P0。
-- `product/city-companion-main` 是稳定主线，不直接开发。
+- 西城 P0 开发、验收和发版候选统一使用 `main`。
+- `product/city-companion-main` 是历史产品分支，本轮不再作为西城 P0 发版线。
 - 提交后同步推 GitHub 和 Gitee，并确认两个远端同一 commit。
 
 ## APP 本地门禁

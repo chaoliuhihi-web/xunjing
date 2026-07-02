@@ -279,7 +279,7 @@ const gitStatusPorcelain = readGit(['status', '--porcelain', '--untracked-files=
 const dirtyEntries = gitStatusPorcelain ? gitStatusPorcelain.split('\n').filter(Boolean) : []
 const worktreeClean = dirtyEntries.length === 0
 const worktreeDirtyWithoutBypass = !worktreeClean && !allowTestBypass
-const remoteRefs = String(process.env.XUNJING_RELEASE_AUDIT_REMOTE_REFS || 'github/feature/xicheng-p0,origin/feature/xicheng-p0')
+const remoteRefs = String(process.env.XUNJING_RELEASE_AUDIT_REMOTE_REFS || 'github/main,origin/main')
   .split(',')
   .map((remoteRef) => remoteRef.trim())
   .filter(Boolean)

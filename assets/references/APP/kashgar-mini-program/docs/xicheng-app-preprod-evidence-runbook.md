@@ -8,7 +8,7 @@
 
 ## 前置条件
 
-- 分支必须是 `feature/xicheng-p0`，稳定主线 `product/city-companion-main` 不直接开发。
+- 分支必须是 `main`；西城 P0 开发、验收和发版候选统一使用 `main`。
 - `XUNJING_APP_API_BASE_URL` 必须是非本地 HTTPS Yudao APP API 域名。
 - APP 构建必须使用同一个 HTTPS 域名：`VITE_XUNJING_YUDAO_APP_BASE_URL=$XUNJING_APP_API_BASE_URL`。
 - APP 构建必须显式带租户：`VITE_XUNJING_TENANT_ID`，且租户必须是 Yudao 正整数编号。
@@ -161,7 +161,7 @@ npm run audit:release:candidate
 ```bash
 npm run xunjing:yudao:release:gate -- \
   --stage production \
-  --expected-branch feature/xicheng-p0 \
+  --expected-branch main \
   --env-file /secure/path/production.env \
   --yudao-server-smoke-evidence qa/xicheng-yudao-server-smoke-evidence.json \
   --app-readiness-evidence qa/xicheng-app-readiness-evidence.json \

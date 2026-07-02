@@ -13,8 +13,9 @@ assert.ok(
 const checklist = fs.readFileSync(checklistPath, 'utf8')
 
 for (const required of [
-  'feature/xicheng-p0',
-  'product/city-companion-main',
+  'main',
+  '西城 P0 开发、验收和发版候选统一使用 `main`',
+  '`product/city-companion-main` 是历史产品分支，本轮不再作为西城 P0 发版线',
   'for f in tests/*.test.mjs; do node "$f" || exit 1; done',
   'npm run doctor:release:prereqs',
   'npm run build',
@@ -49,8 +50,8 @@ for (const required of [
   'API 可达性',
   'qa/xicheng-yudao-server-smoke-evidence.json',
   'git rev-parse --short HEAD',
-  'git rev-list --left-right --count HEAD...github/feature/xicheng-p0',
-  'git rev-list --left-right --count HEAD...origin/feature/xicheng-p0',
+  'git rev-list --left-right --count HEAD...github/main',
+  'git rev-list --left-right --count HEAD...origin/main',
   'node_modules',
   'dist',
   'unpackage',
@@ -64,6 +65,12 @@ assert.doesNotMatch(
   checklist,
   /最近已同步发版基线：`[0-9a-f]{7,12}`/,
   'Xicheng APP release checklist should use live git parity commands instead of a hardcoded short SHA baseline'
+)
+
+assert.doesNotMatch(
+  checklist,
+  /product\/city-companion-main` 是稳定主线，不直接开发/,
+  'Xicheng APP release checklist should not keep the old stable-mainline branch policy after development moved to main'
 )
 
 assert.doesNotMatch(

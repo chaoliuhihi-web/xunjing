@@ -144,7 +144,7 @@ assert.equal(
 
 const generated = JSON.parse(fs.readFileSync(outputPath, 'utf8'))
 assert.equal(generated.artifactType, 'xicheng-native-device-evidence')
-assert.equal(generated.branch, 'feature/xicheng-p0')
+assert.equal(generated.branch, 'main')
 assert.equal(generated.commit, currentCommit)
 assert.equal(generated.appApiBaseUrl, 'https://api.xingheai.net')
 assert.equal(generated.tenantId, '1')

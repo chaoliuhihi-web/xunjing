@@ -230,8 +230,8 @@ if (String(evidence.templateNotice || '').trim()) {
 
 assertFreshTimestamp('createdAt', evidence.createdAt)
 
-if (evidence.branch !== 'feature/xicheng-p0') {
-  fail('Native device evidence branch must be feature/xicheng-p0')
+if (evidence.branch !== 'main') {
+  fail('Native device evidence branch must be main')
 }
 
 if (!/^[0-9a-f]{7,40}$/i.test(String(evidence.commit || ''))) {

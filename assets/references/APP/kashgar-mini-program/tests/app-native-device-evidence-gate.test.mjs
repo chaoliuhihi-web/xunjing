@@ -166,7 +166,7 @@ for (const required of [
 const baseEvidence = {
   artifactType: 'xicheng-native-device-evidence',
   createdAt: freshTimestamp,
-  branch: 'feature/xicheng-p0',
+  branch: 'main',
   commit: currentCommit,
   appApiBaseUrl: 'https://preprod.xingheai.net',
   tenantId: '1',
