@@ -193,6 +193,7 @@ describe('xicheng POI production manifest workbook importer', () => {
       regionCode: 'beijing-xicheng',
       packageCode: 'XICHENG-MAP-001',
       targetP0PoiCount: 80,
+      targetMediaAssetCount: 8,
       productionReady: true,
       sourceWorkbook: {
         workbookFile: workbookPath,
@@ -206,6 +207,16 @@ describe('xicheng POI production manifest workbook importer', () => {
       }
     })
     expect(manifest.pois).toHaveLength(80)
+    expect(manifest.mediaAssets).toHaveLength(8)
+    expect(manifest.mediaAssets[0]).toMatchObject({
+      assetCode: 'xicheng-media-baitasi-card',
+      mediaType: 'IMAGE',
+      fileUrl: '/static/xicheng/poi-baitasi-card.jpg',
+      copyrightStatus: 'AUTHORIZED',
+      reviewStatus: 'APPROVED',
+      canPublic: true,
+      canAiUse: true
+    })
     expect(manifest.pois[0]).toMatchObject({
       poiCode: 'xicheng-prod-poi-001',
       regionCode: 'beijing-xicheng',

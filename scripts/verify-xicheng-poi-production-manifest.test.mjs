@@ -74,6 +74,28 @@ function productionPoi(index, overrides = {}) {
   }
 }
 
+function productionMediaAsset(index, overrides = {}) {
+  const suffix = String(index).padStart(3, '0')
+  const poiCode = `xicheng-prod-poi-${suffix}`
+  return {
+    assetCode: `xicheng-prod-media-${suffix}`,
+    poiCode,
+    title: `西城生产点位${suffix}授权图片`,
+    mediaType: 'IMAGE',
+    fileUrl: `/static/xicheng/poi-${suffix}.jpg`,
+    objectKey: `app-static/xicheng/poi-${suffix}.jpg`,
+    sourceProvider: '星河寻境',
+    sourceUrl: `internal://xunjing/xicheng/app-static-assets#poi-${suffix}`,
+    copyrightStatus: 'AUTHORIZED',
+    reviewStatus: 'APPROVED',
+    imageTags: ['xicheng', poiCode, 'production-media'],
+    canPublic: true,
+    canAiUse: true,
+    canPromotionUse: false,
+    ...overrides
+  }
+}
+
 function productionManifest(overrides = {}) {
   return {
     regionCode: 'beijing-xicheng',
@@ -89,6 +111,8 @@ function productionManifest(overrides = {}) {
       reviewedAt: '2026-06-27',
       evidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260627.zip'
     },
+    targetMediaAssetCount: 4,
+    mediaAssets: Array.from({ length: 4 }, (_, index) => productionMediaAsset(index + 1)),
     sourceWorkbook: {
       workbookFile: 'workbench/xicheng-production-pois.review-workbook.csv',
       workbookSha256: 'a'.repeat(64),
@@ -144,6 +168,8 @@ describe('xicheng POI production manifest gate', () => {
       manifestFile: manifestPath,
       totalPoiCount: 80,
       targetPoiCount: 80,
+      mediaAssetCount: 4,
+      targetMediaAssetCount: 4,
       productionReady: true,
       reviewBatchCode: 'xicheng-p0-poi-review-20260627',
       sourceWorkbookFile: 'workbench/xicheng-production-pois.review-workbook.csv',
@@ -161,6 +187,7 @@ describe('xicheng POI production manifest gate', () => {
       'poi-source-license',
       'poi-field-evidence',
       'poi-content',
+      'media-assets',
       'poi-audit'
     ])
     expect(report.blockers).toEqual([])
@@ -179,6 +206,7 @@ describe('xicheng POI production manifest gate', () => {
         reviewedAt: '',
         evidencePackageRef: 'file:///tmp/review-batch.zip'
       },
+      mediaAssets: [],
       pois: [productionPoi(1, {
         aliases: ['西城生产点位001'],
         coordType: 'BD09',
@@ -236,6 +264,7 @@ describe('xicheng POI production manifest gate', () => {
     expect(evidence.blockers.join('\n')).toContain('xicheng-prod-poi-001 source.licenseReviewedAt is required')
     expect(evidence.blockers.join('\n')).toContain('xicheng-prod-poi-001 fieldEvidence.photoEvidenceStatus must be APPROVED')
     expect(evidence.blockers.join('\n')).toContain('xicheng-prod-poi-001 fieldEvidence.evidenceRefs must include at least one object-storage or HTTPS reference')
+    expect(evidence.blockers.join('\n')).toContain('4 approved public media assets required; found 0/4')
     expect(evidence.blockers.join('\n')).toContain('xicheng-prod-poi-001 audit.geoStatus must be APPROVED')
   })
 

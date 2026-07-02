@@ -80,6 +80,28 @@ function productionPoi(index, overrides = {}) {
   }
 }
 
+function productionMediaAsset(index, overrides = {}) {
+  const suffix = String(index).padStart(3, '0')
+  const poiCode = `xicheng-prod-poi-${suffix}`
+  return {
+    assetCode: `xicheng-prod-media-${suffix}`,
+    poiCode,
+    title: `西城生产点位${suffix}授权图片`,
+    mediaType: 'IMAGE',
+    fileUrl: `/static/xicheng/poi-${suffix}.jpg`,
+    objectKey: `app-static/xicheng/poi-${suffix}.jpg`,
+    sourceProvider: '星河寻境',
+    sourceUrl: `internal://xunjing/xicheng/app-static-assets#poi-${suffix}`,
+    copyrightStatus: 'AUTHORIZED',
+    reviewStatus: 'APPROVED',
+    imageTags: ['xicheng', poiCode, 'production-media'],
+    canPublic: true,
+    canAiUse: true,
+    canPromotionUse: false,
+    ...overrides
+  }
+}
+
 function productionManifest(overrides = {}) {
   const pois = Array.from({ length: 80 }, (_, index) => productionPoi(index + 1))
   pois[0] = productionPoi(1, {
@@ -110,6 +132,8 @@ function productionManifest(overrides = {}) {
       reviewedAt: '2026-06-27',
       evidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260627.zip'
     },
+    targetMediaAssetCount: 4,
+    mediaAssets: Array.from({ length: 4 }, (_, index) => productionMediaAsset(index + 1)),
     pois,
     ...overrides
   }
@@ -178,12 +202,15 @@ describe('xicheng POI production seed generator', () => {
       sqlSha256: sha256(sql),
       reviewBatchCode: 'xicheng-p0-poi-review-20260627',
       totalPoiCount: 80,
-      targetPoiCount: 80
+      targetPoiCount: 80,
+      mediaAssetCount: 4,
+      targetMediaAssetCount: 4
     })
     expect(evidence.checks.map((check) => check.name)).toContain('manifest-gate')
     expect(sql).toContain('Generated from reviewed Xicheng POI production manifest')
     expect(sql).toContain('INSERT INTO `xunjing_poi`')
     expect(sql).toContain('INSERT INTO `xunjing_knowledge_document`')
+    expect(sql).toContain('INSERT INTO `xunjing_media_asset`')
     expect(sql).toContain('INSERT INTO `xunjing_map_point`')
     expect(sql).toContain('INSERT INTO `xunjing_public_report`')
     expect(sql).toContain('xunjing_assert_xicheng_production_seed_ready')
@@ -196,10 +223,16 @@ describe('xicheng POI production seed generator', () => {
     expect(sql).toContain('"licenseReviewedBy":"xicheng-license-reviewer"')
     expect(sql).toContain('"licenseReviewedAt":"2026-06-27"')
     expect(sql).toContain('oss://xunjing-review/xicheng/xicheng-prod-poi-001/field-photo-001.jpg')
+    expect(sql).toContain('/static/xicheng/poi-001.jpg')
+    expect(sql).toContain('internal://xunjing/xicheng/app-static-assets#poi-001')
+    expect(sql).toContain('"poiCode":"xicheng-prod-poi-001"')
+    expect(sql).toContain("'AUTHORIZED', 'APPROVED'")
     expect(sql).toContain('"fieldEvidenceStatus":"APPROVED"')
     expect(sql).toContain('"triggerSmokeStatus":"PASSED"')
     expect(sql).toContain('"poiSeedCount":80')
     expect(sql).toContain('"targetP0PoiCount":80')
+    expect(sql).toContain('"reviewedMediaCount":4')
+    expect(sql).toContain('"targetMediaAssetCount":4')
     expect(sql).toContain('"productionReady":true')
     expect(sql).toContain("'APPROVED', 'APPROVED', 'APPROVED', 'PUBLISHED'")
     expect(sql).not.toContain('REVIEW_REQUIRED')

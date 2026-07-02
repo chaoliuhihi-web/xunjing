@@ -24,6 +24,10 @@ function jsonSql(value) {
   return sqlString(JSON.stringify(value))
 }
 
+function sqlBool(value) {
+  return value === true ? "b'1'" : "b'0'"
+}
+
 function sqlDecimal(value) {
   return Number(value).toFixed(7)
 }
@@ -143,6 +147,14 @@ function productionContentJson(poi) {
   }
 }
 
+function mediaImageTagsJson(asset) {
+  return {
+    assetCode: asset.assetCode,
+    poiCode: asset.poiCode || '',
+    tags: Array.isArray(asset.imageTags) ? asset.imageTags : []
+  }
+}
+
 function buildPoiRow(poi) {
   return [
     '@map_package_id',
@@ -164,6 +176,30 @@ function buildPoiRow(poi) {
     sqlString(poi.audit.geoStatus),
     sqlString(poi.audit.licenseStatus),
     sqlString(poi.audit.status),
+    sqlString('admin'),
+    'NOW()',
+    sqlString('admin'),
+    'NOW()',
+    "b'0'",
+    '@tenant_id'
+  ].join(', ')
+}
+
+function buildMediaAssetRow(asset) {
+  return [
+    '@map_package_id',
+    sqlString(asset.title),
+    sqlString(String(asset.mediaType || '').toUpperCase()),
+    sqlString(asset.fileUrl),
+    sqlString(asset.objectKey),
+    sqlString(asset.sourceProvider),
+    sqlString(asset.sourceUrl),
+    sqlString(String(asset.copyrightStatus || '').toUpperCase()),
+    sqlString(String(asset.reviewStatus || '').toUpperCase()),
+    jsonSql(mediaImageTagsJson(asset)),
+    sqlBool(asset.canPublic),
+    sqlBool(asset.canAiUse),
+    sqlBool(asset.canPromotionUse),
     sqlString('admin'),
     'NOW()',
     sqlString('admin'),
@@ -199,6 +235,7 @@ function buildKnowledgeRow(poi) {
 
 function buildMetrics(manifest) {
   const poiCount = manifest.pois.length
+  const mediaAssetCount = Array.isArray(manifest.mediaAssets) ? manifest.mediaAssets.length : 0
   return {
     p0Ready: true,
     productionReady: true,
@@ -206,7 +243,7 @@ function buildMetrics(manifest) {
     packageCode: manifest.packageCode,
     packageCount: 1,
     reviewedKnowledgeCount: poiCount,
-    reviewedMediaCount: 0,
+    reviewedMediaCount: mediaAssetCount,
     mapPointCount: poiCount,
     globeModelCount: 0,
     qrCodeCount: 1,
@@ -217,6 +254,7 @@ function buildMetrics(manifest) {
     reviewBatchEvidencePackageRef: manifest.reviewBatch?.evidencePackageRef,
     poiSeedCount: poiCount,
     targetP0PoiCount: Number(manifest.targetP0PoiCount),
+    targetMediaAssetCount: Number(manifest.targetMediaAssetCount) || mediaAssetCount,
     sourceLicenseStatus: 'APPROVED',
     geoStatus: 'APPROVED',
     reviewStatus: 'APPROVED',
@@ -228,6 +266,14 @@ function buildMetrics(manifest) {
 export function generateXichengPoiProductionSeedSql(manifest, { tenantId = 1 } = {}) {
   const poiRows = manifest.pois.map((poi) => `(${buildPoiRow(poi)})`).join(',\n')
   const sourceRows = manifest.pois.map((poi) => `(${buildKnowledgeRow(poi)})`).join(',\n')
+  const mediaAssets = Array.isArray(manifest.mediaAssets) ? manifest.mediaAssets : []
+  const mediaRows = mediaAssets.map((asset) => `(${buildMediaAssetRow(asset)})`).join(',\n')
+  const mediaInsertSql = mediaRows ? `
+INSERT INTO \`xunjing_media_asset\`
+(\`package_id\`, \`title\`, \`media_type\`, \`file_url\`, \`object_key\`, \`source_provider\`, \`source_url\`, \`copyright_status\`, \`review_status\`, \`image_tags\`, \`can_public\`, \`can_ai_use\`, \`can_promotion_use\`, \`creator\`, \`create_time\`, \`updater\`, \`update_time\`, \`deleted\`, \`tenant_id\`)
+VALUES
+${mediaRows};
+` : ''
   const metricsJson = JSON.stringify(buildMetrics(manifest))
 
   return `/*
@@ -282,6 +328,10 @@ DELETE FROM \`xunjing_poi\`
 WHERE \`tenant_id\` = @tenant_id
   AND \`package_id\` = @map_package_id;
 
+DELETE FROM \`xunjing_media_asset\`
+WHERE \`tenant_id\` = @tenant_id
+  AND \`package_id\` = @map_package_id;
+
 DELETE FROM \`xunjing_map_point\`
 WHERE \`tenant_id\` = @tenant_id
   AND \`package_id\` = @map_package_id;
@@ -295,6 +345,7 @@ INSERT INTO \`xunjing_knowledge_document\`
 (\`package_id\`, \`title\`, \`source_type\`, \`source_url\`, \`content_digest\`, \`authority_level\`, \`review_status\`, \`vector_status\`, \`creator\`, \`create_time\`, \`updater\`, \`update_time\`, \`deleted\`, \`tenant_id\`)
 VALUES
 ${sourceRows};
+${mediaInsertSql}
 
 SET @sort_order := 0;
 INSERT INTO \`xunjing_map_point\`
@@ -363,6 +414,8 @@ async function runCli() {
       reviewBatchEvidencePackageRef: manifest.reviewBatch?.evidencePackageRef,
       totalPoiCount: manifest.pois.length,
       targetPoiCount: Number(manifest.targetP0PoiCount),
+      mediaAssetCount: Array.isArray(manifest.mediaAssets) ? manifest.mediaAssets.length : 0,
+      targetMediaAssetCount: Number(manifest.targetMediaAssetCount) || 0,
       outputFile,
       sqlSha256: sha256(sql)
     },

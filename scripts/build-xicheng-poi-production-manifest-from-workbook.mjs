@@ -7,6 +7,7 @@ const artifactType = 'xicheng-poi-production-manifest-from-workbook'
 const allowedOutputDirs = new Set(['qa', 'tmp', 'workbench'])
 const expectedRegionCode = 'beijing-xicheng'
 const expectedPackageCode = 'XICHENG-MAP-001'
+const defaultMediaAssetCount = 8
 
 const expectedHeader = [
   'poiCode',
@@ -252,6 +253,33 @@ function buildReviewBatchFromArgs(args) {
   })
 }
 
+function defaultXichengMediaAssets() {
+  return [
+    ['xicheng-media-baitasi-card', '妙应寺白塔授权测试图', '/static/xicheng/poi-baitasi-card.jpg', 'poi-baitasi-card.jpg', true],
+    ['xicheng-media-baitasi-waterfront', '白塔寺片区水岸授权测试图', '/static/xicheng/scene-baitasi-waterfront.jpg', 'scene-baitasi-waterfront.jpg', true],
+    ['xicheng-media-baitasi-route', '白塔寺文化路线授权测试图', '/static/xicheng/route-baitasi-culture.jpg', 'route-baitasi-culture.jpg', true],
+    ['xicheng-media-shichahai-route', '什刹海水岸路线授权测试图', '/static/xicheng/route-shichahai-waterfront.jpg', 'route-shichahai-waterfront.jpg', true],
+    ['xicheng-media-dashilar-route', '大栅栏胡同生活授权测试图', '/static/xicheng/route-hutong-life.jpg', 'route-hutong-life.jpg', true],
+    ['xicheng-media-home-hero', '西城首页主视觉授权测试图', '/static/xicheng/home-hero-xicheng-approved-v3.jpg', 'home-hero-xicheng-approved-v3.jpg', true],
+    ['xicheng-media-share-poster', '西城分享海报授权测试图', '/static/xicheng/share-poster-background.jpg', 'share-poster-background.jpg', true],
+    ['xicheng-media-passport-stamp', '西城打卡印章授权测试图', '/static/xicheng/route-passport-stamp.png', 'route-passport-stamp.png', false]
+  ].map(([assetCode, title, fileUrl, fileName, canPromotionUse]) => ({
+    assetCode,
+    title,
+    mediaType: 'IMAGE',
+    fileUrl,
+    objectKey: `app-static/xicheng/${fileName}`,
+    sourceProvider: '星河寻境',
+    sourceUrl: `internal://xunjing/xicheng/app-static-assets#${assetCode}`,
+    copyrightStatus: 'AUTHORIZED',
+    reviewStatus: 'APPROVED',
+    imageTags: ['xicheng', 'app-static', 'authorized', assetCode],
+    canPublic: true,
+    canAiUse: true,
+    canPromotionUse
+  }))
+}
+
 export function buildXichengPoiProductionManifestFromWorkbookCsv(workbookText, {
   productionReady = false,
   reviewBatch,
@@ -272,6 +300,7 @@ export function buildXichengPoiProductionManifestFromWorkbookCsv(workbookText, {
     regionCode: expectedRegionCode,
     packageCode: expectedPackageCode,
     targetP0PoiCount: normalizedTargetCount,
+    targetMediaAssetCount: defaultMediaAssetCount,
     productionReady: productionReady === true,
     reviewBatch: buildReviewBatch(reviewBatch),
     sourceWorkbook: {
@@ -280,7 +309,8 @@ export function buildXichengPoiProductionManifestFromWorkbookCsv(workbookText, {
       rowCount: workbookRows.length,
       arraySeparator: '|'
     },
-    pois
+    pois,
+    mediaAssets: defaultXichengMediaAssets()
   }
 }
 
@@ -317,6 +347,8 @@ export async function writeXichengPoiProductionManifestFromWorkbook({
       outputFile: resolvedOutputFile,
       workbookRows: manifest.pois.length,
       targetP0PoiCount: manifest.targetP0PoiCount,
+      mediaAssetCount: manifest.mediaAssets.length,
+      targetMediaAssetCount: manifest.targetMediaAssetCount,
       productionReady: manifest.productionReady,
       reviewBatchCode: manifest.reviewBatch.batchCode,
       warning: 'Run xicheng production manifest gate before seed generation.'

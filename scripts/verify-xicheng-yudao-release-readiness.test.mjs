@@ -23,6 +23,7 @@ const requiredManifestEvidenceChecks = [
   'poi-source-license',
   'poi-field-evidence',
   'poi-content',
+  'media-assets',
   'poi-audit'
 ]
 const requiredWorkbookEvidenceChecks = [
@@ -45,6 +46,7 @@ const requiredSeedEvidenceChecks = [
   'review-batch-metrics',
   'field-evidence',
   'source-license-evidence',
+  'media-assets',
   'source-documents'
 ]
 const requiredSourceCoverageEvidenceChecks = [
@@ -86,6 +88,7 @@ const requiredYudaoServerSmokeEvidenceChecks = [
   'tenant-header',
   'resource-package-endpoint',
   'public-report-endpoint',
+  'media-assets',
   'secret-redaction'
 ]
 const requiredRuntimeSeedEvidenceChecks = [
@@ -380,7 +383,9 @@ async function writeYudaoServerSmokeEvidence(rootDir, overrides = {}) {
       publicReportHttpStatus: 200,
       publicReportPackageCount: 1,
       publicReportReviewedKnowledgeCount: 84,
+      publicReportReviewedMediaCount: 8,
       publicReportMapPointCount: 80,
+      mediaAssetCount: 8,
       latencyMs: 50,
       ...buildSummary,
       ...(overrides.summary || {})
@@ -1154,7 +1159,9 @@ describe('xicheng Yudao release readiness gate', () => {
       yudaoServerSmokeBaseUrl: 'https://xunjing-api.xingheai.net',
       yudaoServerSmokeTenantId: '1001',
       yudaoServerSmokePackageCode: 'XICHENG-MAP-001',
-      yudaoServerSmokePublicReportMapPointCount: 80
+      yudaoServerSmokePublicReportMapPointCount: 80,
+      yudaoServerSmokePublicReportReviewedMediaCount: 8,
+      yudaoServerSmokeMediaAssetCount: 8
     })
     expect(result.checks.find((check) => check.name === 'xunjing-admin-ui-artifact')?.summary).toMatchObject({
       adminUiDir: path.join(rootDir, 'backend/yudao/yudao-ui/yudao-ui-admin-vue3/dist'),

@@ -51,7 +51,12 @@ describe('Xicheng Yudao server HTTP smoke verifier', () => {
               data: {
                 packageCode: 'XICHENG-MAP-001',
                 regionCode: 'beijing-xicheng',
-                status: 'PUBLISHED'
+                status: 'PUBLISHED',
+                mediaAssets: Array.from({ length: 8 }, (_, index) => ({
+                  id: 9000 + index,
+                  title: `西城授权测试图 ${index + 1}`,
+                  mediaType: 'IMAGE'
+                }))
               }
             })
           }
@@ -65,6 +70,7 @@ describe('Xicheng Yudao server HTTP smoke verifier', () => {
               data: {
                 packageCount: 1,
                 reviewedKnowledgeCount: 84,
+                reviewedMediaCount: 8,
                 mapPointCount: 80
               }
             })
@@ -87,7 +93,9 @@ describe('Xicheng Yudao server HTTP smoke verifier', () => {
       publicReportHttpStatus: 200,
       publicReportPackageCount: 1,
       publicReportReviewedKnowledgeCount: 84,
+      publicReportReviewedMediaCount: 8,
       publicReportMapPointCount: 80,
+      mediaAssetCount: 8,
       latencyMs: expect.any(Number)
     })
   })
@@ -110,7 +118,9 @@ describe('Xicheng Yudao server HTTP smoke verifier', () => {
         publicReportHttpStatus: 200,
         publicReportPackageCount: 1,
         publicReportReviewedKnowledgeCount: 84,
+        publicReportReviewedMediaCount: 8,
         publicReportMapPointCount: 80,
+        mediaAssetCount: 8,
         latencyMs: 50
       },
       checkedAt: '2026-06-29T08:00:00.000Z'
@@ -127,6 +137,8 @@ describe('Xicheng Yudao server HTTP smoke verifier', () => {
         packageCode: 'XICHENG-MAP-001',
         packageHttpStatus: 200,
         publicReportHttpStatus: 200,
+        mediaAssetCount: 8,
+        publicReportReviewedMediaCount: 8,
         publicReportMapPointCount: 80
       },
       checks: [
@@ -134,6 +146,7 @@ describe('Xicheng Yudao server HTTP smoke verifier', () => {
         { name: 'tenant-header', ok: true, blockers: [] },
         { name: 'resource-package-endpoint', ok: true, blockers: [] },
         { name: 'public-report-endpoint', ok: true, blockers: [] },
+        { name: 'media-assets', ok: true, blockers: [] },
         { name: 'secret-redaction', ok: true, blockers: [] }
       ],
       blockers: []
@@ -156,7 +169,9 @@ describe('Xicheng Yudao server HTTP smoke verifier', () => {
         publicReportHttpStatus: 200,
         publicReportPackageCount: 1,
         publicReportReviewedKnowledgeCount: 84,
+        publicReportReviewedMediaCount: 8,
         publicReportMapPointCount: 80,
+        mediaAssetCount: 8,
         latencyMs: 50
       },
       buildEvidenceRef: {
@@ -216,7 +231,9 @@ describe('Xicheng Yudao server HTTP smoke verifier', () => {
       providerSmoke: {
         packageHttpStatus: 200,
         publicReportHttpStatus: 200,
-        publicReportMapPointCount: 12
+        publicReportMapPointCount: 12,
+        mediaAssetCount: 0,
+        publicReportReviewedMediaCount: 0
       }
     })).toThrow('Yudao server smoke must prove the Xicheng package and public report endpoints are ready')
   })

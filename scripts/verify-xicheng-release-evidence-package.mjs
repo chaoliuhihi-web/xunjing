@@ -44,6 +44,7 @@ const requiredYudaoServerSmokeEvidenceChecks = [
   'tenant-header',
   'resource-package-endpoint',
   'public-report-endpoint',
+  'media-assets',
   'secret-redaction'
 ]
 
@@ -86,6 +87,7 @@ const requiredManifestEvidenceChecks = [
   'poi-source-license',
   'poi-field-evidence',
   'poi-content',
+  'media-assets',
   'poi-audit'
 ]
 
@@ -110,6 +112,7 @@ const requiredSeedEvidenceChecks = [
   'review-batch-metrics',
   'field-evidence',
   'source-license-evidence',
+  'media-assets',
   'source-documents'
 ]
 
@@ -607,15 +610,23 @@ function checkReleaseYudaoServerSmokeSummary(evidence, rootDir) {
   }
   const publicReportPackageCount = Number(summary.yudaoServerSmokePublicReportPackageCount)
   const publicReportReviewedKnowledgeCount = Number(summary.yudaoServerSmokePublicReportReviewedKnowledgeCount)
+  const publicReportReviewedMediaCount = Number(summary.yudaoServerSmokePublicReportReviewedMediaCount)
   const publicReportMapPointCount = Number(summary.yudaoServerSmokePublicReportMapPointCount)
+  const mediaAssetCount = Number(summary.yudaoServerSmokeMediaAssetCount)
   if (!Number.isFinite(publicReportPackageCount) || publicReportPackageCount < 1) {
     blockers.push('release evidence yudaoServerSmokePublicReportPackageCount must be at least 1')
   }
   if (!Number.isFinite(publicReportReviewedKnowledgeCount) || publicReportReviewedKnowledgeCount < productionPoiTarget) {
     blockers.push(`release evidence yudaoServerSmokePublicReportReviewedKnowledgeCount must be at least ${productionPoiTarget}`)
   }
+  if (!Number.isFinite(publicReportReviewedMediaCount) || publicReportReviewedMediaCount < 8) {
+    blockers.push('release evidence yudaoServerSmokePublicReportReviewedMediaCount must be at least 8')
+  }
   if (!Number.isFinite(publicReportMapPointCount) || publicReportMapPointCount < productionPoiTarget) {
     blockers.push(`release evidence yudaoServerSmokePublicReportMapPointCount must be at least ${productionPoiTarget}`)
+  }
+  if (!Number.isFinite(mediaAssetCount) || mediaAssetCount < 8) {
+    blockers.push('release evidence yudaoServerSmokeMediaAssetCount must be at least 8')
   }
   if (hasText(summary.yudaoServerBuildEvidenceFile)) {
     if (!hasText(summary.yudaoServerSmokeBuildEvidenceFile)) {
@@ -848,7 +859,9 @@ function checkYudaoServerSmokeEvidence(ref, releaseRef, rootDir, freshnessOption
 
   const publicReportPackageCount = Number(summary.publicReportPackageCount)
   const publicReportReviewedKnowledgeCount = Number(summary.publicReportReviewedKnowledgeCount)
+  const publicReportReviewedMediaCount = Number(summary.publicReportReviewedMediaCount)
   const publicReportMapPointCount = Number(summary.publicReportMapPointCount)
+  const mediaAssetCount = Number(summary.mediaAssetCount)
   if (!Number.isFinite(publicReportPackageCount) || publicReportPackageCount < 1) {
     blockers.push('Yudao server smoke evidence publicReportPackageCount must be at least 1')
   } else if (
@@ -865,6 +878,14 @@ function checkYudaoServerSmokeEvidence(ref, releaseRef, rootDir, freshnessOption
   ) {
     blockers.push('Yudao server smoke evidence publicReportReviewedKnowledgeCount must match release evidence summary')
   }
+  if (!Number.isFinite(publicReportReviewedMediaCount) || publicReportReviewedMediaCount < 8) {
+    blockers.push('Yudao server smoke evidence publicReportReviewedMediaCount must be at least 8')
+  } else if (
+    Number.isFinite(Number(releaseSummary.yudaoServerSmokePublicReportReviewedMediaCount)) &&
+    publicReportReviewedMediaCount !== Number(releaseSummary.yudaoServerSmokePublicReportReviewedMediaCount)
+  ) {
+    blockers.push('Yudao server smoke evidence publicReportReviewedMediaCount must match release evidence summary')
+  }
   if (!Number.isFinite(publicReportMapPointCount) || publicReportMapPointCount < productionPoiTarget) {
     blockers.push(`Yudao server smoke evidence publicReportMapPointCount must be at least ${productionPoiTarget}`)
   } else if (
@@ -872,6 +893,14 @@ function checkYudaoServerSmokeEvidence(ref, releaseRef, rootDir, freshnessOption
     publicReportMapPointCount !== Number(releaseSummary.yudaoServerSmokePublicReportMapPointCount)
   ) {
     blockers.push('Yudao server smoke evidence publicReportMapPointCount must match release evidence summary')
+  }
+  if (!Number.isFinite(mediaAssetCount) || mediaAssetCount < 8) {
+    blockers.push('Yudao server smoke evidence mediaAssetCount must be at least 8')
+  } else if (
+    Number.isFinite(Number(releaseSummary.yudaoServerSmokeMediaAssetCount)) &&
+    mediaAssetCount !== Number(releaseSummary.yudaoServerSmokeMediaAssetCount)
+  ) {
+    blockers.push('Yudao server smoke evidence mediaAssetCount must match release evidence summary')
   }
 
   blockers.push(...checkEvidenceChecks(evidence, requiredYudaoServerSmokeEvidenceChecks, 'Yudao server smoke'))
@@ -2285,7 +2314,9 @@ export async function verifyXichengReleaseEvidencePackage({
       yudaoServerSmokePublicReportHttpStatus: yudaoServerSmokeSummary.publicReportHttpStatus,
       yudaoServerSmokePublicReportPackageCount: yudaoServerSmokeSummary.publicReportPackageCount,
       yudaoServerSmokePublicReportReviewedKnowledgeCount: yudaoServerSmokeSummary.publicReportReviewedKnowledgeCount,
+      yudaoServerSmokePublicReportReviewedMediaCount: yudaoServerSmokeSummary.publicReportReviewedMediaCount,
       yudaoServerSmokePublicReportMapPointCount: yudaoServerSmokeSummary.publicReportMapPointCount,
+      yudaoServerSmokeMediaAssetCount: yudaoServerSmokeSummary.mediaAssetCount,
       yudaoServerSmokeBuildEvidenceFile: yudaoServerSmokeSummary.buildEvidenceFile,
       yudaoServerSmokeBuildGitCommit: yudaoServerSmokeSummary.buildGitCommit,
       yudaoServerSmokeBuildGitDirty: yudaoServerSmokeSummary.buildGitDirty,

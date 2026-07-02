@@ -200,7 +200,9 @@ async function writeYudaoServerSmokeEvidenceFile(rootDir, overrides = {}) {
       publicReportHttpStatus: 200,
       publicReportPackageCount: 1,
       publicReportReviewedKnowledgeCount: 84,
+      publicReportReviewedMediaCount: 8,
       publicReportMapPointCount: 80,
+      mediaAssetCount: 8,
       latencyMs: 50,
       ...buildSummary
     },
@@ -209,6 +211,7 @@ async function writeYudaoServerSmokeEvidenceFile(rootDir, overrides = {}) {
       { name: 'tenant-header', ok: true, blockers: [] },
       { name: 'resource-package-endpoint', ok: true, blockers: [] },
       { name: 'public-report-endpoint', ok: true, blockers: [] },
+      { name: 'media-assets', ok: true, blockers: [] },
       { name: 'secret-redaction', ok: true, blockers: [] }
     ],
     blockers: []
@@ -332,7 +335,9 @@ async function writeReleaseEvidenceFile(rootDir, overrides = {}) {
       yudaoServerSmokePublicReportHttpStatus: 200,
       yudaoServerSmokePublicReportPackageCount: 1,
       yudaoServerSmokePublicReportReviewedKnowledgeCount: 84,
+      yudaoServerSmokePublicReportReviewedMediaCount: 8,
       yudaoServerSmokePublicReportMapPointCount: 80,
+      yudaoServerSmokeMediaAssetCount: 8,
       yudaoServerSmokeBuildEvidenceFile: path.join(rootDir, 'qa/xicheng-yudao-server-build-evidence.json'),
       yudaoServerSmokeBuildGitCommit: 'a'.repeat(40),
       yudaoServerSmokeBuildGitDirty: false,
@@ -613,6 +618,7 @@ function manifestEvidence(overrides = {}) {
       { name: 'poi-source-license', ok: true },
       { name: 'poi-field-evidence', ok: true },
       { name: 'poi-content', ok: true },
+      { name: 'media-assets', ok: true },
       { name: 'poi-audit', ok: true }
     ],
     blockers: [],
@@ -676,6 +682,7 @@ function seedEvidence(overrides = {}) {
       { name: 'review-batch-metrics', ok: true },
       { name: 'field-evidence', ok: true },
       { name: 'source-license-evidence', ok: true },
+      { name: 'media-assets', ok: true },
       { name: 'source-documents', ok: true }
     ],
     blockers: [],
@@ -977,7 +984,9 @@ describe('xicheng release evidence package gate', () => {
       yudaoServerSmokeBaseUrl: 'https://xunjing-api.xingheai.net',
       yudaoServerSmokeTenantId: '1001',
       yudaoServerSmokePackageCode: 'XICHENG-MAP-001',
+      yudaoServerSmokePublicReportReviewedMediaCount: 8,
       yudaoServerSmokePublicReportMapPointCount: 80,
+      yudaoServerSmokeMediaAssetCount: 8,
       runtimeSeedStatus: 'YUDAO_XICHENG_PRODUCTION_SEED_READY',
       runtimeSeedPoiTotal: 80,
       productionSeedApplyStatus: 'YUDAO_XICHENG_PRODUCTION_SEED_APPLIED',
@@ -1484,6 +1493,7 @@ describe('xicheng release evidence package gate', () => {
         { name: 'poi-source-license', ok: true },
         { name: 'poi-field-evidence', ok: true },
         { name: 'poi-content', ok: true },
+        { name: 'media-assets', ok: true },
         { name: 'poi-audit', ok: true }
       ]
     })
@@ -1501,6 +1511,7 @@ describe('xicheng release evidence package gate', () => {
         { name: 'production-metrics', ok: true },
         { name: 'field-evidence', ok: true },
         { name: 'source-license-evidence', ok: true },
+        { name: 'media-assets', ok: true },
         { name: 'source-documents', ok: true }
       ]
     })

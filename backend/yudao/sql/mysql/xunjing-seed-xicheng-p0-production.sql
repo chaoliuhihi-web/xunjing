@@ -50,6 +50,10 @@ DELETE FROM `xunjing_poi`
 WHERE `tenant_id` = @tenant_id
   AND `package_id` = @map_package_id;
 
+DELETE FROM `xunjing_media_asset`
+WHERE `tenant_id` = @tenant_id
+  AND `package_id` = @map_package_id;
+
 DELETE FROM `xunjing_map_point`
 WHERE `tenant_id` = @tenant_id
   AND `package_id` = @map_package_id;
@@ -222,6 +226,19 @@ VALUES
 (@map_package_id, '裕兴中银号 POI 级生产来源', 'OFFICIAL_PUBLIC', 'https://www.bjxch.gov.cn/xcfw/whfw/xxxq/pnidpv736523.html', 'POI 级生产来源：裕兴中银号（poiCode=xicheng-heritage-056-yuxingzhong-bank，regionCode=beijing-xicheng）。裕兴中银号列入西城区文化和旅游局公开发布的西城区文物保护单位名单，适合作为西城历史文化步行讲解候选点。来源：西城区文物保护单位（81处）；审核人：xicheng-online-official-public-source-review；审核时间：2026-07-02。', 'OFFICIAL', 'APPROVED', 'INDEXED', 'admin', NOW(), 'admin', NOW(), b'0', @tenant_id),
 (@map_package_id, '青云阁 POI 级生产来源', 'OFFICIAL_PUBLIC', 'https://www.bjxch.gov.cn/xcfw/whfw/xxxq/pnidpv736523.html', 'POI 级生产来源：青云阁（poiCode=xicheng-heritage-057-qingyunge，regionCode=beijing-xicheng）。青云阁列入西城区文化和旅游局公开发布的西城区文物保护单位名单，适合作为西城历史文化步行讲解候选点。来源：西城区文物保护单位（81处）；审核人：xicheng-online-official-public-source-review；审核时间：2026-07-02。', 'OFFICIAL', 'APPROVED', 'INDEXED', 'admin', NOW(), 'admin', NOW(), b'0', @tenant_id);
 
+INSERT INTO `xunjing_media_asset`
+(`package_id`, `title`, `media_type`, `file_url`, `object_key`, `source_provider`, `source_url`, `copyright_status`, `review_status`, `image_tags`, `can_public`, `can_ai_use`, `can_promotion_use`, `creator`, `create_time`, `updater`, `update_time`, `deleted`, `tenant_id`)
+VALUES
+(@map_package_id, '妙应寺白塔授权测试图', 'IMAGE', '/static/xicheng/poi-baitasi-card.jpg', 'app-static/xicheng/poi-baitasi-card.jpg', '星河寻境', 'internal://xunjing/xicheng/app-static-assets#xicheng-media-baitasi-card', 'AUTHORIZED', 'APPROVED', '{"assetCode":"xicheng-media-baitasi-card","poiCode":"xicheng-baitasi","tags":["xicheng","poi","妙应寺白塔","白塔寺","poi-card","xicheng-baitasi"]}', b'1', b'1', b'1', 'admin', NOW(), 'admin', NOW(), b'0', @tenant_id),
+(@map_package_id, '白塔寺水岸主视觉', 'IMAGE', '/static/xicheng/scene-baitasi-waterfront.jpg', 'app-static/xicheng/scene-baitasi-waterfront.jpg', '星河寻境', 'internal://xunjing/xicheng/app-static-assets#xicheng-media-baitasi-waterfront', 'AUTHORIZED', 'APPROVED', '{"assetCode":"xicheng-media-baitasi-waterfront","poiCode":"xicheng-baitasi","tags":["xicheng","hero","白塔寺片区","水岸","hero-landmark","xicheng-baitasi"]}', b'1', b'1', b'1', 'admin', NOW(), 'admin', NOW(), b'0', @tenant_id),
+(@map_package_id, '白塔寺文化线封面', 'IMAGE', '/static/xicheng/route-baitasi-culture.jpg', 'app-static/xicheng/route-baitasi-culture.jpg', '星河寻境', 'internal://xunjing/xicheng/app-static-assets#xicheng-media-baitasi-route', 'AUTHORIZED', 'APPROVED', '{"assetCode":"xicheng-media-baitasi-route","poiCode":"xicheng-baitasi","tags":["xicheng","route","白塔寺","历代帝王庙","路线封面","xicheng-baitasi"]}', b'1', b'1', b'1', 'admin', NOW(), 'admin', NOW(), b'0', @tenant_id),
+(@map_package_id, '什刹海水岸线封面', 'IMAGE', '/static/xicheng/route-shichahai-waterfront.jpg', 'app-static/xicheng/route-shichahai-waterfront.jpg', '星河寻境', 'internal://xunjing/xicheng/app-static-assets#xicheng-media-shichahai-route', 'AUTHORIZED', 'APPROVED', '{"assetCode":"xicheng-media-shichahai-route","poiCode":"xicheng-shichahai","tags":["xicheng","route","什刹海","水岸","路线封面","xicheng-shichahai"]}', b'1', b'1', b'1', 'admin', NOW(), 'admin', NOW(), b'0', @tenant_id),
+(@map_package_id, '大栅栏胡同生活线封面', 'IMAGE', '/static/xicheng/route-hutong-life.jpg', 'app-static/xicheng/route-hutong-life.jpg', '星河寻境', 'internal://xunjing/xicheng/app-static-assets#xicheng-media-dashilar-route', 'AUTHORIZED', 'APPROVED', '{"assetCode":"xicheng-media-dashilar-route","poiCode":"xicheng-dashilar","tags":["xicheng","route","大栅栏","胡同","路线封面","xicheng-dashilar"]}', b'1', b'1', b'1', 'admin', NOW(), 'admin', NOW(), b'0', @tenant_id),
+(@map_package_id, '西城 AI 旅伴首页主视觉', 'IMAGE', '/static/xicheng/home-hero-xicheng-approved-v3.jpg', 'app-static/xicheng/home-hero-xicheng-approved-v3.jpg', '星河寻境', 'internal://xunjing/xicheng/app-static-assets#xicheng-media-home-hero', 'AUTHORIZED', 'APPROVED', '{"assetCode":"xicheng-media-home-hero","poiCode":"","tags":["xicheng","home","西城","首页","主视觉"]}', b'1', b'1', b'1', 'admin', NOW(), 'admin', NOW(), b'0', @tenant_id),
+(@map_package_id, '西城分享海报背景', 'IMAGE', '/static/xicheng/share-poster-background.jpg', 'app-static/xicheng/share-poster-background.jpg', '星河寻境', 'internal://xunjing/xicheng/app-static-assets#xicheng-media-share-poster', 'AUTHORIZED', 'APPROVED', '{"assetCode":"xicheng-media-share-poster","poiCode":"","tags":["xicheng","share","西城","分享海报","背景"]}', b'1', b'1', b'1', 'admin', NOW(), 'admin', NOW(), b'0', @tenant_id),
+(@map_package_id, '西城路线护照印章', 'IMAGE', '/static/xicheng/route-passport-stamp.png', 'app-static/xicheng/route-passport-stamp.png', '星河寻境', 'internal://xunjing/xicheng/app-static-assets#xicheng-media-passport-stamp', 'AUTHORIZED', 'APPROVED', '{"assetCode":"xicheng-media-passport-stamp","poiCode":"","tags":["xicheng","passport","西城","路线护照","印章"]}', b'1', b'1', b'0', 'admin', NOW(), 'admin', NOW(), b'0', @tenant_id);
+
+
 SET @sort_order := 0;
 INSERT INTO `xunjing_map_point`
 (`package_id`, `title`, `latitude`, `longitude`, `summary`, `sort_order`, `status`, `creator`, `create_time`, `updater`, `update_time`, `deleted`, `tenant_id`)
@@ -252,6 +269,6 @@ WHERE `tenant_id` = @tenant_id
 INSERT INTO `xunjing_public_report`
 (`project_id`, `school_id`, `title`, `report_period`, `metrics_json`, `status`, `generated_at`, `creator`, `create_time`, `updater`, `update_time`, `deleted`, `tenant_id`)
 VALUES
-(@project_id, @school_id, '西城 P0 后台生产 POI 状态', '2026-P0-PRODUCTION-POI', '{"p0Ready":true,"productionReady":true,"regionCode":"beijing-xicheng","packageCode":"XICHENG-MAP-001","packageCount":1,"reviewedKnowledgeCount":80,"reviewedMediaCount":0,"mapPointCount":80,"globeModelCount":0,"qrCodeCount":1,"interactionCount":0,"mediaUsageCount":0,"aiGenerationCount":0,"reviewBatchCode":"xicheng-p0-online-source-review-20260702","reviewBatchEvidencePackageRef":"https://xunjingadmin.xingheai.net/review-packets/xicheng-production-review-package-20260702-102132.zip","poiSeedCount":80,"targetP0PoiCount":80,"sourceLicenseStatus":"APPROVED","geoStatus":"APPROVED","reviewStatus":"APPROVED","fieldEvidenceStatus":"APPROVED","triggerSmokeStatus":"PASSED"}', 'GENERATED', NOW(), 'admin', NOW(), 'admin', NOW(), b'0', @tenant_id);
+(@project_id, @school_id, '西城 P0 后台生产 POI 状态', '2026-P0-PRODUCTION-POI', '{"p0Ready":true,"productionReady":true,"regionCode":"beijing-xicheng","packageCode":"XICHENG-MAP-001","packageCount":1,"reviewedKnowledgeCount":80,"reviewedMediaCount":8,"mapPointCount":80,"globeModelCount":0,"qrCodeCount":1,"interactionCount":0,"mediaUsageCount":0,"aiGenerationCount":0,"reviewBatchCode":"xicheng-p0-online-source-review-20260702","reviewBatchEvidencePackageRef":"https://xunjingadmin.xingheai.net/review-packets/xicheng-production-review-package-20260702-102132.zip","poiSeedCount":80,"targetP0PoiCount":80,"targetMediaAssetCount":8,"sourceLicenseStatus":"APPROVED","geoStatus":"APPROVED","reviewStatus":"APPROVED","fieldEvidenceStatus":"APPROVED","triggerSmokeStatus":"PASSED"}', 'GENERATED', NOW(), 'admin', NOW(), 'admin', NOW(), b'0', @tenant_id);
 
 SET FOREIGN_KEY_CHECKS = 1;

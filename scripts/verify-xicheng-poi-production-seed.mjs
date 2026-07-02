@@ -117,6 +117,47 @@ function extractJsonArrayStringValues(sql, key) {
   return values
 }
 
+function extractInsertRows(sql, tableName) {
+  const match = sql.match(new RegExp(`INSERT INTO \`${tableName}\`[\\s\\S]*?VALUES\\s*([\\s\\S]*?);`, 'm'))
+  if (!match) {
+    return []
+  }
+  const values = match[1]
+  const rows = []
+  let depth = 0
+  let inString = false
+  let rowStart = -1
+  for (let index = 0; index < values.length; index += 1) {
+    const char = values[index]
+    const next = values[index + 1]
+    if (inString) {
+      if (char === "'" && next === "'") {
+        index += 1
+      } else if (char === "'") {
+        inString = false
+      }
+      continue
+    }
+    if (char === "'") {
+      inString = true
+      continue
+    }
+    if (char === '(') {
+      if (depth === 0) {
+        rowStart = index
+      }
+      depth += 1
+    } else if (char === ')') {
+      depth -= 1
+      if (depth === 0 && rowStart >= 0) {
+        rows.push(values.slice(rowStart, index + 1))
+        rowStart = -1
+      }
+    }
+  }
+  return rows
+}
+
 function isNonLocalEvidenceRef(value) {
   if (!hasText(value)) {
     return false
@@ -140,6 +181,39 @@ function isNonLocalEvidenceRef(value) {
   return false
 }
 
+function isAllowedPublicMediaFile(value) {
+  const normalized = String(value || '').trim()
+  if (/^\/static\/xicheng\/[A-Za-z0-9._/-]+\.(?:jpg|jpeg|png|webp)$/i.test(normalized)) {
+    return true
+  }
+  return isNonLocalEvidenceRef(normalized)
+}
+
+function extractSingleQuotedValues(row) {
+  const values = []
+  for (let index = 0; index < row.length; index += 1) {
+    if (row[index] !== "'") {
+      continue
+    }
+    let value = ''
+    index += 1
+    for (; index < row.length; index += 1) {
+      const char = row[index]
+      const next = row[index + 1]
+      if (char === "'" && next === "'") {
+        value += "'"
+        index += 1
+      } else if (char === "'") {
+        break
+      } else {
+        value += char
+      }
+    }
+    values.push(value)
+  }
+  return values
+}
+
 function checkSqlFile(sql) {
   const blockers = []
   if (!sql.trim()) {
@@ -154,6 +228,7 @@ function checkSeedShape(sql) {
     'Generated from reviewed Xicheng POI production manifest',
     'INSERT INTO `xunjing_poi`',
     'INSERT INTO `xunjing_knowledge_document`',
+    'INSERT INTO `xunjing_media_asset`',
     'INSERT INTO `xunjing_map_point`',
     'INSERT INTO `xunjing_public_report`',
     'SET @map_package_id :='
@@ -211,6 +286,8 @@ function checkProductionMetrics(sql, minPoiCount) {
   const blockers = []
   const poiSeedCount = extractNumberMetric(sql, 'poiSeedCount')
   const targetP0PoiCount = extractNumberMetric(sql, 'targetP0PoiCount')
+  const reviewedMediaCount = extractNumberMetric(sql, 'reviewedMediaCount')
+  const targetMediaAssetCount = extractNumberMetric(sql, 'targetMediaAssetCount')
   const regionCode = extractStringMetric(sql, 'regionCode')
   const packageCode = extractStringMetric(sql, 'packageCode')
   if (!sql.includes('"productionReady":true')) {
@@ -227,6 +304,12 @@ function checkProductionMetrics(sql, minPoiCount) {
   }
   if (!Number.isFinite(targetP0PoiCount) || targetP0PoiCount < minPoiCount) {
     blockers.push(`production metrics must include "targetP0PoiCount" >= ${minPoiCount}`)
+  }
+  if (!Number.isFinite(reviewedMediaCount) || reviewedMediaCount < 4) {
+    blockers.push('production metrics must include "reviewedMediaCount" >= 4')
+  }
+  if (!Number.isFinite(targetMediaAssetCount) || targetMediaAssetCount < 4) {
+    blockers.push('production metrics must include "targetMediaAssetCount" >= 4')
   }
   return check('production-metrics', blockers)
 }
@@ -302,6 +385,32 @@ function checkSourceDocuments(sql) {
   return check('source-documents', blockers)
 }
 
+function checkMediaAssets(sql) {
+  const blockers = []
+  const rows = extractInsertRows(sql, 'xunjing_media_asset')
+  const publicApprovedRows = rows.filter((row) => {
+    const values = extractSingleQuotedValues(row)
+    const mediaType = values[1]
+    const fileUrl = values[2]
+    const copyrightStatus = values[6]
+    const reviewStatus = values[7]
+    return mediaType === 'IMAGE' &&
+      isAllowedPublicMediaFile(fileUrl) &&
+      copyrightStatus === 'AUTHORIZED' &&
+      reviewStatus === 'APPROVED' &&
+      row.includes("b'1', b'1'")
+  })
+  const targetMediaAssetCount = extractNumberMetric(sql, 'targetMediaAssetCount') || 4
+  const minMediaCount = Math.max(4, targetMediaAssetCount)
+  if (publicApprovedRows.length < minMediaCount) {
+    blockers.push('seed SQL must include approved public xunjing_media_asset rows')
+  }
+  if (/(?:data:image|imageBase64|file:\/\/|localhost|127\.0\.0\.1|0\.0\.0\.0)/i.test(rows.join('\n'))) {
+    blockers.push('seed SQL media assets must not use raw image data or local URLs')
+  }
+  return check('media-assets', blockers)
+}
+
 export async function verifyXichengPoiProductionSeed({
   sqlPath,
   minPoiCount = defaultMinPoiCount
@@ -320,6 +429,7 @@ export async function verifyXichengPoiProductionSeed({
     checkPoiApproval(sql),
     checkProductionMetrics(sql, normalizedMinPoiCount),
     checkReviewBatchMetrics(sql),
+    checkMediaAssets(sql),
     checkFieldEvidence(sql),
     checkSourceLicenseEvidence(sql),
     checkSourceDocuments(sql)
@@ -342,6 +452,8 @@ export async function verifyXichengPoiProductionSeed({
       packageCode: extractStringMetric(sql, 'packageCode'),
       poiSeedCount: extractNumberMetric(sql, 'poiSeedCount'),
       targetP0PoiCount: extractNumberMetric(sql, 'targetP0PoiCount'),
+      reviewedMediaCount: extractNumberMetric(sql, 'reviewedMediaCount'),
+      targetMediaAssetCount: extractNumberMetric(sql, 'targetMediaAssetCount'),
       reviewBatchCode: extractStringMetric(sql, 'reviewBatchCode'),
       reviewBatchEvidencePackageRef: extractStringMetric(sql, 'reviewBatchEvidencePackageRef')
     },

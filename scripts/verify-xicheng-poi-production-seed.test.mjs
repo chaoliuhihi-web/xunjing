@@ -75,6 +75,28 @@ function productionPoi(index, overrides = {}) {
   }
 }
 
+function productionMediaAsset(index, overrides = {}) {
+  const suffix = String(index).padStart(3, '0')
+  const poiCode = `xicheng-prod-poi-${suffix}`
+  return {
+    assetCode: `xicheng-prod-media-${suffix}`,
+    poiCode,
+    title: `西城生产点位${suffix}授权图片`,
+    mediaType: 'IMAGE',
+    fileUrl: `/static/xicheng/poi-${suffix}.jpg`,
+    objectKey: `app-static/xicheng/poi-${suffix}.jpg`,
+    sourceProvider: '星河寻境',
+    sourceUrl: `internal://xunjing/xicheng/app-static-assets#poi-${suffix}`,
+    copyrightStatus: 'AUTHORIZED',
+    reviewStatus: 'APPROVED',
+    imageTags: ['xicheng', poiCode, 'production-media'],
+    canPublic: true,
+    canAiUse: true,
+    canPromotionUse: false,
+    ...overrides
+  }
+}
+
 function productionManifest(overrides = {}) {
   return {
     regionCode: 'beijing-xicheng',
@@ -90,6 +112,8 @@ function productionManifest(overrides = {}) {
       reviewedAt: '2026-06-27',
       evidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260627.zip'
     },
+    targetMediaAssetCount: 4,
+    mediaAssets: Array.from({ length: 4 }, (_, index) => productionMediaAsset(index + 1)),
     pois: Array.from({ length: 80 }, (_, index) => productionPoi(index + 1)),
     ...overrides
   }
@@ -154,6 +178,7 @@ describe('xicheng POI production seed SQL gate', () => {
     const generatedSql = await readFile(sqlPath, 'utf8')
     expect(generatedSql).toContain('"packageCount":1')
     expect(generatedSql).toContain('"reviewedKnowledgeCount":80')
+    expect(generatedSql).toContain('"reviewedMediaCount":4')
     expect(generatedSql).toContain('"mapPointCount":80')
     expect(generatedSql).toContain('"qrCodeCount":1')
 
@@ -173,6 +198,8 @@ describe('xicheng POI production seed SQL gate', () => {
       productionReady: true,
       regionCode: 'beijing-xicheng',
       packageCode: 'XICHENG-MAP-001',
+      reviewedMediaCount: 4,
+      targetMediaAssetCount: 4,
       reviewBatchCode: 'xicheng-p0-poi-review-20260627',
       reviewBatchEvidencePackageRef: 'oss://xunjing-review/xicheng/review-batches/xicheng-p0-poi-review-20260627.zip',
       sqlFile: sqlPath
@@ -186,6 +213,7 @@ describe('xicheng POI production seed SQL gate', () => {
       'poi-approval',
       'production-metrics',
       'review-batch-metrics',
+      'media-assets',
       'field-evidence',
       'source-license-evidence',
       'source-documents'
@@ -207,7 +235,7 @@ VALUES
 (@map_package_id, 'xicheng-prod-poi-001', 'APPROVED', 'REVIEW_REQUIRED', 'REVIEW_REQUIRED', 'DRAFT');
 INSERT INTO \`xunjing_knowledge_document\` (\`title\`) VALUES ('POI 级生产来源');
 INSERT INTO \`xunjing_map_point\` (\`title\`) VALUES ('xicheng-prod-poi-001');
-INSERT INTO \`xunjing_public_report\` (\`metrics_json\`) VALUES ('{"productionReady":false,"poiSeedCount":1,"targetP0PoiCount":80}');
+INSERT INTO \`xunjing_public_report\` (\`metrics_json\`) VALUES ('{"productionReady":false,"poiSeedCount":1,"targetP0PoiCount":80,"reviewedMediaCount":0,"targetMediaAssetCount":4}');
 `)
     const evidencePath = path.join(rootDir, 'tmp/xicheng-poi-production-seed-evidence.json')
 
@@ -222,6 +250,7 @@ INSERT INTO \`xunjing_public_report\` (\`metrics_json\`) VALUES ('{"productionRe
     expect(evidence.status).toBe('NOT_READY')
     expect(evidence.blockers.join('\n')).toContain('80 production POI seed rows required; found 1/80')
     expect(evidence.blockers.join('\n')).toContain('seed SQL must fail fast when XICHENG-MAP-001 package is missing')
+    expect(evidence.blockers.join('\n')).toContain('seed SQL must include approved public xunjing_media_asset rows')
     expect(evidence.blockers.join('\n')).toContain('seed SQL must not contain REVIEW_REQUIRED or DRAFT')
     expect(evidence.blockers.join('\n')).toContain('production metrics must include "productionReady":true')
     expect(evidence.blockers.join('\n')).toContain('production metrics must include regionCode=beijing-xicheng')

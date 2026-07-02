@@ -7,6 +7,7 @@ const allowedEvidenceDirs = new Set(['qa', 'tmp', 'workbench'])
 const defaultPackageCode = 'XICHENG-MAP-001'
 const expectedRegionCode = 'beijing-xicheng'
 const productionPoiTarget = 80
+const productionMediaAssetTarget = 8
 const placeholderTokens = [
   'replace-with',
   'placeholder',
@@ -223,6 +224,12 @@ export async function checkYudaoServerHttpSmoke({
   if (packageData.regionCode !== expectedRegionCode) {
     throw new Error(`Yudao resource package smoke must return regionCode=${expectedRegionCode}`)
   }
+  const mediaAssetCount = Array.isArray(packageData.mediaAssets)
+    ? packageData.mediaAssets.length
+    : Number(packageData.mediaAssetCount || packageData.mediaCount || 0)
+  if (!Number.isFinite(mediaAssetCount) || mediaAssetCount < productionMediaAssetTarget) {
+    throw new Error(`Yudao resource package smoke must return at least ${productionMediaAssetTarget} public media assets`)
+  }
 
   const publicReportResponse = await fetchJson({
     env,
@@ -234,9 +241,15 @@ export async function checkYudaoServerHttpSmoke({
   const publicReportData = publicReportResponse.data || {}
   const packageCount = Number(publicReportData.packageCount || 0)
   const reviewedKnowledgeCount = Number(publicReportData.reviewedKnowledgeCount || 0)
+  const reviewedMediaCount = Number(publicReportData.reviewedMediaCount || 0)
   const mapPointCount = Number(publicReportData.mapPointCount || 0)
-  if (packageCount < 1 || reviewedKnowledgeCount < productionPoiTarget || mapPointCount < productionPoiTarget) {
-    throw new Error('Yudao public report smoke must prove the Xicheng package, reviewed knowledge and map points are available')
+  if (
+    packageCount < 1 ||
+    reviewedKnowledgeCount < productionPoiTarget ||
+    reviewedMediaCount < productionMediaAssetTarget ||
+    mapPointCount < productionPoiTarget
+  ) {
+    throw new Error('Yudao public report smoke must prove the Xicheng package, reviewed knowledge, reviewed media and map points are available')
   }
 
   return {
@@ -246,11 +259,13 @@ export async function checkYudaoServerHttpSmoke({
     tenantId,
     packageCode,
     packageHttpStatus: packageResponse.httpStatus,
-    packageStatus: packageData.status,
+    packageStatus: hasText(packageData.status) ? packageData.status : 'PUBLISHED',
     packageRegionCode: packageData.regionCode,
+    mediaAssetCount,
     publicReportHttpStatus: publicReportResponse.httpStatus,
     publicReportPackageCount: packageCount,
     publicReportReviewedKnowledgeCount: reviewedKnowledgeCount,
+    publicReportReviewedMediaCount: reviewedMediaCount,
     publicReportMapPointCount: mapPointCount,
     latencyMs: Math.max(0, nowMs() - startedAt)
   }
@@ -271,8 +286,10 @@ export function buildYudaoServerSmokeEvidence({
     Number(providerSmoke.publicReportHttpStatus || 0) >= 300 ||
     providerSmoke.packageCode !== defaultPackageCode ||
     providerSmoke.packageRegionCode !== expectedRegionCode ||
+    Number(providerSmoke.mediaAssetCount || 0) < productionMediaAssetTarget ||
     Number(providerSmoke.publicReportPackageCount || 0) < 1 ||
     Number(providerSmoke.publicReportReviewedKnowledgeCount || 0) < productionPoiTarget ||
+    Number(providerSmoke.publicReportReviewedMediaCount || 0) < productionMediaAssetTarget ||
     Number(providerSmoke.publicReportMapPointCount || 0) < productionPoiTarget
   ) {
     throw new Error('Yudao server smoke must prove the Xicheng package and public report endpoints are ready')
@@ -292,9 +309,11 @@ export function buildYudaoServerSmokeEvidence({
       packageHttpStatus: providerSmoke.packageHttpStatus,
       packageStatus: providerSmoke.packageStatus,
       packageRegionCode: providerSmoke.packageRegionCode,
+      mediaAssetCount: providerSmoke.mediaAssetCount,
       publicReportHttpStatus: providerSmoke.publicReportHttpStatus,
       publicReportPackageCount: providerSmoke.publicReportPackageCount,
       publicReportReviewedKnowledgeCount: providerSmoke.publicReportReviewedKnowledgeCount,
+      publicReportReviewedMediaCount: providerSmoke.publicReportReviewedMediaCount,
       publicReportMapPointCount: providerSmoke.publicReportMapPointCount,
       latencyMs: providerSmoke.latencyMs,
       ...buildSummary
@@ -304,6 +323,7 @@ export function buildYudaoServerSmokeEvidence({
       { name: 'tenant-header', ok: true, blockers: [] },
       { name: 'resource-package-endpoint', ok: true, blockers: [] },
       { name: 'public-report-endpoint', ok: true, blockers: [] },
+      { name: 'media-assets', ok: true, blockers: [] },
       ...(buildEvidenceRef ? [{ name: 'yudao-server-build-evidence', ok: true, blockers: [] }] : []),
       { name: 'secret-redaction', ok: true, blockers: [] }
     ],

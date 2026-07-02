@@ -29,6 +29,7 @@ const requiredManifestEvidenceChecks = [
   'poi-source-license',
   'poi-field-evidence',
   'poi-content',
+  'media-assets',
   'poi-audit'
 ]
 
@@ -53,6 +54,7 @@ const requiredSeedEvidenceChecks = [
   'review-batch-metrics',
   'field-evidence',
   'source-license-evidence',
+  'media-assets',
   'source-documents'
 ]
 
@@ -106,6 +108,7 @@ const requiredYudaoServerSmokeEvidenceChecks = [
   'tenant-header',
   'resource-package-endpoint',
   'public-report-endpoint',
+  'media-assets',
   'secret-redaction'
 ]
 
@@ -1337,6 +1340,12 @@ async function checkYudaoServerSmokeEvidence({
     if (Number(summary.publicReportReviewedKnowledgeCount || 0) < productionPoiTarget) {
       blockers.push(`Yudao server smoke evidence publicReportReviewedKnowledgeCount must be at least ${productionPoiTarget}`)
     }
+    if (Number(summary.publicReportReviewedMediaCount || 0) < 8) {
+      blockers.push('Yudao server smoke evidence publicReportReviewedMediaCount must be at least 8')
+    }
+    if (Number(summary.mediaAssetCount || 0) < 8) {
+      blockers.push('Yudao server smoke evidence mediaAssetCount must be at least 8')
+    }
     if (Number(summary.publicReportMapPointCount || 0) < productionPoiTarget) {
       blockers.push(`Yudao server smoke evidence publicReportMapPointCount must be at least ${productionPoiTarget}`)
     }
@@ -1397,7 +1406,9 @@ async function checkYudaoServerSmokeEvidence({
       yudaoServerSmokePublicReportHttpStatus: summary.publicReportHttpStatus,
       yudaoServerSmokePublicReportPackageCount: summary.publicReportPackageCount,
       yudaoServerSmokePublicReportReviewedKnowledgeCount: summary.publicReportReviewedKnowledgeCount,
+      yudaoServerSmokePublicReportReviewedMediaCount: summary.publicReportReviewedMediaCount,
       yudaoServerSmokePublicReportMapPointCount: summary.publicReportMapPointCount,
+      yudaoServerSmokeMediaAssetCount: summary.mediaAssetCount,
       yudaoServerSmokeBuildEvidenceFile: summary.buildEvidenceFile,
       yudaoServerSmokeBuildGitCommit: summary.buildGitCommit,
       yudaoServerSmokeBuildGitDirty: summary.buildGitDirty,

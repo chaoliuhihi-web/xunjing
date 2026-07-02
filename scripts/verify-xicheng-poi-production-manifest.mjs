@@ -7,6 +7,7 @@ const artifactType = 'xicheng-poi-production-manifest-readiness'
 const expectedRegionCode = 'beijing-xicheng'
 const expectedPackageCode = 'XICHENG-MAP-001'
 const defaultMinPoiCount = 80
+const defaultMinMediaAssetCount = 4
 const allowedEvidenceDirs = new Set(['qa', 'tmp', 'workbench'])
 
 function hasText(value) {
@@ -60,6 +61,28 @@ function isFieldEvidenceRef(value) {
     return false
   }
   return false
+}
+
+function isAppStaticMediaPath(value) {
+  return /^\/static\/xicheng\/[A-Za-z0-9._/-]+\.(?:jpg|jpeg|png|webp)$/i.test(String(value || '').trim())
+}
+
+function isMediaFileRef(value) {
+  if (isAppStaticMediaPath(value)) {
+    return true
+  }
+  return isFieldEvidenceRef(value)
+}
+
+function isMediaSourceRef(value) {
+  if (!hasText(value)) {
+    return false
+  }
+  const normalized = String(value).trim()
+  if (/^internal:\/\/xunjing\//i.test(normalized)) {
+    return true
+  }
+  return isFieldEvidenceRef(normalized)
 }
 
 function check(name, blockers) {
@@ -296,6 +319,70 @@ function checkPoiContent(pois) {
   return check('poi-content', blockers)
 }
 
+function checkMediaAssets(manifest, pois) {
+  const blockers = []
+  const mediaAssets = Array.isArray(manifest.mediaAssets) ? manifest.mediaAssets : []
+  const targetCount = Number(manifest.targetMediaAssetCount) || defaultMinMediaAssetCount
+  const minCount = Math.max(defaultMinMediaAssetCount, targetCount)
+  const poiCodes = new Set(pois.map((poi) => poi.poiCode).filter(hasText))
+  const publicApprovedAssets = mediaAssets.filter((asset) => (
+    isObject(asset) &&
+    String(asset.mediaType || '').toUpperCase() === 'IMAGE' &&
+    String(asset.reviewStatus || '').toUpperCase() === 'APPROVED' &&
+    String(asset.copyrightStatus || '').toUpperCase() === 'AUTHORIZED' &&
+    asset.canPublic === true
+  ))
+
+  if (publicApprovedAssets.length < minCount) {
+    blockers.push(`${minCount} approved public media assets required; found ${publicApprovedAssets.length}/${minCount}`)
+  }
+
+  mediaAssets.forEach((asset, index) => {
+    const label = hasText(asset?.assetCode) ? asset.assetCode : `mediaAssets[${index}]`
+    if (!/^xicheng-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(String(asset?.assetCode || ''))) {
+      blockers.push(`${label} assetCode must be a stable xicheng-* slug`)
+    }
+    if (hasText(asset?.poiCode) && !poiCodes.has(asset.poiCode)) {
+      blockers.push(`${label} poiCode must reference a manifest POI`)
+    }
+    if (!hasText(asset?.title)) {
+      blockers.push(`${label} title is required`)
+    }
+    if (String(asset?.mediaType || '').toUpperCase() !== 'IMAGE') {
+      blockers.push(`${label} mediaType must be IMAGE`)
+    }
+    if (!isMediaFileRef(asset?.fileUrl)) {
+      blockers.push(`${label} fileUrl must be a non-local media URL or /static/xicheng/ app asset`)
+    }
+    if (!hasText(asset?.objectKey)) {
+      blockers.push(`${label} objectKey is required`)
+    }
+    if (!hasText(asset?.sourceProvider)) {
+      blockers.push(`${label} sourceProvider is required`)
+    }
+    if (!isMediaSourceRef(asset?.sourceUrl)) {
+      blockers.push(`${label} sourceUrl must be an internal xunjing reference or non-local evidence URL`)
+    }
+    if (String(asset?.copyrightStatus || '').toUpperCase() !== 'AUTHORIZED') {
+      blockers.push(`${label} copyrightStatus must be AUTHORIZED`)
+    }
+    if (String(asset?.reviewStatus || '').toUpperCase() !== 'APPROVED') {
+      blockers.push(`${label} reviewStatus must be APPROVED`)
+    }
+    if (asset?.canPublic !== true) {
+      blockers.push(`${label} canPublic must be true`)
+    }
+    if (asset?.canAiUse !== true) {
+      blockers.push(`${label} canAiUse must be true`)
+    }
+    if (!Array.isArray(asset?.imageTags) || asset.imageTags.filter(hasText).length < 2) {
+      blockers.push(`${label} imageTags must include at least two tags`)
+    }
+  })
+
+  return check('media-assets', blockers)
+}
+
 function checkPoiAudit(pois) {
   const blockers = []
   pois.forEach((poi, index) => {
@@ -342,6 +429,7 @@ export async function verifyXichengPoiProductionManifest({
     checkPoiSourceLicense(pois),
     checkPoiFieldEvidence(pois),
     checkPoiContent(pois),
+    checkMediaAssets(manifest, pois),
     checkPoiAudit(pois)
   ]
   const blockers = checks.flatMap((item) => item.blockers)
@@ -361,6 +449,8 @@ export async function verifyXichengPoiProductionManifest({
       packageCode: manifest.packageCode,
       totalPoiCount: pois.length,
       targetPoiCount: Number(manifest.targetP0PoiCount) || normalizedMinPoiCount,
+      mediaAssetCount: Array.isArray(manifest.mediaAssets) ? manifest.mediaAssets.length : 0,
+      targetMediaAssetCount: Number(manifest.targetMediaAssetCount) || defaultMinMediaAssetCount,
       minPoiCount: normalizedMinPoiCount,
       productionReady: manifest.productionReady === true,
       reviewBatchCode: manifest.reviewBatch?.batchCode,
