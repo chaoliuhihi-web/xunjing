@@ -176,6 +176,7 @@ spring:
         collection-name: ${QDRANT_TEXT_COLLECTION:xinghe_xunjing_text_local} # Qdrant 中向量集合的名称：用于存储和检索星河寻境文本知识库
         host: ${QDRANT_HOST:127.0.0.1}
         port: ${QDRANT_GRPC_PORT:36334}
+        api-key: ${QDRANT_API_KEY:}
       milvus:
         initialize-schema: false
         database-name: default # Milvus 中数据库的名称

@@ -17,6 +17,7 @@ describe('xunjing yudao runtime config contract', () => {
     expect(config).toContain('collection-name: ${QDRANT_TEXT_COLLECTION:xinghe_xunjing_text_local}')
     expect(config).toContain('host: ${QDRANT_HOST:127.0.0.1}')
     expect(config).toContain('port: ${QDRANT_GRPC_PORT:36334}')
+    expect(config).toContain('api-key: ${QDRANT_API_KEY:}')
     expect(config).toContain('vectorstore: # 向量存储\n      type: ${SPRING_AI_VECTORSTORE_TYPE:qdrant}')
     expect(config).toContain('redis:\n        initialize-schema: false')
     expect(config).toContain('milvus:\n        initialize-schema: false')
