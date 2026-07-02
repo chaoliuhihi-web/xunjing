@@ -136,7 +136,7 @@ public class XunjingMultimodalTriggerEngine {
         respVO.setPoiName(best.poi().name());
         respVO.setConfidence(best.confidence());
         respVO.setRequiresUserConfirm(!autoTrigger);
-        respVO.setReason(buildReason(best.signals(), autoTrigger));
+        respVO.setReason(buildReason(best.signals(), autoTrigger, intent, safeReqVO.getSceneSignals()));
         respVO.setTargetPath(buildTargetPath(intent, regionCode, best.poi().code(), safeReqVO.getPackageCode(), !autoTrigger));
         respVO.setSuggestedQuestions(best.poi().suggestedQuestions());
         respVO.setSources(toSources(best.poi()));
@@ -384,7 +384,8 @@ public class XunjingMultimodalTriggerEngine {
         return "context";
     }
 
-    private String buildReason(List<String> signals, boolean autoTrigger) {
+    private String buildReason(
+            List<String> signals, boolean autoTrigger, String intent, Map<String, Object> sceneSignals) {
         List<String> parts = new ArrayList<>();
         if (signals.contains("gps_radius") || signals.contains("gps_nearby")) {
             parts.add("定位");
@@ -403,6 +404,9 @@ public class XunjingMultimodalTriggerEngine {
         }
         if (signals.contains("context_poi")) {
             parts.add("上下文");
+        }
+        if ("route".equals(intent) && hasText(detectRealtimeRouteIntent(sceneSignals))) {
+            parts.add("实时环境");
         }
         String evidence = parts.isEmpty() ? "上下文" : String.join("+", parts);
         return autoTrigger ? evidence + "已达到自动触发阈值。" : evidence + "匹配到候选点，需用户确认。";
@@ -473,7 +477,71 @@ public class XunjingMultimodalTriggerEngine {
         if (containsAny(text, List.of("travelogue", "record", "checkin", "badge", "游记", "记录", "打卡", "徽章"))) {
             return "record";
         }
+        return detectRealtimeRouteIntent(sceneSignals);
+    }
+
+    private String detectRealtimeRouteIntent(Map<String, Object> sceneSignals) {
+        if (sceneSignals == null || sceneSignals.isEmpty()) {
+            return "";
+        }
+        String weatherText = sceneSignalValue(sceneSignals, "weatherText");
+        String localTimeText = sceneSignalValue(sceneSignals, "localTimeText");
+        String environmentText = normalize(String.join(" ",
+                weatherText,
+                localTimeText,
+                sceneSignalValue(sceneSignals, "temperatureText"),
+                sceneSignalValue(sceneSignals, "sceneFusionSummary"),
+                sceneSignalValue(sceneSignals, "agentDecisionReasonSummary")));
+        if (isOutdoorDiscomfortWeather(environmentText)
+                || isHighTemperature(sceneSignals, environmentText)
+                || isNightLocalTime(localTimeText)) {
+            return "route";
+        }
         return "";
+    }
+
+    private boolean isOutdoorDiscomfortWeather(String normalizedText) {
+        return containsAny(normalizedText, List.of(
+                "下雨", "小雨", "中雨", "大雨", "暴雨", "雷阵雨", "雨天", "降雨",
+                "下雪", "雪天", "大风", "沙尘", "雾霾", "高温", "酷热", "炎热"));
+    }
+
+    private boolean isHighTemperature(Map<String, Object> sceneSignals, String normalizedText) {
+        if (containsAny(normalizedText, List.of("35度", "36度", "37度", "38度", "39度", "40度",
+                "35℃", "36℃", "37℃", "38℃", "39℃", "40℃"))) {
+            return true;
+        }
+        Double temperature = doubleValue(sceneSignals.get("temperatureCelsius"), Double.NaN);
+        return temperature != null && Double.isFinite(temperature) && temperature >= 35D;
+    }
+
+    private boolean isNightLocalTime(String localTimeText) {
+        String normalizedText = normalize(localTimeText);
+        if (containsAny(normalizedText, List.of("夜间", "晚上", "夜游", "夜景", "晚间", "日落后"))) {
+            return true;
+        }
+        Integer hour = parseLocalHour(localTimeText);
+        return hour != null && (hour >= 19 || hour <= 5);
+    }
+
+    private Integer parseLocalHour(String localTimeText) {
+        if (!hasText(localTimeText)) {
+            return null;
+        }
+        int colonIndex = localTimeText.indexOf(':');
+        if (colonIndex <= 0) {
+            return null;
+        }
+        String hourText = localTimeText.substring(0, colonIndex).replaceAll("[^0-9]", "");
+        if (hourText.length() > 2) {
+            hourText = hourText.substring(hourText.length() - 2);
+        }
+        try {
+            int hour = Integer.parseInt(hourText);
+            return hour >= 0 && hour <= 23 ? hour : null;
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     private String sceneSignalValue(Map<String, Object> sceneSignals, String key) {

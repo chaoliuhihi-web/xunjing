@@ -713,6 +713,44 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerUsesRealtimeEnvironmentForRouteIntent() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneFusionSummary", "现在下雨且已经入夜，适合优先推荐室内路线。");
+        sceneSignals.put("weatherText", "小雨");
+        sceneSignals.put("localTimeText", "21:10");
+        sceneSignals.put("sceneDomainIntentKey", "architecture");
+        sceneSignals.put("sceneDomainIntentLabel", "建筑");
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-multimodal-trigger");
+        reqVO.setOcrText("恭王府博物馆入口");
+        reqVO.setLocation(location("39.937050", "116.386770", 20));
+        reqVO.setSceneSignals(sceneSignals);
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("route", respVO.getIntent());
+        assertEquals("confirm_route_recommendation", respVO.getAction());
+        assertTrue(respVO.getTargetPath().startsWith("/pages/routes/recommend"));
+        assertTrue(respVO.getReason().contains("实时环境"));
+
+        List<XunjingInteractionEventDO> events = interactionEventMapper.selectList(
+                new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                        .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                        .eq(XunjingInteractionEventDO::getEventType, XunjingEnums.EventType.TRIGGER_RESOLVE.getType()));
+        assertEquals(1, events.size());
+        JsonNode persistedSignals = JsonUtils.parseTree(events.get(0).getPayloadJson()).get("sceneSignals");
+        assertEquals("小雨", persistedSignals.get("weatherText").asText());
+        assertEquals("21:10", persistedSignals.get("localTimeText").asText());
+    }
+
+    @Test
     public void testResolveMultimodalTriggerHydratesContinuousContextFromPreviousTriggerEvent() {
         Long projectId = consoleService.createProject(xichengProjectReq());
         Long schoolId = consoleService.createSchool(xichengSchoolReq());
