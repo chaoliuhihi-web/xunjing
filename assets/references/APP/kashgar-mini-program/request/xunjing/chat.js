@@ -18,30 +18,67 @@ const normalizeVisionAgentCount = (value = 0) => {
 	return Number.isFinite(count) && count > 0 ? count : 0
 }
 
+const resolveVisionAgentStructuredContext = (context = {}) => {
+	const nestedContext = context.visionAgentContext && typeof context.visionAgentContext === 'object'
+		? context.visionAgentContext
+		: {}
+	const pickContextValue = (key = '') => {
+		const contextValue = context[key]
+		return contextValue === undefined || contextValue === null || contextValue === ''
+			? nestedContext[key]
+			: contextValue
+	}
+	const mergedContext = Object.keys({
+		...nestedContext,
+		...context
+	}).reduce((result, key) => {
+		result[key] = pickContextValue(key)
+		return result
+	}, {
+		visionAgentContext: nestedContext
+	})
+	const sceneUnderstandingPackage = mergedContext.sceneUnderstandingPackage && typeof mergedContext.sceneUnderstandingPackage === 'object'
+		? mergedContext.sceneUnderstandingPackage
+		: {}
+	const pickPackageValue = (contextKey = '', packageKey = '') => {
+		const contextValue = mergedContext[contextKey]
+		return contextValue === undefined || contextValue === null || contextValue === ''
+			? sceneUnderstandingPackage[packageKey]
+			: contextValue
+	}
+	return {
+		...mergedContext,
+		primarySceneDomainKey: pickPackageValue('primarySceneDomainKey', 'primaryDomainKey') || '',
+		primarySceneDomainLabel: pickPackageValue('primarySceneDomainLabel', 'primaryDomainLabel') || '',
+		sceneUnderstandingSummary: pickPackageValue('sceneUnderstandingSummary', 'sceneUnderstandingSummary') || ''
+	}
+}
+
 export const createXichengVisionAgentChatContextFields = (context = {}) => {
+	const visionAgentContext = resolveVisionAgentStructuredContext(context)
 	const hasVisionAgentContext = Boolean(
 		(context.visionAgentContext && typeof context.visionAgentContext === 'object')
-		|| context.sceneFusionSummary
-		|| context.worldInterfaceSummary
-		|| context.visionAgentMemorySessionText
-		|| context.primarySceneDomainKey
-		|| context.agentDecisionReasonSummary
+		|| visionAgentContext.sceneFusionSummary
+		|| visionAgentContext.worldInterfaceSummary
+		|| visionAgentContext.visionAgentMemorySessionText
+		|| visionAgentContext.primarySceneDomainKey
+		|| visionAgentContext.agentDecisionReasonSummary
 	)
 	if (!hasVisionAgentContext) return {}
 	return {
 		visionAgentContextAvailable: true,
-		visionAgentSceneFusionSummary: normalizeVisionAgentText(context.sceneFusionSummary),
-		visionAgentWorldInterfaceSummary: normalizeVisionAgentText(context.worldInterfaceSummary),
-		visionAgentMemorySessionText: normalizeVisionAgentText(context.visionAgentMemorySessionText, 160),
-		visionAgentMemorySessionSceneCount: normalizeVisionAgentCount(context.memorySessionSceneCount),
-		visionAgentPrimarySceneDomainKey: normalizeVisionAgentText(context.primarySceneDomainKey, 48),
-		visionAgentPrimarySceneDomainLabel: normalizeVisionAgentText(context.primarySceneDomainLabel, 48),
-		visionAgentSceneUnderstandingSummary: normalizeVisionAgentText(context.sceneUnderstandingSummary),
-		visionAgentDecisionActionTitle: normalizeVisionAgentText(context.agentDecisionActionTitle, 64),
-		visionAgentDecisionReasonSummary: normalizeVisionAgentText(context.agentDecisionReasonSummary),
-		visionAgentLocalTimeText: normalizeVisionAgentText(context.localTimeText, 40),
-		visionAgentWeatherText: normalizeVisionAgentText(context.weatherText, 40),
-		visionAgentHeadingText: normalizeVisionAgentText(context.headingText, 40)
+		visionAgentSceneFusionSummary: normalizeVisionAgentText(visionAgentContext.sceneFusionSummary),
+		visionAgentWorldInterfaceSummary: normalizeVisionAgentText(visionAgentContext.worldInterfaceSummary),
+		visionAgentMemorySessionText: normalizeVisionAgentText(visionAgentContext.visionAgentMemorySessionText, 160),
+		visionAgentMemorySessionSceneCount: normalizeVisionAgentCount(visionAgentContext.memorySessionSceneCount),
+		visionAgentPrimarySceneDomainKey: normalizeVisionAgentText(visionAgentContext.primarySceneDomainKey, 48),
+		visionAgentPrimarySceneDomainLabel: normalizeVisionAgentText(visionAgentContext.primarySceneDomainLabel, 48),
+		visionAgentSceneUnderstandingSummary: normalizeVisionAgentText(visionAgentContext.sceneUnderstandingSummary),
+		visionAgentDecisionActionTitle: normalizeVisionAgentText(visionAgentContext.agentDecisionActionTitle, 64),
+		visionAgentDecisionReasonSummary: normalizeVisionAgentText(visionAgentContext.agentDecisionReasonSummary),
+		visionAgentLocalTimeText: normalizeVisionAgentText(visionAgentContext.localTimeText, 40),
+		visionAgentWeatherText: normalizeVisionAgentText(visionAgentContext.weatherText, 40),
+		visionAgentHeadingText: normalizeVisionAgentText(visionAgentContext.headingText, 40)
 	}
 }
 

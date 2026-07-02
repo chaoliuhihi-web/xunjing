@@ -173,6 +173,65 @@ assert.deepEqual(
   'Xicheng chat facade should expose bounded structured Vision Agent context fields without raw photo paths or coordinates'
 )
 
+const nestedVisionAgentChatContextFields = createXichengVisionAgentChatContextFields({
+  sceneFusionSummary: '',
+  worldInterfaceSummary: '',
+  visionAgentMemorySessionText: '',
+  memorySessionSceneCount: '',
+  primarySceneDomainKey: '',
+  primarySceneDomainLabel: '',
+  sceneUnderstandingSummary: '',
+  agentDecisionActionTitle: '',
+  agentDecisionReasonSummary: '',
+  localTimeText: '',
+  weatherText: '',
+  headingText: '',
+  visionAgentContext: {
+    sourceRecognitionContext: '{"photoPath":"/tmp/raw.jpg","latitude":39.9,"longitude":116.3}',
+    sceneFusionSummary: '镜头、GPS、天气已融合',
+    worldInterfaceSummary: '现实世界成为 AI 交互入口',
+    visionAgentMemorySessionText: '连续识境路线：白塔寺 → 历代帝王庙',
+    memorySessionSceneCount: '2',
+    sceneUnderstandingPackage: {
+      primaryDomainKey: 'architecture',
+      primaryDomainLabel: '建筑',
+      sceneUnderstandingSummary: '建筑场景，可接入讲解和路线'
+    },
+    agentDecisionActionTitle: '开始讲解',
+    agentDecisionReasonSummary: '当前位置匹配已审核 POI 和历史路线',
+    localTimeText: '09:20',
+    weatherText: '多云',
+    headingText: '朝北'
+  }
+})
+
+assert.deepEqual(
+  nestedVisionAgentChatContextFields,
+  {
+    visionAgentContextAvailable: true,
+    visionAgentSceneFusionSummary: '镜头、GPS、天气已融合',
+    visionAgentWorldInterfaceSummary: '现实世界成为 AI 交互入口',
+    visionAgentMemorySessionText: '连续识境路线：白塔寺 → 历代帝王庙',
+    visionAgentMemorySessionSceneCount: 2,
+    visionAgentPrimarySceneDomainKey: 'architecture',
+    visionAgentPrimarySceneDomainLabel: '建筑',
+    visionAgentSceneUnderstandingSummary: '建筑场景，可接入讲解和路线',
+    visionAgentDecisionActionTitle: '开始讲解',
+    visionAgentDecisionReasonSummary: '当前位置匹配已审核 POI 和历史路线',
+    visionAgentLocalTimeText: '09:20',
+    visionAgentWeatherText: '多云',
+    visionAgentHeadingText: '朝北'
+  },
+  'Xicheng chat facade should flatten nested Vision Agent route context and scene understanding package into bounded backend fields'
+)
+
+assert.ok(
+  !JSON.stringify(nestedVisionAgentChatContextFields).includes('/tmp/raw.jpg')
+    && !JSON.stringify(nestedVisionAgentChatContextFields).includes('39.9')
+    && !JSON.stringify(nestedVisionAgentChatContextFields).includes('116.3'),
+  'Nested Vision Agent context flattening should not leak raw photo paths or exact coordinates'
+)
+
 let lastRequestOptions = null
 const installChatRequestMock = (handler) => {
   lastRequestOptions = null
