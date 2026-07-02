@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.Multimodal
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PublicReportSummaryRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialFeedRespVO;
 
 public interface XunjingAppService {
 
@@ -23,6 +24,8 @@ public interface XunjingAppService {
     Long recordEvent(AppInteractionEventReqVO reqVO);
 
     MultimodalTriggerRespVO resolveMultimodalTrigger(MultimodalTriggerReqVO reqVO);
+
+    TravelRecordMaterialFeedRespVO listTravelRecordMaterials(String packageCode, String userTraceId, Integer limit);
 
     PublicReportSummaryRespVO getPublicReportSummary(String packageCode);
 

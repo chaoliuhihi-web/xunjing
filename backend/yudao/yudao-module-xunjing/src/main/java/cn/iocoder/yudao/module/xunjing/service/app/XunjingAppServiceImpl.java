@@ -31,6 +31,8 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolv
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.SceneUnderstandingRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.SourceRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialFeedRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialRespVO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.ai.XunjingAiGenerationLogDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.ai.XunjingAiQuotaRuleDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.event.XunjingInteractionEventDO;
@@ -348,6 +350,13 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         MultimodalTriggerRespVO respVO = multimodalTriggerEngine.resolve(safeReqVO);
         recordTriggerResolveEventIfPossible(safeReqVO, respVO);
         return respVO;
+    }
+
+    @Override
+    public TravelRecordMaterialFeedRespVO listTravelRecordMaterials(
+            String packageCode, String userTraceId, Integer limit) {
+        XunjingResourcePackageDO resourcePackage = validatePublicPackage(packageCode);
+        return buildTravelRecordMaterialFeed(resourcePackage, userTraceId, limit);
     }
 
     private void hydrateMultimodalTriggerMemoryFromPreviousResolve(MultimodalTriggerReqVO reqVO) {
@@ -2556,6 +2565,140 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             payload.put("clientPayload", clientPayloadObject == null ? clientPayload : clientPayloadObject);
         }
         return JsonUtils.toJsonString(payload);
+    }
+
+    private TravelRecordMaterialFeedRespVO buildTravelRecordMaterialFeed(
+            XunjingResourcePackageDO resourcePackage, String userTraceId, Integer limit) {
+        TravelRecordMaterialFeedRespVO respVO = new TravelRecordMaterialFeedRespVO();
+        respVO.setPackageCode(resourcePackage.getPackageCode());
+        respVO.setUserTraceId(defaultIfBlank(userTraceId, ""));
+        if (!hasText(userTraceId)) {
+            respVO.setMaterialCount(0L);
+            respVO.setMaterials(List.of());
+            return respVO;
+        }
+        int materialLimit = normalizeTravelRecordMaterialLimit(limit);
+        List<XunjingInteractionEventDO> events =
+                interactionEventMapper.selectListByPackageIdAndUserTraceIdAndEventType(
+                        resourcePackage.getId(), userTraceId, EventType.AGENT_ACTION.getType());
+        List<TravelRecordMaterialRespVO> materials = new ArrayList<>();
+        for (XunjingInteractionEventDO event : events) {
+            TravelRecordMaterialRespVO item = buildTravelRecordMaterialItem(event);
+            if (item != null) {
+                materials.add(item);
+            }
+            if (materials.size() >= materialLimit) {
+                break;
+            }
+        }
+        respVO.setMaterialCount((long) materials.size());
+        respVO.setMaterials(materials);
+        return respVO;
+    }
+
+    private int normalizeTravelRecordMaterialLimit(Integer limit) {
+        if (limit == null || limit <= 0) {
+            return 50;
+        }
+        return Math.min(limit, 100);
+    }
+
+    private TravelRecordMaterialRespVO buildTravelRecordMaterialItem(XunjingInteractionEventDO event) {
+        if (event == null || !hasText(event.getPayloadJson())) {
+            return null;
+        }
+        try {
+            JsonNode root = JsonUtils.parseTree(event.getPayloadJson());
+            JsonNode materialNode = root.path("travelRecordMaterial");
+            if (materialNode == null || materialNode.isMissingNode() || materialNode.isNull()
+                    || !materialNode.isObject()) {
+                return null;
+            }
+            Map<String, Object> material = JsonUtils.convertObject(
+                    materialNode, new TypeReference<Map<String, Object>>() {});
+            TravelRecordMaterialRespVO item = new TravelRecordMaterialRespVO();
+            item.setEventId(event.getId());
+            item.setSceneCode(defaultIfBlank(stringValue(material.get("sceneCode")), ""));
+            item.setRegionCode(defaultIfBlank(stringValue(material.get("regionCode")), ""));
+            item.setPoiCode(defaultIfBlank(stringValue(material.get("poiCode")), ""));
+            item.setPoiName(defaultIfBlank(stringValue(material.get("poiName")), ""));
+            item.setActionKey(defaultIfBlank(stringValue(material.get("actionKey")), ""));
+            item.setTitle(defaultIfBlank(stringValue(material.get("title")), ""));
+            item.setExecutionStatus(defaultIfBlank(stringValue(material.get("executionStatus")), ""));
+            item.setSourceTriggerTraceId(defaultIfBlank(stringValue(material.get("sourceTriggerTraceId")), ""));
+            item.setReason(defaultIfBlank(stringValue(material.get("reason")), ""));
+            item.setPhotoTakenAt(defaultIfBlank(stringValue(material.get("photoTakenAt")), ""));
+            item.setPhotoExifLocation(buildTravelRecordMaterialSimpleMap(material.get("photoExifLocation")));
+            item.setCompleteCheckIn(Boolean.TRUE.equals(material.get("completeCheckIn")));
+            item.setClaimBadge(Boolean.TRUE.equals(material.get("claimBadge")));
+            item.setAddToTravelMap(Boolean.TRUE.equals(material.get("addToTravelMap")));
+            item.setGenerateTravelogue(Boolean.TRUE.equals(material.get("generateTravelogue")));
+            item.setRequiresRealSystem(Boolean.TRUE.equals(material.get("requiresRealSystem")));
+            item.setSourceSceneSnapshot(buildVisionAgentSceneSnapshotPayload(
+                    buildTravelRecordMaterialSimpleMap(material.get("sourceSceneSnapshot"))));
+            return item;
+        } catch (RuntimeException ex) {
+            log.warn("[buildTravelRecordMaterialItem][eventId({}) parse failed]", event.getId(), ex);
+            return null;
+        }
+    }
+
+    private Map<String, Object> buildTravelRecordMaterialSimpleMap(Object value) {
+        if (!(value instanceof Map<?, ?> source) || source.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : source.entrySet()) {
+            if (entry.getKey() == null) {
+                continue;
+            }
+            Object mapValue = entry.getValue();
+            if (mapValue == null) {
+                continue;
+            }
+            String key = String.valueOf(entry.getKey());
+            if (mapValue instanceof Map<?, ?> nestedMap) {
+                Map<String, Object> nestedPayload = buildTravelRecordMaterialSimpleMap(nestedMap);
+                if (!nestedPayload.isEmpty()) {
+                    payload.put(key, nestedPayload);
+                }
+                continue;
+            }
+            if (mapValue instanceof Iterable<?> iterable) {
+                List<Object> simpleList = buildTravelRecordMaterialSimpleList(iterable);
+                if (!simpleList.isEmpty()) {
+                    payload.put(key, simpleList);
+                }
+                continue;
+            }
+            if (mapValue instanceof Number || mapValue instanceof Boolean) {
+                payload.put(key, mapValue);
+                continue;
+            }
+            String text = String.valueOf(mapValue).trim();
+            if (hasText(text)) {
+                payload.put(key, truncateForEvent(text, TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH));
+            }
+        }
+        return payload;
+    }
+
+    private List<Object> buildTravelRecordMaterialSimpleList(Iterable<?> iterable) {
+        List<Object> values = new ArrayList<>();
+        for (Object item : iterable) {
+            if (item == null || item instanceof Map<?, ?> || item instanceof Iterable<?>) {
+                continue;
+            }
+            if (item instanceof Number || item instanceof Boolean) {
+                values.add(item);
+                continue;
+            }
+            String text = String.valueOf(item).trim();
+            if (hasText(text)) {
+                values.add(truncateForEvent(text, TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH));
+            }
+        }
+        return values.stream().distinct().limit(20).toList();
     }
 
     private Map<String, Object> sanitizeAgentActionClientPayload(Map<String, Object> clientPayload) {

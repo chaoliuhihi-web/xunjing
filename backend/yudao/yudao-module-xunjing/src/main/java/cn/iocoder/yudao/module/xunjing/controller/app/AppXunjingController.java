@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.Multimodal
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialFeedRespVO;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.ResourceType;
 import cn.iocoder.yudao.module.xunjing.service.app.XunjingAppService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -54,6 +55,16 @@ public class AppXunjingController {
     public CommonResult<MultimodalTriggerRespVO> resolveTrigger(
             @Valid @RequestBody MultimodalTriggerReqVO reqVO) {
         return success(appService.resolveMultimodalTrigger(reqVO));
+    }
+
+    @GetMapping("/travel-record/materials")
+    @Operation(summary = "查询旅行记录素材流")
+    @PermitAll
+    public CommonResult<TravelRecordMaterialFeedRespVO> listTravelRecordMaterials(
+            @RequestParam("packageCode") String packageCode,
+            @RequestParam("userTraceId") String userTraceId,
+            @RequestParam(value = "limit", required = false) Integer limit) {
+        return success(appService.listTravelRecordMaterials(packageCode, userTraceId, limit));
     }
 
     @PostMapping("/reading/ask")

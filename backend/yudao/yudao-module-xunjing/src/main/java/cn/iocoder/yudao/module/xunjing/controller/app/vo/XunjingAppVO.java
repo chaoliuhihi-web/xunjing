@@ -242,6 +242,36 @@ public class XunjingAppVO {
     }
 
     @Data
+    public static class TravelRecordMaterialFeedRespVO {
+        private String packageCode;
+        private String userTraceId;
+        private Long materialCount;
+        private List<TravelRecordMaterialRespVO> materials;
+    }
+
+    @Data
+    public static class TravelRecordMaterialRespVO {
+        private Long eventId;
+        private String sceneCode;
+        private String regionCode;
+        private String poiCode;
+        private String poiName;
+        private String actionKey;
+        private String title;
+        private String executionStatus;
+        private String sourceTriggerTraceId;
+        private String reason;
+        private String photoTakenAt;
+        private Map<String, Object> photoExifLocation;
+        private Boolean completeCheckIn;
+        private Boolean claimBadge;
+        private Boolean addToTravelMap;
+        private Boolean generateTravelogue;
+        private Boolean requiresRealSystem;
+        private Map<String, Object> sourceSceneSnapshot;
+    }
+
+    @Data
     public static class SourceRespVO {
         private Long id;
         private String title;

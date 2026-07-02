@@ -141,6 +141,55 @@ describe('xunjing app API contract', () => {
     expect(appTest).toContain('travelRecordMaterial.get("generateTravelogue").asBoolean()')
   })
 
+  test('travel record material feed exposes backend-only scene material API', async () => {
+    const controller = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/AppXunjingController.java'
+    )
+    const appVo = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'
+    )
+    const appService = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppService.java'
+    )
+    const appServiceImpl = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java'
+    )
+    const mapper = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/dal/mysql/event/XunjingInteractionEventMapper.java'
+    )
+    const appTest = await readText(
+      'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImplTest.java'
+    )
+
+    expect(controller).toContain('@GetMapping("/travel-record/materials")')
+    expect(controller).toContain('TravelRecordMaterialFeedRespVO')
+    expect(controller).toContain('appService.listTravelRecordMaterials(packageCode, userTraceId, limit)')
+    expect(appVo).toContain('class TravelRecordMaterialFeedRespVO')
+    expect(appVo).toContain('private Long materialCount;')
+    expect(appVo).toContain('private List<TravelRecordMaterialRespVO> materials;')
+    expect(appVo).toContain('class TravelRecordMaterialRespVO')
+    expect(appVo).toContain('private Long eventId;')
+    expect(appVo).toContain('private String actionKey;')
+    expect(appVo).toContain('private String photoTakenAt;')
+    expect(appVo).toContain('private Map<String, Object> photoExifLocation;')
+    expect(appVo).toContain('private Map<String, Object> sourceSceneSnapshot;')
+    expect(appService).toContain('TravelRecordMaterialFeedRespVO listTravelRecordMaterials(String packageCode, String userTraceId, Integer limit)')
+    expect(mapper).toContain('selectListByPackageIdAndUserTraceIdAndEventType')
+    expect(mapper).toContain('orderByAsc(XunjingInteractionEventDO::getId)')
+    expect(appServiceImpl).toContain('buildTravelRecordMaterialFeed(resourcePackage, userTraceId, limit)')
+    expect(appServiceImpl).toContain('buildTravelRecordMaterialItem(event)')
+    expect(appServiceImpl).toContain('root.path("travelRecordMaterial")')
+    expect(appServiceImpl).toContain('EventType.AGENT_ACTION.getType()')
+    expect(appServiceImpl).toContain('normalizeTravelRecordMaterialLimit(limit)')
+    expect(appServiceImpl).toContain('buildTravelRecordMaterialSimpleList')
+    expect(appServiceImpl).not.toContain('payload.put("imageBase64"')
+    expect(appTest).toContain('testListTravelRecordMaterialsReturnsSceneSnapshotPhotoAndPoiTimeline')
+    expect(appTest).toContain('listTravelRecordMaterials("XICHENG-MAP-001"')
+    expect(appTest).toContain('getMaterials().get(0).getSourceSceneSnapshot()')
+    expect(appTest).toContain('getSourceSceneSnapshot().get("matchedSignals")')
+    expect(appTest).toContain('getPhotoExifLocation()')
+  })
+
   test('xicheng AI chat contract carries POI context and blocks no-source answers', async () => {
     const appVo = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'

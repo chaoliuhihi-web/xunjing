@@ -33,6 +33,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatReq
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialFeedRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.LocationPointReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerRespVO;
@@ -485,6 +486,89 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
                 sourceSceneSnapshot.get("photoExifLocation").get("latitude").asText());
         assertFalse(event.getPayloadJson().contains("raw-image-should-not-persist"));
         assertFalse(event.getPayloadJson().contains("imageBase64"));
+    }
+
+    @Test
+    public void testListTravelRecordMaterialsReturnsSceneSnapshotPhotoAndPoiTimeline() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        PhotoMetaReqVO photoMeta = new PhotoMetaReqVO();
+        photoMeta.setImageId("img-gongwangfu-timeline-001");
+        photoMeta.setTakenAt("2026-07-02T18:40:00+08:00");
+        photoMeta.setImageBase64("raw-image-should-not-enter-material-feed");
+        photoMeta.setExifLocation(location("39.937051", "116.386771", 8));
+
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-travel-material-feed-001");
+        triggerReq.setOcrText("恭王府博物馆入口");
+        triggerReq.setImageLabels(List.of("palace", "sunset"));
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        triggerReq.setPhotoMeta(photoMeta);
+        appService.resolveMultimodalTrigger(triggerReq);
+
+        AppInteractionEventReqVO checkInReq = new AppInteractionEventReqVO();
+        checkInReq.setPackageCode("XICHENG-MAP-001");
+        checkInReq.setSceneCode("xicheng-agent-action");
+        checkInReq.setEventType(XunjingEnums.EventType.AGENT_ACTION.getType());
+        checkInReq.setSourceChannel("xicheng-app");
+        checkInReq.setUserTraceId("trace-xicheng-travel-material-feed-001");
+        checkInReq.setPayloadJson("""
+                {
+                  "actionKey":"complete_check_in",
+                  "title":"完成打卡",
+                  "intent":"record",
+                  "sourceTriggerTraceId":"trace-xicheng-travel-material-feed-001",
+                  "requiresRealSystem":false,
+                  "executionStatus":"completed",
+                  "poiCode":"xicheng-gongwangfu",
+                  "poiName":"恭王府"
+                }
+                """);
+        appService.recordEvent(checkInReq);
+
+        AppInteractionEventReqVO travelogueReq = new AppInteractionEventReqVO();
+        travelogueReq.setPackageCode("XICHENG-MAP-001");
+        travelogueReq.setSceneCode("xicheng-agent-action");
+        travelogueReq.setEventType(XunjingEnums.EventType.AGENT_ACTION.getType());
+        travelogueReq.setSourceChannel("xicheng-app");
+        travelogueReq.setUserTraceId("trace-xicheng-travel-material-feed-001");
+        travelogueReq.setPayloadJson("""
+                {
+                  "actionKey":"generate_travelogue",
+                  "title":"生成游记",
+                  "intent":"record",
+                  "sourceTriggerTraceId":"trace-xicheng-travel-material-feed-001",
+                  "requiresRealSystem":false,
+                  "executionStatus":"started",
+                  "poiCode":"xicheng-gongwangfu",
+                  "poiName":"恭王府"
+                }
+                """);
+        appService.recordEvent(travelogueReq);
+
+        TravelRecordMaterialFeedRespVO feed = appService.listTravelRecordMaterials("XICHENG-MAP-001",
+                "trace-xicheng-travel-material-feed-001", 10);
+
+        assertEquals("XICHENG-MAP-001", feed.getPackageCode());
+        assertEquals("trace-xicheng-travel-material-feed-001", feed.getUserTraceId());
+        assertEquals(2L, feed.getMaterialCount());
+        assertEquals("complete_check_in", feed.getMaterials().get(0).getActionKey());
+        assertEquals("generate_travelogue", feed.getMaterials().get(1).getActionKey());
+        assertEquals("xicheng-gongwangfu", feed.getMaterials().get(0).getPoiCode());
+        assertEquals("2026-07-02T18:40:00+08:00", feed.getMaterials().get(0).getPhotoTakenAt());
+        assertEquals("39.937051", String.valueOf(feed.getMaterials().get(0)
+                .getPhotoExifLocation().get("latitude")));
+        assertEquals("img-gongwangfu-timeline-001",
+                feed.getMaterials().get(0).getSourceSceneSnapshot().get("imageId"));
+        assertTrue(String.valueOf(feed.getMaterials().get(0).getSourceSceneSnapshot().get("matchedSignals"))
+                .contains("ocr_alias"));
+        assertFalse(JsonUtils.toJsonString(feed).contains("raw-image-should-not-enter-material-feed"));
+        assertFalse(JsonUtils.toJsonString(feed).contains("imageBase64"));
     }
 
     @Test

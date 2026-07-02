@@ -585,9 +585,25 @@ async function checkXichengAiSourceGuardBackend(rootDir) {
 }
 
 async function checkXichengAppEventBackend(rootDir) {
+  const appController = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/AppXunjingController.java'
+  )
+  const appVo = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'
+  )
+  const appServiceContract = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppService.java'
+  )
   const appService = await readText(
     rootDir,
     'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java'
+  )
+  const interactionMapper = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/dal/mysql/event/XunjingInteractionEventMapper.java'
   )
   const consoleVo = await readText(
     rootDir,
@@ -634,10 +650,27 @@ async function checkXichengAppEventBackend(rootDir) {
     'hasExplicitChatTargetContext(reqVO)',
     'EventType.AGENT_ACTION.getType()',
     'JsonNode agentAction = root.path("agentAction")',
-    'buildAgentActionServiceHandoffSummary(agentAction)'
+    'buildAgentActionServiceHandoffSummary(agentAction)',
+    'buildTravelRecordMaterialFeed(resourcePackage, userTraceId, limit)',
+    'buildTravelRecordMaterialItem(event)',
+    'root.path("travelRecordMaterial")',
+    'normalizeTravelRecordMaterialLimit(limit)'
   ]) {
     assertContains(appService, snippet, 'XunjingAppServiceImpl.java')
   }
+  assertContains(appController, '@GetMapping("/travel-record/materials")', 'AppXunjingController.java')
+  assertContains(appController, 'appService.listTravelRecordMaterials(packageCode, userTraceId, limit)',
+    'AppXunjingController.java')
+  assertContains(appVo, 'class TravelRecordMaterialFeedRespVO', 'XunjingAppVO.java')
+  assertContains(appVo, 'class TravelRecordMaterialRespVO', 'XunjingAppVO.java')
+  assertContains(appVo, 'private Map<String, Object> sourceSceneSnapshot;', 'XunjingAppVO.java')
+  assertContains(appServiceContract,
+    'TravelRecordMaterialFeedRespVO listTravelRecordMaterials(String packageCode, String userTraceId, Integer limit)',
+    'XunjingAppService.java')
+  assertContains(interactionMapper, 'selectListByPackageIdAndUserTraceIdAndEventType',
+    'XunjingInteractionEventMapper.java')
+  assertContains(interactionMapper, 'orderByAsc(XunjingInteractionEventDO::getId)',
+    'XunjingInteractionEventMapper.java')
   for (const snippet of [
     'private Long triggerResolveCount;',
     'private Long agentActionCount;',
@@ -693,6 +726,11 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(
     appTest,
     'testTravelRecordMaterialCarriesPhotoTimeExifLocationAndRecognizedPoi',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'testListTravelRecordMaterialsReturnsSceneSnapshotPhotoAndPoiTimeline',
     'XunjingAppServiceImplTest.java'
   )
   assertContains(

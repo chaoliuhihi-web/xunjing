@@ -34,6 +34,15 @@ describe('xicheng backend launch readiness', () => {
     const appService = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java'
     )
+    const appController = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/AppXunjingController.java'
+    )
+    const appServiceContract = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppService.java'
+    )
+    const interactionMapper = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/dal/mysql/event/XunjingInteractionEventMapper.java'
+    )
     const appVo = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'
     )
@@ -467,6 +476,18 @@ describe('xicheng backend launch readiness', () => {
     expect(appService).toContain('EventType.AGENT_ACTION.getType()')
     expect(appService).toContain('JsonNode agentAction = root.path("agentAction")')
     expect(appService).toContain('buildAgentActionServiceHandoffSummary(agentAction)')
+    expect(appService).toContain('buildTravelRecordMaterialFeed(resourcePackage, userTraceId, limit)')
+    expect(appService).toContain('buildTravelRecordMaterialItem(event)')
+    expect(appService).toContain('root.path("travelRecordMaterial")')
+    expect(appService).toContain('normalizeTravelRecordMaterialLimit(limit)')
+    expect(appController).toContain('@GetMapping("/travel-record/materials")')
+    expect(appController).toContain('appService.listTravelRecordMaterials(packageCode, userTraceId, limit)')
+    expect(appVo).toContain('class TravelRecordMaterialFeedRespVO')
+    expect(appVo).toContain('class TravelRecordMaterialRespVO')
+    expect(appVo).toContain('private Map<String, Object> sourceSceneSnapshot;')
+    expect(appServiceContract).toContain('TravelRecordMaterialFeedRespVO listTravelRecordMaterials(String packageCode, String userTraceId, Integer limit)')
+    expect(interactionMapper).toContain('selectListByPackageIdAndUserTraceIdAndEventType')
+    expect(interactionMapper).toContain('orderByAsc(XunjingInteractionEventDO::getId)')
     expect(consoleController).toContain('@PostMapping(value = "/knowledge-documents/upload"')
     expect(consoleController).toContain('@PostMapping(value = "/media-assets/upload"')
     expect(consoleController).toContain('MediaType.MULTIPART_FORM_DATA_VALUE')
@@ -506,6 +527,7 @@ describe('xicheng backend launch readiness', () => {
     expect(appTest).toContain('testRecordAgentActionEventStoresStructuredTelemetryWithoutRawImagePayload')
     expect(appTest).toContain('testRecordAgentActionEventBindsLatestVisionSceneSnapshotToTravelRecordMaterial')
     expect(appTest).toContain('testTravelRecordMaterialCarriesPhotoTimeExifLocationAndRecognizedPoi')
+    expect(appTest).toContain('testListTravelRecordMaterialsReturnsSceneSnapshotPhotoAndPoiTimeline')
     expect(appTest).toContain('travelRecordMaterial.get("sourceSceneSnapshot")')
     expect(appTest).toContain('travelRecordMaterial.get("photoTakenAt")')
     expect(appTest).toContain('travelRecordMaterial.get("photoExifLocation")')
