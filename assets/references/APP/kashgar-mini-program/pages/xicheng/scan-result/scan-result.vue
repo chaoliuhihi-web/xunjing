@@ -353,6 +353,7 @@ import {
 	normalizeXichengReviewedSources
 } from '@/request/xunjing/sources.js'
 import { isXichengDevelopmentRecognitionCacheBlocked } from '@/request/xunjing/trigger.js'
+import { mergeXichengVisionAgentRouteContext, parseXichengVisionAgentRouteContext } from '@/request/xunjing/visionAgentRouteContext.js'
 import XichengVisionAgentWorldInterfaceStrip from '@/components/xicheng/vision-agent-world-interface-strip.vue'
 
 const XICHENG_EMPTY_RECOGNITION_RESULT = Object.freeze({
@@ -481,7 +482,10 @@ const normalizeRouteOptions = (options = {}) => ({
 	companionName: decodeRouteValue(options.companionName),
 	confidence: decodeRouteValue(options.confidence),
 	confidencePercent: decodeRouteValue(options.confidencePercent),
-	safetyStatus: normalizeXichengSafetyStatus(decodeRouteValue(options.safetyStatus))
+	safetyStatus: normalizeXichengSafetyStatus(decodeRouteValue(options.safetyStatus)),
+	visionAgentContext: parseXichengVisionAgentRouteContext(options.visionAgentContext),
+	sourceRecognitionContext: decodeRouteValue(options.sourceRecognitionContext),
+	memorySessionSceneCount: decodeRouteValue(options.memorySessionSceneCount)
 })
 
 const getCurrentXichengScanResultRouteOptions = () => {
@@ -1002,7 +1006,7 @@ export default {
 					active: !this.recognitionActionBlocked
 					}
 				]
-			},
+		},
 			visionAgentMemorySessionPackage() {
 				return this.createVisionAgentMemorySessionPackage(
 					this.readVisionAgentMemoryTrail(),
@@ -1034,7 +1038,8 @@ export default {
 			companionName: routeOptions.companionName || (selectedCached && selectedCached.companionName) || XICHENG_REGION_CONFIG.companionName,
 			confidence: routeOptions.confidence || (selectedCached && selectedCached.confidence) || '',
 			confidencePercent: routeOptions.confidencePercent || (selectedCached && selectedCached.confidencePercent) || '',
-			safetyStatus: routeOptions.safetyStatus || (selectedCached && selectedCached.safetyStatus) || ''
+			safetyStatus: routeOptions.safetyStatus || (selectedCached && selectedCached.safetyStatus) || '',
+			visionAgentContext: mergeXichengVisionAgentRouteContext(routeOptions, selectedCached)
 		}))
 		this.result = normalizedResult
 		if (!this.unsafeRecognitionSafetyStatus && this.result.officialPoiMatched && this.result.poiCode && this.result.poiName) {
@@ -1857,6 +1862,7 @@ export default {
 				sourceLabel: this.result.sourceLabel || '',
 				confidence: this.result.confidence || 0,
 				routeRecommendation: this.recommendedRoute,
+				visionAgentContext: this.result.visionAgentContext || {},
 				sources: this.sourceList,
 				safetyStatus: normalizeXichengSafetyStatus(this.result.safetyStatus),
 				recognitionFeedback: this.recognitionFeedback,
@@ -1873,7 +1879,7 @@ export default {
 				...materials
 			].slice(0, 50))
 			uni.navigateTo({
-				url: `/pages/xicheng/travelogue/travelogue?mode=record&autoStart=1&regionCode=${encodeURIComponent(this.result.regionCode || XICHENG_REGION_CONFIG.regionCode)}&packageCode=${encodeURIComponent(this.result.packageCode || XICHENG_REGION_CONFIG.packageCode)}&sceneCode=${encodeURIComponent(this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode)}&sourceChannel=${encodeURIComponent(this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel)}&poiCode=${encodeRouteValue(this.result.poiCode || '')}&poiName=${encodeRouteValue(this.result.poiName || '')}&companionName=${encodeRouteValue(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}&safetyStatus=${encodeURIComponent(this.result.safetyStatus || '')}`
+				url: `/pages/xicheng/travelogue/travelogue?mode=record&autoStart=1&regionCode=${encodeURIComponent(this.result.regionCode || XICHENG_REGION_CONFIG.regionCode)}&packageCode=${encodeURIComponent(this.result.packageCode || XICHENG_REGION_CONFIG.packageCode)}&sceneCode=${encodeURIComponent(this.result.sceneCode || XICHENG_REGION_CONFIG.sceneCode)}&sourceChannel=${encodeURIComponent(this.result.sourceChannel || XICHENG_REGION_CONFIG.sourceChannel)}&poiCode=${encodeRouteValue(this.result.poiCode || '')}&poiName=${encodeRouteValue(this.result.poiName || '')}&companionName=${encodeRouteValue(this.result.companionName || XICHENG_REGION_CONFIG.companionName)}&safetyStatus=${encodeURIComponent(this.result.safetyStatus || '')}&visionAgentContext=${encodeRouteValue(JSON.stringify(this.result.visionAgentContext || {}))}&sourceRecognitionContext=${encodeRouteValue((this.result.visionAgentContext || {}).sourceRecognitionContext || '')}&memorySessionSceneCount=${encodeRouteValue((this.result.visionAgentContext || {}).memorySessionSceneCount || '')}`
 			})
 		},
 		createRouteCheckinEvent(material) {

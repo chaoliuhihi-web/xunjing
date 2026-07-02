@@ -17,7 +17,10 @@ for (const required of [
   'packageCode=${encodeRouteValue(result.packageCode || this.region.packageCode)}',
   "poiCode=${encodeRouteValue(result.poiCode || '')}",
   "poiName=${encodeRouteValue(result.poiName || '')}",
-  'companionName=${encodeRouteValue(result.companionName || this.region.companionName)}'
+  'companionName=${encodeRouteValue(result.companionName || this.region.companionName)}',
+  'visionAgentContext=${encodeRouteValue(JSON.stringify(result.visionAgentContext || {}))}',
+  "sourceRecognitionContext=${encodeRouteValue(result.visionAgentContext.sourceRecognitionContext || '')}",
+  "memorySessionSceneCount=${encodeRouteValue(result.visionAgentContext.memorySessionSceneCount || '')}"
 ]) {
   assert.ok(openScanResultBlock.includes(required), `Fresh recognition result route should carry ${required}`)
 }
@@ -28,7 +31,10 @@ for (const required of [
   'packageCode=${encodeRouteValue(this.recentRecognition.packageCode || this.region.packageCode)}',
   "poiCode=${encodeRouteValue(this.recentRecognition.poiCode || '')}",
   "poiName=${encodeRouteValue(this.recentRecognition.poiName || '')}",
-  'companionName=${encodeRouteValue(this.recentRecognition.companionName || this.region.companionName)}'
+  'companionName=${encodeRouteValue(this.recentRecognition.companionName || this.region.companionName)}',
+  'visionAgentContext=${encodeRouteValue(JSON.stringify(visionAgentContext))}',
+  "sourceRecognitionContext=${encodeRouteValue(visionAgentContext.sourceRecognitionContext || '')}",
+  "memorySessionSceneCount=${encodeRouteValue(visionAgentContext.memorySessionSceneCount || '')}"
 ]) {
   assert.ok(openRecentRecognitionBlock.includes(required), `Recent recognition result route should carry ${required}`)
 }
