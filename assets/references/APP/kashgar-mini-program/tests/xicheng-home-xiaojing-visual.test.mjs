@@ -65,12 +65,13 @@ for (const required of [
   'mode="aspectFit"',
   'class="home-action-duo"',
   'home-scan-card',
-  'home-ask-card',
+  'hero-ask-card',
   'class="home-share-button"',
   'id="xicheng-map-entry-section"',
   'class="home-light-entry-grid"',
   '文旅地图',
   '游记生成',
+  '开始记录',
   '小京',
   '我陪你看懂西城'
 ]) {
@@ -85,13 +86,13 @@ assert.match(
 
 assert.match(
   home,
-  /home-scan-card[\s\S]*AI识境[\s\S]*镜头理解 · 连续追问 · 城市服务[\s\S]*home-ask-card[\s\S]*问问小京/,
-  'Xicheng home first-screen action hierarchy should expose one AI识境 entry and Xiaojing, not multiple recognition choices'
+  /hero-ask-card[\s\S]*问问小京[\s\S]*home-scan-card[\s\S]*扫一扫[\s\S]*拍照识别 · 文字识别 · 附近触发/,
+  'Xicheng home first-screen action hierarchy should expose Xiaojing near the hero and one automatic scan entry, not multiple recognition choices'
 )
 
 assert.ok(
   home.indexOf('id="xicheng-map-entry-section"') > home.indexOf('class="home-action-duo"') &&
-    home.indexOf('id="xicheng-map-entry-section"') < home.indexOf('class="home-memory-grid"'),
+    home.indexOf('id="xicheng-map-entry-section"') < home.indexOf('id="xicheng-home-route-recommendation-section"'),
   'Xicheng home should surface compact map and Citywalk entries after the two primary action cards'
 )
 
@@ -133,8 +134,14 @@ assert.match(
 
 assert.match(
   styleBlock,
-  /\.home-scan-card\s*\{[\s\S]*background:\s*linear-gradient[\s\S]*\.home-ask-card\s*\{[\s\S]*background:\s*rgba\(255,\s*253,\s*248,\s*0\.94\)/,
-  'Xicheng home should visually distinguish the scan entry and Xiaojing card like the reference'
+  /\.home-scan-card\s*\{[\s\S]*background:\s*linear-gradient/,
+  'Xicheng home should keep the scan entry visually primary'
+)
+
+assert.match(
+  styleBlock,
+  /\.hero-ask-card\s*\{[\s\S]*background:\s*rgba\(255,\s*253,\s*248,\s*0\.94\)/,
+  'Xicheng home should keep the Xiaojing hero card visually distinct like the reference'
 )
 
 assert.match(
@@ -145,8 +152,8 @@ assert.match(
 
 assert.doesNotMatch(
   home,
-  /route-reference-grid|home-secondary-directory|亲子研学|运营报告|一键抄作业/,
-  'Xicheng home should not keep hidden route-feed, parent-child study, ops report, or inspiration-import modules'
+  /route-reference-grid|home-secondary-directory|亲子研学|运营报告/,
+  'Xicheng home should not keep hidden route-feed, parent-child study, or ops report modules'
 )
 
 assert.doesNotMatch(

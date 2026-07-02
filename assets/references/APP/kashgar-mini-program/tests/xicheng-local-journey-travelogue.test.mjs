@@ -33,8 +33,10 @@ for (const required of [
 }
 
 for (const required of [
-  '开始记录后 · 模板精排',
   '游记生成',
+  'AI 帮你记录行程，生成专属游记',
+  '开始记录',
+  '游记草稿',
   'openXichengTravelogue',
   '/pages/xicheng/travelogue/travelogue?'
 ]) {

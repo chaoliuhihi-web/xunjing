@@ -84,6 +84,7 @@
 		</view>
 
 		<xicheng-publish-channel-grid :selected-key="selectedPublishChannel" @select="selectPublishChannel" />
+		<xicheng-publish-preflight-panel :items="publishPreflightItems" :selected-channel="selectedPublishChannel" />
 		<xicheng-social-share-preview v-if="['moments', 'xiaohongshu'].includes(selectedPublishChannel)" :channel="selectedPublishChannel" :cover-image="sharePosterBackground" :title="region.sharePoster.title" @copy="copyChannelShareCopy" @save-image="saveChannelShareImage" @confirm="createChannelShareArtifact" />
 
 		<view class="privacy-card xicheng-paper-card">
@@ -120,6 +121,7 @@ import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { getXichengShareChannelAssetLabel, getXichengShareChannelAssetType, getXichengShareChannelTemplateCode, normalizeXichengSharePublishChannel } from '@/request/xunjing/shareAssets.js'
 import XichengPublishChannelGrid from '@/components/xicheng/XichengPublishChannelGrid.vue'
+import XichengPublishPreflightPanel from '@/components/xicheng/XichengPublishPreflightPanel.vue'
 import XichengSocialSharePreview from '@/components/xicheng/XichengSocialSharePreview.vue'
 
 const safeArray = value => Array.isArray(value) ? value : []
@@ -144,6 +146,7 @@ const normalizeShareSettingState = (settings = {}) => ({
 export default {
 	components: {
 		XichengPublishChannelGrid,
+		XichengPublishPreflightPanel,
 		XichengSocialSharePreview
 	},
 	data() {
@@ -192,6 +195,48 @@ export default {
 				{ index: '1', title: '生成预览', active: this.shareArtifacts.length > 0 },
 				{ index: '2', title: '提交审核', active: this.reviewSubmissions.length > 0 },
 				{ index: '3', title: '审核后公开', active: false }
+			]
+		},
+		publishPreflightItems() {
+			const journeyDraft = this.getShareJourneyDraft()
+			const auditSummary = this.createShareAuditSummary(journeyDraft)
+			const reviewedSourceCount = toSafeCount(auditSummary.reviewedSourceCount)
+			const selectedArtifactCount = this.getSelectedChannelArtifactCount()
+			const selectedAssetType = getXichengShareChannelAssetType(this.selectedPublishChannel)
+			const selectedAssetLabel = getXichengShareChannelAssetLabel(this.selectedPublishChannel, selectedAssetType)
+			return [
+				{
+					key: 'privacy',
+					icon: 'location',
+					title: '隐私范围',
+					status: this.shareSettingState.hideExactLocation ? '精确位置已隐藏' : '请隐藏精确位置',
+					desc: '公开页只展示 POI 范围、路线摘要和必要照片',
+					ready: this.shareSettingState.hideExactLocation
+				},
+				{
+					key: 'sources',
+					icon: 'source',
+					title: '已审核来源',
+					status: reviewedSourceCount > 0 ? `${reviewedSourceCount} 条来源可公开` : '来源待补充',
+					desc: this.shareSettingState.approvedOnly ? '仅展示已审核内容' : '建议开启仅展示已审核内容',
+					ready: reviewedSourceCount > 0 && this.shareSettingState.approvedOnly
+				},
+				{
+					key: 'asset',
+					icon: selectedAssetType === 'pdf' ? 'source' : 'photo',
+					title: '素材生成',
+					status: selectedArtifactCount > 0 ? `${selectedAssetLabel}素材已准备` : '待生成素材',
+					desc: '先生成图片、文案、标签或 PDF 后再发布',
+					ready: selectedArtifactCount > 0
+				},
+				{
+					key: 'confirm',
+					icon: 'check',
+					title: '用户确认',
+					status: '系统分享确认',
+					desc: '朋友圈、小红书和 PDF 均由系统分享或平台 SDK 确认',
+					ready: true
+				}
 			]
 		},
 		currentVisionAgentShareBoundary() {
@@ -412,6 +457,17 @@ export default {
 			this.createShareArtifact(getXichengShareChannelAssetType(requestedChannel))
 			uni.showToast({ title: '发布素材已生成，请确认后发布', icon: 'none' })
 		},
+		getSelectedChannelArtifactCount() {
+			const selectedChannel = normalizeXichengSharePublishChannel(this.selectedPublishChannel)
+			const selectedAssetType = getXichengShareChannelAssetType(selectedChannel)
+			return safeArray(this.shareArtifacts).filter(artifact => {
+				if (!artifact) return false
+				const artifactAssetType = artifact.assetType || ''
+				const artifactChannel = normalizeXichengSharePublishChannel(artifact.publishChannel, artifactAssetType)
+				if (artifact.publishChannel) return artifactChannel === selectedChannel
+				return selectedChannel === 'pdf' ? artifactAssetType === 'pdf' : artifactAssetType === selectedAssetType
+			}).length
+		},
 		copyChannelShareCopy() {
 			uni.showToast({ title: '文案已复制', icon: 'none' })
 		},
@@ -522,371 +578,4 @@ export default {
 }
 </script>
 
-<style scoped>
-.xicheng-share {
-	min-height: 100vh;
-	padding: 24rpx 30rpx 44rpx;
-	box-sizing: border-box;
-}
-.topbar,
-.section-head {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 18rpx;
-}
-.topbar {
-	height: 72rpx;
-}
-.topbar-button {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 60rpx;
-	height: 60rpx;
-}
-.topbar-title,
-.section-title,
-.poster-title,
-.asset-title {
-	font-weight: 800;
-	color: #102F29;
-}
-.topbar-title {
-	font-size: 34rpx;
-}
-.poster-card,
-.asset-card,
-.vision-agent-share-boundary,
-.privacy-card {
-	margin-top: 24rpx;
-	padding: 28rpx;
-	border-radius: 34rpx;
-}
-.poster-card {
-	position: relative;
-	min-height: 760rpx;
-	overflow: hidden;
-}
-
-.share-reference-poster-frame {
-	border: 1rpx solid rgba(181, 148, 94, 0.28);
-	background:
-		linear-gradient(180deg, rgba(255, 252, 246, 0.96), rgba(247, 241, 230, 0.92));
-}
-
-.poster-bg {
-	position: absolute;
-	inset: 0;
-	width: 100%;
-	height: 100%;
-	opacity: 0.30;
-}
-.poster-copy {
-	position: relative;
-	z-index: 1;
-	width: 66%;
-	padding-top: 58rpx;
-}
-
-.poster-brand-pill {
-	position: absolute;
-	left: 26rpx;
-	top: 26rpx;
-	z-index: 2;
-	display: inline-flex;
-	align-items: center;
-	gap: 10rpx;
-	padding: 10rpx 18rpx;
-	border-radius: 999rpx;
-	background: #173F35;
-	color: #FFF9EC;
-	font-size: 23rpx;
-	font-weight: 800;
-}
-
-.poster-kicker,
-.section-badge {
-	font-size: 22rpx;
-	font-weight: 700;
-	color: #B5945E;
-}
-.poster-title {
-	display: block;
-	margin-top: 18rpx;
-	font-size: 60rpx;
-	line-height: 1.12;
-	letter-spacing: 0;
-}
-.poster-desc,
-.asset-desc,
-.privacy-copy {
-	display: block;
-	margin-top: 12rpx;
-	font-size: 24rpx;
-	line-height: 1.55;
-	color: #746F68;
-}
-
-.poster-route-collage {
-	position: relative;
-	z-index: 1;
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 16rpx;
-	margin-top: 34rpx;
-	padding-left: 34rpx;
-}
-
-.poster-photo-card {
-	position: relative;
-	min-height: 178rpx;
-	overflow: hidden;
-	border-radius: 26rpx;
-	background: rgba(255, 252, 246, 0.82);
-	box-shadow: 0 16rpx 32rpx rgba(35, 42, 34, 0.12);
-}
-
-.poster-photo-card-main {
-	grid-row: span 2;
-	min-height: 376rpx;
-}
-
-.poster-photo-card image {
-	width: 100%;
-	height: 100%;
-	min-height: inherit;
-}
-
-.poster-photo-card text {
-	position: absolute;
-	left: 14rpx;
-	top: 14rpx;
-	padding: 7rpx 14rpx;
-	border-radius: 999rpx;
-	background: rgba(23, 63, 53, 0.90);
-	color: #FFF9EC;
-	font-size: 21rpx;
-	font-weight: 800;
-}
-
-.poster-footer {
-	position: relative;
-	z-index: 1;
-	display: grid;
-	grid-template-columns: 124rpx 1fr 112rpx;
-	align-items: end;
-	gap: 16rpx;
-	margin-top: 26rpx;
-}
-
-.poster-xiaojing {
-	width: 124rpx;
-	height: 138rpx;
-	align-self: end;
-}
-
-.poster-bubble {
-	align-self: center;
-	padding: 18rpx 20rpx;
-	border-radius: 24rpx;
-	background: rgba(255, 252, 246, 0.92);
-	border: 1rpx solid rgba(181, 148, 94, 0.18);
-}
-
-.poster-bubble text {
-	display: block;
-	font-size: 22rpx;
-	line-height: 1.45;
-	color: #102F29;
-}
-
-.poster-bubble text:first-child {
-	font-weight: 800;
-}
-
-.poster-scan-code {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 104rpx;
-	height: 104rpx;
-	padding: 10rpx;
-	border-radius: 18rpx;
-	background:
-		linear-gradient(90deg, #102F29 8rpx, transparent 8rpx) 0 0/24rpx 24rpx,
-		linear-gradient(0deg, #102F29 8rpx, transparent 8rpx) 0 0/24rpx 24rpx,
-		#FFFDF8;
-	border: 1rpx solid rgba(181, 148, 94, 0.28);
-	box-sizing: border-box;
-}
-
-.poster-scan-code text {
-	padding: 4rpx 6rpx;
-	border-radius: 8rpx;
-	background: rgba(255, 253, 248, 0.92);
-	color: #102F29;
-	font-size: 18rpx;
-	font-weight: 800;
-	text-align: center;
-}
-
-.asset-grid {
-	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 18rpx;
-	margin-top: 24rpx;
-}
-.asset-tile {
-	display: grid;
-	gap: 12rpx;
-	padding: 22rpx 18rpx;
-	border-radius: 28rpx;
-	background: rgba(23, 63, 53, 0.08);
-	border: 1rpx solid rgba(181, 148, 94, 0.16);
-}
-.asset-shortcut-row {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 16rpx;
-	margin-top: 20rpx;
-}
-.asset-shortcut-row button {
-	margin: 0;
-}
-.asset-title {
-	font-size: 26rpx;
-	line-height: 1.3;
-}
-
-.vision-agent-share-boundary {
-	border: 1rpx solid rgba(31, 110, 90, 0.18);
-	background: rgba(23, 63, 53, 0.06);
-}
-
-.vision-agent-share-boundary-copy {
-	display: block;
-	margin-top: 14rpx;
-	font-size: 24rpx;
-	line-height: 1.55;
-	color: #173F35;
-}
-
-.share-setting-list {
-	display: grid;
-	margin-top: 24rpx;
-	border-radius: 28rpx;
-	overflow: hidden;
-	background: rgba(255, 252, 246, 0.62);
-	border: 1rpx solid rgba(181, 148, 94, 0.16);
-}
-
-.share-setting-row {
-	display: grid;
-	grid-template-columns: 56rpx 1fr 88rpx;
-	align-items: center;
-	gap: 16rpx;
-	padding: 22rpx 20rpx;
-	border-bottom: 1rpx solid rgba(181, 148, 94, 0.14);
-}
-
-.share-setting-row:last-child {
-	border-bottom: 0;
-}
-
-.share-setting-copy {
-	min-width: 0;
-}
-
-.share-setting-title,
-.share-setting-desc {
-	display: block;
-}
-
-.share-setting-title {
-	font-size: 26rpx;
-	font-weight: 800;
-	color: #102F29;
-}
-
-.share-setting-desc {
-	margin-top: 5rpx;
-	font-size: 22rpx;
-	line-height: 1.4;
-	color: #746F68;
-}
-
-.share-switch {
-	position: relative;
-	width: 82rpx;
-	height: 48rpx;
-	border-radius: 999rpx;
-	background: rgba(116, 111, 104, 0.18);
-	transition: background 160ms ease;
-}
-
-.share-switch-thumb {
-	position: absolute;
-	left: 6rpx;
-	top: 6rpx;
-	width: 36rpx;
-	height: 36rpx;
-	border-radius: 999rpx;
-	background: #FFFDF8;
-	box-shadow: 0 4rpx 12rpx rgba(35, 42, 34, 0.16);
-	transition: transform 160ms ease;
-}
-
-.share-switch-on {
-	background: #173F35;
-}
-
-.share-switch-on .share-switch-thumb {
-	transform: translateX(34rpx);
-}
-
-.share-review-steps {
-	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 12rpx;
-	margin-top: 24rpx;
-}
-
-.review-step {
-	display: grid;
-	justify-items: center;
-	gap: 8rpx;
-	padding: 16rpx 10rpx;
-	border-radius: 20rpx;
-	background: rgba(23, 63, 53, 0.06);
-	color: #746F68;
-}
-
-.review-step-active {
-	background: rgba(181, 148, 94, 0.18);
-	color: #173F35;
-}
-
-.review-step-index {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 40rpx;
-	height: 40rpx;
-	border-radius: 999rpx;
-	background: rgba(255, 252, 246, 0.94);
-	font-size: 22rpx;
-	font-weight: 800;
-}
-
-.review-step-title {
-	font-size: 22rpx;
-	line-height: 1.3;
-	font-weight: 800;
-	text-align: center;
-}
-
-.privacy-card button {
-	margin-top: 24rpx;
-}
-</style>
+<style scoped src="./share.css"></style>

@@ -22,37 +22,21 @@
 			<view class="hero-main">
 				<view class="hero-copy">
 					<text class="eyebrow">{{ region.cityName }}</text>
-					<text class="title">西城 AI识境</text>
-					<text class="subtitle">看见什么，就能问什么</text>
+					<text class="title">西城 AI 旅伴</text>
+					<text class="subtitle">星河寻境 · 知识随行</text>
 				</view>
 				<view class="companion-visual">
 					<image class="xiaojing-avatar" :src="region.companionAvatar" mode="aspectFit" />
-					<view class="companion-bubble xicheng-companion-bubble">
-						<text class="companion-name">{{ region.companionName }}</text>
-						<text class="companion-line">我陪你看懂西城</text>
+					<view class="hero-ask-card xicheng-companion-bubble" :class="{ 'home-action-disabled': recognizing }" @click="askXiaojing">
+						<view class="hero-ask-icon">
+							<xicheng-icon name="qa" variant="plain" :size="24" />
+						</view>
+						<view class="hero-ask-copy">
+							<text class="hero-ask-title">问问小京</text>
+							<text class="hero-ask-desc">我陪你看懂西城</text>
+						</view>
+						<xicheng-icon name="next" variant="plain" :size="18" />
 					</view>
-				</view>
-			</view>
-		</view>
-
-		<view class="home-world-entry xicheng-paper-card" @click="startSceneVisionAgent">
-			<view class="home-world-entry-head">
-				<view>
-					<text class="home-world-entry-kicker">世界交互入口</text>
-					<text class="home-world-entry-title">举起手机，拍一下</text>
-				</view>
-				<text class="home-world-entry-action">AI识境</text>
-			</view>
-			<text class="home-world-entry-summary">{{ worldEntrySummary }}</text>
-			<view class="home-world-signal-grid">
-				<view
-					v-for="signal in worldEntrySignals"
-					:key="signal.key"
-					class="home-world-signal"
-					:class="{ 'home-world-signal-active': signal.active }"
-				>
-					<text class="home-world-signal-label">{{ signal.label }}</text>
-					<text class="home-world-signal-status">{{ signal.statusText }}</text>
 				</view>
 			</view>
 		</view>
@@ -63,56 +47,13 @@
 					<xicheng-icon name="scan" variant="plain" active :size="28" />
 				</view>
 				<view class="home-action-copy">
-					<text class="home-action-title">AI识境</text>
-					<text class="home-action-desc">镜头理解 · 连续追问 · 城市服务</text>
+					<text class="home-action-title">扫一扫</text>
+					<text class="home-action-desc">拍照识别 · 文字识别 · 附近触发</text>
 				</view>
 				<xicheng-icon name="next" variant="plain" active :size="22" />
 			</view>
-			<view class="home-action-card home-ask-card" :class="{ 'home-action-disabled': recognizing }" @click="askXiaojing">
-				<view class="home-action-icon">
-					<xicheng-icon name="qa" variant="plain" :size="28" />
-				</view>
-				<view class="home-action-copy">
-					<text class="home-action-title">问问小京</text>
-					<text class="home-action-desc">故事、路线和建筑</text>
-				</view>
-				<xicheng-icon name="next" variant="plain" :size="22" />
-			</view>
-		</view>
-
-		<view
-			v-if="textRecognitionPanelExpanded"
-			id="xicheng-text-recognition-panel"
-			class="text-recognition-panel xicheng-paper-card"
-		>
-			<textarea
-				v-model="textRecognitionInput"
-				class="text-recognition-input"
-				placeholder="输入白塔寺、什刹海，或粘贴展牌/攻略文字"
-				auto-height
-			/>
-			<button class="primary-button xicheng-primary-action" :disabled="recognizing" @click="startTextRecognition">文本识别</button>
-		</view>
-
-		<view id="xicheng-map-entry-section" class="home-light-entry-grid">
-			<view class="home-light-entry home-map-entry xicheng-paper-card" @click="openXichengRoutes">
-				<view class="home-light-entry-icon">
-					<xicheng-icon name="routes" variant="plain" :size="25" />
-				</view>
-				<text class="home-light-entry-title">文旅地图</text>
-				<text class="home-light-entry-copy">POI 地图 · 路线推荐</text>
-			</view>
-			<view class="home-light-entry home-travelogue-entry xicheng-paper-card" @click="openXichengTravelogue('draft')">
-				<view class="home-light-entry-icon">
-					<xicheng-icon name="edit" variant="plain" :size="25" />
-				</view>
-				<text class="home-light-entry-title">游记生成</text>
-				<text class="home-light-entry-copy">开始记录后 · 模板精排</text>
-			</view>
-		</view>
-
-		<view class="home-memory-grid">
 			<view
+				id="xicheng-recent-recognition-section"
 				class="recent-panel recent-compact-card xicheng-paper-card"
 				:class="{ 'recent-panel-empty': !recentRecognition }"
 				@click="recentRecognition ? openRecentRecognition() : startScanRecognition()"
@@ -147,6 +88,76 @@
 			</view>
 		</view>
 
+		<view
+			v-if="textRecognitionPanelExpanded"
+			id="xicheng-text-recognition-panel"
+			class="text-recognition-panel xicheng-paper-card"
+		>
+			<textarea
+				v-model="textRecognitionInput"
+				class="text-recognition-input"
+				placeholder="输入白塔寺、什刹海，或粘贴展牌/攻略文字"
+				auto-height
+			/>
+			<button class="primary-button xicheng-primary-action" :disabled="recognizing" @click="startTextRecognition">文本识别</button>
+		</view>
+
+		<view id="xicheng-map-entry-section" class="home-light-entry-grid">
+			<view class="home-light-entry home-map-entry xicheng-paper-card" @click="openXichengRoutes">
+				<view class="home-light-entry-icon">
+					<xicheng-icon name="routes" variant="plain" :size="25" />
+				</view>
+				<text class="home-light-entry-title">文旅地图</text>
+				<text class="home-light-entry-copy">POI 地图 · 路线推荐</text>
+			</view>
+			<view class="home-light-entry home-record-entry xicheng-paper-card home-travelogue-entry" @click="openXichengTravelogue('draft')">
+				<view class="home-light-entry-icon">
+					<xicheng-icon name="edit" variant="plain" :size="25" />
+				</view>
+				<text class="home-light-entry-title">游记生成</text>
+				<text class="home-light-entry-copy">AI 帮你记录行程，生成专属游记</text>
+				<view class="home-travelogue-actions">
+					<view class="home-start-record-button" @click.stop="openXichengRecording">开始记录</view>
+					<view class="home-draft-button" @click.stop="openXichengTravelogue('draft')">游记草稿</view>
+				</view>
+			</view>
+		</view>
+
+		<view id="xicheng-home-route-recommendation-section" class="home-route-recommendation-section">
+			<view class="home-route-head">
+				<view>
+					<text class="home-route-kicker">路线推荐</text>
+					<text class="home-route-title">官方 Citywalk</text>
+				</view>
+				<button class="home-route-more xicheng-secondary-action" @click="openXichengRoutes">一键抄作业</button>
+			</view>
+			<view class="home-route-list">
+				<view
+					v-for="route in homeRouteRecommendations"
+					:key="route.routeCode"
+					class="home-route-card xicheng-paper-card"
+					@click="openHomeRecommendedRoute(route)"
+				>
+					<image
+						v-if="getHomeRouteThumbnail(route)"
+						class="home-route-cover"
+						:src="getHomeRouteThumbnail(route)"
+						mode="aspectFill"
+					/>
+					<view class="home-route-copy">
+						<text class="home-route-card-title">{{ getHomeRouteDisplayTitle(route) }}</text>
+						<text class="home-route-card-desc">{{ getHomeRouteKeywordLine(route) }}</text>
+						<view class="home-route-meta">
+							<text>{{ route.durationText }}</text>
+							<text>{{ route.distanceText || '可步行' }}</text>
+							<text>{{ getHomeRouteStopCount(route) }}个景点</text>
+						</view>
+						<button class="home-route-button xicheng-primary-action" @click.stop="openHomeRecommendedRoute(route)">查看路线</button>
+					</view>
+				</view>
+			</view>
+		</view>
+
 		<view v-if="lastError" class="error-line">{{ lastError }}</view>
 
 		<xicheng-bottom-nav
@@ -159,6 +170,7 @@
 
 <script>
 import {
+	XICHENG_RECOMMENDED_ROUTES,
 	XICHENG_REGION_CONFIG
 } from '@/config/regions/xicheng.js'
 import {
@@ -196,11 +208,15 @@ export default {
 			recognizing: false,
 			lastError: '',
 			recentRecognition: null,
+			recommendedRoutes: XICHENG_RECOMMENDED_ROUTES,
 			worldEntrySignals: [],
 			worldEntrySummary: '镜头待命，定位后会融合现场信号'
 		}
 	},
 	computed: {
+		homeRouteRecommendations() {
+			return this.recommendedRoutes.slice(0, 2)
+		},
 		recentRecognitionConfidence() {
 			return Math.round(Number(this.recentRecognition && this.recentRecognition.confidence ? this.recentRecognition.confidence : 0) * 100)
 		},
@@ -782,6 +798,30 @@ export default {
 			uni.navigateTo({
 				url: `/pages/xicheng/routes/routes?regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&companionName=${encodeRouteValue(this.region.companionName)}`
 			})
+		},
+		getHomeRouteThumbnail(route = {}) {
+			const thumbnails = this.region.visualAssets && this.region.visualAssets.routeThumbnails
+				? this.region.visualAssets.routeThumbnails
+				: {}
+			return thumbnails[route.routeCode] || this.region.visualAssets.heroLandmark || ''
+		},
+		getHomeRouteStopCount(route = {}) {
+			return Array.isArray(route.stops) ? route.stops.length : 0
+		},
+		getHomeRouteDisplayTitle(route = {}) {
+			if (route.routeCode === 'baitasi-imperial-shichahai') return '白塔寺文化线'
+			if (route.routeCode === 'beihai-shichahai-waterfront') return '什刹海漫步线'
+			if (route.routeCode === 'dashilar-old-brand-walk') return '胡同烟火线'
+			return route.title || '西城 Citywalk'
+		},
+		getHomeRouteKeywordLine(route = {}) {
+			const keywords = Array.isArray(route.keywords) ? route.keywords : []
+			return keywords.length > 0 ? keywords.join(' · ') : route.summary || route.theme || '西城官方路线'
+		},
+		openHomeRecommendedRoute(route = {}) {
+			uni.navigateTo({
+				url: `/pages/xicheng/route-detail/route-detail?routeCode=${encodeRouteValue(route.routeCode || '')}&regionCode=${encodeRouteValue(this.region.regionCode)}&packageCode=${encodeRouteValue(this.region.packageCode)}&sceneCode=${encodeRouteValue(this.region.sceneCode)}&sourceChannel=${encodeRouteValue(this.region.sourceChannel)}&companionName=${encodeRouteValue(this.region.companionName)}`
+			})
 		}
 	}
 }
@@ -963,6 +1003,70 @@ export default {
 	transform: rotate(45deg);
 }
 
+.hero-ask-card {
+	position: absolute;
+	left: -154rpx;
+	bottom: 72rpx;
+	z-index: 4;
+	display: grid;
+	grid-template-columns: 48rpx minmax(0, 1fr) 24rpx;
+	align-items: center;
+	gap: 12rpx;
+	width: 286rpx;
+	min-height: 112rpx;
+	padding: 18rpx 16rpx;
+	border: 1rpx solid rgba(181, 148, 94, 0.18);
+	border-radius: 32rpx;
+	background: rgba(255, 253, 248, 0.94);
+	box-shadow: 0 14rpx 32rpx rgba(16, 47, 41, 0.12);
+	box-sizing: border-box;
+}
+
+.hero-ask-card::after {
+	content: '';
+	position: absolute;
+	right: -14rpx;
+	top: 42rpx;
+	width: 28rpx;
+	height: 28rpx;
+	border-radius: 0 10rpx 0 0;
+	background: rgba(255, 253, 248, 0.94);
+	transform: rotate(45deg);
+}
+
+.hero-ask-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 48rpx;
+	height: 48rpx;
+	border-radius: 16rpx;
+	background: rgba(231, 239, 232, 0.92);
+}
+
+.hero-ask-copy {
+	min-width: 0;
+}
+
+.hero-ask-title,
+.hero-ask-desc {
+	display: block;
+}
+
+.hero-ask-title {
+	font-size: 28rpx;
+	line-height: 1.25;
+	font-weight: 800;
+	color: #102F29;
+}
+
+.hero-ask-desc {
+	margin-top: 6rpx;
+	font-size: 21rpx;
+	line-height: 1.35;
+	color: #746F68;
+}
+
 .companion-name,
 .companion-line {
 	display: block;
@@ -1082,9 +1186,46 @@ export default {
 		linear-gradient(135deg, rgba(255, 253, 248, 0.96), rgba(226, 239, 230, 0.88));
 }
 
-.home-travelogue-entry {
+.home-record-entry {
 	background:
 		linear-gradient(135deg, rgba(255, 249, 238, 0.98), rgba(239, 222, 190, 0.60));
+}
+
+.home-travelogue-entry {
+	background:
+		linear-gradient(135deg, rgba(255, 253, 248, 0.96), rgba(239, 233, 219, 0.90));
+}
+
+.home-travelogue-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12rpx;
+	margin-top: 18rpx;
+}
+
+.home-start-record-button,
+.home-draft-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 120rpx;
+	min-height: 48rpx;
+	padding: 0 18rpx;
+	border-radius: 999rpx;
+	font-size: 22rpx;
+	line-height: 1.2;
+	font-weight: 800;
+	box-sizing: border-box;
+}
+
+.home-start-record-button {
+	color: #FFFDF8;
+	background: linear-gradient(135deg, #173F35, #102F29);
+}
+
+.home-draft-button {
+	color: #173F35;
+	background: rgba(23, 63, 53, 0.08);
 }
 
 .home-light-entry-icon {
@@ -1138,6 +1279,38 @@ export default {
 	align-items: center;
 	background:
 		linear-gradient(135deg, rgba(255, 249, 238, 0.98), rgba(239, 222, 190, 0.52));
+}
+
+.home-action-duo .recent-panel {
+	min-height: 158rpx;
+	padding: 20rpx 18rpx;
+	border-radius: 30rpx;
+}
+
+.home-action-duo .recent-compact-image {
+	width: 104rpx;
+	height: 126rpx;
+}
+
+.home-action-duo .recent-title {
+	font-size: 30rpx;
+}
+
+.home-action-duo .recent-desc {
+	font-size: 22rpx;
+	line-height: 1.42;
+}
+
+.home-action-duo .recent-status {
+	font-size: 21rpx;
+}
+
+.home-action-duo .recent-compact-action {
+	width: 148rpx;
+	min-height: 52rpx;
+	margin-top: 14rpx;
+	padding: 0 14rpx;
+	font-size: 21rpx;
 }
 
 .recent-copy {
@@ -1220,6 +1393,120 @@ export default {
 	background: linear-gradient(135deg, #173F35, #102F29);
 }
 
+.home-route-recommendation-section {
+	margin-top: 28rpx;
+}
+
+.home-route-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 18rpx;
+	margin-bottom: 18rpx;
+}
+
+.home-route-kicker,
+.home-route-title,
+.home-route-card-title,
+.home-route-card-desc {
+	display: block;
+}
+
+.home-route-kicker {
+	font-size: 22rpx;
+	line-height: 1.35;
+	font-weight: 700;
+	color: #B8812B;
+}
+
+.home-route-title {
+	margin-top: 8rpx;
+	font-size: 36rpx;
+	line-height: 1.2;
+	font-weight: 800;
+	color: #102F29;
+}
+
+.home-route-more {
+	flex-shrink: 0;
+	min-width: 152rpx;
+	height: 62rpx;
+	line-height: 62rpx;
+	padding: 0 20rpx;
+	border-radius: 999rpx;
+	font-size: 24rpx;
+	font-weight: 800;
+}
+
+.home-route-list {
+	display: flex;
+	flex-direction: column;
+	gap: 18rpx;
+}
+
+.home-route-card {
+	display: grid;
+	grid-template-columns: 170rpx minmax(0, 1fr);
+	gap: 20rpx;
+	align-items: center;
+	padding: 20rpx;
+	border-radius: 34rpx;
+	box-sizing: border-box;
+}
+
+.home-route-cover {
+	width: 170rpx;
+	height: 170rpx;
+	border-radius: 26rpx;
+	object-fit: cover;
+	box-shadow: 0 12rpx 26rpx rgba(16, 47, 41, 0.12);
+}
+
+.home-route-copy {
+	min-width: 0;
+}
+
+.home-route-card-title {
+	font-size: 32rpx;
+	line-height: 1.25;
+	font-weight: 800;
+	color: #102F29;
+}
+
+.home-route-card-desc {
+	margin-top: 10rpx;
+	font-size: 24rpx;
+	line-height: 1.45;
+	color: #746F68;
+}
+
+.home-route-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10rpx;
+	margin-top: 14rpx;
+}
+
+.home-route-meta text {
+	padding: 8rpx 12rpx;
+	border-radius: 999rpx;
+	background: rgba(23, 63, 53, 0.08);
+	color: #173F35;
+	font-size: 21rpx;
+	line-height: 1.2;
+	font-weight: 700;
+}
+
+.home-route-button {
+	width: 168rpx;
+	height: 58rpx;
+	line-height: 58rpx;
+	margin: 18rpx 0 0;
+	border-radius: 999rpx;
+	font-size: 23rpx;
+	font-weight: 800;
+}
+
 .error-line {
 	margin-top: 24rpx;
 	color: #B42318;
@@ -1291,6 +1578,12 @@ export default {
 	padding: 24rpx 22rpx;
 	border-radius: 34rpx;
 	background: rgba(255, 253, 248, 0.94);
+}
+
+.xicheng-reference-hero .hero-ask-card {
+	left: -230rpx;
+	bottom: 136rpx;
+	width: 300rpx;
 }
 
 .home-world-entry {

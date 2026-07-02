@@ -9,13 +9,15 @@ for (const required of [
   'id="xicheng-map-entry-section"',
   'class="home-light-entry-grid"',
   'class="home-light-entry home-map-entry xicheng-paper-card"',
-  'class="home-light-entry home-travelogue-entry xicheng-paper-card"',
+  'class="home-light-entry home-record-entry xicheng-paper-card home-travelogue-entry"',
   '文旅地图',
   'POI 地图 · 路线推荐',
   '游记生成',
-  '开始记录后 · 模板精排',
+  'AI 帮你记录行程，生成专属游记',
+  '开始记录',
+  '游记草稿',
   '@click="openXichengRoutes"',
-  '@click="openXichengTravelogue(\'draft\')"',
+  '@click.stop="openXichengRecording"',
   'class="home-share-button"',
   '@click="openXichengShare"'
 ]) {
@@ -36,6 +38,6 @@ assert.match(
 
 assert.doesNotMatch(
   home,
-  /生成我的西城游记|homeSecondaryEntries|openHomeSecondaryEntry|class="flow-strip"|class="journey-panel|class="ops-section|class="inspiration-panel|title: '收藏'|key: 'footprint'|亲子研学|运营报告|一键抄作业/,
-  'Xicheng home should not keep hidden growth, parent-child study, ops report, favorite, or inspiration-import entrypoints on the primary page'
+  /homeSecondaryEntries|openHomeSecondaryEntry|class="flow-strip"|class="journey-panel|class="ops-section|class="inspiration-panel|title: '收藏'|key: 'footprint'|亲子研学|运营报告/,
+  'Xicheng home should not keep hidden growth, parent-child study, ops report, or favorite entrypoints on the primary page'
 )

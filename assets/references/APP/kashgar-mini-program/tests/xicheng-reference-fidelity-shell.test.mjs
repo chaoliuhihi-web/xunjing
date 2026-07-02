@@ -12,8 +12,8 @@ const resultStyle = scanResult.match(/<style scoped>[\s\S]*<\/style>/)?.[0] || '
 
 assert.match(
   home,
-  /class="hero xicheng-reference-hero"[\s\S]*class="home-action-duo"[\s\S]*home-scan-card[\s\S]*home-ask-card/,
-  'Xicheng home should follow the approved reference: immersive hero followed by exactly two primary action cards'
+  /class="hero xicheng-reference-hero"[\s\S]*hero-ask-card[\s\S]*class="home-action-duo"[\s\S]*home-scan-card[\s\S]*id="xicheng-recent-recognition-section"/,
+  'Xicheng home should follow the approved reference: immersive Xiaojing hero followed by scan and recent-recognition cards'
 )
 
 assert.doesNotMatch(
@@ -24,8 +24,8 @@ assert.doesNotMatch(
 
 assert.match(
   home,
-  /id="xicheng-map-entry-section"[\s\S]*class="home-light-entry-grid"[\s\S]*文旅地图[\s\S]*游记生成/,
-  'Xicheng home should show compact map and travelogue generation entries instead of a long route feed'
+  /id="xicheng-map-entry-section"[\s\S]*class="home-light-entry-grid"[\s\S]*文旅地图[\s\S]*游记生成[\s\S]*开始记录/,
+  'Xicheng home should show compact map and travelogue-generation entries instead of a long route feed'
 )
 
 assert.match(

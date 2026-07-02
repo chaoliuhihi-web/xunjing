@@ -65,8 +65,8 @@ for (const required of [
 
 assert.doesNotMatch(
   home,
-  /一键抄作业|一键导入灵感|openXichengInspiration|\/pages\/xicheng\/inspiration\/inspiration\?/,
-  'Xicheng home should not expose inspiration import as a prominent primary-page entry'
+  /一键导入灵感|openXichengInspiration|\/pages\/xicheng\/inspiration\/inspiration\?/,
+  'Xicheng home may label the route CTA 一键抄作业, but should not expose inspiration import as a prominent primary-page entry'
 )
 
 for (const required of [

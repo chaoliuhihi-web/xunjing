@@ -89,7 +89,9 @@ for (const required of [
 for (const required of [
   '小京',
   'AI识境',
-  '看见什么，就能问什么',
+  '西城 AI 旅伴',
+  '扫一扫',
+  '最近识别',
   '拍照识别',
   'OCR识别',
   '文旅地图',

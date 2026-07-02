@@ -10,7 +10,7 @@ const computedBlock = home.match(/computed:\s*\{[\s\S]*?\n\t\},\n\tonLoad/)?.[0]
 
 for (const required of [
   '最近识别',
-  'home-memory-grid',
+  'id="xicheng-recent-recognition-section"',
   '游记生成',
   'recent-compact-card',
   'recentRecognitionVisual',
