@@ -335,6 +335,33 @@ public class XunjingAppVO {
     }
 
     @Data
+    public static class VisionAgentSceneContextRespVO {
+        private String packageCode;
+        private String userTraceId;
+        private Boolean contextReady;
+        private Long latestEventId;
+        private String currentRegionCode;
+        private String currentPoiCode;
+        private String currentPoiName;
+        private String primarySceneDomainKey;
+        private String primarySceneDomainLabel;
+        private String sceneFusionSummary;
+        private String worldInterfaceSummary;
+        private String agentDecisionActionTitle;
+        private String poiTrailText;
+        private String serviceContinuityText;
+        private Boolean knowledgeGraphAvailable;
+        private Long serviceHandoffTaskCount;
+        private Long realSystemRequiredTaskCount;
+        private String realSystemBoundaryText;
+        private List<String> topicTrail;
+        private Map<String, Object> latestSceneSnapshot;
+        private VisionAgentMemorySessionRespVO memorySession;
+        private VisionAgentServiceHandoffTaskFeedRespVO serviceHandoff;
+        private VisionAgentKnowledgeGraphRespVO knowledgeGraph;
+    }
+
+    @Data
     public static class VisionAgentKnowledgeGraphRespVO {
         private String packageCode;
         private String regionCode;

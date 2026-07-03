@@ -38,6 +38,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgen
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentKnowledgeGraphRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySceneRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySessionRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentSceneContextRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentServiceHandoffTaskFeedRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentServiceHandoffTaskRespVO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.ai.XunjingAiGenerationLogDO;
@@ -383,6 +384,13 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             String packageCode, String userTraceId, Integer limit) {
         XunjingResourcePackageDO resourcePackage = validatePublicPackage(packageCode);
         return buildVisionAgentServiceHandoffTaskFeed(resourcePackage, userTraceId, limit);
+    }
+
+    @Override
+    public VisionAgentSceneContextRespVO getVisionAgentSceneContext(
+            String packageCode, String userTraceId, String regionCode, String poiCode, Integer limit) {
+        XunjingResourcePackageDO resourcePackage = validatePublicPackage(packageCode);
+        return buildVisionAgentSceneContext(resourcePackage, userTraceId, regionCode, poiCode, limit);
     }
 
     @Override
@@ -3077,6 +3085,88 @@ public class XunjingAppServiceImpl implements XunjingAppService {
 
     private String resolveServiceHandoffRealSystemStatus(Boolean requiresRealSystem) {
         return Boolean.TRUE.equals(requiresRealSystem) ? "NOT_CONNECTED" : "LOCAL_ONLY";
+    }
+
+    private VisionAgentSceneContextRespVO buildVisionAgentSceneContext(
+            XunjingResourcePackageDO resourcePackage, String userTraceId,
+            String regionCode, String poiCode, Integer limit) {
+        VisionAgentMemorySessionRespVO memorySession =
+                buildVisionAgentMemorySession(resourcePackage, userTraceId, limit);
+        VisionAgentServiceHandoffTaskFeedRespVO serviceHandoff =
+                buildVisionAgentServiceHandoffTaskFeed(resourcePackage, userTraceId, limit);
+        VisionAgentMemorySceneRespVO latestScene = resolveSceneContextLatestScene(memorySession);
+        String currentRegionCode = firstMemoryText(regionCode, latestScene == null ? "" : latestScene.getRegionCode());
+        String currentPoiCode = firstMemoryText(poiCode, latestScene == null ? "" : latestScene.getPoiCode());
+        String currentPoiName = latestScene == null ? "" : latestScene.getPoiName();
+        VisionAgentKnowledgeGraphRespVO knowledgeGraph = resolveSceneContextKnowledgeGraph(
+                resourcePackage, currentRegionCode, currentPoiCode, limit);
+
+        VisionAgentSceneContextRespVO respVO = new VisionAgentSceneContextRespVO();
+        respVO.setPackageCode(resourcePackage.getPackageCode());
+        respVO.setUserTraceId(defaultIfBlank(userTraceId, ""));
+        respVO.setContextReady(buildSceneContextReady(memorySession, serviceHandoff, knowledgeGraph));
+        respVO.setLatestEventId(latestScene == null ? null : latestScene.getEventId());
+        respVO.setCurrentRegionCode(firstMemoryText(currentRegionCode,
+                knowledgeGraph == null ? "" : knowledgeGraph.getRegionCode()));
+        respVO.setCurrentPoiCode(firstMemoryText(currentPoiCode,
+                knowledgeGraph == null ? "" : knowledgeGraph.getAnchorPoiCode()));
+        respVO.setCurrentPoiName(firstMemoryText(currentPoiName,
+                knowledgeGraph == null ? "" : knowledgeGraph.getAnchorPoiName()));
+        respVO.setPrimarySceneDomainKey(latestScene == null ? "" : latestScene.getPrimarySceneDomainKey());
+        respVO.setPrimarySceneDomainLabel(latestScene == null ? "" : latestScene.getPrimarySceneDomainLabel());
+        respVO.setSceneFusionSummary(latestScene == null ? "" : latestScene.getSceneFusionSummary());
+        respVO.setWorldInterfaceSummary(latestScene == null ? "" : latestScene.getWorldInterfaceSummary());
+        respVO.setAgentDecisionActionTitle(latestScene == null ? "" : latestScene.getAgentDecisionActionTitle());
+        respVO.setPoiTrailText(memorySession.getPoiTrailText());
+        respVO.setServiceContinuityText(memorySession.getServiceContinuityText());
+        respVO.setKnowledgeGraphAvailable(knowledgeGraph != null);
+        respVO.setServiceHandoffTaskCount(serviceHandoff.getTaskCount());
+        respVO.setRealSystemRequiredTaskCount(serviceHandoff.getRealSystemRequiredTaskCount());
+        respVO.setRealSystemBoundaryText(serviceHandoff.getRealSystemBoundaryText());
+        respVO.setTopicTrail(knowledgeGraph == null ? List.of() : knowledgeGraph.getTopicTrail());
+        respVO.setLatestSceneSnapshot(latestScene == null || latestScene.getSceneSnapshot() == null
+                ? Map.of() : latestScene.getSceneSnapshot());
+        respVO.setMemorySession(memorySession);
+        respVO.setServiceHandoff(serviceHandoff);
+        respVO.setKnowledgeGraph(knowledgeGraph);
+        return respVO;
+    }
+
+    private VisionAgentMemorySceneRespVO resolveSceneContextLatestScene(
+            VisionAgentMemorySessionRespVO memorySession) {
+        if (memorySession == null || memorySession.getScenes() == null || memorySession.getScenes().isEmpty()) {
+            return null;
+        }
+        for (int i = memorySession.getScenes().size() - 1; i >= 0; i--) {
+            VisionAgentMemorySceneRespVO scene = memorySession.getScenes().get(i);
+            if (scene != null && scene.getEventId() != null) {
+                return scene;
+            }
+        }
+        return null;
+    }
+
+    private VisionAgentKnowledgeGraphRespVO resolveSceneContextKnowledgeGraph(
+            XunjingResourcePackageDO resourcePackage, String regionCode, String poiCode, Integer limit) {
+        if (!hasText(poiCode)) {
+            return null;
+        }
+        try {
+            return buildVisionAgentKnowledgeGraph(resourcePackage, regionCode, poiCode, limit);
+        } catch (IllegalArgumentException ex) {
+            log.warn("[resolveSceneContextKnowledgeGraph][packageCode({}) poiCode({}) not available]",
+                    resourcePackage.getPackageCode(), poiCode);
+            return null;
+        }
+    }
+
+    private Boolean buildSceneContextReady(
+            VisionAgentMemorySessionRespVO memorySession,
+            VisionAgentServiceHandoffTaskFeedRespVO serviceHandoff,
+            VisionAgentKnowledgeGraphRespVO knowledgeGraph) {
+        return memorySession != null && memorySession.getSceneCount() != null && memorySession.getSceneCount() > 0
+                || serviceHandoff != null && serviceHandoff.getTaskCount() != null && serviceHandoff.getTaskCount() > 0
+                || knowledgeGraph != null;
     }
 
     private VisionAgentKnowledgeGraphRespVO buildVisionAgentKnowledgeGraph(

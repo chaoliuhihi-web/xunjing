@@ -36,6 +36,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolv
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialFeedRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentKnowledgeGraphRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySessionRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentSceneContextRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentServiceHandoffTaskFeedRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.LocationPointReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
@@ -723,6 +724,91 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertFalse(JsonUtils.toJsonString(feed).contains("imageBase64"));
         assertFalse(JsonUtils.toJsonString(feed).contains("couponCode"));
         assertFalse(JsonUtils.toJsonString(feed).contains("ticketOrderNo"));
+    }
+
+    @Test
+    public void testGetVisionAgentSceneContextBuildsSceneEngineContextPacket() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+        consoleService.addKnowledgeDocument(xichengGongwangfuKnowledgeReq(packageId));
+
+        PhotoMetaReqVO photoMeta = new PhotoMetaReqVO();
+        photoMeta.setImageId("img-gongwangfu-scene-context-001");
+        photoMeta.setTakenAt("2026-07-02T18:55:00+08:00");
+        photoMeta.setImageBase64("raw-image-should-not-enter-scene-context");
+        photoMeta.setExifLocation(location("39.937052", "116.386772", 9));
+
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-scene-context-001");
+        triggerReq.setOcrText("恭王府博物馆入口");
+        triggerReq.setImageLabels(List.of("palace", "sunset"));
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        triggerReq.setPhotoMeta(photoMeta);
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneDomainIntentKey", "architecture");
+        sceneSignals.put("sceneDomainIntentLabel", "建筑");
+        sceneSignals.put("sceneFusionSummary", "恭王府建筑、夕阳和现场服务任务被融合进 Scene Engine。");
+        sceneSignals.put("worldInterfaceSummary", "相机、定位、时间和知识库共同形成场景上下文。");
+        sceneSignals.put("agentDecisionActionTitle", "附近美食");
+        sceneSignals.put("agentDecisionReasonSummary", "拍完夕阳后可接续附近清真餐饮服务。");
+        triggerReq.setSceneSignals(sceneSignals);
+        appService.resolveMultimodalTrigger(triggerReq);
+
+        AppInteractionEventReqVO actionReq = new AppInteractionEventReqVO();
+        actionReq.setPackageCode("XICHENG-MAP-001");
+        actionReq.setSceneCode("xicheng-agent-action");
+        actionReq.setEventType(XunjingEnums.EventType.AGENT_ACTION.getType());
+        actionReq.setSourceChannel("xicheng-app");
+        actionReq.setUserTraceId("trace-xicheng-scene-context-001");
+        actionReq.setPayloadJson("""
+                {
+                  "actionKey":"nearby_food",
+                  "title":"附近美食",
+                  "intent":"food",
+                  "targetPath":"/pages/service/food?regionCode=beijing-xicheng&poiCode=xicheng-gongwangfu&packageCode=XICHENG-MAP-001",
+                  "sourceTriggerTraceId":"trace-xicheng-scene-context-001",
+                  "requiresUserConfirm":true,
+                  "requiresRealSystem":true,
+                  "executionStatus":"pending",
+                  "regionCode":"beijing-xicheng",
+                  "poiCode":"xicheng-gongwangfu",
+                  "poiName":"恭王府",
+                  "reason":"附近餐饮优惠和预约必须由真实商家系统确认。"
+                }
+                """);
+        appService.recordEvent(actionReq);
+
+        VisionAgentSceneContextRespVO context = appService.getVisionAgentSceneContext(
+                "XICHENG-MAP-001", "trace-xicheng-scene-context-001", null, null, 10);
+
+        assertEquals("XICHENG-MAP-001", context.getPackageCode());
+        assertEquals("trace-xicheng-scene-context-001", context.getUserTraceId());
+        assertTrue(context.getContextReady());
+        assertEquals("beijing-xicheng", context.getCurrentRegionCode());
+        assertEquals("xicheng-gongwangfu", context.getCurrentPoiCode());
+        assertEquals("恭王府", context.getCurrentPoiName());
+        assertEquals("architecture", context.getPrimarySceneDomainKey());
+        assertEquals("建筑", context.getPrimarySceneDomainLabel());
+        assertTrue(context.getSceneFusionSummary().contains("恭王府"));
+        assertTrue(context.getWorldInterfaceSummary().contains("知识库"));
+        assertTrue(context.getPoiTrailText().contains("恭王府"));
+        assertTrue(context.getServiceContinuityText().contains("附近美食"));
+        assertTrue(context.getKnowledgeGraphAvailable());
+        assertFalse(context.getTopicTrail().isEmpty());
+        assertEquals(1L, context.getServiceHandoffTaskCount());
+        assertEquals(1L, context.getRealSystemRequiredTaskCount());
+        assertTrue(context.getRealSystemBoundaryText().contains("真实系统状态"));
+        assertEquals(2, context.getMemorySession().getSceneCount());
+        assertEquals("NOT_CONNECTED", context.getServiceHandoff().getTasks().get(0).getRealSystemStatus());
+        assertEquals("xicheng-gongwangfu", context.getKnowledgeGraph().getAnchorPoiCode());
+        assertEquals("img-gongwangfu-scene-context-001",
+                context.getLatestSceneSnapshot().get("imageId"));
+        assertFalse(JsonUtils.toJsonString(context).contains("raw-image-should-not-enter-scene-context"));
+        assertFalse(JsonUtils.toJsonString(context).contains("imageBase64"));
     }
 
     @Test
