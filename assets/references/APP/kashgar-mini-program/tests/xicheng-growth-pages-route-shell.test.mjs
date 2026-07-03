@@ -32,16 +32,20 @@ const requiredPages = [
   },
   {
     route: 'pages/xicheng/passport/passport',
-    title: '路线护照',
+    title: '路线记录',
     file: ['pages', 'xicheng', 'passport', 'passport.vue'],
     requiredTokens: [
       'xicheng-passport',
       'XICHENG_REGION_CONFIG.badgeAwardStorageKey',
       'XICHENG_REGION_CONFIG.studyTaskStorageKey',
       'route-passport-stamp.png',
-      '亲子研学任务',
-      'xicheng-icon name="passport"'
-    ]
+      '路线记录',
+      '路线复盘',
+      '街区观察记录',
+      "uni.setNavigationBarTitle({ title: '路线记录' })",
+      'xicheng-icon name="route"'
+    ],
+    forbiddenPattern: /路线护照|我的路线护照|已获得徽章|亲子研学任务|领取徽章|徽章|积分/
   },
   {
     route: 'pages/xicheng/share/share',

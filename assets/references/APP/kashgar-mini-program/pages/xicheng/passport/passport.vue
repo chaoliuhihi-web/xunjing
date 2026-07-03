@@ -4,7 +4,7 @@
 			<view class="topbar-button" @click="goBack">
 				<xicheng-icon name="back" variant="plain" :size="22" />
 			</view>
-			<text class="topbar-title">路线护照</text>
+			<text class="topbar-title">路线记录</text>
 			<view class="topbar-button" @click="openRecording">
 				<xicheng-icon name="record" variant="plain" :size="21" />
 			</view>
@@ -12,7 +12,7 @@
 
 		<view class="passport-hero passport-reference-hero xicheng-paper-card">
 			<view class="passport-copy">
-				<text class="passport-kicker">我的路线护照</text>
+				<text class="passport-kicker">我的路线记录</text>
 				<text class="passport-title">{{ passportTitle }}</text>
 				<text class="passport-desc">古刹文脉 · 建筑美学 · 老城风情</text>
 				<view class="passport-progress-inline">
@@ -33,8 +33,8 @@
 		<view class="progress-card xicheng-paper-card">
 			<view class="section-head">
 				<view class="section-title-row">
-					<xicheng-icon name="passport" variant="primary" :size="18" />
-					<text class="section-title">路线打卡印章</text>
+					<xicheng-icon name="route" variant="primary" :size="18" />
+					<text class="section-title">路线记录点位</text>
 				</view>
 				<text class="section-badge">{{ completedCheckins }}/{{ targetCheckinCount }}</text>
 			</view>
@@ -44,7 +44,7 @@
 			<view class="stamp-grid">
 				<view v-for="stamp in stampSlots" :key="stamp.key" class="stamp-cell" :class="{ 'stamp-cell-active': stamp.done }">
 					<image class="stamp-cell-image" :src="passportStampImage" mode="aspectFit" />
-					<text class="stamp-status">{{ stamp.done ? '已打卡' : '未打卡' }}</text>
+					<text class="stamp-status">{{ stamp.done ? '已记录' : '待记录' }}</text>
 					<text class="stamp-label">{{ stamp.label }}</text>
 				</view>
 			</view>
@@ -52,7 +52,7 @@
 
 		<view class="badge-card xicheng-paper-card">
 			<view class="section-head">
-				<text class="section-title">已获得徽章</text>
+				<text class="section-title">路线复盘</text>
 				<text class="section-badge">{{ badgeProgressText }}</text>
 			</view>
 			<view class="passport-badge-grid">
@@ -68,8 +68,8 @@
 
 		<view class="task-card xicheng-paper-card">
 			<view class="section-head">
-				<text class="section-title">亲子研学任务</text>
-				<text class="section-badge">{{ studyEvidence.length }} 条证据</text>
+				<text class="section-title">街区观察记录</text>
+				<text class="section-badge">{{ studyEvidence.length }} 条记录</text>
 			</view>
 			<view class="task-list">
 				<view v-for="task in studyTasks" :key="task" class="task-row">
@@ -80,8 +80,8 @@
 		</view>
 
 		<view class="bottom-actions">
-			<button class="primary-button xicheng-primary-action" @click="openRecording">继续路线</button>
-			<button class="ghost-button xicheng-secondary-action" @click="openShare">生成纪念</button>
+			<button class="primary-button xicheng-primary-action" @click="openRecording">继续记录</button>
+			<button class="ghost-button xicheng-secondary-action" @click="openShare">生成游记</button>
 		</view>
 	</view>
 </template>
@@ -114,7 +114,7 @@ export default {
 			return Math.round((this.completedCheckins / this.targetCheckinCount) * 100)
 		},
 		passportTitle() {
-			return this.completedCheckins >= this.targetCheckinCount ? '西城路线纪念章已点亮' : '继续打卡点亮路线印章'
+			return this.completedCheckins >= this.targetCheckinCount ? '西城路线复盘已完成' : '继续记录完善路线复盘'
 		},
 		stampSlots() {
 			return Array.from({ length: this.targetCheckinCount }).map((_, index) => ({
@@ -127,7 +127,7 @@ export default {
 			return this.region.parentChildTasks
 		},
 		badgeProgressText() {
-			return `收集进度 ${Math.min(this.completedCheckins, 2)}/3`
+			return `记录进度 ${this.completedCheckins}/${this.targetCheckinCount}`
 		},
 		badgeCards() {
 			return [
@@ -138,6 +138,7 @@ export default {
 		}
 	},
 	onShow() {
+		uni.setNavigationBarTitle({ title: '路线记录' })
 		this.routeCheckins = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.checkinStorageKey))
 		this.badgeAwards = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.badgeAwardStorageKey))
 		this.studyEvidence = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.studyTaskStorageKey))
