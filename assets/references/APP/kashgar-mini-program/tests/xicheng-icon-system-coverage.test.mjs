@@ -105,6 +105,6 @@ for (const iconName of ['back', 'record', 'route', 'resume', 'edit']) {
 
 assert.match(
   routeDetailShell,
-  /<xicheng-icon[\s\S]*name="back"[\s\S]*name="passport"[\s\S]*name="play"/,
-  'Route detail should use shared icons for back, route passport, and playback'
+  /<xicheng-icon[\s\S]*name="back"[\s\S]*name="record"[\s\S]*name="play"/,
+  'Route detail should use shared icons for back, recording shortcut, and playback'
 )

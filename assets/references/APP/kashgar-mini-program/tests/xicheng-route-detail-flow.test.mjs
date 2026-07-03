@@ -63,7 +63,7 @@ for (const required of [
   'routeStopCards',
   '沿途看点',
   '听讲解',
-  'startRoutePassport',
+  'startRouteRecording',
   'generateRouteTravelogue',
   'askStopGuide(stop = {})',
   "$emit('ask-stop', stop)"
@@ -121,8 +121,20 @@ assert.match(
 
 assert.doesNotMatch(
   routeDetail,
-  /routeOperationCards\(\)|亲子研学任务/,
-  'Route detail should not keep unused passport/study operation cards after route work moved to recording and travelogue handoffs'
+  /@passport=|startRoutePassport\(\)|已加入路线护照|routeOperationCards\(\)|亲子研学任务/,
+  'Route detail should not keep unused passport/study operation cards or toast-only passport actions after route work moved to recording and travelogue handoffs'
+)
+
+assert.doesNotMatch(
+  routeDetailPanel,
+  /name="passport"|emits:\s*\[[\s\S]*'passport'/,
+  'Route detail panel should not expose the route passport icon or event as a launch-facing action'
+)
+
+assert.match(
+  routeDetailPanel,
+  /class="route-detail-nav-button route-detail-record-shortcut-button"[\s\S]*@click="\$emit\('start-recording'\)"[\s\S]*<xicheng-icon name="record"/,
+  'Route detail top-right shortcut should align with the recording main flow'
 )
 
 assert.match(

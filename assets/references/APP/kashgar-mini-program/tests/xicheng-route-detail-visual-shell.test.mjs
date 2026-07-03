@@ -14,8 +14,8 @@ for (const required of [
   ':src="routeHeroImage"',
   'class="route-detail-dashed-path"',
   'route-detail-timeline',
-  'class="route-detail-nav-button route-detail-share-button"',
-  'name="passport"',
+  'class="route-detail-nav-button route-detail-record-shortcut-button"',
+  'name="record"',
   '沿途看点',
   '听讲解',
   '开始记录',
@@ -65,8 +65,8 @@ assert.match(
 
 assert.doesNotMatch(
   routeDetailShell,
-  /<button class="nav-icon" @click="startRoutePassport">存<\/button>/,
-  'Route detail passport action should use a familiar bookmark-style icon instead of the ambiguous visible text 存'
+  /<button class="nav-icon" @click="startRoutePassport">存<\/button>|name="passport"|@passport=|startRoutePassport\(\)|已加入路线护照/,
+  'Route detail should not keep the old route passport action after route work moved to recording and travelogue'
 )
 
 assert.doesNotMatch(

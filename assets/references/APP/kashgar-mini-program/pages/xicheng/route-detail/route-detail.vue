@@ -8,7 +8,6 @@
 			:route-hero-image="routeHeroImage"
 			:companion-avatar="region.companionAvatar"
 			@back="goBack"
-			@passport="startRoutePassport"
 			@ask-stop="askStopGuide"
 			@open-poi-detail="openStopPoiDetail"
 			@navigate-stop="navigateStopPoi"
@@ -144,13 +143,6 @@ export default {
 			const routeMaterials = this.createRouteMaterials(routePayload.updatedAt)
 			uni.setStorageSync(this.region.inspirationStorageKey, routePayload)
 			uni.setStorageSync(this.region.materialsStorageKey, mergeXichengOfficialRouteMaterials(routeMaterials, materials).slice(0, 80))
-		},
-		startRoutePassport() {
-			this.persistRoutePassport()
-			uni.showToast({
-				title: '已加入路线护照',
-				icon: 'none'
-			})
 		},
 		generateRouteTravelogue() {
 			this.persistRoutePassport()

@@ -53,10 +53,16 @@ for (const required of [
   '$emit(\'ask-stop\'',
   '$emit(\'start-recording\'',
   '$emit(\'generate-travelogue\'',
-  '$emit(\'passport\''
+  'route-detail-record-shortcut-button'
 ]) {
   assert.ok(routeDetailShell.includes(required), `Route detail reference shell should include ${required}`)
 }
+
+assert.doesNotMatch(
+  routeDetailShell,
+  /\$emit\('passport'|name="passport"|route-detail-share-button/,
+  'Route detail reference shell should keep the top-right shortcut on recording, not route passport'
+)
 
 assert.match(
   panel,

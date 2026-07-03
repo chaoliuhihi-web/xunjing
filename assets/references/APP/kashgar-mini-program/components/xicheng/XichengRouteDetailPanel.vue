@@ -5,8 +5,8 @@
 				<xicheng-icon name="back" variant="plain" :size="25" />
 			</button>
 			<text class="route-detail-nav-title">路线详情</text>
-			<button class="route-detail-nav-button route-detail-share-button" @click="$emit('passport')">
-				<xicheng-icon name="passport" variant="plain" :size="24" />
+			<button class="route-detail-nav-button route-detail-record-shortcut-button" @click="$emit('start-recording')">
+				<xicheng-icon name="record" variant="plain" :size="24" />
 			</button>
 		</view>
 
@@ -120,7 +120,7 @@ export default {
 			default: ''
 		}
 	},
-	emits: ['back', 'passport', 'ask-stop', 'open-poi-detail', 'navigate-stop', 'start-recording', 'generate-travelogue'],
+	emits: ['back', 'ask-stop', 'open-poi-detail', 'navigate-stop', 'start-recording', 'generate-travelogue'],
 	computed: {
 		routeStopItems() {
 			return Array.isArray(this.routeStops) ? this.routeStops : []
@@ -193,7 +193,7 @@ export default {
 	color: #102F29;
 }
 
-.route-detail-share-button {
+.route-detail-record-shortcut-button {
 	background: transparent;
 	box-shadow: none;
 }
