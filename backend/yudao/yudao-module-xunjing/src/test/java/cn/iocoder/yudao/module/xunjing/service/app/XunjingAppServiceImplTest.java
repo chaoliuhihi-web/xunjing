@@ -999,6 +999,7 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
 
         assertEquals("xicheng-baitasi", respVO.getPoiCode());
         assertEquals("妙应寺白塔", respVO.getPoiName());
+        assertEquals("scene_fusion", respVO.getTriggerType());
         assertEquals("start_ai_guide", respVO.getAction());
         assertTrue(respVO.getConfidence() >= 0.85D);
         assertFalse(respVO.getRequiresUserConfirm());

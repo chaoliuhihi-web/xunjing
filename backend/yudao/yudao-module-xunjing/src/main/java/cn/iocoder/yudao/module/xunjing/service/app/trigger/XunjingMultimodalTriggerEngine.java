@@ -833,6 +833,9 @@ public class XunjingMultimodalTriggerEngine {
     }
 
     private String resolveTriggerType(List<String> signals) {
+        if (signals.contains("gps_ocr_fused")) {
+            return "scene_fusion";
+        }
         if (signals.contains("ocr_alias")) {
             return "ocr";
         }

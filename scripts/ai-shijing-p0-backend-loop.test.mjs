@@ -20,6 +20,7 @@ describe('AI Shijing P0 backend loop verifier', () => {
     expect(verifier).toContain('verifyBackendLoop')
     expect(verifier).toContain('requirementId: \'vision-ocr-status\'')
     expect(verifier).toContain('requirementId: \'scene-engine-context\'')
+    expect(verifier).toContain('requirementId: \'server-memory-hydration\'')
     expect(verifier).toContain('requirementId: \'continuous-memory\'')
     expect(verifier).toContain('requirementId: \'agent-decision-queue\'')
     expect(verifier).toContain('requirementId: \'knowledge-graph\'')

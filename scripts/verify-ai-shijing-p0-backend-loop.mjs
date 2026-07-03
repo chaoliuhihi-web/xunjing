@@ -131,6 +131,35 @@ function verifyBackendLoop(files) {
       ]
     },
     {
+      requirementId: 'server-memory-hydration',
+      title: '下一次识境解析前由服务端按 userTraceId 回填连续记忆',
+      evidence: [
+        checkSnippets(files.appServiceImpl, 'XunjingAppServiceImpl.java', [
+          'hydrateMultimodalTriggerMemoryFromPreviousResolve(reqVO)',
+          'selectLatestVisionAgentMemoryEvent(resourcePackage, reqVO, EventType.TRIGGER_RESOLVE.getType())',
+          'selectLatestVisionAgentMemoryEvent(resourcePackage, reqVO, EventType.ASK.getType())',
+          'selectLatestVisionAgentMemoryEvent(resourcePackage, reqVO, EventType.AGENT_ACTION.getType())',
+          'hydratePreviousTriggerRecentPoi(reqVO, poiCode)',
+          'hydratePreviousTriggerSceneSignals(reqVO, root)',
+          'hydratePreviousAskSceneSignals(reqVO, root, visionAgentContext)',
+          'hydratePreviousAgentActionSceneSignals(reqVO, agentAction)',
+          'hasFreshMultimodalTriggerSignal(reqVO)'
+        ]),
+        checkSnippets(files.eventMapper, 'XunjingInteractionEventMapper.java', [
+          'selectLatestByPackageIdAndUserTraceIdAndEventType',
+          'orderByDesc(XunjingInteractionEventDO::getId)',
+          'last("LIMIT 1")'
+        ]),
+        checkSnippets(files.appTest, 'XunjingAppServiceImplTest.java', [
+          'testResolveMultimodalTriggerHydratesContinuousContextFromPreviousTriggerEvent',
+          'testResolveMultimodalTriggerHydratesContinuousContextFromPreviousAskEvent',
+          'testResolveMultimodalTriggerHydratesExecutedAgentActionIntoContinuousContext',
+          'testResolveMultimodalTriggerUsesLatestAskWhenItIsNewerThanPreviousTrigger',
+          'getMatchedSignals().contains("context_poi")'
+        ])
+      ]
+    },
+    {
       requirementId: 'continuous-memory',
       title: '连续记忆按 userTraceId 汇总触发、问答和 Agent 事件',
       evidence: [
