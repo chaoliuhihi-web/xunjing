@@ -88,11 +88,11 @@
 						<view class="route-meta">
 							<text>{{ route.durationText }}</text>
 							<text>{{ route.distanceText || '可步行' }}</text>
-							<text>{{ route.passportTaskCount || getRouteStopCount(route) }}个景点</text>
+							<text>{{ getRouteStopCount(route) }}个景点</text>
 						</view>
 						<view class="route-actions">
 							<button class="route-button route-button-main xicheng-primary-action" @click="openRouteDetail(route)">查看路线</button>
-							<button class="route-button route-button-secondary xicheng-secondary-action" @click="startRoutePassport(route)">路线护照</button>
+							<button class="route-button route-button-secondary xicheng-secondary-action" @click="startRouteRecording(route)">开始记录</button>
 							<button class="route-button route-button-secondary xicheng-secondary-action" @click="generateRouteTravelogue(route)">游记</button>
 						</view>
 					</view>
@@ -421,11 +421,10 @@ export default {
 				url: `/pages/xicheng/route-detail/route-detail?routeCode=${encodeRouteValue(generatedRoute.routeCode || '')}&regionCode=${encodeRouteValue(this.routeContext.regionCode)}&packageCode=${encodeRouteValue(this.routeContext.packageCode)}&sceneCode=${encodeRouteValue(this.routeContext.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeContext.sourceChannel)}&companionName=${encodeRouteValue(this.routeContext.companionName)}`
 			})
 		},
-		startRoutePassport(route = {}) {
+		startRouteRecording(route = {}) {
 			this.persistRoutePassport(route)
-			uni.showToast({
-				icon: 'none',
-				title: '已加入路线护照'
+			uni.navigateTo({
+				url: `/pages/xicheng/recording/recording?autoStart=1&routeCode=${encodeRouteValue(route.routeCode || '')}&routeTitle=${encodeRouteValue(route.title || '')}&regionCode=${encodeRouteValue(this.routeContext.regionCode)}&packageCode=${encodeRouteValue(this.routeContext.packageCode)}&sceneCode=${encodeRouteValue(this.routeContext.sceneCode)}&sourceChannel=${encodeRouteValue(this.routeContext.sourceChannel)}&companionName=${encodeRouteValue(this.routeContext.companionName)}`
 			})
 		},
 		generateRouteTravelogue(route = {}) {

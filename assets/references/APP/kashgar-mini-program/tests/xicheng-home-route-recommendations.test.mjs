@@ -107,7 +107,7 @@ for (const required of [
   'filteredRoutes',
   'route-list-card',
   '查看路线',
-  '路线护照',
+  '开始记录',
   'generateRouteTravelogue(route)',
   'openInspirationImport'
 ]) {

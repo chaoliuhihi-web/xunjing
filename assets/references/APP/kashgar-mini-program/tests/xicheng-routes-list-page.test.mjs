@@ -61,11 +61,11 @@ for (const required of [
   'filteredRoutes',
   'route-list-card',
   '查看路线',
-  '路线护照',
+  '开始记录',
   '让小京重新推荐',
   'createXichengOfficialPoiSources',
   'openRouteDetail(route)',
-  'startRoutePassport(route)',
+  'startRouteRecording(route)',
   'generateRouteTravelogue(route)',
   'openInspirationImport'
 ]) {
@@ -98,8 +98,8 @@ assert.match(
 
 assert.match(
   routes,
-  /v-for="route in filteredRoutes"[\s\S]*getRouteThumbnail\(route\)[\s\S]*getDisplayRouteTitle\(route\)[\s\S]*route\.durationText[\s\S]*route\.distanceText[\s\S]*route\.passportTaskCount/,
-  'Route list page should render official route cards with image, title, duration, distance, and route passport count'
+  /v-for="route in filteredRoutes"[\s\S]*getRouteThumbnail\(route\)[\s\S]*getDisplayRouteTitle\(route\)[\s\S]*route\.durationText[\s\S]*route\.distanceText[\s\S]*getRouteStopCount\(route\)/,
+  'Route list page should render official route cards with image, title, duration, distance, and stop count'
 )
 
 assert.match(
@@ -112,6 +112,18 @@ assert.match(
   routes,
   /persistRoutePassport\(route = \{\}\)[\s\S]*routeSource:\s*'route-list'[\s\S]*sourceLabel:\s*'官方路线列表'[\s\S]*uni\.setStorageSync\(this\.region\.inspirationStorageKey,\s*routePayload\)[\s\S]*uni\.setStorageSync\(this\.region\.materialsStorageKey/,
   'Route list page should persist route passport materials before handoff'
+)
+
+assert.match(
+  routes,
+  /startRouteRecording\(route = \{\}\)[\s\S]*this\.persistRoutePassport\(route\)[\s\S]*\/pages\/xicheng\/recording\/recording\?autoStart=1[\s\S]*routeCode=\$\{encodeRouteValue\(route\.routeCode \|\| ''\)\}[\s\S]*regionCode=\$\{encodeRouteValue\(this\.routeContext\.regionCode\)\}[\s\S]*packageCode=\$\{encodeRouteValue\(this\.routeContext\.packageCode\)\}[\s\S]*sceneCode=\$\{encodeRouteValue\(this\.routeContext\.sceneCode\)\}[\s\S]*sourceChannel=\$\{encodeRouteValue\(this\.routeContext\.sourceChannel\)\}[\s\S]*companionName=\$\{encodeRouteValue\(this\.routeContext\.companionName\)\}/,
+  'Route list page should turn official Citywalk selection into a recording handoff instead of a toast-only passport action'
+)
+
+assert.doesNotMatch(
+  routes,
+  /@click="startRoutePassport\(route\)">路线护照|startRoutePassport\(route = \{\}\)[\s\S]*已加入路线护照/,
+  'Route list cards should not keep route-passport as the visible secondary action'
 )
 
 assert.match(
