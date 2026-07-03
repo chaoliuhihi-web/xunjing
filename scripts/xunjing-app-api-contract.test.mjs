@@ -86,6 +86,11 @@ describe('xunjing app API contract', () => {
     expect(appVo).toContain('private List<SourceRespVO> sources;')
     expect(appVo).toContain('private List<MultimodalAgentActionRespVO> agentActions;')
     expect(appVo).toContain('class MultimodalAgentActionRespVO')
+    expect(appVo).toContain('private Integer priorityRank;')
+    expect(appVo).toContain('private Double decisionScore;')
+    expect(appVo).toContain('private String recommendationLevel;')
+    expect(appVo).toContain('private String realSystemStatus;')
+    expect(appVo).toContain('private String productionEvidenceText;')
     expect(appVo).toContain('class MultimodalCandidateRespVO')
     expect(appVo).toContain('imageLabels')
     expect(appVo).toContain('ocrText')
@@ -103,6 +108,10 @@ describe('xunjing app API contract', () => {
     expect(triggerEngine).toContain('buildContextQuery(regionCode, poiCode, packageCode, confirm)')
     expect(triggerEngine).toContain('buildAgentActions(')
     expect(triggerEngine).toContain('addAgentAction(')
+    expect(triggerEngine).toContain('rankAgentActions(')
+    expect(triggerEngine).toContain('applyAgentActionDecisionMetadata(')
+    expect(triggerEngine).toContain('"handoff_required"')
+    expect(triggerEngine).toContain('"ready_for_local_state"')
     expect(visionService).toContain('XUNJING_VISION_API_URL')
     expect(visionService).toContain('XUNJING_VISION_API_KEY')
     expect(visionService).toContain('XUNJING_VISION_MODEL')
@@ -113,6 +122,41 @@ describe('xunjing app API contract', () => {
     expect(visionService).toContain('"providerConfigured"')
     expect(appServiceImpl).toContain('payload.put("recognitionEvidence", buildTriggerRecognitionEvidencePayload(reqVO))')
     expect(appServiceImpl).toContain('payload.put("sceneSnapshot", buildTriggerSceneSnapshotPayload(reqVO, respVO))')
+    expect(appServiceImpl).toContain('payload.put("priorityRank", action.getPriorityRank())')
+    expect(appServiceImpl).toContain('payload.put("decisionScore", action.getDecisionScore())')
+    expect(appServiceImpl).toContain('payload.put("recommendationLevel", truncateForEvent(action.getRecommendationLevel(), 50))')
+    expect(appServiceImpl).toContain('payload.put("realSystemStatus", truncateForEvent(action.getRealSystemStatus(), 50))')
+    expect(appServiceImpl).toContain('payload.put("productionEvidenceText", truncateForEvent(')
+  })
+
+  test('multimodal trigger agent actions expose decision queue metadata', async () => {
+    const appVo = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'
+    )
+    const triggerEngine = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/trigger/XunjingMultimodalTriggerEngine.java'
+    )
+    const appTest = await readText(
+      'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImplTest.java'
+    )
+
+    expect(appVo).toMatch(/class MultimodalAgentActionRespVO[\s\S]*private Integer priorityRank;/)
+    expect(appVo).toMatch(/class MultimodalAgentActionRespVO[\s\S]*private Double decisionScore;/)
+    expect(appVo).toMatch(/class MultimodalAgentActionRespVO[\s\S]*private String recommendationLevel;/)
+    expect(appVo).toMatch(/class MultimodalAgentActionRespVO[\s\S]*private String realSystemStatus;/)
+    expect(appVo).toMatch(/class MultimodalAgentActionRespVO[\s\S]*private String productionEvidenceText;/)
+    expect(triggerEngine).toContain('rankAgentActions(actions, primaryAction, intent, sceneSignals)')
+    expect(triggerEngine).toContain('applyAgentActionDecisionMetadata(action, rank, primaryAction, intent, sceneSignals)')
+    expect(triggerEngine).toContain('calculateAgentActionDecisionScore(')
+    expect(triggerEngine).toContain('resolveAgentActionRecommendationLevel(')
+    expect(triggerEngine).toContain('resolveAgentActionRealSystemStatus(')
+    expect(triggerEngine).toContain('buildAgentActionProductionEvidenceText(')
+    expect(appTest).toContain('testResolveMultimodalTriggerRanksAgentActionDecisionQueue')
+    expect(appTest).toContain('getPriorityRank()')
+    expect(appTest).toContain('getDecisionScore()')
+    expect(appTest).toContain('getRecommendationLevel()')
+    expect(appTest).toContain('getRealSystemStatus()')
+    expect(appTest).toContain('getProductionEvidenceText()')
   })
 
   test('agent action app event contract is backend telemetry and sanitizes raw media payloads', async () => {

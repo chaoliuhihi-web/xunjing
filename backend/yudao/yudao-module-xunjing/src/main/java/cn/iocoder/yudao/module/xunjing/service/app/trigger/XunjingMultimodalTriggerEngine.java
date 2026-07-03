@@ -528,7 +528,116 @@ public class XunjingMultimodalTriggerEngine {
                     "/pages/activity/recommend" + buildContextQuery(regionCode, poiCode, packageCode, true),
                     true, true, sceneSignalValue(sceneSignals, "ticketingHint"));
         }
-        return List.copyOf(actions);
+        return rankAgentActions(actions, primaryAction, intent, sceneSignals);
+    }
+
+    private List<MultimodalAgentActionRespVO> rankAgentActions(
+            List<MultimodalAgentActionRespVO> actions, String primaryAction, String intent,
+            Map<String, Object> sceneSignals) {
+        List<MultimodalAgentActionRespVO> rankedActions = new ArrayList<>(actions);
+        rankedActions.sort(Comparator.comparingDouble((MultimodalAgentActionRespVO action) ->
+                        calculateAgentActionDecisionScore(action, primaryAction, intent, sceneSignals)).reversed()
+                .thenComparing(action -> defaultIfBlank(action.getActionKey(), "")));
+        int rank = 1;
+        for (MultimodalAgentActionRespVO action : rankedActions) {
+            applyAgentActionDecisionMetadata(action, rank, primaryAction, intent, sceneSignals);
+            rank++;
+        }
+        return List.copyOf(rankedActions);
+    }
+
+    private void applyAgentActionDecisionMetadata(
+            MultimodalAgentActionRespVO action, int rank, String primaryAction, String intent,
+            Map<String, Object> sceneSignals) {
+        action.setPriorityRank(rank);
+        action.setDecisionScore(calculateAgentActionDecisionScore(action, primaryAction, intent, sceneSignals));
+        action.setRecommendationLevel(resolveAgentActionRecommendationLevel(action, primaryAction, intent, sceneSignals));
+        action.setRealSystemStatus(resolveAgentActionRealSystemStatus(action));
+        action.setProductionEvidenceText(buildAgentActionProductionEvidenceText(action));
+    }
+
+    private double calculateAgentActionDecisionScore(
+            MultimodalAgentActionRespVO action, String primaryAction, String intent, Map<String, Object> sceneSignals) {
+        if (action == null || !hasText(action.getActionKey())) {
+            return 0D;
+        }
+        if (action.getActionKey().equals(primaryAction)) {
+            return 1D;
+        }
+        double score = "ask_follow_up".equals(action.getActionKey()) ? 0.78D : 0.50D;
+        if (hasText(intent) && intent.equals(action.getIntent())) {
+            score += 0.18D;
+        }
+        if (hasSceneSignalBoostForAgentAction(action.getActionKey(), sceneSignals)) {
+            score += 0.16D;
+        }
+        if (Boolean.FALSE.equals(action.getRequiresUserConfirm())) {
+            score += 0.04D;
+        }
+        if (Boolean.TRUE.equals(action.getRequiresRealSystem())) {
+            score -= 0.05D;
+        }
+        return round2(Math.max(0.05D, Math.min(score, 0.95D)));
+    }
+
+    private String resolveAgentActionRecommendationLevel(
+            MultimodalAgentActionRespVO action, String primaryAction, String intent, Map<String, Object> sceneSignals) {
+        if (action == null) {
+            return "";
+        }
+        String actionKey = defaultIfBlank(action.getActionKey(), "");
+        if (actionKey.equals(primaryAction)) {
+            return "primary";
+        }
+        if ("ask_follow_up".equals(actionKey)) {
+            return "conversation";
+        }
+        if (Boolean.TRUE.equals(action.getRequiresRealSystem())) {
+            return "service_handoff";
+        }
+        if ((hasText(intent) && intent.equals(action.getIntent()))
+                || hasSceneSignalBoostForAgentAction(actionKey, sceneSignals)) {
+            return "contextual";
+        }
+        return "suggested";
+    }
+
+    private String resolveAgentActionRealSystemStatus(MultimodalAgentActionRespVO action) {
+        return action != null && Boolean.TRUE.equals(action.getRequiresRealSystem())
+                ? "handoff_required" : "ready_for_local_state";
+    }
+
+    private String buildAgentActionProductionEvidenceText(MultimodalAgentActionRespVO action) {
+        if (action != null && Boolean.TRUE.equals(action.getRequiresRealSystem())) {
+            return "需要真实商家、票务、预约或点餐系统确认，不生成虚假的券码、订单号或票务凭证。";
+        }
+        return "可由本地识境上下文、连续记忆和用户确认驱动，不依赖虚假外部服务结果。";
+    }
+
+    private boolean hasSceneSignalBoostForAgentAction(String actionKey, Map<String, Object> sceneSignals) {
+        if (!hasText(actionKey)) {
+            return false;
+        }
+        return switch (actionKey) {
+            case "recommend_next_stop", "open_route_recommendation", "confirm_route_recommendation" ->
+                    hasAnySceneSignal(sceneSignals, List.of("routeRecommendationSummary"));
+            case "nearby_food", "open_food_recommendation", "confirm_food_recommendation" ->
+                    hasAnySceneSignal(sceneSignals, List.of(
+                            "merchantServiceSummary", "menuItemNames", "dishRecommendationSummary",
+                            "nearbyFoodRecommendationSummary"));
+            case "activity_ticketing", "open_activity_handoff", "confirm_activity_handoff" ->
+                    hasAnySceneSignal(sceneSignals, List.of(
+                            "nearbyActivitySummary", "activityName", "ticketingHint", "venueNavigationHint"));
+            case "complete_check_in" -> hasAnySceneSignal(sceneSignals, List.of("checkInTaskSummary"));
+            case "claim_badge" -> hasAnySceneSignal(sceneSignals, List.of("badgeRewardName"));
+            case "add_to_travel_map" -> hasAnySceneSignal(sceneSignals, List.of("travelMapUpdateSummary"));
+            case "generate_travelogue", "start_travel_note", "confirm_travel_note" ->
+                    hasAnySceneSignal(sceneSignals, List.of(
+                            "travelogueMaterialSummary", "photoMomentSummary", "socialShareDraftHint"));
+            case "start_photo_advice", "confirm_photo_advice" ->
+                    hasAnySceneSignal(sceneSignals, List.of("photoMomentSummary", "agentDecisionReasonSummary"));
+            default -> false;
+        };
     }
 
     private void buildCoreAgentActionPack(

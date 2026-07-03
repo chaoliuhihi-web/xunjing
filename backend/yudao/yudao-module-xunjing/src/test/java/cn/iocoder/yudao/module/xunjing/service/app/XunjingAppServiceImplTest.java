@@ -39,6 +39,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgen
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentSceneContextRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentServiceHandoffTaskFeedRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.LocationPointReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalAgentActionRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PhotoMetaReqVO;
@@ -1019,6 +1020,50 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertTrue(respVO.getAgentActions().stream()
                 .anyMatch(action -> "generate_travelogue".equals(action.getActionKey())
                         && "生成游记".equals(action.getTitle())));
+    }
+
+    @Test
+    public void testResolveMultimodalTriggerRanksAgentActionDecisionQueue() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setPackageCode("XICHENG-MAP-001");
+        reqVO.setSceneCode("xicheng-multimodal-trigger");
+        reqVO.setOcrText("恭王府博物馆入口");
+        reqVO.setImageLabels(List.of("palace", "courtyard"));
+        reqVO.setLocation(location("39.937050", "116.386770", 20));
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        List<MultimodalAgentActionRespVO> actions = respVO.getAgentActions();
+        assertFalse(actions.isEmpty());
+        MultimodalAgentActionRespVO primaryAction = actions.get(0);
+        assertEquals("start_ai_guide", primaryAction.getActionKey());
+        assertEquals(1, primaryAction.getPriorityRank());
+        assertEquals(1D, primaryAction.getDecisionScore());
+        assertEquals("primary", primaryAction.getRecommendationLevel());
+        assertEquals("ready_for_local_state", primaryAction.getRealSystemStatus());
+        assertTrue(primaryAction.getProductionEvidenceText().contains("本地识境上下文"));
+        for (int i = 0; i < actions.size(); i++) {
+            assertEquals(i + 1, actions.get(i).getPriorityRank());
+        }
+        MultimodalAgentActionRespVO foodAction = actions.stream()
+                .filter(action -> "nearby_food".equals(action.getActionKey()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("service_handoff", foodAction.getRecommendationLevel());
+        assertEquals("handoff_required", foodAction.getRealSystemStatus());
+        assertTrue(foodAction.getProductionEvidenceText().contains("真实商家"));
+        assertTrue(foodAction.getDecisionScore() > 0D);
+        MultimodalAgentActionRespVO askAction = actions.stream()
+                .filter(action -> "ask_follow_up".equals(action.getActionKey()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("conversation", askAction.getRecommendationLevel());
+        assertEquals("ready_for_local_state", askAction.getRealSystemStatus());
     }
 
     @Test

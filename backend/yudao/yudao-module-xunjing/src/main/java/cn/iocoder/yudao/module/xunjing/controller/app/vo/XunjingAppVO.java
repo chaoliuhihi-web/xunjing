@@ -156,6 +156,11 @@ public class XunjingAppVO {
         private Boolean requiresUserConfirm;
         private Boolean requiresRealSystem;
         private String reason;
+        private Integer priorityRank;
+        private Double decisionScore;
+        private String recommendationLevel;
+        private String realSystemStatus;
+        private String productionEvidenceText;
     }
 
     @Data

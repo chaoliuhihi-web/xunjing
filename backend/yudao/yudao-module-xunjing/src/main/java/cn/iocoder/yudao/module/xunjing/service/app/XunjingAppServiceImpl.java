@@ -2011,6 +2011,12 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         payload.put("requiresUserConfirm", Boolean.TRUE.equals(action.getRequiresUserConfirm()));
         payload.put("requiresRealSystem", Boolean.TRUE.equals(action.getRequiresRealSystem()));
         payload.put("reason", truncateForEvent(action.getReason(), TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH));
+        payload.put("priorityRank", action.getPriorityRank());
+        payload.put("decisionScore", action.getDecisionScore());
+        payload.put("recommendationLevel", truncateForEvent(action.getRecommendationLevel(), 50));
+        payload.put("realSystemStatus", truncateForEvent(action.getRealSystemStatus(), 50));
+        payload.put("productionEvidenceText", truncateForEvent(
+                action.getProductionEvidenceText(), TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH));
         payload.put("packageCode", truncateForEvent(respVO.getPackageCode(), 80));
         payload.put("regionCode", truncateForEvent(respVO.getRegionCode(), 80));
         payload.put("poiCode", truncateForEvent(respVO.getPoiCode(), 80));

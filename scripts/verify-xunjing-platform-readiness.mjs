@@ -411,6 +411,14 @@ async function checkXichengTriggerBackend(rootDir) {
     'buildFallbackWorldInterfaceSummary(respVO, evidenceSignals)',
     'sceneDomainLabel(respVO.getIntent())',
     'buildCoreAgentActionPack(actions, regionCode, poiCode, packageCode)',
+    'rankAgentActions(actions, primaryAction, intent, sceneSignals)',
+    'applyAgentActionDecisionMetadata(action, rank, primaryAction, intent, sceneSignals)',
+    'calculateAgentActionDecisionScore(',
+    'resolveAgentActionRecommendationLevel(',
+    'resolveAgentActionRealSystemStatus(',
+    'buildAgentActionProductionEvidenceText(',
+    '"handoff_required"',
+    '"ready_for_local_state"',
     '"claim_badge"',
     '"start_ai_guide".equals(action) || "confirm_ai_guide".equals(action)',
     '"开始 AI 讲解"',
@@ -652,6 +660,11 @@ async function checkXichengAppEventBackend(rootDir) {
     'payload.put("photoTakenAt", sourceSceneSnapshot.get("photoTakenAt"))',
     'payload.put("photoExifLocation", sourceSceneSnapshot.get("photoExifLocation"))',
     'buildTriggerAgentActionPayload(action, respVO)',
+    'payload.put("priorityRank", action.getPriorityRank())',
+    'payload.put("decisionScore", action.getDecisionScore())',
+    'payload.put("recommendationLevel", truncateForEvent(action.getRecommendationLevel(), 50))',
+    'payload.put("realSystemStatus", truncateForEvent(action.getRealSystemStatus(), 50))',
+    'payload.put("productionEvidenceText", truncateForEvent(',
     'payload.put("poiCode", truncateForEvent(respVO.getPoiCode(), 80))',
     'hydrateVisionAgentContextFromPreviousAgentAction(resourcePackage, reqVO, explicitChatTargetContext)',
     'shouldUsePreviousAgentActionForChatContext(previousAgentActionEvent, previousAskEvent, previousTriggerEvent)',
@@ -726,6 +739,11 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(appVo, 'private VisionAgentMemorySessionRespVO memorySession;', 'XunjingAppVO.java')
   assertContains(appVo, 'private VisionAgentServiceHandoffTaskFeedRespVO serviceHandoff;', 'XunjingAppVO.java')
   assertContains(appVo, 'private VisionAgentKnowledgeGraphRespVO knowledgeGraph;', 'XunjingAppVO.java')
+  assertContains(appVo, 'private Integer priorityRank;', 'XunjingAppVO.java')
+  assertContains(appVo, 'private Double decisionScore;', 'XunjingAppVO.java')
+  assertContains(appVo, 'private String recommendationLevel;', 'XunjingAppVO.java')
+  assertContains(appVo, 'private String realSystemStatus;', 'XunjingAppVO.java')
+  assertContains(appVo, 'private String productionEvidenceText;', 'XunjingAppVO.java')
   assertContains(appVo, 'class VisionProviderStatusRespVO', 'XunjingAppVO.java')
   assertContains(appVo, 'private Boolean providerConfigured;', 'XunjingAppVO.java')
   assertContains(appVo, 'private String apiKeyFingerprint;', 'XunjingAppVO.java')
@@ -811,6 +829,11 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(
     appTest,
     'testRecordAgentActionEventBindsLatestVisionSceneSnapshotToTravelRecordMaterial',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'testResolveMultimodalTriggerRanksAgentActionDecisionQueue',
     'XunjingAppServiceImplTest.java'
   )
   assertContains(
