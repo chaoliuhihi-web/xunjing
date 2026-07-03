@@ -19,7 +19,7 @@
 				<text class="section-title">AI识境任务包</text>
 				<text class="section-badge">{{ visionAgentServiceTaskCount }} 项</text>
 			</view>
-			<text class="section-desc">拍照识别后的路线、商家、徽章和游记动作会沉淀到这里，继续生成游记、路线复盘和试运营日报。</text>
+			<text class="section-desc">拍照识别后的路线、商家、记录和游记素材会沉淀到这里，继续生成游记、路线复盘和试运营日报。</text>
 			<view v-if="visibleVisionAgentServiceTasks.length > 0" class="vision-agent-task-list">
 				<view
 					v-for="task in visibleVisionAgentServiceTasks"
@@ -33,7 +33,7 @@
 					<text class="vision-agent-task-meta">{{ createVisionAgentServiceTaskMeta(task) }}</text>
 				</view>
 			</view>
-			<text v-else class="empty-copy">打开 AI识境拍一下，选择路线、美食、徽章或生成游记后，会在这里形成可继续处理的任务包。</text>
+			<text v-else class="empty-copy">打开 AI识境拍一下，选择路线、美食、记录或生成游记后，会在这里形成可继续处理的任务包。</text>
 		</view>
 		<view class="section-card xicheng-paper-card">
 			<view class="section-head">

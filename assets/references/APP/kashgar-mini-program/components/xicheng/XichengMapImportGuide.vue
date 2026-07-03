@@ -5,34 +5,38 @@
 				<text class="map-import-kicker">一键导入攻略</text>
 				<text class="map-import-title">从图文灵感生成可走路线</text>
 			</view>
-			<button class="map-import-primary xicheng-primary-action" @click="$emit('import-guide')">粘贴攻略</button>
-		</view>
-		<view class="map-import-step-row">
-			<text>AI 提取地点</text>
-			<text>匹配官方 POI</text>
-			<text>生成可走路线</text>
-		</view>
-		<view class="map-import-source-row">
-			<view v-for="source in mapImportSources" :key="source.title" class="map-import-source-chip">
-				<text class="map-import-source-title">{{ source.title }}</text>
-				<text class="map-import-source-desc">{{ source.desc }}</text>
+			<view class="map-import-action-row">
+				<button class="map-import-toggle xicheng-secondary-action" @click="toggleExpanded">{{ isExpanded ? '收起' : '展开' }}</button>
+				<button class="map-import-primary xicheng-primary-action" @click="$emit('import-guide')">粘贴攻略</button>
 			</view>
 		</view>
-		<view class="map-import-poi-rail">
-			<view v-for="poi in matchedImportPois" :key="poi.poiCode || poi.poiName" class="map-import-poi-card">
-				<text class="map-import-poi-name">{{ poi.poiName }}</text>
-				<text class="map-import-poi-theme">{{ poi.theme }}</text>
+		<view class="map-import-compact-summary"><text>AI 提取地点 · 匹配官方 POI · 生成可走路线</text></view>
+		<view v-if="isExpanded" class="map-import-expanded-body">
+			<view class="map-import-step-row">
+				<text>AI 提取地点</text>
+				<text>匹配官方 POI</text>
+				<text>生成可走路线</text>
 			</view>
-		</view>
-		<view class="map-import-selected-summary">
-			<view>
-				<text class="map-import-selected-label">当前选点</text>
-				<text class="map-import-selected-title">{{ selectedMapPoiSummary.poiName }}</text>
-				<text class="map-import-selected-copy">{{ selectedMapPoiSummary.summary }}</text>
+			<view class="map-import-source-row">
+				<view v-for="source in mapImportSources" :key="source.title" class="map-import-source-chip">
+					<text class="map-import-source-title">{{ source.title }}</text>
+					<text class="map-import-source-desc">{{ source.desc }}</text>
+				</view>
 			</view>
-			<button class="map-import-secondary xicheng-secondary-action" @click="$emit('generate-route')">
-				从当前 POI 生成路线
-			</button>
+			<view class="map-import-poi-rail">
+				<view v-for="poi in matchedImportPois" :key="poi.poiCode || poi.poiName" class="map-import-poi-card">
+					<text class="map-import-poi-name">{{ poi.poiName }}</text>
+					<text class="map-import-poi-theme">{{ poi.theme }}</text>
+				</view>
+			</view>
+			<view class="map-import-selected-summary">
+				<view>
+					<text class="map-import-selected-label">当前选点</text>
+					<text class="map-import-selected-title">{{ selectedMapPoiSummary.poiName }}</text>
+					<text class="map-import-selected-copy">{{ selectedMapPoiSummary.summary }}</text>
+				</view>
+				<button class="map-import-secondary xicheng-secondary-action" @click="$emit('generate-route')">从当前 POI 生成路线</button>
+			</view>
 		</view>
 	</view>
 </template>
@@ -54,21 +58,29 @@ export default {
 			default: () => ({})
 		}
 	},
-	emits: ['import-guide', 'generate-route']
+	emits: ['import-guide', 'generate-route'],
+	data() { return { isExpanded: false } },
+	methods: {
+		toggleExpanded() { this.isExpanded = !this.isExpanded }
+	}
 }
 </script>
 
 <style scoped>
 .map-import-route-card {
-	margin-top: 24rpx;
-	padding: 28rpx;
-	border-radius: 34rpx;
+	margin-top: 24rpx; padding: 28rpx; border-radius: 34rpx;
 }
 .map-import-head {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: 18rpx;
+}
+.map-import-action-row {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+	flex-shrink: 0;
 }
 .map-import-kicker,
 .map-import-selected-label,
@@ -95,15 +107,30 @@ export default {
 	line-height: 1.2;
 	font-weight: 900;
 }
-.map-import-primary {
-	flex-shrink: 0;
-	width: 170rpx;
+.map-import-primary,
+.map-import-toggle {
 	height: 66rpx;
 	line-height: 66rpx;
 	border-radius: 999rpx;
-	font-size: 25rpx;
 	font-weight: 900;
 	padding: 0;
+}
+.map-import-primary {
+	width: 150rpx;
+	font-size: 25rpx;
+}
+.map-import-toggle {
+	width: 112rpx;
+	font-size: 24rpx;
+}
+.map-import-compact-summary {
+	margin-top: 18rpx;
+	padding: 18rpx 20rpx;
+	border-radius: 20rpx;
+	background: rgba(23, 63, 53, 0.07);
+	color: rgba(16, 47, 41, 0.72);
+	font-size: 24rpx;
+	font-weight: 800;
 }
 .map-import-step-row,
 .map-import-source-row,

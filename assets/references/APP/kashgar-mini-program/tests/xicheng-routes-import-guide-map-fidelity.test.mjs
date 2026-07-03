@@ -25,7 +25,12 @@ for (const token of [
   'mapImportSources',
   'matchedImportPois',
   'selectedMapPoiSummary',
-  'generateSelectedMapRoute'
+  'generateSelectedMapRoute',
+  'map-import-expanded-body',
+  'isExpanded: false',
+  'toggleExpanded',
+  '展开',
+  '收起'
 ]) {
   assert.ok(shell.includes(token), `Routes map page should expose approved import-guide map token: ${token}`)
 }
@@ -44,14 +49,26 @@ assert.match(
 
 assert.match(
   guide,
-  /v-for="source in mapImportSources"[\s\S]*source\.title[\s\S]*source\.desc/,
-  'Routes page should render importable guide sources as structured chips instead of static prose'
+  /<view v-if="isExpanded" class="map-import-expanded-body">[\s\S]*<view class="map-import-step-row">[\s\S]*<view class="map-import-source-row">[\s\S]*v-for="source in mapImportSources"[\s\S]*source\.title[\s\S]*source\.desc/,
+  'Routes page should keep import steps and source chips collapsed by default so the cultural map remains the primary screen area'
 )
 
 assert.match(
   guide,
-  /v-for="poi in matchedImportPois"[\s\S]*poi\.poiName[\s\S]*poi\.theme/,
-  'Routes page should preview matched official POIs before generating a route'
+  /<view v-if="isExpanded" class="map-import-expanded-body">[\s\S]*v-for="poi in matchedImportPois"[\s\S]*poi\.poiName[\s\S]*poi\.theme[\s\S]*map-import-selected-summary/,
+  'Routes page should preview matched official POIs and selected POI summary only after the import guide panel is expanded'
+)
+
+assert.match(
+  guide,
+  /data\(\)\s*\{[\s\S]*return\s*\{[\s\S]*isExpanded:\s*false[\s\S]*methods:\s*\{[\s\S]*toggleExpanded\(\)[\s\S]*this\.isExpanded = !this\.isExpanded/,
+  'Map import guide should default to compact mode and expose an explicit expand/collapse control'
+)
+
+assert.match(
+  guide,
+  /<button class="map-import-toggle xicheng-secondary-action" @click="toggleExpanded">[\s\S]*\{\{ isExpanded \? '收起' : '展开' \}\}/,
+  'Map import guide should provide a visible expand/collapse button instead of permanently showing the detailed copy'
 )
 
 assert.match(

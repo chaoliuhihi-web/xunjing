@@ -33,10 +33,18 @@ for (const required of [
   'visibleVisionAgentServiceTasks',
   'loadVisionAgentServiceTasks',
   'vision-agent-task-card',
-  'visionAgentServiceTaskCount'
+  'visionAgentServiceTaskCount',
+  '路线、商家、记录和游记素材',
+  '选择路线、美食、记录或生成游记'
 ]) {
   assert.ok(travelogueServiceTaskSurface.includes(required), `Travelogue should expose AI识境 service task package behavior: ${required}`)
 }
+
+assert.doesNotMatch(
+  travelogueServiceTaskSurface,
+  /路线、商家、徽章|选择路线、美食、徽章/,
+  'Travelogue AI识境 task package copy should align with recording/travelogue material, not old badge collection'
+)
 
 assert.match(
   travelogue,
