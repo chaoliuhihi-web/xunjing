@@ -101,7 +101,7 @@
 				</text>
 			</view>
 			<view class="action-row xicheng-inspiration-actions">
-				<button class="primary-button xicheng-primary-action" @click="saveInspirationRoute">{{ isMapTarget ? '生成到文旅地图' : '加入路线护照' }}</button>
+				<button class="primary-button xicheng-primary-action" @click="saveInspirationRoute">生成到文旅地图</button>
 				<button class="ghost-button xicheng-secondary-action" @click="openTravelogue">打开素材盒</button>
 			</view>
 		</view>
@@ -313,7 +313,7 @@ export default {
 			)
 			if (!silent) {
 				uni.showToast({
-					title: this.isMapTarget ? '已生成到文旅地图' : '已加入路线护照',
+					title: '已生成到文旅地图',
 					icon: 'none'
 				})
 				if (this.isMapTarget) {

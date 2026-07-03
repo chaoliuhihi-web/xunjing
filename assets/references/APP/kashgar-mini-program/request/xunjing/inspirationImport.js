@@ -207,7 +207,7 @@ export const buildXichengWalkRoute = (pois = [], { sourcePlatforms = [] } = {}) 
 			routeSource: 'copy-homework',
 			sourceLabel: '一键抄作业导入',
 			sourcePlatforms,
-			summary: '先匹配西城官方 POI 后再生成可走路线，避免把未确认地点加入路线护照。'
+			summary: '先匹配西城官方 POI 后再生成可走路线，避免把未确认地点写入文旅地图路线。'
 		}
 	}
 	const stops = pois.map((poi, index) => ({

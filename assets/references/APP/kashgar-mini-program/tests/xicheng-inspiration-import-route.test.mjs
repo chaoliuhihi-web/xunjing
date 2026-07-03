@@ -96,7 +96,6 @@ for (const required of [
   'AI提取地点',
   '匹配官方 POI',
   '生成可走路线',
-  '加入路线护照',
   'extractXichengPoiMatches',
   'buildXichengWalkRoute',
   'chooseInspirationImage',
@@ -107,6 +106,18 @@ for (const required of [
 ]) {
   assert.ok(inspiration.includes(required), `Inspiration page should include ${required}`)
 }
+
+assert.match(
+  inspiration,
+  /<button class="primary-button xicheng-primary-action" @click="saveInspirationRoute">生成到文旅地图<\/button>/,
+  'Inspiration import primary action should always generate the imported guide route to the cultural map'
+)
+
+assert.doesNotMatch(
+  `${inspiration}\n${inspirationImportHelper}`,
+  /加入路线护照|已加入路线护照|路线护照/,
+  'Inspiration import should not expose route-passport copy after one-click homework moved to the cultural map route flow'
+)
 
 assert.match(
   inspiration,
@@ -213,7 +224,7 @@ assert.match(
 assert.match(
   saveRouteBlock,
   /const route = \{[\s\S]*regionCode:\s*XICHENG_REGION_CONFIG\.regionCode[\s\S]*packageCode:\s*XICHENG_REGION_CONFIG\.packageCode[\s\S]*sceneCode:\s*XICHENG_REGION_CONFIG\.sceneCode[\s\S]*sourceChannel:\s*XICHENG_REGION_CONFIG\.sourceChannel/,
-  'Inspiration route should persist Xicheng package, scene, and source channel for route passport attribution'
+  'Inspiration route should persist Xicheng package, scene, and source channel for cultural map route attribution'
 )
 
 assert.match(
@@ -267,7 +278,7 @@ assert.match(
 assert.match(
   travelogueInspirationSurface,
   /inspirationStorageKey[\s\S]*灵感导入路线|灵感导入路线[\s\S]*inspirationStorageKey/,
-  'Travelogue page should surface the imported inspiration route as part of the route passport flow'
+  'Travelogue page should surface the imported inspiration route as part of the imported route and travelogue flow'
 )
 
 assert.doesNotMatch(
