@@ -291,6 +291,7 @@ export default {
 		}
 	},
 	onShow() {
+		uni.setNavigationBarTitle({ title: '运营报告' })
 		this.refreshReport()
 	},
 	methods: {

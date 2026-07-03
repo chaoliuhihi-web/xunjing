@@ -237,6 +237,7 @@ export default {
 		}
 	},
 	onShow() {
+		uni.setNavigationBarTitle({ title: '我的游记' })
 		this.shareArtifacts = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey))
 		this.cachedDraft = uni.getStorageSync(XICHENG_REGION_CONFIG.journeyStorageKey) || null
 		this.restorePublicScopeSettings()

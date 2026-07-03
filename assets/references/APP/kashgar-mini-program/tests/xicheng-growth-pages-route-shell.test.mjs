@@ -24,6 +24,7 @@ const requiredPages = [
       '生成今日游记',
       '查看文旅地图',
       '商家、路线和后续动作会进入足迹',
+      "uni.setNavigationBarTitle({ title: '我的西城足迹' })",
       'openTravelogue',
       'openRoutes',
       'xicheng-icon name="travelogue"'
@@ -76,6 +77,7 @@ const requiredPages = [
       '登录信息',
       '我的游记',
       '隐私授权',
+      "uni.setNavigationBarTitle({ title: '我的游记' })",
       'openTravelogue',
       '继续编辑',
       'xicheng-icon name="edit"'
@@ -92,6 +94,7 @@ const requiredPages = [
       'XICHENG_REGION_CONFIG.materialsStorageKey',
       'XICHENG_REGION_CONFIG.shareAssetStorageKey',
       '不展示用户隐私明细',
+      "uni.setNavigationBarTitle({ title: '运营报告' })",
       'createHotPoiRanking'
     ]
   }

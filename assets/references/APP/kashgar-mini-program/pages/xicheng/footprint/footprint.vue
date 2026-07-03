@@ -168,6 +168,7 @@ export default {
 		}
 	},
 	onShow() {
+		uni.setNavigationBarTitle({ title: '我的西城足迹' })
 		this.loadFootprint()
 	},
 	methods: {
