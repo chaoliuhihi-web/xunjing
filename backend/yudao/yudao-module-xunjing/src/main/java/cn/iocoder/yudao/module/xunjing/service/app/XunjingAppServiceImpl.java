@@ -33,6 +33,8 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.SceneUnder
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.SourceRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialFeedRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySceneRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySessionRespVO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.ai.XunjingAiGenerationLogDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.ai.XunjingAiQuotaRuleDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.event.XunjingInteractionEventDO;
@@ -80,8 +82,10 @@ import org.springframework.validation.annotation.Validated;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -357,6 +361,13 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             String packageCode, String userTraceId, Integer limit) {
         XunjingResourcePackageDO resourcePackage = validatePublicPackage(packageCode);
         return buildTravelRecordMaterialFeed(resourcePackage, userTraceId, limit);
+    }
+
+    @Override
+    public VisionAgentMemorySessionRespVO getVisionAgentMemorySession(
+            String packageCode, String userTraceId, Integer limit) {
+        XunjingResourcePackageDO resourcePackage = validatePublicPackage(packageCode);
+        return buildVisionAgentMemorySession(resourcePackage, userTraceId, limit);
     }
 
     private void hydrateMultimodalTriggerMemoryFromPreviousResolve(MultimodalTriggerReqVO reqVO) {
@@ -2699,6 +2710,247 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             }
         }
         return values.stream().distinct().limit(20).toList();
+    }
+
+    private VisionAgentMemorySessionRespVO buildVisionAgentMemorySession(
+            XunjingResourcePackageDO resourcePackage, String userTraceId, Integer limit) {
+        VisionAgentMemorySessionRespVO respVO = new VisionAgentMemorySessionRespVO();
+        respVO.setPackageCode(resourcePackage.getPackageCode());
+        respVO.setUserTraceId(defaultIfBlank(userTraceId, ""));
+        if (!hasText(userTraceId)) {
+            respVO.setSceneCount(0);
+            respVO.setPoiTrailText("");
+            respVO.setContinuityCueText("");
+            respVO.setDomainContinuityText("");
+            respVO.setServiceContinuityText("");
+            respVO.setScenes(List.of());
+            return respVO;
+        }
+        int memoryLimit = normalizeVisionAgentMemoryLimit(limit);
+        Collection<String> eventTypes = List.of(
+                EventType.TRIGGER_RESOLVE.getType(), EventType.ASK.getType(), EventType.AGENT_ACTION.getType());
+        List<XunjingInteractionEventDO> events =
+                interactionEventMapper.selectListByPackageIdAndUserTraceIdAndEventTypes(
+                        resourcePackage.getId(), userTraceId, eventTypes);
+        List<VisionAgentMemorySceneRespVO> scenes = new ArrayList<>();
+        for (XunjingInteractionEventDO event : events) {
+            VisionAgentMemorySceneRespVO item = buildVisionAgentMemorySceneItem(event);
+            if (item != null) {
+                scenes.add(item);
+            }
+            if (scenes.size() >= memoryLimit) {
+                break;
+            }
+        }
+        respVO.setSceneCount(scenes.size());
+        respVO.setPoiTrailText(buildVisionAgentMemoryPoiTrailText(scenes));
+        respVO.setContinuityCueText(buildVisionAgentMemoryContinuityCueText(scenes.size()));
+        respVO.setDomainContinuityText(buildVisionAgentMemoryDomainContinuityText(scenes));
+        respVO.setServiceContinuityText(buildVisionAgentMemoryServiceContinuityText(scenes));
+        respVO.setScenes(scenes);
+        return respVO;
+    }
+
+    private int normalizeVisionAgentMemoryLimit(Integer limit) {
+        if (limit == null || limit <= 0) {
+            return 20;
+        }
+        return Math.min(limit, 50);
+    }
+
+    private VisionAgentMemorySceneRespVO buildVisionAgentMemorySceneItem(XunjingInteractionEventDO event) {
+        if (event == null || !hasText(event.getPayloadJson())) {
+            return null;
+        }
+        try {
+            JsonNode root = JsonUtils.parseTree(event.getPayloadJson());
+            if (root == null || root.isNull() || root.isMissingNode()) {
+                return null;
+            }
+            VisionAgentMemorySceneRespVO item = new VisionAgentMemorySceneRespVO();
+            item.setEventId(event.getId());
+            item.setEventType(defaultIfBlank(event.getEventType(), ""));
+            if (EventType.TRIGGER_RESOLVE.getType().equals(event.getEventType())) {
+                hydrateVisionAgentMemorySceneFromTrigger(item, root);
+            } else if (EventType.ASK.getType().equals(event.getEventType())) {
+                hydrateVisionAgentMemorySceneFromAsk(item, root);
+            } else if (EventType.AGENT_ACTION.getType().equals(event.getEventType())) {
+                hydrateVisionAgentMemorySceneFromAgentAction(item, root);
+            }
+            return item;
+        } catch (RuntimeException ex) {
+            log.warn("[buildVisionAgentMemorySceneItem][eventId({}) parse failed]", event.getId(), ex);
+            return null;
+        }
+    }
+
+    private void hydrateVisionAgentMemorySceneFromTrigger(
+            VisionAgentMemorySceneRespVO item, JsonNode root) {
+        JsonNode sceneUnderstanding = root.path("sceneUnderstanding");
+        JsonNode sceneSnapshot = root.path("sceneSnapshot");
+        item.setSceneCode(visionAgentContextText(root, "sceneCode"));
+        item.setRegionCode(visionAgentContextText(root, "regionCode"));
+        item.setPoiCode(visionAgentContextText(root, "poiCode"));
+        item.setPoiName(visionAgentContextText(root, "poiName"));
+        item.setIntent(visionAgentContextText(root, "intent"));
+        item.setAction(visionAgentContextText(root, "action"));
+        item.setTitle(visionAgentContextText(root, "poiName"));
+        item.setPrimarySceneDomainKey(firstMemoryText(
+                visionAgentContextText(sceneUnderstanding, "primarySceneDomainKey"),
+                visionAgentContextText(sceneSnapshot, "sceneDomainKey")));
+        item.setPrimarySceneDomainLabel(firstMemoryText(
+                visionAgentContextText(sceneUnderstanding, "primarySceneDomainLabel"),
+                visionAgentContextText(sceneSnapshot, "sceneDomainLabel")));
+        item.setSceneFusionSummary(firstMemoryText(
+                visionAgentContextText(sceneUnderstanding, "sceneFusionSummary"),
+                visionAgentContextText(sceneSnapshot, "sceneFusionSummary")));
+        item.setWorldInterfaceSummary(firstMemoryText(
+                visionAgentContextText(sceneUnderstanding, "worldInterfaceSummary"),
+                visionAgentContextText(sceneSnapshot, "worldInterfaceSummary")));
+        item.setAgentDecisionActionTitle(visionAgentContextText(sceneUnderstanding, "agentDecisionActionTitle"));
+        item.setServiceHandoffSummary(visionAgentContextText(sceneUnderstanding, "serviceHandoffSummary"));
+        Map<String, Object> snapshot = buildVisionAgentMemorySceneSnapshot(sceneSnapshot);
+        item.setSceneSnapshot(snapshot);
+        hydrateVisionAgentMemorySceneFromSnapshot(item, snapshot);
+    }
+
+    private void hydrateVisionAgentMemorySceneFromAsk(
+            VisionAgentMemorySceneRespVO item, JsonNode root) {
+        JsonNode visionAgentContext = root.path("visionAgentContext");
+        item.setSceneCode(visionAgentContextText(root, "sceneCode"));
+        item.setRegionCode(visionAgentContextText(root, "regionCode"));
+        item.setPoiCode(visionAgentContextText(root, "poiCode"));
+        item.setPoiName(visionAgentContextText(root, "poiName"));
+        item.setIntent("ask");
+        item.setAction("");
+        item.setTitle(visionAgentContextText(root, "question"));
+        item.setPrimarySceneDomainKey(visionAgentContextText(visionAgentContext, "primarySceneDomainKey"));
+        item.setPrimarySceneDomainLabel(visionAgentContextText(visionAgentContext, "primarySceneDomainLabel"));
+        item.setSceneFusionSummary(visionAgentContextText(visionAgentContext, "sceneFusionSummary"));
+        item.setWorldInterfaceSummary(visionAgentContextText(visionAgentContext, "worldInterfaceSummary"));
+        item.setAgentDecisionActionTitle(visionAgentContextText(visionAgentContext, "decisionActionTitle"));
+        item.setServiceHandoffSummary(visionAgentContextText(visionAgentContext, "serviceHandoffSummary"));
+        Map<String, Object> snapshot = buildVisionAgentMemorySceneSnapshot(
+                visionAgentContext.path("sceneSnapshot"));
+        item.setSceneSnapshot(snapshot);
+        hydrateVisionAgentMemorySceneFromSnapshot(item, snapshot);
+    }
+
+    private void hydrateVisionAgentMemorySceneFromAgentAction(
+            VisionAgentMemorySceneRespVO item, JsonNode root) {
+        JsonNode agentAction = root.path("agentAction");
+        JsonNode travelRecordMaterial = root.path("travelRecordMaterial");
+        JsonNode sourceSceneSnapshot = agentAction.path("sourceSceneSnapshot");
+        if (sourceSceneSnapshot == null || sourceSceneSnapshot.isMissingNode() || sourceSceneSnapshot.isNull()) {
+            sourceSceneSnapshot = travelRecordMaterial.path("sourceSceneSnapshot");
+        }
+        item.setSceneCode(firstMemoryText(
+                visionAgentContextText(root, "sceneCode"),
+                visionAgentContextText(travelRecordMaterial, "sceneCode")));
+        item.setRegionCode(firstMemoryText(
+                visionAgentContextText(agentAction, "regionCode"),
+                visionAgentContextText(travelRecordMaterial, "regionCode")));
+        item.setPoiCode(firstMemoryText(
+                visionAgentContextText(agentAction, "poiCode"),
+                visionAgentContextText(travelRecordMaterial, "poiCode")));
+        item.setPoiName(firstMemoryText(
+                visionAgentContextText(agentAction, "poiName"),
+                visionAgentContextText(travelRecordMaterial, "poiName")));
+        item.setIntent(visionAgentContextText(agentAction, "intent"));
+        item.setAction(visionAgentContextText(agentAction, "actionKey"));
+        item.setTitle(visionAgentContextText(agentAction, "title"));
+        item.setAgentDecisionActionTitle(visionAgentContextText(agentAction, "title"));
+        item.setServiceHandoffSummary(buildAgentActionServiceHandoffSummary(agentAction));
+        Map<String, Object> snapshot = buildVisionAgentMemorySceneSnapshot(sourceSceneSnapshot);
+        item.setSceneSnapshot(snapshot);
+        hydrateVisionAgentMemorySceneFromSnapshot(item, snapshot);
+    }
+
+    private Map<String, Object> buildVisionAgentMemorySceneSnapshot(JsonNode sceneSnapshot) {
+        if (sceneSnapshot == null || sceneSnapshot.isNull() || sceneSnapshot.isMissingNode()
+                || !sceneSnapshot.isObject()) {
+            return Map.of();
+        }
+        Map<String, Object> source = JsonUtils.convertObject(
+                sceneSnapshot, new TypeReference<Map<String, Object>>() {});
+        return buildVisionAgentSceneSnapshotPayload(source);
+    }
+
+    private void hydrateVisionAgentMemorySceneFromSnapshot(
+            VisionAgentMemorySceneRespVO item, Map<String, Object> snapshot) {
+        if (snapshot == null || snapshot.isEmpty()) {
+            return;
+        }
+        item.setSceneCode(firstMemoryText(item.getSceneCode(), stringValue(snapshot.get("sceneCode"))));
+        item.setRegionCode(firstMemoryText(item.getRegionCode(), stringValue(snapshot.get("regionCode"))));
+        item.setPoiCode(firstMemoryText(item.getPoiCode(), stringValue(snapshot.get("poiCode"))));
+        item.setPoiName(firstMemoryText(item.getPoiName(), stringValue(snapshot.get("poiName"))));
+        item.setIntent(firstMemoryText(item.getIntent(), stringValue(snapshot.get("intent"))));
+        item.setAction(firstMemoryText(item.getAction(), stringValue(snapshot.get("action"))));
+        item.setPrimarySceneDomainKey(firstMemoryText(
+                item.getPrimarySceneDomainKey(), stringValue(snapshot.get("sceneDomainKey"))));
+        item.setPrimarySceneDomainLabel(firstMemoryText(
+                item.getPrimarySceneDomainLabel(), stringValue(snapshot.get("sceneDomainLabel"))));
+        item.setSceneFusionSummary(firstMemoryText(
+                item.getSceneFusionSummary(), stringValue(snapshot.get("sceneFusionSummary"))));
+        item.setWorldInterfaceSummary(firstMemoryText(
+                item.getWorldInterfaceSummary(), stringValue(snapshot.get("worldInterfaceSummary"))));
+    }
+
+    private String buildVisionAgentMemoryPoiTrailText(List<VisionAgentMemorySceneRespVO> scenes) {
+        LinkedHashSet<String> poiNames = new LinkedHashSet<>();
+        for (VisionAgentMemorySceneRespVO scene : scenes) {
+            String poiText = firstMemoryText(scene.getPoiName(), scene.getPoiCode());
+            if (hasText(poiText)) {
+                poiNames.add(poiText);
+            }
+        }
+        return String.join(" -> ", poiNames.stream().limit(8).toList());
+    }
+
+    private String buildVisionAgentMemoryContinuityCueText(int sceneCount) {
+        if (sceneCount <= 0) {
+            return "";
+        }
+        return "已连续识境 " + sceneCount + " 段，可按上一段继续理解，不重新开始讲解。";
+    }
+
+    private String buildVisionAgentMemoryDomainContinuityText(List<VisionAgentMemorySceneRespVO> scenes) {
+        LinkedHashSet<String> domains = new LinkedHashSet<>();
+        for (VisionAgentMemorySceneRespVO scene : scenes) {
+            String domain = firstMemoryText(scene.getPrimarySceneDomainLabel(), scene.getPrimarySceneDomainKey());
+            if (hasText(domain)) {
+                domains.add(domain);
+            }
+        }
+        if (domains.isEmpty()) {
+            return "";
+        }
+        return "连续场景域=" + String.join("、", domains.stream().limit(8).toList());
+    }
+
+    private String buildVisionAgentMemoryServiceContinuityText(List<VisionAgentMemorySceneRespVO> scenes) {
+        LinkedHashSet<String> services = new LinkedHashSet<>();
+        for (VisionAgentMemorySceneRespVO scene : scenes) {
+            String service = firstMemoryText(
+                    scene.getServiceHandoffSummary(), scene.getAgentDecisionActionTitle(), scene.getTitle());
+            if (hasText(service)) {
+                services.add(service);
+            }
+        }
+        return String.join("；", services.stream().limit(5).toList());
+    }
+
+    private String firstMemoryText(String... values) {
+        if (values == null) {
+            return "";
+        }
+        for (String value : values) {
+            if (hasText(value)) {
+                return truncateForEvent(value.trim(), CHAT_CONTEXT_TEXT_MAX_LENGTH);
+            }
+        }
+        return "";
     }
 
     private Map<String, Object> sanitizeAgentActionClientPayload(Map<String, Object> clientPayload) {

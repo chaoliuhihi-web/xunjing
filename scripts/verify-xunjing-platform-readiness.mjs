@@ -654,20 +654,39 @@ async function checkXichengAppEventBackend(rootDir) {
     'buildTravelRecordMaterialFeed(resourcePackage, userTraceId, limit)',
     'buildTravelRecordMaterialItem(event)',
     'root.path("travelRecordMaterial")',
-    'normalizeTravelRecordMaterialLimit(limit)'
+    'normalizeTravelRecordMaterialLimit(limit)',
+    'buildVisionAgentMemorySession(resourcePackage, userTraceId, limit)',
+    'buildVisionAgentMemorySceneItem(event)',
+    'selectListByPackageIdAndUserTraceIdAndEventTypes',
+    'EventType.TRIGGER_RESOLVE.getType()',
+    'EventType.ASK.getType()',
+    'buildVisionAgentMemoryPoiTrailText',
+    'buildVisionAgentMemoryContinuityCueText'
   ]) {
     assertContains(appService, snippet, 'XunjingAppServiceImpl.java')
   }
   assertContains(appController, '@GetMapping("/travel-record/materials")', 'AppXunjingController.java')
   assertContains(appController, 'appService.listTravelRecordMaterials(packageCode, userTraceId, limit)',
     'AppXunjingController.java')
+  assertContains(appController, '@GetMapping("/memory/session")', 'AppXunjingController.java')
+  assertContains(appController, 'appService.getVisionAgentMemorySession(packageCode, userTraceId, limit)',
+    'AppXunjingController.java')
   assertContains(appVo, 'class TravelRecordMaterialFeedRespVO', 'XunjingAppVO.java')
   assertContains(appVo, 'class TravelRecordMaterialRespVO', 'XunjingAppVO.java')
   assertContains(appVo, 'private Map<String, Object> sourceSceneSnapshot;', 'XunjingAppVO.java')
+  assertContains(appVo, 'class VisionAgentMemorySessionRespVO', 'XunjingAppVO.java')
+  assertContains(appVo, 'class VisionAgentMemorySceneRespVO', 'XunjingAppVO.java')
+  assertContains(appVo, 'private String continuityCueText;', 'XunjingAppVO.java')
+  assertContains(appVo, 'private Map<String, Object> sceneSnapshot;', 'XunjingAppVO.java')
   assertContains(appServiceContract,
     'TravelRecordMaterialFeedRespVO listTravelRecordMaterials(String packageCode, String userTraceId, Integer limit)',
     'XunjingAppService.java')
+  assertContains(appServiceContract,
+    'VisionAgentMemorySessionRespVO getVisionAgentMemorySession(String packageCode, String userTraceId, Integer limit)',
+    'XunjingAppService.java')
   assertContains(interactionMapper, 'selectListByPackageIdAndUserTraceIdAndEventType',
+    'XunjingInteractionEventMapper.java')
+  assertContains(interactionMapper, 'selectListByPackageIdAndUserTraceIdAndEventTypes',
     'XunjingInteractionEventMapper.java')
   assertContains(interactionMapper, 'orderByAsc(XunjingInteractionEventDO::getId)',
     'XunjingInteractionEventMapper.java')
@@ -731,6 +750,11 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(
     appTest,
     'testListTravelRecordMaterialsReturnsSceneSnapshotPhotoAndPoiTimeline',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'testGetVisionAgentMemorySessionBuildsContinuousSceneTimeline',
     'XunjingAppServiceImplTest.java'
   )
   assertContains(

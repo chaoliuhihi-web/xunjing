@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PublicRepo
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialFeedRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySessionRespVO;
 
 public interface XunjingAppService {
 
@@ -26,6 +27,8 @@ public interface XunjingAppService {
     MultimodalTriggerRespVO resolveMultimodalTrigger(MultimodalTriggerReqVO reqVO);
 
     TravelRecordMaterialFeedRespVO listTravelRecordMaterials(String packageCode, String userTraceId, Integer limit);
+
+    VisionAgentMemorySessionRespVO getVisionAgentMemorySession(String packageCode, String userTraceId, Integer limit);
 
     PublicReportSummaryRespVO getPublicReportSummary(String packageCode);
 

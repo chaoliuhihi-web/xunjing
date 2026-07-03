@@ -66,4 +66,17 @@ public interface XunjingInteractionEventMapper extends BaseMapperX<XunjingIntera
                 .orderByAsc(XunjingInteractionEventDO::getId));
     }
 
+    default List<XunjingInteractionEventDO> selectListByPackageIdAndUserTraceIdAndEventTypes(
+            Long packageId, String userTraceId, Collection<String> eventTypes) {
+        if (packageId == null || userTraceId == null || userTraceId.isBlank()
+                || eventTypes == null || eventTypes.isEmpty()) {
+            return List.of();
+        }
+        return selectList(new LambdaQueryWrapperX<XunjingInteractionEventDO>()
+                .eq(XunjingInteractionEventDO::getPackageId, packageId)
+                .eq(XunjingInteractionEventDO::getUserTraceId, userTraceId)
+                .in(XunjingInteractionEventDO::getEventType, eventTypes)
+                .orderByAsc(XunjingInteractionEventDO::getId));
+    }
+
 }

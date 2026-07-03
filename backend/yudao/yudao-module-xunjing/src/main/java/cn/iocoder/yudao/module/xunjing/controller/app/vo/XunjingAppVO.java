@@ -272,6 +272,38 @@ public class XunjingAppVO {
     }
 
     @Data
+    public static class VisionAgentMemorySessionRespVO {
+        private String packageCode;
+        private String userTraceId;
+        private Integer sceneCount;
+        private String poiTrailText;
+        private String continuityCueText;
+        private String domainContinuityText;
+        private String serviceContinuityText;
+        private List<VisionAgentMemorySceneRespVO> scenes;
+    }
+
+    @Data
+    public static class VisionAgentMemorySceneRespVO {
+        private Long eventId;
+        private String eventType;
+        private String sceneCode;
+        private String regionCode;
+        private String poiCode;
+        private String poiName;
+        private String intent;
+        private String action;
+        private String title;
+        private String primarySceneDomainKey;
+        private String primarySceneDomainLabel;
+        private String sceneFusionSummary;
+        private String worldInterfaceSummary;
+        private String agentDecisionActionTitle;
+        private String serviceHandoffSummary;
+        private Map<String, Object> sceneSnapshot;
+    }
+
+    @Data
     public static class SourceRespVO {
         private Long id;
         private String title;

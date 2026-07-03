@@ -190,6 +190,60 @@ describe('xunjing app API contract', () => {
     expect(appTest).toContain('getPhotoExifLocation()')
   })
 
+  test('vision agent memory session exposes backend-only continuity API', async () => {
+    const controller = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/AppXunjingController.java'
+    )
+    const appVo = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'
+    )
+    const appService = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppService.java'
+    )
+    const appServiceImpl = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java'
+    )
+    const mapper = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/dal/mysql/event/XunjingInteractionEventMapper.java'
+    )
+    const appTest = await readText(
+      'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImplTest.java'
+    )
+
+    expect(controller).toContain('@GetMapping("/memory/session")')
+    expect(controller).toContain('VisionAgentMemorySessionRespVO')
+    expect(controller).toContain('appService.getVisionAgentMemorySession(packageCode, userTraceId, limit)')
+    expect(appVo).toContain('class VisionAgentMemorySessionRespVO')
+    expect(appVo).toContain('private Integer sceneCount;')
+    expect(appVo).toContain('private String poiTrailText;')
+    expect(appVo).toContain('private String continuityCueText;')
+    expect(appVo).toContain('private String domainContinuityText;')
+    expect(appVo).toContain('private String serviceContinuityText;')
+    expect(appVo).toContain('private List<VisionAgentMemorySceneRespVO> scenes;')
+    expect(appVo).toContain('class VisionAgentMemorySceneRespVO')
+    expect(appVo).toContain('private String eventType;')
+    expect(appVo).toContain('private String primarySceneDomainKey;')
+    expect(appVo).toContain('private String sceneFusionSummary;')
+    expect(appVo).toContain('private String serviceHandoffSummary;')
+    expect(appVo).toContain('private Map<String, Object> sceneSnapshot;')
+    expect(appService).toContain('VisionAgentMemorySessionRespVO getVisionAgentMemorySession(String packageCode, String userTraceId, Integer limit)')
+    expect(mapper).toContain('selectListByPackageIdAndUserTraceIdAndEventTypes')
+    expect(mapper).toContain('orderByAsc(XunjingInteractionEventDO::getId)')
+    expect(appServiceImpl).toContain('buildVisionAgentMemorySession(resourcePackage, userTraceId, limit)')
+    expect(appServiceImpl).toContain('buildVisionAgentMemorySceneItem(event)')
+    expect(appServiceImpl).toContain('EventType.TRIGGER_RESOLVE.getType()')
+    expect(appServiceImpl).toContain('EventType.ASK.getType()')
+    expect(appServiceImpl).toContain('EventType.AGENT_ACTION.getType()')
+    expect(appServiceImpl).toContain('buildVisionAgentMemoryPoiTrailText')
+    expect(appServiceImpl).toContain('buildVisionAgentMemoryContinuityCueText')
+    expect(appServiceImpl).not.toContain('payload.put("imageBase64"')
+    expect(appTest).toContain('testGetVisionAgentMemorySessionBuildsContinuousSceneTimeline')
+    expect(appTest).toContain('getVisionAgentMemorySession("XICHENG-MAP-001"')
+    expect(appTest).toContain('getPoiTrailText()')
+    expect(appTest).toContain('getContinuityCueText()')
+    expect(appTest).toContain('getScenes().get(0).getSceneSnapshot()')
+  })
+
   test('xicheng AI chat contract carries POI context and blocks no-source answers', async () => {
     const appVo = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'

@@ -34,6 +34,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatRes
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialFeedRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySessionRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.LocationPointReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerRespVO;
@@ -569,6 +570,82 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
                 .contains("ocr_alias"));
         assertFalse(JsonUtils.toJsonString(feed).contains("raw-image-should-not-enter-material-feed"));
         assertFalse(JsonUtils.toJsonString(feed).contains("imageBase64"));
+    }
+
+    @Test
+    public void testGetVisionAgentMemorySessionBuildsContinuousSceneTimeline() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+        consoleService.addKnowledgeDocument(xichengGongwangfuKnowledgeReq(packageId));
+
+        PhotoMetaReqVO photoMeta = new PhotoMetaReqVO();
+        photoMeta.setImageId("img-gongwangfu-memory-001");
+        photoMeta.setTakenAt("2026-07-02T18:45:00+08:00");
+        photoMeta.setImageBase64("raw-image-should-not-enter-memory-session");
+        photoMeta.setExifLocation(location("39.937051", "116.386771", 8));
+
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-memory-session-001");
+        triggerReq.setOcrText("恭王府博物馆入口");
+        triggerReq.setImageLabels(List.of("palace", "courtyard"));
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        triggerReq.setPhotoMeta(photoMeta);
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("sceneDomainIntentKey", "architecture");
+        sceneSignals.put("sceneDomainIntentLabel", "建筑");
+        sceneSignals.put("sceneFusionSummary", "恭王府建筑空间与夕阳拍摄场景");
+        sceneSignals.put("worldInterfaceSummary", "继续围绕恭王府现场理解，不重新开始");
+        triggerReq.setSceneSignals(sceneSignals);
+        appService.resolveMultimodalTrigger(triggerReq);
+
+        RagChatReqVO askReq = new RagChatReqVO();
+        askReq.setPackageCode("XICHENG-MAP-001");
+        askReq.setQuestion("这里适合怎么参观？");
+        askReq.setSourceChannel("xicheng-app");
+        askReq.setUserTraceId("trace-xicheng-memory-session-001");
+        appService.answer(askReq);
+
+        AppInteractionEventReqVO travelogueReq = new AppInteractionEventReqVO();
+        travelogueReq.setPackageCode("XICHENG-MAP-001");
+        travelogueReq.setSceneCode("xicheng-agent-action");
+        travelogueReq.setEventType(XunjingEnums.EventType.AGENT_ACTION.getType());
+        travelogueReq.setSourceChannel("xicheng-app");
+        travelogueReq.setUserTraceId("trace-xicheng-memory-session-001");
+        travelogueReq.setPayloadJson("""
+                {
+                  "actionKey":"generate_travelogue",
+                  "title":"生成游记",
+                  "intent":"record",
+                  "sourceTriggerTraceId":"trace-xicheng-memory-session-001",
+                  "requiresRealSystem":false,
+                  "executionStatus":"started",
+                  "poiCode":"xicheng-gongwangfu",
+                  "poiName":"恭王府"
+                }
+                """);
+        appService.recordEvent(travelogueReq);
+
+        VisionAgentMemorySessionRespVO session = appService.getVisionAgentMemorySession("XICHENG-MAP-001",
+                "trace-xicheng-memory-session-001", 10);
+
+        assertEquals("XICHENG-MAP-001", session.getPackageCode());
+        assertEquals("trace-xicheng-memory-session-001", session.getUserTraceId());
+        assertEquals(3, session.getSceneCount());
+        assertTrue(session.getPoiTrailText().contains("恭王府"));
+        assertTrue(session.getContinuityCueText().contains("连续识境 3 段"));
+        assertTrue(session.getDomainContinuityText().contains("建筑"));
+        assertTrue(session.getServiceContinuityText().contains("生成游记"));
+        assertEquals(XunjingEnums.EventType.TRIGGER_RESOLVE.getType(), session.getScenes().get(0).getEventType());
+        assertEquals(XunjingEnums.EventType.ASK.getType(), session.getScenes().get(1).getEventType());
+        assertEquals(XunjingEnums.EventType.AGENT_ACTION.getType(), session.getScenes().get(2).getEventType());
+        assertEquals("xicheng-gongwangfu", session.getScenes().get(0).getPoiCode());
+        assertEquals("img-gongwangfu-memory-001", session.getScenes().get(0).getSceneSnapshot().get("imageId"));
+        assertFalse(JsonUtils.toJsonString(session).contains("raw-image-should-not-enter-memory-session"));
+        assertFalse(JsonUtils.toJsonString(session).contains("imageBase64"));
     }
 
     @Test
