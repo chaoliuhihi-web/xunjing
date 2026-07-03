@@ -12,6 +12,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolv
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialFeedRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentKnowledgeGraphRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySessionRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentServiceHandoffTaskFeedRespVO;
 
 public interface XunjingAppService {
 
@@ -30,6 +31,8 @@ public interface XunjingAppService {
     TravelRecordMaterialFeedRespVO listTravelRecordMaterials(String packageCode, String userTraceId, Integer limit);
 
     VisionAgentMemorySessionRespVO getVisionAgentMemorySession(String packageCode, String userTraceId, Integer limit);
+
+    VisionAgentServiceHandoffTaskFeedRespVO listVisionAgentServiceHandoffTasks(String packageCode, String userTraceId, Integer limit);
 
     VisionAgentKnowledgeGraphRespVO getVisionAgentKnowledgeGraph(String packageCode, String regionCode, String poiCode, Integer limit);
 

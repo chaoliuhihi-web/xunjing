@@ -38,6 +38,8 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgen
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentKnowledgeGraphRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySceneRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySessionRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentServiceHandoffTaskFeedRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentServiceHandoffTaskRespVO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.ai.XunjingAiGenerationLogDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.ai.XunjingAiQuotaRuleDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.event.XunjingInteractionEventDO;
@@ -110,6 +112,8 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     private static final String QUOTA_SCOPE_PACKAGE = "PACKAGE";
     private static final String QUOTA_SCOPE_QRCODE = "QRCODE";
     private static final String QUOTA_SCOPE_USER = "USER";
+    private static final String SERVICE_HANDOFF_REAL_SYSTEM_BOUNDARY_TEXT =
+            "涉及优惠、排队、预约、票务、点餐或支付时，只返回服务交接任务和真实系统状态，不能生成虚假的券码、订单号或票务凭证。";
     private static final int TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH = 200;
     private static final int CHAT_CONTEXT_TEXT_MAX_LENGTH = 200;
     private static final List<String> TRIGGER_SCENE_SIGNAL_TEXT_KEYS = List.of(
@@ -372,6 +376,13 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             String packageCode, String userTraceId, Integer limit) {
         XunjingResourcePackageDO resourcePackage = validatePublicPackage(packageCode);
         return buildVisionAgentMemorySession(resourcePackage, userTraceId, limit);
+    }
+
+    @Override
+    public VisionAgentServiceHandoffTaskFeedRespVO listVisionAgentServiceHandoffTasks(
+            String packageCode, String userTraceId, Integer limit) {
+        XunjingResourcePackageDO resourcePackage = validatePublicPackage(packageCode);
+        return buildVisionAgentServiceHandoffTaskFeed(resourcePackage, userTraceId, limit);
     }
 
     @Override
@@ -2962,6 +2973,110 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             }
         }
         return "";
+    }
+
+    private VisionAgentServiceHandoffTaskFeedRespVO buildVisionAgentServiceHandoffTaskFeed(
+            XunjingResourcePackageDO resourcePackage, String userTraceId, Integer limit) {
+        VisionAgentServiceHandoffTaskFeedRespVO respVO = new VisionAgentServiceHandoffTaskFeedRespVO();
+        respVO.setPackageCode(resourcePackage.getPackageCode());
+        respVO.setUserTraceId(defaultIfBlank(userTraceId, ""));
+        respVO.setRealSystemBoundaryText(SERVICE_HANDOFF_REAL_SYSTEM_BOUNDARY_TEXT);
+        if (!hasText(userTraceId)) {
+            respVO.setTaskCount(0L);
+            respVO.setRealSystemRequiredTaskCount(0L);
+            respVO.setTasks(List.of());
+            return respVO;
+        }
+        int taskLimit = normalizeVisionAgentServiceHandoffTaskLimit(limit);
+        List<XunjingInteractionEventDO> events =
+                interactionEventMapper.selectListByPackageIdAndUserTraceIdAndEventType(
+                        resourcePackage.getId(), userTraceId, EventType.AGENT_ACTION.getType());
+        List<VisionAgentServiceHandoffTaskRespVO> tasks = new ArrayList<>();
+        for (XunjingInteractionEventDO event : events) {
+            VisionAgentServiceHandoffTaskRespVO item = buildVisionAgentServiceHandoffTaskItem(event);
+            if (item != null) {
+                tasks.add(item);
+            }
+            if (tasks.size() >= taskLimit) {
+                break;
+            }
+        }
+        respVO.setTaskCount((long) tasks.size());
+        respVO.setRealSystemRequiredTaskCount(tasks.stream()
+                .filter(task -> Boolean.TRUE.equals(task.getRequiresRealSystem()))
+                .count());
+        respVO.setTasks(tasks);
+        return respVO;
+    }
+
+    private int normalizeVisionAgentServiceHandoffTaskLimit(Integer limit) {
+        if (limit == null || limit <= 0) {
+            return 50;
+        }
+        return Math.min(limit, 100);
+    }
+
+    private VisionAgentServiceHandoffTaskRespVO buildVisionAgentServiceHandoffTaskItem(
+            XunjingInteractionEventDO event) {
+        if (event == null || !hasText(event.getPayloadJson())) {
+            return null;
+        }
+        try {
+            JsonNode root = JsonUtils.parseTree(event.getPayloadJson());
+            if (root == null || root.isNull() || root.isMissingNode()) {
+                return null;
+            }
+            JsonNode agentAction = root.path("agentAction");
+            if (agentAction == null || agentAction.isMissingNode() || agentAction.isNull()
+                    || !agentAction.isObject()) {
+                return null;
+            }
+            JsonNode travelRecordMaterial = root.path("travelRecordMaterial");
+            JsonNode sourceSceneSnapshot = agentAction.path("sourceSceneSnapshot");
+            if (sourceSceneSnapshot == null || sourceSceneSnapshot.isMissingNode() || sourceSceneSnapshot.isNull()) {
+                sourceSceneSnapshot = travelRecordMaterial.path("sourceSceneSnapshot");
+            }
+            Map<String, Object> snapshot = buildVisionAgentMemorySceneSnapshot(sourceSceneSnapshot);
+
+            VisionAgentServiceHandoffTaskRespVO item = new VisionAgentServiceHandoffTaskRespVO();
+            item.setEventId(event.getId());
+            item.setSceneCode(firstMemoryText(
+                    visionAgentContextText(root, "sceneCode"),
+                    visionAgentContextText(travelRecordMaterial, "sceneCode")));
+            item.setRegionCode(firstMemoryText(
+                    visionAgentContextText(agentAction, "regionCode"),
+                    visionAgentContextText(travelRecordMaterial, "regionCode"),
+                    stringValue(snapshot.get("regionCode"))));
+            item.setPoiCode(firstMemoryText(
+                    visionAgentContextText(agentAction, "poiCode"),
+                    visionAgentContextText(travelRecordMaterial, "poiCode"),
+                    stringValue(snapshot.get("poiCode"))));
+            item.setPoiName(firstMemoryText(
+                    visionAgentContextText(agentAction, "poiName"),
+                    visionAgentContextText(travelRecordMaterial, "poiName"),
+                    stringValue(snapshot.get("poiName"))));
+            item.setActionKey(visionAgentContextText(agentAction, "actionKey"));
+            item.setTitle(visionAgentContextText(agentAction, "title"));
+            item.setIntent(visionAgentContextText(agentAction, "intent"));
+            item.setTaskType(EventType.AGENT_ACTION.getType());
+            item.setExecutionStatus(visionAgentContextText(agentAction, "executionStatus"));
+            item.setSourceTriggerTraceId(visionAgentContextText(agentAction, "sourceTriggerTraceId"));
+            item.setReason(visionAgentContextText(agentAction, "reason"));
+            item.setRequiresUserConfirm(agentAction.has("requiresUserConfirm")
+                    ? agentAction.path("requiresUserConfirm").asBoolean(false) : null);
+            item.setRequiresRealSystem(agentAction.path("requiresRealSystem").asBoolean(false));
+            item.setRealSystemStatus(resolveServiceHandoffRealSystemStatus(item.getRequiresRealSystem()));
+            item.setHandoffSummary(buildAgentActionServiceHandoffSummary(agentAction));
+            item.setSourceSceneSnapshot(snapshot);
+            return item;
+        } catch (RuntimeException ex) {
+            log.warn("[buildVisionAgentServiceHandoffTaskItem][eventId({}) parse failed]", event.getId(), ex);
+            return null;
+        }
+    }
+
+    private String resolveServiceHandoffRealSystemStatus(Boolean requiresRealSystem) {
+        return Boolean.TRUE.equals(requiresRealSystem) ? "NOT_CONNECTED" : "LOCAL_ONLY";
     }
 
     private VisionAgentKnowledgeGraphRespVO buildVisionAgentKnowledgeGraph(

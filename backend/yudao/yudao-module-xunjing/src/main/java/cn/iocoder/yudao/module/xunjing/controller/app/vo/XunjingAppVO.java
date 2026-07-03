@@ -304,6 +304,37 @@ public class XunjingAppVO {
     }
 
     @Data
+    public static class VisionAgentServiceHandoffTaskFeedRespVO {
+        private String packageCode;
+        private String userTraceId;
+        private Long taskCount;
+        private Long realSystemRequiredTaskCount;
+        private String realSystemBoundaryText;
+        private List<VisionAgentServiceHandoffTaskRespVO> tasks;
+    }
+
+    @Data
+    public static class VisionAgentServiceHandoffTaskRespVO {
+        private Long eventId;
+        private String sceneCode;
+        private String regionCode;
+        private String poiCode;
+        private String poiName;
+        private String actionKey;
+        private String title;
+        private String intent;
+        private String taskType;
+        private String executionStatus;
+        private String sourceTriggerTraceId;
+        private String reason;
+        private Boolean requiresUserConfirm;
+        private Boolean requiresRealSystem;
+        private String realSystemStatus;
+        private String handoffSummary;
+        private Map<String, Object> sourceSceneSnapshot;
+    }
+
+    @Data
     public static class VisionAgentKnowledgeGraphRespVO {
         private String packageCode;
         private String regionCode;

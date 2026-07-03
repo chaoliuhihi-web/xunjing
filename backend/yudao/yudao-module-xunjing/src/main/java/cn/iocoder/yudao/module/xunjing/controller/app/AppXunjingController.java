@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolv
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialFeedRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentKnowledgeGraphRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySessionRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentServiceHandoffTaskFeedRespVO;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.ResourceType;
 import cn.iocoder.yudao.module.xunjing.service.app.XunjingAppService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -77,6 +78,16 @@ public class AppXunjingController {
             @RequestParam("userTraceId") String userTraceId,
             @RequestParam(value = "limit", required = false) Integer limit) {
         return success(appService.getVisionAgentMemorySession(packageCode, userTraceId, limit));
+    }
+
+    @GetMapping("/service-handoff/tasks")
+    @Operation(summary = "查询 AI 识境服务交接任务")
+    @PermitAll
+    public CommonResult<VisionAgentServiceHandoffTaskFeedRespVO> listVisionAgentServiceHandoffTasks(
+            @RequestParam("packageCode") String packageCode,
+            @RequestParam("userTraceId") String userTraceId,
+            @RequestParam(value = "limit", required = false) Integer limit) {
+        return success(appService.listVisionAgentServiceHandoffTasks(packageCode, userTraceId, limit));
     }
 
     @GetMapping("/knowledge/graph")

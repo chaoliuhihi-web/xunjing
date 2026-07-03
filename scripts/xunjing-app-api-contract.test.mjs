@@ -295,6 +295,52 @@ describe('xunjing app API contract', () => {
     expect(appTest).toContain('getSources()')
   })
 
+  test('service handoff tasks expose backend-only agent action boundary API', async () => {
+    const controller = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/AppXunjingController.java'
+    )
+    const appVo = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'
+    )
+    const appService = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppService.java'
+    )
+    const appServiceImpl = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java'
+    )
+    const mapper = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/dal/mysql/event/XunjingInteractionEventMapper.java'
+    )
+    const appTest = await readText(
+      'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImplTest.java'
+    )
+
+    expect(controller).toContain('@GetMapping("/service-handoff/tasks")')
+    expect(controller).toContain('VisionAgentServiceHandoffTaskFeedRespVO')
+    expect(controller).toContain('appService.listVisionAgentServiceHandoffTasks(packageCode, userTraceId, limit)')
+    expect(appVo).toContain('class VisionAgentServiceHandoffTaskFeedRespVO')
+    expect(appVo).toContain('private Long taskCount;')
+    expect(appVo).toContain('private Long realSystemRequiredTaskCount;')
+    expect(appVo).toContain('private String realSystemBoundaryText;')
+    expect(appVo).toContain('private List<VisionAgentServiceHandoffTaskRespVO> tasks;')
+    expect(appVo).toContain('class VisionAgentServiceHandoffTaskRespVO')
+    expect(appVo).toContain('private String taskType;')
+    expect(appVo).toContain('private String realSystemStatus;')
+    expect(appVo).toContain('private String handoffSummary;')
+    expect(appVo).toContain('private Map<String, Object> sourceSceneSnapshot;')
+    expect(appService).toContain('VisionAgentServiceHandoffTaskFeedRespVO listVisionAgentServiceHandoffTasks(String packageCode, String userTraceId, Integer limit)')
+    expect(mapper).toContain('selectListByPackageIdAndUserTraceIdAndEventType')
+    expect(appServiceImpl).toContain('buildVisionAgentServiceHandoffTaskFeed(resourcePackage, userTraceId, limit)')
+    expect(appServiceImpl).toContain('buildVisionAgentServiceHandoffTaskItem(event)')
+    expect(appServiceImpl).toContain('resolveServiceHandoffRealSystemStatus')
+    expect(appServiceImpl).toContain('SERVICE_HANDOFF_REAL_SYSTEM_BOUNDARY_TEXT')
+    expect(appServiceImpl).not.toContain('couponCode')
+    expect(appServiceImpl).not.toContain('ticketOrderNo')
+    expect(appTest).toContain('testListVisionAgentServiceHandoffTasksExposesRealSystemBoundary')
+    expect(appTest).toContain('getRealSystemRequiredTaskCount()')
+    expect(appTest).toContain('getRealSystemStatus()')
+  })
+
   test('xicheng AI chat contract carries POI context and blocks no-source answers', async () => {
     const appVo = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'

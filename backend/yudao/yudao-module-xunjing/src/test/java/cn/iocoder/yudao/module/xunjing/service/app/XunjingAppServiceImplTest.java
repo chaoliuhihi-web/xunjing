@@ -36,6 +36,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolv
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialFeedRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentKnowledgeGraphRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySessionRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentServiceHandoffTaskFeedRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.LocationPointReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerRespVO;
@@ -647,6 +648,81 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertEquals("img-gongwangfu-memory-001", session.getScenes().get(0).getSceneSnapshot().get("imageId"));
         assertFalse(JsonUtils.toJsonString(session).contains("raw-image-should-not-enter-memory-session"));
         assertFalse(JsonUtils.toJsonString(session).contains("imageBase64"));
+    }
+
+    @Test
+    public void testListVisionAgentServiceHandoffTasksExposesRealSystemBoundary() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        PhotoMetaReqVO photoMeta = new PhotoMetaReqVO();
+        photoMeta.setImageId("img-gongwangfu-service-handoff-001");
+        photoMeta.setTakenAt("2026-07-02T18:50:00+08:00");
+        photoMeta.setImageBase64("raw-image-should-not-enter-service-handoff-feed");
+        photoMeta.setExifLocation(location("39.937052", "116.386772", 9));
+
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-service-handoff-feed-001");
+        triggerReq.setOcrText("恭王府博物馆入口");
+        triggerReq.setImageLabels(List.of("palace", "menu"));
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        triggerReq.setPhotoMeta(photoMeta);
+        Map<String, Object> sceneSignals = new LinkedHashMap<>();
+        sceneSignals.put("merchantServiceSummary", "附近餐饮商户支持优惠、排队和预约但必须由真实商家系统确认。");
+        sceneSignals.put("agentDecisionReasonSummary", "涉及商家服务时只生成交接任务，不生成伪券码或订单。");
+        triggerReq.setSceneSignals(sceneSignals);
+        appService.resolveMultimodalTrigger(triggerReq);
+
+        AppInteractionEventReqVO actionReq = new AppInteractionEventReqVO();
+        actionReq.setPackageCode("XICHENG-MAP-001");
+        actionReq.setSceneCode("xicheng-agent-action");
+        actionReq.setEventType(XunjingEnums.EventType.AGENT_ACTION.getType());
+        actionReq.setSourceChannel("xicheng-app");
+        actionReq.setUserTraceId("trace-xicheng-service-handoff-feed-001");
+        actionReq.setPayloadJson("""
+                {
+                  "actionKey":"nearby_food",
+                  "title":"附近美食",
+                  "intent":"food",
+                  "targetPath":"/pages/service/food?regionCode=beijing-xicheng&poiCode=xicheng-gongwangfu&packageCode=XICHENG-MAP-001",
+                  "sourceTriggerTraceId":"trace-xicheng-service-handoff-feed-001",
+                  "requiresUserConfirm":true,
+                  "requiresRealSystem":true,
+                  "executionStatus":"pending",
+                  "regionCode":"beijing-xicheng",
+                  "poiCode":"xicheng-gongwangfu",
+                  "poiName":"恭王府",
+                  "reason":"优惠、排队和预约必须由真实商家系统确认。"
+                }
+                """);
+        appService.recordEvent(actionReq);
+
+        VisionAgentServiceHandoffTaskFeedRespVO feed = appService.listVisionAgentServiceHandoffTasks(
+                "XICHENG-MAP-001", "trace-xicheng-service-handoff-feed-001", 10);
+
+        assertEquals("XICHENG-MAP-001", feed.getPackageCode());
+        assertEquals("trace-xicheng-service-handoff-feed-001", feed.getUserTraceId());
+        assertEquals(1L, feed.getTaskCount());
+        assertEquals(1L, feed.getRealSystemRequiredTaskCount());
+        assertTrue(feed.getRealSystemBoundaryText().contains("真实系统状态"));
+        assertEquals(XunjingEnums.EventType.AGENT_ACTION.getType(), feed.getTasks().get(0).getTaskType());
+        assertEquals("nearby_food", feed.getTasks().get(0).getActionKey());
+        assertEquals("food", feed.getTasks().get(0).getIntent());
+        assertEquals("pending", feed.getTasks().get(0).getExecutionStatus());
+        assertTrue(feed.getTasks().get(0).getRequiresUserConfirm());
+        assertTrue(feed.getTasks().get(0).getRequiresRealSystem());
+        assertEquals("NOT_CONNECTED", feed.getTasks().get(0).getRealSystemStatus());
+        assertTrue(feed.getTasks().get(0).getHandoffSummary().contains("真实系统确认=true"));
+        assertEquals("img-gongwangfu-service-handoff-001",
+                feed.getTasks().get(0).getSourceSceneSnapshot().get("imageId"));
+        assertFalse(JsonUtils.toJsonString(feed).contains("raw-image-should-not-enter-service-handoff-feed"));
+        assertFalse(JsonUtils.toJsonString(feed).contains("imageBase64"));
+        assertFalse(JsonUtils.toJsonString(feed).contains("couponCode"));
+        assertFalse(JsonUtils.toJsonString(feed).contains("ticketOrderNo"));
     }
 
     @Test
