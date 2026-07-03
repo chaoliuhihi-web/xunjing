@@ -42,8 +42,44 @@ assert.match(
 
 assert.match(
   footprint,
+  /selectedFootprintFilter:\s*'全部'/,
+  'Footprint should keep the selected timeline filter in page state'
+)
+
+assert.match(
+  footprint,
+  /footprint-filter-chip[\s\S]*:class="\{ active: selectedFootprintFilter === tab \}"[\s\S]*@click="selectFootprintFilter\(tab\)"/,
+  'Footprint filter chips should be tappable and show the selected state'
+)
+
+assert.match(
+  footprint,
+  /filteredTimelineItems\(\)[\s\S]*if \(this\.selectedFootprintFilter === '全部'\) return this\.timelineItems[\s\S]*return this\.timelineItems\.filter\(item => item\.filterKey === this\.selectedFootprintFilter\)/,
+  'Footprint should derive the visible timeline from the selected filter'
+)
+
+assert.match(
+  footprint,
+  /selectFootprintFilter\(tab = '全部'\)[\s\S]*this\.selectedFootprintFilter = this\.footprintTabs\.includes\(tab\) \? tab : '全部'/,
+  'Footprint filter taps should normalize unknown tabs back to 全部'
+)
+
+assert.match(
+  footprint,
+  /section-badge">\{\{ filteredTimelineItems\.length \}\} 条[\s\S]*v-if="filteredTimelineItems\.length > 0"[\s\S]*v-for="item in filteredTimelineItems"/,
+  'Footprint section count and list should render the filtered timeline, not the unfiltered source'
+)
+
+assert.match(
+  footprint,
   /timelineItems\(\)[\s\S]*const visionAgentTaskItems = this\.visionAgentServiceTasks\.slice\(0, 6\)\.map\(\(task, index\) => \(\{[\s\S]*typeLabel:\s*'AI识境任务'[\s\S]*title:\s*task\.actionTitle \|\| task\.actionCopy \|\| 'AI识境后续动作'[\s\S]*desc:\s*this\.formatVisionAgentFootprintTaskDesc\(task\)[\s\S]*time:\s*formatTime\(task\.createdAt\)/,
   'Footprint timeline should render AI识境 service tasks with action title, typed label, formatted desc, and task time'
+)
+
+assert.match(
+  footprint,
+  /typeLabel:\s*item\.type === 'ai-guide' \? 'AI 问答' : '识别'[\s\S]*filterKey:\s*item\.type === 'ai-guide' \? '问答' : '识别'[\s\S]*typeLabel:\s*'路线'[\s\S]*filterKey:\s*'路线'[\s\S]*typeLabel:\s*'AI识境任务'[\s\S]*filterKey:\s*'AI识境'/,
+  'Footprint timeline items should expose stable filter keys for recognition, Q&A, route, and AI识境 rows'
 )
 
 assert.match(

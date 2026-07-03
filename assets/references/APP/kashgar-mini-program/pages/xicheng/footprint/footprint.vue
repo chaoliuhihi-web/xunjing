@@ -42,16 +42,24 @@
 		</view>
 
 		<view class="footprint-filter-row">
-			<text v-for="tab in footprintTabs" :key="tab" class="footprint-filter-chip">{{ tab }}</text>
+			<text
+				v-for="tab in footprintTabs"
+				:key="tab"
+				class="footprint-filter-chip"
+				:class="{ active: selectedFootprintFilter === tab }"
+				@click="selectFootprintFilter(tab)"
+			>
+				{{ tab }}
+			</text>
 		</view>
 
 		<view class="timeline xicheng-paper-card">
 			<view class="section-head">
 				<text class="section-title">足迹时间线</text>
-				<text class="section-badge">{{ timelineItems.length }} 条</text>
+				<text class="section-badge">{{ filteredTimelineItems.length }} 条</text>
 			</view>
-			<view v-if="timelineItems.length > 0" class="timeline-list">
-				<view v-for="item in timelineItems" :key="item.id" class="timeline-row">
+			<view v-if="filteredTimelineItems.length > 0" class="timeline-list">
+				<view v-for="item in filteredTimelineItems" :key="item.id" class="timeline-row">
 					<view class="timeline-icon">
 						<xicheng-icon :name="item.icon" variant="primary" :size="18" />
 					</view>
@@ -107,7 +115,8 @@ export default {
 			region: XICHENG_REGION_CONFIG,
 			materials: [],
 			routeCheckins: [],
-			visionAgentServiceTasks: []
+			visionAgentServiceTasks: [],
+			selectedFootprintFilter: '全部'
 		}
 	},
 	computed: {
@@ -134,6 +143,7 @@ export default {
 				id: `material-${index}-${item.createdAt || item.poiCode || item.type}`,
 				icon: item.type === 'ai-guide' ? 'qa' : 'source',
 				typeLabel: item.type === 'ai-guide' ? 'AI 问答' : '识别',
+				filterKey: item.type === 'ai-guide' ? '问答' : '识别',
 				title: item.poiName || item.sourceLabel || '西城素材',
 				desc: item.aiAnswerExcerpt || item.remark || item.sourceLabel || '已进入本地素材盒',
 				time: formatTime(item.createdAt)
@@ -142,6 +152,7 @@ export default {
 				id: `checkin-${index}-${item.createdAt || item.poiCode}`,
 				icon: 'record',
 				typeLabel: '路线',
+				filterKey: '路线',
 				title: item.poiName || '路线打卡',
 				desc: item.routeTitle || item.routeCode || '路线记录节点',
 				time: formatTime(item.createdAt)
@@ -150,6 +161,7 @@ export default {
 				id: `vision-agent-task-${index}-${task.id || task.createdAt || task.actionKey}`,
 				icon: task.taskType === 'merchant' ? 'source' : task.taskType === 'route' ? 'route' : 'scan',
 				typeLabel: 'AI识境任务',
+				filterKey: 'AI识境',
 				title: task.actionTitle || task.actionCopy || 'AI识境后续动作',
 				desc: this.formatVisionAgentFootprintTaskDesc(task),
 				time: formatTime(task.createdAt)
@@ -165,6 +177,10 @@ export default {
 				{ icon: 'route', title: '完成路线记录', desc: '生成路线回放和游记线索' },
 				{ icon: 'scan', title: '执行AI识境任务', desc: '商家、路线和后续动作会进入足迹' }
 			]
+		},
+		filteredTimelineItems() {
+			if (this.selectedFootprintFilter === '全部') return this.timelineItems
+			return this.timelineItems.filter(item => item.filterKey === this.selectedFootprintFilter)
 		}
 	},
 	onShow() {
@@ -172,6 +188,9 @@ export default {
 		this.loadFootprint()
 	},
 	methods: {
+		selectFootprintFilter(tab = '全部') {
+			this.selectedFootprintFilter = this.footprintTabs.includes(tab) ? tab : '全部'
+		},
 		loadVisionAgentFootprintTasks() {
 			const storedTasks = uni.getStorageSync(XICHENG_REGION_CONFIG.visionAgentServiceTasksStorageKey)
 			this.visionAgentServiceTasks = safeArray(storedTasks)
@@ -358,7 +377,7 @@ export default {
 	box-shadow: 0 10rpx 24rpx rgba(35, 42, 34, 0.06);
 }
 
-.footprint-filter-chip:first-child {
+.footprint-filter-chip.active {
 	background: #173F35;
 	color: #FFF9EC;
 }
