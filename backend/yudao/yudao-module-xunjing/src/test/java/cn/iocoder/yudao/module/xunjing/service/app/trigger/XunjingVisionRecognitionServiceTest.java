@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.xunjing.service.app.trigger;
 
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PhotoMetaReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionProviderStatusRespVO;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.Test;
 
@@ -54,6 +55,41 @@ public class XunjingVisionRecognitionServiceTest {
         MultimodalTriggerReqVO enrichedReqVO = service.enrich(reqVO);
 
         assertEquals(List.of("white_pagoda"), enrichedReqVO.getImageLabels());
+    }
+
+    @Test
+    public void testGetProviderStatusReportsMissingConfigWithoutLeakingSecrets() {
+        VisionProviderStatusRespVO status = service.getProviderStatus();
+
+        assertFalse(status.getProviderConfigured());
+        assertFalse(status.getEndpointConfigured());
+        assertFalse(status.getApiKeyConfigured());
+        assertEquals("qwen-vl-max", status.getModel());
+        assertEquals("", status.getApiKeyFingerprint());
+        assertTrue(status.getMissingConfigKeys().contains("XUNJING_VISION_API_URL"));
+        assertTrue(status.getMissingConfigKeys().contains("XUNJING_VISION_API_KEY"));
+        assertTrue(status.getProductionEvidenceText().contains("不会伪造视觉/OCR 识别结果"));
+        assertFalse(status.toString().contains("photo-base64"));
+    }
+
+    @Test
+    public void testGetProviderStatusReportsConfiguredFingerprintOnly() throws Exception {
+        XunjingVisionRecognitionService configuredService = new XunjingVisionRecognitionService();
+        setField(configuredService, "visionApiUrl", "https://vision.example.com/v1");
+        setField(configuredService, "visionApiKey", "test-secret-key-001");
+        setField(configuredService, "visionModel", "qwen-vl-max");
+
+        VisionProviderStatusRespVO status = configuredService.getProviderStatus();
+
+        assertTrue(status.getProviderConfigured());
+        assertTrue(status.getEndpointConfigured());
+        assertTrue(status.getApiKeyConfigured());
+        assertEquals("qwen-vl-max", status.getModel());
+        assertTrue(status.getApiKeyFingerprint().startsWith("sha256:"));
+        assertTrue(status.getMissingConfigKeys().isEmpty());
+        assertTrue(status.getProductionEvidenceText().contains("真实图片 smoke 证据"));
+        assertFalse(status.toString().contains("test-secret-key-001"));
+        assertFalse(status.toString().contains("https://vision.example.com/v1"));
     }
 
     @Test

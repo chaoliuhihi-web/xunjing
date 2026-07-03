@@ -362,6 +362,17 @@ public class XunjingAppVO {
     }
 
     @Data
+    public static class VisionProviderStatusRespVO {
+        private Boolean providerConfigured;
+        private Boolean endpointConfigured;
+        private Boolean apiKeyConfigured;
+        private String model;
+        private String apiKeyFingerprint;
+        private List<String> missingConfigKeys;
+        private String productionEvidenceText;
+    }
+
+    @Data
     public static class VisionAgentKnowledgeGraphRespVO {
         private String packageCode;
         private String regionCode;

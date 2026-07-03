@@ -384,6 +384,47 @@ describe('xunjing app API contract', () => {
     expect(appTest).toContain('getServiceHandoffTaskCount()')
   })
 
+  test('vision provider status exposes production evidence without leaking secrets', async () => {
+    const controller = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/AppXunjingController.java'
+    )
+    const appVo = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'
+    )
+    const appService = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppService.java'
+    )
+    const appServiceImpl = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java'
+    )
+    const visionService = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/trigger/XunjingVisionRecognitionService.java'
+    )
+    const visionTest = await readText(
+      'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/trigger/XunjingVisionRecognitionServiceTest.java'
+    )
+
+    expect(controller).toContain('@GetMapping("/vision/provider/status")')
+    expect(controller).toContain('VisionProviderStatusRespVO')
+    expect(controller).toContain('appService.getVisionProviderStatus()')
+    expect(appVo).toContain('class VisionProviderStatusRespVO')
+    expect(appVo).toContain('private Boolean providerConfigured;')
+    expect(appVo).toContain('private Boolean endpointConfigured;')
+    expect(appVo).toContain('private Boolean apiKeyConfigured;')
+    expect(appVo).toContain('private String model;')
+    expect(appVo).toContain('private String apiKeyFingerprint;')
+    expect(appVo).toContain('private List<String> missingConfigKeys;')
+    expect(appVo).toContain('private String productionEvidenceText;')
+    expect(appService).toContain('VisionProviderStatusRespVO getVisionProviderStatus()')
+    expect(appServiceImpl).toContain('visionRecognitionService.getProviderStatus()')
+    expect(visionService).toContain('VisionProviderStatusRespVO getProviderStatus()')
+    expect(visionService).toContain('fingerprintSecret')
+    expect(visionService).toContain('missingConfigKeys')
+    expect(visionService).not.toContain('setApiKey(')
+    expect(visionTest).toContain('testGetProviderStatusReportsMissingConfigWithoutLeakingSecrets')
+    expect(visionTest).toContain('testGetProviderStatusReportsConfiguredFingerprintOnly')
+  })
+
   test('xicheng AI chat contract carries POI context and blocks no-source answers', async () => {
     const appVo = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'

@@ -625,6 +625,14 @@ async function checkXichengAppEventBackend(rootDir) {
     rootDir,
     'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImplTest.java'
   )
+  const visionService = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/trigger/XunjingVisionRecognitionService.java'
+  )
+  const visionTest = await readText(
+    rootDir,
+    'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/trigger/XunjingVisionRecognitionServiceTest.java'
+  )
   for (const snippet of [
     'resolveAppEventQrCode(reqVO, hasText(reqVO.getPackageCode()))',
     'buildAppEventPayload',
@@ -670,6 +678,7 @@ async function checkXichengAppEventBackend(rootDir) {
     'resolveSceneContextLatestScene',
     'resolveSceneContextKnowledgeGraph',
     'buildSceneContextReady',
+    'visionRecognitionService.getProviderStatus()',
     'buildVisionAgentKnowledgeGraph(resourcePackage, regionCode, poiCode, limit)',
     'buildKnowledgeGraphAnchorNode',
     'buildKnowledgeGraphRelatedPoiNodes',
@@ -692,6 +701,8 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(appController, '@GetMapping("/scene/context")', 'AppXunjingController.java')
   assertContains(appController, 'appService.getVisionAgentSceneContext(packageCode, userTraceId, regionCode, poiCode, limit)',
     'AppXunjingController.java')
+  assertContains(appController, '@GetMapping("/vision/provider/status")', 'AppXunjingController.java')
+  assertContains(appController, 'appService.getVisionProviderStatus()', 'AppXunjingController.java')
   assertContains(appController, '@GetMapping("/knowledge/graph")', 'AppXunjingController.java')
   assertContains(appController, 'appService.getVisionAgentKnowledgeGraph(packageCode, regionCode, poiCode, limit)',
     'AppXunjingController.java')
@@ -715,6 +726,11 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(appVo, 'private VisionAgentMemorySessionRespVO memorySession;', 'XunjingAppVO.java')
   assertContains(appVo, 'private VisionAgentServiceHandoffTaskFeedRespVO serviceHandoff;', 'XunjingAppVO.java')
   assertContains(appVo, 'private VisionAgentKnowledgeGraphRespVO knowledgeGraph;', 'XunjingAppVO.java')
+  assertContains(appVo, 'class VisionProviderStatusRespVO', 'XunjingAppVO.java')
+  assertContains(appVo, 'private Boolean providerConfigured;', 'XunjingAppVO.java')
+  assertContains(appVo, 'private String apiKeyFingerprint;', 'XunjingAppVO.java')
+  assertContains(appVo, 'private List<String> missingConfigKeys;', 'XunjingAppVO.java')
+  assertContains(appVo, 'private String productionEvidenceText;', 'XunjingAppVO.java')
   assertContains(appVo, 'class VisionAgentKnowledgeGraphRespVO', 'XunjingAppVO.java')
   assertContains(appVo, 'class VisionAgentKnowledgeGraphNodeRespVO', 'XunjingAppVO.java')
   assertContains(appVo, 'class VisionAgentKnowledgeGraphEdgeRespVO', 'XunjingAppVO.java')
@@ -731,9 +747,14 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(appServiceContract,
     'VisionAgentSceneContextRespVO getVisionAgentSceneContext(String packageCode, String userTraceId, String regionCode, String poiCode, Integer limit)',
     'XunjingAppService.java')
+  assertContains(appServiceContract, 'VisionProviderStatusRespVO getVisionProviderStatus()',
+    'XunjingAppService.java')
   assertContains(appServiceContract,
     'VisionAgentKnowledgeGraphRespVO getVisionAgentKnowledgeGraph(String packageCode, String regionCode, String poiCode, Integer limit)',
     'XunjingAppService.java')
+  assertContains(visionService, 'VisionProviderStatusRespVO getProviderStatus()', 'XunjingVisionRecognitionService.java')
+  assertContains(visionService, 'fingerprintSecret', 'XunjingVisionRecognitionService.java')
+  assertContains(visionService, 'missingConfigKeys', 'XunjingVisionRecognitionService.java')
   assertContains(interactionMapper, 'selectListByPackageIdAndUserTraceIdAndEventType',
     'XunjingInteractionEventMapper.java')
   assertContains(interactionMapper, 'selectListByPackageIdAndUserTraceIdAndEventTypes',
@@ -831,6 +852,16 @@ async function checkXichengAppEventBackend(rootDir) {
     appTest,
     'getServiceHandoffTaskCount()',
     'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    visionTest,
+    'testGetProviderStatusReportsMissingConfigWithoutLeakingSecrets',
+    'XunjingVisionRecognitionServiceTest.java'
+  )
+  assertContains(
+    visionTest,
+    'testGetProviderStatusReportsConfiguredFingerprintOnly',
+    'XunjingVisionRecognitionServiceTest.java'
   )
   assertContains(
     appTest,

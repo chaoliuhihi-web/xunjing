@@ -13,6 +13,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgen
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySessionRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentSceneContextRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentServiceHandoffTaskFeedRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionProviderStatusRespVO;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.ResourceType;
 import cn.iocoder.yudao.module.xunjing.service.app.XunjingAppService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -101,6 +102,13 @@ public class AppXunjingController {
             @RequestParam(value = "poiCode", required = false) String poiCode,
             @RequestParam(value = "limit", required = false) Integer limit) {
         return success(appService.getVisionAgentSceneContext(packageCode, userTraceId, regionCode, poiCode, limit));
+    }
+
+    @GetMapping("/vision/provider/status")
+    @Operation(summary = "查询 AI 识境视觉服务配置状态")
+    @PermitAll
+    public CommonResult<VisionProviderStatusRespVO> getVisionProviderStatus() {
+        return success(appService.getVisionProviderStatus());
     }
 
     @GetMapping("/knowledge/graph")

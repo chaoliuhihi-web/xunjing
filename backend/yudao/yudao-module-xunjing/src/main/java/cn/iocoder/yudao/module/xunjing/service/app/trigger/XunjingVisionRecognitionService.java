@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.xunjing.service.app.trigger;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PhotoMetaReqVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionProviderStatusRespVO;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,6 +14,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -131,6 +134,23 @@ public class XunjingVisionRecognitionService {
     private String visionApiKey;
     @Value("${xunjing.vision.model:${XUNJING_VISION_MODEL:}}")
     private String visionModel;
+
+    public VisionProviderStatusRespVO getProviderStatus() {
+        boolean endpointConfigured = hasText(visionApiUrl);
+        boolean apiKeyConfigured = hasText(visionApiKey);
+        List<String> missingConfigKeys = missingConfigKeys(endpointConfigured, apiKeyConfigured);
+
+        VisionProviderStatusRespVO respVO = new VisionProviderStatusRespVO();
+        respVO.setEndpointConfigured(endpointConfigured);
+        respVO.setApiKeyConfigured(apiKeyConfigured);
+        respVO.setProviderConfigured(endpointConfigured && apiKeyConfigured);
+        respVO.setModel(resolvedVisionModel());
+        respVO.setApiKeyFingerprint(apiKeyConfigured ? fingerprintSecret(visionApiKey) : "");
+        respVO.setMissingConfigKeys(missingConfigKeys);
+        respVO.setProductionEvidenceText(buildVisionProviderProductionEvidenceText(
+                respVO.getProviderConfigured(), respVO.getModel(), respVO.getApiKeyFingerprint(), missingConfigKeys));
+        return respVO;
+    }
 
     public MultimodalTriggerReqVO enrich(MultimodalTriggerReqVO reqVO) {
         if (reqVO == null) {
@@ -341,6 +361,44 @@ public class XunjingVisionRecognitionService {
 
     private String resolvedVisionModel() {
         return hasText(visionModel) ? visionModel : DEFAULT_MODEL;
+    }
+
+    private List<String> missingConfigKeys(boolean endpointConfigured, boolean apiKeyConfigured) {
+        List<String> missingKeys = new ArrayList<>();
+        if (!endpointConfigured) {
+            missingKeys.add("XUNJING_VISION_API_URL");
+        }
+        if (!apiKeyConfigured) {
+            missingKeys.add("XUNJING_VISION_API_KEY");
+        }
+        return missingKeys;
+    }
+
+    private String buildVisionProviderProductionEvidenceText(
+            boolean providerConfigured, String model, String apiKeyFingerprint, List<String> missingConfigKeys) {
+        if (!providerConfigured) {
+            return "视觉识别服务未达到生产可用：缺少 " + String.join(",", missingConfigKeys)
+                    + "；不会伪造视觉/OCR 识别结果。";
+        }
+        return "视觉识别服务已配置：model=" + model + "，apiKeyFingerprint=" + apiKeyFingerprint
+                + "；生产可用性仍需真实图片 smoke 证据。";
+    }
+
+    private String fingerprintSecret(String secret) {
+        if (!hasText(secret)) {
+            return "";
+        }
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(secret.trim().getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (int i = 0; i < Math.min(6, digest.length); i++) {
+                hex.append(String.format("%02x", digest[i]));
+            }
+            return "sha256:" + hex;
+        } catch (Exception ex) {
+            return "sha256:unavailable";
+        }
     }
 
     private Map<String, Object> buildVisionRecognitionEvidencePayload(

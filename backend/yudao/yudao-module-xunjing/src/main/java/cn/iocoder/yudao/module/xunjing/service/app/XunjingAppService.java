@@ -14,6 +14,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgen
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySessionRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentSceneContextRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentServiceHandoffTaskFeedRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionProviderStatusRespVO;
 
 public interface XunjingAppService {
 
@@ -36,6 +37,8 @@ public interface XunjingAppService {
     VisionAgentServiceHandoffTaskFeedRespVO listVisionAgentServiceHandoffTasks(String packageCode, String userTraceId, Integer limit);
 
     VisionAgentSceneContextRespVO getVisionAgentSceneContext(String packageCode, String userTraceId, String regionCode, String poiCode, Integer limit);
+
+    VisionProviderStatusRespVO getVisionProviderStatus();
 
     VisionAgentKnowledgeGraphRespVO getVisionAgentKnowledgeGraph(String packageCode, String regionCode, String poiCode, Integer limit);
 

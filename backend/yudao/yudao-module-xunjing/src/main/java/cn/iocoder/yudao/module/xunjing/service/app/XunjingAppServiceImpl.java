@@ -41,6 +41,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgen
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentSceneContextRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentServiceHandoffTaskFeedRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentServiceHandoffTaskRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionProviderStatusRespVO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.ai.XunjingAiGenerationLogDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.ai.XunjingAiQuotaRuleDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.event.XunjingInteractionEventDO;
@@ -73,6 +74,7 @@ import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.ResourceType;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.ReviewStatus;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.VectorStatus;
 import cn.iocoder.yudao.module.xunjing.service.app.trigger.XunjingMultimodalTriggerEngine;
+import cn.iocoder.yudao.module.xunjing.service.app.trigger.XunjingVisionRecognitionService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -221,6 +223,8 @@ public class XunjingAppServiceImpl implements XunjingAppService {
     private XunjingPoiMapper poiMapper;
     @Resource
     private XunjingMultimodalTriggerEngine multimodalTriggerEngine;
+    @Resource
+    private XunjingVisionRecognitionService visionRecognitionService;
     @Autowired(required = false)
     private AiKnowledgeSegmentService aiKnowledgeSegmentService;
     @Autowired(required = false)
@@ -391,6 +395,11 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             String packageCode, String userTraceId, String regionCode, String poiCode, Integer limit) {
         XunjingResourcePackageDO resourcePackage = validatePublicPackage(packageCode);
         return buildVisionAgentSceneContext(resourcePackage, userTraceId, regionCode, poiCode, limit);
+    }
+
+    @Override
+    public VisionProviderStatusRespVO getVisionProviderStatus() {
+        return visionRecognitionService.getProviderStatus();
     }
 
     @Override
