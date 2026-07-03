@@ -49,7 +49,7 @@ const requiredPages = [
   },
   {
     route: 'pages/xicheng/share/share',
-    title: '分享纪念',
+    title: '游记发布',
     file: ['pages', 'xicheng', 'share', 'share.vue'],
     componentFiles: [
       ['components', 'xicheng', 'XichengShareAssetPanel.vue'],
@@ -60,9 +60,11 @@ const requiredPages = [
       'XICHENG_REGION_CONFIG.shareAssetStorageKey',
       'share-poster-background.jpg',
       'PDF 纪念册',
-      '提交审核',
+      '发布前检查',
+      "uni.setNavigationBarTitle({ title: '游记发布' })",
       'createShareArtifact'
-    ]
+    ],
+    forbiddenPattern: /分享纪念|提交审核|分享海报|作品审核|审核状态总览|生成分享海报/
   },
   {
     route: 'pages/xicheng/works/works',

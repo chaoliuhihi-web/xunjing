@@ -23,7 +23,7 @@
 				<text class="review-step-title">{{ step.title }}</text>
 			</view>
 		</view>
-		<button class="primary-button xicheng-primary-action" @click="this.$emit('submit-review')">提交审核</button>
+		<button class="primary-button xicheng-primary-action" @click="this.$emit('submit-review')">发布前检查</button>
 	</view>
 </template>
 

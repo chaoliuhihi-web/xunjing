@@ -24,7 +24,7 @@ for (const token of [
   'share-setting-list',
   'share-review-steps',
   'privacy-card',
-  '提交审核',
+  '发布前检查',
   "emits: ['toggle-setting', 'submit-review']",
   "this.$emit('toggle-setting', setting.key)",
   "this.$emit('submit-review')"
@@ -70,6 +70,12 @@ assert.doesNotMatch(
 
 assert.ok(share.split(/\r?\n/).length < 680, 'Share page should shrink after splitting the privacy review panel')
 assert.ok(component.split(/\r?\n/).length < 280, 'Privacy review panel component should stay compact for APP packaging')
+
+assert.doesNotMatch(
+  `${share}\n${component}`,
+  /分享纪念|提交审核|分享海报|作品审核|审核状态总览|生成分享海报/,
+  'Share publishing page should use travelogue publishing copy instead of legacy poster/review-growth wording'
+)
 
 assert.doesNotMatch(
   `${share}\n${component}`,

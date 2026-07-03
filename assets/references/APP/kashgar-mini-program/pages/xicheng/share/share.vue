@@ -4,7 +4,7 @@
 			<view class="topbar-button" @click="goBack">
 				<xicheng-icon name="back" variant="plain" :size="22" />
 			</view>
-			<text class="topbar-title">分享纪念</text>
+			<text class="topbar-title">游记发布</text>
 			<view class="topbar-button" @click="openWorks">
 				<xicheng-icon name="mine" variant="plain" :size="21" />
 			</view>
@@ -186,7 +186,7 @@ export default {
 		reviewSteps() {
 			return [
 				{ index: '1', title: '生成预览', active: this.shareArtifacts.length > 0 },
-				{ index: '2', title: '提交审核', active: this.reviewSubmissions.length > 0 },
+				{ index: '2', title: '发布前检查', active: this.reviewSubmissions.length > 0 },
 				{ index: '3', title: '审核后公开', active: false }
 			]
 		},
@@ -250,6 +250,7 @@ export default {
 		this.selectedPublishChannels = Array.from(new Set([routeChannel, ...this.selectedPublishChannels]))
 	},
 	onShow() {
+		uni.setNavigationBarTitle({ title: '游记发布' })
 		this.restoreShareSettings()
 		this.selectedPublishChannels = Array.from(new Set([this.selectedPublishChannel, ...this.selectedPublishChannels]))
 		this.shareArtifacts = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey))
@@ -627,7 +628,7 @@ export default {
 		},
 		showShareArtifactRequiredToast() {
 			uni.showToast({
-				title: '请先生成分享产物再提交审核',
+				title: '请先生成发布素材再进行发布前检查',
 				icon: 'none'
 			})
 		},

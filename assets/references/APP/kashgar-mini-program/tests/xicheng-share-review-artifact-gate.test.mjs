@@ -30,7 +30,7 @@ for (const required of [
   'sanitizePublicCandidateConfirmationSummary',
   'sanitizePublicRecordingSummary',
   'reviewEvidencePolicy',
-  '请先生成分享产物再提交审核',
+  '请先生成发布素材再进行发布前检查',
   'shareArtifactCount',
   'assetTypes',
   'shareArtifacts: reviewableShareArtifacts'

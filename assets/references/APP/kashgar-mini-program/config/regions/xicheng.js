@@ -64,7 +64,7 @@ const XICHENG_REGION_BASE_CONFIG = {
 	],
 	sharePoster: {
 		title: '我的西城寻径',
-		subtitle: '把今天走过的文化点生成分享海报',
+		subtitle: '把今天走过的文化点生成发布素材',
 		auditStatus: 'pending',
 		backgroundImage: '/static/xicheng/share-poster-background.jpg',
 		stampImage: '/static/xicheng/route-passport-stamp.png'

@@ -124,7 +124,7 @@
 		{
 			"path": "pages/xicheng/share/share",
 			"style": {
-				"navigationBarTitleText": "分享纪念",
+				"navigationBarTitleText": "游记发布",
 				"navigationStyle": "custom",
 				"mp-weixin": {
 					"navigationStyle": "custom",
