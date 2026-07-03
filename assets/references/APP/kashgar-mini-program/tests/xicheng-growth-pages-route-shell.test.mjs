@@ -22,9 +22,13 @@ const requiredPages = [
       'XICHENG_REGION_CONFIG.materialsStorageKey',
       'XICHENG_REGION_CONFIG.checkinStorageKey',
       '生成今日游记',
+      '查看文旅地图',
+      '商家、路线和后续动作会进入足迹',
       'openTravelogue',
+      'openRoutes',
       'xicheng-icon name="travelogue"'
-    ]
+    ],
+    forbiddenPattern: /路线护照|生成路线护照|openPassport|成长和Agent动作|taskType === 'growth' \? '成长'/
   },
   {
     route: 'pages/xicheng/passport/passport',

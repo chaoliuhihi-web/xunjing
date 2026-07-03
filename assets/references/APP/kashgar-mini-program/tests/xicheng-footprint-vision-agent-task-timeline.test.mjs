@@ -20,10 +20,10 @@ for (const required of [
   'loadVisionAgentFootprintTasks',
   'formatVisionAgentFootprintTaskDesc',
   'AI识境任务',
-  'Agent',
+  '智能助手',
   '商家',
   '路线',
-  '成长'
+  '后续动作'
 ]) {
   assert.ok(footprint.includes(required), `Footprint should expose Vision Agent task timeline behavior: ${required}`)
 }

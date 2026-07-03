@@ -15,7 +15,7 @@
 			<view class="hero-copy">
 				<text class="hero-kicker">今日记录</text>
 				<text class="hero-title">{{ footprintTitle }}</text>
-				<text class="hero-desc">这些片段可以生成你的游记，公开前会先进入审核。</text>
+				<text class="hero-desc">这些片段可以生成你的游记，公开前会先确认公开范围。</text>
 			</view>
 			<view class="metric-grid">
 				<view class="metric-card">
@@ -90,7 +90,7 @@
 
 		<view class="bottom-actions">
 			<button class="primary-button xicheng-primary-action" @click="openTravelogue">生成今日游记</button>
-			<button class="ghost-button xicheng-secondary-action" @click="openPassport">路线护照</button>
+			<button class="ghost-button xicheng-secondary-action" @click="openRoutes">查看文旅地图</button>
 		</view>
 	</view>
 </template>
@@ -162,8 +162,8 @@ export default {
 			return [
 				{ icon: 'scan', title: '拍照识别文化点', desc: '匹配官方 POI 与已审核来源' },
 				{ icon: 'qa', title: '问小京补充故事', desc: '回答会带来源进入素材盒' },
-				{ icon: 'route', title: '完成路线打卡', desc: '生成路线护照和游记线索' },
-				{ icon: 'scan', title: '执行AI识境任务', desc: '商家、路线、成长和Agent动作会进入足迹' }
+				{ icon: 'route', title: '完成路线记录', desc: '生成路线回放和游记线索' },
+				{ icon: 'scan', title: '执行AI识境任务', desc: '商家、路线和后续动作会进入足迹' }
 			]
 		}
 	},
@@ -180,7 +180,7 @@ export default {
 		},
 		formatVisionAgentFootprintTaskDesc(task = {}) {
 			const poiName = task.poiName || '当前场景'
-			const taskTypeLabel = task.taskTypeLabel || (task.taskType === 'merchant' ? '商家' : task.taskType === 'route' ? '路线' : task.taskType === 'growth' ? '成长' : task.taskType === 'agent' ? 'Agent' : '服务')
+			const taskTypeLabel = task.taskTypeLabel || (task.taskType === 'merchant' ? '商家' : task.taskType === 'route' ? '路线' : task.taskType === 'growth' ? '后续动作' : task.taskType === 'agent' ? '智能助手' : '服务')
 			const serviceIntentLabel = task.serviceIntentLabel ? ` · ${task.serviceIntentLabel}` : ''
 			const actionPrompt = task.actionPrompt ? ` · ${String(task.actionPrompt).slice(0, 28)}` : ''
 			const statusText = task.statusText || '已收进任务包'
@@ -194,8 +194,8 @@ export default {
 		openTravelogue() {
 			uni.navigateTo({ url: '/pages/xicheng/travelogue/travelogue?mode=footprint' })
 		},
-		openPassport() {
-			uni.navigateTo({ url: '/pages/xicheng/passport/passport' })
+		openRoutes() {
+			uni.navigateTo({ url: '/pages/xicheng/routes/routes' })
 		},
 		goBack() {
 			const pages = getCurrentPages()
