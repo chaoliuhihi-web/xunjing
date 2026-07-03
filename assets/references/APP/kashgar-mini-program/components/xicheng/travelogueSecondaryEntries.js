@@ -1,26 +1,22 @@
 export const XICHENG_TRAVELOGUE_SECONDARY_ENTRY_CONFIG = Object.freeze([
-	{ key: 'footprint', title: '记录与足迹', copy: '路线记录、素材盒、现场备注', icon: 'route', url: '/pages/xicheng/footprint/footprint' },
-	{ key: 'passport', title: '路线护照与研学', copy: '打卡徽章、亲子研学任务', icon: 'passport', url: '/pages/xicheng/passport/passport' },
-	{ key: 'share', title: '分享与审核', copy: '分享海报、PDF纪念册、作品审核', icon: 'share', url: '/pages/xicheng/share/share' },
-	{ key: 'ops', title: '运营与隐私', copy: '城市运营报告、隐私与反馈', icon: 'settings', url: '/pages/xicheng/ops-report/ops-report' }
+	{ key: 'material', title: '记录素材', copy: '照片、轨迹、现场备注', icon: 'route', url: '/pages/xicheng/footprint/footprint?mode=travelogueMaterial' },
+	{ key: 'routes', title: '文旅地图路线', copy: 'POI 路线、攻略导入、开始记录', icon: 'routes', url: '/pages/xicheng/routes/routes' },
+	{ key: 'works', title: '我的游记', copy: '电子书预览、PDF 打印、发布管理', icon: 'edit', url: '/pages/xicheng/works/works' },
+	{ key: 'privacy', title: '隐私与反馈', copy: '公开范围、定位授权、问题反馈', icon: 'settings', url: '/pages/xicheng/ops-report/ops-report' }
 ])
 
 export const createXichengTravelogueSecondaryEntries = ({
 	materialCount = 0,
 	routePointCount = 0,
-	passportProgress = 0,
-	completedTaskCount = 0,
-	parentChildTaskCount = 0,
 	shareArtifactCount = 0,
-	reviewText = '',
 	recognitionCount = 0,
 	reviewBlockerCount = 0
 } = {}) => XICHENG_TRAVELOGUE_SECONDARY_ENTRY_CONFIG.map(entry => ({
 	...entry,
 	meta: {
-		footprint: `${materialCount} 素材 · ${routePointCount} 轨迹点`,
-		passport: `${passportProgress}% 护照 · ${completedTaskCount}/${parentChildTaskCount} 任务`,
-		share: `${shareArtifactCount} 产物 · ${reviewText}`,
-		ops: `${recognitionCount} 识别 · ${reviewBlockerCount} 待复核`
+		material: `${materialCount} 素材 · ${routePointCount} 轨迹点`,
+		routes: `${recognitionCount} 地点 · 可生成路线`,
+		works: `${shareArtifactCount} 导出 · 可继续编辑`,
+		privacy: reviewBlockerCount > 0 ? `${reviewBlockerCount} 项需确认` : '公开范围可管理'
 	}[entry.key] || ''
 }))

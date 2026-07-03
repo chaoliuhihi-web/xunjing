@@ -139,8 +139,8 @@ assert.match(
 
 assert.match(
   travelogue,
-  /createXichengTravelogueDraft\s*=\s*\(\{[\s\S]*studyTaskEvidence = \[\][\s\S]*studyEvidenceText[\s\S]*研学任务证据/,
-  'Travelogue draft generation should summarize study task evidence'
+  /createXichengTravelogueDraft\s*=\s*\(\{[\s\S]*studyTaskEvidence = \[\][\s\S]*observationEvidenceText[\s\S]*现场观察提到/,
+  'Travelogue draft generation should summarize real user observation evidence without study-task wording'
 )
 
 assert.match(

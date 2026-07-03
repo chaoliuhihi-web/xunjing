@@ -231,6 +231,13 @@ export const createXichengTraveloguePreviewExcerpt = (text = '', limit = 88) => 
 	const excerpt = (cutIndex >= 0 ? boundedText.slice(0, cutIndex + 1) : boundedText).replace(/[，、；：:,\s]+$/g, '').trim()
 	return `${excerpt}…`
 }
+const sanitizeXichengTravelogueDraftText = (draftText = '') => String(draftText || '')
+	.replace(/亲子研学任务可继续围绕/g, '街区观察可以继续围绕')
+	.replace(/研学任务证据包括/g, '现场观察提到')
+	.replace(/，补充孩子观察或照片证据/g, '，补充现场观察或照片细节')
+	.replace(/亲子研学发现/g, '街区发现')
+	.replace(/路线护照打卡包括/g, '路线经过')
+	.replace(/研学任务证据和用户备注/g, '用户备注')
 export const isUnsafeSourceBlockedMaterial = (material = {}) => {
 	const safetyStatus = normalizeXichengSafetyStatus(material.safetyStatus)
 	return isXichengUnsafeSafetyStatus(safetyStatus)
@@ -329,7 +336,6 @@ export const hasXichengReviewableWorkEvidence = ({
 }
 export const createXichengTravelogueDraft = ({
 	materials = [],
-	parentChildTasks = XICHENG_REGION_CONFIG.parentChildTasks,
 	routeRecommendation = null,
 	recordingSession = null,
 	studyTaskEvidence = [],
@@ -346,7 +352,7 @@ export const createXichengTravelogueDraft = ({
 		visionAgentServiceTasks,
 		visionAgentMemorySessionPackage
 	})) {
-		return `请先通过识别、开始记录、补充照片或现场备注积累真实素材，再生成西城游记草稿。小京会基于真实照片、轨迹、识别事件、停留点、研学任务证据和用户备注整理内容，不会替用户编造路线。`
+		return `请先通过识别、开始记录、补充照片或现场备注积累真实素材，再生成西城游记草稿。小京会基于真实照片、轨迹、识别事件、停留点和用户备注整理内容，不会替用户编造路线。`
 	}
 	const reviewableMaterials = materials.filter(material => hasReviewableMaterialEvidence(material))
 	const poiNames = Array.from(new Set(
@@ -380,21 +386,17 @@ export const createXichengTravelogueDraft = ({
 		.slice(0, 2)
 	const trackText = routePointCount > 0 ? `本次主动记录了 ${routePointCount} 个前台位置点。` : ''
 	const stayText = stayPointCount > 0 ? `本次标记了 ${stayPointCount} 个停留点。` : ''
-	const routeCheckinText = routeCheckinNames.length > 0 ? `路线护照打卡包括：${routeCheckinNames.join('、')}。` : ''
+	const routeCheckinText = routeCheckinNames.length > 0 ? `路线经过：${routeCheckinNames.join('、')}。` : ''
 	const photoText = photoCount > 0 ? `现场补充了 ${photoCount} 张照片。` : ''
 	const remarkText = remarkTexts.length > 0 ? `用户备注提到：${remarkTexts.join('；')}。` : ''
 	const aiGuideText = aiGuideExcerpts.length > 0 ? `小京回答提到：${aiGuideExcerpts.join('；')}。` : ''
 	const completedStudyEvidence = Array.isArray(studyTaskEvidence)
 		? studyTaskEvidence.filter(evidence => hasReviewableStudyTaskEvidence(evidence)).slice(0, 2)
 		: []
-	const plannedStudyTasks = Array.isArray(parentChildTasks) ? parentChildTasks.slice(0, 2).filter(Boolean) : []
-	const studyEvidenceText = completedStudyEvidence.length > 0
-		? `研学任务证据包括：${completedStudyEvidence.map(evidence => evidence.answerText || evidence.taskText || '照片观察').join('；')}。`
+	const observationEvidenceText = completedStudyEvidence.length > 0
+		? `现场观察提到：${completedStudyEvidence.map(evidence => evidence.answerText || evidence.taskText || '照片观察').join('；')}。`
 		: ''
-	const plannedStudyTaskText = !studyEvidenceText && plannedStudyTasks.length > 0
-		? `亲子研学任务可继续围绕：${plannedStudyTasks.join('；')}，补充孩子观察或照片证据。`
-		: ''
-	const studyTaskText = studyEvidenceText || plannedStudyTaskText
+	const studyTaskText = observationEvidenceText
 	const reviewableVisionAgentTasks = Array.isArray(visionAgentServiceTasks)
 		? visionAgentServiceTasks.filter(task => hasReviewableVisionAgentServiceTaskEvidence(task)).slice(0, 4)
 		: []
@@ -407,7 +409,7 @@ export const createXichengTravelogueDraft = ({
 	const visionAgentMemorySessionText = visionAgentMemorySessionPackage
 		? `AI识境连续会话包：${visionAgentMemorySessionPackage.continuityCueText || ''}${visionAgentMemorySessionPackage.poiTrailText || ''}${visionAgentMemorySessionPackage.domainContinuityText || ''}`
 		: ''
-	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒。${trackText}${stayText}${photoText}${routeCheckinText}${remarkText}${studyTaskText}${aiGuideText}${visionAgentTaskText}${visionAgentMemorySessionText}这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和亲子研学发现写进一篇可继续编辑的游记。`
+	return `今天的西城 Citywalk 从${routeText}展开。小京把识别到的文化点、讲解来源和现场观察整理进旅行素材盒。${trackText}${stayText}${photoText}${routeCheckinText}${remarkText}${studyTaskText}${aiGuideText}${visionAgentTaskText}${visionAgentMemorySessionText}这条路线适合慢慢走、边看边听，把建筑细节、胡同生活和街区发现写进一篇可继续编辑的游记。`
 }
 const createEmptyRecordingSession = () => ({ sessionId: '', regionCode: XICHENG_REGION_CONFIG.regionCode, packageCode: XICHENG_REGION_CONFIG.packageCode, status: 'idle', startedAt: '', pausedAt: '', finishedAt: '', trackPoints: [], stayPoints: [], filteredTrackPoints: [] })
 const XICHENG_TRACK_POINT_QUALITY = Object.freeze({ maxPoiAttributionAccuracyMeters: 80, abnormalJumpWindowSeconds: 5, abnormalJumpDistanceMeters: 500 })
@@ -534,7 +536,7 @@ export default {
 			activeTravelogueStyle: 'citywalk',
 			selectedTravelogueTemplate: 'citywalk',
 			travelogueTemplateSettings: { ...XICHENG_DEFAULT_TEMPLATE_SETTINGS },
-			travelogueStyleOptions: [{ key: 'family', title: '亲子研学' }, { key: 'citywalk', title: '城市漫步杂志' }, { key: 'culture', title: '文化札记' }, { key: 'album', title: '照片纪念册' }],
+			travelogueStyleOptions: [{ key: 'family', title: '家庭纪念' }, { key: 'citywalk', title: '城市漫步杂志' }, { key: 'culture', title: '文化札记' }, { key: 'album', title: '照片纪念册' }],
 			studyTaskEvidence: [],
 			studyTaskDrafts: [],
 			badgeAwards: [],
@@ -1153,17 +1155,16 @@ export default {
 				this.materials = materials
 				const cachedDraft = uni.getStorageSync(XICHENG_REGION_CONFIG.journeyStorageKey)
 				this.draft = cachedDraft && cachedDraft.draft
-					? cachedDraft.draft
-					: createXichengTravelogueDraft({
+					? sanitizeXichengTravelogueDraftText(cachedDraft.draft)
+					: sanitizeXichengTravelogueDraftText(createXichengTravelogueDraft({
 						materials: this.materials,
-						parentChildTasks: this.parentChildTasks,
 						routeRecommendation: this.recognizedRoute,
 						recordingSession: this.recordingSession,
 						studyTaskEvidence: this.studyTaskEvidence,
 						routeCheckins: this.routeCheckins,
 						visionAgentServiceTasks: this.visionAgentServiceTasks,
 						visionAgentMemorySessionPackage: this.visionAgentMemorySessionPackage
-					})
+					}))
 				this.reviewText = cachedDraft && cachedDraft.reviewText ? cachedDraft.reviewText : this.reviewText
 			this.posterStatus = cachedDraft && cachedDraft.posterStatus ? cachedDraft.posterStatus : this.posterStatus
 			this.pdfStatus = cachedDraft && cachedDraft.pdfStatus ? cachedDraft.pdfStatus : this.pdfStatus

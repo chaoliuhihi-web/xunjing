@@ -4,7 +4,7 @@
 			<text class="section-title">二级功能</text>
 			<text class="section-badge">按需进入</text>
 		</view>
-		<text class="section-desc">记录、护照、分享审核和运营数据不在编辑页展开，避免主编辑流程过长。</text>
+		<text class="section-desc">记录素材、地图路线、游记管理和隐私反馈收进这里，主编辑页只保留生成与精修。</text>
 		<view class="travelogue-secondary-entry-grid">
 			<view
 				v-for="entry in entries"

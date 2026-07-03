@@ -80,10 +80,10 @@ for (const required of [
   'travelogue-secondary-directory',
   'travelogueSecondaryEntries',
   'openTravelogueSecondaryEntry',
-  '记录与足迹',
-  '路线护照与研学',
-  '分享与审核',
-  '运营与隐私',
+  '记录素材',
+  '文旅地图路线',
+  '我的游记',
+  '隐私与反馈',
   '编辑游记',
   '小京已整理',
   '预览内容来自你的照片、路线、备注和已核对资料',
@@ -196,8 +196,20 @@ assert.match(
 
 assert.match(
   secondaryEntries,
-  /icon:\s*'route'[\s\S]*icon:\s*'passport'[\s\S]*icon:\s*'share'[\s\S]*icon:\s*'settings'/,
-  'Travelogue secondary entry config should expose semantic icon names instead of raw vendor icon types'
+  /icon:\s*'route'[\s\S]*icon:\s*'routes'[\s\S]*icon:\s*'edit'[\s\S]*icon:\s*'settings'/,
+  'Travelogue secondary entry config should expose semantic shared Xicheng icon names for current P0 flows'
+)
+
+assert.doesNotMatch(
+  secondaryEntries,
+  /路线护照|护照|徽章|亲子研学|分享审核|作品审核|分享海报/,
+  'Travelogue secondary entry config should not expose removed passport, badge, study-task, poster, or review-growth entry points'
+)
+
+assert.doesNotMatch(
+  secondaryDirectory,
+  /护照|分享审核|运营数据/,
+  'Travelogue secondary directory helper copy should describe current compact tools without old growth/audit categories'
 )
 
 assert.doesNotMatch(
@@ -250,7 +262,7 @@ assert.match(
 
 assert.match(
   travelogue,
-  /travelogueStyleOptions:\s*\[[\s\S]*亲子研学[\s\S]*城市漫步杂志[\s\S]*文化札记[\s\S]*照片纪念册/,
+  /travelogueStyleOptions:\s*\[[\s\S]*家庭纪念[\s\S]*城市漫步杂志[\s\S]*文化札记[\s\S]*照片纪念册/,
   'Travelogue generation should expose the approved long-form travelogue template choices'
 )
 
