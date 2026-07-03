@@ -724,10 +724,10 @@ export default {
 		sceneServiceActions() {
 			return [
 				...this.domainSceneServiceActions,
-				{ actionKey: 'next-stop', title: '去下一个景点', copy: '加入旅行地图', taskType: 'route' },
+				{ actionKey: 'next-stop', title: '去下一个景点', copy: '加入文旅地图', taskType: 'route' },
 				{ actionKey: 'nearby-food', title: '附近美食', copy: '推荐菜/点单', taskType: 'merchant' },
 				{ actionKey: 'souvenir', title: '纪念品', copy: '匹配附近文创和小店', taskType: 'merchant' },
-				{ actionKey: 'badge', title: '领取徽章', copy: '完成打卡并收集徽章', taskType: 'growth' },
+				{ actionKey: 'record-stop', title: '加入今日记录', copy: '写入足迹与游记素材', taskType: 'record' },
 				{ actionKey: 'travelogue', title: '生成游记', copy: '把这一站写进今天故事', taskType: 'travelogue' }
 			]
 		},
@@ -1131,12 +1131,18 @@ export default {
 			)).slice(0, limit)
 			const poiNames = uniqueTexts(sessionSnapshots.map(snapshot => snapshot.poiName || snapshot.poiCode), 6)
 			const sceneDomainLabels = uniqueTexts(sessionSnapshots.map(snapshot => snapshot.sceneDomainLabels || []), 8)
+			const currentServiceIntentLabels = uniqueTexts(
+				this.prioritizedSceneServiceActions.map(action => this.serviceIntentLabel(action.serviceIntent || '') || action.title),
+				8
+			)
 			const serviceIntentLabels = uniqueTexts(sessionSnapshots.map(snapshot => snapshot.serviceIntentLabels || []), 8)
+				.filter(label => currentServiceIntentLabels.includes(label))
+			const serviceCueLabels = serviceIntentLabels.length > 0 ? serviceIntentLabels : currentServiceIntentLabels.slice(0, 4)
 			const poiTrailText = poiNames.length > 0
 				? `连续识境路线：${poiNames.join(' → ')}。`
 				: '连续识境路线正在形成。'
 			const domainCue = sceneDomainLabels.length > 0 ? sceneDomainLabels.join('、') : '当前场景'
-			const serviceCue = serviceIntentLabels.length > 0 ? serviceIntentLabels.join('、') : '讲解、路线和游记'
+			const serviceCue = serviceCueLabels.length > 0 ? serviceCueLabels.join('、') : '讲解、路线和游记'
 			return {
 				packageName: 'AI识境连续会话包',
 				sceneCount: sessionSnapshots.length,
@@ -1322,18 +1328,18 @@ export default {
 				handoffSummary = '适合把识别到的菜单、食物或商家线索转成点单、优惠和预约建议。'
 			} else if (taskType === 'route') {
 				handoffSteps = [
-					{ label: '加入旅行地图', copy: '把当前点位放进今日路线和足迹。' },
+					{ label: '加入文旅地图', copy: '把当前点位放进今日路线和足迹。' },
 					{ label: '推荐下一站', copy: '结合时间、天气、距离和兴趣继续规划。' }
 				]
 				primaryAction = '问小京安排下一站'
 				handoffSummary = '把当前场景变成路线节点，继续推动下一站推荐。'
-			} else if (taskType === 'growth') {
+			} else if (taskType === 'record') {
 				handoffSteps = [
-					{ label: '完成打卡', copy: '记录当前官方点位和识别来源。' },
-					{ label: '领取徽章', copy: '把本次到访加入城市探索成长记录。' }
+					{ label: '加入今日记录', copy: '保存当前官方点位、识别来源和现场上下文。' },
+					{ label: '生成游记线索', copy: '把这一站整理成后续可编辑的游记素材。' }
 				]
-				primaryAction = '问小京生成打卡文案'
-				handoffSummary = '把这次 AI识境识别转成可保存、可分享的到访成果。'
+				primaryAction = '问小京整理记录'
+				handoffSummary = '把这次 AI识境识别转成今日记录和游记草稿素材。'
 			} else if (taskType === 'ticketing' || serviceIntent === 'ticket') {
 				handoffSteps = [
 					{ label: '票务信息', copy: '整理演出、活动、入场和购票注意事项。' },
@@ -1450,8 +1456,8 @@ export default {
 		serviceTaskTypeLabel(taskType = 'service') {
 			if (taskType === 'merchant') return '商家'
 			if (taskType === 'route') return '路线'
+			if (taskType === 'record') return '记录'
 			if (taskType === 'travelogue') return '游记'
-			if (taskType === 'growth') return '成长'
 			if (taskType === 'agent') return 'Agent'
 			if (taskType === 'ticketing') return '票务'
 			if (taskType === 'experience') return '体验'

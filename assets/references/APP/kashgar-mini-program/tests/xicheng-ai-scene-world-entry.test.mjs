@@ -99,13 +99,20 @@ for (const required of [
   '去下一个景点',
   '附近美食',
   '纪念品',
-  '领取徽章',
+  '加入今日记录',
   '生成游记',
   '推荐菜/点单',
-  '加入旅行地图'
+  '写入足迹与游记素材',
+  '加入文旅地图'
 ]) {
   assert.ok(scanResult.includes(required), `Scan result should expose Vision Agent action/service capability: ${required}`)
 }
+
+assert.doesNotMatch(
+  scanResult,
+  /领取徽章|完成打卡并收集徽章|taskType:\s*'growth'|taskType === 'growth'|return '成长'|城市探索成长记录/,
+  'Scan result service actions should route P0 users to recording/travelogue material, not badge or growth collection'
+)
 
 assert.match(
   regionConfig,
@@ -117,6 +124,12 @@ assert.match(
   scanResult,
   /rememberVisionAgentServiceTask\(action = \{\}\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.visionAgentServiceTasksStorageKey/,
   'Service actions should be collected into a configured local Vision Agent task package'
+)
+
+assert.match(
+  scanResult,
+  /const currentServiceIntentLabels = uniqueTexts\([\s\S]*this\.prioritizedSceneServiceActions\.map\(action => this\.serviceIntentLabel\(action\.serviceIntent \|\| ''\) \|\| action\.title\)[\s\S]*const serviceIntentLabels = uniqueTexts\([\s\S]*\.filter\(label => currentServiceIntentLabels\.includes\(label\)\)/,
+  'Vision Agent memory summaries should filter stale service labels through the current P0 action list'
 )
 
 assert.match(

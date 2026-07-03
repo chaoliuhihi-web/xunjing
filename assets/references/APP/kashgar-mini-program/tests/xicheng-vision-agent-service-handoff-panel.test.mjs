@@ -43,8 +43,14 @@ assert.match(
 
 assert.match(
   scanResult,
-  /createVisionAgentServiceHandoff\(task = \{\}\)[\s\S]*merchant[\s\S]*推荐菜\/点单[\s\S]*优惠券[\s\S]*预约\/排队[\s\S]*route[\s\S]*加入旅行地图[\s\S]*推荐下一站[\s\S]*growth[\s\S]*完成打卡[\s\S]*领取徽章/,
-  'Service handoff builder should map merchant, route, and growth actions to concrete next steps'
+  /createVisionAgentServiceHandoff\(task = \{\}\)[\s\S]*merchant[\s\S]*推荐菜\/点单[\s\S]*优惠券[\s\S]*预约\/排队[\s\S]*route[\s\S]*加入文旅地图[\s\S]*推荐下一站[\s\S]*record[\s\S]*加入今日记录[\s\S]*生成游记线索/,
+  'Service handoff builder should map merchant, route, and record actions to concrete next steps'
+)
+
+assert.doesNotMatch(
+  scanResultServiceHandoffSurface,
+  /领取徽章|完成打卡|taskType:\s*'growth'|taskType === 'growth'|return '成长'|城市探索成长记录/,
+  'Service handoff panel should not expose badge or growth collection as a P0 recognition next step'
 )
 
 assert.match(
