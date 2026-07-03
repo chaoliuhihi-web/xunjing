@@ -8,8 +8,11 @@ const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const backendOnlyPaths = [
   'package.json',
   'scripts/verify-ai-shijing-p0-backend-loop.mjs',
+  'scripts/verify-ai-shijing-gps-scene-fusion-smoke.mjs',
+  'scripts/run-ai-shijing-p0-backend-gate.mjs',
   'scripts/xunjing-app-api-contract.test.mjs',
   'scripts/xicheng-backend-launch-readiness.test.mjs',
+  'scripts/verify-ai-shijing-gps-scene-fusion-smoke.test.mjs',
   'scripts/verify-xunjing-platform-readiness.mjs',
   'scripts/verify-xicheng-yudao-release-readiness.mjs',
   'scripts/verify-xicheng-vision-ocr-smoke.mjs',
@@ -127,6 +130,39 @@ function verifyBackendLoop(files) {
           'testGetVisionAgentSceneContextBuildsSceneEngineContextPacket',
           'testResolveMultimodalTriggerAutoStartsWhenGpsAndOcrAgreeWithoutImageSignal',
           'getMatchedSignals().contains("gps_ocr_fused")'
+        ])
+      ]
+    },
+    {
+      requirementId: 'gps-scene-fusion-smoke',
+      title: '西城真实经纬度模拟验证 GPS、OCR、照片和上下文融合准确性',
+      evidence: [
+        checkSnippets(files.packageJson, 'package.json', [
+          '"xunjing:ai-shijing:gps-smoke": "node scripts/verify-ai-shijing-gps-scene-fusion-smoke.mjs"'
+        ]),
+        checkSnippets(files.gpsSmoke, 'verify-ai-shijing-gps-scene-fusion-smoke.mjs', [
+          'artifactType = \'ai-shijing-gps-scene-fusion-smoke\'',
+          'seedSource = \'backend/yudao/sql/mysql/xunjing-seed-xicheng-p0.sql\'',
+          'baitasi-gps-ocr-photo',
+          'gongwangfu-gps-ocr-photo',
+          'planetarium-near-zoo-disambiguation',
+          'wrong-area-ocr-photo-needs-confirmation',
+          'baitasi-memory-continuation',
+          'gps_ocr_fused',
+          'wrongAreaAutoTriggerCount',
+          'local_simulation_not_production',
+          'haversineMeters'
+        ]),
+        checkSnippets(files.gate, 'run-ai-shijing-p0-backend-gate.mjs', [
+          'npm run xunjing:ai-shijing:gps-smoke',
+          'scripts/verify-ai-shijing-gps-scene-fusion-smoke.test.mjs'
+        ]),
+        checkSnippets(files.gpsSmokeTest, 'verify-ai-shijing-gps-scene-fusion-smoke.test.mjs', [
+          'AI_SHIJING_GPS_SCENE_FUSION_SMOKE_READY',
+          'wrongAreaAutoTriggerCount: 0',
+          'planetarium-near-zoo-disambiguation',
+          'baitasi-memory-continuation',
+          'scene_fusion'
         ])
       ]
     },
@@ -357,6 +393,9 @@ function checkBackendOnlyPaths() {
 async function loadFiles() {
   return {
     packageJson: await readText('package.json'),
+    gpsSmoke: await readText('scripts/verify-ai-shijing-gps-scene-fusion-smoke.mjs'),
+    gpsSmokeTest: await readText('scripts/verify-ai-shijing-gps-scene-fusion-smoke.test.mjs'),
+    gate: await readText('scripts/run-ai-shijing-p0-backend-gate.mjs'),
     controller: await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/AppXunjingController.java'
     ),

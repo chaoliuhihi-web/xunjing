@@ -11,13 +11,19 @@ const commands = [
     args: ['run', 'xunjing:ai-shijing:p0:verify']
   },
   {
+    name: 'ai-shijing-gps-scene-fusion-smoke',
+    command: 'npm run xunjing:ai-shijing:gps-smoke',
+    args: ['run', 'xunjing:ai-shijing:gps-smoke']
+  },
+  {
     name: 'ai-shijing-p0-contract-tests',
-    command: 'npm run test:run -- scripts/ai-shijing-p0-backend-loop.test.mjs scripts/xunjing-app-api-contract.test.mjs scripts/xicheng-backend-launch-readiness.test.mjs scripts/verify-xunjing-platform-readiness.test.mjs',
+    command: 'npm run test:run -- scripts/ai-shijing-p0-backend-loop.test.mjs scripts/verify-ai-shijing-gps-scene-fusion-smoke.test.mjs scripts/xunjing-app-api-contract.test.mjs scripts/xicheng-backend-launch-readiness.test.mjs scripts/verify-xunjing-platform-readiness.test.mjs',
     args: [
       'run',
       'test:run',
       '--',
       'scripts/ai-shijing-p0-backend-loop.test.mjs',
+      'scripts/verify-ai-shijing-gps-scene-fusion-smoke.test.mjs',
       'scripts/xunjing-app-api-contract.test.mjs',
       'scripts/xicheng-backend-launch-readiness.test.mjs',
       'scripts/verify-xunjing-platform-readiness.test.mjs'
