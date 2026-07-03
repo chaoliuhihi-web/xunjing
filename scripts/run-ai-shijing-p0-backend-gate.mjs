@@ -62,8 +62,25 @@ function gitValue(args) {
   return result.status === 0 ? result.stdout.trim() : ''
 }
 
+function toolStatus(command, args) {
+  const result = spawnSync(command, args, {
+    cwd: rootDir,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe']
+  })
+  return {
+    command: [command, ...args].join(' '),
+    available: result.status === 0,
+    exitCode: result.status,
+    outputPreview: String(result.stderr || result.stdout || '').split('\n').filter(Boolean).slice(0, 2)
+  }
+}
+
 const checks = commands.map(runCommand)
 const ok = checks.every((check) => check.ok)
+const javaRuntime = toolStatus('java', ['-version'])
+const maven = toolStatus('mvn', ['-version'])
+const keytool = toolStatus('keytool', ['-help'])
 
 const report = {
   artifactType: 'ai-shijing-p0-backend-gate',
@@ -76,9 +93,18 @@ const report = {
     backendOnly: true,
     doesNotReplaceProductionPreflight: true,
     productionPreflightCommand: 'npm run xunjing:yudao:release:preflight',
+    javaVerificationPolicy: 'reported only; Java/JUnit evidence requires local JDK and Maven',
+    javaRuntimeAvailable: javaRuntime.available,
+    mavenAvailable: maven.available,
+    keytoolAvailable: keytool.available,
     checkCount: checks.length,
     passedCheckCount: checks.filter((check) => check.ok).length,
     failedCheckCount: checks.filter((check) => !check.ok).length
+  },
+  environment: {
+    javaRuntime,
+    maven,
+    keytool
   },
   checks
 }
