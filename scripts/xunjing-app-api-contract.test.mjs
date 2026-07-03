@@ -234,6 +234,49 @@ describe('xunjing app API contract', () => {
     expect(appTest).toContain('getPhotoExifLocation()')
   })
 
+  test('travel record draft exposes backend-only generated story packet', async () => {
+    const controller = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/AppXunjingController.java'
+    )
+    const appVo = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'
+    )
+    const appService = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppService.java'
+    )
+    const appServiceImpl = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java'
+    )
+    const appTest = await readText(
+      'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImplTest.java'
+    )
+
+    expect(controller).toContain('@GetMapping("/travel-record/draft")')
+    expect(controller).toContain('TravelRecordDraftRespVO')
+    expect(controller).toContain('appService.generateTravelRecordDraft(packageCode, userTraceId, limit)')
+    expect(appVo).toContain('class TravelRecordDraftRespVO')
+    expect(appVo).toContain('private String draftTitle;')
+    expect(appVo).toContain('private String draftSummary;')
+    expect(appVo).toContain('private String routeText;')
+    expect(appVo).toContain('private String photoTimelineText;')
+    expect(appVo).toContain('private Boolean generatedFromRealMaterials;')
+    expect(appVo).toContain('private Boolean containsSyntheticMedia;')
+    expect(appVo).toContain('private List<TravelRecordDraftSectionRespVO> sections;')
+    expect(appVo).toContain('class TravelRecordDraftSectionRespVO')
+    expect(appVo).toContain('private List<TravelRecordMaterialRespVO> sourceMaterials;')
+    expect(appService).toContain('TravelRecordDraftRespVO generateTravelRecordDraft(String packageCode, String userTraceId, Integer limit)')
+    expect(appServiceImpl).toContain('buildTravelRecordDraft(resourcePackage, userTraceId, limit)')
+    expect(appServiceImpl).toContain('buildTravelRecordDraftSections(materials)')
+    expect(appServiceImpl).toContain('buildTravelRecordDraftRouteText(materials)')
+    expect(appServiceImpl).toContain('buildTravelRecordDraftPhotoTimelineText(materials)')
+    expect(appServiceImpl).toContain('containsSyntheticMedia')
+    expect(appServiceImpl).not.toContain('draft.put("imageBase64"')
+    expect(appTest).toContain('testGenerateTravelRecordDraftBuildsStoryFromRealSceneMaterials')
+    expect(appTest).toContain('generateTravelRecordDraft("XICHENG-MAP-001"')
+    expect(appTest).toContain('getGeneratedFromRealMaterials()')
+    expect(appTest).toContain('getContainsSyntheticMedia()')
+  })
+
   test('vision agent memory session exposes backend-only continuity API', async () => {
     const controller = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/AppXunjingController.java'

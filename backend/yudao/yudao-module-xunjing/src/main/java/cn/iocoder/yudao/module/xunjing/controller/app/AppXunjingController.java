@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.Multimodal
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordDraftRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialFeedRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentKnowledgeGraphRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySessionRespVO;
@@ -70,6 +71,16 @@ public class AppXunjingController {
             @RequestParam("userTraceId") String userTraceId,
             @RequestParam(value = "limit", required = false) Integer limit) {
         return success(appService.listTravelRecordMaterials(packageCode, userTraceId, limit));
+    }
+
+    @GetMapping("/travel-record/draft")
+    @Operation(summary = "生成旅行记录草稿")
+    @PermitAll
+    public CommonResult<TravelRecordDraftRespVO> generateTravelRecordDraft(
+            @RequestParam("packageCode") String packageCode,
+            @RequestParam("userTraceId") String userTraceId,
+            @RequestParam(value = "limit", required = false) Integer limit) {
+        return success(appService.generateTravelRecordDraft(packageCode, userTraceId, limit));
     }
 
     @GetMapping("/memory/session")

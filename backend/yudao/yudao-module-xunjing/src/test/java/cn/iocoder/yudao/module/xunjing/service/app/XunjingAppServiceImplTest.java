@@ -33,6 +33,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatReq
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordDraftRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialFeedRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentKnowledgeGraphRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySessionRespVO;
@@ -574,6 +575,68 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
                 .contains("ocr_alias"));
         assertFalse(JsonUtils.toJsonString(feed).contains("raw-image-should-not-enter-material-feed"));
         assertFalse(JsonUtils.toJsonString(feed).contains("imageBase64"));
+    }
+
+    @Test
+    public void testGenerateTravelRecordDraftBuildsStoryFromRealSceneMaterials() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+
+        PhotoMetaReqVO photoMeta = new PhotoMetaReqVO();
+        photoMeta.setImageId("img-gongwangfu-draft-001");
+        photoMeta.setTakenAt("2026-07-02T18:50:00+08:00");
+        photoMeta.setImageBase64("raw-image-should-not-enter-draft");
+        photoMeta.setExifLocation(location("39.937051", "116.386771", 8));
+
+        MultimodalTriggerReqVO triggerReq = multimodalReq();
+        triggerReq.setPackageCode("XICHENG-MAP-001");
+        triggerReq.setSceneCode("xicheng-multimodal-trigger");
+        triggerReq.setUserTraceId("trace-xicheng-travel-draft-001");
+        triggerReq.setOcrText("恭王府博物馆入口");
+        triggerReq.setImageLabels(List.of("palace", "sunset"));
+        triggerReq.setLocation(location("39.937050", "116.386770", 20));
+        triggerReq.setPhotoMeta(photoMeta);
+        appService.resolveMultimodalTrigger(triggerReq);
+
+        AppInteractionEventReqVO travelogueReq = new AppInteractionEventReqVO();
+        travelogueReq.setPackageCode("XICHENG-MAP-001");
+        travelogueReq.setSceneCode("xicheng-agent-action");
+        travelogueReq.setEventType(XunjingEnums.EventType.AGENT_ACTION.getType());
+        travelogueReq.setSourceChannel("xicheng-app");
+        travelogueReq.setUserTraceId("trace-xicheng-travel-draft-001");
+        travelogueReq.setPayloadJson("""
+                {
+                  "actionKey":"generate_travelogue",
+                  "title":"生成游记",
+                  "intent":"record",
+                  "sourceTriggerTraceId":"trace-xicheng-travel-draft-001",
+                  "requiresRealSystem":false,
+                  "executionStatus":"started",
+                  "poiCode":"xicheng-gongwangfu",
+                  "poiName":"恭王府",
+                  "reason":"夕阳和王府入口适合生成今日旅行故事。"
+                }
+                """);
+        appService.recordEvent(travelogueReq);
+
+        TravelRecordDraftRespVO draft = appService.generateTravelRecordDraft("XICHENG-MAP-001",
+                "trace-xicheng-travel-draft-001", 10);
+
+        assertEquals("XICHENG-MAP-001", draft.getPackageCode());
+        assertEquals("trace-xicheng-travel-draft-001", draft.getUserTraceId());
+        assertTrue(draft.getGeneratedFromRealMaterials());
+        assertFalse(draft.getContainsSyntheticMedia());
+        assertEquals(1L, draft.getSourceMaterialCount());
+        assertTrue(draft.getDraftTitle().contains("恭王府"));
+        assertTrue(draft.getDraftSummary().contains("真实识境素材"));
+        assertTrue(draft.getRouteText().contains("恭王府"));
+        assertTrue(draft.getPhotoTimelineText().contains("img-gongwangfu-draft-001"));
+        assertFalse(draft.getSections().isEmpty());
+        assertEquals("generate_travelogue", draft.getSourceMaterials().get(0).getActionKey());
+        assertFalse(JsonUtils.toJsonString(draft).contains("raw-image-should-not-enter-draft"));
+        assertFalse(JsonUtils.toJsonString(draft).contains("imageBase64"));
     }
 
     @Test

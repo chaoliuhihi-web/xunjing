@@ -31,6 +31,8 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolv
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.SceneUnderstandingRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.SourceRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordDraftRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordDraftSectionRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialFeedRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentKnowledgeGraphEdgeRespVO;
@@ -374,6 +376,12 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             String packageCode, String userTraceId, Integer limit) {
         XunjingResourcePackageDO resourcePackage = validatePublicPackage(packageCode);
         return buildTravelRecordMaterialFeed(resourcePackage, userTraceId, limit);
+    }
+
+    @Override
+    public TravelRecordDraftRespVO generateTravelRecordDraft(String packageCode, String userTraceId, Integer limit) {
+        XunjingResourcePackageDO resourcePackage = validatePublicPackage(packageCode);
+        return buildTravelRecordDraft(resourcePackage, userTraceId, limit);
     }
 
     @Override
@@ -2659,6 +2667,133 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         return Math.min(limit, 100);
     }
 
+    private TravelRecordDraftRespVO buildTravelRecordDraft(
+            XunjingResourcePackageDO resourcePackage, String userTraceId, Integer limit) {
+        TravelRecordMaterialFeedRespVO materialFeed =
+                buildTravelRecordMaterialFeed(resourcePackage, userTraceId, limit);
+        List<TravelRecordMaterialRespVO> materials = materialFeed.getMaterials() == null
+                ? List.of() : materialFeed.getMaterials();
+        TravelRecordDraftRespVO respVO = new TravelRecordDraftRespVO();
+        boolean containsSyntheticMedia = false;
+        respVO.setPackageCode(resourcePackage.getPackageCode());
+        respVO.setUserTraceId(defaultIfBlank(userTraceId, ""));
+        respVO.setSourceMaterialCount((long) materials.size());
+        respVO.setGeneratedFromRealMaterials(!materials.isEmpty());
+        respVO.setContainsSyntheticMedia(containsSyntheticMedia);
+        respVO.setRouteText(buildTravelRecordDraftRouteText(materials));
+        respVO.setPhotoTimelineText(buildTravelRecordDraftPhotoTimelineText(materials));
+        respVO.setDraftTitle(buildTravelRecordDraftTitle(materials));
+        respVO.setDraftSummary(buildTravelRecordDraftSummary(materials));
+        respVO.setSections(buildTravelRecordDraftSections(materials));
+        respVO.setSourceMaterials(materials);
+        return respVO;
+    }
+
+    private String buildTravelRecordDraftTitle(List<TravelRecordMaterialRespVO> materials) {
+        String routeText = buildTravelRecordDraftRouteText(materials);
+        if (hasText(routeText)) {
+            return "我的 AI 识境旅行：" + routeText;
+        }
+        return "我的 AI 识境旅行草稿";
+    }
+
+    private String buildTravelRecordDraftSummary(List<TravelRecordMaterialRespVO> materials) {
+        if (materials == null || materials.isEmpty()) {
+            return "暂无可生成游记的真实识境素材。";
+        }
+        long photoCount = materials.stream()
+                .filter(material -> material.getSourceSceneSnapshot() != null
+                        && hasText(stringValue(material.getSourceSceneSnapshot().get("imageId"))))
+                .count();
+        return "基于 " + materials.size() + " 条真实识境素材生成草稿"
+                + (photoCount > 0 ? "，其中包含 " + photoCount + " 条照片线索。" : "。");
+    }
+
+    private List<TravelRecordDraftSectionRespVO> buildTravelRecordDraftSections(
+            List<TravelRecordMaterialRespVO> materials) {
+        if (materials == null || materials.isEmpty()) {
+            return List.of();
+        }
+        List<TravelRecordDraftSectionRespVO> sections = new ArrayList<>();
+        addTravelRecordDraftSection(sections, "route", "路线", buildTravelRecordDraftRouteText(materials), materials);
+        addTravelRecordDraftSection(sections, "moments", "现场片段",
+                buildTravelRecordDraftMomentText(materials), materials);
+        addTravelRecordDraftSection(sections, "photos", "照片线索",
+                buildTravelRecordDraftPhotoTimelineText(materials), materials);
+        return sections;
+    }
+
+    private void addTravelRecordDraftSection(
+            List<TravelRecordDraftSectionRespVO> sections, String sectionType, String title, String body,
+            List<TravelRecordMaterialRespVO> materials) {
+        if (!hasText(body)) {
+            return;
+        }
+        TravelRecordDraftSectionRespVO section = new TravelRecordDraftSectionRespVO();
+        section.setSectionType(sectionType);
+        section.setTitle(title);
+        section.setBody(body);
+        section.setSourceEventIds(materials.stream()
+                .map(TravelRecordMaterialRespVO::getEventId)
+                .filter(id -> id != null)
+                .toList());
+        sections.add(section);
+    }
+
+    private String buildTravelRecordDraftRouteText(List<TravelRecordMaterialRespVO> materials) {
+        if (materials == null || materials.isEmpty()) {
+            return "";
+        }
+        LinkedHashSet<String> poiNames = new LinkedHashSet<>();
+        for (TravelRecordMaterialRespVO material : materials) {
+            addText(poiNames, firstMemoryText(material.getPoiName(), material.getPoiCode()));
+        }
+        return String.join(" -> ", poiNames);
+    }
+
+    private String buildTravelRecordDraftMomentText(List<TravelRecordMaterialRespVO> materials) {
+        List<String> moments = new ArrayList<>();
+        for (TravelRecordMaterialRespVO material : materials) {
+            String action = firstMemoryText(material.getTitle(), material.getActionKey());
+            String poi = firstMemoryText(material.getPoiName(), material.getPoiCode());
+            String time = firstMemoryText(material.getPhotoTakenAt(), stringValue(
+                    material.getSourceSceneSnapshot() == null ? null
+                            : material.getSourceSceneSnapshot().get("photoTakenAt")));
+            List<String> parts = new ArrayList<>();
+            addText(parts, poi);
+            addText(parts, action);
+            addText(parts, time);
+            addText(parts, material.getReason());
+            if (!parts.isEmpty()) {
+                moments.add(String.join("，", parts));
+            }
+        }
+        return String.join("\n", moments.stream().distinct().limit(20).toList());
+    }
+
+    private String buildTravelRecordDraftPhotoTimelineText(List<TravelRecordMaterialRespVO> materials) {
+        if (materials == null || materials.isEmpty()) {
+            return "";
+        }
+        List<String> photoItems = new ArrayList<>();
+        for (TravelRecordMaterialRespVO material : materials) {
+            Map<String, Object> snapshot = material.getSourceSceneSnapshot();
+            String imageId = snapshot == null ? "" : stringValue(snapshot.get("imageId"));
+            String time = firstMemoryText(material.getPhotoTakenAt(),
+                    snapshot == null ? "" : stringValue(snapshot.get("photoTakenAt")));
+            if (!hasText(imageId) && !hasText(time)) {
+                continue;
+            }
+            String poi = firstMemoryText(material.getPoiName(), material.getPoiCode());
+            List<String> parts = new ArrayList<>();
+            addText(parts, time);
+            addText(parts, poi);
+            addText(parts, imageId);
+            photoItems.add(String.join(" · ", parts));
+        }
+        return String.join("\n", photoItems.stream().distinct().limit(20).toList());
+    }
+
     private TravelRecordMaterialRespVO buildTravelRecordMaterialItem(XunjingInteractionEventDO event) {
         if (event == null || !hasText(event.getPayloadJson())) {
             return null;
@@ -4174,6 +4309,12 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             return "";
         }
         return value.length() <= maxLength ? value : value.substring(0, maxLength);
+    }
+
+    private void addText(Collection<String> values, String value) {
+        if (values != null && hasText(value)) {
+            values.add(value.trim());
+        }
     }
 
     private String effectiveUserTraceId(RagChatReqVO reqVO) {

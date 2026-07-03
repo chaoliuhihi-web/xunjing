@@ -277,6 +277,29 @@ public class XunjingAppVO {
     }
 
     @Data
+    public static class TravelRecordDraftRespVO {
+        private String packageCode;
+        private String userTraceId;
+        private String draftTitle;
+        private String draftSummary;
+        private String routeText;
+        private String photoTimelineText;
+        private Long sourceMaterialCount;
+        private Boolean generatedFromRealMaterials;
+        private Boolean containsSyntheticMedia;
+        private List<TravelRecordDraftSectionRespVO> sections;
+        private List<TravelRecordMaterialRespVO> sourceMaterials;
+    }
+
+    @Data
+    public static class TravelRecordDraftSectionRespVO {
+        private String sectionType;
+        private String title;
+        private String body;
+        private List<Long> sourceEventIds;
+    }
+
+    @Data
     public static class VisionAgentMemorySessionRespVO {
         private String packageCode;
         private String userTraceId;

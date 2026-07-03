@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.Multimodal
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.PublicReportSummaryRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordDraftRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialFeedRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentKnowledgeGraphRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySessionRespVO;
@@ -31,6 +32,8 @@ public interface XunjingAppService {
     MultimodalTriggerRespVO resolveMultimodalTrigger(MultimodalTriggerReqVO reqVO);
 
     TravelRecordMaterialFeedRespVO listTravelRecordMaterials(String packageCode, String userTraceId, Integer limit);
+
+    TravelRecordDraftRespVO generateTravelRecordDraft(String packageCode, String userTraceId, Integer limit);
 
     VisionAgentMemorySessionRespVO getVisionAgentMemorySession(String packageCode, String userTraceId, Integer limit);
 
