@@ -35,7 +35,7 @@ export default {
 	},
 	computed: {
 		routeDurationLabel() {
-			return this.recommendedRoute.durationText || this.recommendedRoute.duration || '可加入路线护照'
+			return this.recommendedRoute.durationText || this.recommendedRoute.duration || '可开始记录'
 		}
 	},
 	methods: {

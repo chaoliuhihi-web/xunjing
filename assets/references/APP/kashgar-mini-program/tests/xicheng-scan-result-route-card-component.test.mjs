@@ -8,6 +8,7 @@ const routeCardPath = path.join(root, 'components', 'xicheng', 'XichengScanResul
 
 const scanResult = fs.readFileSync(scanResultPath, 'utf8')
 const routeCard = fs.readFileSync(routeCardPath, 'utf8')
+const regionConfig = fs.readFileSync(path.join(root, 'config', 'regions', 'xicheng.js'), 'utf8')
 const template = scanResult.match(/<template>[\s\S]*?<\/template>/)?.[0] || ''
 
 assert.ok(template, 'Recognition result page should have a template')
@@ -38,7 +39,7 @@ assert.ok(
 for (const token of [
   'class="route-card xicheng-paper-card"',
   '推荐路线',
-  '可加入路线护照',
+  '可开始记录',
   'route-title',
   'route-desc',
   'route-steps',
@@ -46,6 +47,18 @@ for (const token of [
 ]) {
   assert.ok(routeCard.includes(token), `Split route card component should keep ${token}`)
 }
+
+assert.doesNotMatch(
+  routeCard,
+  /可加入路线护照|路线护照/,
+  'Recognition result route card should not expose route-passport wording after the route flow moved to recording and travelogue'
+)
+
+assert.doesNotMatch(
+  regionConfig.match(/export const XICHENG_RECOMMENDED_ROUTES\s*=\s*Object\.freeze\(\[[\s\S]*?\n\]\)/)?.[0] || '',
+  /完成路线护照|可加入路线护照|路线护照/,
+  'Official route summaries shown on the recognition result route card should point to recording/travelogue, not route-passport growth copy'
+)
 
 assert.match(
   routeCard,

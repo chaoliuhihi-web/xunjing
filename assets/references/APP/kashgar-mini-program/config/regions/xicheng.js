@@ -169,7 +169,7 @@ export const XICHENG_RECOMMENDED_ROUTES = Object.freeze([
 		durationText: '约 2.5 小时',
 		distanceText: '3.2 公里',
 		bestTimeText: '适合上午',
-		summary: '从寺庙建筑、礼制文化走到水系胡同，适合家庭和研学团完成路线护照。',
+		summary: '从寺庙建筑、礼制文化走到水系胡同，适合家庭和研学团一路记录并生成游记。',
 		routeTips: '全程约 3.2 公里，建议穿舒适步行鞋，带好水和防晒用品。',
 		keywords: ['古刹文脉', '建筑美学', '宗教文化'],
 		recommendedFilterKeys: ['half-day', 'family', 'culture'],
