@@ -689,6 +689,9 @@ async function checkXichengAppEventBackend(rootDir) {
     'SERVICE_HANDOFF_REAL_SYSTEM_BOUNDARY_TEXT',
     'buildVisionAgentSceneContext(resourcePackage, userTraceId, regionCode, poiCode, limit)',
     'resolveSceneContextLatestScene',
+    'buildSceneContextActionDecisionQueue(memorySession, latestScene)',
+    'buildSceneContextActionDecisionSummary(actionDecisionQueue)',
+    'toSceneContextAgentAction(action)',
     'resolveSceneContextKnowledgeGraph',
     'buildSceneContextReady',
     'visionRecognitionService.getProviderStatus()',
@@ -739,6 +742,9 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(appVo, 'private VisionAgentMemorySessionRespVO memorySession;', 'XunjingAppVO.java')
   assertContains(appVo, 'private VisionAgentServiceHandoffTaskFeedRespVO serviceHandoff;', 'XunjingAppVO.java')
   assertContains(appVo, 'private VisionAgentKnowledgeGraphRespVO knowledgeGraph;', 'XunjingAppVO.java')
+  assertContains(appVo, 'private List<MultimodalAgentActionRespVO> agentActions;', 'XunjingAppVO.java')
+  assertContains(appVo, 'private String actionDecisionSummary;', 'XunjingAppVO.java')
+  assertContains(appVo, 'private List<MultimodalAgentActionRespVO> actionDecisionQueue;', 'XunjingAppVO.java')
   assertContains(appVo, 'private Integer priorityRank;', 'XunjingAppVO.java')
   assertContains(appVo, 'private Double decisionScore;', 'XunjingAppVO.java')
   assertContains(appVo, 'private String recommendationLevel;', 'XunjingAppVO.java')
@@ -874,6 +880,16 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(
     appTest,
     'getServiceHandoffTaskCount()',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'getActionDecisionQueue()',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'getActionDecisionSummary()',
     'XunjingAppServiceImplTest.java'
   )
   assertContains(

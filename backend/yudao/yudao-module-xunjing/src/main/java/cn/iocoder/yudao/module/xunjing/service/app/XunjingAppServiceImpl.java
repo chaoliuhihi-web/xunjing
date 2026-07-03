@@ -2856,6 +2856,7 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         item.setServiceHandoffSummary(visionAgentContextText(sceneUnderstanding, "serviceHandoffSummary"));
         Map<String, Object> snapshot = buildVisionAgentMemorySceneSnapshot(sceneSnapshot);
         item.setSceneSnapshot(snapshot);
+        item.setAgentActions(buildSceneContextActionDecisionQueue(root.path("agentActions")));
         hydrateVisionAgentMemorySceneFromSnapshot(item, snapshot);
     }
 
@@ -3115,6 +3116,8 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         String currentPoiName = latestScene == null ? "" : latestScene.getPoiName();
         VisionAgentKnowledgeGraphRespVO knowledgeGraph = resolveSceneContextKnowledgeGraph(
                 resourcePackage, currentRegionCode, currentPoiCode, limit);
+        List<MultimodalAgentActionRespVO> actionDecisionQueue =
+                buildSceneContextActionDecisionQueue(memorySession, latestScene);
 
         VisionAgentSceneContextRespVO respVO = new VisionAgentSceneContextRespVO();
         respVO.setPackageCode(resourcePackage.getPackageCode());
@@ -3141,10 +3144,152 @@ public class XunjingAppServiceImpl implements XunjingAppService {
         respVO.setTopicTrail(knowledgeGraph == null ? List.of() : knowledgeGraph.getTopicTrail());
         respVO.setLatestSceneSnapshot(latestScene == null || latestScene.getSceneSnapshot() == null
                 ? Map.of() : latestScene.getSceneSnapshot());
+        respVO.setActionDecisionSummary(buildSceneContextActionDecisionSummary(actionDecisionQueue));
+        respVO.setActionDecisionQueue(actionDecisionQueue);
         respVO.setMemorySession(memorySession);
         respVO.setServiceHandoff(serviceHandoff);
         respVO.setKnowledgeGraph(knowledgeGraph);
         return respVO;
+    }
+
+    private List<MultimodalAgentActionRespVO> buildSceneContextActionDecisionQueue(
+            VisionAgentMemorySessionRespVO memorySession, VisionAgentMemorySceneRespVO latestScene) {
+        if (memorySession != null && memorySession.getScenes() != null) {
+            for (int i = memorySession.getScenes().size() - 1; i >= 0; i--) {
+                VisionAgentMemorySceneRespVO scene = memorySession.getScenes().get(i);
+                if (scene != null && scene.getAgentActions() != null && !scene.getAgentActions().isEmpty()) {
+                    return scene.getAgentActions();
+                }
+            }
+        }
+        if (latestScene == null || !hasText(latestScene.getAction())) {
+            return List.of();
+        }
+        MultimodalAgentActionRespVO action = new MultimodalAgentActionRespVO();
+        action.setActionKey(latestScene.getAction());
+        action.setTitle(firstMemoryText(latestScene.getAgentDecisionActionTitle(), latestScene.getTitle()));
+        action.setIntent(latestScene.getIntent());
+        action.setRequiresUserConfirm(false);
+        action.setRequiresRealSystem(latestScene.getServiceHandoffSummary() != null
+                && latestScene.getServiceHandoffSummary().contains("真实系统确认=true"));
+        action.setReason(latestScene.getServiceHandoffSummary());
+        action.setPriorityRank(1);
+        action.setDecisionScore(1D);
+        action.setRecommendationLevel("latest_action");
+        action.setRealSystemStatus(Boolean.TRUE.equals(action.getRequiresRealSystem())
+                ? "handoff_required" : "ready_for_local_state");
+        action.setProductionEvidenceText(Boolean.TRUE.equals(action.getRequiresRealSystem())
+                ? "需要真实系统确认，不生成虚假的券码、订单号或票务凭证。"
+                : "来自最近一次用户执行动作，可由本地识境上下文继续接力。");
+        return List.of(action);
+    }
+
+    private List<MultimodalAgentActionRespVO> buildSceneContextActionDecisionQueue(JsonNode agentActions) {
+        if (agentActions == null || !agentActions.isArray() || agentActions.size() == 0) {
+            return List.of();
+        }
+        List<MultimodalAgentActionRespVO> actions = new ArrayList<>();
+        for (JsonNode action : agentActions) {
+            MultimodalAgentActionRespVO item = toSceneContextAgentAction(action);
+            if (item != null) {
+                actions.add(item);
+            }
+        }
+        return actions.stream()
+                .sorted(Comparator.comparing(
+                        action -> action.getPriorityRank() == null ? Integer.MAX_VALUE : action.getPriorityRank()))
+                .toList();
+    }
+
+    private MultimodalAgentActionRespVO toSceneContextAgentAction(JsonNode action) {
+        if (action == null || action.isNull() || action.isMissingNode()) {
+            return null;
+        }
+        String actionKey = visionAgentContextText(action, "actionKey");
+        String title = visionAgentContextText(action, "title");
+        if (!hasText(actionKey) && !hasText(title)) {
+            return null;
+        }
+        MultimodalAgentActionRespVO item = new MultimodalAgentActionRespVO();
+        item.setActionKey(actionKey);
+        item.setTitle(title);
+        item.setIntent(visionAgentContextText(action, "intent"));
+        item.setTargetPath(visionAgentContextText(action, "targetPath"));
+        item.setRequiresUserConfirm(sceneContextActionBoolean(action, "requiresUserConfirm"));
+        item.setRequiresRealSystem(sceneContextActionBoolean(action, "requiresRealSystem"));
+        item.setReason(visionAgentContextText(action, "reason"));
+        item.setPriorityRank(sceneContextActionInteger(action, "priorityRank"));
+        item.setDecisionScore(sceneContextActionDouble(action, "decisionScore"));
+        item.setRecommendationLevel(visionAgentContextText(action, "recommendationLevel"));
+        item.setRealSystemStatus(visionAgentContextText(action, "realSystemStatus"));
+        item.setProductionEvidenceText(visionAgentContextText(action, "productionEvidenceText"));
+        return item;
+    }
+
+    private String buildSceneContextActionDecisionSummary(List<MultimodalAgentActionRespVO> actionDecisionQueue) {
+        if (actionDecisionQueue == null || actionDecisionQueue.isEmpty()) {
+            return "";
+        }
+        List<String> parts = new ArrayList<>();
+        for (MultimodalAgentActionRespVO action : actionDecisionQueue.stream().limit(3).toList()) {
+            String title = firstMemoryText(action.getTitle(), action.getActionKey());
+            if (!hasText(title)) {
+                continue;
+            }
+            String status = firstMemoryText(action.getRealSystemStatus(), action.getRecommendationLevel());
+            parts.add(hasText(status) ? title + "(" + status + ")" : title);
+        }
+        return parts.isEmpty() ? "" : "Scene Engine 动作决策队列：" + String.join(" -> ", parts);
+    }
+
+    private Integer sceneContextActionInteger(JsonNode node, String key) {
+        JsonNode value = node.path(key);
+        if (value == null || value.isMissingNode() || value.isNull()) {
+            return null;
+        }
+        if (value.isInt() || value.isLong()) {
+            return value.asInt();
+        }
+        if (hasText(value.asText(""))) {
+            try {
+                return Integer.parseInt(value.asText().trim());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private Double sceneContextActionDouble(JsonNode node, String key) {
+        JsonNode value = node.path(key);
+        if (value == null || value.isMissingNode() || value.isNull()) {
+            return null;
+        }
+        if (value.isNumber()) {
+            return value.asDouble();
+        }
+        if (hasText(value.asText(""))) {
+            try {
+                return Double.parseDouble(value.asText().trim());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private Boolean sceneContextActionBoolean(JsonNode node, String key) {
+        JsonNode value = node.path(key);
+        if (value == null || value.isMissingNode() || value.isNull()) {
+            return null;
+        }
+        if (value.isBoolean()) {
+            return value.asBoolean();
+        }
+        if (hasText(value.asText(""))) {
+            return Boolean.parseBoolean(value.asText().trim());
+        }
+        return null;
     }
 
     private VisionAgentMemorySceneRespVO resolveSceneContextLatestScene(

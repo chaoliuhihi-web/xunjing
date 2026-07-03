@@ -305,6 +305,7 @@ public class XunjingAppVO {
         private String worldInterfaceSummary;
         private String agentDecisionActionTitle;
         private String serviceHandoffSummary;
+        private List<MultimodalAgentActionRespVO> agentActions;
         private Map<String, Object> sceneSnapshot;
     }
 
@@ -361,6 +362,8 @@ public class XunjingAppVO {
         private String realSystemBoundaryText;
         private List<String> topicTrail;
         private Map<String, Object> latestSceneSnapshot;
+        private String actionDecisionSummary;
+        private List<MultimodalAgentActionRespVO> actionDecisionQueue;
         private VisionAgentMemorySessionRespVO memorySession;
         private VisionAgentServiceHandoffTaskFeedRespVO serviceHandoff;
         private VisionAgentKnowledgeGraphRespVO knowledgeGraph;

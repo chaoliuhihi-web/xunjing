@@ -808,6 +808,13 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertEquals("xicheng-gongwangfu", context.getKnowledgeGraph().getAnchorPoiCode());
         assertEquals("img-gongwangfu-scene-context-001",
                 context.getLatestSceneSnapshot().get("imageId"));
+        assertFalse(context.getActionDecisionQueue().isEmpty());
+        assertTrue(context.getActionDecisionSummary().contains("Scene Engine 动作决策队列"));
+        assertEquals(1, context.getActionDecisionQueue().get(0).getPriorityRank());
+        assertEquals(1D, context.getActionDecisionQueue().get(0).getDecisionScore());
+        assertEquals("primary", context.getActionDecisionQueue().get(0).getRecommendationLevel());
+        assertEquals("handoff_required", context.getActionDecisionQueue().get(0).getRealSystemStatus());
+        assertTrue(context.getActionDecisionQueue().get(0).getProductionEvidenceText().contains("真实商家"));
         assertFalse(JsonUtils.toJsonString(context).contains("raw-image-should-not-enter-scene-context"));
         assertFalse(JsonUtils.toJsonString(context).contains("imageBase64"));
     }
