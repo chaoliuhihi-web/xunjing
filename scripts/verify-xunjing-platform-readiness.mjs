@@ -666,6 +666,10 @@ async function checkXichengAppEventBackend(rootDir) {
     'buildVisionAgentServiceHandoffTaskItem(event)',
     'resolveServiceHandoffRealSystemStatus',
     'SERVICE_HANDOFF_REAL_SYSTEM_BOUNDARY_TEXT',
+    'buildVisionAgentSceneContext(resourcePackage, userTraceId, regionCode, poiCode, limit)',
+    'resolveSceneContextLatestScene',
+    'resolveSceneContextKnowledgeGraph',
+    'buildSceneContextReady',
     'buildVisionAgentKnowledgeGraph(resourcePackage, regionCode, poiCode, limit)',
     'buildKnowledgeGraphAnchorNode',
     'buildKnowledgeGraphRelatedPoiNodes',
@@ -685,6 +689,9 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(appController, '@GetMapping("/service-handoff/tasks")', 'AppXunjingController.java')
   assertContains(appController, 'appService.listVisionAgentServiceHandoffTasks(packageCode, userTraceId, limit)',
     'AppXunjingController.java')
+  assertContains(appController, '@GetMapping("/scene/context")', 'AppXunjingController.java')
+  assertContains(appController, 'appService.getVisionAgentSceneContext(packageCode, userTraceId, regionCode, poiCode, limit)',
+    'AppXunjingController.java')
   assertContains(appController, '@GetMapping("/knowledge/graph")', 'AppXunjingController.java')
   assertContains(appController, 'appService.getVisionAgentKnowledgeGraph(packageCode, regionCode, poiCode, limit)',
     'AppXunjingController.java')
@@ -701,6 +708,13 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(appVo, 'class VisionAgentServiceHandoffTaskRespVO', 'XunjingAppVO.java')
   assertContains(appVo, 'private String realSystemStatus;', 'XunjingAppVO.java')
   assertContains(appVo, 'private String handoffSummary;', 'XunjingAppVO.java')
+  assertContains(appVo, 'class VisionAgentSceneContextRespVO', 'XunjingAppVO.java')
+  assertContains(appVo, 'private Boolean contextReady;', 'XunjingAppVO.java')
+  assertContains(appVo, 'private Long latestEventId;', 'XunjingAppVO.java')
+  assertContains(appVo, 'private Boolean knowledgeGraphAvailable;', 'XunjingAppVO.java')
+  assertContains(appVo, 'private VisionAgentMemorySessionRespVO memorySession;', 'XunjingAppVO.java')
+  assertContains(appVo, 'private VisionAgentServiceHandoffTaskFeedRespVO serviceHandoff;', 'XunjingAppVO.java')
+  assertContains(appVo, 'private VisionAgentKnowledgeGraphRespVO knowledgeGraph;', 'XunjingAppVO.java')
   assertContains(appVo, 'class VisionAgentKnowledgeGraphRespVO', 'XunjingAppVO.java')
   assertContains(appVo, 'class VisionAgentKnowledgeGraphNodeRespVO', 'XunjingAppVO.java')
   assertContains(appVo, 'class VisionAgentKnowledgeGraphEdgeRespVO', 'XunjingAppVO.java')
@@ -713,6 +727,9 @@ async function checkXichengAppEventBackend(rootDir) {
     'XunjingAppService.java')
   assertContains(appServiceContract,
     'VisionAgentServiceHandoffTaskFeedRespVO listVisionAgentServiceHandoffTasks(String packageCode, String userTraceId, Integer limit)',
+    'XunjingAppService.java')
+  assertContains(appServiceContract,
+    'VisionAgentSceneContextRespVO getVisionAgentSceneContext(String packageCode, String userTraceId, String regionCode, String poiCode, Integer limit)',
     'XunjingAppService.java')
   assertContains(appServiceContract,
     'VisionAgentKnowledgeGraphRespVO getVisionAgentKnowledgeGraph(String packageCode, String regionCode, String poiCode, Integer limit)',
@@ -798,6 +815,21 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(
     appTest,
     'testListVisionAgentServiceHandoffTasksExposesRealSystemBoundary',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'testGetVisionAgentSceneContextBuildsSceneEngineContextPacket',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'getKnowledgeGraphAvailable()',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'getServiceHandoffTaskCount()',
     'XunjingAppServiceImplTest.java'
   )
   assertContains(

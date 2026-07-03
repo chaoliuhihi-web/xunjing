@@ -341,6 +341,49 @@ describe('xunjing app API contract', () => {
     expect(appTest).toContain('getRealSystemStatus()')
   })
 
+  test('scene engine context exposes backend-only fused context packet API', async () => {
+    const controller = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/AppXunjingController.java'
+    )
+    const appVo = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'
+    )
+    const appService = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppService.java'
+    )
+    const appServiceImpl = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java'
+    )
+    const appTest = await readText(
+      'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImplTest.java'
+    )
+
+    expect(controller).toContain('@GetMapping("/scene/context")')
+    expect(controller).toContain('VisionAgentSceneContextRespVO')
+    expect(controller).toContain('appService.getVisionAgentSceneContext(packageCode, userTraceId, regionCode, poiCode, limit)')
+    expect(appVo).toContain('class VisionAgentSceneContextRespVO')
+    expect(appVo).toContain('private Boolean contextReady;')
+    expect(appVo).toContain('private Long latestEventId;')
+    expect(appVo).toContain('private String currentPoiCode;')
+    expect(appVo).toContain('private String currentPoiName;')
+    expect(appVo).toContain('private String serviceContinuityText;')
+    expect(appVo).toContain('private Boolean knowledgeGraphAvailable;')
+    expect(appVo).toContain('private Long serviceHandoffTaskCount;')
+    expect(appVo).toContain('private Long realSystemRequiredTaskCount;')
+    expect(appVo).toContain('private Map<String, Object> latestSceneSnapshot;')
+    expect(appVo).toContain('private VisionAgentMemorySessionRespVO memorySession;')
+    expect(appVo).toContain('private VisionAgentServiceHandoffTaskFeedRespVO serviceHandoff;')
+    expect(appVo).toContain('private VisionAgentKnowledgeGraphRespVO knowledgeGraph;')
+    expect(appService).toContain('VisionAgentSceneContextRespVO getVisionAgentSceneContext(String packageCode, String userTraceId, String regionCode, String poiCode, Integer limit)')
+    expect(appServiceImpl).toContain('buildVisionAgentSceneContext(resourcePackage, userTraceId, regionCode, poiCode, limit)')
+    expect(appServiceImpl).toContain('resolveSceneContextLatestScene')
+    expect(appServiceImpl).toContain('resolveSceneContextKnowledgeGraph')
+    expect(appServiceImpl).toContain('buildSceneContextReady')
+    expect(appTest).toContain('testGetVisionAgentSceneContextBuildsSceneEngineContextPacket')
+    expect(appTest).toContain('getKnowledgeGraphAvailable()')
+    expect(appTest).toContain('getServiceHandoffTaskCount()')
+  })
+
   test('xicheng AI chat contract carries POI context and blocks no-source answers', async () => {
     const appVo = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'

@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolv
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialFeedRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentKnowledgeGraphRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySessionRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentSceneContextRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentServiceHandoffTaskFeedRespVO;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.ResourceType;
 import cn.iocoder.yudao.module.xunjing.service.app.XunjingAppService;
@@ -88,6 +89,18 @@ public class AppXunjingController {
             @RequestParam("userTraceId") String userTraceId,
             @RequestParam(value = "limit", required = false) Integer limit) {
         return success(appService.listVisionAgentServiceHandoffTasks(packageCode, userTraceId, limit));
+    }
+
+    @GetMapping("/scene/context")
+    @Operation(summary = "查询 AI 识境场景引擎上下文包")
+    @PermitAll
+    public CommonResult<VisionAgentSceneContextRespVO> getVisionAgentSceneContext(
+            @RequestParam("packageCode") String packageCode,
+            @RequestParam("userTraceId") String userTraceId,
+            @RequestParam(value = "regionCode", required = false) String regionCode,
+            @RequestParam(value = "poiCode", required = false) String poiCode,
+            @RequestParam(value = "limit", required = false) Integer limit) {
+        return success(appService.getVisionAgentSceneContext(packageCode, userTraceId, regionCode, poiCode, limit));
     }
 
     @GetMapping("/knowledge/graph")
