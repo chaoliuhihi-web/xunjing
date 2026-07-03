@@ -992,6 +992,7 @@ export default {
 		}
 	},
 	onLoad(options = {}) {
+		uni.setNavigationBarTitle({ title: '西城游记草稿' })
 		this.loadJourney(options)
 	},
 	methods: {

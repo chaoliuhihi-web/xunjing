@@ -198,6 +198,7 @@ export default {
 		}
 	},
 	onLoad(options = {}) {
+		uni.setNavigationBarTitle({ title: '地点详情' })
 		this.routeOptions = normalizePoiRouteOptions(options)
 		this.activePoi = resolveOfficialPoi(this.routeOptions)
 		this.sourceList = this.createPoiSources()

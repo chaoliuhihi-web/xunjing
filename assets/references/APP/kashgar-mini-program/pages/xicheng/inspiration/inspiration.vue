@@ -159,6 +159,7 @@ export default {
 		}
 	},
 	onLoad(options = {}) {
+		uni.setNavigationBarTitle({ title: '导入灵感' })
 		this.target = options.target === 'map' ? 'map' : ''
 		const sharedLink = decodeURIComponent(options.linkUrl || options.url || '')
 		if (sharedLink) {

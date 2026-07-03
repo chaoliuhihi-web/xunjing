@@ -141,6 +141,7 @@ export default {
 		}
 	},
 	onShow() {
+		uni.setNavigationBarTitle({ title: '精美游记' })
 		this.journeyDraft = safeObject(uni.getStorageSync(XICHENG_REGION_CONFIG.journeyStorageKey))
 		this.shareArtifacts = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey))
 	},

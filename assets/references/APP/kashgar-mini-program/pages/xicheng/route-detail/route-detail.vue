@@ -82,6 +82,7 @@ export default {
 		}
 	},
 	onLoad(options = {}) {
+		uni.setNavigationBarTitle({ title: '路线详情' })
 		this.routeOptions = normalizeRouteOptions(options)
 		this.activeRoute = resolveRouteByCode(this.routeOptions.routeCode)
 	},

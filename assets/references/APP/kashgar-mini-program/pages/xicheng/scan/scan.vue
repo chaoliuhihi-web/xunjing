@@ -245,6 +245,7 @@ export default {
 		}
 	},
 	onLoad(options = {}) {
+		uni.setNavigationBarTitle({ title: 'AI识境' })
 		this.applyVisionAgentQueryContext(options)
 		this.showAdvancedScanContext = this.shouldShowAdvancedScanContext(options)
 		this.refreshSceneFusionPanel()

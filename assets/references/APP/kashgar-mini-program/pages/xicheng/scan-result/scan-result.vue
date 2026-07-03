@@ -795,6 +795,7 @@ export default {
 			}
 		},
 	onLoad(options = {}) {
+		uni.setNavigationBarTitle({ title: '识别结果' })
 		const cached = uni.getStorageSync(XICHENG_REGION_CONFIG.storageKey)
 		const mergedRouteOptions = mergeXichengScanResultRouteOptions(options)
 		const routeOptions = normalizeRouteOptions(mergedRouteOptions)

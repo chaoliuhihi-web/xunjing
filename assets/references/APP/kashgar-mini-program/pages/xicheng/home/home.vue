@@ -245,6 +245,7 @@ export default {
 		this.refreshSceneVisionEntry()
 	},
 	onShow() {
+		uni.setNavigationBarTitle({ title: '西城AI旅伴' })
 		this.loadRecentRecognition()
 		this.refreshSceneVisionEntry()
 	},

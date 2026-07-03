@@ -246,6 +246,7 @@ export default {
 		this.routeContext = normalizeRouteContext(options)
 	},
 	onShow() {
+		uni.setNavigationBarTitle({ title: '文旅地图' })
 		this.loadInspirationRoute()
 	},
 	methods: {

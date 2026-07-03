@@ -158,6 +158,7 @@ export default {
 		}
 	},
 	onLoad(options = {}) {
+		uni.setNavigationBarTitle({ title: '记录中' })
 		this.routeOptions = normalizeRecordingOptions(options)
 		this.activeRoute = resolveRouteByCode(this.routeOptions.routeCode)
 		this.restoreRecordingSession()

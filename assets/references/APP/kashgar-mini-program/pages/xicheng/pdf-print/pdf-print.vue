@@ -246,6 +246,7 @@ export default {
 		}
 	},
 	onShow() {
+		uni.setNavigationBarTitle({ title: 'PDF打印预览' })
 		this.journeyDraft = safeObject(uni.getStorageSync(XICHENG_REGION_CONFIG.journeyStorageKey))
 		this.shareArtifacts = safeArray(uni.getStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey))
 	},
