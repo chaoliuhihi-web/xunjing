@@ -244,6 +244,57 @@ describe('xunjing app API contract', () => {
     expect(appTest).toContain('getScenes().get(0).getSceneSnapshot()')
   })
 
+  test('city knowledge graph exposes backend-only scene graph API', async () => {
+    const controller = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/AppXunjingController.java'
+    )
+    const appVo = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'
+    )
+    const appService = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppService.java'
+    )
+    const appServiceImpl = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImpl.java'
+    )
+    const poiMapper = await readText(
+      'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/dal/mysql/poi/XunjingPoiMapper.java'
+    )
+    const appTest = await readText(
+      'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImplTest.java'
+    )
+
+    expect(controller).toContain('@GetMapping("/knowledge/graph")')
+    expect(controller).toContain('VisionAgentKnowledgeGraphRespVO')
+    expect(controller).toContain('appService.getVisionAgentKnowledgeGraph(packageCode, regionCode, poiCode, limit)')
+    expect(appVo).toContain('class VisionAgentKnowledgeGraphRespVO')
+    expect(appVo).toContain('private String anchorPoiCode;')
+    expect(appVo).toContain('private String anchorPoiName;')
+    expect(appVo).toContain('private List<VisionAgentKnowledgeGraphNodeRespVO> nodes;')
+    expect(appVo).toContain('private List<VisionAgentKnowledgeGraphEdgeRespVO> edges;')
+    expect(appVo).toContain('private List<SourceRespVO> sources;')
+    expect(appVo).toContain('class VisionAgentKnowledgeGraphNodeRespVO')
+    expect(appVo).toContain('private String nodeType;')
+    expect(appVo).toContain('private String prompt;')
+    expect(appVo).toContain('class VisionAgentKnowledgeGraphEdgeRespVO')
+    expect(appVo).toContain('private String relationType;')
+    expect(appService).toContain('VisionAgentKnowledgeGraphRespVO getVisionAgentKnowledgeGraph(String packageCode, String regionCode, String poiCode, Integer limit)')
+    expect(poiMapper).toContain('selectByPackageIdAndPoiCode')
+    expect(appServiceImpl).toContain('buildVisionAgentKnowledgeGraph(resourcePackage, regionCode, poiCode, limit)')
+    expect(appServiceImpl).toContain('buildKnowledgeGraphAnchorNode')
+    expect(appServiceImpl).toContain('buildKnowledgeGraphRelatedPoiNodes')
+    expect(appServiceImpl).toContain('buildKnowledgeGraphTopicNodes')
+    expect(appServiceImpl).toContain('buildKnowledgeGraphEdges')
+    expect(appServiceImpl).toContain('buildKnowledgeGraphSources')
+    expect(appServiceImpl).toContain('extractKnowledgeGraphRecommendedQuestions')
+    expect(appTest).toContain('testGetVisionAgentKnowledgeGraphBuildsSourceBackedPoiTopicNetwork')
+    expect(appTest).toContain('getVisionAgentKnowledgeGraph("XICHENG-MAP-001"')
+    expect(appTest).toContain('getAnchorPoiCode()')
+    expect(appTest).toContain('getNodes()')
+    expect(appTest).toContain('getEdges()')
+    expect(appTest).toContain('getSources()')
+  })
+
   test('xicheng AI chat contract carries POI context and blocks no-source answers', async () => {
     const appVo = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/controller/app/vo/XunjingAppVO.java'

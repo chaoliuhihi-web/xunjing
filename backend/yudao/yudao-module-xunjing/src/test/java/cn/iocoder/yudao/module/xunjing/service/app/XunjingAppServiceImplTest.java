@@ -34,6 +34,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.RagChatRes
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialFeedRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentKnowledgeGraphRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySessionRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.LocationPointReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.MultimodalTriggerReqVO;
@@ -646,6 +647,37 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
         assertEquals("img-gongwangfu-memory-001", session.getScenes().get(0).getSceneSnapshot().get("imageId"));
         assertFalse(JsonUtils.toJsonString(session).contains("raw-image-should-not-enter-memory-session"));
         assertFalse(JsonUtils.toJsonString(session).contains("imageBase64"));
+    }
+
+    @Test
+    public void testGetVisionAgentKnowledgeGraphBuildsSourceBackedPoiTopicNetwork() {
+        Long projectId = consoleService.createProject(xichengProjectReq());
+        Long schoolId = consoleService.createSchool(xichengSchoolReq());
+        Long packageId = consoleService.createResourcePackage(xichengPackageReq(projectId, schoolId));
+        insertXichengPoi(packageId);
+        insertXichengBaitasiPoi(packageId);
+        consoleService.addKnowledgeDocument(xichengGongwangfuKnowledgeReq(packageId));
+        consoleService.addKnowledgeDocument(xichengBaitasiKnowledgeReq(packageId));
+
+        VisionAgentKnowledgeGraphRespVO graph = appService.getVisionAgentKnowledgeGraph("XICHENG-MAP-001",
+                "beijing-xicheng", "xicheng-gongwangfu", 6);
+
+        assertEquals("XICHENG-MAP-001", graph.getPackageCode());
+        assertEquals("beijing-xicheng", graph.getRegionCode());
+        assertEquals("xicheng-gongwangfu", graph.getAnchorPoiCode());
+        assertEquals("恭王府", graph.getAnchorPoiName());
+        assertTrue(graph.getNodeCount() >= 3);
+        assertEquals(graph.getNodeCount() - 1, graph.getEdgeCount());
+        assertTrue(graph.getNodes().stream().anyMatch(node -> "anchor_poi".equals(node.getNodeType())
+                && "xicheng-gongwangfu".equals(node.getPoiCode())));
+        assertTrue(graph.getNodes().stream().anyMatch(node -> "related_poi".equals(node.getNodeType())
+                && "xicheng-baitasi".equals(node.getPoiCode())));
+        assertTrue(graph.getNodes().stream().anyMatch(node -> "topic".equals(node.getNodeType())
+                && node.getPrompt().contains("城市知识图谱")));
+        assertTrue(graph.getEdges().stream().allMatch(edge -> "poi:xicheng-gongwangfu".equals(edge.getFromNodeId())));
+        assertFalse(graph.getSources().isEmpty());
+        assertTrue(graph.getSources().get(0).getTitle().contains("恭王府"));
+        assertTrue(graph.getTopicTrail().stream().anyMatch(topic -> topic.contains("王府")));
     }
 
     @Test

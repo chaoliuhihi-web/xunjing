@@ -661,7 +661,14 @@ async function checkXichengAppEventBackend(rootDir) {
     'EventType.TRIGGER_RESOLVE.getType()',
     'EventType.ASK.getType()',
     'buildVisionAgentMemoryPoiTrailText',
-    'buildVisionAgentMemoryContinuityCueText'
+    'buildVisionAgentMemoryContinuityCueText',
+    'buildVisionAgentKnowledgeGraph(resourcePackage, regionCode, poiCode, limit)',
+    'buildKnowledgeGraphAnchorNode',
+    'buildKnowledgeGraphRelatedPoiNodes',
+    'buildKnowledgeGraphTopicNodes',
+    'buildKnowledgeGraphEdges',
+    'buildKnowledgeGraphSources',
+    'extractKnowledgeGraphRecommendedQuestions'
   ]) {
     assertContains(appService, snippet, 'XunjingAppServiceImpl.java')
   }
@@ -671,6 +678,9 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(appController, '@GetMapping("/memory/session")', 'AppXunjingController.java')
   assertContains(appController, 'appService.getVisionAgentMemorySession(packageCode, userTraceId, limit)',
     'AppXunjingController.java')
+  assertContains(appController, '@GetMapping("/knowledge/graph")', 'AppXunjingController.java')
+  assertContains(appController, 'appService.getVisionAgentKnowledgeGraph(packageCode, regionCode, poiCode, limit)',
+    'AppXunjingController.java')
   assertContains(appVo, 'class TravelRecordMaterialFeedRespVO', 'XunjingAppVO.java')
   assertContains(appVo, 'class TravelRecordMaterialRespVO', 'XunjingAppVO.java')
   assertContains(appVo, 'private Map<String, Object> sourceSceneSnapshot;', 'XunjingAppVO.java')
@@ -678,11 +688,18 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(appVo, 'class VisionAgentMemorySceneRespVO', 'XunjingAppVO.java')
   assertContains(appVo, 'private String continuityCueText;', 'XunjingAppVO.java')
   assertContains(appVo, 'private Map<String, Object> sceneSnapshot;', 'XunjingAppVO.java')
+  assertContains(appVo, 'class VisionAgentKnowledgeGraphRespVO', 'XunjingAppVO.java')
+  assertContains(appVo, 'class VisionAgentKnowledgeGraphNodeRespVO', 'XunjingAppVO.java')
+  assertContains(appVo, 'class VisionAgentKnowledgeGraphEdgeRespVO', 'XunjingAppVO.java')
+  assertContains(appVo, 'private List<SourceRespVO> sources;', 'XunjingAppVO.java')
   assertContains(appServiceContract,
     'TravelRecordMaterialFeedRespVO listTravelRecordMaterials(String packageCode, String userTraceId, Integer limit)',
     'XunjingAppService.java')
   assertContains(appServiceContract,
     'VisionAgentMemorySessionRespVO getVisionAgentMemorySession(String packageCode, String userTraceId, Integer limit)',
+    'XunjingAppService.java')
+  assertContains(appServiceContract,
+    'VisionAgentKnowledgeGraphRespVO getVisionAgentKnowledgeGraph(String packageCode, String regionCode, String poiCode, Integer limit)',
     'XunjingAppService.java')
   assertContains(interactionMapper, 'selectListByPackageIdAndUserTraceIdAndEventType',
     'XunjingInteractionEventMapper.java')
@@ -755,6 +772,11 @@ async function checkXichengAppEventBackend(rootDir) {
   assertContains(
     appTest,
     'testGetVisionAgentMemorySessionBuildsContinuousSceneTimeline',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(
+    appTest,
+    'testGetVisionAgentKnowledgeGraphBuildsSourceBackedPoiTopicNetwork',
     'XunjingAppServiceImplTest.java'
   )
   assertContains(

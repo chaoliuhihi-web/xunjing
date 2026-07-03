@@ -304,6 +304,40 @@ public class XunjingAppVO {
     }
 
     @Data
+    public static class VisionAgentKnowledgeGraphRespVO {
+        private String packageCode;
+        private String regionCode;
+        private String anchorPoiCode;
+        private String anchorPoiName;
+        private Integer nodeCount;
+        private Integer edgeCount;
+        private List<String> topicTrail;
+        private List<VisionAgentKnowledgeGraphNodeRespVO> nodes;
+        private List<VisionAgentKnowledgeGraphEdgeRespVO> edges;
+        private List<SourceRespVO> sources;
+    }
+
+    @Data
+    public static class VisionAgentKnowledgeGraphNodeRespVO {
+        private String nodeId;
+        private String nodeType;
+        private String title;
+        private String poiCode;
+        private String topicKey;
+        private String summary;
+        private String prompt;
+    }
+
+    @Data
+    public static class VisionAgentKnowledgeGraphEdgeRespVO {
+        private String fromNodeId;
+        private String toNodeId;
+        private String relationType;
+        private String reason;
+        private Boolean requiresReview;
+    }
+
+    @Data
     public static class SourceRespVO {
         private Long id;
         private String title;

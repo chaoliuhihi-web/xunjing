@@ -33,6 +33,9 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.SceneUnder
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.SourceRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialFeedRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentKnowledgeGraphEdgeRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentKnowledgeGraphNodeRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentKnowledgeGraphRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySceneRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySessionRespVO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.ai.XunjingAiGenerationLogDO;
@@ -42,6 +45,7 @@ import cn.iocoder.yudao.module.xunjing.dal.dataobject.knowledge.XunjingKnowledge
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.media.XunjingMediaAssetDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.media.XunjingMediaUsageLogDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.packagepkg.XunjingResourcePackageDO;
+import cn.iocoder.yudao.module.xunjing.dal.dataobject.poi.XunjingPoiDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.qrcode.XunjingQrCodeDO;
 import cn.iocoder.yudao.module.xunjing.dal.dataobject.report.XunjingPublicReportDO;
 import cn.iocoder.yudao.module.xunjing.dal.mysql.ai.XunjingAiGenerationLogMapper;
@@ -368,6 +372,13 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             String packageCode, String userTraceId, Integer limit) {
         XunjingResourcePackageDO resourcePackage = validatePublicPackage(packageCode);
         return buildVisionAgentMemorySession(resourcePackage, userTraceId, limit);
+    }
+
+    @Override
+    public VisionAgentKnowledgeGraphRespVO getVisionAgentKnowledgeGraph(
+            String packageCode, String regionCode, String poiCode, Integer limit) {
+        XunjingResourcePackageDO resourcePackage = validatePublicPackage(packageCode);
+        return buildVisionAgentKnowledgeGraph(resourcePackage, regionCode, poiCode, limit);
     }
 
     private void hydrateMultimodalTriggerMemoryFromPreviousResolve(MultimodalTriggerReqVO reqVO) {
@@ -2951,6 +2962,263 @@ public class XunjingAppServiceImpl implements XunjingAppService {
             }
         }
         return "";
+    }
+
+    private VisionAgentKnowledgeGraphRespVO buildVisionAgentKnowledgeGraph(
+            XunjingResourcePackageDO resourcePackage, String regionCode, String poiCode, Integer limit) {
+        XunjingPoiDO anchorPoi = poiMapper.selectByPackageIdAndPoiCode(
+                resourcePackage.getId(), poiCode, PackageStatus.PUBLISHED.getStatus(), ReviewStatus.APPROVED.getStatus());
+        if (anchorPoi == null) {
+            throw new IllegalArgumentException("xunjing knowledge graph anchor poi not exists: " + poiCode);
+        }
+        String effectiveRegionCode = defaultIfBlank(regionCode, anchorPoi.getRegionCode());
+        int graphLimit = normalizeKnowledgeGraphLimit(limit);
+        List<XunjingPoiDO> regionPois = poiMapper.selectPublishedListByRegionCodeAndPackageId(
+                effectiveRegionCode, resourcePackage.getId(),
+                PackageStatus.PUBLISHED.getStatus(), ReviewStatus.APPROVED.getStatus());
+        List<XunjingKnowledgeDocumentDO> publicDocuments = knowledgeDocumentMapper.selectPublicListByPackageId(
+                resourcePackage.getId(), ReviewStatus.APPROVED.getStatus(), VectorStatus.INDEXED.getStatus());
+        List<SourceRespVO> sources = buildKnowledgeGraphSources(anchorPoi, publicDocuments, graphLimit);
+
+        List<VisionAgentKnowledgeGraphNodeRespVO> nodes = new ArrayList<>();
+        VisionAgentKnowledgeGraphNodeRespVO anchorNode = buildKnowledgeGraphAnchorNode(anchorPoi);
+        nodes.add(anchorNode);
+        nodes.addAll(buildKnowledgeGraphRelatedPoiNodes(anchorPoi, regionPois, graphLimit - nodes.size()));
+        nodes.addAll(buildKnowledgeGraphTopicNodes(anchorPoi, publicDocuments, graphLimit - nodes.size()));
+        List<VisionAgentKnowledgeGraphEdgeRespVO> edges = buildKnowledgeGraphEdges(anchorNode, nodes);
+
+        VisionAgentKnowledgeGraphRespVO respVO = new VisionAgentKnowledgeGraphRespVO();
+        respVO.setPackageCode(resourcePackage.getPackageCode());
+        respVO.setRegionCode(effectiveRegionCode);
+        respVO.setAnchorPoiCode(anchorPoi.getPoiCode());
+        respVO.setAnchorPoiName(anchorPoi.getName());
+        respVO.setNodeCount(nodes.size());
+        respVO.setEdgeCount(edges.size());
+        respVO.setTopicTrail(buildKnowledgeGraphTopicTrail(nodes));
+        respVO.setNodes(nodes);
+        respVO.setEdges(edges);
+        respVO.setSources(sources);
+        return respVO;
+    }
+
+    private int normalizeKnowledgeGraphLimit(Integer limit) {
+        if (limit == null || limit <= 0) {
+            return 8;
+        }
+        return Math.min(limit, 20);
+    }
+
+    private VisionAgentKnowledgeGraphNodeRespVO buildKnowledgeGraphAnchorNode(XunjingPoiDO poi) {
+        VisionAgentKnowledgeGraphNodeRespVO node = new VisionAgentKnowledgeGraphNodeRespVO();
+        node.setNodeId("poi:" + poi.getPoiCode());
+        node.setNodeType("anchor_poi");
+        node.setTitle(defaultIfBlank(poi.getName(), poi.getPoiCode()));
+        node.setPoiCode(poi.getPoiCode());
+        node.setTopicKey(defaultIfBlank(poi.getCategory(), "poi"));
+        node.setSummary(firstMemoryText(
+                poiContentJsonText(poi, "shortIntro"),
+                poiSourceJsonText(poi, "contentDigest"),
+                poi.getOfficialName(),
+                poi.getAddress()));
+        node.setPrompt("从城市知识图谱继续讲" + node.getTitle() + "，并引用已审核来源。");
+        return node;
+    }
+
+    private List<VisionAgentKnowledgeGraphNodeRespVO> buildKnowledgeGraphRelatedPoiNodes(
+            XunjingPoiDO anchorPoi, List<XunjingPoiDO> regionPois, int limit) {
+        if (limit <= 0 || regionPois == null || regionPois.isEmpty()) {
+            return List.of();
+        }
+        return regionPois.stream()
+                .filter(poi -> !anchorPoi.getPoiCode().equals(poi.getPoiCode()))
+                .sorted(Comparator
+                        .comparing((XunjingPoiDO poi) -> !defaultIfBlank(anchorPoi.getCategory(), "")
+                                .equals(defaultIfBlank(poi.getCategory(), "")))
+                        .thenComparing(XunjingPoiDO::getId))
+                .limit(limit)
+                .map(poi -> buildKnowledgeGraphRelatedPoiNode(anchorPoi, poi))
+                .toList();
+    }
+
+    private VisionAgentKnowledgeGraphNodeRespVO buildKnowledgeGraphRelatedPoiNode(
+            XunjingPoiDO anchorPoi, XunjingPoiDO poi) {
+        VisionAgentKnowledgeGraphNodeRespVO node = new VisionAgentKnowledgeGraphNodeRespVO();
+        node.setNodeId("poi:" + poi.getPoiCode());
+        node.setNodeType("related_poi");
+        node.setTitle(defaultIfBlank(poi.getName(), poi.getPoiCode()));
+        node.setPoiCode(poi.getPoiCode());
+        node.setTopicKey(defaultIfBlank(poi.getCategory(), "poi"));
+        node.setSummary(firstMemoryText(
+                poiContentJsonText(poi, "shortIntro"),
+                poiSourceJsonText(poi, "contentDigest"),
+                poi.getOfficialName(),
+                poi.getAddress()));
+        node.setPrompt("从" + defaultIfBlank(anchorPoi.getName(), anchorPoi.getPoiCode())
+                + "继续关联到" + node.getTitle() + "，说明它们在城市路线和文化主题上的关系。");
+        return node;
+    }
+
+    private List<VisionAgentKnowledgeGraphNodeRespVO> buildKnowledgeGraphTopicNodes(
+            XunjingPoiDO anchorPoi, List<XunjingKnowledgeDocumentDO> publicDocuments, int limit) {
+        if (limit <= 0) {
+            return List.of();
+        }
+        List<VisionAgentKnowledgeGraphNodeRespVO> nodes = new ArrayList<>();
+        int index = 1;
+        for (String question : extractKnowledgeGraphRecommendedQuestions(anchorPoi)) {
+            if (nodes.size() >= limit) {
+                break;
+            }
+            nodes.add(buildKnowledgeGraphTopicNode(anchorPoi, "question-" + index, question,
+                    "来自 POI 已审核 recommendedQuestions。"));
+            index++;
+        }
+        for (XunjingKnowledgeDocumentDO document : publicDocuments) {
+            if (nodes.size() >= limit) {
+                break;
+            }
+            if (!knowledgeDocumentMatchesAnchor(document, anchorPoi)) {
+                continue;
+            }
+            nodes.add(buildKnowledgeGraphTopicNode(anchorPoi, "source-" + document.getId(),
+                    document.getTitle(), document.getContentDigest()));
+        }
+        return nodes;
+    }
+
+    private VisionAgentKnowledgeGraphNodeRespVO buildKnowledgeGraphTopicNode(
+            XunjingPoiDO anchorPoi, String topicKey, String title, String summary) {
+        VisionAgentKnowledgeGraphNodeRespVO node = new VisionAgentKnowledgeGraphNodeRespVO();
+        node.setNodeId("topic:" + anchorPoi.getPoiCode() + ":" + safeKnowledgeGraphNodeKey(topicKey));
+        node.setNodeType("topic");
+        node.setTitle(truncateForEvent(defaultIfBlank(title, topicKey), 80));
+        node.setPoiCode(anchorPoi.getPoiCode());
+        node.setTopicKey(truncateForEvent(topicKey, 80));
+        node.setSummary(truncateForEvent(defaultIfBlank(summary, ""), TRIGGER_SCENE_SIGNAL_TEXT_MAX_LENGTH));
+        node.setPrompt("围绕" + defaultIfBlank(anchorPoi.getName(), anchorPoi.getPoiCode())
+                + "的城市知识图谱节点「" + node.getTitle() + "」继续讲，并说明来源依据。");
+        return node;
+    }
+
+    private List<VisionAgentKnowledgeGraphEdgeRespVO> buildKnowledgeGraphEdges(
+            VisionAgentKnowledgeGraphNodeRespVO anchorNode, List<VisionAgentKnowledgeGraphNodeRespVO> nodes) {
+        if (anchorNode == null || nodes == null || nodes.size() <= 1) {
+            return List.of();
+        }
+        List<VisionAgentKnowledgeGraphEdgeRespVO> edges = new ArrayList<>();
+        for (VisionAgentKnowledgeGraphNodeRespVO node : nodes) {
+            if (node == null || anchorNode.getNodeId().equals(node.getNodeId())) {
+                continue;
+            }
+            VisionAgentKnowledgeGraphEdgeRespVO edge = new VisionAgentKnowledgeGraphEdgeRespVO();
+            edge.setFromNodeId(anchorNode.getNodeId());
+            edge.setToNodeId(node.getNodeId());
+            edge.setRelationType("related_poi".equals(node.getNodeType()) ? "same_region_or_theme" : "source_topic");
+            edge.setReason("基于同一资源包内已发布 POI、已审核知识文档或 POI 内容 JSON 派生。");
+            edge.setRequiresReview(false);
+            edges.add(edge);
+        }
+        return edges;
+    }
+
+    private List<SourceRespVO> buildKnowledgeGraphSources(
+            XunjingPoiDO anchorPoi, List<XunjingKnowledgeDocumentDO> publicDocuments, int limit) {
+        if (publicDocuments == null || publicDocuments.isEmpty()) {
+            return List.of();
+        }
+        String query = defaultIfBlank(anchorPoi.getName(), "") + " " + defaultIfBlank(anchorPoi.getPoiCode(), "");
+        return publicDocuments.stream()
+                .filter(document -> knowledgeDocumentMatchesAnchor(document, anchorPoi))
+                .map(document -> toSource(document, query))
+                .sorted(Comparator.comparing(SourceRespVO::getScore).reversed())
+                .limit(Math.max(1, Math.min(limit, TOP_K)))
+                .toList();
+    }
+
+    private List<String> buildKnowledgeGraphTopicTrail(List<VisionAgentKnowledgeGraphNodeRespVO> nodes) {
+        if (nodes == null || nodes.isEmpty()) {
+            return List.of();
+        }
+        return nodes.stream()
+                .filter(node -> node != null && !"anchor_poi".equals(node.getNodeType()))
+                .map(VisionAgentKnowledgeGraphNodeRespVO::getTitle)
+                .filter(this::hasText)
+                .distinct()
+                .limit(8)
+                .toList();
+    }
+
+    private List<String> extractKnowledgeGraphRecommendedQuestions(XunjingPoiDO poi) {
+        if (poi == null || !hasText(poi.getContentJson())) {
+            return List.of();
+        }
+        try {
+            JsonNode root = JsonUtils.parseTree(poi.getContentJson());
+            JsonNode questions = root == null ? null : root.path("recommendedQuestions");
+            if (questions == null || !questions.isArray()) {
+                return List.of();
+            }
+            List<String> values = new ArrayList<>();
+            for (JsonNode question : questions) {
+                String text = question.asText("").trim();
+                if (hasText(text)) {
+                    values.add(truncateForEvent(text, 80));
+                }
+            }
+            return values.stream().distinct().limit(6).toList();
+        } catch (RuntimeException ex) {
+            log.warn("[extractKnowledgeGraphRecommendedQuestions][poiCode({}) parse failed]", poi.getPoiCode(), ex);
+            return List.of();
+        }
+    }
+
+    private boolean knowledgeDocumentMatchesAnchor(XunjingKnowledgeDocumentDO document, XunjingPoiDO anchorPoi) {
+        if (document == null || anchorPoi == null) {
+            return false;
+        }
+        String documentText = normalizeSearchText(defaultIfBlank(document.getTitle(), "")
+                + " " + defaultIfBlank(document.getContentDigest(), "")
+                + " " + defaultIfBlank(document.getSourceUrl(), ""));
+        if (hasText(anchorPoi.getPoiCode()) && documentText.contains(normalizeSearchText(anchorPoi.getPoiCode()))) {
+            return true;
+        }
+        if (hasText(anchorPoi.getName()) && documentText.contains(normalizeSearchText(anchorPoi.getName()))) {
+            return true;
+        }
+        if (hasText(anchorPoi.getOfficialName())
+                && documentText.contains(normalizeSearchText(anchorPoi.getOfficialName()))) {
+            return true;
+        }
+        return searchTokens(anchorPoi.getName()).stream()
+                .map(this::normalizeSearchText)
+                .anyMatch(documentText::contains);
+    }
+
+    private String poiContentJsonText(XunjingPoiDO poi, String key) {
+        return poiJsonText(poi == null ? null : poi.getContentJson(), key);
+    }
+
+    private String poiSourceJsonText(XunjingPoiDO poi, String key) {
+        return poiJsonText(poi == null ? null : poi.getSourceJson(), key);
+    }
+
+    private String poiJsonText(String json, String key) {
+        if (!hasText(json) || !hasText(key)) {
+            return "";
+        }
+        try {
+            JsonNode root = JsonUtils.parseTree(json);
+            return visionAgentContextText(root, key);
+        } catch (RuntimeException ex) {
+            return "";
+        }
+    }
+
+    private String safeKnowledgeGraphNodeKey(String value) {
+        String text = normalizeSearchText(defaultIfBlank(value, "node"));
+        text = text.replaceAll("[^\\p{IsHan}\\p{Alnum}-]+", "-");
+        text = text.replaceAll("^-+|-+$", "");
+        return hasText(text) ? truncateForEvent(text, 80) : "node";
     }
 
     private Map<String, Object> sanitizeAgentActionClientPayload(Map<String, Object> clientPayload) {

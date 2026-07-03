@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.Multimodal
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveReqVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.ScanResolveRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.TravelRecordMaterialFeedRespVO;
+import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentKnowledgeGraphRespVO;
 import cn.iocoder.yudao.module.xunjing.controller.app.vo.XunjingAppVO.VisionAgentMemorySessionRespVO;
 import cn.iocoder.yudao.module.xunjing.enums.XunjingEnums.ResourceType;
 import cn.iocoder.yudao.module.xunjing.service.app.XunjingAppService;
@@ -76,6 +77,17 @@ public class AppXunjingController {
             @RequestParam("userTraceId") String userTraceId,
             @RequestParam(value = "limit", required = false) Integer limit) {
         return success(appService.getVisionAgentMemorySession(packageCode, userTraceId, limit));
+    }
+
+    @GetMapping("/knowledge/graph")
+    @Operation(summary = "查询 AI 识境城市知识图谱")
+    @PermitAll
+    public CommonResult<VisionAgentKnowledgeGraphRespVO> getVisionAgentKnowledgeGraph(
+            @RequestParam("packageCode") String packageCode,
+            @RequestParam(value = "regionCode", required = false) String regionCode,
+            @RequestParam("poiCode") String poiCode,
+            @RequestParam(value = "limit", required = false) Integer limit) {
+        return success(appService.getVisionAgentKnowledgeGraph(packageCode, regionCode, poiCode, limit));
     }
 
     @PostMapping("/reading/ask")

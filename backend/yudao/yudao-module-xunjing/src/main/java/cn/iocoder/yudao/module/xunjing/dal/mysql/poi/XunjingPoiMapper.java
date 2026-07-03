@@ -41,4 +41,17 @@ public interface XunjingPoiMapper extends BaseMapperX<XunjingPoiDO> {
                 .orderByAsc(XunjingPoiDO::getId));
     }
 
+    default XunjingPoiDO selectByPackageIdAndPoiCode(
+            Long packageId, String poiCode, String status, String reviewStatus) {
+        if (packageId == null || poiCode == null || poiCode.isBlank()) {
+            return null;
+        }
+        return selectOne(new LambdaQueryWrapperX<XunjingPoiDO>()
+                .eq(XunjingPoiDO::getPackageId, packageId)
+                .eq(XunjingPoiDO::getPoiCode, poiCode)
+                .eq(XunjingPoiDO::getStatus, status)
+                .eq(XunjingPoiDO::getReviewStatus, reviewStatus)
+                .last("LIMIT 1"));
+    }
+
 }
