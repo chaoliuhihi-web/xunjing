@@ -69,6 +69,9 @@ describe('xunjing app API contract', () => {
     const visionService = await readText(
       'backend/yudao/yudao-module-xunjing/src/main/java/cn/iocoder/yudao/module/xunjing/service/app/trigger/XunjingVisionRecognitionService.java'
     )
+    const appTest = await readText(
+      'backend/yudao/yudao-module-xunjing/src/test/java/cn/iocoder/yudao/module/xunjing/service/app/XunjingAppServiceImplTest.java'
+    )
 
     expect(controller).toContain('@PostMapping("/triggers/resolve")')
     expect(controller).toContain('MultimodalTriggerReqVO')
@@ -104,6 +107,7 @@ describe('xunjing app API contract', () => {
     expect(triggerEngine).toContain('xicheng-emperors-temple')
     expect(triggerEngine).toContain('gps_radius')
     expect(triggerEngine).toContain('ocr_alias')
+    expect(triggerEngine).toContain('gps_ocr_fused')
     expect(triggerEngine).toContain('image_label')
     expect(triggerEngine).toContain('buildContextQuery(regionCode, poiCode, packageCode, confirm)')
     expect(triggerEngine).toContain('buildAgentActions(')
@@ -127,6 +131,8 @@ describe('xunjing app API contract', () => {
     expect(appServiceImpl).toContain('payload.put("recommendationLevel", truncateForEvent(action.getRecommendationLevel(), 50))')
     expect(appServiceImpl).toContain('payload.put("realSystemStatus", truncateForEvent(action.getRealSystemStatus(), 50))')
     expect(appServiceImpl).toContain('payload.put("productionEvidenceText", truncateForEvent(')
+    expect(appTest).toContain('testResolveMultimodalTriggerAutoStartsWhenGpsAndOcrAgreeWithoutImageSignal')
+    expect(appTest).toContain('getMatchedSignals().contains("gps_ocr_fused")')
   })
 
   test('multimodal trigger agent actions expose decision queue metadata', async () => {

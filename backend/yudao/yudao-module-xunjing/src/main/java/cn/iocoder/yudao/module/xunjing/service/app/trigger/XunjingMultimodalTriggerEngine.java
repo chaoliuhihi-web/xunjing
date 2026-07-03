@@ -232,6 +232,10 @@ public class XunjingMultimodalTriggerEngine {
             score += 0.45D;
             signals.add("ocr_alias");
         }
+        if (signals.contains("gps_radius") && signals.contains("ocr_alias")) {
+            score += 0.04D;
+            signals.add("gps_ocr_fused");
+        }
         if (containsAlias(reqVO.getText(), poi)) {
             score += 0.34D;
             signals.add("text_alias");

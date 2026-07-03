@@ -477,6 +477,12 @@ async function checkXichengTriggerBackend(rootDir) {
   assertContains(appTest, 'testResolveMultimodalTriggerUsesPublishedPoiFromDatabase', 'XunjingAppServiceImplTest.java')
   assertContains(
     appTest,
+    'testResolveMultimodalTriggerAutoStartsWhenGpsAndOcrAgreeWithoutImageSignal',
+    'XunjingAppServiceImplTest.java'
+  )
+  assertContains(appTest, 'getMatchedSignals().contains("gps_ocr_fused")', 'XunjingAppServiceImplTest.java')
+  assertContains(
+    appTest,
     'testResolveMultimodalTriggerBuildsCoreAgentActionPackForRecognizedPoi',
     'XunjingAppServiceImplTest.java'
   )

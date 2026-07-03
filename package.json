@@ -15,6 +15,7 @@
     "deploy:verify": "node scripts/verify-deployment.mjs",
     "xunjing:platform:verify": "node scripts/verify-xunjing-platform-readiness.mjs",
     "xunjing:platform:verify:static": "node scripts/verify-xunjing-platform-readiness.mjs --static",
+    "xunjing:ai-shijing:p0:verify": "node scripts/verify-ai-shijing-p0-backend-loop.mjs",
     "xunjing:yudao:release:gate": "node scripts/verify-xicheng-yudao-release-readiness.mjs",
     "xunjing:yudao:release:preflight": "node scripts/run-xicheng-yudao-release-preflight.mjs",
     "xunjing:yudao:release:tasks:export": "node scripts/export-xicheng-yudao-release-blocker-tasks.mjs",

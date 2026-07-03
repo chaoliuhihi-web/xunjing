@@ -989,6 +989,26 @@ public class XunjingAppServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testResolveMultimodalTriggerAutoStartsWhenGpsAndOcrAgreeWithoutImageSignal() {
+        MultimodalTriggerReqVO reqVO = multimodalReq();
+        reqVO.setOcrText("妙应寺白塔入口");
+        reqVO.setImageLabels(List.of());
+        reqVO.setLocation(location("39.923100", "116.357260", 18));
+
+        MultimodalTriggerRespVO respVO = appService.resolveMultimodalTrigger(reqVO);
+
+        assertEquals("xicheng-baitasi", respVO.getPoiCode());
+        assertEquals("妙应寺白塔", respVO.getPoiName());
+        assertEquals("start_ai_guide", respVO.getAction());
+        assertTrue(respVO.getConfidence() >= 0.85D);
+        assertFalse(respVO.getRequiresUserConfirm());
+        assertTrue(respVO.getCandidates().get(0).getMatchedSignals().contains("gps_radius"));
+        assertTrue(respVO.getCandidates().get(0).getMatchedSignals().contains("ocr_alias"));
+        assertTrue(respVO.getCandidates().get(0).getMatchedSignals().contains("gps_ocr_fused"));
+        assertFalse(respVO.getCandidates().get(0).getMatchedSignals().contains("image_label"));
+    }
+
+    @Test
     public void testResolveMultimodalTriggerAcceptsXichengAliasAndReturnsSourcesAndQuestions() {
         MultimodalTriggerReqVO reqVO = multimodalReq();
         reqVO.setRegionCode("XICHENG");

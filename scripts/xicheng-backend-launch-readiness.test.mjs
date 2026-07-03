@@ -628,6 +628,8 @@ describe('xicheng backend launch readiness', () => {
     expect(enums).toContain('ERROR_FEEDBACK("ERROR_FEEDBACK")')
     expect(enums).toContain('AGENT_ACTION("AGENT_ACTION")')
     expect(appTest).toContain('testResolveMultimodalTriggerUsesPublishedPoiFromDatabase')
+    expect(appTest).toContain('testResolveMultimodalTriggerAutoStartsWhenGpsAndOcrAgreeWithoutImageSignal')
+    expect(appTest).toContain('getMatchedSignals().contains("gps_ocr_fused")')
     expect(appTest).toContain('testResolveMultimodalTriggerBuildsCoreAgentActionPackForRecognizedPoi')
     expect(appTest).toContain('testResolveMultimodalTriggerRanksAgentActionDecisionQueue')
     expect(appTest).toContain('testRecordAgentActionEventStoresStructuredTelemetryWithoutRawImagePayload')
