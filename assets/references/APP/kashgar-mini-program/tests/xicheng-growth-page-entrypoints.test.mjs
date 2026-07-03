@@ -8,7 +8,8 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 const home = read('pages', 'xicheng', 'home', 'home.vue')
 const recording = read('pages', 'xicheng', 'recording', 'recording.vue')
 const recordingPanel = read('components', 'xicheng', 'XichengRouteRecordingPanel.vue')
-const recordingShell = `${recording}\n${recordingPanel}`
+const recordingPausedPanel = read('components', 'xicheng', 'XichengRouteRecordingPausedPanel.vue')
+const recordingShell = `${recording}\n${recordingPanel}\n${recordingPausedPanel}`
 const travelogue = read('pages', 'xicheng', 'travelogue', 'travelogue.vue')
 const travelogueRecordShell = read('components', 'xicheng', 'XichengTravelogueRecordShell.vue')
 const travelogueActionGrid = read('components', 'xicheng', 'XichengTravelogueActionGrid.vue')

@@ -8,6 +8,7 @@ const exists = (...segments) => fs.existsSync(path.join(root, ...segments))
 
 const componentPath = ['components', 'xicheng', 'XichengRouteRecordingPanel.vue']
 const mapCanvasPath = ['components', 'xicheng', 'XichengRouteRecordingMapCanvas.vue']
+const pausedPanelPath = ['components', 'xicheng', 'XichengRouteRecordingPausedPanel.vue']
 
 assert.ok(
   exists(...componentPath),
@@ -19,10 +20,16 @@ assert.ok(
   'Route recording page should keep the recording map canvas in a focused child component'
 )
 
+assert.ok(
+  exists(...pausedPanelPath),
+  'Route recording page should keep paused recording controls in a focused child component'
+)
+
 const recording = read('pages', 'xicheng', 'recording', 'recording.vue')
 const panel = read(...componentPath)
 const mapCanvas = read(...mapCanvasPath)
-const combinedShell = `${panel}\n${mapCanvas}`
+const pausedPanel = read(...pausedPanelPath)
+const combinedShell = `${panel}\n${mapCanvas}\n${pausedPanel}`
 const getStyleBlock = (source, selector) => {
   const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   return source.match(new RegExp(`${escapedSelector}\\s*\\{([\\s\\S]*?)\\n\\}`))?.[1] || ''
@@ -31,6 +38,7 @@ const liveActionsStyle = getStyleBlock(panel, '.recording-live-actions')
 const liveNextCardStyle = getStyleBlock(panel, '.recording-live-next-card')
 const liveNextImageStyle = getStyleBlock(panel, '.recording-live-next-image')
 const checkinButtonStyle = getStyleBlock(panel, '.recording-checkin-button')
+const pausedActionsStyle = getStyleBlock(pausedPanel, '.recording-paused-actions')
 
 assert.match(
   recording,
@@ -74,12 +82,18 @@ for (const required of [
 
 assert.match(
   panel,
-  /v-if="isPaused"[\s\S]*class="recording-paused-stats[^"]*"[\s\S]*已记录[\s\S]*用时[\s\S]*已到达[\s\S]*素材/,
+  /<xicheng-route-recording-paused-panel[\s\S]*v-if="isPaused"[\s\S]*:material-count="materialCount"[\s\S]*@finish="\$emit\('finish'\)"/,
+  'Paused recording shell should delegate route summary and finish actions to the split paused panel'
+)
+
+assert.match(
+  pausedPanel,
+  /class="recording-paused-stats[^"]*"[\s\S]*已记录[\s\S]*用时[\s\S]*已到达[\s\S]*素材/,
   'Paused recording shell should expose a compact route summary matching the approved paused/finish reference'
 )
 
 assert.match(
-  panel,
+  pausedPanel,
   /class="recording-paused-stats[^"]*"[\s\S]*class="recording-paused-actions"[\s\S]*class="recording-paused-next-card/,
   'Paused recording shell should surface finish/travelogue actions before secondary next-stop guidance'
 )
@@ -109,8 +123,8 @@ assert.doesNotMatch(
 )
 
 assert.match(
-  panel,
-  /\.recording-paused-actions\s*\{[\s\S]*position:\s*sticky[\s\S]*bottom:\s*168rpx[\s\S]*z-index:\s*12/,
+  pausedActionsStyle,
+  /position:\s*sticky[\s\S]*bottom:\s*168rpx[\s\S]*z-index:\s*12/,
   'Paused recording actions should stay above the four-tab bottom nav in the target mobile viewport'
 )
 
