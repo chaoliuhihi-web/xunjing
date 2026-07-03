@@ -41,3 +41,16 @@ export const getXichengShareChannelTemplateCode = (channelKey = '', assetType = 
 	if (assetType === 'pdf') return channelTemplateCodeMap.pdf
 	return channelTemplateCodeMap[publishChannel] || 'xicheng-travelogue-share-v1'
 }
+
+export const createXichengShareSystemConfirmModalOptions = ({ channelKey = '', assetType = 'poster', assetLabel = '' } = {}) => {
+	const publishChannel = normalizeXichengSharePublishChannel(channelKey, assetType)
+	const resolvedAssetType = assetType || getXichengShareChannelAssetType(publishChannel)
+	const resolvedAssetLabel = assetLabel || getXichengShareChannelAssetLabel(publishChannel, resolvedAssetType)
+	const confirmText = publishChannel === 'xiaohongshu' ? '打开小红书' : publishChannel === 'moments' ? '打开朋友圈' : '继续确认'
+	return {
+		title: '系统分享确认',
+		content: `${resolvedAssetLabel}已生成。下一步会由用户确认后继续，不会静默发布；朋友圈、小红书按系统分享或平台 SDK 唤起确认。`,
+		confirmText,
+		cancelText: '稍后'
+	}
+}

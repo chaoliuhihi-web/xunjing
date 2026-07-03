@@ -7,6 +7,7 @@ const read = (...segments) => fs.readFileSync(path.join(root, ...segments), 'utf
 
 const share = read('pages', 'xicheng', 'share', 'share.vue')
 const channelGrid = read('components', 'xicheng', 'XichengPublishChannelGrid.vue')
+const shareAssets = read('request', 'xunjing', 'shareAssets.js')
 
 for (const token of [
   'selectedPublishChannels',
@@ -15,6 +16,7 @@ for (const token of [
   '@toggle="togglePublishChannel"',
   'handlePublishAction',
   'createSelectedChannelShareArtifacts',
+  'requestSystemPublishConfirmation',
   'savePublishSettings',
   'isPublishActionCard(channelKey)'
 ]) {
@@ -81,6 +83,24 @@ assert.match(
   share,
   /createSelectedChannelShareArtifacts\(\)[\s\S]*this\.selectedPublishChannels\.forEach[\s\S]*this\.createShareArtifact/,
   'Share page should create artifacts for all selected channels from the one-key publish action'
+)
+
+assert.match(
+  share,
+  /confirmPublishQueueItem\(item = \{\}\)[\s\S]*if \(item\.assetReady === true\) \{[\s\S]*this\.requestSystemPublishConfirmation\(item\)[\s\S]*return[\s\S]*\}[\s\S]*this\.createChannelShareArtifact\(this\.selectedPublishChannel\)/,
+  'Share page should treat ready queue items as user confirmation, not duplicate material generation'
+)
+
+assert.match(
+  share,
+  /requestSystemPublishConfirmation\(item = \{\}\)[\s\S]*uni\.showModal\(\{[\s\S]*\.\.\.createXichengShareSystemConfirmModalOptions\(\{ channelKey: publishChannel, assetType, assetLabel: item\.label \}\)[\s\S]*success:/,
+  'Share page should delegate reusable system confirmation copy while keeping the page shell compact'
+)
+
+assert.match(
+  shareAssets,
+  /createXichengShareSystemConfirmModalOptions = \(\{ channelKey = '', assetType = 'poster', assetLabel = '' \} = \{\}\)[\s\S]*confirmText[\s\S]*title:\s*'系统分享确认'[\s\S]*不会静默发布[\s\S]*平台 SDK[\s\S]*cancelText:\s*'稍后'/,
+  'Share asset helper should own the reusable system or platform confirmation modal copy'
 )
 
 assert.match(

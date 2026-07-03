@@ -94,7 +94,7 @@
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
 import { isXichengUnsafeSafetyStatus, normalizeXichengSafetyStatus } from '@/request/xunjing/safety.js'
 import { decodeXichengRouteValue } from '@/request/xunjing/routeParams.js'
-import { getXichengShareChannelAssetLabel, getXichengShareChannelAssetType, getXichengShareChannelTemplateCode, normalizeXichengSharePublishChannel } from '@/request/xunjing/shareAssets.js'
+import { createXichengShareSystemConfirmModalOptions, getXichengShareChannelAssetLabel, getXichengShareChannelAssetType, getXichengShareChannelTemplateCode, normalizeXichengSharePublishChannel } from '@/request/xunjing/shareAssets.js'
 import XichengPublishChannelGrid from '@/components/xicheng/XichengPublishChannelGrid.vue'
 import XichengPublishConfirmQueue from '@/components/xicheng/XichengPublishConfirmQueue.vue'
 import XichengPublishPreflightPanel from '@/components/xicheng/XichengPublishPreflightPanel.vue'
@@ -520,13 +520,8 @@ export default {
 		},
 		handlePublishAction(event = {}) {
 			const publishAction = typeof event === 'string' ? event : event.publishAction
-			if (publishAction === 'publish') {
-				this.createSelectedChannelShareArtifacts()
-				return
-			}
-			if (publishAction === 'save') {
-				this.savePublishSettings()
-			}
+			if (publishAction === 'publish') return this.createSelectedChannelShareArtifacts()
+			if (publishAction === 'save') this.savePublishSettings()
 		},
 		createChannelShareArtifact(channelKey = '') {
 			const requestedChannel = typeof channelKey === 'string' && channelKey ? channelKey : this.selectedPublishChannel
@@ -549,18 +544,24 @@ export default {
 			this.selectedPublishChannel = normalizeXichengSharePublishChannel(item.key)
 		},
 		focusNextPublishConfirmationChannel() {
-			const nextItem = this.publishConfirmationQueue.find(item => ['moments', 'xiaohongshu'].includes(item.key))
-				|| this.publishConfirmationQueue.find(item => item.key === 'xinghe')
-				|| this.publishConfirmationQueue[0]
+			const nextItem = this.publishConfirmationQueue.find(item => ['moments', 'xiaohongshu'].includes(item.key)) || this.publishConfirmationQueue.find(item => item.key === 'xinghe') || this.publishConfirmationQueue[0]
 			if (nextItem) this.selectedPublishChannel = normalizeXichengSharePublishChannel(nextItem.key)
+		},
+		requestSystemPublishConfirmation(item = {}) {
+			const publishChannel = normalizeXichengSharePublishChannel(item.key || this.selectedPublishChannel)
+			const assetType = item.assetType || getXichengShareChannelAssetType(publishChannel)
+			uni.showModal({
+				...createXichengShareSystemConfirmModalOptions({ channelKey: publishChannel, assetType, assetLabel: item.label }),
+				success: (res = {}) => { if (res.confirm) uni.showToast({ title: '请在系统确认页完成发布', icon: 'none' }) }
+			})
 		},
 		confirmPublishQueueItem(item = {}) {
 			this.selectedPublishChannel = normalizeXichengSharePublishChannel(item.key)
 			if (this.selectedPublishChannel === 'pdf') {
 				if (this.getSelectedChannelArtifactCount(this.selectedPublishChannel) <= 0) this.createShareArtifact('pdf')
-				this.openPdfPrintPage()
-				return
+				return this.openPdfPrintPage()
 			}
+			if (item.assetReady === true) { this.requestSystemPublishConfirmation(item); return }
 			this.createChannelShareArtifact(this.selectedPublishChannel)
 		},
 		copyChannelShareCopy() {
