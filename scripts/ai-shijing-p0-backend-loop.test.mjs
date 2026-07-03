@@ -27,4 +27,21 @@ describe('AI Shijing P0 backend loop verifier', () => {
     expect(verifier).toContain('requirementId: \'no-ui-scope\'')
     expect(verifier).toContain('requirementId: \'no-fake-production-evidence\'')
   })
+
+  test('exposes one backend-only gate command without replacing production preflight', async () => {
+    const packageJson = JSON.parse(await readText('package.json'))
+    const gate = await readText('scripts/run-ai-shijing-p0-backend-gate.mjs')
+
+    expect(packageJson.scripts['xunjing:ai-shijing:p0:gate'])
+      .toBe('node scripts/run-ai-shijing-p0-backend-gate.mjs')
+    expect(gate).toContain('artifactType: \'ai-shijing-p0-backend-gate\'')
+    expect(gate).toContain('npm run xunjing:ai-shijing:p0:verify')
+    expect(gate).toContain('scripts/ai-shijing-p0-backend-loop.test.mjs')
+    expect(gate).toContain('scripts/xunjing-app-api-contract.test.mjs')
+    expect(gate).toContain('scripts/xicheng-backend-launch-readiness.test.mjs')
+    expect(gate).toContain('scripts/verify-xunjing-platform-readiness.test.mjs')
+    expect(gate).toContain('npm run xunjing:platform:verify:static')
+    expect(gate).toContain('doesNotReplaceProductionPreflight: true')
+    expect(gate).toContain('npm run xunjing:yudao:release:preflight')
+  })
 })
