@@ -7,11 +7,11 @@
 			</view>
 			<view class="stat-card xicheng-paper-card">
 				<text class="stat-value">{{ passportProgress }}%</text>
-				<text class="stat-label">路线护照</text>
+				<text class="stat-label">路线记录</text>
 			</view>
 			<view class="stat-card xicheng-paper-card">
 				<text class="stat-value">{{ completedTaskCount }}/{{ parentChildTasks.length }}</text>
-				<text class="stat-label">亲子研学任务</text>
+				<text class="stat-label">街区观察任务</text>
 			</view>
 		</view>
 		<view class="section-card xicheng-paper-card vision-agent-task-card">
@@ -128,19 +128,19 @@
 		</view>
 		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
-				<text class="section-title">路线护照</text>
-				<text class="section-badge">{{ badgeUnlocked ? badgeName : '待达成' }}</text>
+				<text class="section-title">路线记录进度</text>
+				<text class="section-badge">{{ badgeUnlocked ? '已完成' : '继续记录' }}</text>
 			</view>
-			<text class="section-desc">{{ routePassport.thresholdText }}</text>
+			<text class="section-desc">完成 {{ routePassport.targetCheckinCount || 3 }} 个文化点记录后，可生成更完整的路线复盘与游记素材。</text>
 			<view class="progress-track">
 				<view class="progress-fill" :style="{ width: `${passportProgress}%` }"></view>
 			</view>
-			<text class="badge-copy">西城印章会随打卡素材自动累积，完成后可用于分享海报和 PDF纪念册。</text>
+			<text class="badge-copy">路线点位会随记录素材自动累积，完成后可用于游记长文和 PDF 打印。</text>
 			<view v-if="activeBadgeAward" class="badge-award-box">
-				<text class="badge-award-title">徽章达成记录</text>
-				<text class="badge-award-copy">{{ activeBadgeAward.badgeName }} · {{ formatArtifactTime(activeBadgeAward.awardedAt) }}</text>
+				<text class="badge-award-title">路线记录达成</text>
+				<text class="badge-award-copy">记录完成 · {{ formatArtifactTime(activeBadgeAward.awardedAt) }}</text>
 			</view>
-			<button v-else class="ghost-button xicheng-secondary-action badge-claim-button" :disabled="!badgeUnlocked" @click="$emit('claim-route-badge')">领取徽章</button>
+			<button v-else class="ghost-button xicheng-secondary-action badge-claim-button" :disabled="!badgeUnlocked" @click="$emit('claim-route-badge')">更新路线进度</button>
 		</view>
 		<view class="section-card xicheng-paper-card">
 			<view class="section-head">
@@ -201,7 +201,7 @@
 				:value="remarkInput"
 				class="remark-input"
 				maxlength="240"
-				placeholder="记录现场观察、亲子问答或同行感受"
+				placeholder="记录现场观察、同行感受或一句发现"
 				@input="$emit('update:remarkInput', $event.detail.value)"
 			/>
 			<view class="evidence-actions">
@@ -210,7 +210,7 @@
 			</view>
 		</view>
 		<view class="section-card xicheng-paper-card">
-			<text class="section-title">亲子研学任务</text>
+			<text class="section-title">街区观察任务</text>
 			<view
 				v-for="(task, index) in parentChildTasks"
 				:key="`study-task-${index}`"
@@ -219,19 +219,19 @@
 				<text class="task-index">{{ index + 1 }}</text>
 				<view class="task-main">
 					<text class="task-copy">{{ task }}</text>
-					<text v-if="getStudyTaskEvidence(index)" class="task-evidence">研学任务证据：{{ formatStudyTaskEvidence(getStudyTaskEvidence(index)) }}</text>
+					<text v-if="getStudyTaskEvidence(index)" class="task-evidence">观察记录：{{ formatStudyTaskEvidence(getStudyTaskEvidence(index)) }}</text>
 					<textarea
 						v-else
 						:value="studyTaskDrafts[index]"
 						class="task-input"
 						maxlength="160"
-						placeholder="记录孩子观察、答案或一句发现"
+						placeholder="记录观察、答案或一句发现"
 						@input="$emit('update-study-task-draft', index, $event.detail.value)"
 					/>
 					<view class="task-actions">
-						<button v-if="getStudyTaskEvidence(index)" class="mini-button danger-mini-button" @click="$emit('delete-study-task-evidence', index)">删除证据</button>
+						<button v-if="getStudyTaskEvidence(index)" class="mini-button danger-mini-button" @click="$emit('delete-study-task-evidence', index)">删除记录</button>
 						<button v-else class="mini-button" @click="$emit('submit-study-task-evidence', index)">提交观察</button>
-						<button v-if="!getStudyTaskEvidence(index)" class="mini-button" @click="$emit('add-study-task-photo', index)">拍照完成</button>
+						<button v-if="!getStudyTaskEvidence(index)" class="mini-button" @click="$emit('add-study-task-photo', index)">拍照补充</button>
 					</view>
 				</view>
 				<text class="task-status">{{ getStudyTaskStatus(index) }}</text>
@@ -292,7 +292,7 @@
 				class="material-row"
 			>
 				<text class="material-title">{{ artifact.title }}</text>
-				<text class="material-meta">{{ artifact.assetLabel }} · {{ artifact.visibilityLabel || '待审核 · 未公开' }} · {{ formatArtifactTime(artifact.createdAt) }}</text>
+				<text class="material-meta">{{ getShareArtifactLabel(artifact) }} · {{ artifact.visibilityLabel || '待审核 · 未公开' }} · {{ formatArtifactTime(artifact.createdAt) }}</text>
 				<text v-if="artifact.templateLabel" class="material-meta">{{ artifact.templateLabel }}</text>
 				<view class="material-actions">
 					<button class="mini-button danger-mini-button" @click="$emit('delete-share-artifact', index)">删除产物</button>
@@ -319,9 +319,9 @@
 				</view>
 			</view>
 			<text class="section-desc">提交时间：{{ reviewSubmission.submittedAt }}</text>
-			<text class="section-desc">海报：{{ reviewSubmission.posterStatus }} · PDF：{{ reviewSubmission.pdfStatus }}</text>
+			<text class="section-desc">社交素材：{{ reviewSubmission.posterStatus }} · PDF：{{ reviewSubmission.pdfStatus }}</text>
 			<text v-if="reviewSubmission.publicPreview" class="section-desc">
-				公开预览：素材 {{ reviewSubmission.publicPreview.materialCount }} · 打卡 {{ reviewSubmission.publicPreview.checkinCount }} · 研学 {{ reviewSubmission.publicPreview.studyTaskEvidenceCount }}
+				公开预览：素材 {{ reviewSubmission.publicPreview.materialCount }} · 打卡 {{ reviewSubmission.publicPreview.checkinCount }} · 观察 {{ reviewSubmission.publicPreview.studyTaskEvidenceCount }}
 			</text>
 			<view class="material-actions">
 				<button class="mini-button danger-mini-button" @click="$emit('withdraw-review')">撤回审核</button>
@@ -452,7 +452,14 @@ export default {
 		'clear-local-data',
 		'delete-share-artifact',
 		'withdraw-review'
-	]
+	],
+	methods: {
+		getShareArtifactLabel(artifact = {}) {
+			if (artifact.assetType === 'pdf') return 'PDF 纪念册'
+			if (artifact.assetType === 'poster') return '社交分享素材'
+			return artifact.assetLabel || '游记发布素材'
+		}
+	}
 }
 </script>
 

@@ -155,7 +155,7 @@ assert.match(
 
 assert.match(
   opsDetails,
-  /artifact\.assetLabel[\s\S]*artifact\.visibilityLabel/,
+  /getShareArtifactLabel\(artifact\)[\s\S]*artifact\.visibilityLabel/,
   'Split share artifact list should show audit visibility so operators know generated works are not public'
 )
 
@@ -173,8 +173,8 @@ assert.match(
 
 assert.match(
   travelogue,
-  /createMemorialPdfTemplate\(routeTitle, createdAt\)[\s\S]*sectionKey:\s*'cover'[\s\S]*sectionKey:\s*'route-map'[\s\S]*sectionKey:\s*'photo-timeline'[\s\S]*sectionKey:\s*'travelogue-body'[\s\S]*sectionKey:\s*'knowledge-cards'[\s\S]*sectionKey:\s*'badge-page'/,
-  'PDF memorial asset should include the P0 fixed template sections: cover, route map, photo timeline, travelogue body, knowledge cards, and badge page'
+  /createMemorialPdfTemplate\(routeTitle, createdAt\)[\s\S]*sectionKey:\s*'cover'[\s\S]*sectionKey:\s*'route-map'[\s\S]*sectionKey:\s*'photo-timeline'[\s\S]*sectionKey:\s*'travelogue-body'[\s\S]*sectionKey:\s*'knowledge-cards'[\s\S]*sectionKey:\s*'route-review'/,
+  'PDF memorial asset should include the P0 fixed template sections: cover, route map, photo timeline, travelogue body, knowledge cards, and route review'
 )
 
 assert.match(
@@ -192,7 +192,7 @@ assert.match(
 assert.match(
   travelogue,
   /createMemorialPdfSourceCards\(\)[\s\S]*this\.routeCheckins[\s\S]*filter\(checkin => this\.hasReviewableRouteCheckinEvidence\(checkin\)\)[\s\S]*forEach[\s\S]*getReviewableRouteCheckinSources\(checkin\)[\s\S]*poiName:\s*checkin\.poiName \|\| ''[\s\S]*slice\(0, 8\)/,
-  'PDF memorial source cards should also summarize reviewed sources from route passport check-ins'
+  'PDF memorial source cards should also summarize reviewed sources from route record check-ins'
 )
 
 assert.match(

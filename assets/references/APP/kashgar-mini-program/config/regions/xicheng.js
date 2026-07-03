@@ -52,10 +52,10 @@ const XICHENG_REGION_BASE_CONFIG = {
 		rejected: '需修改'
 	},
 	routePassport: {
-		title: '路线护照',
-		badgePrefix: '西城印章',
+		title: '路线记录',
+		badgePrefix: '西城路线',
 		targetCheckinCount: 3,
-		thresholdText: '完成 3 个文化点打卡可生成西城路线纪念章'
+		thresholdText: '完成 3 个文化点记录可生成西城路线复盘'
 	},
 	parentChildTasks: [
 		'找一处带“塔”的建筑',

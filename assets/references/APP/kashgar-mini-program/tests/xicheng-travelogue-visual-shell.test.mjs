@@ -238,8 +238,8 @@ assert.match(
 
 assert.match(
   opsDetails,
-  /class="stats-grid"[\s\S]*记录会话[\s\S]*旅行素材盒[\s\S]*亲子研学任务[\s\S]*城市运营报告/,
-  'Split travelogue operations details should keep the long route, material, study, privacy, and ops sections'
+  /class="stats-grid"[\s\S]*旅行素材盒[\s\S]*路线记录[\s\S]*街区观察任务/,
+  'Split travelogue operations details should keep the route record, material, observation, privacy, and ops sections'
 )
 
 assert.match(

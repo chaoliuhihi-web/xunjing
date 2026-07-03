@@ -24,7 +24,7 @@ const routeBadgeAwardFactory = sliceBetween(
 
 assert.ok(
   regionConfig.includes("badgeAwardStorageKey: 'xicheng:badgeAwards'"),
-  'Xicheng config should define a local route passport badge award storage key'
+  'Xicheng config should define a local route progress award storage key'
 )
 
 for (const required of [
@@ -36,8 +36,8 @@ for (const required of [
   'createRouteBadgeAward',
   'persistRouteBadgeAward',
   'badgeAwardStorageKey',
-  '领取徽章',
-  '徽章达成记录',
+  '更新路线进度',
+  '路线记录达成',
   'awardId',
   'badgeCode',
   'badgeName',
@@ -70,8 +70,8 @@ assert.match(
 
 assert.match(
   regionConfig,
-  /routePassport:\s*\{[\s\S]*targetCheckinCount:\s*3[\s\S]*thresholdText:\s*'完成 3 个文化点打卡可生成西城路线纪念章'/,
-  'Route passport config should declare the 3-check-in completion target used by the UI copy'
+  /routePassport:\s*\{[\s\S]*title:\s*'路线记录'[\s\S]*targetCheckinCount:\s*3[\s\S]*thresholdText:\s*'完成 3 个文化点记录可生成西城路线复盘'/,
+  'Route progress config should declare the 3-check-in completion target used by the UI copy'
 )
 
 assert.match(

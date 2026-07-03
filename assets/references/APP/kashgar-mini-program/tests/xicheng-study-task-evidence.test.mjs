@@ -34,7 +34,7 @@ for (const required of [
   'completedStudyTaskEvidence',
   'hasReviewableStudyTaskEvidence',
   '提交观察',
-  '拍照完成',
+  '拍照补充',
   'submitStudyTaskEvidence',
   'addStudyTaskPhoto',
   'deleteStudyTaskEvidence',
@@ -47,8 +47,8 @@ for (const required of [
   'answerText',
   'photoPath',
   'completedAt',
-  '研学任务证据',
-  '删除证据'
+  '观察记录',
+  '删除记录'
 ]) {
   assert.ok(travelogueStudyTaskSurface.includes(required), `Travelogue should support study task evidence ${required}`)
 }
@@ -91,7 +91,7 @@ assert.match(
 
 assert.match(
   travelogue,
-  /addStudyTaskPhoto\(index\)[\s\S]*const confirmed = await this\.confirmTraveloguePhotoPurpose\('研学照片'\)[\s\S]*if \(!confirmed\) return[\s\S]*uni\.chooseImage/,
+  /addStudyTaskPhoto\(index\)[\s\S]*const confirmed = await this\.confirmTraveloguePhotoPurpose\('观察照片'\)[\s\S]*if \(!confirmed\) return[\s\S]*uni\.chooseImage/,
   'Completing a study task by photo should ask for photo-use confirmation before opening camera or album'
 )
 
@@ -103,13 +103,13 @@ assert.match(
 
 assert.match(
   opsDetails,
-  /v-if="getStudyTaskEvidence\(index\)"[\s\S]*@click="\$emit\('delete-study-task-evidence', index\)"[\s\S]*删除证据/,
+  /v-if="getStudyTaskEvidence\(index\)"[\s\S]*@click="\$emit\('delete-study-task-evidence', index\)"[\s\S]*删除记录/,
   'Split completed study task evidence should expose a delete action so users can remove photo evidence'
 )
 
 assert.match(
   opsDetails,
-  /@click="\$emit\('submit-study-task-evidence', index\)"[\s\S]*提交观察[\s\S]*@click="\$emit\('add-study-task-photo', index\)"[\s\S]*拍照完成/,
+  /@click="\$emit\('submit-study-task-evidence', index\)"[\s\S]*提交观察[\s\S]*@click="\$emit\('add-study-task-photo', index\)"[\s\S]*拍照补充/,
   'Split study task card should emit observation and photo completion events'
 )
 
@@ -121,7 +121,7 @@ assert.match(
 
 assert.match(
   travelogue,
-  /deleteStudyTaskEvidence\(index\)[\s\S]*const taskId = `study-task-\$\{index \+ 1\}`[\s\S]*this\.studyTaskEvidence = this\.studyTaskEvidence\.filter\(evidence => evidence && evidence\.taskId !== taskId\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.studyTaskStorageKey, this\.studyTaskEvidence\)[\s\S]*this\.refreshDraftFromEvidence\(\)[\s\S]*研学证据已删除/,
+  /deleteStudyTaskEvidence\(index\)[\s\S]*const taskId = `study-task-\$\{index \+ 1\}`[\s\S]*this\.studyTaskEvidence = this\.studyTaskEvidence\.filter\(evidence => evidence && evidence\.taskId !== taskId\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.studyTaskStorageKey, this\.studyTaskEvidence\)[\s\S]*this\.refreshDraftFromEvidence\(\)[\s\S]*观察记录已删除/,
   'Deleting study task evidence should remove the local photo or answer evidence, persist storage, and refresh the draft'
 )
 

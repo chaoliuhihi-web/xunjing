@@ -1427,7 +1427,7 @@ export default {
 			uni.setStorageSync(XICHENG_REGION_CONFIG.studyTaskStorageKey, this.studyTaskEvidence)
 			this.refreshDraftFromEvidence()
 			uni.showToast({
-				title: '研学证据已删除',
+				title: '观察记录已删除',
 				icon: 'none'
 			})
 		},
@@ -1450,7 +1450,7 @@ export default {
 			})
 			this.persistStudyTaskEvidence(evidence)
 			uni.showToast({
-				title: '研学任务已完成',
+				title: '观察任务已完成',
 				icon: 'none'
 			})
 		},
@@ -1464,7 +1464,7 @@ export default {
 			return new Promise(resolve => {
 				uni.showModal({
 					title: `${actionLabel}用途说明`,
-					content: '照片仅用于本次西城游记素材、研学任务证据和本地审核包，不默认公开；如你已授权定位，可记录拍摄时定位和定位精度用于足迹归属；不会用于模型评估或运营纠错，除非你另行授权。',
+					content: '照片仅用于本次西城游记素材、街区观察记录和本地审核包，不默认公开；如你已授权定位，可记录拍摄时定位和定位精度用于足迹归属；不会用于模型评估或运营纠错，除非你另行授权。',
 					confirmText: '继续',
 					cancelText: '取消',
 					success: (res) => {
@@ -1477,7 +1477,7 @@ export default {
 			})
 		},
 		async addStudyTaskPhoto(index) {
-			const confirmed = await this.confirmTraveloguePhotoPurpose('研学照片')
+			const confirmed = await this.confirmTraveloguePhotoPurpose('观察照片')
 			if (!confirmed) return
 			uni.chooseImage({
 				count: 1,
@@ -1486,7 +1486,7 @@ export default {
 				success: (res) => {
 					const filePath = res.tempFilePaths && res.tempFilePaths[0] ? res.tempFilePaths[0] : ''
 					if (!filePath) {
-						this.showPhotoEvidenceCaptureFailed('研学照片未保存，请重新选择')
+						this.showPhotoEvidenceCaptureFailed('观察照片未保存，请重新选择')
 						return
 					}
 					const evidence = this.createStudyTaskEvidence(index, 'photo', {
@@ -1495,7 +1495,7 @@ export default {
 					})
 					this.persistStudyTaskEvidence(evidence)
 					uni.showToast({
-						title: '研学照片已保存',
+						title: '观察照片已保存',
 						icon: 'none'
 					})
 				},
@@ -1512,7 +1512,7 @@ export default {
 			const award = this.createRouteBadgeAward()
 			this.persistRouteBadgeAward(award)
 			uni.showToast({
-				title: '徽章已领取',
+				title: '路线进度已更新',
 				icon: 'none'
 			})
 		},
@@ -1794,15 +1794,15 @@ export default {
 		},
 		generatePoster() {
 			if (!this.hasReviewableJourneyEvidence()) {
-				this.showWorkEvidenceRequiredToast('分享海报')
+				this.showWorkEvidenceRequiredToast('社交分享素材')
 				return
 			}
-			this.posterStatus = '分享海报已生成'
+			this.posterStatus = '社交分享素材已生成'
 			const posterAsset = this.createShareArtifact('poster')
 			this.persistShareArtifact(posterAsset)
 			this.saveDraft({ silent: true })
 			uni.showToast({
-				title: '分享海报已生成',
+				title: '社交分享素材已生成',
 				icon: 'none'
 			})
 			this.openSharePage()
@@ -1824,7 +1824,7 @@ export default {
 		},
 		submitReview() {
 			if (!this.hasReviewableJourneyEvidence()) {
-				this.showWorkEvidenceRequiredToast('作品审核')
+				this.showWorkEvidenceRequiredToast('发布前检查')
 				return
 			}
 			this.reviewText = XICHENG_REGION_CONFIG.reviewStatus.pending
@@ -1837,7 +1837,7 @@ export default {
 			this.reviewSubmission = reviewPayload
 			this.saveDraft({ silent: true })
 			uni.showToast({
-				title: '作品审核已提交',
+				title: '发布前检查已生成',
 				icon: 'none'
 			})
 			this.openWorksPage()
@@ -2083,8 +2083,8 @@ export default {
 			const routeTitle = this.recognizedRoute && this.recognizedRoute.title
 				? this.recognizedRoute.title
 				: this.importedRoute && this.importedRoute.title ? this.importedRoute.title : '西城 Citywalk'
-			const assetLabel = assetType === 'pdf' ? 'PDF纪念册' : '分享海报'
-			const assetTitle = assetType === 'pdf' ? '西城 PDF纪念册' : '西城分享海报'
+			const assetLabel = assetType === 'pdf' ? 'PDF纪念册' : '社交分享素材'
+			const assetTitle = assetType === 'pdf' ? '西城 PDF纪念册' : '西城社交分享素材'
 			const publicRouteCheckins = this.routeCheckins
 				.filter(checkin => this.hasReviewableRouteCheckinEvidence(checkin))
 				.map(checkin => this.sanitizeRouteCheckinForPublicShare(checkin))
@@ -2131,7 +2131,7 @@ export default {
 					exactCoordinatesHidden: true
 				},
 				templateCode: assetType === 'pdf' ? 'xicheng-memorial-pdf-v1' : 'xicheng-share-poster-v1',
-				templateLabel: assetType === 'pdf' ? 'PDF固定模板：封面、路线地图、照片时间线、游记正文、知识卡片、徽章页' : '分享海报固定模板',
+				templateLabel: assetType === 'pdf' ? 'PDF固定模板：封面、路线地图、照片时间线、游记正文、知识卡片、路线复盘' : '社交分享固定模板',
 				templateSections: assetType === 'pdf' ? this.createMemorialPdfTemplate(routeTitle, createdAt) : this.createPosterTemplate(routeTitle),
 				draftExcerpt: String(this.draft || '').slice(0, 80),
 				stayPointCount: this.stayPointCount,
@@ -2175,7 +2175,7 @@ export default {
 			}
 			const createdAt = artifact.createdAt || new Date().toISOString()
 			const routeTitle = artifact.routeTitle || (this.recognizedRoute && this.recognizedRoute.title) || '西城 Citywalk'
-			const assetLabel = artifact.assetLabel || (artifact.assetType === 'pdf' ? 'PDF 纪念册' : artifact.assetType === 'study' ? '亲子研学报告' : '分享海报')
+			const assetLabel = artifact.assetLabel || (artifact.assetType === 'pdf' ? 'PDF 纪念册' : artifact.assetType === 'study' ? '街区观察记录' : '社交分享素材')
 			const publicPreview = this.createReviewPublicPreview()
 			return {
 				assetId: artifact.assetId || artifact.artifactId || '',
@@ -2202,7 +2202,7 @@ export default {
 				studyTaskEvidenceCount: publicPreview.studyTaskEvidenceCount,
 				privacy: publicPreview.privacy,
 				templateCode: artifact.assetType === 'pdf' ? 'xicheng-memorial-pdf-v1' : artifact.assetType === 'study' ? 'xicheng-study-report-v1' : 'xicheng-share-poster-v1',
-				templateLabel: artifact.assetType === 'pdf' ? 'PDF固定模板：封面、路线地图、照片时间线、游记正文、知识卡片、徽章页' : artifact.assetType === 'study' ? '亲子研学报告固定模板' : '分享海报固定模板',
+				templateLabel: artifact.assetType === 'pdf' ? 'PDF固定模板：封面、路线地图、照片时间线、游记正文、知识卡片、路线复盘' : artifact.assetType === 'study' ? '街区观察记录固定模板' : '社交分享固定模板',
 				templateSections: artifact.assetType === 'pdf' ? this.createMemorialPdfTemplate(routeTitle, createdAt) : artifact.assetType === 'study' ? [] : this.createPosterTemplate(routeTitle),
 				draftExcerpt: String(this.draft || artifact.draftExcerpt || '').slice(0, 80),
 				reviewEvidencePolicy: {
@@ -2236,7 +2236,7 @@ export default {
 			return [
 				{
 					sectionKey: 'share-card',
-					title: '分享海报',
+					title: '社交分享素材',
 					routeTitle,
 					backgroundImage: XICHENG_REGION_CONFIG.visualAssets.sharePosterBackground,
 					stampImage: XICHENG_REGION_CONFIG.visualAssets.passportStamp,
@@ -2338,8 +2338,8 @@ export default {
 						.slice(0, 6)
 				},
 				{
-					sectionKey: 'badge-page',
-					title: '徽章页',
+					sectionKey: 'route-review',
+					title: '路线复盘',
 					badgeName: this.badgeName,
 					passportProgress: this.passportProgress,
 					stampImage: XICHENG_REGION_CONFIG.visualAssets.passportStamp
@@ -2373,7 +2373,7 @@ export default {
 				suggestions.push('补充已审核讲解来源，提升小京回答可信度')
 			}
 			if (this.passportProgress < 100) {
-				suggestions.push('优化路线护照任务，引导完成更多打卡点')
+				suggestions.push('优化路线记录任务，引导完成更多打卡点')
 			}
 			return suggestions.length > 0 ? suggestions : ['继续观察路线完成、分享转化和热门 POI 分布']
 		},

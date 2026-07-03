@@ -60,12 +60,12 @@ for (const required of [
 assert.match(
   travelogue,
   /createXichengTravelogueDraft\s*=\s*\(\{[\s\S]*routeCheckins = \[\][\s\S]*const routeCheckinNames[\s\S]*hasReviewableRouteCheckinEvidence[\s\S]*const photoCount[\s\S]*const remarkTexts[\s\S]*routeCheckinText[\s\S]*photoText[\s\S]*remarkText[\s\S]*return `今天的西城 Citywalk/,
-  'Travelogue draft generator should summarize photo evidence, user remarks, and route passport check-ins'
+  'Travelogue draft generator should summarize photo evidence, user remarks, and route record check-ins'
 )
 
 assert.match(
   travelogueUiSurface,
-  /textarea[\s\S]*(v-model="remarkInput"|:value="remarkInput")[\s\S]*placeholder="记录现场观察、亲子问答或同行感受"/,
+  /textarea[\s\S]*(v-model="remarkInput"|:value="remarkInput")[\s\S]*placeholder="记录现场观察、同行感受或一句发现"/,
   'Travelogue page should expose a user remark input'
 )
 

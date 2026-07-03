@@ -35,11 +35,11 @@ for (const required of [
   '灵感导入路线',
   '灵感导入记录',
   '识别推荐路线',
-  '路线护照',
+  '路线记录进度',
   '路线打卡',
   '旅行素材盒',
   '现场备注',
-  '亲子研学任务',
+  '街区观察任务',
   '游记草稿',
   '隐私与本地数据',
   '分享产物包',
@@ -48,6 +48,12 @@ for (const required of [
 ]) {
   assert.ok(opsDetails.includes(required), `Split operations detail component should keep section ${required}`)
 }
+
+assert.doesNotMatch(
+  opsDetails,
+  /路线护照|亲子研学任务|研学任务证据|研学照片|徽章|领取徽章|分享海报|孩子观察/,
+  'Split operations detail component should use simplified route record, street observation, and travelogue material language'
+)
 
 assert.doesNotMatch(
   travelogue,
