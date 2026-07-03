@@ -287,7 +287,7 @@ export default {
 			if (this.materials.length + this.routeCheckins.length + this.shareArtifacts.length === 0) {
 				return '数据累积后，小京会基于识别、路线和审核汇总给出运营建议。'
 			}
-			return '建议优先关注来源待复核内容，并结合热门 POI 调整路线和亲子研学任务运营。'
+			return '建议优先关注来源待复核内容，并结合热门 POI 调整路线和街区观察任务运营。'
 		}
 	},
 	onShow() {

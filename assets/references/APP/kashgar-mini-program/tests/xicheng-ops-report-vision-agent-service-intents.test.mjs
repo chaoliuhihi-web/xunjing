@@ -65,3 +65,15 @@ assert.match(
   /insightCopy\(\)[\s\S]*this\.merchantServiceTaskCount > 0[\s\S]*商家服务意图/,
   'Xiaojing ops insight should react when AI识境 has captured merchant service demand'
 )
+
+assert.match(
+  opsReport,
+  /建议优先关注来源待复核内容，并结合热门 POI 调整路线和街区观察任务运营。/,
+  'Xiaojing ops insight should use the simplified route and street-observation operating language'
+)
+
+assert.doesNotMatch(
+  opsReport,
+  /亲子研学任务运营/,
+  'Xiaojing ops insight should not reintroduce the removed parent-child study-task operating language'
+)
