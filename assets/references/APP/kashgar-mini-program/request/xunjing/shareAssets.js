@@ -54,3 +54,46 @@ export const createXichengShareSystemConfirmModalOptions = ({ channelKey = '', a
 		cancelText: '稍后'
 	}
 }
+
+export const createXichengPdfPrintArtifact = ({
+	title = '在白塔下遇见西城',
+	pageCount = 6,
+	materialCount = 0,
+	reviewedSourceCount = 0,
+	routeStops = [],
+	printSettings = [],
+	region = {}
+} = {}) => {
+	const createdAt = new Date().toISOString()
+	return {
+		artifactId: `pdf-print-${Date.now()}`,
+		assetType: 'pdf',
+		assetLabel: getXichengShareChannelAssetLabel('pdf', 'pdf'),
+		templateCode: getXichengShareChannelTemplateCode('pdf', 'pdf'),
+		publishChannel: 'pdf',
+		title,
+		description: `A4 PDF纪念册 · ${pageCount}页 · 可打印`,
+		pageCount,
+		reviewedSourceCount,
+		materialCount,
+		routeStops: Array.isArray(routeStops) ? routeStops.slice(0, 8) : [],
+		printSettings: Array.isArray(printSettings) ? printSettings : [],
+		regionCode: region.regionCode || '',
+		packageCode: region.packageCode || '',
+		sceneCode: region.sceneCode || '',
+		sourceChannel: region.sourceChannel || '',
+		companionName: region.companionName || '',
+		reviewEvidencePolicy: {
+			rawEvidenceUse: 'local-print-preview-only',
+			exactLocationPolicy: 'hidden-by-default',
+			auditRequired: true,
+			publishStatus: 'private'
+		},
+		auditRequired: true,
+		reviewStatus: region.reviewStatus && region.reviewStatus.pending ? region.reviewStatus.pending : 'PENDING_REVIEW',
+		publishStatus: 'private',
+		visibilityLabel: '本机保存 · 未发布',
+		pdfExportStatus: 'local_saved',
+		createdAt
+	}
+}

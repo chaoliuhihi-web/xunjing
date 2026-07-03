@@ -5,6 +5,7 @@ import path from 'node:path'
 const root = process.cwd()
 const pdfPrint = fs.readFileSync(path.join(root, 'pages', 'xicheng', 'pdf-print', 'pdf-print.vue'), 'utf8')
 const previewComponentPath = path.join(root, 'components', 'xicheng', 'XichengPdfPrintPreview.vue')
+const shareAssets = fs.readFileSync(path.join(root, 'request', 'xunjing', 'shareAssets.js'), 'utf8')
 const getMethodBlock = (source, methodName) => {
   const match = source.match(new RegExp(`${methodName}\\(\\)\\s*\\{([\\s\\S]*?)\\n\\t\\t\\},`))
   return match ? match[1] : ''
@@ -120,8 +121,32 @@ assert.match(
 
 assert.match(
   pdfPrint,
-  /async savePdf\(\)[\s\S]*const confirmed = await this\.confirmPdfExportAction\('保存 PDF'\)[\s\S]*if \(!confirmed\) return[\s\S]*PDF 已保存到本机预览/,
-  'Save PDF action should be gated by the export confirmation copy'
+  /async savePdf\(\)[\s\S]*const confirmed = await this\.confirmPdfExportAction\('保存 PDF'\)[\s\S]*if \(!confirmed\) return[\s\S]*PDF 纪念册已保存到我的游记/,
+  'Save PDF action should be gated by the export confirmation copy before saving to my travelogues'
+)
+
+assert.match(
+  pdfPrint,
+  /import \{ createXichengPdfPrintArtifact \} from '@\/request\/xunjing\/shareAssets\.js'/,
+  'PDF print page should delegate saved PDF artifact construction to the shared share-asset helper'
+)
+
+assert.match(
+  shareAssets,
+  /createXichengPdfPrintArtifact = \(\{[\s\S]*artifactId:\s*`pdf-print-\$\{Date\.now\(\)\}`[\s\S]*assetType:\s*'pdf'[\s\S]*assetLabel:\s*getXichengShareChannelAssetLabel\('pdf', 'pdf'\)[\s\S]*templateCode:\s*getXichengShareChannelTemplateCode\('pdf', 'pdf'\)[\s\S]*publishChannel:\s*'pdf'[\s\S]*title[\s\S]*pageCount[\s\S]*reviewedSourceCount[\s\S]*materialCount[\s\S]*publishStatus:\s*'private'/,
+  'Shared share-asset helper should create a reusable local PDF artifact with print metadata and private publish status'
+)
+
+assert.match(
+  pdfPrint,
+  /persistSavedPdfArtifact\(artifact = \{\}\)[\s\S]*this\.shareArtifacts = \[artifact, \.\.\.existingArtifacts\.filter\(item => item && item\.artifactId !== artifact\.artifactId\)\]\.slice\(0, 8\)[\s\S]*uni\.setStorageSync\(XICHENG_REGION_CONFIG\.shareAssetStorageKey, this\.shareArtifacts\)/,
+  'PDF print page should persist saved PDF artifacts into the same local share asset library used by 我的游记'
+)
+
+assert.match(
+  pdfPrint,
+  /async savePdf\(\)[\s\S]*const confirmed = await this\.confirmPdfExportAction\('保存 PDF'\)[\s\S]*if \(!confirmed\) return[\s\S]*const pdfArtifact = createXichengPdfPrintArtifact\(\{[\s\S]*title:\s*this\.printTitle[\s\S]*pageCount:\s*this\.previewPages\.length[\s\S]*this\.persistSavedPdfArtifact\(pdfArtifact\)[\s\S]*PDF 纪念册已保存到我的游记/,
+  'Save PDF action should create and persist a reusable local PDF artifact after user confirmation'
 )
 
 assert.match(

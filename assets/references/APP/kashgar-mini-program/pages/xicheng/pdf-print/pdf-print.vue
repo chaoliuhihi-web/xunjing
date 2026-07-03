@@ -99,6 +99,7 @@
 
 <script>
 import { XICHENG_REGION_CONFIG } from '@/config/regions/xicheng.js'
+import { createXichengPdfPrintArtifact } from '@/request/xunjing/shareAssets.js'
 import XichengPdfPrintPreview from '@/components/xicheng/XichengPdfPrintPreview.vue'
 
 const safeArray = value => Array.isArray(value) ? value : []
@@ -259,6 +260,7 @@ export default {
 		previewAllPages() {
 			this.showAllPagesPreview = !this.showAllPagesPreview
 		},
+		persistSavedPdfArtifact(artifact = {}) { if (!artifact || !artifact.assetType) return; const existingArtifacts = safeArray(this.shareArtifacts); this.shareArtifacts = [artifact, ...existingArtifacts.filter(item => item && item.artifactId !== artifact.artifactId)].slice(0, 8); uni.setStorageSync(XICHENG_REGION_CONFIG.shareAssetStorageKey, this.shareArtifacts) },
 		confirmPdfExportAction(actionLabel = '') {
 			return new Promise((resolve) => {
 				uni.showModal({
@@ -274,7 +276,9 @@ export default {
 		async savePdf() {
 			const confirmed = await this.confirmPdfExportAction('保存 PDF')
 			if (!confirmed) return
-			uni.showToast({ title: 'PDF 已保存到本机预览', icon: 'none' })
+			const pdfArtifact = createXichengPdfPrintArtifact({ title: this.printTitle, pageCount: this.previewPages.length, materialCount: this.materialCount, reviewedSourceCount: this.reviewedSourceCount, routeStops: this.routeStops, printSettings: this.printSettings, region: this.region })
+			this.persistSavedPdfArtifact(pdfArtifact)
+			uni.showToast({ title: 'PDF 纪念册已保存到我的游记', icon: 'none' })
 		},
 		systemPrintPdf() {
 			this.sharePdf()
