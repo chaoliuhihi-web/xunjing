@@ -11,7 +11,8 @@ const currentDocs = [
   'docs/README.md',
   'docs/00_项目总览/资料索引.md',
   'docs/01_产品规划/README.md',
-  'docs/01_产品规划/寻境C端产品功能文档_v1.4.md',
+  'docs/01_产品规划/寻境C端产品功能文档_v1.5.md',
+  'docs/01_产品规划/寻境C端重点体验设计细化_v1.0.md',
   'docs/01_产品规划/寻境业务对象与状态机文档_v1.2.md',
   'docs/02_开发规划/开发入口说明.md',
   'docs/02_开发规划/寻境C端完整产品技术实施蓝图_v1.0.md',
@@ -43,7 +44,8 @@ for (const relativePath of currentDocs) {
 
 const docsIndex = read('docs/README.md')
 for (const token of [
-  '寻境 C 端产品功能文档 v1.4',
+  '寻境 C 端产品功能文档 v1.5',
+  '寻境 C 端重点体验设计细化 v1.0',
   '寻境业务对象与状态机文档 v1.2',
   '寻境 C 端完整产品技术实施蓝图 v1.0',
   '寻境 C 端完整产品 AI 实施任务书 v1.0',
@@ -54,12 +56,15 @@ for (const token of [
 }
 assert.ok(docsIndex.includes('当前分支：`main`'), 'docs index must declare main as the current branch')
 
-const product = read('docs/01_产品规划/寻境C端产品功能文档_v1.4.md')
+const product = read('docs/01_产品规划/寻境C端产品功能文档_v1.5.md')
 assert.match(product, /完整产品的六个闭环/)
 assert.match(product, /规划一次新旅行/)
 assert.match(product, /旅行结束了，做成作品/)
 assert.match(product, /标准商品不拆分定金和尾款/)
 assert.match(product, /合作方、加盟、渠道分润和结算功能暂不进入产品范围/)
+assert.match(product, /完整旅程回放/)
+assert.match(product, /整本节奏/)
+assert.match(product, /照片位置点线/)
 
 const objects = read('docs/01_产品规划/寻境业务对象与状态机文档_v1.2.md')
 assert.match(objects, /DRAFT -> COMPLETED/)
@@ -84,7 +89,7 @@ const acceptance = read('docs/05_验收与证据/寻境C端P0验收门禁_v1.0.m
 for (let level = 0; level <= 6; level += 1) {
   assert.ok(acceptance.includes(`L${level}`), `acceptance gate must include L${level}`)
 }
-for (const scenario of ['U1 行后直接做作品', 'U2 行前计划', 'U3 轻行中', 'U4 同行共同素材', 'U5 订单与售后', 'U6 隐私与删除']) {
+for (const scenario of ['U1 行后直接做作品', 'U2 行前计划', 'U3 轻行中', 'U4 同行共同素材', 'U5 订单与售后', 'U6 隐私与删除', 'U7 完整旅程回放与路线证据']) {
   assert.ok(acceptance.includes(scenario), `acceptance gate must include ${scenario}`)
 }
 
