@@ -5,6 +5,7 @@
 - 产品依据：[寻境 C 端产品功能文档 v1.5](../01_产品规划/寻境C端产品功能文档_v1.5.md)
 - 重点体验设计：[寻境 C 端重点体验设计细化 v1.0](../01_产品规划/寻境C端重点体验设计细化_v1.0.md)
 - 对象依据：[寻境业务对象与状态机文档 v1.2](../01_产品规划/寻境业务对象与状态机文档_v1.2.md)
+- 成书生产架构：[寻境 Codex Harness 成书生产架构与 Skill 运维规范 v1.0](./寻境CodexHarness成书生产架构与Skill运维规范_v1.0.md)
 - 执行入口：[寻境 C 端完整产品 AI 实施任务书 v1.0](../04_AI交接任务书/寻境C端完整产品AI实施任务书_v1.0.md)
 - 验收依据：[寻境 C 端 P0 验收门禁 v1.0](../05_验收与证据/寻境C端P0验收门禁_v1.0.md)
 
@@ -40,7 +41,7 @@
 | 独立旅行书页面 | `pages/memory-book/app/app.vue` | 作为“旅行结束做作品”入口的迁移基础 |
 | 成书云端客户端 | `request/xunjing/memoryBookCloud.js` | 已具备任务创建、代理图/原图上传、提交、修改、查询和制品访问契约 |
 | Yudao 成书网关 | `controller/app/memorybook/`、`service/memorybook/` | 可继续代理 Worker，但鉴权、持久业务对象和错误模型需升级 |
-| 成书 Worker | `services/memory-book-worker/` | 已有真实照片输入、Codex 编辑、SVG/PDF、逐页预览和机械 QA 基础 |
+| 成书 Worker | `services/memory-book-worker/` | 已有 `openai-codex` Harness、结构化编辑、全量选片决策、两轮审稿、SVG/PDF、逐页预览和机械 QA 基础，但未因此自动视为服务器生产已闭环 |
 | 部署与门禁 | `ops/compose.prod.yml`、`scripts/memory-book-cloud-workflow.test.mjs`、根 `package.json` | 继续扩展，不创建 demo-only 发布路径 |
 | Yudao 平台基座 | `backend/yudao/yudao-module-xunjing/` | Trip、作品、订单、履约业务继续进入本模块 |
 
@@ -54,6 +55,7 @@
 6. 动态预演、计划电影和真实回忆电影没有形成同一套可持久化、可回看、可分享的制品契约。
 7. 当前未形成真实的一次付款、印刷任务、物流、退款、重印和用户订单查询闭环。
 8. 小红书、抖音、视频号只在运营思路中存在，尚需可审计的 `sourcePlatform/sourceContentId/sourceCampaignId` 进入旅程和订单漏斗。
+9. 当前 Worker 未在仓库受管路径安装并验证 `travel-memory-book` Skill，也未建立 Skill 版本/哈希、真实加载、预发、灰度和回滚证据；本地 Harness 可调用不等于云端成书链路可上线。
 
 ## 3. 目标技术架构
 
@@ -74,13 +76,16 @@ Yudao yudao-module-xunjing
         ├─ Redis/队列：短期锁、幂等和异步任务协调
         ├─ 对象存储：原图、代理图、SVG、PDF、视频、QA
         ├─ 合规地图/POI 服务：地点匹配、路线显示、导航调起
-        └─ Memory Book Worker / Movie Render Worker
+        └─ Publication Harness Runner / Movie Render Worker
+             ├─ Codex SDK / App Server
+             ├─ pinned travel-memory-book Skill
+             └─ deterministic renderer / QA
 ```
 
 ### 3.1 所有权边界
 
 - Yudao 是账户、权限、业务状态、订单和审计事实源。
-- Worker 只执行可重试的媒体/成书任务，不拥有用户、订单和最终业务状态。
+- Publication Harness Runner 和其 Worker 只执行可重试的媒体/成书任务，不拥有用户、订单和最终业务状态，也不持有这些系统的写凭据。
 - 对象存储保存二进制；MySQL 只保存对象键、哈希、元数据和状态，不把原图写进数据库。
 - 客户端只保存短期草稿和上传进度；任何“我的作品”“订单”“已完成”都以服务端为准。
 - AI 负责提取、组织、生成和解释；确定性代码负责权限、状态、金额、哈希、页数、质量阈值和履约。
@@ -136,11 +141,23 @@ backend/yudao/yudao-module-xunjing/src/test/resources/sql/
 
 ```text
 services/memory-book-worker/
-├── app/                            # 任务 API、编辑、排版和渲染
-└── tests/                          # PDF/渲染/任务行为测试
+├── .agents/skills/travel-memory-book/ # 目标：受版本管理的生产 Skill
+├── app/                              # 任务 API、Harness 适配、编辑、排版和渲染
+└── tests/                            # Skill 发现、PDF/渲染/任务行为测试
 ```
 
 生产任务必须包含：`jobNo`、`tenantId`、`userId`、`tripId`、输入 manifest 哈希、引擎版本、重试次数、输出哈希和错误代码。代理图用于快速首版，正式印刷版必须从原图重新生成并通过 QA。
+
+成书任务在原有字段外，必须记录 Worker 镜像、Codex SDK/Harness、模型/推理强度、`travel-memory-book` Skill 版本/校验摘要、渲染器/QA 版本和真实 Skill 加载结果。
+
+### 4.4 Codex Harness 与 Skill 运行时
+
+- 正式生产以 Codex SDK / App Server 作为程序化任务控制面；`codex exec --json` 仅用于 CI、安装检查和故障诊断。
+- 通过验收的 Skill 随不可变 Worker 镜像发布，每任务只读暴露为 `/workspace/.agents/skills/travel-memory-book`。
+- Runner 在处理原图前必须证明 `skillLoaded=true` 且实际版本/校验摘要与任务契约一致；失败时不进入生成。
+- 每个任务使用非特权临时工作区，原图只读，出站网络按白名单开放，不暴露主库、支付和物流凭据。
+- Skill 不受管地“跟随 latest”、把 Skill 全文复制到 Worker 提示词、或 Skill 失效时降级为通用提示词均属于发布阻断。
+- 完整安装、制品、安全、灰度和回滚契约以配套的 [Harness/Skill 运维规范](./寻境CodexHarness成书生产架构与Skill运维规范_v1.0.md) 为准。
 
 ## 5. 目标业务表
 
@@ -224,6 +241,8 @@ API 必须使用 DTO/VO，不允许 `Map<String,Object>` 继续扩张到新业�
 4. 自动重试只处理明确的瞬时错误；内容不合法、权限失败、原图缺失和 QA 失败必须人工或用户处理。
 5. 所有制品记录输入 manifest、代码版本、模型版本、模板版本和输出 SHA-256。
 6. `COMPLETED` 只能在制品实际存在、可读取且 QA 通过后写入。
+7. 成书任务额外记录 Skill 名称、版本、SHA-256 和真实加载结果；Skill 不匹配时失败关闭。
+8. Harness 任务的超时、取消、重启恢复和资源额度有持久证据，不以进程内线程池代替生产队列。
 
 ## 9. 支付与履约边界
 
@@ -241,6 +260,7 @@ P0 后台至少能查看：
 - Trip、来源、用户和当前状态。
 - 上传会话、照片数量、失败文件和恢复次数。
 - 链接解析、重建、电影、成书和删除任务。
+- Codex Harness/SDK、模型、推理强度、`travel-memory-book` Skill、渲染器和 QA 版本，以及 `skillLoaded`、运行耗时、token/成本、最近灰度和回滚。
 - 每次生成的版本、输入/输出哈希和 QA 结果。
 - 需要人工处理的高影响问题和例外审核。
 - 订单、支付回调、印刷、物流、退款和重印。
@@ -257,7 +277,7 @@ P0 后台至少能查看：
 
 ### M1：行后成书与真实交易
 
-完成 `行后入口 -> Trip -> 上传 -> 重建 -> 证据地图/整本节奏 -> BookVersion -> 保护性预览 -> 一次付款 -> PrintJob -> Shipment`。这是第一个必须真实贯通的垂直切片。
+完成 `行后入口 -> Trip -> 上传 -> 重建 -> 服务器 Codex Harness + pinned travel-memory-book Skill -> 证据地图/整本节奏 -> BookVersion -> 保护性预览 -> 一次付款 -> PrintJob -> Shipment`。这是第一个必须真实贯通的垂直切片。
 
 ### M2：行前计划与动态预演
 
@@ -282,6 +302,8 @@ P0 后台至少能查看：
 - 不用固定 JSON、定时器、硬编码图片或“生成成功”文案代替真实任务。
 - 不默认开启持续定位，也不把完整轨迹设为成书前提。
 - 不让模型决定订单金额、支付结果、隐私权限、状态跳转和是否可印刷。
+- 不在 Worker 中手工复制 `travel-memory-book` Skill 规则，不在 Skill 未加载时回退到通用提示词或固定模板。
+- 不把 Codex Harness 暴露为面向 C 端用户的通用 Agent，不允许用户修改 Skill、工具权限或执行任意代码。
 - 不绕过第三方平台登录、付费墙、验证码和反抓取控制。
 - 不把合作方、加盟、佣金和结算夹带进当前 C 端任务。
 - 不在当前脏工作树中重置或顺带提交无关代码。

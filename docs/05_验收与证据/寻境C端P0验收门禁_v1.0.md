@@ -3,6 +3,7 @@
 - 文档日期：2026-09-01
 - 状态：CURRENT / RELEASE GATE
 - 产品依据：[寻境 C 端产品功能文档 v1.5](../01_产品规划/寻境C端产品功能文档_v1.5.md)
+- 成书架构：[寻境 Codex Harness 成书生产架构与 Skill 运维规范 v1.0](../02_开发规划/寻境CodexHarness成书生产架构与Skill运维规范_v1.0.md)
 - 执行依据：[寻境 C 端完整产品 AI 实施任务书 v1.0](../04_AI交接任务书/寻境C端完整产品AI实施任务书_v1.0.md)
 
 ## 1. 总原则
@@ -45,7 +46,7 @@ npm run test:run -- scripts/project-structure-contract.test.mjs
 必须满足：
 
 - `docs/README.md` 可从根 README 到达。
-- 产品、对象、技术、任务、验收五份 CURRENT 文档互相链接。
+- 产品、对象、技术、Harness/Skill 架构、任务和验收六份 CURRENT 文档互相链接。
 - 当前分支写 `main`，不再把旧 `product/city-companion-main` 当主线。
 - 当前范围明确是完整 C 端；合作方功能不进入 P0。
 - AI 任务书每项有唯一 ID、依赖、路径和完成定义。
@@ -78,6 +79,15 @@ node tests/xicheng-memory-book-pilot.test.mjs
 python3 -m pytest services/memory-book-worker/tests -q
 npm run xunjing:memory-book:contract
 ```
+
+`XJ-C1-04` 完成时必须把以下脚本加入统一门禁，在脚本尚未实现前对应项只能标记 `MISSING`：
+
+```bash
+npm run xunjing:codex-harness:verify
+npm run xunjing:memory-book:skill-contract
+```
+
+必须检查干净 Linux 容器中的 Harness/SDK 版本、沙箱、Skill 发现、`travel-memory-book` 版本/SHA-256、`skillLoaded=true`、Skill 缺失时 fail closed、原图只读和输出制品契约。
 
 ### 4.4 Yudao
 
@@ -113,9 +123,9 @@ npm run build
 
 ### 5.3 服务
 
-- Yudao、MySQL、Redis、对象存储和 Worker 使用正式 compose/config 启动。
+- Yudao、MySQL、Redis、对象存储和 Publication Harness Runner 使用正式 compose/config 启动。
 - `/app-api/xunjing/**` 公网网关和本地集成环境分别记录 base URL。
-- 健康检查只能证明进程可用，不能替代业务任务。
+- 健康检查只能证明进程可用，不能替代业务任务或证明 Skill 已被真实加载。
 
 ## 6. L3：API、持久化与权限门禁
 
@@ -129,6 +139,8 @@ npm run build
 6. 重复请求和幂等。
 7. 服务重启后的状态恢复。
 8. 删除后的读取和对象存储状态。
+
+成书任务还必须验证 Yudao 是业务状态事实源，Harness 只能回传受约束的任务结果；Runner 不得直连改写订单、支付、印刷或用户状态。
 
 必须保存脱敏证据：
 
@@ -203,6 +215,17 @@ OWNER 邀请 -> VIEWER 只看 -> MEMBER 加入
 
 至少使用一趟有有效轨迹和一趟完全无轨迹的真实样本。无轨迹样本不得出现道路级连续实线；地图不可用时必须回退到按日时刻和媒体回放。
 
+### U8 Codex Harness 成书与改版
+
+```text
+服务器认领真实成书任务 -> 校验输入 manifest
+-> 加载 pinned travel-memory-book Skill -> 审阅 100+ 真实照片
+-> 旅程模型/选片/书稿计划 -> 逐页渲染 -> QA -> 上传制品
+-> 用户提交一句改版 -> 新版本与差异 -> 回退上版
+```
+
+证据必须包含 `skillLoaded=true`、Skill 版本/SHA-256、原图前后 SHA-256、输入/输出 manifest、全页预览、印刷 PDF、QA 报告、修订历史、耗时/token/成本和最终 Yudao 业务 ID。另存一次 Skill 缺失、一次 QA 失败、一次任务取消和一次重启恢复证据；它们均不得被标记为可印刷。
+
 ## 8. L5：外部依赖与真实履约门禁
 
 ### 8.1 对象存储
@@ -228,6 +251,13 @@ OWNER 邀请 -> VIEWER 只看 -> MEMBER 加入
 - 至少 5 本真实样书或试运营订单完成生产，至少 1 本完成物流签收。
 - PDF 页数、尺寸、出血、DPI、字体和订单信息可追溯。
 
+### 8.5 Codex Harness 与 Skill 生产环境
+
+- Worker 镜像中包含已批准的 `travel-memory-book` Skill，无运行时“跟随 latest”或开发机个人目录依赖。
+- API Key/工作负载凭据来自服务器密钥管理，不进入镜像、仓库、`auth.json`、日志和制品。
+- 每任务非特权隔离、原图只读、出站白名单、资源限额和工作区清理均经故障注入。
+- 新 Harness/模型/Skill/渲染器组合完成预发、5–10 单灰度和真实回滚演练。
+
 ## 9. L6：业务与质量门禁
 
 第一轮以 30–50 名有效旅行用户为样本；最终扩大判断使用产品文档第 16.4 节的 50 人口径。
@@ -237,6 +267,7 @@ OWNER 邀请 -> VIEWER 只看 -> MEMBER 加入
 - 小红书、抖音、视频号、自然访问分别带来的有效用户。
 - 上传开始率、100 张以上上传完成率和恢复成功率。
 - 首版生成成功率、平均生成时间和打开率。
+- Codex Harness 任务成功率、P50/P95 耗时、token/模型成本、Skill 加载失败、版本分布、灰度异常和回滚次数。
 - 0–1 次关键修改占比、两轮内定稿率。
 - 全款订单、真实签收、退款和重印。
 - 每单人工介入分钟、模型/存储/印刷/物流/支付/售后成本和贡献毛利。

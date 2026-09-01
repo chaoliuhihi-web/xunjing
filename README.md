@@ -16,8 +16,9 @@
 3. [`寻境 C 端产品功能文档 v1.5`](docs/01_产品规划/寻境C端产品功能文档_v1.5.md)：产品功能与用户体验。
 4. [`寻境 C 端重点体验设计细化 v1.0`](docs/01_产品规划/寻境C端重点体验设计细化_v1.0.md)：完整旅程回放、路线证据、自动成书地图与整本节奏。
 5. [`寻境 C 端完整产品技术实施蓝图 v1.0`](docs/02_开发规划/寻境C端完整产品技术实施蓝图_v1.0.md)：目标架构与代码落点。
-6. [`寻境 C 端完整产品 AI 实施任务书 v1.0`](docs/04_AI交接任务书/寻境C端完整产品AI实施任务书_v1.0.md)：任务 ID、依赖和完成定义。
-7. [`寻境 C 端 P0 验收门禁 v1.0`](docs/05_验收与证据/寻境C端P0验收门禁_v1.0.md)：测试、运行、履约和业务证据。
+6. [`寻境 Codex Harness 成书生产架构与 Skill 运维规范 v1.0`](docs/02_开发规划/寻境CodexHarness成书生产架构与Skill运维规范_v1.0.md)：服务器 Harness、`travel-memory-book` 安装、版本、安全、灰度和回滚。
+7. [`寻境 C 端完整产品 AI 实施任务书 v1.0`](docs/04_AI交接任务书/寻境C端完整产品AI实施任务书_v1.0.md)：任务 ID、依赖和完成定义。
+8. [`寻境 C 端 P0 验收门禁 v1.0`](docs/05_验收与证据/寻境C端P0验收门禁_v1.0.md)：测试、运行、履约和业务证据。
 
 遇到旧 PRD、旧分支说明或历史任务书与上述文档冲突时，以 `docs/README.md` 中的权威顺序为准。
 
@@ -46,7 +47,7 @@ src/                                        # 星河寻境官网
 public/                                     # 官网公开静态资源
 assets/references/APP/kashgar-mini-program/ # UniApp/H5/小程序正式迁移与复用基座
 backend/yudao/                              # 独立 Yudao 后台与 yudao-module-xunjing
-services/memory-book-worker/                # 旅行书编辑、SVG/PDF 渲染与机械 QA
+services/memory-book-worker/                # Codex Harness + travel-memory-book Skill + 渲染/QA
 ops/                                        # Compose、Nginx、环境变量样例和部署配置
 scripts/                                    # 测试、发布和 readiness 门禁
 docs/                                       # 产品、技术、任务和验收文档

@@ -7,6 +7,7 @@
 - 重点体验设计：[寻境 C 端重点体验设计细化 v1.0](../01_产品规划/寻境C端重点体验设计细化_v1.0.md)
 - 对象依据：[寻境业务对象与状态机文档 v1.2](../01_产品规划/寻境业务对象与状态机文档_v1.2.md)
 - 技术依据：[寻境 C 端完整产品技术实施蓝图 v1.0](../02_开发规划/寻境C端完整产品技术实施蓝图_v1.0.md)
+- 成书架构：[寻境 Codex Harness 成书生产架构与 Skill 运维规范 v1.0](../02_开发规划/寻境CodexHarness成书生产架构与Skill运维规范_v1.0.md)
 - 验收依据：[寻境 C 端 P0 验收门禁 v1.0](../05_验收与证据/寻境C端P0验收门禁_v1.0.md)
 - 执行台账：[寻境 C 端实施执行台账](./寻境C端实施执行台账.md)
 
@@ -74,7 +75,7 @@ git rev-list --left-right --count HEAD...origin/main
 | XJ-C1-01 | 统一 Trip/计划/成员服务端底座 | C0-01 | Yudao、SQL | TODO |
 | XJ-C1-02 | 用户身份、临时令牌与私人制品权限 | C1-01 | Yudao、APP 请求层 | TODO |
 | XJ-C1-03 | 对象存储与可恢复媒体上传 | C1-01、C1-02 | Yudao、APP、ops | TODO |
-| XJ-C1-04 | 持久异步任务与类型化 Worker 适配 | C1-01、C1-03 | Yudao、Worker、scripts | TODO |
+| XJ-C1-04 | 持久异步任务、Codex Harness 与 Skill 生产化 | C1-01、C1-03 | Yudao、Worker、ops、scripts | TODO |
 | XJ-C2-01 | “寻境”品牌迁移与双入口首页 | C1-01 | APP 页面、组件、测试 | TODO |
 | XJ-C2-02 | 行后照片识别与实际旅程重建 | C1-03、C2-01 | APP、Yudao、Worker | TODO |
 | XJ-C2-03 | 旅行书真实首版、翻页与轻修改 | C1-04、C2-02 | APP、Yudao、Worker | TODO |
@@ -188,11 +189,11 @@ git rev-list --left-right --count HEAD...origin/main
 - 同文件重复上传不会产生两份有效素材。
 - 权限拒绝、空间不足、文件损坏和对象存储不可用有明确用户反馈。
 
-### XJ-C1-04 持久异步任务与类型化 Worker 适配
+### XJ-C1-04 持久异步任务、Codex Harness 与 Skill 生产化
 
 **目标**
 
-把现有 memory-books `Map` 网关封装为类型化内部适配器，并让重建、成书、电影和删除任务可持久、幂等、可恢复。
+把现有 memory-books `Map` 网关封装为类型化内部适配器，并把现有 Codex Worker 升级为服务器 Publication Harness Runner；重建、成书、电影和删除任务必须可持久、幂等、可恢复。
 
 **实现要求**
 
@@ -201,11 +202,19 @@ git rev-list --left-right --count HEAD...origin/main
 - Worker 继续只做媒体生成，不直接修改订单状态。
 - `COMPLETED` 前校验制品存在、哈希可读、QA 通过。
 - 保留现有 `/v1/jobs` 内部契约，外部 APP 只调用 `/app-api/xunjing/**`。
+- 使用 Codex SDK / App Server 作为生产任务控制面；`codex exec --json` 只作 CI/诊断，不拼接用户输入执行 Shell。
+- 将经审核的 `travel-memory-book` 安装到 `services/memory-book-worker/.agents/skills/travel-memory-book/`，随不可变 Worker 镜像发布，运行时以只读形式暴露到 `/workspace/.agents/skills/travel-memory-book`。
+- 任务记录 Worker 镜像、Codex SDK/Harness、模型/推理强度、Skill 版本/SHA-256、渲染器、QA 版本和 `skillLoaded`。
+- Skill 未加载、版本或 SHA-256 不匹配时失败关闭，禁止回退到通用提示词、固定模板或非 Codex 编辑。
+- 每任务使用非特权隔离工作区和只读原图，限制网络、文件、CPU、内存、磁盘、超时、并发和重试，不持有主库/支付/物流写凭据。
+- 新 Skill/模型/Harness 组合先预发，再灰度 5–10 个真实任务，且可回滚到上一镜像摘要和 Skill SHA-256。
 
 **完成定义**
 
 - 进程重启、重复提交、Worker 超时、QA 失败和原图缺失测试通过。
 - 现有 `npm run xunjing:memory-book:contract` 保持通过并新增持久任务测试。
+- 干净 Linux/云形态容器的运行 manifest 证明 `skillLoaded=true`、Skill 版本/SHA-256 与任务契约一致，且 Skill 缺失故障注入正确阻断。
+- 至少一趟 100 张以上真实照片完成 Harness 端到端成书，服务重启可恢复，重复请求不重复调用模型或生成制品。
 
 ### XJ-C2-01 “寻境”品牌迁移与双入口首页
 
@@ -272,6 +281,8 @@ git rev-list --left-right --count HEAD...origin/main
 - 修改前给出影响页范围；每次生成新版本，可回退。
 - 付款前预览低清或带保护标识；印刷版必须用原图重建。
 - 自动检查页数、出血、DPI、字体、溢出、缺图、重复、地图和隐私。
+- Harness 必须真实加载 `travel-memory-book` Skill，产出源素材 manifest、`journey-model.json`、编辑 brief、`selection-ledger.json`、`book-plan.json`、`visual-direction.json`、可编辑首版、全页预览、`revision-history.json`、印刷 PDF、制品 manifest 和 QA 报告或具有同等语义的类型化制品。
+- 原图只读并保留 SHA-256；用户修订生成新 `BookVersion`，不原地覆盖已批准版本。
 
 **完成定义**
 
@@ -444,6 +455,7 @@ git rev-list --left-right --count HEAD...origin/main
 - 自动质检失败、高风险内容、投诉和人工精修才进入例外队列。
 - 支持重试、取消、退款、重印和删除任务，不允许直接篡改已完成历史。
 - 看板展示上传成功率、生成成功率、人工介入、两轮定稿、印刷准时、重印、退款和单本贡献毛利。
+- 看板展示 Runner 健康、队列/并发、Harness/SDK/模型/Skill/渲染器/QA 版本、`skillLoaded`、Skill SHA-256、分阶段耗时、token/成本、重试、QA 失败、灰度和回滚。
 
 **完成定义**
 
@@ -458,7 +470,7 @@ git rev-list --left-right --count HEAD...origin/main
 
 **执行**
 
-1. 跑完整根、APP、Yudao、Worker、部署和浏览器门禁。
+1. 跑完整根、APP、Yudao、Worker、Codex Harness/Skill、部署和浏览器门禁。
 2. 完成双入口、弱网、权限拒绝、任务恢复、付款、印刷、退款和删除场景。
 3. 以 30–50 名有真实旅行计划或照片的用户试运营。
 4. 汇总上传完成、首版生成、全款、签收、人工时间、重印退款和贡献毛利。
@@ -466,6 +478,7 @@ git rev-list --left-right --count HEAD...origin/main
 **完成定义**
 
 - 所有 L0–L6 门禁均 PASS，或明确列出阻塞及责任人。
+- 服务器清洁容器、`travel-memory-book` Skill 真实加载、100 张以上真实成书、故障注入、灰度和回滚证据齐全。
 - 达到产品文档第 16.4 节门槛后才允许扩大投放。
 - 最终证据包可由新环境复查，并记录 GitHub/Gitee 提交哈希。
 
